@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shell, Sidebar, Header, Content } from '@heroui/react';
+import { Menu } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 import { Link, usePage } from '@inertiajs/react';
 
@@ -46,52 +46,94 @@ const DashboardLayout = ({ children }) => {
     ];
 
     return (
-        <Shell>
-            <Sidebar>
-                <Sidebar.Brand>
-                    <h2 className="text-xl font-bold">ZephyrusOR</h2>
-                </Sidebar.Brand>
-                <Sidebar.Nav>
-                    {navigationItems.map((item) => (
-                        <Sidebar.NavItem
-                            key={item.name}
-                            as={Link}
-                            href={item.href}
-                            icon={<Icon icon={item.icon} />}
-                            current={item.current}
-                        >
-                            {item.name}
-                        </Sidebar.NavItem>
-                    ))}
-                </Sidebar.Nav>
-            </Sidebar>
-            
-            <Shell.Main>
-                <Header>
-                    <Header.Title>Operating Room Analytics</Header.Title>
-                    <Header.Actions>
-                        <Header.UserMenu
-                            userImage="/images/default-avatar.png"
-                            userName={route().params.user?.name || 'User'}
-                            userEmail={route().params.user?.email || 'user@example.com'}
-                            items={[
-                                { label: 'Profile', href: route('profile.edit') },
-                                { label: 'Settings', href: '#' },
-                                { 
-                                    label: 'Sign out', 
-                                    href: route('logout'),
-                                    method: 'post'
-                                }
-                            ]}
-                        />
-                    </Header.Actions>
-                </Header>
-                
-                <Content>
+        <div className="min-h-screen bg-gray-100">
+            {/* Sidebar */}
+            <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+                <div className="flex flex-col h-full">
+                    <div className="px-4 py-6">
+                        <h2 className="text-xl font-bold">ZephyrusOR</h2>
+                    </div>
+                    <nav className="flex-1 px-2 space-y-1">
+                        {navigationItems.map((item) => (
+                            <Link
+                                key={item.name}
+                                href={item.href}
+                                className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+                                    item.current
+                                        ? 'bg-gray-100 text-gray-900'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                }`}
+                            >
+                                <Icon icon={item.icon} className="w-5 h-5 mr-3" />
+                                {item.name}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
+            </div>
+
+            {/* Main content */}
+            <div className="pl-64">
+                {/* Header */}
+                <header className="bg-white shadow">
+                    <div className="flex justify-between items-center px-4 py-6">
+                        <h1 className="text-2xl font-semibold text-gray-900">Operating Room Analytics</h1>
+                        <Menu as="div" className="relative">
+                            <Menu.Button className="flex items-center">
+                                <img
+                                    className="h-8 w-8 rounded-full"
+                                    src="/images/default-avatar.png"
+                                    alt="User avatar"
+                                />
+                            </Menu.Button>
+                            <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <Link
+                                            href={route('profile.edit')}
+                                            className={`${
+                                                active ? 'bg-gray-100' : ''
+                                            } block px-4 py-2 text-sm text-gray-700`}
+                                        >
+                                            Profile
+                                        </Link>
+                                    )}
+                                </Menu.Item>
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <Link
+                                            href="#"
+                                            className={`${
+                                                active ? 'bg-gray-100' : ''
+                                            } block px-4 py-2 text-sm text-gray-700`}
+                                        >
+                                            Settings
+                                        </Link>
+                                    )}
+                                </Menu.Item>
+                                <Menu.Item>
+                                    {({ active }) => (
+                                        <Link
+                                            href={route('logout')}
+                                            method="post"
+                                            className={`${
+                                                active ? 'bg-gray-100' : ''
+                                            } block px-4 py-2 text-sm text-gray-700`}
+                                        >
+                                            Sign out
+                                        </Link>
+                                    )}
+                                </Menu.Item>
+                            </Menu.Items>
+                        </Menu>
+                    </div>
+                </header>
+
+                <main className="py-6 px-4">
                     {children}
-                </Content>
-            </Shell.Main>
-        </Shell>
+                </main>
+            </div>
+        </div>
     );
 };
 

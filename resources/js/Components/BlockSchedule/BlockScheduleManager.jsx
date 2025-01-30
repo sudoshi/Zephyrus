@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Grid, Calendar, Button, Modal, Form, Select } from '@heroui/react';
+import Card from '../Card';
+import Calendar from './Calendar';
+import Button from '../PrimaryButton';
+import Modal from '../Modal';
+import Form from './Form';
+import Select from './Select';
 import { Icon } from '@iconify/react';
 import axios from 'axios';
+import { usePage, router } from '@inertiajs/react';
 
 const BlockScheduleManager = () => {
+    const { auth } = usePage().props;
     const [blocks, setBlocks] = useState([]);
     const [utilization, setUtilization] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -12,8 +19,12 @@ const BlockScheduleManager = () => {
     const [showModal, setShowModal] = useState(false);
     const [services, setServices] = useState([]);
     const [rooms, setRooms] = useState([]);
-
     useEffect(() => {
+        if (!auth.user) {
+            router.visit('/login');
+            return;
+        }
+
         const fetchData = async () => {
             try {
                 const [blocksRes, utilizationRes, servicesRes, roomsRes] = await Promise.all([
@@ -86,7 +97,6 @@ const BlockScheduleManager = () => {
             });
         } catch (err) {
             console.error('Error creating block:', err);
-            // You might want to show an error message to the user here
         }
     };
 
@@ -134,7 +144,7 @@ const BlockScheduleManager = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-96">
-                <Spinner size="lg" />
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
             </div>
         );
     }
@@ -161,17 +171,19 @@ const BlockScheduleManager = () => {
                 </Button>
             </div>
 
-            <Grid cols={3} gap={6}>
-                <Card className="col-span-2">
-                    <Card.Content>
-                        <Calendar
-                            value={selectedDate}
-                            onChange={setSelectedDate}
-                            renderDayContent={renderDayContent}
-                            className="h-[600px]"
-                        />
-                    </Card.Content>
-                </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <Card.Content>
+                            <Calendar
+                                value={selectedDate}
+                                onChange={setSelectedDate}
+                                renderDayContent={renderDayContent}
+                                className="h-[600px]"
+                            />
+                        </Card.Content>
+                    </Card>
+                </div>
 
                 <Card>
                     <Card.Header>
@@ -199,7 +211,7 @@ const BlockScheduleManager = () => {
                         </div>
                     </Card.Content>
                 </Card>
-            </Grid>
+            </div>
 
             <Modal
                 open={showModal}

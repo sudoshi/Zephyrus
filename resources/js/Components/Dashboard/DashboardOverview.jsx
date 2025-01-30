@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Grid, Stats, Chart, Spinner } from '@heroui/react';
+import Card from './Card';
+import Stats from './Stats';
 import { Icon } from '@iconify/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import { usePage, router } from '@inertiajs/react';
 
 const DashboardOverview = () => {
+    const { auth } = usePage().props;
     const [metrics, setMetrics] = useState(null);
     const [todaysCases, setTodaysCases] = useState([]);
     const [roomStatus, setRoomStatus] = useState([]);
@@ -12,6 +15,11 @@ const DashboardOverview = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!auth.user) {
+            router.visit('/login');
+            return;
+        }
+
         const fetchDashboardData = async () => {
             try {
                 const [metricsRes, casesRes, roomsRes] = await Promise.all([
@@ -42,7 +50,7 @@ const DashboardOverview = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-96">
-                <Spinner size="lg" />
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
             </div>
         );
     }
@@ -61,7 +69,7 @@ const DashboardOverview = () => {
 
     return (
         <div className="space-y-6 p-6">
-            <Grid cols={4} gap={6}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Stats
                     title="OR Utilization"
                     value={`${Math.round(summary.avg_utilization)}%`}
@@ -90,7 +98,7 @@ const DashboardOverview = () => {
                     trend={Math.round(summary.avg_turnover) < 30 ? 'down' : 'up'}
                     icon={<Icon icon="heroicons:arrow-path" />}
                 />
-            </Grid>
+            </div>
 
             <Card>
                 <Card.Header>
@@ -124,7 +132,7 @@ const DashboardOverview = () => {
                 </Card.Content>
             </Card>
 
-            <Grid cols={2} gap={6}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
                 <Card.Header>
                     <Card.Title>Today's Schedule</Card.Title>
@@ -209,7 +217,7 @@ const DashboardOverview = () => {
                         </div>
                     </Card.Content>
                 </Card>
-            </Grid>
+            </div>
         </div>
     );
 };
