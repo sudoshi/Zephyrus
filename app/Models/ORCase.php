@@ -2,13 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Reference\ASARating;
+use App\Models\Reference\CancellationReason;
+use App\Models\Reference\CaseClass;
+use App\Models\Reference\CaseStatus;
+use App\Models\Reference\CaseType;
+use App\Models\Reference\PatientClass;
+use App\Models\Reference\Service;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ORCase extends Model
 {
-    protected $table = 'prod.or_cases';
+    public $timestamps = false;
+    protected $table = 'prod.orcase';
     protected $primaryKey = 'case_id';
 
     protected $fillable = [
@@ -27,8 +35,11 @@ class ORCase extends Model
         'case_type_id',
         'case_class_id',
         'patient_class_id',
+        'procedure_name',
         'created_by',
         'modified_by',
+        'created_date',
+        'modified_date',
         'is_deleted'
     ];
 
@@ -36,8 +47,12 @@ class ORCase extends Model
         'surgery_date' => 'date',
         'scheduled_start_time' => 'datetime',
         'record_create_date' => 'datetime',
+        'created_date' => 'datetime',
+        'modified_date' => 'datetime',
         'is_deleted' => 'boolean'
     ];
+
+    protected $with = ['surgeon', 'room', 'service', 'status'];
 
     public function room(): BelongsTo
     {
@@ -97,5 +112,19 @@ class ORCase extends Model
     public function metrics(): HasOne
     {
         return $this->hasOne(CaseMetrics::class, 'case_id', 'case_id');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $model->created_date = $model->freshTimestamp();
+            $model->modified_date = $model->freshTimestamp();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_date = $model->freshTimestamp();
+        });
     }
 }

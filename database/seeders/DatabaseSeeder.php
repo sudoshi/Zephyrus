@@ -19,5 +19,9 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('acumenus'),
             'email_verified_at' => now()
         ]);
+
+        $this->call([
+            TestDataSeeder::class
+        ]);
     }
 }

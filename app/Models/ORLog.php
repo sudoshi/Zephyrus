@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ORLog extends Model
 {
-    protected $table = 'prod.or_logs';
+    public $timestamps = false;
+    protected $table = 'prod.orlog';
     protected $primaryKey = 'log_id';
 
     protected $fillable = [
@@ -30,6 +31,8 @@ class ORLog extends Model
         'primary_procedure',
         'created_by',
         'modified_by',
+        'created_date',
+        'modified_date',
         'is_deleted'
     ];
 
@@ -47,6 +50,8 @@ class ORLog extends Model
         'anesthesia_end_time' => 'datetime',
         'pacu_in_time' => 'datetime',
         'pacu_out_time' => 'datetime',
+        'created_date' => 'datetime',
+        'modified_date' => 'datetime',
         'is_deleted' => 'boolean'
     ];
 
@@ -93,5 +98,19 @@ class ORLog extends Model
             return $this->pacu_in_time->diffInMinutes($this->pacu_out_time);
         }
         return null;
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $model->created_date = $model->freshTimestamp();
+            $model->modified_date = $model->freshTimestamp();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_date = $model->freshTimestamp();
+        });
     }
 }

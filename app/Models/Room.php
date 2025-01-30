@@ -8,22 +8,27 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Room extends Model
 {
-    protected $table = 'prod.rooms';
+    public $timestamps = false;
+    protected $table = 'prod.room';
     protected $primaryKey = 'room_id';
 
     protected $fillable = [
         'location_id',
         'name',
-        'type',
+        'room_type',
         'active_status',
         'created_by',
         'modified_by',
+        'created_date',
+        'modified_date',
         'is_deleted'
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
+        'created_date' => 'datetime',
+        'modified_date' => 'datetime'
     ];
 
     public function location(): BelongsTo
@@ -54,6 +59,20 @@ class Room extends Model
 
     public function scopeOperatingRooms($query)
     {
-        return $query->where('type', 'OR');
+        return $query->where('room_type', 'OR');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $model->created_date = $model->freshTimestamp();
+            $model->modified_date = $model->freshTimestamp();
+        });
+
+        static::updating(function ($model) {
+            $model->modified_date = $model->freshTimestamp();
+        });
     }
 }
