@@ -94,6 +94,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'prod,stg,public',
+            'schema' => 'public',
             'sslmode' => 'prefer',
         ],
 
