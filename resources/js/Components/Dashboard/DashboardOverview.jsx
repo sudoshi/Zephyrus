@@ -3,8 +3,8 @@ import Card from './Card';
 import Stats from './Stats';
 import { Icon } from '@iconify/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import axios from 'axios';
-import { usePage, router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
+import DataService from '../../services/data-service';
 
 const DashboardOverview = () => {
     const { auth } = usePage().props;
@@ -15,22 +15,17 @@ const DashboardOverview = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!auth.user) {
-            router.visit('/login');
-            return;
-        }
-
         const fetchDashboardData = async () => {
             try {
-                const [metricsRes, casesRes, roomsRes] = await Promise.all([
-                    axios.get('/api/cases/metrics'),
-                    axios.get('/api/cases/today'),
-                    axios.get('/api/cases/room-status')
+                const [metrics, cases, rooms] = await Promise.all([
+                    DataService.getDashboardMetrics(),
+                    DataService.getTodaysCases(),
+                    DataService.getRoomStatus()
                 ]);
 
-                setMetrics(metricsRes.data);
-                setTodaysCases(casesRes.data);
-                setRoomStatus(roomsRes.data);
+                setMetrics(metrics);
+                setTodaysCases(cases);
+                setRoomStatus(rooms);
                 setError(null);
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);

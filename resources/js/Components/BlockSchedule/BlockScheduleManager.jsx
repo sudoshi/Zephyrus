@@ -6,8 +6,8 @@ import Modal from '../Modal';
 import Form from './Form';
 import Select from './Select';
 import { Icon } from '@iconify/react';
-import axios from 'axios';
-import { usePage, router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
+import DataService from '../../services/data-service';
 
 const BlockScheduleManager = () => {
     const { auth } = usePage().props;
@@ -20,24 +20,24 @@ const BlockScheduleManager = () => {
     const [services, setServices] = useState([]);
     const [rooms, setRooms] = useState([]);
     useEffect(() => {
-        if (!auth.user) {
-            router.visit('/login');
-            return;
-        }
-
         const fetchData = async () => {
             try {
-                const [blocksRes, utilizationRes, servicesRes, roomsRes] = await Promise.all([
-                    axios.get('/api/blocks'),
-                    axios.get('/api/blocks/utilization'),
-                    axios.get('/api/services'),
-                    axios.get('/api/rooms')
+                const [blocks, utilization, services] = await Promise.all([
+                    DataService.getBlockTemplates(),
+                    DataService.getBlockUtilization(selectedDate.toISOString().split('T')[0]),
+                    DataService.getServices()
                 ]);
 
-                setBlocks(blocksRes.data);
-                setUtilization(utilizationRes.data);
-                setServices(servicesRes.data);
-                setRooms(roomsRes.data);
+                setBlocks(blocks);
+                setUtilization(utilization);
+                setServices(services);
+                setRooms([
+                    { room_id: 1, name: 'OR-1' },
+                    { room_id: 2, name: 'OR-2' },
+                    { room_id: 3, name: 'OR-3' },
+                    { room_id: 4, name: 'OR-4' },
+                    { room_id: 5, name: 'OR-5' }
+                ]);
                 setError(null);
             } catch (err) {
                 console.error('Error fetching data:', err);
@@ -48,7 +48,7 @@ const BlockScheduleManager = () => {
         };
 
         fetchData();
-    }, []);
+    }, [selectedDate]);
 
     const getBlocksForDate = (date) => {
         return blocks.filter(block => 
@@ -80,13 +80,19 @@ const BlockScheduleManager = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/api/blocks', formData);
-            const [blocksRes, utilizationRes] = await Promise.all([
-                axios.get('/api/blocks'),
-                axios.get('/api/blocks/utilization')
-            ]);
-            setBlocks(blocksRes.data);
-            setUtilization(utilizationRes.data);
+            // In mock mode, just update the local state with new block
+            const newBlock = {
+                block_id: blocks.length + 1,
+                room_id: formData.room_id,
+                service_id: formData.service_id,
+                service_name: services.find(s => s.service_id === formData.service_id)?.name,
+                block_date: formData.block_date,
+                start_time: formData.start_time,
+                end_time: formData.end_time,
+                title: `${services.find(s => s.service_id === formData.service_id)?.name} Block`
+            };
+            
+            setBlocks([...blocks, newBlock]);
             setShowModal(false);
             setFormData({
                 service_id: '',
