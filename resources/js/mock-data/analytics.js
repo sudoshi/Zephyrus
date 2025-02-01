@@ -1,45 +1,108 @@
-export const mockPerformanceMetrics = {
-  utilization: {
-    current_month: 82.5,
-    previous_month: 79.8,
-    trend: [
-      { date: '2024-12-01', value: 79.8 },
-      { date: '2025-01-01', value: 82.5 }
-    ],
-    by_service: [
-      { service: 'Orthopedics', value: 85.3 },
-      { service: 'General Surgery', value: 83.1 },
-      { service: 'Cardiology', value: 81.9 },
-      { service: 'Neurosurgery', value: 79.4 }
-    ]
-  },
-  turnover_time: {
-    current_month: 27.5,
-    previous_month: 29.2,
-    trend: [
-      { date: '2024-12-01', value: 29.2 },
-      { date: '2025-01-01', value: 27.5 }
-    ],
-    by_service: [
-      { service: 'Orthopedics', value: 28.5 },
-      { service: 'General Surgery', value: 25.8 },
-      { service: 'Cardiology', value: 29.1 },
-      { service: 'Neurosurgery', value: 26.7 }
-    ]
-  },
-  first_case_starts: {
-    on_time_percentage: 85.2,
-    trend: [
-      { date: '2024-12-01', value: 82.1 },
-      { date: '2025-01-01', value: 85.2 }
-    ],
-    by_service: [
-      { service: 'Orthopedics', value: 87.5 },
-      { service: 'General Surgery', value: 84.2 },
-      { service: 'Cardiology', value: 86.1 },
-      { service: 'Neurosurgery', value: 83.0 }
-    ]
+// Generate 30 days of trend data
+const generateTrendData = () => {
+  const trends = [];
+  for (let i = 0; i < 30; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    trends.push({
+      date: date.toISOString().split('T')[0],
+      utilization: Math.floor(Math.random() * 20) + 70, // 70-90%
+      case_count: Math.floor(Math.random() * 15) + 10,
+      turnover: Math.floor(Math.random() * 10) + 25, // 25-35 minutes
+      on_time_starts: Math.floor(Math.random() * 15) + 80 // 80-95%
+    });
   }
+  return trends;
+};
+
+// Service performance data
+const serviceData = [
+  {
+    service_id: 1,
+    service_name: 'Orthopedics',
+    case_count: 245,
+    avg_utilization: 85.3,
+    avg_turnover: 28.5,
+    on_time_start_percentage: 87.5,
+    avg_duration: 120
+  },
+  {
+    service_id: 2,
+    service_name: 'General Surgery',
+    case_count: 312,
+    avg_utilization: 83.1,
+    avg_turnover: 25.8,
+    on_time_start_percentage: 84.2,
+    avg_duration: 95
+  },
+  {
+    service_id: 3,
+    service_name: 'Cardiology',
+    case_count: 178,
+    avg_utilization: 81.9,
+    avg_turnover: 29.1,
+    on_time_start_percentage: 86.1,
+    avg_duration: 150
+  },
+  {
+    service_id: 4,
+    service_name: 'Neurosurgery',
+    case_count: 156,
+    avg_utilization: 79.4,
+    avg_turnover: 26.7,
+    on_time_start_percentage: 83.0,
+    avg_duration: 180
+  },
+  {
+    service_id: 5,
+    service_name: 'ENT',
+    case_count: 289,
+    avg_utilization: 78.6,
+    avg_turnover: 24.3,
+    on_time_start_percentage: 88.5,
+    avg_duration: 75
+  }
+];
+
+// Generate historical trend data (12 months)
+const generateHistoricalTrends = () => {
+  const trends = [];
+  for (let i = 0; i < 12; i++) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (11 - i));
+    
+    // Create realistic seasonal patterns
+    const seasonalFactor = Math.sin((i / 11) * Math.PI) * 0.15 + 1; // ±15% seasonal variation
+    const baseVolume = 250;
+    const baseUtilization = 80;
+    
+    trends.push({
+      date: date.toISOString().split('T')[0],
+      total_cases: Math.floor(baseVolume * seasonalFactor + (Math.random() * 30 - 15)),
+      utilization: Math.min(95, Math.floor(baseUtilization * seasonalFactor + (Math.random() * 6 - 3))),
+      on_time_percentage: Math.floor(82 + (Math.random() * 10 - 5)),
+      used_minutes: Math.floor(28800 * (baseUtilization * seasonalFactor / 100)), // 8 hours * 60 minutes * utilization
+      available_minutes: 28800 // 8 hours * 60 minutes
+    });
+  }
+  return trends;
+};
+
+export const mockPerformanceMetrics = {
+  utilization: serviceData,
+  trends: generateTrendData(),
+  turnover_time: serviceData.reduce((acc, service) => ({
+    ...acc,
+    [service.service_name]: service.avg_turnover
+  }), {}),
+  first_case_starts: serviceData.reduce((acc, service) => ({
+    ...acc,
+    [service.service_name]: service.on_time_start_percentage
+  }), {}),
+  // Historical trends data
+  volume_trends: generateHistoricalTrends(),
+  utilization_trends: generateHistoricalTrends(),
+  ontime_trends: generateHistoricalTrends()
 };
 
 export const mockSurgeonScorecard = {
@@ -95,7 +158,7 @@ export const mockCapacityAnalysis = {
     ]
   },
   prime_time_utilization: {
-    total_minutes: 28800, // 8 hours * 60 minutes * 6 rooms
+    total_minutes: 28800,
     utilized_minutes: 24480,
     utilization_rate: 85.0,
     by_room: [
@@ -128,7 +191,9 @@ export const mockCapacityAnalysis = {
         ]
       }
     ]
-  }
+  },
+  // Historical capacity trends
+  trends: generateHistoricalTrends()
 };
 
 export const mockEfficiencyMetrics = {

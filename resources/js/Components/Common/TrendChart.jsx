@@ -100,7 +100,8 @@ export const formatters = {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
-    })
+    }),
+    decimal: (value) => Number(value).toFixed(1)
 };
 
 export default TrendChart;

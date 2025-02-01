@@ -6,8 +6,8 @@ export const mockBlockTemplates = [
     surgeon_id: 1,
     title: 'Ortho AM Block',
     abbreviation: 'ORTHO-AM',
-    start_time: '07:30',
-    end_time: '11:30',
+    start_time: '2025-01-31T07:30:00',
+    end_time: '2025-01-31T11:30:00',
     is_public: false,
     days_of_week: [1, 3, 5] // Monday, Wednesday, Friday
   },
@@ -18,8 +18,8 @@ export const mockBlockTemplates = [
     surgeon_id: 1,
     title: 'Ortho PM Block',
     abbreviation: 'ORTHO-PM',
-    start_time: '12:30',
-    end_time: '16:30',
+    start_time: '2025-01-31T12:30:00',
+    end_time: '2025-01-31T16:30:00',
     is_public: false,
     days_of_week: [1, 3, 5]
   },
@@ -30,8 +30,8 @@ export const mockBlockTemplates = [
     surgeon_id: 2,
     title: 'General Surgery Block',
     abbreviation: 'GS',
-    start_time: '08:00',
-    end_time: '16:00',
+    start_time: '2025-01-31T08:00:00',
+    end_time: '2025-01-31T16:00:00',
     is_public: false,
     days_of_week: [2, 4] // Tuesday, Thursday
   },
@@ -42,8 +42,8 @@ export const mockBlockTemplates = [
     surgeon_id: 3,
     title: 'Neurosurgery Block',
     abbreviation: 'NEURO',
-    start_time: '07:30',
-    end_time: '15:30',
+    start_time: '2025-01-31T07:30:00',
+    end_time: '2025-01-31T15:30:00',
     is_public: false,
     days_of_week: [1, 4] // Monday, Thursday
   },
@@ -54,8 +54,8 @@ export const mockBlockTemplates = [
     surgeon_id: 4,
     title: 'Cardiology Block',
     abbreviation: 'CARD',
-    start_time: '07:00',
-    end_time: '15:00',
+    start_time: '2025-01-31T07:00:00',
+    end_time: '2025-01-31T15:00:00',
     is_public: false,
     days_of_week: [2, 5] // Tuesday, Friday
   }
@@ -110,20 +110,20 @@ export const mockBlockSchedule = {
       room_name: 'OR-1',
       service_name: 'Orthopedics',
       surgeon_name: 'Dr. Sarah Johnson',
-      start_time: '07:30',
-      end_time: '11:30',
+      start_time: '2025-01-30T07:30:00',
+      end_time: '2025-01-30T11:30:00',
       cases: [
         {
           case_id: 1,
           procedure_name: 'Total Knee Arthroplasty',
-          start_time: '07:30',
+          start_time: '2025-01-30T07:30:00',
           duration: 180,
           status: 'In Progress'
         },
         {
           case_id: 2,
           procedure_name: 'Arthroscopic Shoulder Repair',
-          start_time: '10:30',
+          start_time: '2025-01-30T10:30:00',
           duration: 120,
           status: 'Scheduled'
         }
@@ -134,13 +134,13 @@ export const mockBlockSchedule = {
       room_name: 'OR-1',
       service_name: 'Orthopedics',
       surgeon_name: 'Dr. Sarah Johnson',
-      start_time: '12:30',
-      end_time: '16:30',
+      start_time: '2025-01-30T12:30:00',
+      end_time: '2025-01-30T16:30:00',
       cases: [
         {
           case_id: 5,
           procedure_name: 'Hip Replacement',
-          start_time: '13:30',
+          start_time: '2025-01-30T13:30:00',
           duration: 180,
           status: 'Scheduled'
         }
@@ -151,20 +151,20 @@ export const mockBlockSchedule = {
       room_name: 'OR-2',
       service_name: 'General Surgery',
       surgeon_name: 'Dr. Michael Smith',
-      start_time: '08:00',
-      end_time: '16:00',
+      start_time: '2025-01-30T08:00:00',
+      end_time: '2025-01-30T16:00:00',
       cases: [
         {
           case_id: 3,
           procedure_name: 'Laparoscopic Cholecystectomy',
-          start_time: '08:00',
+          start_time: '2025-01-30T08:00:00',
           duration: 120,
           status: 'In Progress'
         },
         {
           case_id: 4,
           procedure_name: 'Appendectomy',
-          start_time: '10:30',
+          start_time: '2025-01-30T10:30:00',
           duration: 90,
           status: 'Scheduled'
         }
@@ -192,8 +192,8 @@ export const mockBlockStatistics = {
       room_name: 'OR-5',
       service_name: 'Neurosurgery',
       date: '2025-02-03',
-      start_time: '07:30',
-      end_time: '15:30',
+      start_time: '2025-02-03T07:30:00',
+      end_time: '2025-02-03T15:30:00',
       release_time: '2025-01-27T10:00:00'
     }
   ]

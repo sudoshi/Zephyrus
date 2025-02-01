@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../Card';
+import Card from '../Dashboard/Card';
 import Calendar from './Calendar';
 import Button from '../PrimaryButton';
 import Modal from '../Modal';
@@ -15,17 +15,33 @@ const BlockScheduleManager = () => {
     const [utilization, setUtilization] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        return date;
+    });
     const [showModal, setShowModal] = useState(false);
     const [services, setServices] = useState([]);
     const [rooms, setRooms] = useState([]);
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            
             try {
                 const [blocks, utilization, services] = await Promise.all([
-                    DataService.getBlockTemplates(),
-                    DataService.getBlockUtilization(selectedDate.toISOString().split('T')[0]),
-                    DataService.getServices()
+                    DataService.getBlockTemplates().catch(err => {
+                        console.error('Error fetching block templates:', err);
+                        throw new Error('Failed to load block templates');
+                    }),
+                    DataService.getBlockUtilization(selectedDate.toISOString().split('T')[0]).catch(err => {
+                        console.error('Error fetching block utilization:', err);
+                        throw new Error('Failed to load block utilization');
+                    }),
+                    DataService.getServices().catch(err => {
+                        console.error('Error fetching services:', err);
+                        throw new Error('Failed to load services');
+                    })
                 ]);
 
                 setBlocks(blocks);
@@ -38,10 +54,12 @@ const BlockScheduleManager = () => {
                     { room_id: 4, name: 'OR-4' },
                     { room_id: 5, name: 'OR-5' }
                 ]);
-                setError(null);
             } catch (err) {
-                console.error('Error fetching data:', err);
-                setError('Failed to load schedule data');
+                setError(err.message || 'Failed to load schedule data');
+                // Reset states on error
+                setBlocks([]);
+                setUtilization(null);
+                setServices([]);
             } finally {
                 setLoading(false);
             }
@@ -51,9 +69,16 @@ const BlockScheduleManager = () => {
     }, [selectedDate]);
 
     const getBlocksForDate = (date) => {
-        return blocks.filter(block => 
-            new Date(block.block_date).toDateString() === date.toDateString()
-        );
+        return blocks.filter(block => {
+            // Convert Sunday (0) to 7, otherwise use getDay() directly
+            const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+            return block.days_of_week.includes(dayOfWeek);
+        }).map(block => ({
+            ...block,
+            block_date: date.toISOString().split('T')[0],
+            service_name: services.find(s => s.service_id === block.service_id)?.name,
+            title: `${services.find(s => s.service_id === block.service_id)?.name} Block`
+        }));
     };
 
     const getUtilizationColor = (percentage) => {
@@ -81,15 +106,21 @@ const BlockScheduleManager = () => {
         e.preventDefault();
         try {
             // In mock mode, just update the local state with new block
+            // Format the date and time strings
+            const date = formData.block_date;
+            const startDateTime = `${date}T${formData.start_time}:00`;
+            const endDateTime = `${date}T${formData.end_time}:00`;
+
             const newBlock = {
                 block_id: blocks.length + 1,
                 room_id: formData.room_id,
                 service_id: formData.service_id,
                 service_name: services.find(s => s.service_id === formData.service_id)?.name,
                 block_date: formData.block_date,
-                start_time: formData.start_time,
-                end_time: formData.end_time,
-                title: `${services.find(s => s.service_id === formData.service_id)?.name} Block`
+                start_time: startDateTime,
+                end_time: endDateTime,
+                title: `${services.find(s => s.service_id === formData.service_id)?.name} Block`,
+                days_of_week: [new Date(date).getDay()] // Add the day of week for the selected date
             };
             
             setBlocks([...blocks, newBlock]);
@@ -114,10 +145,12 @@ const BlockScheduleManager = () => {
                 <div className="text-sm text-gray-500">
                     {new Date(block.start_time).toLocaleTimeString('en-US', {
                         hour: 'numeric',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: true
                     })} - {new Date(block.end_time).toLocaleTimeString('en-US', {
                         hour: 'numeric',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: true
                     })}
                 </div>
                 {blockUtil && (
@@ -219,67 +252,66 @@ const BlockScheduleManager = () => {
                 </Card>
             </div>
 
-            <Modal
-                open={showModal}
-                onClose={() => setShowModal(false)}
-                title="Add Block Time"
-            >
-                <Form onSubmit={handleSubmit} className="space-y-4">
-                    <Form.Field>
-                        <Form.Label>Service</Form.Label>
-                        <Select
-                            value={formData.service_id}
-                            onChange={(value) => handleInputChange('service_id', value)}
-                            options={services.map(s => ({
-                                label: s.name,
-                                value: s.service_id
-                            }))}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <Form.Label>Room</Form.Label>
-                        <Select
-                            value={formData.room_id}
-                            onChange={(value) => handleInputChange('room_id', value)}
-                            options={rooms.map(r => ({
-                                label: r.name,
-                                value: r.room_id
-                            }))}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <Form.Label>Date</Form.Label>
-                        <Form.Input
-                            type="date"
-                            value={formData.block_date}
-                            onChange={(e) => handleInputChange('block_date', e.target.value)}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <Form.Label>Start Time</Form.Label>
-                        <Form.Input
-                            type="time"
-                            value={formData.start_time}
-                            onChange={(e) => handleInputChange('start_time', e.target.value)}
-                        />
-                    </Form.Field>
-                    <Form.Field>
-                        <Form.Label>End Time</Form.Label>
-                        <Form.Input
-                            type="time"
-                            value={formData.end_time}
-                            onChange={(e) => handleInputChange('end_time', e.target.value)}
-                        />
-                    </Form.Field>
-                    <div className="flex justify-end space-x-4">
-                        <Button variant="secondary" onClick={() => setShowModal(false)}>
-                            Cancel
-                        </Button>
-                        <Button variant="primary" type="submit">
-                            Save Block
-                        </Button>
-                    </div>
-                </Form>
+            <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
+                <div className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Add Block Time</h3>
+                    <Form onSubmit={handleSubmit} className="space-y-4">
+                        <Form.Field>
+                            <Form.Label>Service</Form.Label>
+                            <Select
+                                value={formData.service_id}
+                                onChange={(value) => handleInputChange('service_id', value)}
+                                options={services.map(s => ({
+                                    label: s.name,
+                                    value: s.service_id
+                                }))}
+                            />
+                        </Form.Field>
+                        <Form.Field>
+                            <Form.Label>Room</Form.Label>
+                            <Select
+                                value={formData.room_id}
+                                onChange={(value) => handleInputChange('room_id', value)}
+                                options={rooms.map(r => ({
+                                    label: r.name,
+                                    value: r.room_id
+                                }))}
+                            />
+                        </Form.Field>
+                        <Form.Field>
+                            <Form.Label>Date</Form.Label>
+                            <Form.Input
+                                type="date"
+                                value={formData.block_date}
+                                onChange={(e) => handleInputChange('block_date', e.target.value)}
+                            />
+                        </Form.Field>
+                        <Form.Field>
+                            <Form.Label>Start Time</Form.Label>
+                            <Form.Input
+                                type="time"
+                                value={formData.start_time}
+                                onChange={(e) => handleInputChange('start_time', e.target.value)}
+                            />
+                        </Form.Field>
+                        <Form.Field>
+                            <Form.Label>End Time</Form.Label>
+                            <Form.Input
+                                type="time"
+                                value={formData.end_time}
+                                onChange={(e) => handleInputChange('end_time', e.target.value)}
+                            />
+                        </Form.Field>
+                        <div className="flex justify-end space-x-4">
+                            <Button variant="secondary" onClick={() => setShowModal(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="primary" type="submit">
+                                Save Block
+                            </Button>
+                        </div>
+                    </Form>
+                </div>
             </Modal>
         </div>
     );

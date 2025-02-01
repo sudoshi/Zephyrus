@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import ServiceDashboard from '@/Components/Analytics/ServiceAnalytics/ServiceDashboard';
+import ProviderDashboard from '@/Components/Analytics/ProviderAnalytics/ProviderDashboard';
+import TrendsOverview from '@/Components/Analytics/HistoricalTrends/TrendsOverview';
 import { Head } from '@inertiajs/react';
-import { Card, Tabs } from '@heroui/react';
+import { Tabs } from '@heroui/react';
+import Card from '@/Components/Dashboard/Card';
+import { Icon } from '@iconify/react';
 
 const Analytics = () => {
     const [activeTab, setActiveTab] = useState('services');
@@ -30,19 +34,9 @@ const Analytics = () => {
             case 'services':
                 return <ServiceDashboard />;
             case 'providers':
-                return (
-                    <div className="p-6 text-center text-gray-500">
-                        <Icon icon="heroicons:clock" className="w-12 h-12 mx-auto mb-4" />
-                        <p>Provider Analytics coming soon</p>
-                    </div>
-                );
+                return <ProviderDashboard />;
             case 'historical':
-                return (
-                    <div className="p-6 text-center text-gray-500">
-                        <Icon icon="heroicons:clock" className="w-12 h-12 mx-auto mb-4" />
-                        <p>Historical Trends coming soon</p>
-                    </div>
-                );
+                return <TrendsOverview />;
             default:
                 return null;
         }

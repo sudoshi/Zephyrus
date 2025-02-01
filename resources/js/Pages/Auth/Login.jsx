@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import ModeToggle from '@/Components/Common/ModeToggle';
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -30,6 +31,10 @@ export default function Login({ status, canResetPassword }) {
                     {status}
                 </div>
             )}
+
+            <div className="mb-6">
+                <ModeToggle />
+            </div>
 
             <form onSubmit={submit}>
                 <div>

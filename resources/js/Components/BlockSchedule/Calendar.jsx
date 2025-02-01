@@ -20,12 +20,18 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
 
     const handleDateClick = (day) => {
         const newDate = new Date(value.getFullYear(), value.getMonth(), day);
+        // Set time to midnight to avoid timezone issues
+        newDate.setHours(0, 0, 0, 0);
         onChange(newDate);
     };
 
     const handleMonthChange = (increment) => {
         const newDate = new Date(value);
         newDate.setMonth(newDate.getMonth() + increment);
+        // Set time to midnight to avoid timezone issues
+        newDate.setHours(0, 0, 0, 0);
+        // Reset to first day of month to avoid skipping months
+        newDate.setDate(1);
         onChange(newDate);
     };
 

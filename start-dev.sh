@@ -67,8 +67,8 @@ if [ ! -d "${SCRIPT_DIR}/node_modules" ]; then
 fi
 
 # Run database migrations
-print_status "$YELLOW" "Running database migrations..."
-php artisan migrate
+# print_status "$YELLOW" "Running database migrations..."
+# php artisan migrate
 
 # Start Laravel development server
 print_status "$YELLOW" "Starting Laravel development server..."

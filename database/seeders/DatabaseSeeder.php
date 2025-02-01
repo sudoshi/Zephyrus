@@ -20,8 +20,8 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now()
         ]);
 
-        $this->call([
-            TestDataSeeder::class
-        ]);
+        // $this->call([
+        //     TestDataSeeder::class
+        // ]);
     }
 }

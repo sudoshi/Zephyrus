@@ -1,64 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Grid, Badge, Progress } from '@heroui/react';
+import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
-import axios from 'axios';
+import { mockRoomStatus, mockRoomMetrics } from '@/mock-data/room-status';
 
 const RoomStatusBoard = () => {
-    const [rooms, setRooms] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [rooms, setRooms] = useState(mockRoomStatus);
+    const [metrics, setMetrics] = useState(mockRoomMetrics);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchRoomStatus = async () => {
-            try {
-                const [statusRes, casesRes] = await Promise.all([
-                    axios.get('/api/cases/room-status'),
-                    axios.get('/api/cases/today')
-                ]);
-
-                // Combine room status with case details
-                const roomsWithCases = statusRes.data.map(room => {
-                    const currentCase = casesRes.data.find(c => 
-                        c.room_id === room.room_id && 
-                        c.status === 'In Progress'
-                    );
-                    const nextCase = casesRes.data.find(c => 
-                        c.room_id === room.room_id && 
-                        c.status === 'Scheduled' &&
-                        !c.actual_start_time
-                    );
-                    
-                    return {
-                        ...room,
-                        currentCase,
-                        nextCase
-                    };
-                });
-
-                setRooms(roomsWithCases);
-                setError(null);
-            } catch (err) {
-                console.error('Error fetching room status:', err);
-                setError('Failed to load room status');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRoomStatus();
-        // Refresh every minute
-        const interval = setInterval(fetchRoomStatus, 60 * 1000);
-        return () => clearInterval(interval);
-    }, []);
-
     const getStatusColor = (status) => {
-        const colors = {
-            'In Progress': 'green',
-            'Turnover': 'yellow',
-            'Available': 'blue',
-            'Delayed': 'red'
-        };
-        return colors[status] || 'gray';
+        switch (status) {
+            case 'In Progress':
+                return 'bg-green-100 text-green-800';
+            case 'Turnover':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'Available':
+                return 'bg-blue-100 text-blue-800';
+            case 'Delayed':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getProgressColor = (progress) => {
+        if (progress >= 100) return 'bg-red-600';
+        if (progress >= 90) return 'bg-yellow-600';
+        return 'bg-green-600';
     };
 
     const calculateProgress = (startTime, duration) => {
@@ -78,7 +47,7 @@ const RoomStatusBoard = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-96">
-                <Spinner size="lg" />
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
             </div>
         );
     }
@@ -94,24 +63,85 @@ const RoomStatusBoard = () => {
 
     return (
         <div className="space-y-6">
-            <Grid cols={3} gap={6}>
+            {/* Summary Metrics */}
+            <div className="grid grid-cols-4 gap-4">
+                <Card>
+                    <Card.Content>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium text-gray-500">Overall Utilization</div>
+                                <div className="mt-1 text-2xl font-semibold">{metrics.overall_utilization}%</div>
+                            </div>
+                            <div className="p-3 bg-blue-100 rounded-full">
+                                <Icon icon="heroicons:chart-bar" className="w-6 h-6 text-blue-600" />
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card>
+
+                <Card>
+                    <Card.Content>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium text-gray-500">Average Turnover</div>
+                                <div className="mt-1 text-2xl font-semibold">{metrics.average_turnover}m</div>
+                            </div>
+                            <div className="p-3 bg-green-100 rounded-full">
+                                <Icon icon="heroicons:clock" className="w-6 h-6 text-green-600" />
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card>
+
+                <Card>
+                    <Card.Content>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium text-gray-500">On-Time Starts</div>
+                                <div className="mt-1 text-2xl font-semibold">{metrics.on_time_starts}/{metrics.on_time_starts + metrics.late_starts}</div>
+                            </div>
+                            <div className="p-3 bg-yellow-100 rounded-full">
+                                <Icon icon="heroicons:check-circle" className="w-6 h-6 text-yellow-600" />
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card>
+
+                <Card>
+                    <Card.Content>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium text-gray-500">Delays Today</div>
+                                <div className="mt-1 text-2xl font-semibold">{metrics.delays_today}</div>
+                            </div>
+                            <div className="p-3 bg-red-100 rounded-full">
+                                <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-red-600" />
+                            </div>
+                        </div>
+                    </Card.Content>
+                </Card>
+            </div>
+
+            {/* Room Status Grid */}
+            <div className="grid grid-cols-3 gap-6">
                 {rooms.map(room => {
-                    const color = getStatusColor(room.status);
-                    const progress = room.currentCase ? 
-                        calculateProgress(room.or_in_time, room.currentCase.estimated_duration) : 0;
+                    const progress = room.current_case ? 
+                        calculateProgress(room.or_in_time, room.current_case.estimated_duration) : 0;
 
                     return (
-                        <Card key={room.room_id} className={`bg-${color}-50`}>
+                        <Card key={room.room_id}>
                             <Card.Header>
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <Card.Title>{room.room_name}</Card.Title>
-                                        <Badge color={color}>{room.status}</Badge>
+                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
+                                            {room.status}
+                                        </span>
                                     </div>
                                     {room.status === 'In Progress' && (
                                         <div className="text-right">
-                                            <div className="text-sm font-medium">Case Time</div>
-                                            <div className={`text-${color}-600`}>
+                                            <div className="text-sm font-medium text-gray-500">Case Time</div>
+                                            <div className="text-green-600 font-medium">
                                                 {formatDuration(Math.round((new Date() - new Date(room.or_in_time)) / 1000 / 60))}
                                             </div>
                                         </div>
@@ -120,33 +150,48 @@ const RoomStatusBoard = () => {
                             </Card.Header>
 
                             <Card.Content>
-                                {room.currentCase ? (
+                                {room.current_case ? (
                                     <div className="space-y-4">
                                         <div>
-                                            <div className="font-medium">{room.currentCase.procedure_name}</div>
+                                            <div className="font-medium">{room.current_case.procedure_name}</div>
                                             <div className="text-sm text-gray-500">
-                                                {room.currentCase.surgeon_name} • {room.currentCase.service_name}
+                                                {room.current_case.surgeon_name} • {room.current_case.service_name}
                                             </div>
                                         </div>
-                                        <Progress 
-                                            value={progress}
-                                            color={progress > 100 ? 'red' : color}
-                                            label={`${progress}% Complete`}
-                                        />
+                                        <div className="relative pt-1">
+                                            <div className="flex mb-2 items-center justify-between">
+                                                <div>
+                                                    <span className="text-xs font-semibold inline-block text-gray-600">
+                                                        Progress
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xs font-semibold inline-block text-gray-600">
+                                                        {progress}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                                                <div
+                                                    style={{ width: `${progress}%` }}
+                                                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${getProgressColor(progress)}`}
+                                                ></div>
+                                            </div>
+                                        </div>
                                         <div className="text-sm text-gray-500">
-                                            Estimated Duration: {formatDuration(room.currentCase.estimated_duration)}
+                                            Estimated Duration: {formatDuration(room.current_case.estimated_duration)}
                                         </div>
                                     </div>
-                                ) : room.nextCase ? (
+                                ) : room.next_case ? (
                                     <div className="space-y-2">
                                         <div className="text-sm text-gray-500">Next Case</div>
                                         <div>
-                                            <div className="font-medium">{room.nextCase.procedure_name}</div>
+                                            <div className="font-medium">{room.next_case.procedure_name}</div>
                                             <div className="text-sm text-gray-500">
-                                                {new Date(room.nextCase.scheduled_start_time).toLocaleTimeString('en-US', {
+                                                {new Date(room.next_case.scheduled_start_time).toLocaleTimeString('en-US', {
                                                     hour: 'numeric',
                                                     minute: '2-digit'
-                                                })} • {formatDuration(room.nextCase.estimated_duration)}
+                                                })} • {formatDuration(room.next_case.estimated_duration)}
                                             </div>
                                         </div>
                                     </div>
@@ -155,11 +200,27 @@ const RoomStatusBoard = () => {
                                         No cases scheduled
                                     </div>
                                 )}
+
+                                {/* Room Stats */}
+                                <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4">
+                                    <div>
+                                        <div className="text-sm font-medium text-gray-500">Today</div>
+                                        <div className="mt-1 text-lg font-semibold">{room.utilization.today}%</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-gray-500">Week</div>
+                                        <div className="mt-1 text-lg font-semibold">{room.utilization.week}%</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-gray-500">Month</div>
+                                        <div className="mt-1 text-lg font-semibold">{room.utilization.month}%</div>
+                                    </div>
+                                </div>
                             </Card.Content>
                         </Card>
                     );
                 })}
-            </Grid>
+            </div>
         </div>
     );
 };

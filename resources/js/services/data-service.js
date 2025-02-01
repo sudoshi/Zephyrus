@@ -1,122 +1,84 @@
 import axios from 'axios';
-import { mockMetrics, mockTodaysCases, mockRoomStatus, mockServices, mockSurgeons } from '../mock-data/dashboard';
-import { mockBlockTemplates, mockBlockUtilization, mockBlockSchedule, mockBlockStatistics } from '../mock-data/block-schedule';
-import { mockPerformanceMetrics, mockSurgeonScorecard, mockCapacityAnalysis, mockEfficiencyMetrics } from '../mock-data/analytics';
-
-// Toggle this to switch between mock data and real API calls
-const USE_MOCK_DATA = true;
+import { mockPerformanceMetrics } from '@/mock-data/analytics';
+import { mockBlockSchedule } from '@/mock-data/block-schedule';
+import { mockCases } from '@/mock-data/cases';
+import { mockRoomStatus } from '@/mock-data/room-status';
+import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
 
 class DataService {
-    // Dashboard Data
-    async getDashboardMetrics() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockMetrics);
-        }
-        return axios.get('/api/cases/metrics').then(response => response.data);
+    constructor() {
+        this.mode = 'dev'; // Default to dev mode
     }
 
-    async getTodaysCases() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockTodaysCases);
+    setMode(mode) {
+        this.mode = mode;
+    }
+
+    async getPerformanceMetrics() {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockPerformanceMetrics);
         }
-        return axios.get('/api/cases/today').then(response => response.data);
+        const response = await axios.get('/api/performance-metrics');
+        return response.data;
+    }
+
+    async getBlockSchedule() {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockBlockSchedule);
+        }
+        const response = await axios.get('/api/block-schedule');
+        return response.data;
+    }
+
+    async getCases() {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockCases);
+        }
+        const response = await axios.get('/api/cases');
+        return response.data;
     }
 
     async getRoomStatus() {
-        if (USE_MOCK_DATA) {
+        if (this.mode === 'dev') {
             return Promise.resolve(mockRoomStatus);
         }
-        return axios.get('/api/cases/room-status').then(response => response.data);
+        const response = await axios.get('/api/room-status');
+        return response.data;
     }
 
-    // Block Schedule Data
-    async getBlockTemplates() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockBlockTemplates);
+    async getProviderPerformance(startDate, endDate) {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockProviderAnalytics);
         }
-        return axios.get('/api/blocks/templates').then(response => response.data);
-    }
-
-    async getBlockSchedule(date) {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockBlockSchedule[date] || []);
-        }
-        return axios.get(`/api/blocks/schedule/${date}`).then(response => response.data);
-    }
-
-    async getBlockUtilization(date) {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockBlockUtilization);
-        }
-        return axios.get(`/api/blocks/utilization/${date}`).then(response => response.data);
-    }
-
-    async getBlockStatistics() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockBlockStatistics);
-        }
-        return axios.get('/api/blocks/statistics').then(response => response.data);
-    }
-
-    // Analytics Data
-    async getPerformanceMetrics() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockPerformanceMetrics);
-        }
-        return axios.get('/api/analytics/performance').then(response => response.data);
-    }
-
-    async getSurgeonScorecard(surgeonId) {
-        if (USE_MOCK_DATA) {
-            const surgeon = surgeonId === 1 ? 'Dr. Sarah Johnson' : 'Dr. Michael Smith';
-            return Promise.resolve(mockSurgeonScorecard[surgeon]);
-        }
-        return axios.get(`/api/analytics/surgeon/${surgeonId}`).then(response => response.data);
+        const response = await axios.get('/api/provider-performance', {
+            params: { startDate, endDate }
+        });
+        return response.data;
     }
 
     async getCapacityAnalysis() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockCapacityAnalysis);
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockPerformanceMetrics.capacity_analysis);
         }
-        return axios.get('/api/analytics/capacity').then(response => response.data);
+        const response = await axios.get('/api/capacity-analysis');
+        return response.data;
     }
 
-    async getEfficiencyMetrics() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockEfficiencyMetrics);
-        }
-        return axios.get('/api/analytics/efficiency').then(response => response.data);
-    }
-
-    // Reference Data
-    async getServices() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockServices);
-        }
-        return axios.get('/api/services').then(response => response.data);
-    }
-
-    async getSurgeons() {
-        if (USE_MOCK_DATA) {
-            return Promise.resolve(mockSurgeons);
-        }
-        return axios.get('/api/surgeons').then(response => response.data);
-    }
-
-    // Error Handler
-    handleError(error) {
-        console.error('DataService Error:', error);
-        if (error.response) {
-            // Server responded with error
-            return Promise.reject(error.response.data);
-        } else if (error.request) {
-            // Request made but no response
-            return Promise.reject({ message: 'No response from server' });
-        } else {
-            // Request setup error
-            return Promise.reject({ message: error.message });
-        }
+    // Hook for React components to use the data service
+    static useDataService() {
+        const dataService = new DataService();
+        
+        return {
+            setMode: (mode) => dataService.setMode(mode),
+            getPerformanceMetrics: () => dataService.getPerformanceMetrics(),
+            getBlockSchedule: () => dataService.getBlockSchedule(),
+            getCases: () => dataService.getCases(),
+            getRoomStatus: () => dataService.getRoomStatus(),
+            getProviderPerformance: (startDate, endDate) => 
+                dataService.getProviderPerformance(startDate, endDate),
+            getCapacityAnalysis: () => dataService.getCapacityAnalysis(),
+        };
     }
 }
 
-export default new DataService();
+export default DataService;
