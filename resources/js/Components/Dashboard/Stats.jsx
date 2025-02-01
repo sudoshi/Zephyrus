@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '@iconify/react';
 
 const Stats = ({ title, value, description, trend, icon }) => {
     const getTrendColor = () => {
@@ -7,35 +8,52 @@ const Stats = ({ title, value, description, trend, icon }) => {
     };
 
     return (
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-100 hover:border-indigo-100 transition-all duration-200 group">
             <div className="flex items-center justify-between">
                 <div className="flex items-center">
                     {icon && (
-                        <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                        <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors duration-200">
                             {icon}
                         </div>
                     )}
                     <div>
-                        <p className="text-sm font-medium text-gray-600">{title}</p>
-                        <p className="mt-1 text-3xl font-semibold text-gray-900">{value}</p>
+                        <div>
+                            <div className="flex items-center space-x-2">
+                                <p className="text-sm font-medium text-gray-600">{title}</p>
+                                <div className="relative group/tooltip cursor-help">
+                                    <Icon 
+                                        icon="heroicons:information-circle" 
+                                        className="w-4 h-4 text-gray-400 hover:text-gray-600"
+                                    />
+                                    <div className="absolute z-10 w-48 p-2 mt-2 text-xs bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none left-0">
+                                        {description || `Details about ${title.toLowerCase()}`}
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="mt-1 text-3xl font-semibold text-gray-900">{value}</p>
+                        </div>
                     </div>
                 </div>
                 {trend && (
-                    <div className={`flex items-center ${getTrendColor()}`}>
-                        {trend === 'up' ? (
-                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                            </svg>
-                        ) : (
-                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                        )}
+                    <div className="flex flex-col items-end space-y-1">
+                        <div className={`flex items-center space-x-1 ${getTrendColor()}`}>
+                            <Icon 
+                                icon={trend === 'up' ? 'heroicons:arrow-up' : 'heroicons:arrow-down'} 
+                                className="h-5 w-5"
+                            />
+                            <span className="text-sm font-medium">
+                                {trend === 'up' ? '+' : '-'}5%
+                            </span>
+                        </div>
+                        <span className="text-xs text-gray-500">vs. last period</span>
                     </div>
                 )}
             </div>
             {description && (
-                <p className="mt-2 text-sm text-gray-600">{description}</p>
+                <div className="mt-4 flex items-center space-x-2 text-sm text-gray-500">
+                    <Icon icon="heroicons:chart-bar" className="w-4 h-4" />
+                    <p>{description}</p>
+                </div>
             )}
         </div>
     );
