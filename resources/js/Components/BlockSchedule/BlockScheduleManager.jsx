@@ -7,7 +7,7 @@ import Form from './Form';
 import Select from './Select';
 import { Icon } from '@iconify/react';
 import { usePage } from '@inertiajs/react';
-import DataService from '../../services/data-service';
+import DataService from '@/services/data-service';
 
 const BlockScheduleManager = () => {
     const { auth } = usePage().props;
@@ -15,6 +15,7 @@ const BlockScheduleManager = () => {
     const [utilization, setUtilization] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const dataService = DataService.useDataService();
     const [selectedDate, setSelectedDate] = useState(() => {
         const date = new Date();
         date.setHours(0, 0, 0, 0);
@@ -30,15 +31,15 @@ const BlockScheduleManager = () => {
             
             try {
                 const [blocks, utilization, services] = await Promise.all([
-                    DataService.getBlockTemplates().catch(err => {
+                    dataService.getBlockTemplates().catch(err => {
                         console.error('Error fetching block templates:', err);
                         throw new Error('Failed to load block templates');
                     }),
-                    DataService.getBlockUtilization(selectedDate.toISOString().split('T')[0]).catch(err => {
+                    dataService.getBlockUtilization(selectedDate.toISOString().split('T')[0]).catch(err => {
                         console.error('Error fetching block utilization:', err);
                         throw new Error('Failed to load block utilization');
                     }),
-                    DataService.getServices().catch(err => {
+                    dataService.getServices().catch(err => {
                         console.error('Error fetching services:', err);
                         throw new Error('Failed to load services');
                     })
@@ -210,27 +211,14 @@ const BlockScheduleManager = () => {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <Card>
-                        <Card.Content>
-                            <Calendar
-                                value={selectedDate}
-                                onChange={setSelectedDate}
-                                renderDayContent={renderDayContent}
-                                className="h-[600px]"
-                            />
-                        </Card.Content>
-                    </Card>
-                </div>
-
+            <div className="mb-6">
                 <Card>
                     <Card.Header>
                         <Card.Title>Block Utilization</Card.Title>
                         <Card.Description>Last 30 days performance</Card.Description>
                     </Card.Header>
                     <Card.Content>
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                             {utilization?.utilization
                                 ?.sort((a, b) => b.utilization_percentage - a.utilization_percentage)
                                 .slice(0, 5)
@@ -251,6 +239,19 @@ const BlockScheduleManager = () => {
                     </Card.Content>
                 </Card>
             </div>
+
+            <Card className="h-[calc(100vh-20rem)] flex flex-col">
+                <Card.Content className="flex-1 p-0 overflow-hidden">
+                    <div className="h-full w-full">
+                        <Calendar
+                            value={selectedDate}
+                            onChange={setSelectedDate}
+                            renderDayContent={renderDayContent}
+                            className="h-full"
+                        />
+                    </div>
+                </Card.Content>
+            </Card>
 
             <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
                 <div className="p-6">

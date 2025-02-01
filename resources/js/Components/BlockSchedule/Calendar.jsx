@@ -47,7 +47,7 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
     };
 
     return (
-        <div className={`bg-white ${className}`}>
+        <div className={`bg-white h-full flex flex-col ${className}`}>
             <div className="flex items-center justify-between px-6 py-4">
                 <h2 className="text-lg font-semibold text-gray-900">
                     {value.toLocaleString('default', { month: 'long', year: 'numeric' })}
@@ -72,7 +72,7 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
                 </div>
             </div>
 
-            <div className="border-t border-gray-200">
+            <div className="border-t border-gray-200 flex-1 flex flex-col">
                 <div className="grid grid-cols-7 gap-px bg-gray-200 text-center text-xs leading-6 text-gray-700">
                     {weekDays.map(day => (
                         <div key={day} className="bg-white py-2 font-semibold">
@@ -81,30 +81,32 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 gap-px bg-gray-200">
-                    {Array(firstDayOfMonth).fill(null).map((_, index) => (
-                        <div key={`empty-${index}`} className="bg-white" />
-                    ))}
-                    
-                    {days.map(day => {
-                        const date = new Date(value.getFullYear(), value.getMonth(), day);
-                        const dayContent = renderDayContent ? renderDayContent(date) : null;
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    <div className="grid grid-cols-7 gap-px bg-gray-200 min-h-full">
+                        {Array(firstDayOfMonth).fill(null).map((_, index) => (
+                            <div key={`empty-${index}`} className="bg-white h-[120px]" />
+                        ))}
+                        
+                        {days.map(day => {
+                            const date = new Date(value.getFullYear(), value.getMonth(), day);
+                            const dayContent = renderDayContent ? renderDayContent(date) : null;
 
-                        return (
-                            <div
-                                key={day}
-                                onClick={() => handleDateClick(day)}
-                                className={`bg-white min-h-[100px] p-2 cursor-pointer hover:bg-gray-50 ${
-                                    isToday(day) ? 'bg-blue-50' : ''
-                                }`}
-                            >
-                                <div className={`text-sm ${isToday(day) ? 'font-semibold text-blue-600' : ''}`}>
-                                    {day}
+                            return (
+                                <div
+                                    key={day}
+                                    onClick={() => handleDateClick(day)}
+                                    className={`bg-white p-2 cursor-pointer hover:bg-gray-50 min-h-[120px] overflow-y-auto ${
+                                        isToday(day) ? 'bg-blue-50' : ''
+                                    }`}
+                                >
+                                    <div className={`text-sm ${isToday(day) ? 'font-semibold text-blue-600' : ''}`}>
+                                        {day}
+                                    </div>
+                                    {dayContent}
                                 </div>
-                                {dayContent}
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>

@@ -82,10 +82,10 @@ const DualBarChart = ({
                 <BarChart
                     data={chartData}
                     margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 60
+                        top: 30,
+                        right: 40,
+                        left: 40,
+                        bottom: 80
                     }}
                 >
                     <defs>
@@ -105,16 +105,20 @@ const DualBarChart = ({
                         textAnchor="end"
                         height={60}
                         interval={0}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
                     />
                     <YAxis 
                         label={{ 
                             value: 'Minutes', 
                             angle: -90, 
                             position: 'insideLeft',
-                            fill: '#6B7280'
+                            fill: '#6B7280',
+                            fontSize: 14
                         }}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
+                        width={60}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend 
@@ -122,6 +126,7 @@ const DualBarChart = ({
                             { value: 'Room Turnover', type: 'rect', color: '#4F46E5' },
                             { value: 'Procedure Turnover', type: 'rect', color: '#EC4899' }
                         ]}
+                        wrapperStyle={{ fontSize: '14px' }}
                     />
                     
                     {/* Room turnover target */}
@@ -133,7 +138,7 @@ const DualBarChart = ({
                             value: 'Room Target', 
                             position: 'right',
                             fill: '#DC2626',
-                            fontSize: 12
+                            fontSize: 14
                         }}
                     />
                     
@@ -146,20 +151,22 @@ const DualBarChart = ({
                             value: 'Proc Target', 
                             position: 'right',
                             fill: '#EA580C',
-                            fontSize: 12
+                            fontSize: 14
                         }}
                     />
                     
                     <Bar 
                         dataKey="room" 
                         fill="url(#roomGradient)" 
-                        radius={[4, 4, 0, 0]}
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={60}
                         name="Room Turnover"
                     />
                     <Bar 
                         dataKey="procedure" 
                         fill="url(#procGradient)" 
-                        radius={[4, 4, 0, 0]}
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={60}
                         name="Procedure Turnover"
                     />
                 </BarChart>

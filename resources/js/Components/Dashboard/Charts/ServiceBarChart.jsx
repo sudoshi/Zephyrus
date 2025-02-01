@@ -75,10 +75,10 @@ const ServiceBarChart = ({
                 <BarChart
                     data={chartData}
                     margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 60
+                        top: 30,
+                        right: 40,
+                        left: 40,
+                        bottom: 80
                     }}
                 >
                     <defs>
@@ -94,12 +94,15 @@ const ServiceBarChart = ({
                         textAnchor="end"
                         height={60}
                         interval={0}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
                     />
                     <YAxis 
                         domain={[0, 100]}
                         tickFormatter={(value) => `${value}%`}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
+                        width={60}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
@@ -131,7 +134,8 @@ const ServiceBarChart = ({
                     <Bar 
                         dataKey="value" 
                         fill="url(#colorValue)"
-                        radius={[4, 4, 0, 0]}
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={80}
                     >
                         {chartData.map((entry, index) => (
                             <Cell 

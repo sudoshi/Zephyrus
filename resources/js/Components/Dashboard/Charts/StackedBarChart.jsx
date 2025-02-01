@@ -14,30 +14,28 @@ import {
 const StackedBarChart = ({ 
     data,
     height = 300,
-    accuracyTarget = 80, // Target percentage for accurate scheduling
-    maxVariance = 15 // Maximum acceptable variance percentage
+    target = 80 // Target percentage for accuracy
 }) => {
     // Transform and sort data
     const chartData = Object.entries(data)
         .map(([service, values]) => ({
             service,
-            accurate: values.accurate,
             under: values.under,
+            accurate: values.accurate,
             over: values.over,
-            total: values.accurate + values.under + values.over,
-            variance: values.under + values.over
+            total: values.under + values.accurate + values.over
         }))
         .sort((a, b) => b.accurate - a.accurate); // Sort by accuracy
 
-    // Calculate averages
+    // Calculate average accuracy
     const avgAccuracy = chartData.reduce((acc, curr) => acc + curr.accurate, 0) / chartData.length;
-    const avgVariance = chartData.reduce((acc, curr) => acc + curr.variance, 0) / chartData.length;
 
     // Custom tooltip component
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
-            const totalCases = data.total;
+            const total = data.under + data.accurate + data.over;
+            
             return (
                 <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
                     <p className="font-medium text-gray-900">{label}</p>
@@ -47,37 +45,28 @@ const StackedBarChart = ({
                                 Accurate: 
                                 <span className="font-medium ml-1">{data.accurate}%</span>
                                 <span className={`ml-2 text-xs ${
-                                    data.accurate >= accuracyTarget ? 'text-green-600' : 'text-red-600'
+                                    data.accurate >= target ? 'text-green-600' : 'text-red-600'
                                 }`}>
-                                    ({data.accurate >= accuracyTarget ? '✓' : `${accuracyTarget - data.accurate}% below target`})
+                                    ({data.accurate >= target ? '✓' : `${target - data.accurate}% below target`})
                                 </span>
                             </p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">
-                                Underscheduled: 
+                                Under Scheduled: 
                                 <span className="font-medium ml-1">{data.under}%</span>
-                                <span className={`ml-2 text-xs ${
-                                    data.under <= maxVariance ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                    ({data.under <= maxVariance ? '✓' : `${data.under - maxVariance}% over limit`})
-                                </span>
                             </p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">
-                                Overscheduled: 
+                                Over Scheduled: 
                                 <span className="font-medium ml-1">{data.over}%</span>
-                                <span className={`ml-2 text-xs ${
-                                    data.over <= maxVariance ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                    ({data.over <= maxVariance ? '✓' : `${data.over - maxVariance}% over limit`})
-                                </span>
                             </p>
                         </div>
                         <div className="pt-1 border-t">
                             <p className="text-sm text-gray-600">
-                                Total Cases: <span className="font-medium">{totalCases}</span>
+                                Total: 
+                                <span className="font-medium ml-1">{total}%</span>
                             </p>
                         </div>
                     </div>
@@ -93,26 +82,24 @@ const StackedBarChart = ({
                 <BarChart
                     data={chartData}
                     margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 60
+                        top: 30,
+                        right: 40,
+                        left: 40,
+                        bottom: 80
                     }}
-                    stackOffset="expand"
-                    barSize={30}
                 >
                     <defs>
-                        <linearGradient id="accurateGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#22C55E" stopOpacity={0.8}/>
-                            <stop offset="100%" stopColor="#22C55E" stopOpacity={0.3}/>
-                        </linearGradient>
                         <linearGradient id="underGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.8}/>
-                            <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.3}/>
-                        </linearGradient>
-                        <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#EF4444" stopOpacity={0.8}/>
                             <stop offset="100%" stopColor="#EF4444" stopOpacity={0.3}/>
+                        </linearGradient>
+                        <linearGradient id="accurateGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10B981" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#10B981" stopOpacity={0.3}/>
+                        </linearGradient>
+                        <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.3}/>
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
@@ -122,51 +109,67 @@ const StackedBarChart = ({
                         textAnchor="end"
                         height={60}
                         interval={0}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
                     />
                     <YAxis 
-                        tickFormatter={(value) => `${Math.round(value * 100)}%`}
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        label={{ 
+                            value: 'Percentage', 
+                            angle: -90, 
+                            position: 'insideLeft',
+                            fill: '#6B7280',
+                            fontSize: 14
+                        }}
+                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tickSize={10}
+                        width={60}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend 
                         payload={[
-                            { value: 'Accurate', type: 'rect', color: '#22C55E' },
-                            { value: 'Underscheduled', type: 'rect', color: '#F59E0B' },
-                            { value: 'Overscheduled', type: 'rect', color: '#EF4444' }
+                            { value: 'Under Scheduled', type: 'rect', color: '#EF4444' },
+                            { value: 'Accurate', type: 'rect', color: '#10B981' },
+                            { value: 'Over Scheduled', type: 'rect', color: '#F59E0B' }
                         ]}
+                        wrapperStyle={{ fontSize: '14px' }}
                     />
                     
-                    {/* Target line for accuracy */}
+                    {/* Target line */}
                     <ReferenceLine 
-                        y={accuracyTarget / 100} 
-                        stroke="#22C55E"
+                        y={target} 
+                        stroke="#4F46E5"
                         strokeDasharray="3 3"
                         label={{ 
-                            value: 'Accuracy Target', 
+                            value: 'Target', 
                             position: 'right',
-                            fill: '#22C55E',
-                            fontSize: 12
+                            fill: '#4F46E5',
+                            fontSize: 14
                         }}
                     />
                     
                     <Bar 
-                        dataKey="accurate" 
-                        stackId="a" 
-                        fill="url(#accurateGradient)"
-                        name="Accurate"
-                    />
-                    <Bar 
                         dataKey="under" 
                         stackId="a" 
-                        fill="url(#underGradient)"
-                        name="Underscheduled"
+                        fill="url(#underGradient)" 
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={60}
+                        name="Under Scheduled"
+                    />
+                    <Bar 
+                        dataKey="accurate" 
+                        stackId="a" 
+                        fill="url(#accurateGradient)" 
+                        radius={[0, 0, 0, 0]}
+                        maxBarSize={60}
+                        name="Accurate"
                     />
                     <Bar 
                         dataKey="over" 
                         stackId="a" 
-                        fill="url(#overGradient)"
-                        name="Overscheduled"
+                        fill="url(#overGradient)" 
+                        radius={[0, 0, 0, 0]}
+                        maxBarSize={60}
+                        name="Over Scheduled"
                     />
                 </BarChart>
             </ResponsiveContainer>

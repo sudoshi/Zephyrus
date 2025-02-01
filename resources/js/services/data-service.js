@@ -4,6 +4,7 @@ import { mockBlockSchedule } from '@/mock-data/block-schedule';
 import { mockCases } from '@/mock-data/cases';
 import { mockRoomStatus } from '@/mock-data/room-status';
 import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
+import { mockBlockTemplates, mockBlockUtilization, mockServices } from '@/mock-data/block-templates';
 
 class DataService {
     constructor() {
@@ -64,6 +65,32 @@ class DataService {
         return response.data;
     }
 
+    async getBlockTemplates() {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockBlockTemplates);
+        }
+        const response = await axios.get('/api/block-templates');
+        return response.data;
+    }
+
+    async getBlockUtilization(date) {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockBlockUtilization);
+        }
+        const response = await axios.get('/api/block-utilization', {
+            params: { date }
+        });
+        return response.data;
+    }
+
+    async getServices() {
+        if (this.mode === 'dev') {
+            return Promise.resolve(mockServices);
+        }
+        const response = await axios.get('/api/services');
+        return response.data;
+    }
+
     // Hook for React components to use the data service
     static useDataService() {
         const dataService = new DataService();
@@ -77,6 +104,9 @@ class DataService {
             getProviderPerformance: (startDate, endDate) => 
                 dataService.getProviderPerformance(startDate, endDate),
             getCapacityAnalysis: () => dataService.getCapacityAnalysis(),
+            getBlockTemplates: () => dataService.getBlockTemplates(),
+            getBlockUtilization: (date) => dataService.getBlockUtilization(date),
+            getServices: () => dataService.getServices(),
         };
     }
 }
