@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 import { Link, usePage } from '@inertiajs/react';
+import UserAvatar from '@/Components/UserAvatar';
 
 const DashboardLayout = ({ children }) => {
     const { url } = usePage();
@@ -99,12 +100,8 @@ const DashboardLayout = ({ children }) => {
                     <div className="flex justify-between items-center px-4 py-6">
                         <h1 className="text-2xl font-semibold text-gray-900">Surgical Services Analytics</h1>
                         <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center space-x-2 group">
-                                <img
-                                    className="h-8 w-8 rounded-full ring-2 ring-gray-200 group-hover:ring-indigo-200 transition-all duration-200"
-                                    src="/images/default-avatar.png"
-                                    alt="User avatar"
-                                />
+                            <Menu.Button className="menu-button">
+                                <UserAvatar />
                                 <Icon 
                                     icon="heroicons:chevron-down" 
                                     className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors duration-200" 

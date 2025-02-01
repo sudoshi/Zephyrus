@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import UserAvatar from '@/Components/UserAvatar';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
 
@@ -26,14 +27,17 @@ export default function UpdateProfileInformation({
 
     return (
         <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Profile Information
-                </h2>
+            <header className="flex items-center gap-4">
+                <UserAvatar />
+                <div>
+                    <h2 className="text-lg font-medium text-gray-900">
+                        Profile Information
+                    </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Update your account's profile information and email address.
-                </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                        Update your account's profile information and email address.
+                    </p>
+                </div>
             </header>
 
             <form onSubmit={submit} className="mt-6 space-y-6">

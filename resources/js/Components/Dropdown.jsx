@@ -1,11 +1,19 @@
 import { Transition } from '@headlessui/react';
 import { Link } from '@inertiajs/react';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const DropDownContext = createContext();
 
-const Dropdown = ({ children }) => {
+const Dropdown = ({ children, onOpen, onClose }) => {
     const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            onOpen?.();
+        } else {
+            onClose?.();
+        }
+    }, [open, onOpen, onClose]);
 
     const toggleOpen = () => {
         setOpen((previousState) => !previousState);
@@ -27,7 +35,7 @@ const Trigger = ({ children }) => {
 
             {open && (
                 <div
-                    className="fixed inset-0 z-40"
+                    className="dropdown-overlay"
                     onClick={() => setOpen(false)}
                 ></div>
             )}
@@ -38,7 +46,7 @@ const Trigger = ({ children }) => {
 const Content = ({
     align = 'right',
     width = '48',
-    contentClasses = 'py-1 bg-white',
+    contentClasses = 'py-1',
     children,
 }) => {
     const { open, setOpen } = useContext(DropDownContext);
@@ -69,17 +77,10 @@ const Content = ({
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`dropdown-content ${alignmentClasses} ${widthClasses}`}
                     onClick={() => setOpen(false)}
                 >
-                    <div
-                        className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
-                            contentClasses
-                        }
-                    >
-                        {children}
-                    </div>
+                    <div className={contentClasses}>{children}</div>
                 </div>
             </Transition>
         </>

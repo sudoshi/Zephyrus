@@ -1,3 +1,39 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom dropdown styles */
+.dropdown-overlay {
+    @apply fixed inset-0 z-40 bg-black/5;
+}
+
+.dropdown-content {
+    @apply absolute z-50 mt-2 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5;
+}
+
+.dropdown-icon {
+    @apply transition-transform duration-200 ease-in-out;
+}
+
+.dropdown-icon-open {
+    @apply rotate-180;
+}
+
+/* Custom avatar styles */
+.user-avatar {
+    @apply inline-flex items-center justify-center;
+    @apply w-8 h-8 rounded-full;
+    @apply bg-gray-200;
+    @apply transition-all duration-200;
+}
+
+/* Menu button styles */
+.menu-button {
+    @apply flex items-center space-x-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+    @apply transition-all duration-200;
+}
+
+.menu-button:hover .user-avatar {
+    @apply ring-2 ring-indigo-200;
+}

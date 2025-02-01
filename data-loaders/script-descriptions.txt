@@ -1,0 +1,49 @@
+Here's a summary of the Python scripts in the directory and their functions:
+
+'block_import.py':
+
+A script for processing block scheduling Excel files and importing them into a database
+Handles deduplication and field mapping between template and schedule data
+Uses SQLAlchemy for database operations
+
+
+'examine_excel.py':
+
+A utility script for analyzing Excel files
+Displays information about sheets, data types, and preview of data
+Shows column names, data types, and row counts for each sheet
+
+
+'import_block_data.py':
+
+Handles importing block data into a database
+Uses SQLAlchemy for database operations
+Includes logging configuration
+Works with PostgreSQL database
+
+
+'load_excel_to_postgres.py':
+
+General-purpose Excel to PostgreSQL loader
+Includes data validation and column mapping functionality
+Uses SQLAlchemy for database operations
+Includes interactive features using questionary library
+
+
+'load_OR_excel_to_postgres.py':
+
+Specific version for loading OR (Operating Room) data to PostgreSQL
+Includes file validation and column name cleaning
+Non-interactive version of the loader
+Handles column name standardization (lowercase, underscores)
+
+
+'merge_block_schedules.py':
+
+Specifically handles merging block schedule data
+Works with two specific Excel files:
+
+"Block Schedule Extracts Final - v2 DATA.xlsx"
+"Block Schedule Extracts with First Releases - v2 DATA.xlsx"
+
+Includes functionality to analyze and compare columns between the files
