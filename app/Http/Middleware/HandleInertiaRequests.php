@@ -39,6 +39,26 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'app' => [
+                'name' => config('app.name'),
+                'env' => config('app.env'),
+            ],
+            'ziggy' => function () use ($request) {
+                if (!$request->user() && !$request->routeIs('login')) {
+                    return null;
+                }
+                return [
+                    'url' => $request->url(),
+                    'port' => $request->getPort(),
+                    'defaults' => [],
+                    'routes' => array_filter(
+                        app('router')->getRoutes()->getRoutesByName() ?? [],
+                        function ($route) use ($request) {
+                            return $request->user() || in_array($route->uri(), ['login', 'password/reset']);
+                        }
+                    ),
+                ];
+            },
         ];
     }
 }

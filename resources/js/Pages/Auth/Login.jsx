@@ -32,11 +32,20 @@ export default function Login({ status, canResetPassword }) {
                 </div>
             )}
 
-            <div className="mb-6">
-                <ModeToggle />
-            </div>
-
             <form onSubmit={submit}>
+                <div className="mb-6">
+                    <ModeToggle />
+                    <div className="mt-2 text-sm text-gray-500 text-center">
+                        {status && (
+                            <div className="mb-4 text-sm font-medium text-green-600">
+                                {status}
+                            </div>
+                        )}
+                        <p>Default credentials:</p>
+                        <p>Email: acumenus@example.com</p>
+                        <p>Password: acumenus</p>
+                    </div>
+                </div>
                 <div>
                     <InputLabel htmlFor="email" value="Email" />
 

@@ -119,4 +119,5 @@ const generateProviderData = () => {
     };
 };
 
-export default generateProviderData;
+const mockProviderAnalytics = generateProviderData();
+export { mockProviderAnalytics };

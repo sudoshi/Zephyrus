@@ -1,4 +1,4 @@
-import React from 'react';
+Import React from 'react';
 import { Menu } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 import { Link, usePage } from '@inertiajs/react';
@@ -53,7 +53,7 @@ const DashboardLayout = ({ children }) => {
                     <div className="px-4 py-6">
                         <h2 className="text-xl font-bold">ZephyrusOR</h2>
                     </div>
-                    <nav className="flex-1 px-2 space-y-1">
+                    <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
                         {navigationItems.map((item) => (
                             <Link
                                 key={item.name}
@@ -69,6 +69,17 @@ const DashboardLayout = ({ children }) => {
                             </Link>
                         ))}
                     </nav>
+                    {/* Logout button at bottom */}
+                    <div className="p-4 border-t">
+                        <Link
+                            href={route('logout')}
+                            method="post"
+                            className="flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md"
+                        >
+                            <Icon icon="heroicons:logout" className="w-5 h-5 mr-3" />
+                            Logout
+                        </Link>
+                    </div>
                 </div>
             </div>
 
