@@ -24,47 +24,64 @@ const MonthToDateSection = () => {
     };
 
     const renderChartSection = (title, info, children, className = '') => (
-        <Card className={`p-8 ${className}`}>
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold">{title}</h3>
-                <div className="flex items-center space-x-2">
-                    {info && (
-                        <div className="relative group">
-                            <Icon 
-                                icon="heroicons:information-circle" 
-                                className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-help"
-                            />
-                            <div className="absolute z-10 w-64 p-2 mt-2 text-sm bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none right-0">
-                                {info}
+        <Card className={className}>
+            <Card.Content>
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                        {title}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                        {info && (
+                            <div className="relative group">
+                                <Icon 
+                                    icon="heroicons:information-circle" 
+                                    className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
+                                />
+                                <div className="absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none right-0">
+                                    {info}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div className="overflow-hidden transition-all duration-200">
-                {children}
-            </div>
+                <div className="overflow-hidden transition-all duration-300">
+                    {children}
+                </div>
+            </Card.Content>
         </Card>
     );
 
     const renderCollapsibleSection = (title, content, section) => (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <Card>
             <button
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
                 onClick={() => toggleSection(section)}
             >
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                    {title}
+                </h3>
                 <Icon 
                     icon={expandedSections[section] ? 'heroicons:chevron-down' : 'heroicons:chevron-right'}
-                    className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                    className={`w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transform transition-all duration-300 ${
                         expandedSections[section] ? 'rotate-0' : '-rotate-90'
                     }`}
                 />
             </button>
-            <div className={`transition-all duration-200 ${
+            <div className={`transition-all duration-300 ${
                 expandedSections[section] ? 'block' : 'hidden'
             }`}>
                 {content}
+            </div>
+        </Card>
+    );
+
+    const renderMetricBox = (label, value, className = '') => (
+        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg transition-colors duration-300">
+            <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
+                {label}
+            </div>
+            <div className={`font-semibold text-lg ${className} transition-colors duration-300`}>
+                {value}
             </div>
         </div>
     );
@@ -72,21 +89,23 @@ const MonthToDateSection = () => {
     return (
         <section className="space-y-8">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Month to Date</h2>
+                <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                    Month to Date
+                </h2>
                 <div className="flex items-center space-x-4">
-                    <button className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <button className="inline-flex items-center text-sm text-healthcare-info dark:text-healthcare-info-dark hover:text-healthcare-info-dark dark:hover:text-healthcare-info font-medium transition-colors duration-300">
                         <Icon icon="heroicons:document-arrow-down" className="w-4 h-4 mr-1" />
                         Export Data
                     </button>
                     <div className="relative">
-                        <select className="text-sm border-gray-300 rounded-md pl-8 pr-4 py-2 appearance-none bg-white">
+                        <select className="text-sm border-healthcare-border dark:border-healthcare-border-dark rounded-md pl-8 pr-4 py-2 appearance-none bg-healthcare-surface dark:bg-healthcare-surface-dark hover:border-healthcare-info dark:hover:border-healthcare-info-dark transition-colors duration-300">
                             <option>All Services</option>
                             <option>Orthopedics</option>
                             <option>Cardiology</option>
                         </select>
                         <Icon 
                             icon="heroicons:funnel" 
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300"
                         />
                     </div>
                 </div>
@@ -101,20 +120,11 @@ const MonthToDateSection = () => {
                             "On Time Starts",
                             "Displays the percentage of cases that were on time and took place within the current calendar month.",
                             <div className="space-y-6">
-                                <ServiceBarChart data={data.onTimeStarts.byService} height={500} />
+                                <ServiceBarChart data={data.onTimeStarts.byService} height={350} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">First Case</div>
-                                        <div className="font-semibold text-lg">85%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Subsequent</div>
-                                        <div className="font-semibold text-lg">78%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Trend</div>
-                                        <div className="font-semibold text-lg text-green-600">↑ 3%</div>
-                                    </div>
+                                    {renderMetricBox("First Case", "85%")}
+                                    {renderMetricBox("Subsequent", "78%")}
+                                    {renderMetricBox("Trend", "↑ 3%", "text-healthcare-success dark:text-healthcare-success-dark")}
                                 </div>
                             </div>
                         )}
@@ -123,20 +133,11 @@ const MonthToDateSection = () => {
                             "Case Length Accuracy",
                             "Displays the percentage of cases performed within the current calendar month that were accurately scheduled.",
                             <div className="space-y-6">
-                                <StackedBarChart data={data.caseLengthAccuracy.byService} height={500} />
+                                <StackedBarChart data={data.caseLengthAccuracy.byService} height={350} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Under</div>
-                                        <div className="font-semibold text-lg">15%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Accurate</div>
-                                        <div className="font-semibold text-lg">70%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Over</div>
-                                        <div className="font-semibold text-lg">15%</div>
-                                    </div>
+                                    {renderMetricBox("Under", "15%")}
+                                    {renderMetricBox("Accurate", "70%")}
+                                    {renderMetricBox("Over", "15%")}
                                 </div>
                             </div>
                         )}
@@ -155,30 +156,44 @@ const MonthToDateSection = () => {
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full">
                                         <thead>
-                                            <tr className="border-b bg-gray-50">
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">MTD</th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">Trend</th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">Projected</th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                                            <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark">
+                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                                                    Location
+                                                </th>
+                                                <th className="text-right py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                                                    MTD
+                                                </th>
+                                                <th className="text-right py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                                                    Trend
+                                                </th>
+                                                <th className="text-right py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                                                    Projected
+                                                </th>
+                                                <th className="text-right py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                                                    Target
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {data.blockUtilization.locations.map((location, index) => (
-                                                <tr key={index} className="border-b hover:bg-gray-50">
-                                                    <td className="py-4 px-4">{location.name}</td>
+                                                <tr key={index} className="border-b border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300">
+                                                    <td className="py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                                        {location.name}
+                                                    </td>
                                                     <td className="text-right py-4 px-4">
                                                         <span className={
-                                                            location.mtd >= 80 ? 'text-green-600' :
-                                                            location.mtd >= 70 ? 'text-yellow-600' :
-                                                            'text-red-600'
+                                                            location.mtd >= 80 ? 'text-healthcare-success dark:text-healthcare-success-dark' :
+                                                            location.mtd >= 70 ? 'text-healthcare-warning dark:text-healthcare-warning-dark' :
+                                                            'text-healthcare-critical dark:text-healthcare-critical-dark'
                                                         }>
                                                             {location.mtd}%
                                                         </span>
                                                     </td>
                                                     <td className="text-right py-4 px-4">
                                                         <span className={`flex items-center justify-end ${
-                                                            location.mtd > location.lastMonth ? 'text-green-600' : 'text-red-600'
+                                                            location.mtd > location.lastMonth 
+                                                                ? 'text-healthcare-success dark:text-healthcare-success-dark' 
+                                                                : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                                                         }`}>
                                                             <Icon 
                                                                 icon={location.mtd > location.lastMonth ? 'heroicons:arrow-up' : 'heroicons:arrow-down'} 
@@ -187,8 +202,12 @@ const MonthToDateSection = () => {
                                                             {Math.abs(location.mtd - location.lastMonth)}%
                                                         </span>
                                                     </td>
-                                                    <td className="text-right py-4 px-4">{location.projected}%</td>
-                                                    <td className="text-right py-4 px-4">80%</td>
+                                                    <td className="text-right py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                                        {location.projected}%
+                                                    </td>
+                                                    <td className="text-right py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                                        80%
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -201,20 +220,11 @@ const MonthToDateSection = () => {
                             "Primetime Utilization",
                             "Displays the total in-room and setup/cleanup minutes over the available primetime minutes.",
                             <div className="space-y-6">
-                                <LineChart data={data.primetimeUtilization.trend} height={500} />
+                                <LineChart data={data.primetimeUtilization.trend} height={350} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">In-Room Time</div>
-                                        <div className="font-semibold text-lg">82%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Setup/Cleanup</div>
-                                        <div className="font-semibold text-lg">12%</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Unused</div>
-                                        <div className="font-semibold text-lg">6%</div>
-                                    </div>
+                                    {renderMetricBox("In-Room Time", "82%")}
+                                    {renderMetricBox("Setup/Cleanup", "12%")}
+                                    {renderMetricBox("Unused", "6%")}
                                 </div>
                             </div>
                         )}
@@ -230,20 +240,11 @@ const MonthToDateSection = () => {
                             "Performed Cases",
                             "Displays the volume of cases that were performed within the current calendar month.",
                             <div className="space-y-6">
-                                <ServiceBarChart data={data.performedCases.byService} height={500} />
+                                <ServiceBarChart data={data.performedCases.byService} height={350} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Total</div>
-                                        <div className="font-semibold text-lg">324</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Emergency</div>
-                                        <div className="font-semibold text-lg">45</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Elective</div>
-                                        <div className="font-semibold text-lg">279</div>
-                                    </div>
+                                    {renderMetricBox("Total", "324")}
+                                    {renderMetricBox("Emergency", "45")}
+                                    {renderMetricBox("Elective", "279")}
                                 </div>
                             </div>
                         )}
@@ -252,20 +253,11 @@ const MonthToDateSection = () => {
                             "Average Turnover",
                             "Displays the average room and procedure turnover for cases.",
                             <div className="space-y-6">
-                                <DualBarChart data={data.avgTurnover.byService} height={500} />
+                                <DualBarChart data={data.avgTurnover.byService} height={350} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Average</div>
-                                        <div className="font-semibold text-lg">32m</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Min</div>
-                                        <div className="font-semibold text-lg">22m</div>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <div className="text-gray-600">Max</div>
-                                        <div className="font-semibold text-lg">68m</div>
-                                    </div>
+                                    {renderMetricBox("Average", "32m")}
+                                    {renderMetricBox("Min", "22m")}
+                                    {renderMetricBox("Max", "68m")}
                                 </div>
                             </div>
                         )}

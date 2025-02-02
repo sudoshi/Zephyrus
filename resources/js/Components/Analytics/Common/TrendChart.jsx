@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from '@/Components/Dashboard/Card';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 import {
     LineChart,
     Line,
@@ -32,6 +33,13 @@ const TrendChart = ({
     },
     colors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444']
 }) => {
+    const [isDarkMode] = useDarkMode();
+    const themeColors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+    const chartColors = {
+        grid: isDarkMode ? '#374151' : '#E5E7EB', // dark: gray-700, light: gray-200
+        text: themeColors.text.primary,
+        background: themeColors.surface,
+    };
     return (
         <Card>
             <Card.Header>
@@ -43,26 +51,38 @@ const TrendChart = ({
             <Card.Content>
                 <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                            data={data}
-                            margin={{
-                                top: 5,
-                                right: 30,
-                                left: 20,
-                                bottom: 5
-                            }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                                dataKey={xAxis.dataKey}
-                                type={xAxis.type}
-                                tickFormatter={xAxis.formatter}
-                            />
-                            <YAxis tickFormatter={yAxis.formatter} />
-                            <Tooltip
-                                formatter={tooltip.formatter}
-                                labelFormatter={xAxis.formatter}
-                            />
+<LineChart
+    data={data}
+    margin={{
+        top: 5,
+        right: 30,
+        left: 20,
+        bottom: 5
+    }}
+    style={{ backgroundColor: chartColors.background }}
+>
+<CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+<XAxis
+    dataKey={xAxis.dataKey}
+    type={xAxis.type}
+    tickFormatter={xAxis.formatter}
+    tick={{ fill: chartColors.text }}
+    axisLine={{ stroke: chartColors.text }}
+    tickLine={{ stroke: chartColors.text }}
+/>
+<YAxis
+    tickFormatter={yAxis.formatter}
+    tick={{ fill: chartColors.text }}
+    axisLine={{ stroke: chartColors.text }}
+    tickLine={{ stroke: chartColors.text }}
+/>
+<Tooltip
+    formatter={tooltip.formatter}
+    labelFormatter={xAxis.formatter}
+    contentStyle={{ backgroundColor: chartColors.background, borderColor: chartColors.grid }}
+    itemStyle={{ color: chartColors.text }}
+    labelStyle={{ color: chartColors.text }}
+/>
                             {series.length > 1 && <Legend />}
                             {series.map((s, index) => (
                                 <Line

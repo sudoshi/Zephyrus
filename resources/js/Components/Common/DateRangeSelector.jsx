@@ -31,32 +31,34 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange, onQuickSelect }) 
             case 'ytd':
                 start = new Date(end.getFullYear(), 0, 1);
                 break;
+            default:
+                break;
         }
 
         onQuickSelect(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
     };
 
     return (
-        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow">
+        <div className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
             <div className="flex items-center space-x-2">
-                <Icon icon="heroicons:calendar" className="w-5 h-5 text-gray-500" />
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => onDateChange('start', e.target.value)}
-                    className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-                <span className="text-gray-500">to</span>
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => onDateChange('end', e.target.value)}
-                    className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+                <Icon icon="heroicons:calendar" className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => onDateChange('start', e.target.value)}
+                        className="border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark rounded-md shadow-sm focus:border-healthcare-info focus:ring-healthcare-info"
+                    />
+                <span className="text-gray-500 dark:text-gray-300">to</span>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => onDateChange('end', e.target.value)}
+                        className="border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark rounded-md shadow-sm focus:border-healthcare-info focus:ring-healthcare-info"
+                    />
             </div>
 
             <div className="flex items-center space-x-2">
-                {quickRanges.map(range => (
+                {quickRanges.map((range) => (
                     <Button
                         key={range.value}
                         variant="secondary"

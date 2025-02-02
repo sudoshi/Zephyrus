@@ -69,11 +69,11 @@ const RoomStatusBoard = () => {
                     <Card.Content>
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-sm font-medium text-gray-500">Overall Utilization</div>
+                                <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Overall Utilization</div>
                                 <div className="mt-1 text-2xl font-semibold">{metrics.overall_utilization}%</div>
                             </div>
-                            <div className="p-3 bg-blue-100 rounded-full">
-                                <Icon icon="heroicons:chart-bar" className="w-6 h-6 text-blue-600" />
+                            <div className="p-3 bg-healthcare-info bg-opacity-10 dark:bg-healthcare-info-dark dark:bg-opacity-20 rounded-full">
+                                <Icon icon="heroicons:chart-bar" className="w-6 h-6 text-healthcare-info dark:text-healthcare-info-dark" />
                             </div>
                         </div>
                     </Card.Content>
@@ -83,11 +83,11 @@ const RoomStatusBoard = () => {
                     <Card.Content>
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-sm font-medium text-gray-500">Average Turnover</div>
+                                <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Average Turnover</div>
                                 <div className="mt-1 text-2xl font-semibold">{metrics.average_turnover}m</div>
                             </div>
-                            <div className="p-3 bg-green-100 rounded-full">
-                                <Icon icon="heroicons:clock" className="w-6 h-6 text-green-600" />
+                            <div className="p-3 bg-healthcare-success bg-opacity-10 dark:bg-healthcare-success-dark dark:bg-opacity-20 rounded-full">
+                                <Icon icon="heroicons:clock" className="w-6 h-6 text-healthcare-success dark:text-healthcare-success-dark" />
                             </div>
                         </div>
                     </Card.Content>
@@ -97,11 +97,11 @@ const RoomStatusBoard = () => {
                     <Card.Content>
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-sm font-medium text-gray-500">On-Time Starts</div>
+                                <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">On-Time Starts</div>
                                 <div className="mt-1 text-2xl font-semibold">{metrics.on_time_starts}/{metrics.on_time_starts + metrics.late_starts}</div>
                             </div>
-                            <div className="p-3 bg-yellow-100 rounded-full">
-                                <Icon icon="heroicons:check-circle" className="w-6 h-6 text-yellow-600" />
+                            <div className="p-3 bg-healthcare-warning bg-opacity-10 dark:bg-healthcare-warning-dark dark:bg-opacity-20 rounded-full">
+                                <Icon icon="heroicons:check-circle" className="w-6 h-6 text-healthcare-warning dark:text-healthcare-warning-dark" />
                             </div>
                         </div>
                     </Card.Content>
@@ -111,11 +111,11 @@ const RoomStatusBoard = () => {
                     <Card.Content>
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-sm font-medium text-gray-500">Delays Today</div>
+                                <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Delays Today</div>
                                 <div className="mt-1 text-2xl font-semibold">{metrics.delays_today}</div>
                             </div>
-                            <div className="p-3 bg-red-100 rounded-full">
-                                <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-red-600" />
+                            <div className="p-3 bg-healthcare-critical bg-opacity-10 dark:bg-healthcare-critical-dark dark:bg-opacity-20 rounded-full">
+                                <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-healthcare-critical dark:text-healthcare-critical-dark" />
                             </div>
                         </div>
                     </Card.Content>
@@ -140,10 +140,10 @@ const RoomStatusBoard = () => {
                                     </div>
                                     {room.status === 'In Progress' && (
                                         <div className="text-right">
-                                            <div className="text-sm font-medium text-gray-500">Case Time</div>
-                                            <div className="text-green-600 font-medium">
-                                                {formatDuration(Math.round((new Date() - new Date(room.or_in_time)) / 1000 / 60))}
-                                            </div>
+                            <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Case Time</div>
+                            <div className="text-healthcare-success dark:text-healthcare-success-dark font-medium">
+                                {formatDuration(Math.round((new Date() - new Date(room.or_in_time)) / 1000 / 60))}
+                            </div>
                                         </div>
                                     )}
                                 </div>

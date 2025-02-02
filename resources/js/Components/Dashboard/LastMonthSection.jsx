@@ -3,10 +3,13 @@ import { Icon } from '@iconify/react';
 import MetricCard from './MetricCard';
 import { syntheticData } from '../../mock-data/dashboard';
 import DrillDownModal from './DrillDownModal';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const LastMonthSection = () => {
     const data = syntheticData.lastMonth;
     const [selectedMetric, setSelectedMetric] = useState(null);
+    const [isDarkMode] = useDarkMode();
+    const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
 
     // Generate sparkline data (mock data for demonstration)
     const generateSparklineData = (base, variance) => {
@@ -21,31 +24,52 @@ const LastMonthSection = () => {
         <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                    <h2 className="text-xl font-bold">Last Month</h2>
+                    <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                        Last Month
+                    </h2>
                     <div className="relative group">
                         <Icon 
                             icon="heroicons:information-circle" 
-                            className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-help"
+                            className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
                         />
-                        <div className="absolute z-10 w-64 p-2 mt-2 text-sm bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none left-0">
+                        <div className="
+                            absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg
+                            bg-healthcare-surface dark:bg-healthcare-surface-dark
+                            border border-healthcare-border dark:border-healthcare-border-dark
+                            text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
+                            opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none left-0
+                        ">
                             Performance metrics and statistics from the previous calendar month
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                    <button className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <button className="
+                        inline-flex items-center text-sm font-medium
+                        text-healthcare-info dark:text-healthcare-info-dark
+                        hover:text-healthcare-info-dark dark:hover:text-healthcare-info
+                        transition-colors duration-300
+                    ">
                         <Icon icon="heroicons:document-arrow-down" className="w-4 h-4 mr-1" />
                         Export Data
                     </button>
                     <div className="relative">
-                        <select className="text-sm border-gray-300 rounded-md pl-8 pr-4 py-2 appearance-none bg-white">
+                        <select className="
+                            text-sm rounded-md pl-8 pr-4 py-2 appearance-none
+                            bg-healthcare-surface dark:bg-healthcare-surface-dark
+                            text-healthcare-text-primary dark:text-healthcare-text-primary-dark
+                            border border-healthcare-border dark:border-healthcare-border-dark
+                            focus:border-healthcare-info dark:focus:border-healthcare-info-dark
+                            focus:ring-1 focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark
+                            transition-colors duration-300
+                        ">
                             <option>All Locations</option>
                             <option>Location A</option>
                             <option>Location B</option>
                         </select>
                         <Icon 
                             icon="heroicons:funnel" 
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300"
                         />
                     </div>
                 </div>

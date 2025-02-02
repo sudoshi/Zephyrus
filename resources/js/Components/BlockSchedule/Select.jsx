@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import PropTypes from 'prop-types';
 import { Listbox, Transition } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 
@@ -50,6 +51,20 @@ const Select = ({ value, onChange, options, className = '' }) => {
             </div>
         </Listbox>
     );
+};
+
+Select.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    label: PropTypes.string.isRequired
+  })).isRequired,
+  className: PropTypes.string
+};
+
+Select.defaultProps = {
+  className: ''
 };
 
 export default Select;

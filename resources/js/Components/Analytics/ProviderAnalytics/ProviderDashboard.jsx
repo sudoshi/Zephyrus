@@ -1,190 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner } from '@heroui/react';
-import Card from '@/Components/Dashboard/Card';
+import { useDarkMode } from '../../../hooks/useDarkMode';
+import ErrorBoundary from '../../Common/ErrorBoundary';
+import { mockProviderAnalytics } from '../../../mock-data/provider-analytics';
 import { Icon } from '@iconify/react';
-import { useMode } from '@/Contexts/ModeContext';
-import DataService from '@/services/data-service';
-import DateRangeSelector from '@/Components/Common/DateRangeSelector';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
-import TrendChart, { formatters } from '@/Components/Common/TrendChart';
+import SummaryCards from '../BlockUtilization/SummaryCards';
+import FilterSidebar from '../BlockUtilization/FilterSidebar';
+import DarkModeToggle from '../../Common/DarkModeToggle';
+import PropTypes from 'prop-types';
 
 const ProviderDashboard = () => {
-    const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [data, setData] = useState(null);
+  // State initialization
+  const [isDarkMode, setIsDarkMode] = useDarkMode();
+  const [selectedSite, setSelectedSite] = useState('Default Site');
+  const [dateRange, setDateRange] = useState({
+    start: '2025-01-01',
+    end: '2025-01-31'
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    averageCasesPerDay: 0,
+    casesTrend: 0,
+    onTimeStarts: 0,
+    onTimeTrend: 0,
+    averageDuration: 0,
+    durationTrend: 0
+  });
 
-    const { mode } = useMode();
-    const dataService = DataService.useDataService();
-
-    const fetchData = async () => {
-        try {
-            dataService.setMode(mode);
-            const response = await dataService.getProviderPerformance(startDate, endDate);
-            setData(response);
-            setError(null);
-        } catch (err) {
-            console.error('Error fetching provider analytics:', err);
-            setError('Failed to load provider analytics data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, [startDate, endDate]);
-
-    const handleDateChange = (type, value) => {
-        if (type === 'start') setStartDate(value);
-        else setEndDate(value);
-    };
-
-    const handleQuickSelect = (start, end) => {
-        setStartDate(start);
-        setEndDate(end);
-    };
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <Spinner size="lg" />
-            </div>
-        );
+  // Data initialization
+  const sites = Object.keys(mockProviderAnalytics.sites);
+  const siteData = mockProviderAnalytics.sites[selectedSite] || {
+    providers: [],
+    totals: {
+      average_cases_per_day: 0,
+      on_time_starts: 0,
+      average_duration: 0
     }
+  };
 
-    if (error) {
-        return (
-            <div className="p-6 text-center text-red-600">
-                <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
-                <p>{error}</p>
+  // Update summary metrics when site data changes
+  useEffect(() => {
+    if (!siteData?.totals) return;
+
+    setSummaryMetrics({
+      averageCasesPerDay: siteData.totals.average_cases_per_day || 0,
+      casesTrend: 2.5, // Mock trend data
+      onTimeStarts: siteData.totals.on_time_starts || 0,
+      onTimeTrend: 3.2,
+      averageDuration: siteData.totals.average_duration || 0,
+      durationTrend: -1.5
+    });
+  }, [siteData?.totals]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.metaKey && e.key === '/') {
+        e.preventDefault();
+        setIsSidebarCollapsed((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  return (
+    <div className={`flex min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <FilterSidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed((prev) => !prev)}
+        selectedSite={selectedSite}
+        onSiteChange={setSelectedSite}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        sites={sites}
+        isDarkMode={isDarkMode}
+      />
+
+      <main
+        className={`flex-1 transition-all duration-300 ${
+          isSidebarCollapsed ? 'ml-12' : 'ml-64'
+        }`}
+      >
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h1
+              className={`text-2xl font-bold ${
+                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}
+            >
+              Provider Analytics Overview
+            </h1>
+            <div className="flex items-center space-x-2">
+              <DarkModeToggle
+                isDarkMode={isDarkMode}
+                onToggle={() => setIsDarkMode(!isDarkMode)}
+              />
+              <button
+                type="button"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isDarkMode
+                    ? 'text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600'
+                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                } border`}
+              >
+                <Icon
+                  icon="heroicons:cog-6-tooth"
+                  className="w-5 h-5 mr-2"
+                />
+                Settings
+              </button>
+              <button
+                type="button"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white rounded-md ${
+                  isDarkMode
+                    ? 'bg-indigo-500 hover:bg-indigo-600'
+                    : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
+              >
+                <Icon
+                  icon="heroicons:document-arrow-down"
+                  className="w-5 h-5 mr-2"
+                />
+                Export Report
+              </button>
             </div>
-        );
-    }
+          </div>
 
-    const providerMetrics = data?.providers?.map(provider => ({
-        ...provider,
-        trend: provider.on_time_percentage > 80 ? 'up' : provider.on_time_percentage < 60 ? 'down' : 'neutral'
-    })) || [];
+          {/* Summary Cards */}
+          <ErrorBoundary>
+            <SummaryCards metrics={summaryMetrics} isDarkMode={isDarkMode} />
+          </ErrorBoundary>
 
-    return (
-        <div className="space-y-6">
-            <DateRangeSelector
-                startDate={startDate}
-                endDate={endDate}
-                onDateChange={handleDateChange}
-                onQuickSelect={handleQuickSelect}
-            />
-
-            <MetricsCardGroup>
-                <MetricsCard
-                    title="Average Cases/Day"
-                    value={providerMetrics.reduce((acc, p) => acc + p.avg_cases_per_day, 0) / providerMetrics.length}
-                    formatter={formatters.decimal}
-                    icon="heroicons:clipboard-document-list"
-                    color="indigo"
-                />
-                <MetricsCard
-                    title="On-Time Starts"
-                    value={providerMetrics.reduce((acc, p) => acc + p.on_time_percentage, 0) / providerMetrics.length}
-                    formatter={formatters.percentage}
-                    icon="heroicons:clock"
-                    color="emerald"
-                />
-                <MetricsCard
-                    title="Average Duration"
-                    value={providerMetrics.reduce((acc, p) => acc + p.avg_case_duration, 0) / providerMetrics.length}
-                    formatter={formatters.duration}
-                    icon="heroicons:clock-circle"
-                    color="amber"
-                />
-                <MetricsCard
-                    title="Case Volume"
-                    value={providerMetrics.reduce((acc, p) => acc + p.total_cases, 0)}
-                    formatter={formatters.number}
-                    icon="heroicons:chart-bar"
-                    color="blue"
-                />
-            </MetricsCardGroup>
-
-            <div className="grid grid-cols-2 gap-6">
-                <TrendChart
-                    title="Provider Case Volume Trends"
-                    description="Daily case volume by provider"
-                    data={data?.trends || []}
-                    series={[
-                        { dataKey: 'case_count', name: 'Cases' }
-                    ]}
-                    yAxis={{ formatter: formatters.number }}
-                    tooltip={{ formatter: formatters.number }}
-                />
-
-                <TrendChart
-                    title="On-Time Start Performance"
-                    description="Daily on-time start percentage by provider"
-                    data={data?.trends || []}
-                    series={[
-                        { dataKey: 'on_time_percentage', name: 'On-Time %' }
-                    ]}
-                    yAxis={{ formatter: formatters.percentage }}
-                    tooltip={{ formatter: formatters.percentage }}
-                />
-            </div>
-
-            <Card>
-                <Card.Header>
-                    <Card.Title>Provider Performance Details</Card.Title>
-                    <Card.Description>Detailed metrics by provider</Card.Description>
-                </Card.Header>
-                <Card.Content>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2">Provider</th>
-                                    <th className="text-right py-2">Total Cases</th>
-                                    <th className="text-right py-2">Avg Cases/Day</th>
-                                    <th className="text-right py-2">On-Time Starts</th>
-                                    <th className="text-right py-2">Avg Duration</th>
-                                    <th className="text-right py-2">Utilization</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {providerMetrics.map(provider => (
-                                    <tr key={provider.provider_id} className="border-b">
-                                        <td className="py-2">
-                                            <div className="font-medium">{provider.provider_name}</div>
-                                            <div className="text-sm text-gray-500">{provider.specialty}</div>
-                                        </td>
-                                        <td className="text-right py-2">{formatters.number(provider.total_cases)}</td>
-                                        <td className="text-right py-2">{formatters.decimal(provider.avg_cases_per_day)}</td>
-                                        <td className="text-right py-2">
-                                            <div className={getPerformanceColor(provider.on_time_percentage)}>
-                                                {formatters.percentage(provider.on_time_percentage)}
-                                            </div>
-                                        </td>
-                                        <td className="text-right py-2">{formatters.duration(provider.avg_case_duration)}</td>
-                                        <td className="text-right py-2">
-                                            <div className={getPerformanceColor(provider.utilization)}>
-                                                {formatters.percentage(provider.utilization)}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card.Content>
-            </Card>
+          {/* Main Content */}
+          {/* Implement the rest of the dashboard components similar to BlockUtilizationDashboard */}
+          {/* For example, ProviderTrendAnalysis, ProviderDetailsTable, etc. */}
         </div>
-    );
+      </main>
+    </div>
+  );
 };
 
-const getPerformanceColor = (value) => {
-    if (value >= 80) return 'text-green-600';
-    if (value >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+ProviderDashboard.propTypes = {
+  initialSite: PropTypes.string,
+  initialDateRange: PropTypes.shape({
+    start: PropTypes.string,
+    end: PropTypes.string,
+  }),
+};
+
+ProviderDashboard.defaultProps = {
+  initialSite: 'Default Site',
+  initialDateRange: {
+    start: '2025-01-01',
+    end: '2025-01-31',
+  },
 };
 
 export default ProviderDashboard;

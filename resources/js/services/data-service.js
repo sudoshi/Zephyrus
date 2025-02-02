@@ -5,13 +5,10 @@ import { mockCases } from '@/mock-data/cases';
 import { mockRoomStatus } from '@/mock-data/room-status';
 import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
 import { mockBlockTemplates, mockBlockUtilization, mockServices } from '@/mock-data/block-templates';
+import { useMode } from '@/Contexts/ModeContext';
 
 class DataService {
-    constructor() {
-        this.mode = 'dev'; // Default to dev mode
-    }
-
-    setMode(mode) {
+    constructor(mode) {
         this.mode = mode;
     }
 
@@ -93,15 +90,15 @@ class DataService {
 
     // Hook for React components to use the data service
     static useDataService() {
-        const dataService = new DataService();
-        
+        const { mode } = useMode();
+        const dataService = new DataService(mode);
+
         return {
-            setMode: (mode) => dataService.setMode(mode),
             getPerformanceMetrics: () => dataService.getPerformanceMetrics(),
             getBlockSchedule: () => dataService.getBlockSchedule(),
             getCases: () => dataService.getCases(),
             getRoomStatus: () => dataService.getRoomStatus(),
-            getProviderPerformance: (startDate, endDate) => 
+            getProviderPerformance: (startDate, endDate) =>
                 dataService.getProviderPerformance(startDate, endDate),
             getCapacityAnalysis: () => dataService.getCapacityAnalysis(),
             getBlockTemplates: () => dataService.getBlockTemplates(),

@@ -11,12 +11,28 @@ import {
     ReferenceLine,
     Area
 } from 'recharts';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const LineChart = ({ 
     data,
     height = 300,
     target = 80 // Target percentage
 }) => {
+    const [isDarkMode] = useDarkMode();
+
+    // Define colors based on the current theme
+    const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+
+    const gridStrokeColor = colors.border;
+    const axisTickColor = colors.text.primary; // Changed for better contrast
+    const targetLineColor = colors.critical;
+    const averageLineColor = colors.info;
+    const tooltipBgColor = colors.surface;
+    const tooltipTextColor = colors.text.primary;
+    const positiveVarianceColor = colors.success;
+    const negativeVarianceColor = colors.critical;
+    const backgroundColor = colors.background; // Added for chart background
+
     // Calculate average
     const average = data.reduce((acc, curr) => acc + curr.value, 0) / data.length;
 
@@ -25,24 +41,34 @@ const LineChart = ({
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
-                    <p className="font-medium text-gray-900">{label}</p>
+                <div 
+                    className="p-3 shadow-lg rounded-lg border"
+                    style={{
+                        backgroundColor: tooltipBgColor,
+                        color: tooltipTextColor,
+                        borderColor: colors.border
+                    }}
+                >
+                    <p className="font-medium">{label}</p>
                     <div className="mt-2 space-y-1">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm">
                             Utilization: 
                             <span className="font-medium ml-1">{data.value}%</span>
-                            <span className={`ml-2 text-xs ${
-                                data.value >= target ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                                ({data.value >= target ? '✓' : `${target - data.value}% below target`})
+                            <span 
+                                className="ml-2 text-xs"
+                                style={{
+                                    color: data.value >= target ? positiveVarianceColor : negativeVarianceColor
+                                }}
+                            >
+                                ({data.value >= target ? '✓' : `${(target - data.value).toFixed(1)}% below target`})
                             </span>
                         </p>
-                        <p className="text-xs text-gray-500">Target: {target}%</p>
+                        <p className="text-xs">Target: {target}%</p>
                         {data.breakdown && (
-                            <div className="mt-2 pt-2 border-t">
-                                <p className="text-xs font-medium text-gray-700 mb-1">Breakdown:</p>
+                            <div className="mt-2 pt-2 border-t" style={{ borderColor: colors.border }}>
+                                <p className="text-xs font-medium mb-1">Breakdown:</p>
                                 {Object.entries(data.breakdown).map(([key, value]) => (
-                                    <p key={key} className="text-xs text-gray-600">
+                                    <p key={key} className="text-xs">
                                         {key}: <span className="font-medium">{value}%</span>
                                     </p>
                                 ))}
@@ -56,7 +82,7 @@ const LineChart = ({
     };
 
     return (
-        <div className="w-full" style={{ height: `${height}px` }}>
+        <div className="w-full" style={{ height: `${height}px`, backgroundColor }}>
             <ResponsiveContainer width="100%" height="100%">
                 <RechartsLineChart
                     data={data}
@@ -69,39 +95,43 @@ const LineChart = ({
                 >
                     <defs>
                         <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.3}/>
-                            <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.1}/>
+                            <stop offset="0%" stopColor={colors.info} stopOpacity={0.3}/>
+                            <stop offset="100%" stopColor={colors.info} stopOpacity={0.1}/>
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={gridStrokeColor} 
+                        strokeOpacity={isDarkMode ? 0.2 : 1} // Reduced opacity in dark mode
+                    />
                     <XAxis 
                         dataKey="date"
                         angle={-45}
                         textAnchor="end"
                         height={60}
                         interval={0}
-                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tick={{ fill: axisTickColor, fontSize: 14 }}
                         tickSize={10}
                     />
                     <YAxis 
                         domain={[0, 100]}
                         tickFormatter={(value) => `${value}%`}
-                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tick={{ fill: axisTickColor, fontSize: 14 }}
                         tickSize={10}
                         width={60}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: '14px' }} />
+                    <Legend wrapperStyle={{ fontSize: '14px', color: tooltipTextColor }} />
                     
                     {/* Target line */}
                     <ReferenceLine 
                         y={target} 
-                        stroke="#DC2626"
+                        stroke={targetLineColor}
                         strokeDasharray="3 3"
                         label={{ 
                             value: 'Target', 
                             position: 'right',
-                            fill: '#DC2626',
+                            fill: targetLineColor,
                             fontSize: 14
                         }}
                     />
@@ -109,12 +139,12 @@ const LineChart = ({
                     {/* Average line */}
                     <ReferenceLine 
                         y={average} 
-                        stroke="#2563EB"
+                        stroke={averageLineColor}
                         strokeDasharray="3 3"
                         label={{ 
                             value: 'Average', 
                             position: 'right',
-                            fill: '#2563EB',
+                            fill: averageLineColor,
                             fontSize: 14
                         }}
                     />
@@ -122,11 +152,11 @@ const LineChart = ({
                     <Area
                         type="monotone"
                         dataKey="value"
-                        stroke="#4F46E5"
+                        stroke={colors.info}
                         strokeWidth={3}
                         fill="url(#colorValue)"
-                        dot={{ r: 6, strokeWidth: 2 }}
-                        activeDot={{ r: 8, strokeWidth: 2 }}
+                        dot={{ r: 6, strokeWidth: 2, fill: colors.info }}
+                        activeDot={{ r: 8, strokeWidth: 2, fill: colors.info }}
                     />
                 </RechartsLineChart>
             </ResponsiveContainer>

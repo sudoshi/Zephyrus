@@ -10,12 +10,25 @@ import {
     ResponsiveContainer,
     ReferenceLine
 } from 'recharts';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const StackedBarChart = ({ 
     data,
     height = 300,
     target = 80 // Target percentage for accuracy
 }) => {
+    const [isDarkMode] = useDarkMode();
+    const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+
+    const gridStrokeColor = colors.border;
+    const axisTickColor = colors.text.secondary;
+    const tooltipBgColor = colors.surface;
+    const tooltipTextColor = colors.text.primary;
+    const targetLineColor = colors.info;
+    const positiveVarianceColor = colors.success;
+    const negativeVarianceColor = colors.critical;
+    const warningColor = colors.warning;
+
     // Transform and sort data
     const chartData = Object.entries(data)
         .map(([service, values]) => ({
@@ -37,34 +50,44 @@ const StackedBarChart = ({
             const total = data.under + data.accurate + data.over;
             
             return (
-                <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
-                    <p className="font-medium text-gray-900">{label}</p>
+                <div 
+                    className="p-3 shadow-lg rounded-lg border"
+                    style={{
+                        backgroundColor: tooltipBgColor,
+                        color: tooltipTextColor,
+                        borderColor: colors.border
+                    }}
+                >
+                    <p className="font-medium">{label}</p>
                     <div className="mt-2 space-y-1">
                         <div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm">
                                 Accurate: 
                                 <span className="font-medium ml-1">{data.accurate}%</span>
-                                <span className={`ml-2 text-xs ${
-                                    data.accurate >= target ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                    ({data.accurate >= target ? '✓' : `${target - data.accurate}% below target`})
+                                <span 
+                                    className="ml-2 text-xs"
+                                    style={{
+                                        color: data.accurate >= target ? positiveVarianceColor : negativeVarianceColor
+                                    }}
+                                >
+                                    ({data.accurate >= target ? '✓' : `${(target - data.accurate).toFixed(1)}% below target`})
                                 </span>
                             </p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm">
                                 Under Scheduled: 
                                 <span className="font-medium ml-1">{data.under}%</span>
                             </p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm">
                                 Over Scheduled: 
                                 <span className="font-medium ml-1">{data.over}%</span>
                             </p>
                         </div>
-                        <div className="pt-1 border-t">
-                            <p className="text-sm text-gray-600">
+                        <div className="pt-1 border-t" style={{ borderColor: colors.border }}>
+                            <p className="text-sm">
                                 Total: 
                                 <span className="font-medium ml-1">{total}%</span>
                             </p>
@@ -90,26 +113,26 @@ const StackedBarChart = ({
                 >
                     <defs>
                         <linearGradient id="underGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#EF4444" stopOpacity={0.8}/>
-                            <stop offset="100%" stopColor="#EF4444" stopOpacity={0.3}/>
+                            <stop offset="0%" stopColor={negativeVarianceColor} stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor={negativeVarianceColor} stopOpacity={0.3}/>
                         </linearGradient>
                         <linearGradient id="accurateGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10B981" stopOpacity={0.8}/>
-                            <stop offset="100%" stopColor="#10B981" stopOpacity={0.3}/>
+                            <stop offset="0%" stopColor={positiveVarianceColor} stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor={positiveVarianceColor} stopOpacity={0.3}/>
                         </linearGradient>
                         <linearGradient id="overGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.8}/>
-                            <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.3}/>
+                            <stop offset="0%" stopColor={warningColor} stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor={warningColor} stopOpacity={0.3}/>
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridStrokeColor} />
                     <XAxis 
                         dataKey="service"
                         angle={-45}
                         textAnchor="end"
                         height={60}
                         interval={0}
-                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tick={{ fill: axisTickColor, fontSize: 14 }}
                         tickSize={10}
                     />
                     <YAxis 
@@ -117,32 +140,32 @@ const StackedBarChart = ({
                             value: 'Percentage', 
                             angle: -90, 
                             position: 'insideLeft',
-                            fill: '#6B7280',
+                            fill: axisTickColor,
                             fontSize: 14
                         }}
-                        tick={{ fill: '#6B7280', fontSize: 14 }}
+                        tick={{ fill: axisTickColor, fontSize: 14 }}
                         tickSize={10}
                         width={60}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend 
                         payload={[
-                            { value: 'Under Scheduled', type: 'rect', color: '#EF4444' },
-                            { value: 'Accurate', type: 'rect', color: '#10B981' },
-                            { value: 'Over Scheduled', type: 'rect', color: '#F59E0B' }
+                            { value: 'Under Scheduled', type: 'rect', color: negativeVarianceColor },
+                            { value: 'Accurate', type: 'rect', color: positiveVarianceColor },
+                            { value: 'Over Scheduled', type: 'rect', color: warningColor }
                         ]}
-                        wrapperStyle={{ fontSize: '14px' }}
+                        wrapperStyle={{ fontSize: '14px', color: tooltipTextColor }}
                     />
                     
                     {/* Target line */}
                     <ReferenceLine 
                         y={target} 
-                        stroke="#4F46E5"
+                        stroke={targetLineColor}
                         strokeDasharray="3 3"
                         label={{ 
                             value: 'Target', 
                             position: 'right',
-                            fill: '#4F46E5',
+                            fill: targetLineColor,
                             fontSize: 14
                         }}
                     />

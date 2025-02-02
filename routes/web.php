@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Analytics;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Operations;
+use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -10,26 +14,23 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard Routes
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    // Main Navigation Routes
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/blocks', function () {
-        return Inertia::render('BlockSchedule');
-    })->name('blocks');
+    // Analytics Routes
+    Route::get('/analytics/service', [Analytics\ServiceAnalyticsController::class, 'index'])->name('analytics.service');
+    Route::get('/analytics/provider', [Analytics\ProviderAnalyticsController::class, 'index'])->name('analytics.provider');
+    Route::get('/analytics/trends', [Analytics\HistoricalTrendsController::class, 'index'])->name('analytics.trends');
 
-    Route::get('/cases', function () {
-        return Inertia::render('Cases');
-    })->name('cases');
+    // Operations Routes
+    Route::get('/operations/room-status', [Operations\RoomStatusController::class, 'index'])->name('operations.room-status');
+    Route::get('/operations/block-schedule', [Operations\BlockScheduleController::class, 'index'])->name('operations.block-schedule');
+    Route::get('/operations/cases', [Operations\CaseManagementController::class, 'index'])->name('operations.cases');
 
-    Route::get('/room-status', function () {
-        return Inertia::render('RoomStatus');
-    })->name('room-status');
-
-    Route::get('/analytics', function () {
-        return Inertia::render('Analytics');
-    })->name('analytics');
+    // Predictions Routes
+    Route::get('/predictions/forecast', [Predictions\UtilizationForecastController::class, 'index'])->name('predictions.forecast');
+    Route::get('/predictions/demand', [Predictions\DemandAnalysisController::class, 'index'])->name('predictions.demand');
+    Route::get('/predictions/resources', [Predictions\ResourcePlanningController::class, 'index'])->name('predictions.resources');
 
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

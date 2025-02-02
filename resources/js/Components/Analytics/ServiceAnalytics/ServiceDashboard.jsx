@@ -1,185 +1,204 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Spinner } from '@heroui/react';
-import Card from '@/Components/Dashboard/Card';
+import { useDarkMode } from '../../../hooks/useDarkMode';
+import ErrorBoundary from '../../Common/ErrorBoundary';
+import { mockServiceAnalytics } from '../../../mock-data/service-analytics';
 import { Icon } from '@iconify/react';
-import { useMode } from '@/Contexts/ModeContext';
-import DataService from '@/services/data-service';
-import DateRangeSelector from '@/Components/Common/DateRangeSelector';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
-import TrendChart, { formatters } from '@/Components/Common/TrendChart';
+import SummaryCards from '../BlockUtilization/SummaryCards';
+import DarkModeToggle from '../../Common/DarkModeToggle';
+import Select from '../../BlockSchedule/Select';
+import DateRangeSelector from '../../Common/DateRangeSelector';
+import PropTypes from 'prop-types';
 
 const ServiceDashboard = () => {
-    const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [data, setData] = useState(null);
+  // State initialization
+  const [isDarkMode, setIsDarkMode] = useDarkMode();
+  const [selectedSite, setSelectedSite] = useState('Default Site');
+  const [dateRange, setDateRange] = useState({
+    start: '2025-01-01',
+    end: '2025-01-31',
+  });
+  const [quickDateFilter, setQuickDateFilter] = useState(null);
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    overallUtilization: 0,
+    utilizationTrend: 0,
+    primeTimeUsage: 0,
+    primeTimeTrend: 0,
+    totalCases: 0,
+    casesTrend: 0,
+    outOfBlockCases: 0,
+    outOfBlockTrend: 0,
+  });
 
-    const { mode } = useMode();
-    const dataService = DataService.useDataService();
+  // Data initialization
+  const sites = Object.keys(mockServiceAnalytics.sites);
+  const siteData = mockServiceAnalytics.sites[selectedSite] || {
+    services: [],
+    totals: {
+      average_utilization: 0,
+      total_cases: 0,
+      average_turnover: 0,
+    },
+  };
 
-    const fetchData = async () => {
-        try {
-            dataService.setMode(mode);
-            const response = await dataService.getPerformanceMetrics();
-            setData(response);
-            setError(null);
-        } catch (err) {
-            console.error('Error fetching service analytics:', err);
-            setError('Failed to load service analytics data');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Update summary metrics when site data changes
+  useEffect(() => {
+    if (!siteData?.totals) return;
 
-    useEffect(() => {
-        fetchData();
-    }, [startDate, endDate]);
+    setSummaryMetrics({
+      overallUtilization: siteData.totals.average_utilization || 0,
+      utilizationTrend: 2.5, // Mock trend data
+      primeTimeUsage: siteData.totals.average_turnover || 0,
+      primeTimeTrend: -1.5,
+      totalCases: siteData.totals.total_cases || 0,
+      casesTrend: 3.2,
+      outOfBlockCases: 0, // Assuming not applicable
+      outOfBlockTrend: 0,
+    });
+  }, [siteData?.totals]);
 
-    const handleDateChange = (type, value) => {
-        if (type === 'start') setStartDate(value);
-        else setEndDate(value);
-    };
+  // Handle quick date selection
+  const handleQuickDateSelect = (days) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
 
-    const handleQuickSelect = (start, end) => {
-        setStartDate(start);
-        setEndDate(end);
-    };
+    setQuickDateFilter(days);
+    setDateRange({
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0],
+    });
+  };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <Spinner size="lg" />
+  return (
+    <div
+      className={`flex min-h-screen ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}
+    >
+      <main className="flex-1">
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h1
+              className={`text-2xl font-bold ${
+                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}
+            >
+              Service Analytics Overview
+            </h1>
+            <div className="flex items-center space-x-4">
+              {/* Site Selector */}
+              <Select
+                value={selectedSite}
+                onChange={setSelectedSite}
+                options={sites.map((site) => ({
+                  value: site,
+                  label: site,
+                }))}
+                className="w-48"
+              />
+
+              {/* Quick Date Buttons */}
+              <div className="flex space-x-2">
+                {[7, 30, 90].map((days) => (
+                  <button
+                    key={days}
+                    onClick={() => handleQuickDateSelect(days)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      quickDateFilter === days
+                        ? isDarkMode
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-indigo-100 text-indigo-700'
+                        : isDarkMode
+                        ? 'text-gray-300 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {`${days}D`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Date Range Selector */}
+              <DateRangeSelector
+                startDate={dateRange.start}
+                endDate={dateRange.end}
+                onDateRangeChange={(range) => {
+                  setQuickDateFilter(null);
+                  setDateRange(range);
+                }}
+              />
+
+              {/* Dark Mode Toggle */}
+              <DarkModeToggle
+                isDarkMode={isDarkMode}
+                onToggle={() => setIsDarkMode(!isDarkMode)}
+              />
+
+              {/* Settings Button */}
+              <button
+                type="button"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isDarkMode
+                    ? 'text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600'
+                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                } border`}
+              >
+                <Icon
+                  icon="heroicons:cog-6-tooth"
+                  className="w-5 h-5 mr-2"
+                />
+                Settings
+              </button>
+
+              {/* Export Report Button */}
+              <button
+                type="button"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white rounded-md ${
+                  isDarkMode
+                    ? 'bg-indigo-500 hover:bg-indigo-600'
+                    : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
+              >
+                <Icon
+                  icon="heroicons:document-arrow-down"
+                  className="w-5 h-5 mr-2"
+                />
+                Export Report
+              </button>
             </div>
-        );
-    }
+          </div>
 
-    if (error) {
-        return (
-            <div className="p-6 text-center text-red-600">
-                <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
-                <p>{error}</p>
-            </div>
-        );
-    }
-
-    const serviceMetrics = data?.utilization?.map(service => ({
-        ...service,
-        trend: service.avg_utilization > 75 ? 'up' : service.avg_utilization < 60 ? 'down' : 'neutral'
-    })) || [];
-
-    return (
-        <div className="space-y-6">
-            <DateRangeSelector
-                startDate={startDate}
-                endDate={endDate}
-                onDateChange={handleDateChange}
-                onQuickSelect={handleQuickSelect}
+          {/* Summary Cards */}
+          <ErrorBoundary>
+            <SummaryCards
+              metrics={summaryMetrics}
+              isDarkMode={isDarkMode}
             />
+          </ErrorBoundary>
 
-            <MetricsCardGroup>
-                <MetricsCard
-                    title="Average Utilization"
-                    value={serviceMetrics.reduce((acc, s) => acc + s.avg_utilization, 0) / serviceMetrics.length}
-                    formatter={formatters.percentage}
-                    icon="heroicons:chart-bar"
-                    color="indigo"
-                />
-                <MetricsCard
-                    title="Total Cases"
-                    value={serviceMetrics.reduce((acc, s) => acc + s.case_count, 0)}
-                    formatter={formatters.number}
-                    icon="heroicons:clipboard-document-list"
-                    color="emerald"
-                />
-                <MetricsCard
-                    title="Average Turnover"
-                    value={serviceMetrics.reduce((acc, s) => acc + s.avg_turnover, 0) / serviceMetrics.length}
-                    formatter={formatters.duration}
-                    icon="heroicons:arrow-path"
-                    color="amber"
-                />
-                <MetricsCard
-                    title="On-Time Starts"
-                    value={serviceMetrics.reduce((acc, s) => acc + s.on_time_start_percentage, 0) / serviceMetrics.length}
-                    formatter={formatters.percentage}
-                    icon="heroicons:clock"
-                    color="blue"
-                />
-            </MetricsCardGroup>
-
-            <div className="grid grid-cols-2 gap-6">
-                <TrendChart
-                    title="Service Utilization Trends"
-                    description="Daily utilization percentage by service"
-                    data={data?.trends || []}
-                    series={[
-                        { dataKey: 'utilization', name: 'Utilization %' }
-                    ]}
-                    yAxis={{ formatter: formatters.percentage }}
-                    tooltip={{ formatter: formatters.percentage }}
-                />
-
-                <TrendChart
-                    title="Case Volume Distribution"
-                    description="Cases per day by service"
-                    data={data?.trends || []}
-                    series={[
-                        { dataKey: 'case_count', name: 'Cases' }
-                    ]}
-                    yAxis={{ formatter: formatters.number }}
-                    tooltip={{ formatter: formatters.number }}
-                />
-            </div>
-
-            <Card>
-                <Card.Header>
-                    <Card.Title>Service Performance Details</Card.Title>
-                    <Card.Description>Detailed metrics by service line</Card.Description>
-                </Card.Header>
-                <Card.Content>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2">Service</th>
-                                    <th className="text-right py-2">Cases</th>
-                                    <th className="text-right py-2">Utilization</th>
-                                    <th className="text-right py-2">Turnover</th>
-                                    <th className="text-right py-2">On-Time Starts</th>
-                                    <th className="text-right py-2">Avg Duration</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {serviceMetrics.map(service => (
-                                    <tr key={service.service_id} className="border-b">
-                                        <td className="py-2">
-                                            <div className="font-medium">{service.service_name}</div>
-                                        </td>
-                                        <td className="text-right py-2">{formatters.number(service.case_count)}</td>
-                                        <td className="text-right py-2">
-                                            <div className={getUtilizationColor(service.avg_utilization)}>
-                                                {formatters.percentage(service.avg_utilization)}
-                                            </div>
-                                        </td>
-                                        <td className="text-right py-2">{formatters.duration(service.avg_turnover)}</td>
-                                        <td className="text-right py-2">{formatters.percentage(service.on_time_start_percentage)}</td>
-                                        <td className="text-right py-2">{formatters.duration(service.avg_duration)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card.Content>
-            </Card>
+          {/* Main Content */}
+          {/* Implement additional dashboard components as needed */}
         </div>
-    );
+      </main>
+    </div>
+  );
 };
 
-const getUtilizationColor = (value) => {
-    if (value >= 80) return 'text-green-600';
-    if (value >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+ServiceDashboard.propTypes = {
+  initialSite: PropTypes.string,
+  initialDateRange: PropTypes.shape({
+    start: PropTypes.string,
+    end: PropTypes.string,
+  }),
+};
+
+ServiceDashboard.defaultProps = {
+  initialSite: 'Default Site',
+  initialDateRange: {
+    start: '2025-01-01',
+    end: '2025-01-31',
+  },
 };
 
 export default ServiceDashboard;
