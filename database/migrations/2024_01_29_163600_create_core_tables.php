@@ -49,6 +49,10 @@ return new class extends Migration
             $table->boolean('is_deleted')->default(false);
         });
 
+        // Add provider type check constraint
+        DB::statement("ALTER TABLE prod.providers ADD CONSTRAINT check_provider_type 
+            CHECK (type IN ('surgeon', 'anesthesiologist', 'nurse'))");
+
         // BlockTemplate
         Schema::create('prod.block_templates', function (Blueprint $table) {
             $table->id('block_id');

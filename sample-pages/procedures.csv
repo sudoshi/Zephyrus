@@ -1,0 +1,15 @@
+id,name,specialty,typical_duration,complexity_score,created_at,updated_at
+1,"Appendectomy","General Surgery",60,3.0,2024-01-12 00:00:00,2024-01-12 00:00:00
+2,"Cholecystectomy","General Surgery",90,3.2,2024-01-12 00:00:00,2024-01-12 00:00:00
+3,"Hernia Repair","General Surgery",120,3.5,2024-01-12 00:00:00,2024-01-12 00:00:00
+4,"Colectomy","General Surgery",180,4.2,2024-01-12 00:00:00,2024-01-12 00:00:00
+5,"Total Knee Replacement","Orthopedics",120,4.0,2024-01-12 00:00:00,2024-01-12 00:00:00
+6,"Hip Replacement","Orthopedics",150,4.2,2024-01-12 00:00:00,2024-01-12 00:00:00
+7,"Arthroscopy","Orthopedics",90,3.5,2024-01-12 00:00:00,2024-01-12 00:00:00
+8,"Shoulder Surgery","Orthopedics",120,3.8,2024-01-12 00:00:00,2024-01-12 00:00:00
+9,"C-Section","OBGYN",60,3.0,2024-01-12 00:00:00,2024-01-12 00:00:00
+10,"Hysterectomy","OBGYN",120,3.5,2024-01-12 00:00:00,2024-01-12 00:00:00
+11,"CABG","Cardiac",240,4.8,2024-01-12 00:00:00,2024-01-12 00:00:00
+12,"Valve Replacement","Cardiac",180,4.5,2024-01-12 00:00:00,2024-01-12 00:00:00
+13,"Cardiac Cath","Cath Lab",90,3.5,2024-01-12 00:00:00,2024-01-12 00:00:00
+14,"Angioplasty","Cath Lab",120,3.8,2024-01-12 00:00:00,2024-01-12 00:00:00

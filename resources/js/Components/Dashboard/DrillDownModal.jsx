@@ -1,5 +1,4 @@
-import React, { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import React from 'react';
 import { Icon } from '@iconify/react';
 import {
   ResponsiveContainer,
@@ -11,6 +10,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import Modal from '@/Components/Common/Modal';
 
 const DrillDownModal = ({ isOpen, onClose, metric, data }) => {
   const [isDarkMode] = useDarkMode();
@@ -31,230 +31,170 @@ const DrillDownModal = ({ isOpen, onClose, metric, data }) => {
     value: data.value + (Math.random() - 0.5) * 20
   })) : [];
 
-  return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog 
-        as="div" 
-        className="relative z-10" 
-        onClose={onClose}
-      >
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/25 dark:bg-black/40 transition-colors duration-300" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+  const modalContent = (
+    <>
+      {/* Content */}
+      <div className="space-y-6">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { title: 'Current', icon: 'heroicons:clock', value: data?.value || 0, label: 'vs. last period' },
+            { title: 'Average', icon: 'heroicons:chart-bar', value: data?.average || 0, label: 'last 30 days' },
+            { title: 'Target', icon: 'heroicons:flag', value: data?.target || 0, label: 'benchmark' }
+          ].map((stat, index) => (
+            <div 
+              key={stat.title}
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-info dark:hover:border-healthcare-info-dark transition-all duration-300"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-healthcare-surface dark:bg-healthcare-surface-dark p-6 text-left align-middle shadow-xl transition-all duration-300">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-2">
-                    <Dialog.Title className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                      {metricTitles[metric]} Details
-                    </Dialog.Title>
-                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
-                      Last 24 Hours
-                    </span>
-                  </div>
-                  <button
-                    className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 focus:outline-none"
-                    onClick={onClose}
-                  >
-                    <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-                  </button>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
+                  {stat.title}
                 </div>
+                <Icon 
+                  icon={stat.icon} 
+                  className="w-5 h-5 text-healthcare-info dark:text-healthcare-info-dark transition-colors duration-300" 
+                />
+              </div>
+              <div className="mt-2">
+                <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                  {stat.value}%
+                </div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
+                  {stat.label}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-                {/* Content */}
-                <div className="space-y-6">
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-3 gap-4">
-                    {[
-                      { title: 'Current', icon: 'heroicons:clock', value: data?.value || 0, label: 'vs. last period' },
-                      { title: 'Average', icon: 'heroicons:chart-bar', value: data?.average || 0, label: 'last 30 days' },
-                      { title: 'Target', icon: 'heroicons:flag', value: data?.target || 0, label: 'benchmark' }
-                    ].map((stat, index) => (
-                      <div 
-                        key={stat.title}
-                        className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-info dark:hover:border-healthcare-info-dark transition-all duration-300"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
-                            {stat.title}
-                          </div>
-                          <Icon 
-                            icon={stat.icon} 
-                            className="w-5 h-5 text-healthcare-info dark:text-healthcare-info-dark transition-colors duration-300" 
-                          />
-                        </div>
-                        <div className="mt-2">
-                          <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                            {stat.value}%
-                          </div>
-                          <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
-                            {stat.label}
-                          </div>
-                        </div>
+        {/* Trend Chart */}
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <defs>
+                <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={colors.info} stopOpacity={0.3}/>
+                  <stop offset="100%" stopColor={colors.info} stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={colors.border}
+                opacity={0.5}
+              />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fill: colors.text.secondary, fontSize: 12 }}
+                stroke={colors.border}
+              />
+              <YAxis 
+                tick={{ fill: colors.text.secondary, fontSize: 12 }}
+                tickFormatter={(value) => `${value}%`}
+                stroke={colors.border}
+              />
+              <RechartsTooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 shadow-lg rounded-lg border border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
+                        <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                          {label}
+                        </p>
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
+                          Value: <span className="font-medium">{payload[0].value}%</span>
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke={colors.info}
+                strokeWidth={2}
+                dot={{ r: 3, fill: colors.info }}
+                activeDot={{ r: 5, fill: colors.info }}
+                fill="url(#valueGradient)"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
 
-                  {/* Trend Chart */}
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <defs>
-                          <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={colors.info} stopOpacity={0.3}/>
-                            <stop offset="100%" stopColor={colors.info} stopOpacity={0.1}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid 
-                          strokeDasharray="3 3" 
-                          stroke={colors.border}
-                          opacity={0.5}
-                        />
-                        <XAxis 
-                          dataKey="date" 
-                          tick={{ fill: colors.text.secondary, fontSize: 12 }}
-                          stroke={colors.border}
-                        />
-                        <YAxis 
-                          tick={{ fill: colors.text.secondary, fontSize: 12 }}
-                          tickFormatter={(value) => `${value}%`}
-                          stroke={colors.border}
-                        />
-                        <RechartsTooltip 
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              return (
-                                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 shadow-lg rounded-lg border border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
-                                  <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                    {label}
-                                  </p>
-                                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
-                                    Value: <span className="font-medium">{payload[0].value}%</span>
-                                  </p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke={colors.info}
-                          strokeWidth={2}
-                          dot={{ r: 3, fill: colors.info }}
-                          activeDot={{ r: 5, fill: colors.info }}
-                          fill="url(#valueGradient)"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Service Breakdown */}
-                  <div>
-                    <h3 className="text-lg font-medium mb-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                      Service Breakdown
-                    </h3>
-                    <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg overflow-hidden border border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
-                      <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                        <thead>
-                          <tr className="bg-healthcare-background dark:bg-healthcare-background-dark transition-colors duration-300">
-                            <th className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                              Service
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                              Value
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                              Change
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                          {['Orthopedics', 'Cardiology', 'General'].map((service, i) => (
-                            <tr 
-                              key={service} 
-                              className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-150"
-                            >
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                {service}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                  {(data?.value || 0) + (Math.random() - 0.5) * 10}%
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
-                                <div className="flex items-center justify-end space-x-1">
-                                  <Icon 
-                                    icon={i % 2 === 0 ? 'heroicons:arrow-up' : 'heroicons:arrow-down'} 
-                                    className={`w-4 h-4 ${
-                                      i % 2 === 0 
-                                        ? 'text-healthcare-success dark:text-healthcare-success-dark' 
-                                        : 'text-healthcare-critical dark:text-healthcare-critical-dark'
-                                    } transition-colors duration-300`} 
-                                  />
-                                  <span className={`
-                                    ${i % 2 === 0 
-                                      ? 'text-healthcare-success dark:text-healthcare-success-dark' 
-                                      : 'text-healthcare-critical dark:text-healthcare-critical-dark'
-                                    } transition-colors duration-300
-                                  `}>
-                                    {Math.round(Math.random() * 5)}%
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="mt-6 flex justify-end">
-                  <button
-                    type="button"
-                    className="
-                      inline-flex justify-center rounded-md px-4 py-2 text-sm font-medium
-                      border border-healthcare-border dark:border-healthcare-border-dark
-                      bg-healthcare-surface dark:bg-healthcare-surface-dark
-                      text-healthcare-text-primary dark:text-healthcare-text-primary-dark
-                      hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark
-                      focus:outline-none focus:ring-2 focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark
-                      transition-all duration-300
-                    "
-                    onClick={onClose}
+        {/* Service Breakdown */}
+        <div>
+          <h3 className="text-lg font-medium mb-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+            Service Breakdown
+          </h3>
+          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg overflow-hidden border border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+              <thead>
+                <tr className="bg-healthcare-background dark:bg-healthcare-background-dark transition-colors duration-300">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                    Service
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                    Value
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
+                    Change
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                {['Orthopedics', 'Cardiology', 'General'].map((service, i) => (
+                  <tr 
+                    key={service} 
+                    className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-150"
                   >
-                    Close
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                      {service}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                      <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                        {(data?.value || 0) + (Math.random() - 0.5) * 10}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                      <div className="flex items-center justify-end space-x-1">
+                        <Icon 
+                          icon={i % 2 === 0 ? 'heroicons:arrow-up' : 'heroicons:arrow-down'} 
+                          className={`w-4 h-4 ${
+                            i % 2 === 0 
+                              ? 'text-healthcare-success dark:text-healthcare-success-dark' 
+                              : 'text-healthcare-critical dark:text-healthcare-critical-dark'
+                          } transition-colors duration-300`} 
+                        />
+                        <span className={`
+                          ${i % 2 === 0 
+                            ? 'text-healthcare-success dark:text-healthcare-success-dark' 
+                            : 'text-healthcare-critical dark:text-healthcare-critical-dark'
+                          } transition-colors duration-300
+                        `}>
+                          {Math.round(Math.random() * 5)}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </Dialog>
-    </Transition>
+      </div>
+    </>
+  );
+
+  return (
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={`${metricTitles[metric]} Details`}
+      maxWidth="4xl"
+    >
+      {modalContent}
+    </Modal>
   );
 };
 

@@ -1,185 +1,124 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
-import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Head } from '@inertiajs/react';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard from '@/Components/Common/MetricsCard';
-import DateRangeSelector from '@/Components/Common/DateRangeSelector';
+import CaseTracker from '@/Components/Operations/CaseManagement/CaseTracker';
+import CaseAnalytics from '@/Components/Operations/CaseManagement/CaseAnalytics';
 
-const CaseManagement = () => {
-    const [selectedStatus, setSelectedStatus] = useState('all');
-    const [selectedView, setSelectedView] = useState('list');
-
-    return (
-        <DashboardLayout>
-            <Head title="Case Management - ZephyrusOR" />
-            <PageContentLayout
-                title="Case Management"
-                subtitle="Schedule and manage surgical cases"
-            >
-                <div className="space-y-6">
-                    {/* Filter Panel */}
-                    <Card>
-                        <Card.Content>
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="relative">
-                                        <select 
-                                            value={selectedStatus}
-                                            onChange={(e) => setSelectedStatus(e.target.value)}
-                                            className="text-sm border-healthcare-border dark:border-healthcare-border-dark rounded-md pl-8 pr-4 py-2 appearance-none bg-healthcare-surface dark:bg-healthcare-surface-dark hover:border-healthcare-info dark:hover:border-healthcare-info-dark transition-colors duration-300"
-                                        >
-                                            <option value="all">All Cases</option>
-                                            <option value="scheduled">Scheduled</option>
-                                            <option value="pending">Pending</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                        <Icon 
-                                            icon="heroicons:funnel" 
-                                            className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300"
-                                        />
-                                    </div>
-                                    <div className="flex items-center space-x-1 p-1 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
-                                        {['list', 'calendar', 'board'].map((view) => (
-                                            <button
-                                                key={view}
-                                                onClick={() => setSelectedView(view)}
-                                                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-300 ${
-                                                    selectedView === view
-                                                        ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                                        : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark'
-                                                }`}
-                                            >
-                                                {view.charAt(0).toUpperCase() + view.slice(1)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <DateRangeSelector />
-                                    <button className="inline-flex items-center px-4 py-2 text-sm font-medium text-healthcare-info dark:text-healthcare-info-dark bg-healthcare-info bg-opacity-10 dark:bg-opacity-20 rounded-lg hover:bg-opacity-20 dark:hover:bg-opacity-30 transition-all duration-300">
-                                        <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
-                                        New Case
-                                    </button>
-                                </div>
-                            </div>
-                        </Card.Content>
-                    </Card>
-
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <MetricsCard
-                            title="Total Cases"
-                            value="324"
-                            trend={5}
-                            trendLabel="vs. last period"
-                            icon="heroicons:clipboard-document-list"
-                        />
-                        <MetricsCard
-                            title="Scheduled"
-                            value="156"
-                            trend={2.5}
-                            trendLabel="vs. last period"
-                            icon="heroicons:calendar"
-                        />
-                        <MetricsCard
-                            title="Pending"
-                            value="45"
-                            trend={-3}
-                            trendLabel="vs. last period"
-                            icon="heroicons:clock"
-                        />
-                        <MetricsCard
-                            title="Completed"
-                            value="123"
-                            trend={4}
-                            trendLabel="vs. last period"
-                            icon="heroicons:check-circle"
-                        />
-                    </div>
-
-                    {/* Case List */}
-                    <Card>
-                        <Card.Content>
-                            <div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-semibold">Cases</h3>
-                                    <div className="flex items-center space-x-2">
-                                        <button className="inline-flex items-center text-sm text-healthcare-info dark:text-healthcare-info-dark hover:text-healthcare-info-dark dark:hover:text-healthcare-info font-medium transition-colors duration-300">
-                                            <Icon icon="heroicons:document-arrow-down" className="w-4 h-4 mr-1" />
-                                            Export
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full">
-                                        <thead>
-                                            <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark">
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Case ID
-                                                </th>
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Patient
-                                                </th>
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Procedure
-                                                </th>
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Date
-                                                </th>
-                                                <th className="text-left py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Status
-                                                </th>
-                                                <th className="text-right py-3 px-4 text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider transition-colors duration-300">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                            {Array.from({ length: 5 }).map((_, index) => (
-                                                <tr 
-                                                    key={index}
-                                                    className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
-                                                >
-                                                    <td className="py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                                        #12{index + 1}345
-                                                    </td>
-                                                    <td className="py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                                        John Doe
-                                                    </td>
-                                                    <td className="py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                                        Total Hip Replacement
-                                                    </td>
-                                                    <td className="py-4 px-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                                        Mar 15, 2025
-                                                    </td>
-                                                    <td className="py-4 px-4">
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                            index % 3 === 0 ? 'bg-healthcare-success bg-opacity-10 dark:bg-opacity-20 text-healthcare-success dark:text-healthcare-success-dark' :
-                                                            index % 3 === 1 ? 'bg-healthcare-warning bg-opacity-10 dark:bg-opacity-20 text-healthcare-warning dark:text-healthcare-warning-dark' :
-                                                            'bg-healthcare-info bg-opacity-10 dark:bg-opacity-20 text-healthcare-info dark:text-healthcare-info-dark'
-                                                        }`}>
-                                                            {index % 3 === 0 ? 'Scheduled' : index % 3 === 1 ? 'Pending' : 'Completed'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-4 text-right">
-                                                        <button className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300">
-                                                            <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </Card.Content>
-                    </Card>
-                </div>
-            </PageContentLayout>
-        </DashboardLayout>
-    );
+// Sample data - Replace with API calls in production
+const specialties = {
+  "General Surgery": { color: "info", count: 8, onTime: 7, delayed: 1 },
+  "Orthopedics": { color: "success", count: 6, onTime: 5, delayed: 1 },
+  "OBGYN": { color: "warning", count: 5, onTime: 4, delayed: 1 },
+  "Cardiac": { color: "error", count: 4, onTime: 3, delayed: 1 },
+  "Cath Lab": { color: "primary", count: 5, onTime: 4, delayed: 1 },
 };
 
-export default CaseManagement;
+const locations = {
+  "Main OR": { total: 8, inUse: 6 },
+  "Cath Lab": { total: 3, inUse: 2 },
+  "L&D": { total: 2, inUse: 2 },
+  "Pre-Op": { total: 6, inUse: 4 },
+};
+
+const stats = {
+  totalPatients: 28,
+  inProgress: 12,
+  delayed: 4,
+  completed: 8,
+  preOp: 4,
+};
+
+const analyticsData = [
+  { month: 'Jan 23', cases: 391, avgDuration: 93, totalTime: 38000 },
+  { month: 'Mar 23', cases: 374, avgDuration: 101, totalTime: 44000 },
+  { month: 'May 23', cases: 463, avgDuration: 94, totalTime: 39000 },
+  { month: 'Jul 23', cases: 413, avgDuration: 94, totalTime: 40000 },
+  { month: 'Sep 23', cases: 406, avgDuration: 93, totalTime: 39000 },
+  { month: 'Nov 23', cases: 406, avgDuration: 93, totalTime: 40000 },
+  { month: 'Jan 24', cases: 427, avgDuration: 95, totalTime: 43000 },
+  { month: 'Mar 24', cases: 427, avgDuration: 95, totalTime: 35000 },
+  { month: 'May 24', cases: 408, avgDuration: 93, totalTime: 38000 }
+];
+
+const procedures = [
+  {
+    id: 1,
+    patient: "Johnson, M",
+    type: "Laparoscopic Cholecystectomy",
+    specialty: "General Surgery",
+    status: "In Progress",
+    phase: "Procedure",
+    location: "OR 3",
+    startTime: "07:30",
+    expectedDuration: 90,
+    provider: "Dr. Smith",
+    resourceStatus: "On Time",
+    journey: 60,
+    staff: [
+      { name: "Dr. Smith", role: "Surgeon" },
+      { name: "Dr. Jones", role: "Anesthesiologist" },
+      { name: "Nurse Johnson", role: "Scrub Nurse" }
+    ],
+    resources: [
+      { name: "OR 3", status: "onTime" },
+      { name: "Anesthesia Machine", status: "onTime" },
+      { name: "Laparoscopic Tower", status: "onTime" }
+    ]
+  },
+  // Add more procedures here...
+];
+
+export default function CaseManagement() {
+  const [view, setView] = useState('tracker'); // 'tracker' or 'analytics'
+
+  return (
+    <AuthenticatedLayout>
+      <Head title="Case Management" />
+
+      <PageContentLayout>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Case Management
+          </h1>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setView('tracker')}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                view === 'tracker'
+                  ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
+                  : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+              }`}
+            >
+              <Icon icon="heroicons:list-bullet" className="w-5 h-5" />
+              <span>Tracker</span>
+            </button>
+            <button
+              onClick={() => setView('analytics')}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                view === 'analytics'
+                  ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
+                  : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+              }`}
+            >
+              <Icon icon="heroicons:chart-bar" className="w-5 h-5" />
+              <span>Analytics</span>
+            </button>
+          </div>
+        </div>
+
+        {view === 'tracker' ? (
+          <CaseTracker
+            procedures={procedures}
+            specialties={specialties}
+            locations={locations}
+            stats={stats}
+          />
+        ) : (
+          <CaseAnalytics data={analyticsData} />
+        )}
+      </PageContentLayout>
+    </AuthenticatedLayout>
+  );
+}

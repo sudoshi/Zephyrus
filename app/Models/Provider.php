@@ -10,27 +10,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Provider extends Model
 {
     public $timestamps = false;
-    protected $table = 'prod.provider';
+    protected $table = 'prod.providers';
     protected $primaryKey = 'provider_id';
 
     protected $fillable = [
         'npi',
         'name',
-        'specialty_id',
-        'provider_type',
+        'type',
         'active_status',
         'created_by',
         'modified_by',
-        'created_date',
-        'modified_date',
         'is_deleted'
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
-        'is_deleted' => 'boolean',
-        'created_date' => 'datetime',
-        'modified_date' => 'datetime'
+        'is_deleted' => 'boolean'
     ];
 
     public function specialty(): BelongsTo
@@ -64,17 +59,4 @@ class Provider extends Model
         return $query->where('provider_type', 'anesthesiologist');
     }
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($model) {
-            $model->created_date = $model->freshTimestamp();
-            $model->modified_date = $model->freshTimestamp();
-        });
-
-        static::updating(function ($model) {
-            $model->modified_date = $model->freshTimestamp();
-        });
-    }
 }

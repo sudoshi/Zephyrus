@@ -1,0 +1,29 @@
+id,name,location,condition,nextStep,created_at,updated_at
+1,"Johnson, M","OR 1","Acute appendicitis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+2,"Williams, R","Pre-Op","Cholecystitis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+3,"Davis, A","PACU","Post-operative","Recovery monitoring",2024-01-12 00:00:00,2024-01-12 00:00:00
+4,"Miller, J","Pre-Op","Colon cancer","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+5,"Wilson, E","Pre-Op","Acute appendicitis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+6,"Moore, S","Pre-Op","Cholecystitis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+7,"Taylor, R","Pre-Op","Hernia","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+8,"Anderson, M","Pre-Op","Colon cancer","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+9,"Thomas, J","PACU","Post-operative","Recovery monitoring",2024-01-12 00:00:00,2024-01-12 00:00:00
+10,"Jackson, P","OR 6","Osteoarthritis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+11,"White, L","Pre-Op","Knee injury","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+12,"Harris, B","Pre-Op","Shoulder injury","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+13,"Martin, C","Pre-Op","Osteoarthritis","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+14,"Thompson, S","Pre-Op","Hip fracture","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+15,"Garcia, M","PACU","Post-operative","Recovery monitoring",2024-01-12 00:00:00,2024-01-12 00:00:00
+16,"Rodriguez, A","L&D 2","Gynecological condition","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+17,"Lee, S","Pre-Op","Labor","C-Section",2024-01-12 00:00:00,2024-01-12 00:00:00
+18,"Lewis, J","Pre-Op","Gynecological condition","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+19,"Walker, R","Pre-Op","Labor","C-Section",2024-01-12 00:00:00,2024-01-12 00:00:00
+20,"Hall, P","OR 7","Coronary artery disease","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+21,"Young, D","Pre-Op","Valve disease","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+22,"Allen, F","Pre-Op","Coronary artery disease","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+23,"King, M","Pre-Op","Valve disease","Surgery",2024-01-12 00:00:00,2024-01-12 00:00:00
+24,"Wright, B","PACU","Post-catheterization","Recovery monitoring",2024-01-12 00:00:00,2024-01-12 00:00:00
+25,"Lopez, C","Cath 2","Coronary artery disease","Catheterization",2024-01-12 00:00:00,2024-01-12 00:00:00
+26,"Hill, E","Pre-Op","Coronary artery disease","Catheterization",2024-01-12 00:00:00,2024-01-12 00:00:00
+27,"Scott, G","Pre-Op","Coronary artery disease","Catheterization",2024-01-12 00:00:00,2024-01-12 00:00:00
+28,"Green, K","Pre-Op","Coronary artery disease","Catheterization",2024-01-12 00:00:00,2024-01-12 00:00:00

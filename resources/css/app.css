@@ -98,6 +98,18 @@
   }
 }
 
+/* Modal styles */
+@layer components {
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl;
+    @apply p-6 m-4;
+  }
+}
+
 /* Custom dropdown styles */
 .dropdown-overlay {
     @apply fixed inset-0 z-40 bg-black/5 dark:bg-black/50;

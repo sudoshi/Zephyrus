@@ -14,10 +14,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('code');
             $table->boolean('active_status')->default(true);
-            $table->timestamps();
             $table->string('created_by')->nullable();
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
+            $table->timestamps();
         });
 
         // CaseType

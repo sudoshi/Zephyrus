@@ -5,9 +5,52 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import Card from '@/Components/Dashboard/Card';
 import MetricsCard from '@/Components/Common/MetricsCard';
+import RoomStatusCard from '@/Components/RoomStatus/RoomStatusCard';
+import RoomDetailsModal from '@/Components/RoomStatus/RoomDetailsModal';
 
 const RoomStatus = () => {
     const [selectedLocation, setSelectedLocation] = useState('all');
+    const [selectedRoom, setSelectedRoom] = useState(null);
+
+    // Mock data - replace with actual data from your backend
+    const mockRooms = Array.from({ length: 12 }).map((_, index) => ({
+        number: index + 1,
+        status: index % 3 === 0 ? 'in_progress' : index % 3 === 1 ? 'turnover' : 'available',
+        currentCase: index % 3 === 0 ? {
+            patient: 'John Doe',
+            procedure: 'Total Hip Replacement',
+            provider: 'Dr. Smith',
+            startTime: '09:30',
+            expectedEndTime: '11:00',
+            expectedDuration: 90,
+            elapsed: 45,
+            staff: [
+                { name: 'Dr. Smith', role: 'Surgeon' },
+                { name: 'Jane Wilson', role: 'Anesthesiologist' },
+                { name: 'Mary Johnson', role: 'Scrub Nurse' }
+            ],
+            resources: [
+                { name: 'OR Table', status: 'in_progress' },
+                { name: 'Anesthesia Machine', status: 'in_progress' },
+                { name: 'Surgical Tools', status: 'in_progress' }
+            ],
+            notes: 'Patient has latex allergy',
+            alerts: index === 3 ? ['Blood pressure elevated', 'Medication due in 15 minutes'] : []
+        } : null,
+        nextCase: index % 3 === 1 ? {
+            startTime: '10:30',
+            procedure: 'Knee Arthroscopy'
+        } : null,
+        timeRemaining: index % 3 === 0 ? 45 : null,
+        turnoverTime: index % 3 === 1 ? 15 : null
+    }));
+
+    const stats = {
+        total: mockRooms.length,
+        inUse: mockRooms.filter(r => r.status === 'in_progress').length,
+        available: mockRooms.filter(r => r.status === 'available').length,
+        turnover: mockRooms.filter(r => r.status === 'turnover').length
+    };
 
     return (
         <DashboardLayout>
@@ -53,26 +96,26 @@ const RoomStatus = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         <MetricsCard
                             title="Total Rooms"
-                            value="24"
+                            value={stats.total.toString()}
                             icon="heroicons:building-office-2"
                         />
                         <MetricsCard
                             title="In Use"
-                            value="18"
-                            trend={75}
+                            value={stats.inUse.toString()}
+                            trend={Math.round((stats.inUse / stats.total) * 100)}
                             trendLabel="occupancy"
                             icon="heroicons:check-circle"
                         />
                         <MetricsCard
                             title="Available"
-                            value="6"
-                            trend={25}
+                            value={stats.available.toString()}
+                            trend={Math.round((stats.available / stats.total) * 100)}
                             trendLabel="availability"
                             icon="heroicons:clock"
                         />
                         <MetricsCard
                             title="Turnovers"
-                            value="3"
+                            value={stats.turnover.toString()}
                             icon="heroicons:arrow-path"
                         />
                     </div>
@@ -83,48 +126,26 @@ const RoomStatus = () => {
                             <div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                 <h3 className="text-lg font-semibold mb-4">Room Status Board</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {Array.from({ length: 12 }).map((_, index) => (
-                                        <div 
-                                            key={index}
-                                            className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark transition-colors duration-300"
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="font-semibold">Room {index + 1}</span>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    index % 3 === 0 ? 'bg-healthcare-success bg-opacity-10 dark:bg-opacity-20 text-healthcare-success dark:text-healthcare-success-dark' :
-                                                    index % 3 === 1 ? 'bg-healthcare-warning bg-opacity-10 dark:bg-opacity-20 text-healthcare-warning dark:text-healthcare-warning-dark' :
-                                                    'bg-healthcare-info bg-opacity-10 dark:bg-opacity-20 text-healthcare-info dark:text-healthcare-info-dark'
-                                                }`}>
-                                                    {index % 3 === 0 ? 'In Progress' : index % 3 === 1 ? 'Turnover' : 'Available'}
-                                                </span>
-                                            </div>
-                                            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                {index % 3 === 0 && (
-                                                    <>
-                                                        <p>Case: Total Hip Replacement</p>
-                                                        <p>Time Remaining: 1h 30m</p>
-                                                    </>
-                                                )}
-                                                {index % 3 === 1 && (
-                                                    <>
-                                                        <p>Next Case: 10:30 AM</p>
-                                                        <p>Est. Ready: 15m</p>
-                                                    </>
-                                                )}
-                                                {index % 3 === 2 && (
-                                                    <>
-                                                        <p>Next Case: None</p>
-                                                        <p>Status: Ready</p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
+                                    {mockRooms.map((room) => (
+                                        <RoomStatusCard
+                                            key={room.number}
+                                            room={room}
+                                            onClick={() => setSelectedRoom(room)}
+                                        />
                                     ))}
                                 </div>
                             </div>
                         </Card.Content>
                     </Card>
                 </div>
+
+                {/* Room Details Modal */}
+                {selectedRoom && (
+                    <RoomDetailsModal
+                        room={selectedRoom}
+                        onClose={() => setSelectedRoom(null)}
+                    />
+                )}
             </PageContentLayout>
         </DashboardLayout>
     );
