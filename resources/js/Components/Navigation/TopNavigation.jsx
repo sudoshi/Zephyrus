@@ -53,11 +53,11 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     <div className="flex items-center">
                         <div className="flex items-center space-x-2">
                             <div className="relative">
-                                <Icon 
-                                    icon="heroicons:beaker" 
-                                    className="w-8 h-8 text-healthcare-info dark:text-healthcare-info-dark transition-colors duration-300"
+                                <img 
+                                    src="/images/IconOnly_Transparent.png"
+                                    alt="OR Analytics Platform Logo"
+                                    className="h-[60px] w-auto"
                                 />
-                                <div className="absolute inset-0 bg-healthcare-info dark:bg-healthcare-info-dark opacity-20 dark:opacity-10 blur-sm rounded-full transition-all duration-300"></div>
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">

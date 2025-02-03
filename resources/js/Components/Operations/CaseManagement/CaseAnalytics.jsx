@@ -9,7 +9,12 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar
 } from 'recharts';
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -35,25 +40,37 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const MetricCard = ({ title, icon, value, trend, trendValue }) => (
-  <div className="p-4 border rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark">
-    <div className="flex items-center justify-between mb-2">
-      <span className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-        {title}
-      </span>
-      <Icon icon={icon} className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
-    </div>
-    <div className="flex items-baseline justify-between">
-      <span className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-        {value}
-      </span>
-      <span className={`text-sm ${trend === 'up' ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-error dark:text-healthcare-error-dark'}`}>
-        {trend === 'up' ? '↑' : '↓'} {trendValue}
-      </span>
-    </div>
-  </div>
+  <Card>
+    <Card.Content>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            {title}
+          </span>
+          <Icon icon={icon} className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            {value}
+          </span>
+          <span className={`text-sm ${trend === 'up' ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-error dark:text-healthcare-error-dark'}`}>
+            {trend === 'up' ? '↑' : '↓'} {trendValue}
+          </span>
+        </div>
+      </div>
+    </Card.Content>
+  </Card>
 );
 
-const CaseAnalytics = ({ data }) => {
+const COLORS = {
+  "General Surgery": "#3B82F6", // blue
+  "Orthopedics": "#10B981",    // green
+  "OBGYN": "#EC4899",          // pink
+  "Cardiac": "#EF4444",        // red
+  "Cath Lab": "#F59E0B"        // yellow
+};
+
+const CaseAnalytics = ({ data, specialties }) => {
   // Calculate trends and metrics
   const currentMonth = data[data.length - 1];
   const previousMonth = data[data.length - 2];
@@ -64,6 +81,26 @@ const CaseAnalytics = ({ data }) => {
 
   return (
     <div className="space-y-6">
+      {/* Date Range Selector */}
+      <Card>
+        <Card.Content>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Analytics Overview
+            </h3>
+            <div className="flex items-center space-x-4">
+              <select className="text-sm border-healthcare-border dark:border-healthcare-border-dark rounded-md pl-3 pr-8 py-1.5 bg-healthcare-surface dark:bg-healthcare-surface-dark">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last Year</option>
+              </select>
+            </div>
+          </div>
+        </Card.Content>
+      </Card>
+
+      {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Total Cases"
@@ -88,9 +125,21 @@ const CaseAnalytics = ({ data }) => {
         />
       </div>
 
+      {/* Trends Chart */}
       <Card>
         <Card.Header>
           <Card.Title>Case Volume & Duration Trends</Card.Title>
+          <div className="flex items-center space-x-4">
+            <button className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark">
+              Daily
+            </button>
+            <button className="text-sm text-healthcare-info dark:text-healthcare-info-dark font-medium">
+              Monthly
+            </button>
+            <button className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark">
+              Yearly
+            </button>
+          </div>
         </Card.Header>
         <Card.Content>
           <div className="h-[400px]">
@@ -146,6 +195,113 @@ const CaseAnalytics = ({ data }) => {
           </div>
         </Card.Content>
       </Card>
+
+      {/* Specialty Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <Card.Header>
+            <Card.Title>Case Distribution by Specialty</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(specialties).map(([name, data]) => ({
+                      name,
+                      value: data.count
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {Object.entries(specialties).map(([name]) => (
+                      <Cell key={name} fill={COLORS[name]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 rounded-lg shadow-lg border border-healthcare-border dark:border-healthcare-border-dark">
+                            <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                              {data.name}
+                            </p>
+                            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                              Cases: {data.value}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card.Content>
+        </Card>
+
+        <Card>
+          <Card.Header>
+            <Card.Title>On-Time Performance by Specialty</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={Object.entries(specialties).map(([name, data]) => ({
+                    name,
+                    onTime: data.onTime,
+                    delayed: data.delayed,
+                    color: COLORS[name]
+                  }))}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 20,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-healthcare-border dark:stroke-healthcare-border-dark" />
+                  <XAxis dataKey="name" className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+                  <YAxis className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const total = payload[0].value + payload[1].value;
+                        const onTimePercent = ((payload[0].value / total) * 100).toFixed(1);
+                        return (
+                          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 rounded-lg shadow-lg border border-healthcare-border dark:border-healthcare-border-dark">
+                            <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-1">
+                              {label}
+                            </p>
+                            <p className="text-sm text-healthcare-success dark:text-healthcare-success-dark">
+                              On Time: {payload[0].value} ({onTimePercent}%)
+                            </p>
+                            <p className="text-sm text-healthcare-error dark:text-healthcare-error-dark">
+                              Delayed: {payload[1].value}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="onTime" name="On Time" fill="#10B981" stackId="a" />
+                  <Bar dataKey="delayed" name="Delayed" fill="#EF4444" stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card.Content>
+        </Card>
+      </div>
     </div>
   );
 };
