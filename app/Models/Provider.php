@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Provider extends Model
 {
-    public $timestamps = false;
+    public $timestamps = true;
     protected $table = 'prod.providers';
     protected $primaryKey = 'provider_id';
 
@@ -17,15 +17,20 @@ class Provider extends Model
         'npi',
         'name',
         'type',
+        'specialty_id',
         'active_status',
         'created_by',
         'modified_by',
+        'created_at',
+        'updated_at',
         'is_deleted'
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     public function specialty(): BelongsTo
@@ -51,12 +56,11 @@ class Provider extends Model
 
     public function scopeSurgeons($query)
     {
-        return $query->where('provider_type', 'surgeon');
+        return $query->where('type', 'surgeon');
     }
 
     public function scopeAnesthesiologists($query)
     {
-        return $query->where('provider_type', 'anesthesiologist');
+        return $query->where('type', 'anesthesiologist');
     }
-
 }

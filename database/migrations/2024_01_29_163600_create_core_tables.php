@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -71,10 +72,15 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+
+        // Add room type check constraint
+        DB::statement("ALTER TABLE prod.rooms ADD CONSTRAINT check_room_type 
+            CHECK (type IN ('general', 'OR', 'pre_op', 'post_op', 'cath_lab', 'L&D'))");
     }
 
     public function down()
     {
+        // Only drop tables in prod schema
         Schema::dropIfExists('prod.block_templates');
         Schema::dropIfExists('prod.providers');
         Schema::dropIfExists('prod.rooms');

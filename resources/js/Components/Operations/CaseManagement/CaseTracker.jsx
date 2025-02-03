@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/Card';
 import { StatusDot, ProgressBar, CaseStatusBadge } from './StatusIndicator';
 import CaseDetailView from './CaseDetailView';
+import Card from '@/Components/Dashboard/Card';
 
 const MetricCard = ({ title, icon, value, subValue, children }) => (
   <div className="space-y-2 p-4 border rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark">
@@ -213,8 +213,8 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
 
       {/* Active Procedures */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Active Procedures</CardTitle>
+        <Card.Header className="flex flex-row items-center justify-between">
+          <Card.Title>Active Procedures</Card.Title>
           <div className="flex space-x-2">
             {["Pre-Op", "Procedure", "Recovery"].map((phase) => (
               <button
@@ -240,8 +240,8 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
               All
             </button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </Card.Header>
+        <Card.Content>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -302,6 +302,20 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
                             status={progressStatus}
                             estimatedCompletion={estimatedCompletion}
                           />
+                          {proc.phase === "Procedure" && (
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                              <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                <span className="font-medium">Anesthesia:</span>{" "}
+                                {progressStatus === "delayed" ? "Delayed" : "Ready"}
+                              </div>
+                              <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                <span className="font-medium">Blood Loss:</span> Minimal
+                              </div>
+                              <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                <span className="font-medium">Vitals:</span> Stable
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -309,7 +323,7 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
               </tbody>
             </table>
           </div>
-        </CardContent>
+        </Card.Content>
       </Card>
 
       {selectedCase && (

@@ -115,6 +115,7 @@ return new class extends Migration
 
     public function down()
     {
+        // Only drop tables in prod schema
         Schema::dropIfExists('prod.room_utilization');
         Schema::dropIfExists('prod.block_utilization');
         Schema::dropIfExists('prod.case_metrics');

@@ -100,12 +100,6 @@ return new class extends Migration
         });
 
         // Add constraints
-        DB::statement("ALTER TABLE prod.rooms ADD CONSTRAINT check_room_type 
-            CHECK (type IN ('general', 'OR', 'pre_op', 'post_op', 'cath_lab', 'L&D'))");
-
-        DB::statement("ALTER TABLE prod.providers ADD CONSTRAINT check_provider_type 
-            CHECK (type IN ('General Surgery', 'Orthopedics', 'OBGYN', 'Cardiac', 'Cath Lab'))");
-
         DB::statement("ALTER TABLE prod.or_cases ADD CONSTRAINT check_safety_status 
             CHECK (safety_status IN ('Normal', 'Review_Required', 'Alert'))");
 

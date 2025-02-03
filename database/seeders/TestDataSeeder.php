@@ -33,17 +33,20 @@ class TestDataSeeder extends Seeder
                 'code' => $service['code'],
                 'active_status' => true,
                 'created_by' => 'system',
-                'modified_by' => 'system'
+                'modified_by' => 'system',
+                'created_at' => now(),
+                'updated_at' => now(),
+                'is_deleted' => false
             ]);
             $serviceIds[] = $newService->service_id;
         }
 
         // Create test rooms
         $rooms = [
-            ['name' => 'OR-1', 'room_type' => 'OR'],
-            ['name' => 'OR-2', 'room_type' => 'OR'],
-            ['name' => 'OR-3', 'room_type' => 'OR'],
-            ['name' => 'OR-4', 'room_type' => 'OR']
+            ['name' => 'OR-1', 'type' => 'OR'],
+            ['name' => 'OR-2', 'type' => 'OR'],
+            ['name' => 'OR-3', 'type' => 'OR'],
+            ['name' => 'OR-4', 'type' => 'OR']
         ];
 
         $roomIds = [];
@@ -51,31 +54,37 @@ class TestDataSeeder extends Seeder
             $newRoom = Room::create([
                 'location_id' => 1,
                 'name' => $room['name'],
-                'room_type' => $room['room_type'],
+                'type' => $room['type'],
                 'active_status' => true,
                 'created_by' => 'system',
-                'modified_by' => 'system'
+                'modified_by' => 'system',
+                'created_at' => now(),
+                'updated_at' => now(),
+                'is_deleted' => false
             ]);
             $roomIds[] = $newRoom->room_id;
         }
 
         // Create test providers
         $providers = [
-            ['name' => 'Dr. Smith', 'type' => 'surgeon', 'specialty_id' => 1],
-            ['name' => 'Dr. Johnson', 'type' => 'surgeon', 'specialty_id' => 2],
-            ['name' => 'Dr. Williams', 'type' => 'surgeon', 'specialty_id' => 3],
-            ['name' => 'Dr. Brown', 'type' => 'surgeon', 'specialty_id' => 4]
+            ['name' => 'Dr. Smith', 'provider_type' => 'surgeon', 'specialty_id' => 1],
+            ['name' => 'Dr. Johnson', 'provider_type' => 'surgeon', 'specialty_id' => 2],
+            ['name' => 'Dr. Williams', 'provider_type' => 'surgeon', 'specialty_id' => 3],
+            ['name' => 'Dr. Brown', 'provider_type' => 'surgeon', 'specialty_id' => 4]
         ];
 
         $providerIds = [];
         foreach ($providers as $provider) {
             $newProvider = Provider::create([
                 'name' => $provider['name'],
-                'provider_type' => $provider['type'],
+                'type' => $provider['provider_type'],
                 'specialty_id' => $provider['specialty_id'],
                 'active_status' => true,
                 'created_by' => 'system',
-                'modified_by' => 'system'
+                'modified_by' => 'system',
+                'created_at' => now(),
+                'updated_at' => now(),
+                'is_deleted' => false
             ]);
             $providerIds[] = $newProvider->provider_id;
         }
@@ -157,7 +166,10 @@ class TestDataSeeder extends Seeder
                 'patient_class_id' => 1, // Inpatient
                 'procedure_name' => $case['procedure'],
                 'created_by' => 'system',
-                'modified_by' => 'system'
+                'modified_by' => 'system',
+                'created_at' => now(),
+                'updated_at' => now(),
+                'is_deleted' => false
             ]);
 
             // Create OR logs for completed and in-progress cases
@@ -181,7 +193,10 @@ class TestDataSeeder extends Seeder
                     'procedure_end_time' => $procedureEndTime,
                     'or_out_time' => $orOutTime,
                     'created_by' => 'system',
-                    'modified_by' => 'system'
+                    'modified_by' => 'system',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                    'is_deleted' => false
                 ]);
             }
         }
