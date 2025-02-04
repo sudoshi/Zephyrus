@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { Providers } from './Providers/HeroUIProvider';
+import { DashboardProvider } from './Contexts/DashboardContext';
 
 createInertiaApp({
     title: (title) => `${title} - OR Analytics Platform`,
@@ -16,7 +17,9 @@ createInertiaApp({
             <App {...props}>
                 {({ Component, props }) => (
                     <Providers>
-                        <Component {...props} />
+                        <DashboardProvider>
+                            <Component {...props} />
+                        </DashboardProvider>
                     </Providers>
                 )}
             </App>

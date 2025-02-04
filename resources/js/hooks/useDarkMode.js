@@ -3,25 +3,8 @@ import { useState, useEffect } from 'react';
 const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 
 export function useDarkMode() {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage first
-    const savedMode = localStorage.getItem('darkMode');
-    if (savedMode !== null) {
-      return savedMode === 'true';
-    }
-    // Fall back to system preference
-    return window.matchMedia(COLOR_SCHEME_QUERY).matches;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY);
-    const handleChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
 
   useEffect(() => {
     // Update document class and localStorage

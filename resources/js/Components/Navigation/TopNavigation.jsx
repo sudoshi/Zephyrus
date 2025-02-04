@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { Icon } from '@iconify/react';
@@ -53,7 +53,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                    ZephyrusOR
+                                    Zephyrus
                                 </h2>
                             </div>
                         </div>
@@ -145,9 +145,8 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                                 </Menu.Item>
                                 <Menu.Item>
                                     {({ active }) => (
-                                        <Link
-                                            href={route('logout')}
-                                            method="post"
+                                        <button
+                                            onClick={() => router.post(route('logout'))}
                                             className={`
                                                 flex items-center px-4 py-2.5 text-sm transition-colors duration-300
                                                 ${active 
@@ -159,7 +158,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                                         >
                                             <Icon icon="heroicons:arrow-right-on-rectangle" className="w-4 h-4 mr-2" />
                                             Sign out
-                                        </Link>
+                                        </button>
                                     )}
                                 </Menu.Item>
                             </Menu.Items>
