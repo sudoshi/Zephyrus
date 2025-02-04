@@ -1,8 +1,7 @@
-# ZephyrusOR: Surgical Services Analytics Platform
-
+# Zephyrus
 ## 🏥 Overview
 
-ZephyrusOR is an advanced analytics and optimization platform designed to transform operating room management across healthcare systems. By leveraging sophisticated data analysis and predictive modeling, ZephyrusOR helps healthcare providers maximize surgical capacity, improve resource utilization, and drive operational excellence.
+Zephyrus is an advanced analytics and optimization platform designed to transform operating room management across healthcare systems. By leveraging sophisticated data analysis and predictive modeling, ZephyrusOR helps healthcare providers maximize surgical capacity, improve resource utilization, and drive operational excellence.
 
 ## 🚀 Key Features
 
