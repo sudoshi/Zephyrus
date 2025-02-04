@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from '@inertiajs/react';
 import { Menu, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 import { Icon } from '@iconify/react';
 import UserAvatar from '@/Components/UserAvatar';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
@@ -8,8 +9,7 @@ import { useDashboard } from '@/Contexts/DashboardContext';
 
 const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
     const { currentSection, navigationItems, dashboardItems } = useDashboard();
-    const [openSubMenu, setOpenSubMenu] = useState(null);
-
+    
     const mainNavigation = [
         {
             name: 'Dashboard',
@@ -21,19 +21,19 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
             name: 'Analytics',
             href: '#',
             icon: 'heroicons:chart-bar',
-            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('analytics')) || []
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.analytics || []
         },
         {
             name: 'Operations',
             href: '#',
             icon: 'heroicons:cog-6-tooth',
-            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('operations')) || []
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.operations || []
         },
         {
             name: 'Predictions',
             href: '#',
             icon: 'heroicons:chart-bar-square',
-            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('predictions')) || []
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.predictions || []
         }
     ];
 
@@ -65,35 +65,28 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                             {mainNavigation.map((item) => (
                                 <Menu as="div" className="relative" key={item.name}>
                                     <div className="flex items-center">
-                                        {item.name === 'Dashboard' ? (
-                                            <Link
-                                                href={item.href}
-                                                className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-l-md transition-colors duration-300"
-                                            >
+{item.name === 'Dashboard' ? (
+    <Menu.Button className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-300">
+        <Icon icon={item.icon} className="w-5 h-5 mr-2" />
+        {item.name}
+        <Icon icon="heroicons:chevron-down" className="w-4 h-4 ml-2" />
+    </Menu.Button>
+) : (
+                                            <Menu.Button className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-300">
                                                 <Icon icon={item.icon} className="w-5 h-5 mr-2" />
                                                 {item.name}
-                                            </Link>
-                                        ) : (
-                                            <button
-                                                className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-l-md transition-colors duration-300"
-                                                onClick={() => setOpenSubMenu(openSubMenu === item.name ? null : item.name)}
-                                            >
-                                                <Icon icon={item.icon} className="w-5 h-5 mr-2" />
-                                                {item.name}
-                                            </button>
+                                                <Icon icon="heroicons:chevron-down" className="w-4 h-4 ml-2" />
+                                            </Menu.Button>
                                         )}
-                                        <Menu.Button className="flex items-center px-2 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-r-md transition-colors duration-300 border-l border-healthcare-border dark:border-healthcare-border-dark">
-                                            <Icon icon="heroicons:chevron-down" className="w-4 h-4" />
-                                        </Menu.Button>
                                     </div>
                                     <Transition
-                                        show={openSubMenu === item.name}
-                                        enter="transition duration-100 ease-out"
-                                        enterFrom="transform scale-95 opacity-0"
-                                        enterTo="transform scale-100 opacity-100"
-                                        leave="transition duration-75 ease-out"
-                                        leaveFrom="transform scale-100 opacity-100"
-                                        leaveTo="transform scale-95 opacity-0"
+                                        as={Fragment}
+                                        enter="transition ease-out duration-100"
+                                        enterFrom="transform opacity-0 scale-95"
+                                        enterTo="transform opacity-100 scale-100"
+                                        leave="transition ease-in duration-75"
+                                        leaveFrom="transform opacity-100 scale-100"
+                                        leaveTo="transform opacity-0 scale-95"
                                     >
                                         <Menu.Items className="absolute right-0 mt-2 w-64 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark">
                                             {item.dropdownItems.map((dropdownItem) => (

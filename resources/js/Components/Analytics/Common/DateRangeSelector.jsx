@@ -61,7 +61,7 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange, onQuickSelect }) 
                         key={range.value}
                         variant="secondary"
                         size="sm"
-                        onClick={() => handleQuickSelect(range.value)}
+                        onPress={() => handleQuickSelect(range.value)}
                     >
                         {range.label}
                     </Button>

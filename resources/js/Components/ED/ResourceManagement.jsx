@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
 
@@ -115,6 +116,25 @@ const ResourceManagement = ({ resources }) => {
             </Card.Content>
         </Card>
     );
+};
+
+ResourceManagement.propTypes = {
+    resources: PropTypes.shape({
+        beds: PropTypes.shape({
+            total: PropTypes.number.isRequired,
+            occupied: PropTypes.number.isRequired,
+            cleaning: PropTypes.number,
+            available: PropTypes.number.isRequired,
+            categories: PropTypes.objectOf(PropTypes.shape({
+                total: PropTypes.number.isRequired,
+                available: PropTypes.number.isRequired,
+            })).isRequired,
+        }).isRequired,
+        equipment: PropTypes.objectOf(PropTypes.shape({
+            total: PropTypes.number.isRequired,
+            inUse: PropTypes.number.isRequired,
+        })).isRequired,
+    }).isRequired,
 };
 
 export default ResourceManagement;

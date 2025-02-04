@@ -13,20 +13,43 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@example.com'],
+        // Create users with matching usernames and passwords
+        $users = [
             [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
+                'name' => 'Sanjay',
+                'email' => 'sanjay@example.com',
+                'username' => 'sanjay',
+                'password' => 'sanjay'
+            ],
+            [
+                'name' => 'Acumenus',
+                'email' => 'acumenus@example.com',
+                'username' => 'acumenus',
+                'password' => 'acumenus'
+            ],
+            [
+                'name' => 'Kartheek',
+                'email' => 'kartheek@example.com',
+                'username' => 'kartheek',
+                'password' => 'kartheek'
+            ],
+            [
+                'name' => 'Hakan',
+                'email' => 'hakan@example.com',
+                'username' => 'hakan',
+                'password' => 'hakan'
             ]
-        );
+        ];
 
-        User::updateOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => Hash::make('password'),
-            ]
-        );
+        foreach ($users as $userData) {
+            User::updateOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'username' => $userData['username'],
+                    'password' => Hash::make($userData['password']),
+                ]
+            );
+        }
     }
 }

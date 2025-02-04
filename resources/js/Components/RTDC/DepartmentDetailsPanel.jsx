@@ -1,10 +1,24 @@
 import React from 'react';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
+import PropTypes from 'prop-types';
 import MetricsCard, { MetricsCardGroup } from '@/Components/Analytics/Common/MetricsCard';
 
 const DepartmentDetailsPanel = ({ department, onClose }) => {
     if (!department) return null;
+
+    const {
+        name = 'Department',
+        occupancy = 0,
+        occupiedBeds = 0,
+        totalBeds = 0,
+        status = 'unknown',
+        staffingLevel = 0,
+        boardingPatients,
+        pendingAdmissions = 0,
+        pendingDischarges = 0,
+        averageWaitTime,
+    } = department;
 
     return (
         <div className="mt-4">
@@ -14,7 +28,7 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                         <Card.Title>
                             <div className="flex items-center space-x-2">
                                 <Icon icon="heroicons:information-circle" className="w-5 h-5" />
-                                <span>{department.name} Details</span>
+                                <span>{name} Details</span>
                             </div>
                         </Card.Title>
                         <button
@@ -29,24 +43,24 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                     <MetricsCardGroup cols={3}>
                         <MetricsCard
                             title="Bed Utilization"
-                            value={`${department.occupiedBeds}/${department.totalBeds}`}
-                            trend={department.occupancy > 90 ? 'down' : 'up'}
-                            trendValue={department.occupancy}
+                            value={`${occupiedBeds}/${totalBeds}`}
+                            trend={occupancy > 90 ? 'down' : 'up'}
+                            trendValue={occupancy}
                             icon="heroicons:home"
-                            description={`${department.occupancy}% occupied`}
+                            description={`${occupancy}% occupied`}
                         />
                         <MetricsCard
                             title="Staffing Level"
-                            value={`${department.staffingLevel}%`}
-                            trend={department.staffingLevel < 95 ? 'down' : 'up'}
-                            trendValue={department.staffingLevel - 100}
+                            value={`${staffingLevel}%`}
+                            trend={staffingLevel < 95 ? 'down' : 'up'}
+                            trendValue={staffingLevel - 100}
                             icon="heroicons:users"
                             description="Current coverage"
                         />
-                        {department.boardingPatients !== undefined ? (
+                        {boardingPatients !== undefined ? (
                             <MetricsCard
                                 title="Boarding Patients"
-                                value={department.boardingPatients.toString()}
+                                value={boardingPatients.toString()}
                                 trend="up"
                                 trendValue={2}
                                 icon="heroicons:clock"
@@ -55,11 +69,11 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                         ) : (
                             <MetricsCard
                                 title="Pending Actions"
-                                value={(department.pendingAdmissions + department.pendingDischarges).toString()}
+                                value={(pendingAdmissions + pendingDischarges).toString()}
                                 trend="up"
-                                trendValue={department.pendingAdmissions}
+                                trendValue={pendingAdmissions}
                                 icon="heroicons:arrow-path"
-                                description={`${department.pendingAdmissions} in, ${department.pendingDischarges} out`}
+                                description={`${pendingAdmissions} in, ${pendingDischarges} out`}
                             />
                         )}
                     </MetricsCardGroup>
@@ -73,38 +87,53 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                                 <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Occupancy Status
                                 </span>
-                                <div className={`px-2 py-1 rounded text-xs ${
-                                    department.status === 'critical' ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark' :
-                                    department.status === 'warning' ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark' :
-                                    'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
-                                }`}>
-                                    {department.status.charAt(0).toUpperCase() + department.status.slice(1)}
+                                <div
+                                    className={`px-2 py-1 rounded text-xs ${
+                                        status === 'critical'
+                                            ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark'
+                                            : status === 'warning'
+                                            ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark'
+                                            : 'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                                    }`}
+                                >
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Staffing Status
                                 </span>
-                                <div className={`px-2 py-1 rounded text-xs ${
-                                    department.staffingLevel < 90 ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark' :
-                                    department.staffingLevel < 95 ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark' :
-                                    'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
-                                }`}>
-                                    {department.staffingLevel < 90 ? 'Critical' :
-                                     department.staffingLevel < 95 ? 'Warning' : 'Normal'}
+                                <div
+                                    className={`px-2 py-1 rounded text-xs ${
+                                        staffingLevel < 90
+                                            ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark'
+                                            : staffingLevel < 95
+                                            ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark'
+                                            : 'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                                    }`}
+                                >
+                                    {staffingLevel < 90
+                                        ? 'Critical'
+                                        : staffingLevel < 95
+                                        ? 'Warning'
+                                        : 'Normal'}
                                 </div>
                             </div>
-                            {department.averageWaitTime !== undefined && (
+                            {averageWaitTime !== undefined && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         Wait Time
                                     </span>
-                                    <div className={`px-2 py-1 rounded text-xs ${
-                                        department.averageWaitTime > 60 ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark' :
-                                        department.averageWaitTime > 30 ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark' :
-                                        'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
-                                    }`}>
-                                        {department.averageWaitTime} minutes
+                                    <div
+                                        className={`px-2 py-1 rounded text-xs ${
+                                            averageWaitTime > 60
+                                                ? 'bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark'
+                                                : averageWaitTime > 30
+                                                ? 'bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark'
+                                                : 'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                                        }`}
+                                    >
+                                        {averageWaitTime} minutes
                                     </div>
                                 </div>
                             )}
@@ -114,6 +143,22 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
             </Card>
         </div>
     );
+};
+
+DepartmentDetailsPanel.propTypes = {
+    department: PropTypes.shape({
+        name: PropTypes.string.isRequired,
+        occupancy: PropTypes.number.isRequired,
+        occupiedBeds: PropTypes.number,
+        totalBeds: PropTypes.number,
+        status: PropTypes.string.isRequired,
+        staffingLevel: PropTypes.number,
+        boardingPatients: PropTypes.number,
+        pendingAdmissions: PropTypes.number,
+        pendingDischarges: PropTypes.number,
+        averageWaitTime: PropTypes.number,
+    }),
+    onClose: PropTypes.func.isRequired,
 };
 
 export default DepartmentDetailsPanel;

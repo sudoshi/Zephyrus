@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
 
@@ -169,6 +170,34 @@ const AlertsAndPredictions = ({ alerts, predictions }) => {
             </Card>
         </div>
     );
+};
+
+AlertsAndPredictions.propTypes = {
+    alerts: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        type: PropTypes.string.isRequired,
+        title: PropTypes.string.isRequired,
+        message: PropTypes.string.isRequired,
+        timestamp: PropTypes.string.isRequired,
+    })).isRequired,
+    predictions: PropTypes.shape({
+        arrivals: PropTypes.arrayOf(PropTypes.shape({
+            hour: PropTypes.string.isRequired,
+            predicted: PropTypes.number.isRequired,
+            actual: PropTypes.number,
+        })).isRequired,
+        admissions: PropTypes.shape({
+            probability: PropTypes.number.isRequired,
+            predictedCount: PropTypes.number.isRequired,
+            byService: PropTypes.objectOf(PropTypes.number).isRequired,
+        }).isRequired,
+        bottlenecks: PropTypes.arrayOf(PropTypes.shape({
+            resource: PropTypes.string.isRequired,
+            probability: PropTypes.number.isRequired,
+            timeframe: PropTypes.string.isRequired,
+            impact: PropTypes.string.isRequired,
+        })).isRequired,
+    }).isRequired,
 };
 
 export default AlertsAndPredictions;

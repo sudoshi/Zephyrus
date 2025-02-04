@@ -52,12 +52,27 @@ const RTDCDashboard = () => {
                                 />
                             </MetricsCardGroup>
                             <div className="mt-6 h-48">
-                                <TrendChart
-                                    data={censusData.weeklyTrend}
-                                    xKey="date"
-                                    yKey="value"
-                                    yAxisLabel="Occupancy %"
-                                />
+                                    <TrendChart
+                                        data={censusData.weeklyTrend}
+                                        series={[
+                                            {
+                                                dataKey: 'value',
+                                                name: 'Occupancy',
+                                            },
+                                        ]}
+                                        xAxis={{
+                                            dataKey: 'date',
+                                            type: 'category',
+                                            formatter: (value) =>
+                                                new Date(value).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                }),
+                                        }}
+                                        yAxis={{
+                                            formatter: (value) => `${value}%`,
+                                        }}
+                                    />
                             </div>
                         </Card.Content>
                     </Card>

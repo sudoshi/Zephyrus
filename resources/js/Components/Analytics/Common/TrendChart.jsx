@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from '@/Components/Dashboard/Card';
 import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import PropTypes from 'prop-types';
 import {
     LineChart,
     Line,
@@ -16,7 +17,7 @@ const TrendChart = ({
     data,
     title,
     description,
-    series,
+    series = [],
     xAxis = {
         dataKey: 'date',
         type: 'category',
@@ -121,6 +122,20 @@ export const formatters = {
         day: 'numeric',
         year: 'numeric'
     })
+};
+
+TrendChart.propTypes = {
+    data: PropTypes.array.isRequired,
+    series: PropTypes.arrayOf(PropTypes.shape({
+        dataKey: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired
+    })),
+    title: PropTypes.string,
+    description: PropTypes.string,
+    xAxis: PropTypes.object,
+    yAxis: PropTypes.object,
+    tooltip: PropTypes.object,
+    colors: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default TrendChart;

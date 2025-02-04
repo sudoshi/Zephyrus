@@ -79,3 +79,5 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/rtdc/analytics/census', [RTDCDashboardController::class, 'departmentCensus'])->name('rtdc.analytics.census');

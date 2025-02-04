@@ -116,12 +116,19 @@ const EDDashboard = () => {
                                     Wait Time Trends
                                 </h4>
                                 <div className="h-48">
-                                    <TrendChart
-                                        data={edMetrics.waitTimes.trends}
-                                        xKey="hour"
-                                        yKey="waitTime"
-                                        yAxisLabel="Minutes"
-                                    />
+                                        <TrendChart
+                                            data={edMetrics.waitTimes.trends}
+                                            series={[
+                                                {
+                                                    dataKey: 'waitTime',
+                                                    name: 'Wait Time',
+                                                },
+                                            ]}
+                                            xAxis={{
+                                                dataKey: 'hour',
+                                                type: 'category',
+                                            }}
+                                        />
                                 </div>
                             </div>
                         </Card.Content>
