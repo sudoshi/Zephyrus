@@ -1,28 +1,25 @@
-import '../css/app.css';
 import './bootstrap';
+import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/react';
-import { Providers as HeroUIProviders } from './Providers/HeroUIProvider';
-import { ModeProvider } from './Contexts/ModeContext';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+import { createInertiaApp } from '@inertiajs/react';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { Providers } from './Providers/HeroUIProvider';
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
-    resolve: (name) =>
-        resolvePageComponent(
-            `./Pages/${name}.jsx`,
-            import.meta.glob('./Pages/**/*.jsx'),
-        ),
+    title: (title) => `${title} - OR Analytics Platform`,
+    resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
     setup({ el, App, props }) {
         const root = createRoot(el);
+
         root.render(
-            <HeroUIProviders>
-                <ModeProvider>
-                    <App {...props} />
-                </ModeProvider>
-            </HeroUIProviders>
+            <App {...props}>
+                {({ Component, props }) => (
+                    <Providers>
+                        <Component {...props} />
+                    </Providers>
+                )}
+            </App>
         );
     },
     progress: {

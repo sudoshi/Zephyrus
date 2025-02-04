@@ -20,37 +20,37 @@ export default {
             colors: {
                 healthcare: {
                     critical: {
-                        DEFAULT: '#DC2626', // red-600
-                        dark: '#EF4444',     // red-500
+                        DEFAULT: '#E53E3E', // Softer red for better readability
+                        dark: '#FC8181',    // Lighter red for dark mode
                     },
                     warning: {
-                        DEFAULT: '#D97706', // amber-600
-                        dark: '#F59E0B',     // amber-500
+                        DEFAULT: '#D69E2E', // Muted amber for less visual stress
+                        dark: '#F6AD55',    // Lighter amber for dark mode
                     },
                     success: {
-                        DEFAULT: '#059669', // emerald-600
-                        dark: '#10B981',     // emerald-500
+                        DEFAULT: '#38A169', // Muted green for professionalism
+                        dark: '#68D391',    // Lighter green for dark mode
                     },
                     info: {
-                        DEFAULT: '#2563EB', // blue-600
-                        dark: '#3B82F6',     // blue-500
+                        DEFAULT: '#4299E1', // Calming blue for trust
+                        dark: '#63B3ED',    // Lighter blue for dark mode
                     },
                     background: {
-                        DEFAULT: '#F9FAFB', // gray-50
-                        dark: '#111827',     // gray-900
+                        DEFAULT: '#F7FAFC', // Warmer tone for reduced eye strain
+                        dark: '#1A202C',    // Deep blue-gray for dark mode
                     },
                     surface: {
-                        DEFAULT: '#FFFFFF', // white
-                        dark: '#1F2937',     // gray-800
+                        DEFAULT: '#FFFFFF', // Pure white for contrast
+                        dark: '#2D3748',    // Softer dark background
                     },
                     text: {
                         primary: {
-                            DEFAULT: '#111827', // gray-900
-                            dark: '#F9FAFB',     // gray-50
+                            DEFAULT: '#2D3748', // Softer than pure black
+                            dark: '#F7FAFC',    // Warmer white for dark mode
                         },
                         secondary: {
-                            DEFAULT: '#4B5563', // gray-600
-                            dark: '#E5E7EB',     // gray-200 (improved contrast)
+                            DEFAULT: '#4A5568', // Medium gray for hierarchy
+                            dark: '#E2E8F0',    // Lighter gray for dark mode
                         },
                     },
                     border: {

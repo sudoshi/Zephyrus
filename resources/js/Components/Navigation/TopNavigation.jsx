@@ -1,47 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { Menu } from '@headlessui/react';
+import { Menu, Transition } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 import UserAvatar from '@/Components/UserAvatar';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
+import { useDashboard } from '@/Contexts/DashboardContext';
 
 const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
-    const navigationItems = [
+    const { currentSection, navigationItems, dashboardItems } = useDashboard();
+    const [openSubMenu, setOpenSubMenu] = useState(null);
+
+    const mainNavigation = [
         {
             name: 'Dashboard',
-            href: route('dashboard'),
+            href: route(`dashboard.${currentSection.toLowerCase()}`),
             icon: 'heroicons:home',
-            dropdownItems: []
+            dropdownItems: dashboardItems
         },
         {
             name: 'Analytics',
-            href: route('analytics.service'),
+            href: '#',
             icon: 'heroicons:chart-bar',
-            dropdownItems: [
-                { name: 'Service Analytics', href: route('analytics.service') },
-                { name: 'Provider Analytics', href: route('analytics.provider') },
-                { name: 'Historical Trends', href: route('analytics.trends') }
-            ]
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('analytics')) || []
         },
         {
             name: 'Operations',
-            href: route('operations.room-status'),
+            href: '#',
             icon: 'heroicons:cog-6-tooth',
-            dropdownItems: [
-                { name: 'Room Status', href: route('operations.room-status') },
-                { name: 'Block Schedule', href: route('operations.block-schedule') },
-                { name: 'Case Management', href: route('operations.cases') }
-            ]
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('operations')) || []
         },
         {
             name: 'Predictions',
-            href: route('predictions.forecast'),
+            href: '#',
             icon: 'heroicons:chart-bar-square',
-            dropdownItems: [
-                { name: 'Utilization Forecast', href: route('predictions.forecast') },
-                { name: 'Demand Analysis', href: route('predictions.demand') },
-                { name: 'Resource Planning', href: route('predictions.resources') }
-            ]
+            dropdownItems: navigationItems[currentSection.toLowerCase()]?.filter(item => item.href.includes('predictions')) || []
         }
     ];
 
@@ -70,19 +62,10 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     {/* Centered Navigation Items */}
                     <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
                         <div className="flex items-center space-x-8">
-                            {navigationItems.map((item) => (
-                                item.dropdownItems.length === 0 ? (
-                                    <Link
-                                        key={item.name}
-                                        href={item.href}
-                                        className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-300"
-                                    >
-                                        <Icon icon={item.icon} className="w-5 h-5 mr-2" />
-                                        {item.name}
-                                    </Link>
-                                ) : (
-                                    <Menu as="div" className="relative" key={item.name}>
-                                        <div className="flex items-center">
+                            {mainNavigation.map((item) => (
+                                <Menu as="div" className="relative" key={item.name}>
+                                    <div className="flex items-center">
+                                        {item.name === 'Dashboard' ? (
                                             <Link
                                                 href={item.href}
                                                 className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-l-md transition-colors duration-300"
@@ -90,11 +73,29 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                                                 <Icon icon={item.icon} className="w-5 h-5 mr-2" />
                                                 {item.name}
                                             </Link>
-                                            <Menu.Button className="flex items-center px-2 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-r-md transition-colors duration-300 border-l border-healthcare-border dark:border-healthcare-border-dark">
-                                                <Icon icon="heroicons:chevron-down" className="w-4 h-4" />
-                                            </Menu.Button>
-                                        </div>
-                                        <Menu.Items className="absolute right-0 mt-2 w-48 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark">
+                                        ) : (
+                                            <button
+                                                className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-l-md transition-colors duration-300"
+                                                onClick={() => setOpenSubMenu(openSubMenu === item.name ? null : item.name)}
+                                            >
+                                                <Icon icon={item.icon} className="w-5 h-5 mr-2" />
+                                                {item.name}
+                                            </button>
+                                        )}
+                                        <Menu.Button className="flex items-center px-2 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-r-md transition-colors duration-300 border-l border-healthcare-border dark:border-healthcare-border-dark">
+                                            <Icon icon="heroicons:chevron-down" className="w-4 h-4" />
+                                        </Menu.Button>
+                                    </div>
+                                    <Transition
+                                        show={openSubMenu === item.name}
+                                        enter="transition duration-100 ease-out"
+                                        enterFrom="transform scale-95 opacity-0"
+                                        enterTo="transform scale-100 opacity-100"
+                                        leave="transition duration-75 ease-out"
+                                        leaveFrom="transform scale-100 opacity-100"
+                                        leaveTo="transform scale-95 opacity-0"
+                                    >
+                                        <Menu.Items className="absolute right-0 mt-2 w-64 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark">
                                             {item.dropdownItems.map((dropdownItem) => (
                                                 <Menu.Item key={dropdownItem.name}>
                                                     {({ active }) => (
@@ -114,8 +115,8 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                                                 </Menu.Item>
                                             ))}
                                         </Menu.Items>
-                                    </Menu>
-                                )
+                                    </Transition>
+                                </Menu>
                             ))}
                         </div>
                     </div>
