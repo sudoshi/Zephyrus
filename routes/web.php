@@ -20,17 +20,33 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/rtdc', [RTDCDashboardController::class, 'index'])->name('dashboard.rtdc');
     Route::get('/dashboard/or', [DashboardController::class, 'index'])->name('dashboard.or');
     Route::get('/dashboard/ed', [EDDashboardController::class, 'index'])->name('dashboard.ed');
-    Route::get('/dashboard', function() { return redirect()->route('dashboard.or'); })->name('dashboard');
+    Route::get('/dashboard', function() {
+        return redirect()->route('dashboard.or');
+    })->name('dashboard');
 
     // RTDC Routes
     Route::prefix('rtdc')->name('rtdc.')->group(function () {
-        // Core RTDC Pages
+        // Analytics Routes
+        Route::prefix('analytics')->name('analytics.')->group(function () {
+            Route::get('/utilization', [RTDCDashboardController::class, 'utilization'])->name('utilization');
+            Route::get('/performance', [RTDCDashboardController::class, 'performance'])->name('performance');
+            Route::get('/resources', [RTDCDashboardController::class, 'resources'])->name('resources');
+            Route::get('/trends', [RTDCDashboardController::class, 'trends'])->name('trends');
+        });
+
+        // Operations Routes
         Route::get('/bed-tracking', [RTDCDashboardController::class, 'bedTracking'])->name('bed-tracking');
         Route::get('/ancillary-services', [RTDCDashboardController::class, 'ancillaryServices'])->name('ancillary-services');
-        Route::get('/discharge-prediction', [RTDCDashboardController::class, 'dischargePrediction'])->name('discharge-prediction');
         Route::get('/global-huddle', [RTDCDashboardController::class, 'globalHuddle'])->name('global-huddle');
-        Route::get('/unit-huddle', [RTDCDashboardController::class, 'unitHuddle'])->name('unit-huddle');
-        Route::get('/services-huddle', [RTDCDashboardController::class, 'servicesHuddle'])->name('services-huddle');
+        Route::get('/service-huddle', [RTDCDashboardController::class, 'serviceHuddle'])->name('service-huddle');
+
+        // Predictions Routes
+        Route::prefix('predictions')->name('predictions.')->group(function () {
+            Route::get('/demand', [RTDCDashboardController::class, 'demandForecast'])->name('demand');
+            Route::get('/resources', [RTDCDashboardController::class, 'resourcePlanning'])->name('resources');
+            Route::get('/discharge', [RTDCDashboardController::class, 'dischargePredictions'])->name('discharge');
+            Route::get('/risk', [RTDCDashboardController::class, 'riskAssessment'])->name('risk');
+        });
     });
 
     // Analytics Routes
@@ -79,5 +95,3 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
-
-Route::get('/rtdc/analytics/census', [RTDCDashboardController::class, 'departmentCensus'])->name('rtdc.analytics.census');

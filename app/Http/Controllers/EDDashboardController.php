@@ -12,10 +12,11 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
-    {
-        return Inertia::render('Dashboard/ED');
-    }
+public function index(Request $request)
+{
+    $request->session()->put('workflow', 'ed');
+    return Inertia::render('Dashboard/ED');
+}
 
     /**
      * Display the ED wait time analytics.

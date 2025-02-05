@@ -1,0 +1,26 @@
+# FHIR Parser Configuration
+
+# Processing Settings
+parallel:
+  file_workers: 4  # Number of parallel file processors (defaults to CPU count - 1)
+  resource_workers: 4  # Number of parallel resource processors within each file
+
+batch:
+  size: 1000  # Number of records to process before writing to disk
+  chunk_size: 100  # Size of chunks for parallel processing
+
+# I/O Settings
+paths:
+  input_directory: "fhir_data"  # Directory containing FHIR JSON files
+  output_directory: "analytical_tables"  # Directory for output CSV files
+
+# Logging Settings
+logging:
+  level: "INFO"  # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  file: "parser.log"  # Log file path
+
+# Memory Management
+memory:
+  max_buffer_size: 500_000  # Maximum number of records to hold in memory
+  gc_frequency: 1000  # Garbage collection frequency (in number of records)
+
