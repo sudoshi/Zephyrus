@@ -1,7 +1,4 @@
 import React from 'react';
-import Card from '@/Components/Dashboard/Card';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
-import PropTypes from 'prop-types';
 import {
     LineChart,
     Line,
@@ -10,132 +7,132 @@ import {
     CartesianGrid,
     Tooltip,
     Legend,
-    ResponsiveContainer
+    ResponsiveContainer,
 } from 'recharts';
 
-const TrendChart = ({
-    data,
-    title,
-    description,
-    series = [],
-    xAxis = {
+const TrendChart = ({ 
+    data, 
+    series, 
+    xAxis = {}, 
+    yAxis = {}, 
+    height = "100%",
+    showLegend = true,
+}) => {
+    // Default formatters
+    const defaultXAxisFormatter = (value) => value;
+    const defaultYAxisFormatter = (value) => value;
+
+    // Merge with defaults
+    const xAxisConfig = {
         dataKey: 'date',
         type: 'category',
-        formatter: (value) => new Date(value).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric'
-        })
-    },
-    yAxis = {
-        formatter: (value) => value
-    },
-    tooltip = {
-        formatter: (value) => value
-    },
-    colors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444']
-}) => {
-    const [isDarkMode] = useDarkMode();
-    const themeColors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
-    const chartColors = {
-        grid: isDarkMode ? '#374151' : '#E5E7EB', // dark: gray-700, light: gray-200
-        text: themeColors.text.primary,
-        background: themeColors.surface,
+        formatter: defaultXAxisFormatter,
+        ...xAxis,
     };
-    return (
-        <Card>
-            <Card.Header>
-                <Card.Title>{title}</Card.Title>
-                {description && (
-                    <Card.Description>{description}</Card.Description>
-                )}
-            </Card.Header>
-            <Card.Content>
-                <div className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-<LineChart
-    data={data}
-    margin={{
-        top: 5,
-        right: 30,
-        left: 20,
-        bottom: 5
-    }}
-    style={{ backgroundColor: chartColors.background }}
->
-<CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-<XAxis
-    dataKey={xAxis.dataKey}
-    type={xAxis.type}
-    tickFormatter={xAxis.formatter}
-    tick={{ fill: chartColors.text }}
-    axisLine={{ stroke: chartColors.text }}
-    tickLine={{ stroke: chartColors.text }}
-/>
-<YAxis
-    tickFormatter={yAxis.formatter}
-    tick={{ fill: chartColors.text }}
-    axisLine={{ stroke: chartColors.text }}
-    tickLine={{ stroke: chartColors.text }}
-/>
-<Tooltip
-    formatter={tooltip.formatter}
-    labelFormatter={xAxis.formatter}
-    contentStyle={{ backgroundColor: chartColors.background, borderColor: chartColors.grid }}
-    itemStyle={{ color: chartColors.text }}
-    labelStyle={{ color: chartColors.text }}
-/>
-                            {series.length > 1 && <Legend />}
-                            {series.map((s, index) => (
-                                <Line
-                                    key={s.dataKey}
-                                    type="monotone"
-                                    dataKey={s.dataKey}
-                                    name={s.name}
-                                    stroke={colors[index % colors.length]}
-                                    strokeWidth={2}
-                                    dot={false}
-                                    activeDot={{ r: 6 }}
-                                />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+
+    const yAxisConfig = Array.isArray(yAxis) 
+        ? yAxis.map(axis => ({
+            formatter: defaultYAxisFormatter,
+            ...axis,
+        }))
+        : [{
+            formatter: defaultYAxisFormatter,
+            ...yAxis,
+        }];
+
+    // Custom tooltip styles
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white dark:bg-healthcare-background-dark p-3 border rounded shadow-lg">
+                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
+                        {xAxisConfig.formatter(label)}
+                    </p>
+                    <div className="space-y-1">
+                        {payload.map((entry, index) => {
+                            const yAxis = yAxisConfig.find(axis => axis.id === entry.dataKey) || yAxisConfig[0];
+                            return (
+                                <div key={index} className="flex items-center justify-between space-x-4">
+                                    <div className="flex items-center space-x-2">
+                                        <div
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: entry.color }}
+                                        />
+                                        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                            {entry.name}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm font-medium">
+                                        {yAxis.formatter(entry.value)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </Card.Content>
-        </Card>
+            );
+        }
+        return null;
+    };
+
+    return (
+        <ResponsiveContainer width="100%" height={height}>
+            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="#E5E7EB"
+                    vertical={false}
+                />
+                <XAxis
+                    dataKey={xAxisConfig.dataKey}
+                    type={xAxisConfig.type}
+                    tickFormatter={xAxisConfig.formatter}
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tickMargin={8}
+                />
+                {yAxisConfig.map((axis, index) => (
+                    <YAxis
+                        key={axis.id || index}
+                        yAxisId={axis.id || 0}
+                        orientation={axis.orientation || 'left'}
+                        tickFormatter={axis.formatter}
+                        stroke="#9CA3AF"
+                        fontSize={12}
+                        tickMargin={8}
+                        domain={axis.domain || ['auto', 'auto']}
+                    />
+                ))}
+                <Tooltip content={<CustomTooltip />} />
+                {showLegend && (
+                    <Legend
+                        verticalAlign="top"
+                        height={36}
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{
+                            paddingTop: '8px',
+                            fontSize: '12px',
+                        }}
+                    />
+                )}
+                {series.map((s, index) => (
+                    <Line
+                        key={s.dataKey}
+                        type="monotone"
+                        dataKey={s.dataKey}
+                        name={s.name}
+                        stroke={s.color}
+                        strokeWidth={2}
+                        dot={false}
+                        yAxisId={s.yAxisId || 0}
+                        strokeDasharray={s.strokeDasharray}
+                        activeDot={{ r: 4, strokeWidth: 2 }}
+                    />
+                ))}
+            </LineChart>
+        </ResponsiveContainer>
     );
-};
-
-export const formatters = {
-    percentage: (value) => `${Math.round(value)}%`,
-    duration: (minutes) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-    },
-    number: (value) => value.toLocaleString(),
-    currency: (value) => new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(value),
-    date: (value) => new Date(value).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    })
-};
-
-TrendChart.propTypes = {
-    data: PropTypes.array.isRequired,
-    series: PropTypes.arrayOf(PropTypes.shape({
-        dataKey: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired
-    })),
-    title: PropTypes.string,
-    description: PropTypes.string,
-    xAxis: PropTypes.object,
-    yAxis: PropTypes.object,
-    tooltip: PropTypes.object,
-    colors: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default TrendChart;

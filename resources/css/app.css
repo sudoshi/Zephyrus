@@ -45,11 +45,11 @@
 
 /* Custom components */
 @layer components {
-  .healthcare-card {
+.healthcare-card {
     @apply rounded-lg shadow-sm p-6;
-    @apply bg-white dark:bg-gray-800;
-    @apply text-gray-900 dark:text-gray-100;
-  }
+    @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
+    @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+}
 
   .healthcare-button {
     @apply px-4 py-2 rounded-md font-medium;
