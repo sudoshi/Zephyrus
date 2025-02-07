@@ -5,19 +5,6 @@ import StatusDot from '@/Components/RoomStatus/StatusDot';
 import SimpleTrendChart from '@/Components/Analytics/Common/SimpleTrendChart';
 import DrillDownModal from '@/Components/Dashboard/DrillDownModal';
 
-const TabButton = ({ active, onClick, children }) => (
-    <button
-        onClick={onClick}
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-            active
-                ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
-                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
-        }`}
-    >
-        {children}
-    </button>
-);
-
 const DepartmentOverviewCard = ({ department, onViewDetails }) => {
     const getStatusColor = (status) => {
         switch (status) {
@@ -236,68 +223,16 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
 
 const EnhancedDepartmentMetrics = ({ departments }) => {
     const [selectedDepartment, setSelectedDepartment] = useState(null);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
-    const [filterStatus, setFilterStatus] = useState('all');
-
-    const filteredDepartments = Object.values(departments).filter((dept) => {
-        if (filterStatus === 'all') return true;
-        return dept.status === filterStatus;
-    });
 
     return (
-        <div className="space-y-4">
-            {/* Controls */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-white dark:bg-healthcare-background-dark text-sm"
-                    >
-                        <option value="all">All Departments</option>
-                        <option value="critical">Critical</option>
-                        <option value="warning">Warning</option>
-                        <option value="normal">Normal</option>
-                    </select>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-md ${
-                            viewMode === 'grid'
-                                ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
-                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
-                        }`}
-                    >
-                        <Icon icon="heroicons:squares-2x2" className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-md ${
-                            viewMode === 'list'
-                                ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
-                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
-                        }`}
-                    >
-                        <Icon icon="heroicons:bars-3" className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Department Grid/List */}
-            <div className={
-                viewMode === 'grid'
-                    ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'
-                    : 'space-y-4'
-            }>
-                {filteredDepartments.map((department) => (
-                    <DepartmentOverviewCard
-                        key={department.name}
-                        department={department}
-                        onViewDetails={() => setSelectedDepartment(department)}
-                    />
-                ))}
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {Object.values(departments).map((department) => (
+                <DepartmentOverviewCard
+                    key={department.name}
+                    department={department}
+                    onViewDetails={() => setSelectedDepartment(department)}
+                />
+            ))}
 
             {/* Details Modal */}
             {selectedDepartment && (

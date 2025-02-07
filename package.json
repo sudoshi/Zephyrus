@@ -26,6 +26,8 @@
     "dependencies": {
         "@heroui/react": "^2.6.14",
         "@iconify/icons-solar": "^1.2.3",
-        "framer-motion": "^12.0.6"
+        "chart.js": "^4.4.7",
+        "framer-motion": "^12.0.6",
+        "react-chartjs-2": "^5.3.0"
     }
 }

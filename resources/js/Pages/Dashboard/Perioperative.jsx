@@ -4,12 +4,12 @@ import DashboardOverview from '@/Components/Dashboard/DashboardOverview';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
 
-const ORDashboard = () => {
+const PerioperativeDashboard = () => {
     return (
         <DashboardLayout>
-            <Head title="OR Dashboard - ZephyrusOR" />
+            <Head title="Perioperative Dashboard - Zephyrus" />
             <PageContentLayout
-                title="Operating Room"
+                title="Perioperative"
                 subtitle="Overview of surgical services metrics"
             >
                 <DashboardOverview />
@@ -18,4 +18,4 @@ const ORDashboard = () => {
     );
 };
 
-export default ORDashboard;
+export default PerioperativeDashboard;

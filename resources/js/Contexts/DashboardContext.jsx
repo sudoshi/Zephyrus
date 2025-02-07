@@ -6,6 +6,7 @@ import axios from 'axios';
 // Move workflowNavigationConfig outside the DashboardProvider component
 const workflowNavigationConfig = {
   rtdc: {
+    name: 'RTDC',
     analytics: [
       {
         name: 'Utilization & Capacity',
@@ -73,7 +74,8 @@ const workflowNavigationConfig = {
       },
     ],
   },
-  or: {
+  perioperative: {
+    name: 'Perioperative',
     analytics: [
       {
         name: 'Service Analytics',
@@ -126,7 +128,8 @@ const workflowNavigationConfig = {
       },
     ],
   },
-  ed: {
+  emergency: {
+    name: 'Emergency',
     analytics: [
       {
         name: 'Wait Time',
@@ -169,6 +172,28 @@ const workflowNavigationConfig = {
       },
     ],
   },
+  improvement: {
+    name: 'Improvement',
+    analytics: [
+      {
+        name: 'Opportunities',
+        href: route('improvement.opportunities'),
+        description: 'View improvement opportunities',
+      },
+      {
+        name: 'Library',
+        href: route('improvement.library'),
+        description: 'Access improvement resources and templates',
+      },
+      {
+        name: 'Active',
+        href: route('improvement.active'),
+        description: 'Track active improvement initiatives',
+      },
+    ],
+    operations: [],
+    predictions: [],
+  },
 };
 
 const DashboardContext = createContext();
@@ -176,8 +201,8 @@ const DashboardContext = createContext();
 export function DashboardProvider({ children }) {
   const { workflow: initialWorkflow } = usePage().props;
   const [state, setState] = useState({
-    currentWorkflow: initialWorkflow || 'or',
-    navigationItems: workflowNavigationConfig[initialWorkflow || 'or'],
+    currentWorkflow: initialWorkflow || 'perioperative',
+    navigationItems: workflowNavigationConfig[initialWorkflow || 'perioperative'],
     isLoading: false,
   });
 
@@ -213,11 +238,32 @@ export function DashboardProvider({ children }) {
     [state]
   );
 
-  const dashboardItems = useMemo(
+  const mainNavigationItems = useMemo(
     () => [
-      { name: 'RTDC', href: route('dashboard.rtdc') },
-      { name: 'OR', href: route('dashboard.or') },
-      { name: 'ED', href: route('dashboard.ed') },
+      { 
+        name: 'RTDC', 
+        workflow: 'rtdc', 
+        href: route('dashboard.rtdc'),
+        icon: 'heroicons:command-line'
+      },
+      { 
+        name: 'Perioperative', 
+        workflow: 'perioperative', 
+        href: route('dashboard.perioperative'),
+        icon: 'heroicons:heart'
+      },
+      { 
+        name: 'Emergency', 
+        workflow: 'emergency', 
+        href: route('dashboard.emergency'),
+        icon: 'heroicons:exclamation-triangle'
+      },
+      { 
+        name: 'Improvement', 
+        workflow: 'improvement', 
+        href: route('dashboard.improvement'),
+        icon: 'heroicons:arrow-trending-up'
+      },
     ],
     []
   );
@@ -226,7 +272,7 @@ export function DashboardProvider({ children }) {
     currentWorkflow: state.currentWorkflow,
     changeWorkflow,
     navigationItems: state.navigationItems,
-    dashboardItems,
+    mainNavigationItems,
     isLoading: state.isLoading,
   };
 

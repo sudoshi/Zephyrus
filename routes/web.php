@@ -18,11 +18,19 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
     // Dashboard Routes
     Route::get('/dashboard/rtdc', [RTDCDashboardController::class, 'index'])->name('dashboard.rtdc');
-    Route::get('/dashboard/or', [DashboardController::class, 'index'])->name('dashboard.or');
-    Route::get('/dashboard/ed', [EDDashboardController::class, 'index'])->name('dashboard.ed');
+    Route::get('/dashboard/perioperative', [DashboardController::class, 'index'])->name('dashboard.perioperative');
+    Route::get('/dashboard/emergency', [EDDashboardController::class, 'index'])->name('dashboard.emergency');
+    Route::get('/dashboard/improvement', [DashboardController::class, 'improvement'])->name('dashboard.improvement');
     Route::get('/dashboard', function() {
-        return redirect()->route('dashboard.or');
+        return redirect()->route('dashboard.perioperative');
     })->name('dashboard');
+
+    // Improvement Routes
+    Route::prefix('improvement')->name('improvement.')->group(function () {
+        Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
+        Route::get('/library', [DashboardController::class, 'library'])->name('library');
+        Route::get('/active', [DashboardController::class, 'active'])->name('active');
+    });
 
     // RTDC Routes
     Route::prefix('rtdc')->name('rtdc.')->group(function () {
@@ -92,6 +100,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Workflow Change Route
+    Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])->name('change-workflow');
 });
 
 require __DIR__.'/auth.php';
