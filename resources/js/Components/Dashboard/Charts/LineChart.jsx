@@ -56,10 +56,18 @@ const LineChart = ({
         return regions;
     };
 
+    if (!data?.length) return null;
+
     // Check data format
-    const isDemandCapacityFormat = data.length > 0 && 'demand' in data[0] && 'capacity' in data[0];
-    const hasSingleValue = data.length > 0 && 'value' in data[0];
-    const isStaffingFormat = data.length > 0 && 'staffed' in data[0] && 'unstaffed' in data[0];
+    const isDemandCapacityFormat = 'demand' in data[0] && 'capacity' in data[0];
+    const hasSingleValue = 'value' in data[0];
+    const isStaffingFormat = 'staffed' in data[0] && 'unstaffed' in data[0];
+    const isVitalsFormat = !isDemandCapacityFormat && !hasSingleValue && !isStaffingFormat;
+
+    // Get all data keys except 'month' for vitals format
+    const vitalsMetrics = isVitalsFormat 
+        ? Object.keys(data[0]).filter(key => key !== 'month')
+        : [];
 
     // Calculate average for single value format
     const average = hasSingleValue 
@@ -83,7 +91,13 @@ const LineChart = ({
                 >
                     <p className="font-medium">{label}</p>
                     <div className="mt-2 space-y-1">
-                        {isDemandCapacityFormat ? (
+                        {isVitalsFormat ? (
+                            payload.map((entry, index) => (
+                                <p key={index} className="text-sm" style={{ color: entry.color }}>
+                                    {entry.name}: {entry.value}
+                                </p>
+                            ))
+                        ) : isDemandCapacityFormat ? (
                             payload.map((entry, index) => (
                                 <p key={index} className="text-sm" style={{ color: entry.color }}>
                                     {entry.name}: {entry.value}
@@ -95,7 +109,7 @@ const LineChart = ({
                                     {entry.name}: {entry.value}%
                                 </p>
                             ))
-                        ) : (
+                        ) : hasSingleValue && (
                             <>
                                 <p className="text-sm">
                                     Utilization: 
@@ -202,18 +216,18 @@ const LineChart = ({
                         tickSize={10}
                     />
                     <YAxis 
-                        domain={['dataMin - 10', 'dataMax + 10']}
+                        domain={isVitalsFormat ? ['auto', 'auto'] : ['dataMin - 10', 'dataMax + 10']}
                         tick={{ fill: axisTickColor, fontSize: 14 }}
                         tickSize={10}
                         width={60}
                         label={{ 
-                            value: 'Beds',
+                            value: isVitalsFormat ? 'Value' : 'Beds',
                             angle: -90,
                             position: 'insideLeft',
                             style: { fill: axisTickColor }
                         }}
                         role="presentation"
-                        aria-label="Number of beds"
+                        aria-label={isVitalsFormat ? "Vital sign values" : "Number of beds"}
                     />
                     <Tooltip 
                         content={<CustomTooltip />}
@@ -235,6 +249,22 @@ const LineChart = ({
                         )}
                     />
                     
+                    {isVitalsFormat && vitalsMetrics.map((metric, index) => {
+                        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
+                        return (
+                            <Area
+                                key={metric}
+                                type="monotone"
+                                dataKey={metric}
+                                name={metric}
+                                stroke={colors[index % colors.length]}
+                                strokeWidth={2}
+                                dot={{ r: 4, strokeWidth: 2 }}
+                                activeDot={{ r: 6, strokeWidth: 2 }}
+                            />
+                        );
+                    })}
+
                     {hasSingleValue && (
                         <>
                             {target && (

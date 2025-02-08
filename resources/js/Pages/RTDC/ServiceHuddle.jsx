@@ -4,7 +4,9 @@ import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
 import { serviceHuddleData } from '@/mock-data/rtdc-service-huddle';
 import { services } from '@/mock-data/rtdc';
-import BarriersModal from '@/Components/RTDC/BarriersModal';
+import StatusUpdateModal from '@/Components/RTDC/StatusUpdateModal';
+import CareJourneySummary from '@/Components/RTDC/CareJourneySummary';
+import PatientJourneyModal from '@/Components/RTDC/PatientJourneyModal';
 
 const ANCILLARY_SERVICES = [
     'Physical Therapy',
@@ -19,9 +21,9 @@ const ServiceHuddle = () => {
     const [patients, setPatients] = useState(serviceHuddleData.patients);
     const [selectedUnit, setSelectedUnit] = useState('All');
     const [selectedService, setSelectedService] = useState('All');
-    const [taskInputs, setTaskInputs] = useState({});
     const [selectedServices, setSelectedServices] = useState({});
-    const [isBarriersModalOpen, setIsBarriersModalOpen] = useState(false);
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [isJourneyModalOpen, setIsJourneyModalOpen] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState(null);
 
     // Get unique units and services for filters
@@ -38,83 +40,28 @@ const ServiceHuddle = () => {
         setPatients(updatedPatients);
     };
 
-    // Handle task management
-    const handleTaskInputChange = (patientId, value) => {
-        setTaskInputs((prev) => ({
-            ...prev,
-            [patientId]: value
-        }));
-    };
-
-    const handleAddTask = (patientId) => {
-        const taskText = taskInputs[patientId];
-        if (!taskText?.trim()) return;
-
-        const patient = patients.find((p) => p.id === patientId);
-        if (!patient) return;
-
-        const currentTasks = Array.isArray(patient.tasks) ? patient.tasks : [];
-        const updatedTasks = [
-            ...currentTasks,
-            {
-                id: Date.now(),
-                text: taskText.trim(),
-                completed: false,
-            },
-        ];
-
-        handlePatientUpdate(patientId, 'tasks', updatedTasks);
-        setTaskInputs((prev) => ({
-            ...prev,
-            [patientId]: ''
-        }));
-    };
-
-    const handleTaskToggle = (patientId, taskId) => {
-        const patient = patients.find((p) => p.id === patientId);
-        if (!patient) return;
-
-        const currentTasks = Array.isArray(patient.tasks) ? patient.tasks : [];
-        const updatedTasks = currentTasks.map((t) =>
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-        );
-
-        handlePatientUpdate(patientId, 'tasks', updatedTasks);
-    };
-
-    // Handle adding a service task
-    const handleAddServiceTask = (patientId) => {
-        const selectedService = selectedServices[patientId];
-        if (!selectedService) return;
-
-        const patient = patients.find((p) => p.id === patientId);
-        if (!patient) return;
-
-        const currentTasks = Array.isArray(patient.tasks) ? patient.tasks : [];
-        const updatedTasks = [
-            ...currentTasks,
-            {
-                id: Date.now(),
-                text: `Required Service: ${selectedService}`,
-                completed: false,
-            },
-        ];
-
-        handlePatientUpdate(patientId, 'tasks', updatedTasks);
-        setSelectedServices((prev) => ({
-            ...prev,
-            [patientId]: ''
-        }));
-    };
-
-    // Handle barriers save
-    const handleBarriersSave = (barriers) => {
+    // Handle status update save
+    const handleStatusSave = (update) => {
         if (selectedPatient) {
-            const updatedPlan = {
-                ...selectedPatient.dischargePlan,
-                dischargeBarriers: barriers,
-            };
-            handlePatientUpdate(selectedPatient.id, 'dischargePlan', updatedPlan);
+            const updatedPatients = patients.map(p => {
+                if (p.id === selectedPatient.id) {
+                    return {
+                        ...p,
+                        tasks: update.tasks,
+                        dischargePlan: update.dischargePlan,
+                        clinicalStatus: update.clinicalStatus,
+                        dischargeRequirements: update.dischargeRequirements,
+                        carePlan: update.carePlan,
+                        teamCommunication: [
+                            ...(p.teamCommunication || []),
+                            ...(update.teamCommunication || [])
+                        ],
+                        lastUpdate: update.timestamp
+                    };
+                }
+                return p;
+            });
+            setPatients(updatedPatients);
         }
     };
 
@@ -225,19 +172,13 @@ const ServiceHuddle = () => {
                                             Patient Info
                                         </th>
                                         <th className="px-4 py-2 text-left bg-healthcare-background dark:bg-healthcare-background-dark">
-                                            Clinical Status
+                                            Care Journey
                                         </th>
                                         <th className="px-4 py-2 text-left">
+                                            Clinical Status
+                                        </th>
+                                        <th className="px-4 py-2 text-left bg-healthcare-background dark:bg-healthcare-background-dark">
                                             Care Team
-                                        </th>
-                                        <th className="px-4 py-2 text-left bg-healthcare-background dark:bg-healthcare-background-dark">
-                                            Care Plan
-                                        </th>
-                                        <th className="px-4 py-2 text-left w-96">
-                                            Tasks
-                                        </th>
-                                        <th className="px-4 py-2 text-left bg-healthcare-background dark:bg-healthcare-background-dark">
-                                            Discharge Planning
                                         </th>
                                         <th className="px-4 py-2 text-left">
                                             Actions
@@ -298,8 +239,19 @@ const ServiceHuddle = () => {
                                                     </div>
                                                 </td>
 
+                                                {/* Care Journey */}
+                                                <td className="px-4 py-4 bg-healthcare-background dark:bg-healthcare-background-dark min-w-[250px]">
+                                                    <CareJourneySummary 
+                                                        patient={patient} 
+                                                        onClick={() => {
+                                                            setSelectedPatient(patient);
+                                                            setIsJourneyModalOpen(true);
+                                                        }}
+                                                    />
+                                                </td>
+
                                                 {/* Clinical Status */}
-                                                <td className="px-4 py-2 bg-healthcare-background dark:bg-healthcare-background-dark">
+                                                <td className="px-4 py-2">
                                                     <div className="space-y-2">
                                                         <span
                                                             className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -344,7 +296,7 @@ const ServiceHuddle = () => {
                                                 </td>
 
                                                 {/* Care Team */}
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-2 bg-healthcare-background dark:bg-healthcare-background-dark">
                                                     <div className="space-y-1">
                                                         <div>
                                                             Primary:{' '}
@@ -363,244 +315,16 @@ const ServiceHuddle = () => {
                                                     </div>
                                                 </td>
 
-                                                {/* Care Plan */}
-                                                <td className="px-4 py-2 bg-healthcare-background dark:bg-healthcare-background-dark">
-                                                    <div className="space-y-1">
-                                                        <EditableCell
-                                                            value={patient.code}
-                                                            onChange={(value) =>
-                                                                handlePatientUpdate(
-                                                                    patient.id,
-                                                                    'code',
-                                                                    value
-                                                                )
-                                                            }
-                                                        />
-                                                        <EditableCell
-                                                            value={patient.activity}
-                                                            onChange={(value) =>
-                                                                handlePatientUpdate(
-                                                                    patient.id,
-                                                                    'activity',
-                                                                    value
-                                                                )
-                                                            }
-                                                        />
-                                                        <EditableCell
-                                                            value={
-                                                                patient.dietaryRestrictions
-                                                            }
-                                                            onChange={(value) =>
-                                                                handlePatientUpdate(
-                                                                    patient.id,
-                                                                    'dietaryRestrictions',
-                                                                    value
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
-                                                </td>
-
-                                                {/* Tasks */}
-                                                <td className="px-4 py-2">
-                                                    <div className="space-y-2">
-                                                        {/* Required Services Section */}
-                                                        <div className="flex items-center gap-2 mb-4">
-                                                            <select
-                                                                className="border rounded px-2 py-1 w-80 focus:ring-2 focus:ring-healthcare-primary"
-                                                                value={selectedServices[patient.id] || ''}
-                                                                onChange={(e) => {
-                                                                    setSelectedServices(prev => ({
-                                                                        ...prev,
-                                                                        [patient.id]: e.target.value
-                                                                    }));
-                                                                }}
-                                                            >
-                                                                <option value="">Select Required Service...</option>
-                                                                {ANCILLARY_SERVICES.map((service) => (
-                                                                    <option key={service} value={service}>
-                                                                        {service}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <button
-                                                                className="bg-healthcare-primary text-healthcare-primary-content px-3 py-1 rounded hover:bg-healthcare-primary-hover"
-                                                                onClick={() => handleAddServiceTask(patient.id)}
-                                                            >
-                                                                Inform
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Task List */}
-                                                        {(patient.tasks || []).map(
-                                                            (task) => (
-                                                                <div
-                                                                    key={task.id}
-                                                                    className="flex items-center gap-2"
-                                                                >
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={
-                                                                            task.completed
-                                                                        }
-                                                                        onChange={() =>
-                                                                            handleTaskToggle(
-                                                                                patient.id,
-                                                                                task.id
-                                                                            )
-                                                                        }
-                                                                        className="rounded border-healthcare-border focus:ring-healthcare-primary"
-                                                                    />
-                                                                    <span
-                                                                        className={
-                                                                            task.completed
-                                                                                ? 'line-through text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
-                                                                                : ''
-                                                                        }
-                                                                    >
-                                                                        {task.text}
-                                                                    </span>
-                                                                </div>
-                                                            )
-                                                        )}
-
-                                                        {/* New Task Input */}
-                                                        <div className="flex items-center gap-2">
-                                                            <input
-                                                                type="text"
-                                                                className="border rounded px-2 py-1 w-full focus:ring-2 focus:ring-healthcare-primary"
-                                                                placeholder="New task..."
-                                                                value={taskInputs[patient.id] || ''}
-                                                                onChange={(e) =>
-                                                                    handleTaskInputChange(
-                                                                        patient.id,
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                        handleAddTask(patient.id);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <button
-                                                                className="bg-healthcare-primary text-healthcare-primary-content px-3 py-1 rounded hover:bg-healthcare-primary-hover"
-                                                                onClick={() =>
-                                                                    handleAddTask(patient.id)
-                                                                }
-                                                            >
-                                                                Add
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {/* Discharge Planning */}
-                                                <td className="px-4 py-2 bg-healthcare-background dark:bg-healthcare-background-dark">
-                                                    <div className="space-y-2">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div>
-                                                                <span className="text-sm font-semibold">
-                                                                    Responsible:
-                                                                </span>
-                                                                <EditableCell
-                                                                    value={
-                                                                        patient
-                                                                            .dischargePlan
-                                                                            .responsiblePerson
-                                                                    }
-                                                                    onChange={(value) => {
-                                                                        const updatedPlan = {
-                                                                            ...patient.dischargePlan,
-                                                                            responsiblePerson:
-                                                                                value,
-                                                                        };
-                                                                        handlePatientUpdate(
-                                                                            patient.id,
-                                                                            'dischargePlan',
-                                                                            updatedPlan
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </div>
-
-                                                            <div>
-                                                                <span className="text-sm font-semibold">
-                                                                    Target Time:
-                                                                </span>
-                                                                <EditableCell
-                                                                    value={
-                                                                        patient
-                                                                            .dischargePlan
-                                                                            .targetTime
-                                                                    }
-                                                                    type="time"
-                                                                    onChange={(value) => {
-                                                                        const updatedPlan = {
-                                                                            ...patient.dischargePlan,
-                                                                            targetTime:
-                                                                                value,
-                                                                        };
-                                                                        handlePatientUpdate(
-                                                                            patient.id,
-                                                                            'dischargePlan',
-                                                                            updatedPlan
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </div>
-
-                                                            <div>
-                                                                <span className="text-sm font-semibold">
-                                                                    Predicted by 2PM:
-                                                                </span>
-                                                                <select
-                                                                    className="ml-2 border rounded px-2 py-1 w-20 focus:ring-2 focus:ring-healthcare-primary"
-                                                                    value={
-                                                                        patient
-                                                                            .dischargePlan
-                                                                            .predictedBy2PM
-                                                                    }
-                                                                    onChange={(e) => {
-                                                                        const updatedPlan = {
-                                                                            ...patient.dischargePlan,
-                                                                            predictedBy2PM:
-                                                                                e.target.value,
-                                                                        };
-                                                                        handlePatientUpdate(
-                                                                            patient.id,
-                                                                            'dischargePlan',
-                                                                            updatedPlan
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <option value="Yes">
-                                                                        Yes
-                                                                    </option>
-                                                                    <option value="No">
-                                                                        No
-                                                                    </option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-
                                                 {/* Actions */}
                                                 <td className="px-4 py-2">
                                                     <button
                                                         className="px-3 py-1 bg-healthcare-primary text-healthcare-primary-content rounded hover:bg-healthcare-primary-hover"
                                                         onClick={() => {
-                                                            setSelectedPatient(
-                                                                patient
-                                                            );
-                                                            setIsBarriersModalOpen(
-                                                                true
-                                                            );
+                                                            setSelectedPatient(patient);
+                                                            setIsStatusModalOpen(true);
                                                         }}
                                                     >
-                                                        Describe Barriers
+                                                        Status Update
                                                     </button>
                                                 </td>
                                             </tr>
@@ -711,15 +435,25 @@ const ServiceHuddle = () => {
                 </div>
             </div>
 
-            {/* Barriers Modal */}
-            <BarriersModal
-                isOpen={isBarriersModalOpen}
+            {/* Status Update Modal */}
+            <StatusUpdateModal
+                isOpen={isStatusModalOpen}
                 onClose={() => {
-                    setIsBarriersModalOpen(false);
+                    setIsStatusModalOpen(false);
                     setSelectedPatient(null);
                 }}
                 patient={selectedPatient}
-                onSave={handleBarriersSave}
+                onSave={handleStatusSave}
+            />
+
+            {/* Patient Journey Modal */}
+            <PatientJourneyModal
+                isOpen={isJourneyModalOpen}
+                onClose={() => {
+                    setIsJourneyModalOpen(false);
+                    setSelectedPatient(null);
+                }}
+                patient={selectedPatient}
             />
         </RTDCPageLayout>
     );
