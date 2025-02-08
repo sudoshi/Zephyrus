@@ -8,6 +8,7 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    ReferenceLine,
 } from 'recharts';
 
 const TrendChart = ({ 
@@ -17,6 +18,7 @@ const TrendChart = ({
     yAxis = {}, 
     height = "100%",
     showLegend = true,
+    referenceLines = [],
 }) => {
     // Default formatters
     const defaultXAxisFormatter = (value) => {
@@ -123,6 +125,22 @@ const TrendChart = ({
                         }}
                     />
                 )}
+                {/* Reference Lines */}
+                {referenceLines.map((line, index) => (
+                    <ReferenceLine
+                        key={`ref-line-${index}`}
+                        y={line.y}
+                        stroke={line.color}
+                        strokeDasharray={line.strokeDasharray}
+                        label={{
+                            value: line.label,
+                            position: 'right',
+                            fill: line.color,
+                            fontSize: 12,
+                        }}
+                    />
+                ))}
+                {/* Data Lines */}
                 {series.map((s, index) => (
                     <Line
                         key={s.dataKey}

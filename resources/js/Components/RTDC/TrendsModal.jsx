@@ -319,6 +319,14 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                     domain: ['auto', 'auto'],
                                                     label: 'Minutes'
                                                 }}
+                                                referenceLines={[
+                                                    {
+                                                        y: 60,
+                                                        color: 'rgb(34, 197, 94)',
+                                                        strokeDasharray: '3 3',
+                                                        label: 'Goal: 60 min'
+                                                    }
+                                                ]}
                                             />
                                         </div>
                                     ) : (

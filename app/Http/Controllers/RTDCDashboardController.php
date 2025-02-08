@@ -79,13 +79,13 @@ public function index(Request $request)
     }
 
     /**
-     * Display the services huddle page.
+     * Display the service huddle page.
      *
      * @return \Inertia\Response
      */
-    public function servicesHuddle()
+    public function serviceHuddle()
     {
-        return Inertia::render('RTDC/ServicesHuddle');
+        return Inertia::render('RTDC/ServiceHuddle');
     }
 
     /**
