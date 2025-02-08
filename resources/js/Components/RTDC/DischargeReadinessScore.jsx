@@ -23,6 +23,22 @@ const DischargeReadinessScore = ({ requirements }) => {
         total += instructionItems.length;
         completed += instructionItems.filter(Boolean).length;
 
+        // Alternative Pathways
+        if (requirements.alternativePathways) {
+            // Hospital at Home
+            if (requirements.alternativePathways.hospitalAtHome?.isEligible) {
+                total += 1;
+                if (requirements.alternativePathways.hospitalAtHome.hasConsented) completed += 1;
+            }
+
+            // CAD Arena
+            if (requirements.alternativePathways.cadArena?.isEligible) {
+                total += 2; // +1 for consent, +1 for unit selection
+                if (requirements.alternativePathways.cadArena.hasConsented) completed += 1;
+                if (requirements.alternativePathways.cadArena.preferredUnit) completed += 1;
+            }
+        }
+
         return {
             score: Math.round((completed / total) * 100),
             completed,
@@ -66,6 +82,35 @@ const DischargeReadinessScore = ({ requirements }) => {
         </div>
     );
 
+    const AlternativePathwayStatus = ({ pathway, title, icon }) => {
+        if (!pathway?.isEligible) return null;
+
+        return (
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${
+                        pathway.hasConsented
+                            ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
+                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400'
+                    }`}>
+                        <Icon icon={icon} className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{title}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {pathway.hasConsented ? 'Patient has consented' : 'Awaiting patient consent'}
+                        </div>
+                    </div>
+                </div>
+                {pathway.preferredUnit && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Unit: {pathway.preferredUnit}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <Card>
             <Card.Header>
@@ -96,6 +141,24 @@ const DischargeReadinessScore = ({ requirements }) => {
                 </div>
 
                 <div className="space-y-6">
+                    {requirements.alternativePathways && (
+                        <div className="space-y-3">
+                            <h3 className="font-medium text-gray-900 dark:text-gray-100">Alternative Pathways</h3>
+                            <div className="space-y-2">
+                                <AlternativePathwayStatus 
+                                    pathway={requirements.alternativePathways.hospitalAtHome}
+                                    title="Hospital at Home"
+                                    icon="heroicons:home"
+                                />
+                                <AlternativePathwayStatus 
+                                    pathway={requirements.alternativePathways.cadArena}
+                                    title="CAD Arena"
+                                    icon="heroicons:building-office-2"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <CriteriaGroup 
                         title="Clinical Criteria"
                         items={requirements.clinicalCriteria}

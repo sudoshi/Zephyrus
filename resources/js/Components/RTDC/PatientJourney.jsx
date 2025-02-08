@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/Components/ui/card';
+import Card from '@/Components/Dashboard/Card';
 
 const PatientJourney = ({ patient }) => {
   const journeyData = patient?.dischargePlan?.journeyMilestones || [];

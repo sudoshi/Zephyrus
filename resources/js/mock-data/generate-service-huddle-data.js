@@ -1,44 +1,16 @@
 // Mock data generator for service huddle
-const generateServiceHuddleData = () => {
-    // Constants for generating realistic data
-    const UNITS = [
-        '5 East', '5 West', '6 East', '6 West', '7 East', '7 West',
-        '8 East', '8 West', '9 East', '9 West', 'ICU', 'CCU',
-    ];
-    const SERVICES = [
-        'Cardiology', 'Nephrology', 'Neurology', 'Oncology',
-        'Internal Medicine', 'Orthopedics', 'Pulmonology', 'General Surgery',
-    ];
-    const PRIMARY_TEAMS = [
-        'CHF Team', 'Stroke Team', 'Medical Team A', 'Medical Team B',
-        'Medical Team C', 'Surgical Team A', 'Surgical Team B', 'Oncology Team',
-    ];
-    const CONSULTING_SERVICES = [
-        'Infectious Disease', 'Pain Management', 'Psychiatry', 'Physical Therapy',
-        'Occupational Therapy', 'Wound Care', 'Nutrition', 'Social Work',
-    ];
-    const NURSES = [
-        'Sarah Chen, RN', 'Michael Rodriguez, RN', 'Emily Johnson, RN',
-        'David Kim, RN', 'Jessica Taylor, RN', 'James Wilson, RN',
-        'Maria Garcia, RN', 'Robert Smith, RN', 'Lisa Brown, RN',
-        'John Davis, RN', 'Amanda White, RN', 'Kevin Anderson, RN',
-    ];
-    const DIETS = [
-        'Regular Diet', 'Cardiac Diet, 2g Na', 'Renal Diet', 'Clear Liquids',
-        'Full Liquids', 'Diabetic Diet', 'Low Fiber Diet', 'NPO',
-    ];
-    const ACTIVITIES = [
-        'Bed Rest', 'Up with assistance', 'Up ad lib',
-        'Weight bearing as tolerated', 'Non-weight bearing right leg',
-        'Transfer to chair TID', 'Ambulate TID', 'Activity as tolerated',
-    ];
-    const TASK_TEMPLATES = [
-        'Lab draw at TIME', 'Echo scheduled for TIME', 'PT evaluation', 'OT evaluation',
-        'Social work consult', 'Nutrition consult', 'Wound care', 'Pain management consult',
-        'IV antibiotics due at TIME', 'CT scan at TIME', 'MRI scheduled for TIME',
-        'Discharge planning meeting',
-    ];
+import {
+    UNITS,
+    SERVICES,
+    PRIMARY_TEAMS,
+    CONSULTING_SERVICES,
+    NURSES,
+    DIETS,
+    ACTIVITIES,
+    TASK_TEMPLATES
+} from './rtdc-service-huddle-constants';
 
+const generateServiceHuddleData = () => {
     // Helper functions
     const randomFromArray = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -279,6 +251,23 @@ const generateServiceHuddleData = () => {
                     status: randomFromArray(['Not Started', 'In Progress', 'Completed']),
                     completedBy: null,
                     completedAt: null
+                },
+                alternativePathways: {
+                    hospitalAtHome: {
+                        isEligible: Math.random() > 0.7,
+                        hasConsented: Math.random() > 0.5,
+                        eligibilityNotes: '',
+                        assessedBy: randomFromArray(NURSES),
+                        assessedAt: new Date(Date.now() - randomInt(0, 48) * 60 * 60 * 1000).toISOString()
+                    },
+                    cadArena: {
+                        isEligible: Math.random() > 0.6,
+                        hasConsented: Math.random() > 0.5,
+                        eligibilityNotes: '',
+                        assessedBy: randomFromArray(NURSES),
+                        assessedAt: new Date(Date.now() - randomInt(0, 48) * 60 * 60 * 1000).toISOString(),
+                        preferredUnit: Math.random() > 0.5 ? randomFromArray(UNITS) : null
+                    }
                 },
                 caregiverInfo: Math.random() > 0.3 ? {
                     name: `Family Member ${randomInt(1, 100)}`,

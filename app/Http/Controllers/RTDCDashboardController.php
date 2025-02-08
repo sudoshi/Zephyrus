@@ -83,8 +83,9 @@ public function index(Request $request)
      *
      * @return \Inertia\Response
      */
-    public function serviceHuddle()
+    public function serviceHuddle(Request $request)
     {
+        $request->session()->put('workflow', 'rtdc');
         return Inertia::render('RTDC/ServiceHuddle');
     }
 

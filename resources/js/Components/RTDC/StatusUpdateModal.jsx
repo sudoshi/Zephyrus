@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Card from '@/Components/Dashboard/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import LineChart from '@/Components/Dashboard/Charts/LineChart';
 import VitalSignsChart from '@/Components/RTDC/VitalSignsChart';
 import QuickStatsPanel from '@/Components/RTDC/QuickStatsPanel';
@@ -15,7 +15,9 @@ import TaskCompletionHistory from '@/Components/RTDC/TaskCompletionHistory';
 import DischargeReadinessScore from '@/Components/RTDC/DischargeReadinessScore';
 import DischargeChecklistTimeline from '@/Components/RTDC/DischargeChecklistTimeline';
 import PostDischargeRequirements from '@/Components/RTDC/PostDischargeRequirements';
+import DischargePathwaysSection from '@/Components/RTDC/DischargePathwaysSection';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { UNITS } from '@/mock-data/rtdc-service-huddle-constants';
 
 const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
     const [isDarkMode] = useDarkMode();
@@ -214,9 +216,50 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                         <div className="space-y-6">
                         {activeTab === 'discharge' && (
                             <div className="space-y-6">
-                                <DischargeReadinessScore requirements={patient?.dischargeRequirements} />
+                                <DischargePathwaysSection 
+                                    alternativePathways={patient?.dischargePlan.alternativePathways}
+                                    onUpdatePathways={(pathways) => {
+                                        setDischargePlan(prev => ({
+                                            ...prev,
+                                            alternativePathways: pathways
+                                        }));
+                                    }}
+                                    availableUnits={UNITS}
+                                />
+                                <DischargeReadinessScore 
+                                    requirements={{
+                                        ...patient?.dischargeRequirements,
+                                        alternativePathways: patient?.dischargePlan.alternativePathways
+                                    }} 
+                                />
                                 <PostDischargeRequirements requirements={patient?.dischargePlan.postDischargeNeeds} />
-                                <DischargeChecklistTimeline milestones={patient?.dischargePlan.journeyMilestones} />
+                                <DischargeChecklistTimeline 
+                                    milestones={[
+                                        ...patient?.dischargePlan.journeyMilestones,
+                                        ...(patient?.dischargePlan.alternativePathways?.hospitalAtHome?.isEligible ? [{
+                                            id: 'hah-assessment',
+                                            type: 'milestone',
+                                            title: 'Hospital at Home Assessment',
+                                            time: new Date(patient?.dischargePlan.alternativePathways.hospitalAtHome.assessedAt).toLocaleTimeString(),
+                                            date: new Date(patient?.dischargePlan.alternativePathways.hospitalAtHome.assessedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                            description: `Assessed by ${patient?.dischargePlan.alternativePathways.hospitalAtHome.assessedBy}`,
+                                            isAlert: !patient?.dischargePlan.alternativePathways.hospitalAtHome.hasConsented
+                                        }] : []),
+                                        ...(patient?.dischargePlan.alternativePathways?.cadArena?.isEligible ? [{
+                                            id: 'cad-assessment',
+                                            type: 'milestone',
+                                            title: 'CAD Arena Assessment',
+                                            time: new Date(patient?.dischargePlan.alternativePathways.cadArena.assessedAt).toLocaleTimeString(),
+                                            date: new Date(patient?.dischargePlan.alternativePathways.cadArena.assessedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                            description: `Assessed by ${patient?.dischargePlan.alternativePathways.cadArena.assessedBy}${
+                                                patient?.dischargePlan.alternativePathways.cadArena.preferredUnit 
+                                                    ? ` - Preferred Unit: ${patient?.dischargePlan.alternativePathways.cadArena.preferredUnit}`
+                                                    : ''
+                                            }`,
+                                            isAlert: !patient?.dischargePlan.alternativePathways.cadArena.hasConsented
+                                        }] : [])
+                                    ].filter(Boolean)} 
+                                />
                             </div>
                         )}
 
@@ -254,10 +297,10 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                 <div className="space-y-6">
                                     {/* Quick Add Barrier */}
                                     <Card>
-                                        <Card.Header>
-                                            <Card.Title>Add New Barrier</Card.Title>
-                                        </Card.Header>
-                                        <Card.Content>
+                                        <CardHeader>
+                                            <CardTitle>Add New Barrier</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
                                             <div className="flex gap-4">
                                                 <input
                                                     type="text"
@@ -285,20 +328,20 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                     Add Barrier
                                                 </button>
                                             </div>
-                                        </Card.Content>
+                                        </CardContent>
                                     </Card>
 
                                     {/* Active Barriers */}
                                     <Card>
-                                        <Card.Header>
+                                        <CardHeader>
                                             <div className="flex justify-between items-center">
-                                                <Card.Title>Active Barriers</Card.Title>
+                                                <CardTitle>Active Barriers</CardTitle>
                                                 <span className="text-sm text-gray-500">
                                                     {barriers.length} identified
                                                 </span>
                                             </div>
-                                        </Card.Header>
-                                        <Card.Content>
+                                        </CardHeader>
+                                        <CardContent>
                                             <div className="space-y-4">
                                                 {barriers.map((barrier, index) => (
                                                     <div key={index} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -327,15 +370,15 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                     </div>
                                                 )}
                                             </div>
-                                        </Card.Content>
+                                        </CardContent>
                                     </Card>
 
                                     {/* Resolution History */}
                                     <Card>
-                                        <Card.Header>
-                                            <Card.Title>Resolution History</Card.Title>
-                                        </Card.Header>
-                                        <Card.Content>
+                                        <CardHeader>
+                                            <CardTitle>Resolution History</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
                                             <div className="space-y-4">
                                                 {[
                                                     {
@@ -371,15 +414,15 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                     </div>
                                                 ))}
                                             </div>
-                                        </Card.Content>
+                                        </CardContent>
                                     </Card>
 
                                     {/* Team Communication */}
                                     <Card>
-                                        <Card.Header>
-                                            <Card.Title>Team Communication</Card.Title>
-                                        </Card.Header>
-                                        <Card.Content>
+                                        <CardHeader>
+                                            <CardTitle>Team Communication</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
                                             <div className="space-y-4">
                                                 <textarea
                                                     rows="4"
@@ -402,7 +445,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                         ))}
                                                 </div>
                                             </div>
-                                        </Card.Content>
+                                        </CardContent>
                                     </Card>
                                 </div>
                             )}

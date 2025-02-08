@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
-import Card from '@/Components/Dashboard/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { Icon } from '@iconify/react';
 import { serviceHuddleData } from '@/mock-data/rtdc-service-huddle';
-import { services } from '@/mock-data/rtdc';
 import StatusUpdateModal from '@/Components/RTDC/StatusUpdateModal';
 import CareJourneySummary from '@/Components/RTDC/CareJourneySummary';
 import PatientJourneyModal from '@/Components/RTDC/PatientJourneyModal';
@@ -121,8 +120,8 @@ const ServiceHuddle = () => {
         >
             <div className="space-y-6">
                 <Card>
-                    <Card.Header>
-                        <Card.Title>
+                    <CardHeader>
+                        <CardTitle>
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center space-x-2">
                                     <Icon icon="heroicons:users" className="w-5 h-5" />
@@ -158,9 +157,9 @@ const ServiceHuddle = () => {
                                     </select>
                                 </div>
                             </div>
-                        </Card.Title>
-                    </Card.Header>
-                    <Card.Content>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse">
                                 <thead>
@@ -318,13 +317,17 @@ const ServiceHuddle = () => {
                                                 {/* Actions */}
                                                 <td className="px-4 py-2">
                                                     <button
-                                                        className="px-3 py-1 bg-healthcare-primary text-healthcare-primary-content rounded hover:bg-healthcare-primary-hover"
+                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-healthcare-primary text-healthcare-primary-content border border-healthcare-primary/20 rounded-md shadow-md hover:shadow-lg hover:scale-105 hover:bg-healthcare-primary-hover active:scale-95 focus:outline-none focus:ring-4 focus:ring-healthcare-primary/30 transition-all duration-200 group"
                                                         onClick={() => {
                                                             setSelectedPatient(patient);
                                                             setIsStatusModalOpen(true);
                                                         }}
                                                     >
-                                                        Status Update
+                                                        <Icon 
+                                                            icon="heroicons:document-text" 
+                                                            className="w-6 h-6 group-hover:rotate-6 transition-transform duration-200" 
+                                                        />
+                                                        <span>Status Update</span>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -332,22 +335,22 @@ const ServiceHuddle = () => {
                                 </tbody>
                             </table>
                         </div>
-                    </Card.Content>
+                    </CardContent>
                 </Card>
 
                 {/* Unit Metrics Section */}
                 <div className="grid grid-cols-3 gap-4">
                     {/* Unit Metrics */}
                     <Card>
-                        <Card.Header>
-                            <Card.Title>
+                        <CardHeader>
+                            <CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <Icon icon="heroicons:chart-bar" className="w-5 h-5" />
                                     <span>Unit Metrics</span>
                                 </div>
-                            </Card.Title>
-                        </Card.Header>
-                        <Card.Content>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Occupancy</span>
@@ -366,20 +369,20 @@ const ServiceHuddle = () => {
                                     <span className="font-semibold">{serviceHuddleData.metrics.unitMetrics.expectedDischarges}</span>
                                 </div>
                             </div>
-                        </Card.Content>
+                        </CardContent>
                     </Card>
 
                     {/* Care Requirements */}
                     <Card>
-                        <Card.Header>
-                            <Card.Title>
+                        <CardHeader>
+                            <CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <Icon icon="heroicons:clipboard-document-list" className="w-5 h-5" />
                                     <span>Care Requirements</span>
                                 </div>
-                            </Card.Title>
-                        </Card.Header>
-                        <Card.Content>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Critical Care</span>
@@ -398,20 +401,20 @@ const ServiceHuddle = () => {
                                     <span className="font-semibold">{serviceHuddleData.metrics.careRequirements.specialEquipment}</span>
                                 </div>
                             </div>
-                        </Card.Content>
+                        </CardContent>
                     </Card>
 
                     {/* Acuity Status */}
                     <Card>
-                        <Card.Header>
-                            <Card.Title>
+                        <CardHeader>
+                            <CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <Icon icon="heroicons:heart" className="w-5 h-5" />
                                     <span>Acuity Status</span>
                                 </div>
-                            </Card.Title>
-                        </Card.Header>
-                        <Card.Content>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Critical</span>
@@ -430,7 +433,7 @@ const ServiceHuddle = () => {
                                     <span className="font-semibold">{serviceHuddleData.metrics.acuityStatus.total}</span>
                                 </div>
                             </div>
-                        </Card.Content>
+                        </CardContent>
                     </Card>
                 </div>
             </div>
