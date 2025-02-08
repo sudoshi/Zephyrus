@@ -81,7 +81,6 @@ const FlowMetricsChart = ({ data }) => {
             </Card.Header>
                 <Card.Content className="h-[350px]">
                         <TrendChart
-                            height={350}
                             data={data}
                         series={metrics.map(metric => ({
                             dataKey: metric.key,

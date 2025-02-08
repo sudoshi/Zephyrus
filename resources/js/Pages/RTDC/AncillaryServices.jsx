@@ -7,16 +7,18 @@ import {
     services,
     generateDemoData,
 } from '@/mock-data/rtdc';
+import { trendUtils } from '@/mock-data/rtdc-trends';
 import { Icon } from '@iconify/react';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
+import TrendsModal from '@/Components/RTDC/TrendsModal';
 
 
 
 const getStatusClasses = (value) => {
-    if (value > 120) return 'bg-healthcare-critical text-healthcare-critical-text ring-2 ring-healthcare-critical';
-    if (value > 90) return 'bg-healthcare-warning text-healthcare-warning-text';
-    if (value > 60) return 'bg-healthcare-info text-healthcare-info-text';
-    return 'bg-healthcare-success text-healthcare-success-text';
+    if (value > 120) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    if (value > 90) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    if (value > 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
 };
 
 // Helper function to simulate trend data
@@ -28,15 +30,21 @@ const AncillaryServices = () => {
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [expandedService, setExpandedService] = useState(null);
     const [showTrends, setShowTrends] = useState(false);
-    const [demoData, setDemoData] = useState(unitServicesData);
+    const [trendsModalOpen, setTrendsModalOpen] = useState(false);
+    const [selectedTrendData, setSelectedTrendData] = useState(null);
+    const [demoData, setDemoData] = useState(() => generateDemoData());
     const [lastUpdated, setLastUpdated] = useState(new Date());
 
     // Real-time updates every 30 seconds
     useEffect(() => {
+        // Initial data load
+        setDemoData(generateDemoData());
+        
         const interval = setInterval(() => {
             setDemoData(generateDemoData());
             setLastUpdated(new Date());
         }, 30000);
+        
         return () => clearInterval(interval);
     }, []);
 
@@ -49,15 +57,27 @@ const AncillaryServices = () => {
 
         const resourceUsageCounts = {};
 
+        if (!demoData || !Array.isArray(demoData)) {
+            return {
+                totalRequests: 0,
+                criticalDelays: 0,
+                resourceUtilization: 0,
+                crossDepartmentImpact: 0
+            };
+        }
+
+        // Safely iterate through units and their services
         demoData.forEach((unit) => {
-            Object.entries(unit.services).forEach(([serviceId, service]) => {
+            if (!unit || !unit.services) return;
+            Object.entries(unit.services || {}).forEach(([serviceId, service]) => {
                 if (service) {
                     totalRequests++;
                     const serviceInfo = services.find((s) => s.id === serviceId);
-                    const delayThreshold =
-                        serviceInfo.category === 'imaging' ? 120 : 90;
-                    if (service.value > delayThreshold) {
-                        criticalDelays++;
+                    if (serviceInfo) {
+                        const delayThreshold = serviceInfo.category === 'imaging' ? 120 : 90;
+                        if (service.value > delayThreshold) {
+                            criticalDelays++;
+                        }
                     }
 
                     // Simulate resource utilization
@@ -73,11 +93,13 @@ const AncillaryServices = () => {
         });
 
         // Calculate average resource utilization
-        const totalResourceUsage = Object.values(resourceUsageCounts).reduce(
-            (acc, val) => acc + val,
-            0
-        );
-        resourceUtilization = Math.min((totalResourceUsage / totalRequests) * 5, 100);
+        if (totalRequests > 0) {
+            const totalResourceUsage = Object.values(resourceUsageCounts).reduce(
+                (acc, val) => acc + val,
+                0
+            );
+            resourceUtilization = Math.min((totalResourceUsage / totalRequests) * 5, 100);
+        }
 
         return {
             totalRequests,
@@ -145,40 +167,91 @@ const AncillaryServices = () => {
 
     // Render Matrix View
     const renderMatrixView = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {demoData.map((unit) => (
                 <Card
                     key={unit.id}
-                    className="hover:shadow-lg transition-shadow cursor-pointer healthcare-card"
+                    className="group hover:shadow-xl transition-all duration-300 cursor-pointer healthcare-card border border-gray-200 dark:border-gray-700"
                     onClick={() => setSelectedUnit(unit)}
                 >
-                    <Card.Header>
-                        <Card.Title>{unit.name}</Card.Title>
+                    <Card.Header className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {unit.name}
+                            </Card.Title>
+                            <Icon 
+                                icon="heroicons:chevron-right" 
+                                className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-transform group-hover:translate-x-1"
+                            />
+                        </div>
                     </Card.Header>
-                    <Card.Content>
-                        <div className="grid grid-cols-1 gap-2">
-                            {Object.entries(unit.services)
-                                .filter(([_, service]) => service)
-                                .map(([serviceId, service]) => {
-                                    const serviceInfo = services.find(
-                                        (s) => s.id === serviceId
+                    <Card.Content className="p-4">
+                        <div className="space-y-3">
+                            {Object.entries(serviceCategories).map(([categoryKey, category]) => {
+                                const categoryServices = Object.entries(unit.services)
+                                    .filter(([serviceId, service]) => 
+                                        service && 
+                                        services.find(s => s.id === serviceId)?.category === categoryKey
                                     );
-                                    return (
-                                        <div
-                                            key={serviceId}
-                                            className={`flex items-center p-2 rounded-lg ${getStatusClasses(
-                                                service.value
-                                            )}`}
-                                        >
-                                            <span className="text-sm font-medium">
-                                                {serviceInfo?.name || serviceId}
-                                            </span>
-                                            <span className="ml-auto font-semibold">
-                                                {service.value} min
-                                            </span>
+                                
+                                if (categoryServices.length === 0) return null;
+
+                                return (
+                                    <div key={categoryKey} className="space-y-2">
+                                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            {category.name}
+                                        </h4>
+                                        <div className="grid gap-2">
+                                            {categoryServices.map(([serviceId, service]) => {
+                                                const serviceInfo = services.find(
+                                                    (s) => s.id === serviceId
+                                                );
+                                                return (
+                                                    <div
+                                                        key={serviceId}
+                                                        className={`flex items-center p-2.5 rounded-lg ${getStatusClasses(
+                                                            service.value
+                                                        )} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group/service`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedService(
+                                                                expandedService === serviceId ? null : serviceId
+                                                            );
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <Icon 
+                                                                icon={
+                                                                    service.value > 120 ? 'heroicons:exclamation-circle' :
+                                                                    service.value > 90 ? 'heroicons:clock' :
+                                                                    'heroicons:check-circle'
+                                                                }
+                                                                className="w-5 h-5"
+                                                            />
+                                                            <span className="text-sm font-medium">
+                                                                {serviceInfo?.name || serviceId}
+                                                            </span>
+                                                        </div>
+                                                        <div className="ml-auto flex items-center space-x-2">
+                                                            <span className="text-sm font-semibold tabular-nums">
+                                                                {service.value}
+                                                            </span>
+                                                            <span className="text-xs opacity-75">
+                                                                min
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Tooltip */}
+                                                        <div className="absolute invisible group-hover/service:visible opacity-0 group-hover/service:opacity-100 transition-all duration-200 z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg whitespace-nowrap">
+                                                            Avg Time: {serviceInfo?.avgTime}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </Card.Content>
                 </Card>
@@ -189,31 +262,31 @@ const AncillaryServices = () => {
     // Render Table View
     const renderTableView = () => (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                <thead>
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 healthcare-card">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                        <th className="px-4 py-2 text-left text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-32">
                             Unit
                         </th>
                         {Object.entries(serviceCategories).map(([catKey, category]) => (
                             <th
                                 key={catKey}
                                 colSpan={category.services.length}
-                                className="px-4 py-2 text-center text-sm font-semibold text-healthcare-text-primary bg-healthcare-surface border-l border-healthcare-border"
+                                className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100 border-l border-gray-200 dark:border-gray-700"
                             >
                                 {category.name}
                             </th>
                         ))}
                     </tr>
                     <tr>
-                        <th className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark"></th>
+                        <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800"></th>
                         {Object.values(serviceCategories).flatMap((category) =>
                             category.services.map((serviceId) => {
                                 const serviceInfo = services.find((s) => s.id === serviceId);
                                 return (
                                     <th
                                         key={serviceId}
-                                        className="px-4 py-2 text-left text-xs font-medium text-healthcare-text-secondary bg-healthcare-surface border-l border-healthcare-border"
+                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700"
                                     >
                                         <div
                                             className="flex items-center cursor-pointer group"
@@ -237,14 +310,14 @@ const AncillaryServices = () => {
                         )}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-healthcare-border">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
                     {demoData.map((unit) => (
 <tr
     key={unit.id}
-    className="hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark cursor-pointer transition-colors"
+    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
     onClick={() => setSelectedUnit(unit)}
 >
-                            <td className="px-4 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
                                 {unit.name}
                             </td>
                             {Object.values(serviceCategories).flatMap((category) =>
@@ -256,7 +329,7 @@ const AncillaryServices = () => {
                                     return (
                                         <td
                                             key={serviceId}
-                                            className="px-4 py-2 text-sm text-healthcare-text-primary border-l border-healthcare-border"
+                                            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-l border-gray-200 dark:border-gray-700"
                                         >
                                             {service ? (
                                                 <div className="relative group">
@@ -299,7 +372,21 @@ const AncillaryServices = () => {
                                                                 <strong>Criteria:</strong>{' '}
                                                                 {serviceInfo?.criteria.join(', ')}
                                                             </p>
-                                                            {showTrends && renderTrendChart(service)}
+                                                            {showTrends && (
+                                                            <div className="mt-4">
+                                                                <TrendChart
+                                                                    data={trendUtils.generateServiceTrend(serviceInfo.category)}
+                                                                    series={[{
+                                                                        dataKey: 'value',
+                                                                        name: 'Wait Time',
+                                                                        color: '#3B82F6'
+                                                                    }]}
+                                                                    xAxis={{ dataKey: 'time' }}
+                                                                    yAxis={{ domain: ['auto', 'auto'] }}
+                                                                    height={200}
+                                                                />
+                                                            </div>
+                                                        )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -406,13 +493,38 @@ const AncillaryServices = () => {
                             Matrix View
                         </button>
                         <button
-                            className={`ml-2 inline-flex items-center px-4 py-2 healthcare-button ${
-                                showTrends ? 'healthcare-button-primary' : 'healthcare-button-secondary'
-                            } text-sm font-medium rounded-md`}
-                            onClick={() => setShowTrends(!showTrends)}
+                            className="ml-2 inline-flex items-center px-4 py-2 healthcare-button healthcare-button-primary text-sm font-medium rounded-md"
+                            onClick={() => {
+                                // Generate trend data for all services
+                                const allTrends = [];
+                                demoData.forEach(unit => {
+                                    Object.entries(unit.services).forEach(([serviceId, service]) => {
+                                        if (service) {
+                                            const serviceInfo = services.find(s => s.id === serviceId);
+                                            if (serviceInfo) {
+                                                const trend = trendUtils.generateServiceTrend(serviceInfo.category);
+                                                allTrends.push({
+                                                    unitName: unit.name,
+                                                    serviceName: serviceInfo.name,
+                                                    trend
+                                                });
+                                            }
+                                        }
+                                    });
+                                });
+
+                                if (allTrends.length > 0) {
+                                    setSelectedTrendData({
+                                        trend: allTrends[0].trend,
+                                        title: 'Service Wait Times',
+                                        allTrends
+                                    });
+                                }
+                                setTrendsModalOpen(true);
+                            }}
                         >
                             <Icon icon="heroicons:chart-bar" className="w-5 h-5 mr-2" />
-                            {showTrends ? 'Hide Trends' : 'Show Trends'}
+                            Show Trends
                         </button>
                     </div>
                 </Card.Header>
@@ -504,6 +616,14 @@ const AncillaryServices = () => {
                     </div>
                 </div>
             )}
+
+            {/* Trends Modal */}
+            <TrendsModal
+                isOpen={trendsModalOpen}
+                onClose={() => setTrendsModalOpen(false)}
+                data={selectedTrendData}
+                units={demoData}
+            />
         </RTDCPageLayout>
     );
 };

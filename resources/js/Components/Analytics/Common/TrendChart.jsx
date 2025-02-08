@@ -19,12 +19,19 @@ const TrendChart = ({
     showLegend = true,
 }) => {
     // Default formatters
-    const defaultXAxisFormatter = (value) => value;
-    const defaultYAxisFormatter = (value) => value;
+    const defaultXAxisFormatter = (value) => {
+        if (!value) return '';
+        try {
+            return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            return value;
+        }
+    };
+    const defaultYAxisFormatter = (value) => `${value} min`;
 
     // Merge with defaults
     const xAxisConfig = {
-        dataKey: 'date',
+        dataKey: 'time',
         type: 'category',
         formatter: defaultXAxisFormatter,
         ...xAxis,
@@ -77,7 +84,7 @@ const TrendChart = ({
 
     return (
         <ResponsiveContainer width="100%" height={height}>
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
                 <CartesianGrid 
                     strokeDasharray="3 3" 
                     stroke="#E5E7EB"

@@ -33,7 +33,6 @@ const ALOSChart = ({ data }) => {
             </Card.Header>
             <Card.Content className="h-[350px]">
                 <TrendChart
-                    height={350}
                     data={data}
                     series={[
                             {

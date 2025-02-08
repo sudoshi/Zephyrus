@@ -244,19 +244,236 @@ export const alertsData = {
     },
 };
 
-// Service Definitions (preserved)
+// Service Definitions
 export const services = [
-    // ... existing services
+    // Imaging & Diagnostics
+    {
+        id: 'stress',
+        name: 'Stress Test',
+        category: 'imaging',
+        description: 'Cardiac stress testing service',
+        avgTime: '60 min',
+        criteria: ['Scheduled', 'Urgent']
+    },
+    {
+        id: 'echo',
+        name: 'Echo/Vascular',
+        category: 'imaging',
+        description: 'Echocardiogram and vascular imaging',
+        avgTime: '45 min',
+        criteria: ['Scheduled', 'Urgent']
+    },
+    {
+        id: 'ct_mri',
+        name: 'CT/MRI',
+        category: 'imaging',
+        description: 'CT and MRI imaging services',
+        avgTime: '60 min',
+        criteria: ['Stat', 'Urgent', 'Routine']
+    },
+    {
+        id: 'diagnostic',
+        name: 'Diagnostic',
+        category: 'imaging',
+        description: 'General diagnostic imaging',
+        avgTime: '30 min',
+        criteria: ['Stat', 'Routine']
+    },
+    {
+        id: 'ir',
+        name: 'IR',
+        category: 'imaging',
+        description: 'Interventional Radiology procedures',
+        avgTime: '90 min',
+        criteria: ['Scheduled', 'Urgent']
+    },
+    // Therapy & Rehabilitation
+    {
+        id: 'pt_ot',
+        name: 'PT/OT',
+        category: 'therapy',
+        description: 'Physical and Occupational Therapy',
+        avgTime: '45 min',
+        criteria: ['Initial Eval', 'Follow-up']
+    },
+    {
+        id: 'respiratory',
+        name: 'Respiratory',
+        category: 'therapy',
+        description: 'Respiratory therapy services',
+        avgTime: '30 min',
+        criteria: ['Stat', 'Routine']
+    },
+    {
+        id: 'dialysis',
+        name: 'Dialysis',
+        category: 'therapy',
+        description: 'Dialysis treatment services',
+        avgTime: '240 min',
+        criteria: ['Scheduled', 'Urgent']
+    },
+    // Support Services
+    {
+        id: 'pharmacy',
+        name: 'Pharmacy',
+        category: 'support',
+        description: 'Medication dispensing and consultation',
+        avgTime: '45 min',
+        criteria: ['Stat', 'Routine']
+    },
+    {
+        id: 'lab',
+        name: 'Lab',
+        category: 'support',
+        description: 'Laboratory services',
+        avgTime: '60 min',
+        criteria: ['Stat', 'Routine']
+    },
+    {
+        id: 'snf',
+        name: 'SNF',
+        category: 'support',
+        description: 'Skilled Nursing Facility coordination',
+        avgTime: '120 min',
+        criteria: ['Routine']
+    },
+    {
+        id: 'palliative',
+        name: 'Palliative',
+        category: 'support',
+        description: 'Palliative care services',
+        avgTime: '60 min',
+        criteria: ['Routine', 'Urgent']
+    },
+    {
+        id: 'infectious',
+        name: 'Infectious',
+        category: 'support',
+        description: 'Infectious disease consultation',
+        avgTime: '45 min',
+        criteria: ['Routine', 'Urgent']
+    },
+    {
+        id: 'diabetes',
+        name: 'Diabetes',
+        category: 'support',
+        description: 'Diabetes management services',
+        avgTime: '45 min',
+        criteria: ['Routine']
+    },
+    {
+        id: 'education',
+        name: 'Education',
+        category: 'support',
+        description: 'Patient education services',
+        avgTime: '30 min',
+        criteria: ['Routine']
+    },
+    {
+        id: 'dme',
+        name: 'DME',
+        category: 'support',
+        description: 'Durable Medical Equipment',
+        avgTime: '60 min',
+        criteria: ['Routine']
+    }
 ];
 
-// Service Categories (preserved)
+// Service Categories
 export const serviceCategories = {
-    // ... existing categories
+    imaging: {
+        name: 'Imaging & Diagnostics',
+        services: ['stress', 'echo', 'ct_mri', 'diagnostic', 'ir']
+    },
+    therapy: {
+        name: 'Therapy & Rehabilitation',
+        services: ['pt_ot', 'respiratory', 'dialysis']
+    },
+    support: {
+        name: 'Support Services',
+        services: ['pharmacy', 'lab', 'snf', 'palliative', 'infectious', 'diabetes', 'education', 'dme']
+    }
 };
 
-// Generate Demo Data Function (preserved)
+// Generate Demo Data Function
 export const generateDemoData = () => {
-    // ... existing function
+    const units = [
+        { id: 1, name: '5 East' },
+        { id: 2, name: '5 West' },
+        { id: 3, name: '6 East' },
+        { id: 4, name: '6 West' },
+        { id: 5, name: '7 East' },
+        { id: 6, name: '7 West' },
+        { id: 7, name: '8 East' },
+        { id: 8, name: '8 West' },
+        { id: 9, name: '9 East' },
+        { id: 10, name: '9 West' },
+        { id: 11, name: 'ICU' },
+        { id: 12, name: 'CCU' }
+    ];
+
+    // Generate wait time based on service category and random factor
+    const generateWaitTime = (serviceId) => {
+        const service = services.find(s => s.id === serviceId);
+        let baseTime;
+        
+        // Base times by category
+        switch(service.category) {
+            case 'imaging':
+                baseTime = Math.floor(Math.random() * 60) + 30; // 30-90 min
+                break;
+            case 'therapy':
+                baseTime = Math.floor(Math.random() * 90) + 30; // 30-120 min
+                break;
+            case 'support':
+                baseTime = Math.floor(Math.random() * 120) + 30; // 30-150 min
+                break;
+            default:
+                baseTime = Math.floor(Math.random() * 60) + 30; // 30-90 min
+        }
+
+        // Add random variation (±20%)
+        const variation = baseTime * (Math.random() * 0.4 - 0.2);
+        return Math.round(baseTime + variation);
+    };
+
+    // Generate trend data
+    const generateTrend = (currentValue) => {
+        const hours = 12;
+        const data = [];
+        let value = currentValue;
+        
+        for (let i = 0; i < hours; i++) {
+            // Adjust value by ±15%
+            value = value + (Math.random() - 0.5) * 0.3 * value;
+            data.push({
+                time: new Date(Date.now() - (hours - i) * 3600000).toISOString(),
+                value: Math.round(value)
+            });
+        }
+        return data;
+    };
+
+    return units.map(unit => {
+        const unitServices = {};
+        services.forEach(service => {
+            // 80% chance of having a service
+            if (Math.random() > 0.2) {
+                const value = generateWaitTime(service.id);
+                unitServices[service.id] = {
+                    value,
+                    trend: generateTrend(value)
+                };
+            } else {
+                unitServices[service.id] = null;
+            }
+        });
+        
+        return {
+            ...unit,
+            services: unitServices
+        };
+    });
 };
 
 // Unit Services Data (preserved)

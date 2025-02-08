@@ -90,7 +90,7 @@ const BedOccupancyChart = ({ data, serviceLines }) => {
                     </div>
             </Card.Header>
                 <Card.Content className="h-[350px]">
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis
