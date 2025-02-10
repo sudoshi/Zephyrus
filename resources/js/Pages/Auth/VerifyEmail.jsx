@@ -1,14 +1,22 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import React from 'react';
 
 export default function VerifyEmail({ status }) {
-    const { post, processing } = useForm({});
+    const [processing, setProcessing] = React.useState(false);
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
+        setProcessing(true);
 
-        post(route('verification.send'));
+        try {
+            await router.post('/email/verification-notification');
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -36,7 +44,7 @@ export default function VerifyEmail({ status }) {
                     </PrimaryButton>
 
                     <Link
-                        href={route('logout')}
+                        href="/logout"
                         method="post"
                         as="button"
                         className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"

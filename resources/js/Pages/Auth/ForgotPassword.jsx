@@ -2,17 +2,29 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import React from 'react';
 
 export default function ForgotPassword({ status }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const [data, setData] = React.useState({
         email: '',
     });
+    const [processing, setProcessing] = React.useState(false);
+    const [errors, setErrors] = React.useState({});
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
+        setProcessing(true);
 
-        post(route('password.email'));
+        try {
+            await router.post('/forgot-password', data);
+        } catch (error) {
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -39,7 +51,7 @@ export default function ForgotPassword({ status }) {
                     value={data.email}
                     className="mt-1 block w-full"
                     isFocused={true}
-                    onChange={(e) => setData('email', e.target.value)}
+                    onChange={(e) => setData(prev => ({ ...prev, email: e.target.value }))}
                 />
 
                 <InputError message={errors.email} className="mt-2" />

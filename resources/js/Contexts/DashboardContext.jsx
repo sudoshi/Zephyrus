@@ -10,66 +10,66 @@ const workflowNavigationConfig = {
     analytics: [
       {
         name: 'Utilization & Capacity',
-        href: route('rtdc.analytics.utilization'),
+        href: '/rtdc/analytics/utilization',
         description: 'Track and analyze utilization and capacity metrics',
       },
       {
         name: 'Performance Metrics',
-        href: route('rtdc.analytics.performance'),
+        href: '/rtdc/analytics/performance',
         description: 'Monitor key performance indicators',
       },
       {
         name: 'Resource Analytics',
-        href: route('rtdc.analytics.resources'),
+        href: '/rtdc/analytics/resources',
         description: 'Analyze resource allocation and utilization',
       },
       {
         name: 'Trends & Patterns',
-        href: route('rtdc.analytics.trends'),
+        href: '/rtdc/analytics/trends',
         description: 'Historical tracking and pattern analysis',
       },
     ],
     operations: [
       {
         name: 'Bed Tracking',
-        href: route('rtdc.bed-tracking'),
+        href: '/rtdc/bed-tracking',
         description: 'Real-time bed monitoring',
       },
       {
         name: 'Ancillary Services',
-        href: route('rtdc.ancillary-services'),
+        href: '/rtdc/ancillary-services',
         description: 'Track and coordinate support services',
       },
       {
         name: 'Global Huddle',
-        href: route('rtdc.global-huddle'),
+        href: '/rtdc/global-huddle',
         description: 'Hospital-wide operations coordination',
       },
       {
         name: 'Service Huddle',
-        href: route('rtdc.service-huddle'),
+        href: '/rtdc/service-huddle',
         description: 'Department-specific coordination',
       },
     ],
     predictions: [
       {
         name: 'Demand Forecasting',
-        href: route('rtdc.predictions.demand'),
+        href: '/rtdc/predictions/demand',
         description: 'Forecast patient volumes and case loads',
       },
       {
         name: 'Resource Planning',
-        href: route('rtdc.predictions.resources'),
+        href: '/rtdc/predictions/resources',
         description: 'Plan future staffing and capacity needs',
       },
       {
         name: 'Discharge Predictions',
-        href: route('rtdc.predictions.discharge'),
+        href: '/rtdc/predictions/discharge',
         description: 'Forecast bed availability',
       },
       {
         name: 'Risk Assessment',
-        href: route('rtdc.predictions.risk'),
+        href: '/rtdc/predictions/risk',
         description: 'Analyze schedule risks and bottlenecks',
       },
     ],
@@ -79,51 +79,51 @@ const workflowNavigationConfig = {
     analytics: [
       {
         name: 'Service Analytics',
-        href: route('analytics.service'),
+        href: '/analytics/service',
         description: 'Analyze performance metrics across different services',
       },
       {
         name: 'Provider Analytics',
-        href: route('analytics.provider'),
+        href: '/analytics/provider',
         description: 'Monitor provider efficiency and performance metrics',
       },
       {
         name: 'Historical Trends',
-        href: route('analytics.trends'),
+        href: '/analytics/trends',
         description: 'Examine historical patterns and track performance over time',
       },
     ],
     operations: [
       {
         name: 'Block Schedule',
-        href: route('operations.block-schedule'),
+        href: '/operations/block-schedule',
         description: 'Manage and view the OR block schedule',
       },
       {
         name: 'Case Management',
-        href: route('operations.cases'),
+        href: '/operations/cases',
         description: 'Oversee case scheduling and management',
       },
       {
         name: 'Room Status',
-        href: route('operations.room-status'),
+        href: '/operations/room-status',
         description: 'Real-time monitoring of OR room statuses',
       },
     ],
     predictions: [
       {
         name: 'Utilization Forecast',
-        href: route('predictions.forecast'),
+        href: '/predictions/forecast',
         description: 'Predict OR utilization and optimize scheduling',
       },
       {
         name: 'Demand Analysis',
-        href: route('predictions.demand'),
+        href: '/predictions/demand',
         description: 'Analyze demand for OR resources',
       },
       {
         name: 'Resource Planning',
-        href: route('predictions.resources'),
+        href: '/predictions/resources',
         description: 'Project future staffing needs and resource allocation',
       },
     ],
@@ -133,41 +133,41 @@ const workflowNavigationConfig = {
     analytics: [
       {
         name: 'Wait Time',
-        href: route('ed.analytics.wait-time'),
+        href: '/ed/analytics/wait-time',
         description: 'Monitor and analyze patient wait times',
       },
       {
         name: 'Patient Flow',
-        href: route('ed.analytics.flow'),
+        href: '/ed/analytics/flow',
         description: 'Assess patient movement through the ED',
       },
     ],
     operations: [
       {
         name: 'Resource Management',
-        href: route('ed.operations.resources'),
+        href: '/ed/operations/resources',
         description: 'Manage ED resources and staffing',
       },
       {
         name: 'Triage',
-        href: route('ed.operations.triage'),
+        href: '/ed/operations/triage',
         description: 'Manage triage operations and patient prioritization',
       },
       {
         name: 'Treatment',
-        href: route('ed.operations.treatment'),
+        href: '/ed/operations/treatment',
         description: 'Oversee treatment procedures and protocols',
       },
     ],
     predictions: [
       {
         name: 'Arrival Prediction',
-        href: route('ed.predictions.arrival'),
+        href: '/ed/predictions/arrival',
         description: 'Forecast patient arrivals to the ED',
       },
       {
         name: 'Resource Optimization',
-        href: route('ed.predictions.resources'),
+        href: '/ed/predictions/resources',
         description: 'Optimize resource allocation based on predictions',
       },
     ],
@@ -176,13 +176,22 @@ const workflowNavigationConfig = {
     name: 'Improvement',
     analytics: [
       {
+<<<<<<< HEAD
+=======
+        name: 'PDSA Dashboard',
+        href: '/improvement/pdsa',
+        description: 'Manage PDSA improvement cycles',
+        icon: 'heroicons:arrow-path'
+      },
+      {
+>>>>>>> f8c8ac3 (Reset to Previous Top Navigation)
         name: 'Opportunities',
-        href: route('improvement.opportunities'),
+        href: '/improvement/opportunities',
         description: 'View improvement opportunities',
       },
       {
         name: 'Library',
-        href: route('improvement.library'),
+        href: '/improvement/library',
         description: 'Access improvement resources and templates',
       },
       {
@@ -243,25 +252,25 @@ export function DashboardProvider({ children }) {
       { 
         name: 'RTDC', 
         workflow: 'rtdc', 
-        href: route('dashboard.rtdc'),
+        href: '/dashboard/rtdc',
         icon: 'heroicons:command-line'
       },
       { 
         name: 'Perioperative', 
         workflow: 'perioperative', 
-        href: route('dashboard.perioperative'),
+        href: '/dashboard/perioperative',
         icon: 'heroicons:heart'
       },
       { 
         name: 'Emergency', 
         workflow: 'emergency', 
-        href: route('dashboard.emergency'),
+        href: '/dashboard/emergency',
         icon: 'heroicons:exclamation-triangle'
       },
       { 
         name: 'Improvement', 
         workflow: 'improvement', 
-        href: route('dashboard.improvement'),
+        href: '/dashboard/improvement',
         icon: 'heroicons:arrow-trending-up'
       },
     ],

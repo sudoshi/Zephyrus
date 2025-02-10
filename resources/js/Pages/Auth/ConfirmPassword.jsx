@@ -3,19 +3,30 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import React from 'react';
 
 export default function ConfirmPassword() {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const [data, setData] = React.useState({
         password: '',
     });
+    const [processing, setProcessing] = React.useState(false);
+    const [errors, setErrors] = React.useState({});
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
+        setProcessing(true);
 
-        post(route('password.confirm'), {
-            onFinish: () => reset('password'),
-        });
+        try {
+            await router.post('/confirm-password', data);
+            setData(prev => ({ ...prev, password: '' }));
+        } catch (error) {
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -38,7 +49,7 @@ export default function ConfirmPassword() {
                         value={data.password}
                         className="mt-1 block w-full"
                         isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={(e) => setData(prev => ({ ...prev, password: e.target.value }))}
                     />
 
                     <InputError message={errors.password} className="mt-2" />
