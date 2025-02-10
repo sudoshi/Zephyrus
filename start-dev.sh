@@ -66,6 +66,13 @@ if [ ! -d "${SCRIPT_DIR}/node_modules" ]; then
     npm install
 fi
 
+# Clear Laravel caches
+print_status "$YELLOW" "Clearing Laravel caches..."
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
 # Run database migrations
 # print_status "$YELLOW" "Running database migrations..."
 # php artisan migrate

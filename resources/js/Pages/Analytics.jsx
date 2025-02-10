@@ -51,7 +51,7 @@ const Analytics = () => {
                         </div>
                         <div className="flex items-center space-x-4">
                             <Link
-                                href={route('dashboard')}
+                                href="/dashboard"
                                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                             >
                                 <Icon icon="heroicons:arrow-left" className="w-5 h-5 mr-2" />

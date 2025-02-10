@@ -76,8 +76,16 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                 {mainNavigationItems.map((item) => (
                   <Link
                     key={item.workflow}
+<<<<<<< HEAD
                     href={item.href}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors duration-300 ${
+=======
+                    onClick={() => {
+                      changeWorkflow(item.workflow);
+                      router.visit(item.href);
+                    }}
+                    className={`flex items-center healthcare-button ${
+>>>>>>> 8162700 (Routes and Cache Issue Fixed)
                       currentWorkflow === item.workflow
                         ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
                         : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
@@ -114,7 +122,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     <Menu.Item>
                       {({ active }) => (
                         <Link
-                          href={route('profile.edit')}
+                          href="/profile"
                           className={`
                             flex items-center px-4 py-2.5 text-sm transition-colors duration-300
                             ${
@@ -132,7 +140,15 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     <Menu.Item>
                       {({ active }) => (
                         <button
-                          onClick={() => router.post(route('logout'))}
+                          onClick={() => router.post('/logout', {}, {
+                            preserveScroll: true,
+                            onSuccess: () => {
+                              // Logout successful, Inertia will handle the redirect
+                            },
+                            onError: () => {
+                              console.error('Logout failed');
+                            }
+                          })}
                           className={`
                             flex items-center px-4 py-2.5 text-sm transition-colors duration-300 w-full text-left
                             ${

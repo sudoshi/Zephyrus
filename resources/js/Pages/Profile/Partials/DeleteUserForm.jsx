@@ -4,45 +4,46 @@ import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
-import { useForm } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
 export default function DeleteUserForm({ className = '' }) {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
     const passwordInput = useRef();
 
-    const {
-        data,
-        setData,
-        delete: destroy,
-        processing,
-        reset,
-        errors,
-        clearErrors,
-    } = useForm({
+    const [data, setData] = React.useState({
         password: '',
     });
+    const [processing, setProcessing] = React.useState(false);
+    const [errors, setErrors] = React.useState({});
 
     const confirmUserDeletion = () => {
         setConfirmingUserDeletion(true);
     };
 
-    const deleteUser = (e) => {
+    const deleteUser = async (e) => {
         e.preventDefault();
+        setProcessing(true);
 
-        destroy(route('profile.destroy'), {
-            preserveScroll: true,
-            onSuccess: () => closeModal(),
-            onError: () => passwordInput.current.focus(),
-            onFinish: () => reset(),
-        });
+        try {
+            await router.delete('/profile', {
+                data,
+                preserveScroll: true,
+                onSuccess: () => closeModal(),
+                onError: (errors) => {
+                    setErrors(errors);
+                    passwordInput.current.focus();
+                },
+            });
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const closeModal = () => {
         setConfirmingUserDeletion(false);
-
-        clearErrors();
-        reset();
+        setErrors({});
+        setData({ password: '' });
     };
 
     return (
@@ -91,7 +92,7 @@ export default function DeleteUserForm({ className = '' }) {
                             ref={passwordInput}
                             value={data.password}
                             onChange={(e) =>
-                                setData('password', e.target.value)
+                                setData(prev => ({ ...prev, password: e.target.value }))
                             }
                             className="mt-1 block w-3/4"
                             isFocused

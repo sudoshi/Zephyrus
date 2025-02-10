@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { router, usePage } from '@inertiajs/react';
-import axios from 'axios';
 
 // Move workflowNavigationConfig outside the DashboardProvider component
 const workflowNavigationConfig = {
@@ -226,8 +225,7 @@ export function DashboardProvider({ children }) {
   }, [initialWorkflow]);
 
   const changeWorkflow = useCallback(
-    async (workflow) => {
-      const previousState = state;
+    (workflow) => {
       setState((prevState) => ({
         ...prevState,
         currentWorkflow: workflow,
@@ -235,14 +233,21 @@ export function DashboardProvider({ children }) {
         isLoading: true,
       }));
 
-      try {
-        await axios.post('/change-workflow', { workflow });
-      } catch (error) {
-        console.error('Failed to change workflow:', error);
-        setState(previousState);
-      } finally {
-        setState((prevState) => ({ ...prevState, isLoading: false }));
-      }
+      router.post('/change-workflow', { workflow }, {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: () => {
+          setState((prevState) => ({ ...prevState, isLoading: false }));
+        },
+        onError: () => {
+          setState((prevState) => ({
+            ...prevState,
+            currentWorkflow: state.currentWorkflow,
+            navigationItems: workflowNavigationConfig[state.currentWorkflow],
+            isLoading: false,
+          }));
+        },
+      });
     },
     [state]
   );

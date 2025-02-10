@@ -4,7 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import UserAvatar from '@/Components/UserAvatar';
 import { Transition } from '@headlessui/react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
@@ -13,17 +13,30 @@ export default function UpdateProfileInformation({
 }) {
     const user = usePage().props.auth.user;
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } =
-        useForm({
-            name: user.name,
-            username: user.username,
-            email: user.email,
-        });
+    const [data, setData] = React.useState({
+        name: user.name,
+        username: user.username,
+        email: user.email,
+    });
+    const [errors, setErrors] = React.useState({});
+    const [processing, setProcessing] = React.useState(false);
+    const [recentlySuccessful, setRecentlySuccessful] = React.useState(false);
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
+        setProcessing(true);
 
-        patch(route('profile.update'));
+        try {
+            await router.patch('/profile', data);
+            setRecentlySuccessful(true);
+            setTimeout(() => setRecentlySuccessful(false), 2000);
+        } catch (error) {
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -49,7 +62,7 @@ export default function UpdateProfileInformation({
                         id="name"
                         className="mt-1 block w-full"
                         value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
+                        onChange={(e) => setData(prev => ({ ...prev, name: e.target.value }))}
                         required
                         isFocused
                         autoComplete="name"
@@ -65,7 +78,7 @@ export default function UpdateProfileInformation({
                         id="username"
                         className="mt-1 block w-full"
                         value={data.username}
-                        onChange={(e) => setData('username', e.target.value)}
+                        onChange={(e) => setData(prev => ({ ...prev, username: e.target.value }))}
                         required
                         autoComplete="username"
                     />
@@ -81,7 +94,7 @@ export default function UpdateProfileInformation({
                         type="email"
                         className="mt-1 block w-full"
                         value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData(prev => ({ ...prev, email: e.target.value }))}
                         required
                         autoComplete="username"
                     />
@@ -94,7 +107,7 @@ export default function UpdateProfileInformation({
                         <p className="mt-2 text-sm text-gray-800">
                             Your email address is unverified.
                             <Link
-                                href={route('verification.send')}
+                                href="/email/verification-notification"
                                 method="post"
                                 as="button"
                                 className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
