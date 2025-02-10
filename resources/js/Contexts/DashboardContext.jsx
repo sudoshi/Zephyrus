@@ -175,28 +175,28 @@ const workflowNavigationConfig = {
     name: 'Improvement',
     analytics: [
       {
-<<<<<<< HEAD
-=======
-        name: 'PDSA Dashboard',
-        href: '/improvement/pdsa',
-        description: 'Manage PDSA improvement cycles',
-        icon: 'heroicons:arrow-path'
+        name: 'Overview',
+        href: '/improvement/overview',
+        description: 'Overview of improvement initiatives',
+        icon: 'lucide:layout-dashboard'
       },
       {
->>>>>>> f8c8ac3 (Reset to Previous Top Navigation)
         name: 'Opportunities',
         href: '/improvement/opportunities',
         description: 'View improvement opportunities',
+        icon: 'lucide:target'
       },
       {
         name: 'Library',
         href: '/improvement/library',
         description: 'Access improvement resources and templates',
+        icon: 'lucide:library'
       },
       {
-        name: 'Active',
-        href: route('improvement.active'),
+        name: 'Active Cycles',
+        href: '/improvement/active',
         description: 'Track active improvement initiatives',
+        icon: 'lucide:refresh-ccw'
       },
     ],
     operations: [],
@@ -228,28 +228,26 @@ export function DashboardProvider({ children }) {
     (workflow) => {
       setState((prevState) => ({
         ...prevState,
-        currentWorkflow: workflow,
-        navigationItems: workflowNavigationConfig[workflow],
-        isLoading: true,
+        isLoading: true
       }));
 
-      router.post('/change-workflow', { workflow }, {
+      router.visit(`/dashboard/${workflow}`, {
         preserveState: true,
         preserveScroll: true,
         onSuccess: () => {
-          setState((prevState) => ({ ...prevState, isLoading: false }));
-        },
-        onError: () => {
           setState((prevState) => ({
             ...prevState,
-            currentWorkflow: state.currentWorkflow,
-            navigationItems: workflowNavigationConfig[state.currentWorkflow],
-            isLoading: false,
+            currentWorkflow: workflow,
+            navigationItems: workflowNavigationConfig[workflow],
+            isLoading: false
           }));
+        },
+        onError: () => {
+          setState((prevState) => ({ ...prevState, isLoading: false }));
         },
       });
     },
-    [state]
+    []
   );
 
   const mainNavigationItems = useMemo(

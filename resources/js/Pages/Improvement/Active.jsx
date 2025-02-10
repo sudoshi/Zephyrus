@@ -1,136 +1,135 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import { Icon } from '@iconify/react';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import PageContentLayout from '@/Components/Common/PageContentLayout';
+import { Head, Link } from '@inertiajs/react';
+import { Button } from '@/Components/ui/button';
+import { Plus, ArrowRight, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-const Active = ({ auth }) => {
-  const activeInitiatives = [
-    {
-      title: 'OR Turnover Time Reduction',
-      status: 'In Progress',
-      progress: 65,
-      owner: 'Dr. Sarah Chen',
-      dueDate: '2025-03-15',
-      priority: 'High',
-    },
-    {
-      title: 'Patient Flow Optimization',
-      status: 'Planning',
-      progress: 25,
-      owner: 'James Wilson',
-      dueDate: '2025-04-01',
-      priority: 'Medium',
-    },
-    {
-      title: 'Resource Scheduling Enhancement',
-      status: 'Review',
-      progress: 90,
-      owner: 'Dr. Michael Brown',
-      dueDate: '2025-02-28',
-      priority: 'High',
-    },
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'in progress':
-        return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
-      case 'planning':
-        return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
-      case 'review':
-        return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
+const Active = ({ cycles = [] }) => {
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'in-progress':
+        return <Clock className="h-5 w-5 text-blue-500" />;
+      case 'at-risk':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
-        return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return 'text-red-600';
-      case 'medium':
-        return 'text-yellow-600';
-      case 'low':
-        return 'text-green-600';
-      default:
-        return 'text-gray-600';
+        return null;
     }
   };
 
   return (
-    <AuthenticatedLayout user={auth.user}>
-      <Head title="Active Improvements" />
-      
-      <div className="py-12">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-6">
-              <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                  Active Improvements
-                </h1>
-                <button className="px-4 py-2 bg-healthcare-primary text-white rounded-md hover:bg-healthcare-primary-dark transition-colors duration-300 flex items-center">
-                  <Icon icon="heroicons:plus" className="w-5 h-5 mr-2" />
-                  New Initiative
-                </button>
-              </div>
+    <DashboardLayout>
+      <Head title="Active PDSA Cycles - ZephyrusOR" />
+      <PageContentLayout
+        title="Active PDSA Cycles"
+        subtitle="Track and manage active improvement initiatives"
+      >
+        <div className="flex justify-end mb-6">
+          <Link href="/improvement/active/new">
+            <Button className="flex items-center gap-2 bg-healthcare-primary hover:bg-healthcare-primary/90 text-white dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary-dark/90">
+              <Plus className="h-4 w-4" />
+              New PDSA Cycle
+            </Button>
+          </Link>
+        </div>
 
-              <div className="mt-8">
-                {activeInitiatives.map((initiative, index) => (
-                  <div 
-                    key={index}
-                    className="mb-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-6"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                          {initiative.title}
-                        </h3>
-                        <div className="mt-2 flex items-center space-x-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(initiative.status)}`}>
-                            {initiative.status}
-                          </span>
-                          <span className={`text-sm ${getPriorityColor(initiative.priority)}`}>
-                            {initiative.priority} Priority
-                          </span>
-                        </div>
-                      </div>
-                      <button className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400">
-                        <Icon icon="heroicons:ellipsis-vertical" className="w-5 h-5" />
-                      </button>
+        {/* Active Cycles Grid */}
+        <div className="grid grid-cols-1 gap-6">
+          {cycles.map((cycle, index) => (
+            <div
+              key={index}
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm transition-colors duration-300"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(cycle.status)}
+                      <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                        {cycle.title}
+                      </h3>
                     </div>
+                    <p className="mt-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                      {cycle.objective}
+                    </p>
+                  </div>
+                  <Link href={`/improvement/active/${cycle.id}`}>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      View Details
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
 
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                        <span>Progress</span>
-                        <span>{initiative.progress}%</span>
-                      </div>
-                      <div className="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                {/* Progress and Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                  <div>
+                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark block mb-1">
+                      Current Phase
+                    </span>
+                    <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium">
+                      {cycle.currentPhase}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark block mb-1">
+                      Start Date
+                    </span>
+                    <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium">
+                      {cycle.startDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark block mb-1">
+                      Target Date
+                    </span>
+                    <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium">
+                      {cycle.targetDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark block mb-1">
+                      Progress
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full overflow-hidden">
                         <div
-                          className="bg-healthcare-primary dark:bg-healthcare-primary-dark h-2 rounded-full"
-                          style={{ width: `${initiative.progress}%` }}
+                          className="h-full bg-healthcare-primary dark:bg-healthcare-primary-dark transition-all duration-300"
+                          style={{ width: `${cycle.progress}%` }}
                         />
                       </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between text-sm">
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <Icon icon="heroicons:user" className="w-4 h-4 inline mr-1" />
-                        {initiative.owner}
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <Icon icon="heroicons:calendar" className="w-4 h-4 inline mr-1" />
-                        Due: {initiative.dueDate}
-                      </div>
+                      <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium">
+                        {cycle.progress}%
+                      </span>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
-      </div>
-    </AuthenticatedLayout>
+
+        {/* Empty State */}
+        {cycles.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
+              No Active Cycles
+            </h3>
+            <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-6">
+              Start your first PDSA cycle to begin tracking improvements
+            </p>
+            <Link href="/improvement/active/new">
+              <Button className="flex items-center gap-2 bg-healthcare-primary hover:bg-healthcare-primary/90 text-white dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary-dark/90">
+                <Plus className="h-4 w-4" />
+                Start First Cycle
+              </Button>
+            </Link>
+          </div>
+        )}
+      </PageContentLayout>
+    </DashboardLayout>
   );
 };
 

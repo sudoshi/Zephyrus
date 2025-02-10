@@ -1,79 +1,110 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
-import { Icon } from '@iconify/react';
+import { Button } from '@/Components/ui/button';
+import { Plus, FileText, FolderOpen, Download } from 'lucide-react';
 
-const Library = ({ auth }) => {
-  const resources = [
-    {
-      title: 'Process Improvement Templates',
-      description: 'Standardized templates for documenting and tracking improvement initiatives.',
-      icon: 'heroicons:document-duplicate',
-    },
-    {
-      title: 'Best Practices Guide',
-      description: 'Collection of proven methodologies and best practices for healthcare improvement.',
-      icon: 'heroicons:book-open',
-    },
-    {
-      title: 'Measurement Tools',
-      description: 'Tools and frameworks for measuring improvement outcomes.',
-      icon: 'heroicons:chart-bar',
-    },
-    {
-      title: 'Training Materials',
-      description: 'Educational resources for staff training and development.',
-      icon: 'heroicons:academic-cap',
-    },
+const Library = ({ resources = [] }) => {
+  const categories = [
+    { name: 'Templates', icon: FileText },
+    { name: 'Guidelines', icon: FolderOpen },
+    { name: 'Best Practices', icon: FileText },
   ];
 
   return (
-    <AuthenticatedLayout user={auth.user}>
-      <Head title="Improvement Library" />
-      
-      <div className="py-12">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-6">
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                Improvement Library
-              </h1>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">
-                Access improvement resources, templates, and best practices.
-              </p>
-              
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                {resources.map((resource, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-start p-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow hover:shadow-md transition-shadow duration-300"
-                  >
-                    <div className="flex-shrink-0">
-                      <Icon 
-                        icon={resource.icon}
-                        className="w-8 h-8 text-healthcare-primary dark:text-healthcare-primary-dark"
-                      />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        {resource.title}
-                      </h3>
-                      <p className="mt-2 text-gray-600 dark:text-gray-400">
-                        {resource.description}
-                      </p>
-                      <button className="mt-4 text-healthcare-primary dark:text-healthcare-primary-dark hover:text-healthcare-primary-dark dark:hover:text-healthcare-primary flex items-center">
-                        Access Resource
-                        <Icon icon="heroicons:arrow-right" className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
+    <DashboardLayout>
+      <Head title="Improvement Library - ZephyrusOR" />
+      <PageContentLayout
+        title="Improvement Library"
+        subtitle="Access improvement resources and templates"
+      >
+        {/* Categories */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {categories.map((category, index) => {
+            const Icon = category.icon;
+            return (
+              <div
+                key={index}
+                className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-6 shadow-sm transition-colors duration-300"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/10 rounded-lg">
+                    <Icon className="h-6 w-6 text-healthcare-primary dark:text-healthcare-primary-dark" />
                   </div>
-                ))}
+                  <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                    {category.name}
+                  </h3>
+                </div>
+                <Button variant="outline" className="w-full">
+                  View All
+                </Button>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Resources List */}
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm transition-colors duration-300">
+          <div className="p-6 border-b border-healthcare-border dark:border-healthcare-border-dark">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                Recent Resources
+              </h3>
+              <Button className="flex items-center gap-2 bg-healthcare-primary hover:bg-healthcare-primary/90 text-white dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary-dark/90">
+                <Plus className="h-4 w-4" />
+                Add Resource
+              </Button>
             </div>
           </div>
+          <div className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+            {resources.map((resource, index) => (
+              <div key={index} className="p-6 flex items-center justify-between">
+                <div>
+                  <h4 className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium mb-1">
+                    {resource.title}
+                  </h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    {resource.description}
+                  </p>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                      {resource.category}
+                    </span>
+                    <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                      {resource.type}
+                    </span>
+                    <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                      Added {resource.dateAdded}
+                    </span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </AuthenticatedLayout>
+
+        {/* Empty State */}
+        {resources.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
+              No Resources Yet
+            </h3>
+            <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-6">
+              Add your first resource to the library
+            </p>
+            <Button className="flex items-center gap-2 bg-healthcare-primary hover:bg-healthcare-primary/90 text-white dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary-dark/90">
+              <Plus className="h-4 w-4" />
+              Add First Resource
+            </Button>
+          </div>
+        )}
+      </PageContentLayout>
+    </DashboardLayout>
   );
 };
 

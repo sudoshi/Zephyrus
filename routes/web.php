@@ -27,9 +27,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Improvement Routes
     Route::prefix('improvement')->name('improvement.')->group(function () {
+        Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
         Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
         Route::get('/active', [DashboardController::class, 'active'])->name('active');
+        
+        // PDSA Routes
+        Route::prefix('pdsa')->name('pdsa.')->group(function () {
+            Route::get('/', [DashboardController::class, 'pdsaIndex'])->name('index');
+            Route::get('/{id}', [DashboardController::class, 'pdsaShow'])->name('show');
+        });
     });
 
     // RTDC Routes
