@@ -14,8 +14,10 @@ class EDDashboardController extends Controller
      */
 public function index(Request $request)
 {
-    $request->session()->put('workflow', 'ed');
-    return Inertia::render('Dashboard/ED');
+    $request->session()->put('workflow', 'emergency');
+    return Inertia::render('Dashboard/ED', [
+        'workflow' => 'emergency'
+    ]);
 }
 
     /**

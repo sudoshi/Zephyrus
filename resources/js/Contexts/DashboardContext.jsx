@@ -232,9 +232,17 @@ export function DashboardProvider({ children }) {
       }));
 
       router.visit(`/dashboard/${workflow}`, {
-        preserveState: true,
-        preserveScroll: true,
+        preserveState: false, // Don't preserve state to ensure fresh data
+        preserveScroll: false, // Don't preserve scroll position for a fresh start
+        onBefore: () => {
+          // Clear current state before navigation
+          setState((prevState) => ({
+            ...prevState,
+            navigationItems: null
+          }));
+        },
         onSuccess: () => {
+          // Update state with new workflow data
           setState((prevState) => ({
             ...prevState,
             currentWorkflow: workflow,
@@ -243,7 +251,11 @@ export function DashboardProvider({ children }) {
           }));
         },
         onError: () => {
-          setState((prevState) => ({ ...prevState, isLoading: false }));
+          setState((prevState) => ({ 
+            ...prevState, 
+            isLoading: false,
+            navigationItems: workflowNavigationConfig[prevState.currentWorkflow] // Restore previous navigation items on error
+          }));
         },
       });
     },

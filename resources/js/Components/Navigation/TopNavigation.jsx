@@ -11,6 +11,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   const { currentWorkflow, navigationItems, mainNavigationItems, changeWorkflow } = useDashboard();
 
   const subNavigation = useMemo(() => {
+    // Special case for improvement workflow
     if (currentWorkflow === 'improvement') {
       return (navigationItems?.analytics || []).map(item => ({
         name: item.name,
@@ -21,29 +22,41 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
       }));
     }
 
-    return [
-      {
+    // For all other workflows, create navigation sections based on available items
+    const sections = [];
+
+    // Only add sections that have items
+    if (navigationItems?.analytics?.length > 0) {
+      sections.push({
         name: 'Analytics',
         href: '#',
         icon: 'heroicons:chart-bar',
-        dropdownItems: navigationItems?.analytics || [],
+        dropdownItems: navigationItems.analytics,
         key: `analytics-${currentWorkflow}`,
-      },
-      {
+      });
+    }
+
+    if (navigationItems?.operations?.length > 0) {
+      sections.push({
         name: 'Operations',
         href: '#',
         icon: 'heroicons:cog-6-tooth',
-        dropdownItems: navigationItems?.operations || [],
+        dropdownItems: navigationItems.operations,
         key: `operations-${currentWorkflow}`,
-      },
-      {
+      });
+    }
+
+    if (navigationItems?.predictions?.length > 0) {
+      sections.push({
         name: 'Predictions',
         href: '#',
         icon: 'heroicons:chart-pie',
-        dropdownItems: navigationItems?.predictions || [],
+        dropdownItems: navigationItems.predictions,
         key: `predictions-${currentWorkflow}`,
-      },
-    ];
+      });
+    }
+
+    return sections;
   }, [currentWorkflow, navigationItems]);
 
   return (

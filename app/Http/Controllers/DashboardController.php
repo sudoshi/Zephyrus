@@ -10,7 +10,9 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $request->session()->put('workflow', 'perioperative');
-        return Inertia::render('Dashboard/Perioperative');
+        return Inertia::render('Dashboard/Perioperative', [
+            'workflow' => 'perioperative'
+        ]);
     }
 
     public function changeWorkflow(Request $request)
@@ -34,6 +36,7 @@ class DashboardController extends Controller
     {
         $request->session()->put('workflow', 'improvement');
         return Inertia::render('Dashboard/Improvement', [
+            'workflow' => 'improvement',
             'stats' => [
                 'total' => 0,
                 'activePDSA' => 0,
