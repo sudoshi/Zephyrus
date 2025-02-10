@@ -36,12 +36,14 @@ export default {
                         dark: '#63B3ED',    // Lighter blue for dark mode
                     },
                     background: {
-                        DEFAULT: '#F7FAFC', // Warmer tone for reduced eye strain
+                        DEFAULT: '#EDF2F7', // Softer blue-gray background
                         dark: '#1A202C',    // Deep blue-gray for dark mode
+                        soft: '#F4F7FA',    // Extra soft for cards and panels
                     },
                     surface: {
-                        DEFAULT: '#FFFFFF', // Pure white for contrast
+                        DEFAULT: '#F8FAFC', // Soft blue-grey for main surfaces
                         dark: '#2D3748',    // Softer dark background
+                        secondary: '#F1F5F9', // Lighter blue-grey for secondary surfaces
                     },
                     text: {
                         primary: {
@@ -54,8 +56,16 @@ export default {
                         },
                     },
                     border: {
-                        DEFAULT: '#E5E7EB', // gray-200
-                        dark: '#4B5563',     // gray-600 (improved contrast)
+                        DEFAULT: '#E2E8F0', // Softer border color
+                        dark: '#4B5563',    // gray-600 (improved contrast)
+                    },
+                    hover: {
+                        DEFAULT: '#EDF2F7', // Soft hover state
+                        dark: '#374151',    // Dark mode hover
+                    },
+                    panel: {
+                        DEFAULT: '#F1F5F9', // Panel backgrounds
+                        dark: '#374151',    // Dark mode panels
                     },
                 },
             },

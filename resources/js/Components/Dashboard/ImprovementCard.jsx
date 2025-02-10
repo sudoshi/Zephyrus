@@ -6,11 +6,11 @@ const ImprovementCard = ({ title, description, icon: Icon, href, count, countLab
   return (
     <Link
       href={href}
-      className="block bg-healthcare-surface dark:bg-healthcare-surface-dark shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-all duration-300"
+      className="block bg-healthcare-surface dark:bg-healthcare-surface-dark shadow-sm rounded-lg overflow-hidden hover:bg-healthcare-surface-secondary hover:shadow-md transition-all duration-300 border border-healthcare-border dark:border-healthcare-border-dark"
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/10 rounded-lg transition-colors duration-300">
+          <div className="p-2 bg-healthcare-background-soft dark:bg-healthcare-primary-dark/10 rounded-lg transition-colors duration-300">
             <Icon className="h-6 w-6 text-healthcare-primary dark:text-healthcare-primary-dark transition-colors duration-300" />
           </div>
           {count !== undefined && (

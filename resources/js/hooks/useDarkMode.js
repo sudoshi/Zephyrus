@@ -3,10 +3,28 @@ import { useState, useEffect } from 'react';
 const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 
 export function useDarkMode() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
+  // Initialize from localStorage or system preference
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('darkMode');
+    if (savedTheme !== null) {
+      return savedTheme === 'true';
+    }
+    return window.matchMedia(COLOR_SCHEME_QUERY).matches;
+  });
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY);
+    const handleChange = (e) => {
+      const savedTheme = localStorage.getItem('darkMode');
+      // Only update if user hasn't set a preference
+      if (savedTheme === null) {
+        setIsDarkMode(e.matches);
+      }
+    };
+
+    // Listen for system theme changes
+    mediaQuery.addEventListener('change', handleChange);
+
     // Update document class and localStorage
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -14,9 +32,16 @@ export function useDarkMode() {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('darkMode', isDarkMode);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [isDarkMode]);
 
-  return [isDarkMode, setIsDarkMode];
+  // Wrapper function to update theme
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
+  return [isDarkMode, toggleDarkMode];
 }
 
 // Healthcare-specific color constants

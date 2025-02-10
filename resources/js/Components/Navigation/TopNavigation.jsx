@@ -62,7 +62,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   return (
     <div className="flex flex-col">
       {/* Main Navigation Bar */}
-      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-colors duration-300">
+      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
         <div className="max-w-full mx-auto px-4 relative">
           <div className="flex justify-between h-16">
             {/* Logo and Brand */}
@@ -71,8 +71,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                 <div className="relative">
                   <img
                     src="/images/IconOnly_Transparent.png"
-                    alt={`${currentWorkflow.toUpperCase()} Analytics Platform Logo`}
-                    className="h-[60px] w-auto"
+                    alt={`${currentWorkflow.toUpperCase()} Analytics Platform Logo`}className="h-[60px] w-auto"
                   />
                 </div>
                 <div>
@@ -94,10 +93,10 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                       e.preventDefault();
                       changeWorkflow(item.workflow);
                     }}
-                    className={`flex items-center healthcare-button ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
                       currentWorkflow === item.workflow
-                        ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
-                        : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
+                        ? 'bg-gradient-to-b from-healthcare-primary to-healthcare-primary/90 dark:from-healthcare-primary-dark dark:to-healthcare-primary-dark/90 text-white dark:text-white shadow-md dark:shadow-lg border-healthcare-primary/20 dark:border-healthcare-primary-dark/20 ring-1 ring-healthcare-primary/10 dark:ring-healthcare-primary-dark/10'
+                        : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark hover:border-healthcare-border/80 dark:hover:border-healthcare-border-dark/80'
                     }`}
                   >
                     <Icon icon={item.icon} className="w-5 h-5" />
@@ -111,7 +110,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
             <div className="flex items-center space-x-4">
               <DarkModeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
               <Menu as="div" className="relative">
-                <Menu.Button className="flex items-center space-x-2 p-2 rounded-md hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-all duration-300">
+                <Menu.Button className="flex items-center space-x-2 p-2 rounded-md border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark transition-all duration-300">
                   <UserAvatar />
                   <Icon
                     icon="heroicons:chevron-down"
@@ -133,11 +132,11 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                         <Link
                           href="/profile"
                           className={`
-                            flex items-center px-4 py-2.5 text-sm transition-colors duration-300
+                            flex items-center px-4 py-2.5 text-sm transition-all duration-300
                             ${
                               active
-                                ? 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
+                                ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
                             }
                           `}
                         >
@@ -159,11 +158,11 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                             }
                           })}
                           className={`
-                            flex items-center px-4 py-2.5 text-sm transition-colors duration-300 w-full text-left
+                            flex items-center px-4 py-2.5 text-sm transition-all duration-300 w-full text-left
                             ${
                               active
-                                ? 'bg-healthcare-background dark:bg-healthcare-background-dark'
-                                : ''
+                                ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark'
+                                : 'hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
                             }
                             text-healthcare-critical dark:text-healthcare-critical-dark
                           `}
@@ -182,7 +181,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
       </nav>
 
       {/* Sub Navigation Bar */}
-      <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-colors duration-300">
+      <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-all duration-300">
         <div className="max-w-full mx-auto px-4">
           <div className="flex justify-center h-12">
             <div className="flex items-center space-x-8">
@@ -191,7 +190,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                   <Link
                     key={item.key}
                     href={item.href}
-                    className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-300"
+                    className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark rounded-md transition-all duration-300 border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark"
                   >
                     <Icon icon={item.icon} className="w-5 h-5 mr-2" />
                     {item.name}
@@ -199,7 +198,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                 ) : (
                   <Menu as="div" className="relative" key={item.key}>
                     <div className="flex items-center">
-                      <Menu.Button className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-300">
+                      <Menu.Button className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark rounded-md transition-all duration-300 border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark">
                         <Icon icon={item.icon} className="w-5 h-5 mr-2" />
                         {item.name}
                         <Icon icon="heroicons:chevron-down" className="w-4 h-4 ml-2" />
@@ -221,11 +220,11 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                               <Link
                                 href={dropdownItem.href}
                                 className={`
-                                  block px-4 py-2 text-sm transition-colors duration-300
+                                  block px-4 py-2 text-sm transition-all duration-300
                                   ${
                                     active
-                                      ? 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                      : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
+                                      ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                      : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
                                   }
                                 `}
                               >

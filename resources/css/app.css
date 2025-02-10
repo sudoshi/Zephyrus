@@ -49,6 +49,9 @@
     @apply rounded-lg shadow-sm p-6;
     @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
     @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+    @apply border border-healthcare-border dark:border-healthcare-border-dark;
+    @apply hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-hover-dark;
+    @apply transition-all duration-200;
 }
 
   .healthcare-button {
@@ -60,30 +63,39 @@
 
   .healthcare-button-primary {
     @apply healthcare-button;
-    @apply bg-indigo-600 hover:bg-indigo-700;
+    @apply bg-indigo-500 hover:bg-indigo-600;
     @apply dark:bg-indigo-500 dark:hover:bg-indigo-600;
     @apply text-white;
     @apply focus:ring-indigo-500;
+    @apply shadow-sm;
   }
 
   .healthcare-button-secondary {
     @apply healthcare-button;
-    @apply bg-white hover:bg-gray-50;
+    @apply bg-healthcare-surface hover:bg-healthcare-hover;
     @apply dark:bg-gray-700 dark:hover:bg-gray-600;
-    @apply text-gray-700 dark:text-gray-300;
-    @apply border border-gray-300 dark:border-gray-600;
+    @apply text-healthcare-text-primary dark:text-gray-300;
+    @apply border border-healthcare-border dark:border-gray-600;
     @apply focus:ring-gray-500;
   }
 
   .healthcare-input {
     @apply block w-full px-3 py-2;
-    @apply bg-white dark:bg-gray-700;
-    @apply border border-gray-300 dark:border-gray-600;
+    @apply bg-healthcare-surface dark:bg-gray-700;
+    @apply border border-healthcare-border dark:border-gray-600;
     @apply rounded-md shadow-sm;
-    @apply text-gray-900 dark:text-gray-100;
-    @apply placeholder-gray-500 dark:placeholder-gray-400;
+    @apply text-healthcare-text-primary dark:text-gray-100;
+    @apply placeholder-healthcare-text-secondary dark:placeholder-gray-400;
     @apply focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
     @apply min-h-[44px];
+    @apply hover:bg-healthcare-surface-secondary dark:hover:bg-gray-600;
+    @apply transition-colors duration-200;
+  }
+
+  .healthcare-panel {
+    @apply bg-healthcare-panel dark:bg-healthcare-panel-dark;
+    @apply border border-healthcare-border dark:border-healthcare-border-dark;
+    @apply rounded-lg p-4;
   }
 }
 
@@ -101,11 +113,14 @@
 /* Modal styles */
 @layer components {
   .modal-backdrop {
-    @apply fixed inset-0 bg-black/30 backdrop-blur-sm;
+    @apply fixed inset-0 bg-black/20 backdrop-blur-sm;
   }
 
   .modal-content {
-    @apply relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl;
+    @apply relative w-full max-w-5xl max-h-[90vh] overflow-y-auto;
+    @apply bg-healthcare-surface dark:bg-gray-800;
+    @apply border border-healthcare-border dark:border-healthcare-border-dark;
+    @apply rounded-lg shadow-lg;
     @apply p-6 m-4;
   }
 }
@@ -116,7 +131,9 @@
 }
 
 .dropdown-content {
-    @apply absolute z-50 mt-2 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-white ring-opacity-5;
+    @apply absolute z-50 mt-2 rounded-md;
+    @apply bg-healthcare-surface dark:bg-gray-800;
+    @apply shadow-lg border border-healthcare-border dark:border-healthcare-border-dark;
 }
 
 .dropdown-icon {
