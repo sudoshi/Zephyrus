@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Analytics;
+use App\Http\Controllers\DesignController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Operations;
@@ -101,6 +102,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/acuity', [EDDashboardController::class, 'acuity'])->name('acuity');
             Route::get('/resources', [EDDashboardController::class, 'resourcePlanning'])->name('resources');
         });
+    });
+
+    // Design Routes
+    Route::prefix('design')->name('design.')->group(function () {
+        Route::get('/components', [DesignController::class, 'components'])->name('components');
+        Route::get('/cards', [DesignController::class, 'cards'])->name('cards');
     });
 
     // Profile Routes

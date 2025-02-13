@@ -36,14 +36,15 @@ export default {
                         dark: '#63B3ED',    // Lighter blue for dark mode
                     },
                     background: {
-                        DEFAULT: '#EDF2F7', // Softer blue-gray background
+                        DEFAULT: '#E2E8F0', // Deeper blue-gray background
                         dark: '#1A202C',    // Deep blue-gray for dark mode
-                        soft: '#F4F7FA',    // Extra soft for cards and panels
+                        soft: '#EDF2F7',    // Softer tone for subtle backgrounds
                     },
                     surface: {
-                        DEFAULT: '#F8FAFC', // Soft blue-grey for main surfaces
+                        DEFAULT: '#F1F5F9', // Softer main surface
                         dark: '#2D3748',    // Softer dark background
-                        secondary: '#F1F5F9', // Lighter blue-grey for secondary surfaces
+                        secondary: '#E2E8F0', // Deeper tone for secondary surfaces
+                        tertiary: '#F8FAFC', // Lightest surface for specific cases
                     },
                     text: {
                         primary: {
@@ -56,15 +57,17 @@ export default {
                         },
                     },
                     border: {
-                        DEFAULT: '#E2E8F0', // Softer border color
+                        DEFAULT: '#CBD5E1', // Slightly deeper border color
                         dark: '#4B5563',    // gray-600 (improved contrast)
                     },
                     hover: {
-                        DEFAULT: '#EDF2F7', // Soft hover state
+                        DEFAULT: '#CBD5E1', // More visible but gentle hover
+                        light: '#E2E8F0',   // Subtle hover effect
                         dark: '#374151',    // Dark mode hover
                     },
                     panel: {
-                        DEFAULT: '#F1F5F9', // Panel backgrounds
+                        DEFAULT: '#E2E8F0', // Matching background for consistency
+                        secondary: '#EDF2F7', // For nested panels
                         dark: '#374151',    // Dark mode panels
                     },
                 },
