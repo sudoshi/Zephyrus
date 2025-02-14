@@ -1,5 +1,6 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid, LabelList } from 'recharts';
+import CustomTooltip from './CustomTooltip';
 import { Activity, AlertCircle } from 'lucide-react';
 
 const ChronicCarePanel = ({ data }) => {
@@ -244,27 +245,82 @@ const ChronicCarePanel = ({ data }) => {
         <h3 className="text-lg font-semibold mb-4">Readmission Risk Trends</h3>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis 
-                dataKey="days" 
-                label={{ value: 'Days Post-Discharge', position: 'bottom' }}
-              />
-              <YAxis 
-                label={{ value: 'Risk Score (%)', angle: -90, position: 'left' }}
-              />
-              <Tooltip />
-              <Legend />
-              {Object.keys(conditionData).map((condition, index) => (
-                <Line
-                  key={condition}
-                  type="monotone"
-                  dataKey={condition}
-                  stroke={`hsl(${index * 60}, 70%, 50%)`}
-                  strokeWidth={2}
-                  dot={false}
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis 
+                  dataKey="days" 
+                  label={{ value: 'Days Post-Discharge', position: 'bottom' }}
+                  stroke="currentColor"
+                  tickLine={false}
                 />
-              ))}
-            </LineChart>
+                <YAxis 
+                  label={{ value: 'Risk Score (%)', angle: -90, position: 'left' }}
+                  stroke="currentColor"
+                  tickLine={false}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="top"
+                  align="center"
+                  wrapperStyle={{
+                    paddingBottom: '20px'
+                  }}
+                  formatter={(value) => {
+                    const condition = conditionData[value];
+                    const currentRisk = condition.timeBasedRisk.find(r => r.days === selectedTimeframe)?.risk;
+                    return (
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">{condition.name}</span>
+                        <span className={`text-sm ${
+                          currentRisk >= 25 ? 'text-healthcare-critical' :
+                          currentRisk >= 20 ? 'text-healthcare-warning' :
+                          'text-healthcare-success'
+                        }`}>
+                          ({currentRisk}%)
+                        </span>
+                      </span>
+                    );
+                  }}
+                />
+                {Object.entries(conditionData)
+                  .sort((a, b) => {
+                    const aRisk = a[1].timeBasedRisk.find(r => r.days === selectedTimeframe)?.risk || 0;
+                    const bRisk = b[1].timeBasedRisk.find(r => r.days === selectedTimeframe)?.risk || 0;
+                    return bRisk - aRisk;
+                  })
+                  .map(([key, condition], index) => {
+                    const baseColor = `hsl(${index * 60}, 70%, 50%)`;
+                    return (
+                      <Line
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        name={key}
+                        stroke={baseColor}
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: baseColor }}
+                        activeDot={{ r: 6, fill: baseColor }}
+                      >
+                        <LabelList
+                          dataKey={key}
+                          position="top"
+                          content={({ value, x, y }) => {
+                            if (value >= 25) {
+                              return (
+                                <g>
+                                  <circle cx={x} cy={y-10} r={4} fill="var(--healthcare-critical)" />
+                                </g>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </Line>
+                    );
+                  })
+                }
+              </LineChart>
           </ResponsiveContainer>
         </div>
       </div>

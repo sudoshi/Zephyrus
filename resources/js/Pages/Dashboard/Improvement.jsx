@@ -11,14 +11,15 @@ import { Button } from '@/Components/ui/button';
 import ImprovementCard from '@/Components/Dashboard/ImprovementCard';
 import AnalyticsPanel from '@/Components/Design/panels/AnalyticsPanel';
 import TrendCard from '@/Components/Design/stats/TrendCard';
-import BarChartCard from '@/Components/Design/charts/BarChartCard';
 import ChronicCarePanel from '@/Components/Process/ChronicCarePanel';
 import ProcessIntelligenceCard from '@/Components/Process/ProcessIntelligenceCard';
 import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
+import DischargeProcessFailures from '@/Components/Process/DischargeProcessFailures';
 
 const Improvement = ({ auth, stats = {}, cycles = [] }) => {
   // Modal state for process intelligence
   const [selectedProcess, setSelectedProcess] = React.useState(null);
+  
   // Healthcare-focused performance metrics with enhanced data
   const performanceMetrics = [
     {
@@ -48,84 +49,6 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
       ariaLabel: 'Clinical outcomes score is 94 out of 100, up 5 points',
       icon: Heart,
     },
-  ];
-
-  // Enhanced patient flow stages data with time-based patterns
-  const careJourneyData = [
-    { 
-      weekday: 'Mon', 
-      hospital: { am: 8, pm: 12 }, 
-      transition: { am: 3, pm: 4 }, 
-      homeSetup: { am: 2, pm: 3 }, 
-      active: { am: 6, pm: 8 }, 
-      monitoring: { am: 4, pm: 5 } 
-    },
-    { 
-      weekday: 'Tue', 
-      hospital: { am: 7, pm: 10 }, 
-      transition: { am: 4, pm: 5 }, 
-      homeSetup: { am: 3, pm: 4 }, 
-      active: { am: 7, pm: 9 }, 
-      monitoring: { am: 5, pm: 6 } 
-    },
-    { 
-      weekday: 'Wed', 
-      hospital: { am: 9, pm: 11 }, 
-      transition: { am: 2, pm: 3 }, 
-      homeSetup: { am: 4, pm: 5 }, 
-      active: { am: 6, pm: 7 }, 
-      monitoring: { am: 3, pm: 4 } 
-    },
-    { 
-      weekday: 'Thu', 
-      hospital: { am: 6, pm: 9 }, 
-      transition: { am: 5, pm: 6 }, 
-      homeSetup: { am: 2, pm: 3 }, 
-      active: { am: 8, pm: 10 }, 
-      monitoring: { am: 6, pm: 7 } 
-    },
-    { 
-      weekday: 'Fri', 
-      hospital: { am: 10, pm: 13 }, 
-      transition: { am: 3, pm: 4 }, 
-      homeSetup: { am: 3, pm: 4 }, 
-      active: { am: 7, pm: 8 }, 
-      monitoring: { am: 4, pm: 5 } 
-    },
-    { 
-      weekday: 'Sat', 
-      hospital: { am: 5, pm: 8 }, 
-      transition: { am: 2, pm: 3 }, 
-      homeSetup: { am: 1, pm: 2 }, 
-      active: { am: 5, pm: 6 }, 
-      monitoring: { am: 3, pm: 4 } 
-    },
-    { 
-      weekday: 'Sun', 
-      hospital: { am: 4, pm: 7 }, 
-      transition: { am: 1, pm: 2 }, 
-      homeSetup: { am: 2, pm: 3 }, 
-      active: { am: 4, pm: 5 }, 
-      monitoring: { am: 2, pm: 3 } 
-    },
-  ];
-
-  // Transform data for chart display
-  const transformedJourneyData = careJourneyData.map(day => ({
-    weekday: day.weekday,
-    hospital: day.hospital.am + day.hospital.pm,
-    transition: day.transition.am + day.transition.pm,
-    homeSetup: day.homeSetup.am + day.homeSetup.pm,
-    active: day.active.am + day.active.pm,
-    monitoring: day.monitoring.am + day.monitoring.pm,
-  }));
-
-  const careJourneyCategories = [
-    'Hospital',
-    'Transition',
-    'Home Setup',
-    'Active Care',
-    'Monitoring'
   ];
 
   // Enhanced resource utilization metrics
@@ -183,21 +106,6 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
       },
     },
   ];
-
-  // Care coordination metrics with enhanced data
-  const coordinationMetrics = {
-    title: 'Care Coordination Status',
-    value: '94%',
-    unit: 'On Track',
-    changePercentage: '4%',
-    changeType: 'positive',
-    chartData: [
-      { name: 'On Schedule', value: 75, color: 'var(--healthcare-success)' },
-      { name: 'Delayed', value: 15, color: 'var(--healthcare-warning)' },
-      { name: 'At Risk', value: 10, color: 'var(--healthcare-critical)' },
-    ],
-    categories: ['On Schedule', 'Delayed', 'At Risk'],
-  };
 
   return (
     <DashboardLayout>
@@ -371,104 +279,98 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
               />
             </AnalyticsPanel>
 
-            {/* Patient Care Journey Analysis */}
+            {/* Discharge Process Failures */}
             <AnalyticsPanel
-              title="Patient Care Journey Analysis"
-              subtitle="Distribution of patients across care stages"
+              title="Discharge Process Failures"
+              subtitle="Analysis of discharge-related process failures and improvement opportunities"
             >
-              <BarChartCard
-                title="Daily Care Stage Distribution"
-                categories={careJourneyCategories}
-                chartData={transformedJourneyData}
-                colorScheme="healthcare"
-                aria-label="Bar chart showing daily distribution of patients across care stages"
-              />
+              <DischargeProcessFailures />
             </AnalyticsPanel>
-
-
           </div>
 
           {/* Right Column */}
           <div className="space-y-8">
             {/* Resource Utilization */}
-          <AnalyticsPanel
-            title="Resource Utilization"
-            subtitle="Current resource allocation and capacity"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {resourceMetrics.map((metric, index) => (
-                <div 
-                  key={index}
-                  className="healthcare-panel"
-                  role="region"
-                  aria-label={`${metric.title} metrics`}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <metric.icon className="h-5 w-5 text-healthcare-primary dark:text-healthcare-primary-dark" />
-                    <h3 className="font-medium">{metric.title}</h3>
+            <AnalyticsPanel
+              title="Resource Utilization"
+              subtitle="Current resource allocation and capacity"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {resourceMetrics.map((metric, index) => (
+                  <div 
+                    key={index}
+                    className="healthcare-panel"
+                    role="region"
+                    aria-label={`${metric.title} metrics`}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <metric.icon className="h-5 w-5 text-healthcare-primary dark:text-healthcare-primary-dark" />
+                      <h3 className="font-medium">{metric.title}</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>{metric.current} / {metric.total}</span>
+                        <span>{metric.unit}</span>
+                      </div>
+                      <div className="h-2 bg-healthcare-surface-secondary dark:bg-healthcare-surface-dark rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${
+                            metric.status === 'critical' 
+                              ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
+                              : metric.status === 'warning'
+                              ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark'
+                              : metric.status === 'success'
+                              ? 'bg-healthcare-success dark:bg-healthcare-success-dark'
+                              : 'bg-healthcare-primary dark:bg-healthcare-primary-dark'
+                          }`}
+                          style={{ width: `${(metric.current / metric.total) * 100}%` }}
+                          role="progressbar"
+                          aria-valuenow={metric.current}
+                          aria-valuemin={0}
+                          aria-valuemax={metric.total}
+                        />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {Object.entries(metric.breakdown).map(([key, value], i) => (
+                          <div key={i} className="flex justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            <span className="capitalize">{key.replace('_', ' ')}</span>
+                            <span>{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>{metric.current} / {metric.total}</span>
-                      <span>{metric.unit}</span>
-                    </div>
-                    <div className="h-2 bg-healthcare-surface-secondary dark:bg-healthcare-surface-dark rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${
-                          metric.status === 'critical' 
-                            ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
-                            : metric.status === 'warning'
-                            ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark'
-                            : metric.status === 'success'
-                            ? 'bg-healthcare-success dark:bg-healthcare-success-dark'
-                            : 'bg-healthcare-primary dark:bg-healthcare-primary-dark'
-                        }`}
-                        style={{ width: `${(metric.current / metric.total) * 100}%` }}
-                        role="progressbar"
-                        aria-valuenow={metric.current}
-                        aria-valuemin={0}
-                        aria-valuemax={metric.total}
-                      />
-                    </div>
-                    <div className="mt-4 space-y-2">
-                      {Object.entries(metric.breakdown).map(([key, value], i) => (
-                        <div key={i} className="flex justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                          <span className="capitalize">{key.replace('_', ' ')}</span>
-                          <span>{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </AnalyticsPanel>
+                ))}
+              </div>
+            </AnalyticsPanel>
+
             {/* Care Transition Performance */}
-          <AnalyticsPanel
-            title="Care Transition Performance"
-            subtitle="Key performance indicators for patient care transitions"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {performanceMetrics.map((metric, index) => (
-                <TrendCard
-                  key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  change={metric.change}
-                  changeType={metric.changeType}
-                  trendType={metric.trendType}
-                  aria-label={metric.ariaLabel}
-                />
-              ))}
-            </div>
-          </AnalyticsPanel>
+            <AnalyticsPanel
+              title="Care Transition Performance"
+              subtitle="Key performance indicators for patient care transitions"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {performanceMetrics.map((metric, index) => (
+                  <TrendCard
+                    key={index}
+                    title={metric.title}
+                    value={metric.value}
+                    change={metric.change}
+                    changeType={metric.changeType}
+                    trendType={metric.trendType}
+                    aria-label={metric.ariaLabel}
+                  />
+                ))}
+              </div>
+            </AnalyticsPanel>
+
             {/* Care Coordination Overview */}
-          <AnalyticsPanel
-            title="Care Coordination Overview"
-            subtitle="Current status of care coordination efforts"
-          >
-            <ChronicCarePanel />
-          </AnalyticsPanel>
+            <AnalyticsPanel
+              title="Care Coordination Overview"
+              subtitle="Current status of care coordination efforts"
+            >
+              <ChronicCarePanel />
+            </AnalyticsPanel>
           </div>
         </div>
       </PageContentLayout>
