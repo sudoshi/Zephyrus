@@ -3,8 +3,7 @@ import { useState, useLayoutEffect } from 'react';
 export function useDarkMode() {
   // Initialize state from localStorage, defaulting to true (dark mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('darkMode');
-    return savedTheme === null || savedTheme === 'true';
+    return true; // Force dark mode to be true by default
   });
 
   // Use useLayoutEffect to update DOM synchronously before browser paint

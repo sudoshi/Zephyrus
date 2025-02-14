@@ -1,3 +1,7 @@
-// Always force dark mode during initial page load
-document.documentElement.classList.add('dark');
-localStorage.setItem('darkMode', 'true');
+// Apply dark mode class immediately based on localStorage
+const savedTheme = localStorage.getItem('darkMode');
+if (savedTheme === 'false') {
+    document.documentElement.classList.remove('dark');
+} else {
+    document.documentElement.classList.add('dark');
+}
