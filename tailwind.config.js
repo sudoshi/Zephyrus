@@ -19,57 +19,80 @@ export default {
             },
             colors: {
                 healthcare: {
-                    critical: {
-                        DEFAULT: '#E53E3E', // Softer red for better readability
-                        dark: '#FC8181',    // Lighter red for dark mode
+                    primary: {
+                        DEFAULT: '#2563EB', // Deep blue for Hospital
+                        dark: '#3B82F6',
+                        hover: {
+                            DEFAULT: '#1D4ED8',
+                            dark: '#2563EB'
+                        }
                     },
-                    warning: {
-                        DEFAULT: '#D69E2E', // Muted amber for less visual stress
-                        dark: '#F6AD55',    // Lighter amber for dark mode
+                    purple: {
+                        DEFAULT: '#7C3AED', // Purple for Transition
+                        dark: '#8B5CF6',
+                    },
+                    orange: {
+                        DEFAULT: '#F97316', // Orange for Home Setup
+                        dark: '#FB923C',
                     },
                     success: {
-                        DEFAULT: '#38A169', // Muted green for professionalism
-                        dark: '#68D391',    // Lighter green for dark mode
+                        DEFAULT: '#059669', // Green for Active Care
+                        dark: '#10B981',
+                    },
+                    teal: {
+                        DEFAULT: '#0D9488', // Teal for Monitoring
+                        dark: '#14B8A6',
+                    },
+                    critical: {
+                        DEFAULT: '#DC2626',
+                        dark: '#EF4444',
+                    },
+                    warning: {
+                        DEFAULT: '#D97706',
+                        dark: '#F59E0B',
                     },
                     info: {
-                        DEFAULT: '#4299E1', // Calming blue for trust
-                        dark: '#63B3ED',    // Lighter blue for dark mode
+                        DEFAULT: '#0284C7',
+                        dark: '#0EA5E9',
                     },
                     background: {
-                        DEFAULT: '#E2E8F0', // Deeper blue-gray background
-                        dark: '#1A202C',    // Deep blue-gray for dark mode
-                        soft: '#EDF2F7',    // Softer tone for subtle backgrounds
+                        DEFAULT: '#F8FAFC', // Lighter background for better contrast
+                        dark: '#0F172A',    // Darker background for dark mode
+                        soft: '#F1F5F9',    // Softer tone for subtle backgrounds
                     },
                     surface: {
-                        DEFAULT: '#F1F5F9', // Softer main surface
-                        dark: '#2D3748',    // Softer dark background
-                        secondary: '#E2E8F0', // Deeper tone for secondary surfaces
+                        DEFAULT: '#FFFFFF', // Pure white for main surfaces
+                        dark: '#1E293B',    // Rich dark blue for dark mode
+                        secondary: '#F1F5F9', // Subtle gray for secondary surfaces
                         tertiary: '#F8FAFC', // Lightest surface for specific cases
                     },
                     text: {
                         primary: {
-                            DEFAULT: '#2D3748', // Softer than pure black
-                            dark: '#F7FAFC',    // Warmer white for dark mode
+                            DEFAULT: '#1E293B', // Rich dark blue for primary text
+                            dark: '#F8FAFC',    // Very light blue for dark mode
                         },
                         secondary: {
-                            DEFAULT: '#4A5568', // Medium gray for hierarchy
-                            dark: '#E2E8F0',    // Lighter gray for dark mode
+                            DEFAULT: '#475569', // Slate for secondary text
+                            dark: '#CBD5E1',    // Light gray for dark mode
                         },
                     },
                     border: {
-                        DEFAULT: '#CBD5E1', // Slightly deeper border color
-                        dark: '#4B5563',    // gray-600 (improved contrast)
+                        DEFAULT: '#E2E8F0', // Light gray for borders
+                        dark: '#334155',    // Darker for better contrast in dark mode
                     },
                     hover: {
-                        DEFAULT: '#CBD5E1', // More visible but gentle hover
-                        light: '#E2E8F0',   // Subtle hover effect
-                        dark: '#374151',    // Dark mode hover
+                        DEFAULT: '#F1F5F9', // Light hover effect
+                        dark: '#334155',    // Dark mode hover
                     },
                     panel: {
-                        DEFAULT: '#E2E8F0', // Matching background for consistency
-                        secondary: '#EDF2F7', // For nested panels
-                        dark: '#374151',    // Dark mode panels
+                        DEFAULT: '#FFFFFF', // White panels
+                        secondary: '#F8FAFC', // Subtle background for nested panels
+                        dark: '#1E293B',    // Dark mode panels
                     },
+                    accent: {
+                        DEFAULT: '#3B82F6', // Accent color for highlights
+                        dark: '#60A5FA',    // Lighter accent for dark mode
+                    }
                 },
             },
             fontSize: {

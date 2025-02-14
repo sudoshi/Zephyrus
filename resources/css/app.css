@@ -2,30 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .healthcare-card {
-    @apply bg-white dark:bg-healthcare-surface-dark rounded-lg shadow-md;
-  }
+:root {
+  /* Core healthcare colors */
+  --healthcare-primary: #2563EB;      /* Deep blue for Hospital */
+  --healthcare-primary-dark: #3B82F6;
+  
+  --healthcare-purple: #7C3AED;       /* Purple for Transition */
+  --healthcare-purple-dark: #8B5CF6;
+  
+  --healthcare-orange: #F97316;       /* Orange for Home Setup */
+  --healthcare-orange-dark: #FB923C;
+  
+  --healthcare-success: #059669;      /* Green for Active Care */
+  --healthcare-success-dark: #10B981;
+  
+  --healthcare-teal: #0D9488;         /* Teal for Monitoring */
+  --healthcare-teal-dark: #14B8A6;
 
-  .healthcare-panel {
-    @apply bg-white dark:bg-healthcare-surface-dark rounded-lg shadow-md;
-  }
-
-  .healthcare-button-primary {
-    @apply bg-healthcare-info hover:bg-healthcare-info/90 text-white dark:bg-healthcare-info-dark;
-  }
-
-  .healthcare-button-secondary {
-    @apply bg-healthcare-surface hover:bg-healthcare-hover text-healthcare-text-primary 
-           dark:bg-healthcare-surface-dark dark:hover:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark;
-  }
-
-  .healthcare-input {
-    @apply rounded-md border-healthcare-border dark:border-healthcare-border-dark
-           bg-white dark:bg-healthcare-surface-dark
-           text-healthcare-text-primary dark:text-healthcare-text-primary-dark
-           focus:ring-healthcare-info focus:border-healthcare-info;
-  }
+  /* Supporting colors */
+  --healthcare-warning: #D97706;
+  --healthcare-warning-dark: #F59E0B;
+  --healthcare-critical: #DC2626;
+  --healthcare-critical-dark: #EF4444;
+  --healthcare-info: #0284C7;
+  --healthcare-info-dark: #0EA5E9;
+  --healthcare-accent: #2563EB;
+  --healthcare-accent-dark: #3B82F6;
 }
 
 /* Base styles */
@@ -33,16 +35,41 @@
   html {
     @apply antialiased;
     font-size: 16px;
+    @apply bg-healthcare-background dark:bg-healthcare-background-dark;
+    @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+  }
+
+  body {
+    @apply min-h-screen;
   }
 
   /* Improved focus styles for accessibility */
   :focus-visible {
-    @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
+    @apply outline-none ring-2 ring-healthcare-primary ring-offset-2;
+  }
+
+  /* Smooth transitions for dark mode */
+  *, *::before, *::after {
+    @apply transition-colors duration-300;
   }
 
   /* Dark mode styles */
   .dark {
     color-scheme: dark;
+    --tw-text-opacity: 0.95;
+  }
+
+  /* Headings */
+  h1 {
+    @apply text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+  }
+
+  h2 {
+    @apply text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+  }
+
+  h3 {
+    @apply text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
   }
 
   /* Larger touch targets for healthcare environments */
@@ -53,9 +80,17 @@
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* High contrast text for better readability */
-  .dark {
-    --tw-text-opacity: 0.95;
+  /* Links */
+  a {
+    @apply text-healthcare-primary hover:text-healthcare-primary-hover dark:text-healthcare-primary-dark;
+  }
+
+  /* Form elements */
+  input, select, textarea {
+    @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
+    @apply border-healthcare-border dark:border-healthcare-border-dark;
+    @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+    @apply rounded-md shadow-sm;
   }
 
   /* Reduced motion for accessibility */
@@ -69,66 +104,27 @@
   }
 }
 
-/* Custom components */
+/* Component styles */
 @layer components {
-.healthcare-card {
-    @apply rounded-lg shadow-sm p-6;
+  .healthcare-card {
     @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
-    @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+    @apply rounded-lg shadow-sm;
+    @apply p-6;
     @apply border border-healthcare-border dark:border-healthcare-border-dark;
-    @apply hover:bg-healthcare-hover-light dark:hover:bg-healthcare-hover-dark;
-    @apply transition-all duration-200;
-}
-
-  .healthcare-button {
-    @apply px-4 py-2 rounded-md font-medium;
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
-    @apply transition-colors duration-200;
-    @apply min-h-[44px];
-  }
-
-  .healthcare-button-primary {
-    @apply healthcare-button;
-    @apply bg-indigo-500 hover:bg-indigo-600;
-    @apply dark:bg-indigo-500 dark:hover:bg-indigo-600;
-    @apply text-white;
-    @apply focus:ring-indigo-500;
-    @apply shadow-sm;
-  }
-
-  .healthcare-button-secondary {
-    @apply healthcare-button;
-    @apply bg-healthcare-surface hover:bg-healthcare-hover;
-    @apply dark:bg-gray-700 dark:hover:bg-gray-600;
-    @apply text-healthcare-text-primary dark:text-gray-300;
-    @apply border border-healthcare-border dark:border-gray-600;
-    @apply focus:ring-gray-500;
-  }
-
-  .healthcare-input {
-    @apply block w-full px-3 py-2;
-    @apply bg-healthcare-surface-tertiary dark:bg-gray-700;
-    @apply border border-healthcare-border dark:border-gray-600;
-    @apply rounded-md shadow-sm;
-    @apply text-healthcare-text-primary dark:text-gray-100;
-    @apply placeholder-healthcare-text-secondary dark:placeholder-gray-400;
-    @apply focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
-    @apply min-h-[44px];
-    @apply hover:bg-healthcare-hover-light dark:hover:bg-gray-600;
-    @apply transition-colors duration-200;
   }
 
   .healthcare-panel {
     @apply bg-healthcare-panel dark:bg-healthcare-panel-dark;
-    @apply border border-healthcare-border dark:border-healthcare-border-dark;
-    @apply rounded-lg p-4;
-    @apply shadow-sm;
+    @apply rounded-lg shadow-sm;
+    @apply p-4;
   }
 
-  .healthcare-panel-secondary {
-    @apply bg-healthcare-panel-secondary dark:bg-healthcare-panel-dark;
-    @apply border border-healthcare-border dark:border-healthcare-border-dark;
-    @apply rounded-lg p-4;
+  .healthcare-button {
+    @apply bg-healthcare-primary hover:bg-healthcare-primary-hover dark:bg-healthcare-primary-dark;
+    @apply text-white font-medium;
+    @apply rounded-md px-4 py-2;
+    @apply transition-all duration-200;
+    @apply flex items-center justify-center gap-2;
   }
 }
 
@@ -141,57 +137,12 @@
   .text-shadow-none {
     text-shadow: none;
   }
-}
 
-/* Modal styles */
-@layer components {
-  .modal-backdrop {
-    @apply fixed inset-0 bg-black/20 backdrop-blur-sm;
+  .healthcare-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
   }
 
-  .modal-content {
-    @apply relative w-full max-w-5xl max-h-[90vh] overflow-y-auto;
-    @apply bg-healthcare-surface-tertiary dark:bg-gray-800;
-    @apply border border-healthcare-border dark:border-healthcare-border-dark;
-    @apply rounded-lg shadow-lg;
-    @apply p-6 m-4;
+  .healthcare-transition {
+    @apply transition-all duration-300;
   }
-}
-
-/* Custom dropdown styles */
-.dropdown-overlay {
-    @apply fixed inset-0 z-40 bg-black/5 dark:bg-black/50;
-}
-
-.dropdown-content {
-    @apply absolute z-50 mt-2 rounded-md;
-    @apply bg-healthcare-surface-tertiary dark:bg-gray-800;
-    @apply shadow-lg border border-healthcare-border dark:border-healthcare-border-dark;
-}
-
-.dropdown-icon {
-    @apply transition-transform duration-200 ease-in-out;
-}
-
-.dropdown-icon-open {
-    @apply rotate-180;
-}
-
-/* Custom avatar styles */
-.user-avatar {
-    @apply inline-flex items-center justify-center;
-    @apply w-8 h-8 rounded-full;
-    @apply bg-gray-200;
-    @apply transition-all duration-200;
-}
-
-/* Menu button styles */
-.menu-button {
-    @apply flex items-center space-x-2;
-    @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
-    @apply transition-all duration-200;
-}
-
-.menu-button:hover .user-avatar {
-    @apply ring-2 ring-indigo-200;
 }
