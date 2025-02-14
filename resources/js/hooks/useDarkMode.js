@@ -1,9 +1,10 @@
 import { useState, useLayoutEffect } from 'react';
 
 export function useDarkMode() {
-  // Initialize state from the current document's class list
+  // Initialize state from localStorage, defaulting to true (dark mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark');
+    const savedTheme = localStorage.getItem('darkMode');
+    return savedTheme === null || savedTheme === 'true';
   });
 
   // Use useLayoutEffect to update DOM synchronously before browser paint
@@ -13,10 +14,10 @@ export function useDarkMode() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('darkMode', isDarkMode);
+    localStorage.setItem('darkMode', isDarkMode.toString());
   }, [isDarkMode]);
 
-  // Return theme state and toggle function
+  // Return theme state and setter function
   return [isDarkMode, setIsDarkMode];
 }
 
