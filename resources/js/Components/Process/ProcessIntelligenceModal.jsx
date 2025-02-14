@@ -99,6 +99,20 @@ const ProcessIntelligenceModal = ({
         "Post-discharge support calls exceeding targets",
         "Patient engagement metrics trending positively"
       ]
+    },
+    chronic: {
+      title: "Chronic Care Intelligence",
+      metrics: [
+        { label: "High Risk Conditions", value: "3", trend: "+1", status: "warning" },
+        { label: "Avg Medication Adherence", value: "89%", trend: "+2%", status: "good" },
+        { label: "Follow-up Compliance", value: "92%", trend: "+3%", status: "good" },
+        { label: "Critical Alerts", value: "2", status: "warning" }
+      ],
+      insights: [
+        "COPD and CKD showing elevated risk patterns",
+        "Medication adherence improving across conditions",
+        "Early intervention opportunities identified"
+      ]
     }
   };
 

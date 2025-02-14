@@ -3,7 +3,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head, Link } from '@inertiajs/react';
 import { 
-  Plus, LayoutDashboard, Target, Library, RefreshCcw,
+  LayoutDashboard, Target, Library, RefreshCcw,
   Users, Laptop, Activity, Phone, Clock, Heart, ThumbsUp, Stethoscope,
   UserCog, BedDouble, Truck, Home, ClipboardCheck
 } from 'lucide-react';
@@ -12,7 +12,7 @@ import ImprovementCard from '@/Components/Dashboard/ImprovementCard';
 import AnalyticsPanel from '@/Components/Design/panels/AnalyticsPanel';
 import TrendCard from '@/Components/Design/stats/TrendCard';
 import BarChartCard from '@/Components/Design/charts/BarChartCard';
-import CircleChartCard from '@/Components/Design/circles/CircleChartCard';
+import ChronicCarePanel from '@/Components/Process/ChronicCarePanel';
 import ProcessIntelligenceCard from '@/Components/Process/ProcessIntelligenceCard';
 import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
 
@@ -206,24 +206,12 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
         title="Improvement"
         subtitle="Track and manage improvement initiatives across the organization"
       >
-        <div className="flex justify-end mb-6">
-          <Link href="/improvement/active/new">
-            <Button 
-              className="healthcare-button"
-              aria-label="Create new PDSA cycle"
-            >
-              <Plus className="h-4 w-4" />
-              New PDSA Cycle
-            </Button>
-          </Link>
-        </div>
-
         <div className="healthcare-grid">
           <ImprovementCard
             title="Overview"
             description="Overview of improvement initiatives"
             icon={LayoutDashboard}
-            href="/improvement/overview"
+            href="/dashboard/improvement"
             count={stats.total}
             countLabel="Total Initiatives"
           />
@@ -355,6 +343,24 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                   healthScore={91}
                   onClick={() => setSelectedProcess('discharge')}
                 />
+
+                {/* Chronic Care Intelligence */}
+                <ProcessIntelligenceCard
+                  title="Chronic Care Intelligence"
+                  icon={Activity}
+                  primaryMetric={{
+                    value: "89%",
+                    trend: "+2%",
+                    label: "Overall Care Score"
+                  }}
+                  secondaryMetrics={[
+                    { label: "High Risk Conditions", value: "3", trend: "+1" },
+                    { label: "Medication Adherence", value: "89%", trend: "+2%" },
+                    { label: "Critical Alerts", value: "2", trend: "0" }
+                  ]}
+                  healthScore={87}
+                  onClick={() => setSelectedProcess('chronic')}
+                />
               </div>
 
               {/* Process Intelligence Modal */}
@@ -380,39 +386,6 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
             </AnalyticsPanel>
 
 
-            {/* Recent PDSA Activity */}
-            <div className="healthcare-card">
-              <div className="p-6">
-                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
-                  Recent PDSA Activity
-                </h2>
-                <div className="space-y-4">
-                  {cycles.slice(0, 3).map((cycle, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b border-healthcare-border dark:border-healthcare-border-dark pb-4 last:border-0"
-                    >
-                      <div>
-                        <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                          {cycle.title}
-                        </h3>
-                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                          {cycle.plan.objective}
-                        </p>
-                      </div>
-                      <Link 
-                        href={`/improvement/active/${cycle.id}`}
-                        aria-label={`View details for PDSA cycle: ${cycle.title}`}
-                      >
-                        <Button variant="outline" size="sm" className="healthcare-button">
-                          View Details
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column */}
@@ -494,16 +467,7 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
             title="Care Coordination Overview"
             subtitle="Current status of care coordination efforts"
           >
-            <CircleChartCard
-              title={coordinationMetrics.title}
-              value={coordinationMetrics.value}
-              unit={coordinationMetrics.unit}
-              changePercentage={coordinationMetrics.changePercentage}
-              changeType={coordinationMetrics.changeType}
-              chartData={coordinationMetrics.chartData}
-              categories={coordinationMetrics.categories}
-              colorScheme="healthcare"
-            />
+            <ChronicCarePanel />
           </AnalyticsPanel>
           </div>
         </div>

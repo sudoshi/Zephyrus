@@ -176,7 +176,7 @@ const workflowNavigationConfig = {
     analytics: [
       {
         name: 'Overview',
-        href: '/improvement/overview',
+        href: '/dashboard/improvement',
         description: 'Overview of improvement initiatives',
         icon: 'lucide:layout-dashboard'
       },

@@ -49,15 +49,7 @@ class DashboardController extends Controller
 
     public function overview(Request $request)
     {
-        return Inertia::render('Improvement/Overview', [
-            'stats' => [
-                'total' => 0,
-                'activePDSA' => 0,
-                'completedPDSA' => 0,
-                'inProgress' => 0,
-                'atRisk' => 0,
-            ]
-        ]);
+        return redirect()->route('dashboard.improvement');
     }
 
     public function opportunities(Request $request)
