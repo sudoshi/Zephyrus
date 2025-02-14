@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import { Listbox } from '@headlessui/react';
 import React from 'react';
@@ -10,35 +10,24 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 
 export default function Login({ status, canResetPassword }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
-    const [data, setData] = React.useState({
+    const { data, setData, post, processing, errors, reset } = useForm({
         workflow: 'rtdc',
         username: '',
         password: '',
-        remember: false
+        remember: false,
     });
-    const [processing, setProcessing] = React.useState(false);
-    const [errors, setErrors] = React.useState({});
 
     const workflowOptions = [
         { value: 'rtdc', label: 'RTDC' },
         { value: 'or', label: 'OR' },
-        { value: 'ed', label: 'ED' }
+        { value: 'ed', label: 'ED' },
     ];
 
-    const submit = async (e) => {
+    const submit = (e) => {
         e.preventDefault();
-        setProcessing(true);
-
-        try {
-            await router.post('/login', data);
-            setData(prev => ({ ...prev, password: '' }));
-        } catch (error) {
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
-            }
-        } finally {
-            setProcessing(false);
-        }
+        post('/login', {
+            onFinish: () => reset('password'),
+        });
     };
 
     return (
@@ -50,6 +39,11 @@ export default function Login({ status, canResetPassword }) {
                     {status}
                 </div>
             )}
+            {errors.general && (
+                <div className="mb-4 text-sm font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
+                    {errors.general}
+                </div>
+            )}
 
             <Card>
                 <Card.Content>
@@ -59,7 +53,7 @@ export default function Login({ status, canResetPassword }) {
                             <label htmlFor="workflow" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                 Workflow
                             </label>
-                            <Listbox value={data.workflow} onChange={(value) => setData(prev => ({ ...prev, workflow: value }))}>
+                            <Listbox value={data.workflow} onChange={(value) => setData('workflow', value)}>
                                 <div className="relative mt-1">
                                     <Listbox.Button className="relative w-full rounded-md border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark px-4 py-2 text-left">
                                         <span className="block truncate">
@@ -103,7 +97,7 @@ export default function Login({ status, canResetPassword }) {
                                 value={data.username}
                                 className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark focus:border-healthcare-info dark:focus:border-healthcare-info-dark focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark transition-colors duration-300"
                                 autoComplete="username"
-                                onChange={(e) => setData(prev => ({ ...prev, username: e.target.value }))}
+                                onChange={(e) => setData('username', e.target.value)}
                             />
                             {errors.username && (
                                 <p className="mt-1 text-sm text-healthcare-critical dark:text-healthcare-critical-dark transition-colors duration-300">
@@ -123,7 +117,7 @@ export default function Login({ status, canResetPassword }) {
                                 value={data.password}
                                 className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark focus:border-healthcare-info dark:focus:border-healthcare-info-dark focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark transition-colors duration-300"
                                 autoComplete="current-password"
-                                onChange={(e) => setData(prev => ({ ...prev, password: e.target.value }))}
+                                onChange={(e) => setData('password', e.target.value)}
                             />
                             {errors.password && (
                                 <p className="mt-1 text-sm text-healthcare-critical dark:text-healthcare-critical-dark transition-colors duration-300">
@@ -139,7 +133,7 @@ export default function Login({ status, canResetPassword }) {
                                     className="sr-only peer"
                                     name="remember"
                                     checked={data.remember}
-                                    onChange={(e) => setData(prev => ({ ...prev, remember: e.target.checked }))}
+                                    onChange={(e) => setData('remember', e.target.checked)}
                                 />
                                 <div className="relative w-8 h-4 bg-healthcare-surface dark:bg-healthcare-surface-dark peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-healthcare-info dark:after:bg-healthcare-info-dark after:rounded-full after:h-3 after:w-3 after:transition-all border-healthcare-border dark:border-healthcare-border-dark peer-checked:bg-healthcare-surface dark:peer-checked:bg-healthcare-surface-dark"></div>
                                 <span className="ms-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
@@ -169,6 +163,13 @@ export default function Login({ status, canResetPassword }) {
                                 </button>
                             </div>
                         </div>
+
+                        {errors.general && (
+                            <div className="mt-4 text-sm text-healthcare-critical dark:text-healthcare-critical-dark">
+                                {errors.general}
+                            </div>
+                        )}
+
                     </form>
                 </Card.Content>
             </Card>

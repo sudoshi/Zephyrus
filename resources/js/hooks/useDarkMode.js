@@ -1,47 +1,23 @@
-import { useState, useEffect } from 'react';
-
-const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
+import { useState, useLayoutEffect } from 'react';
 
 export function useDarkMode() {
-  // Initialize from localStorage or system preference
+  // Initialize state from the current document's class list
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('darkMode');
-    if (savedTheme !== null) {
-      return savedTheme === 'true';
-    }
-    return window.matchMedia(COLOR_SCHEME_QUERY).matches;
+    return document.documentElement.classList.contains('dark');
   });
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY);
-    const handleChange = (e) => {
-      const savedTheme = localStorage.getItem('darkMode');
-      // Only update if user hasn't set a preference
-      if (savedTheme === null) {
-        setIsDarkMode(e.matches);
-      }
-    };
-
-    // Listen for system theme changes
-    mediaQuery.addEventListener('change', handleChange);
-
-    // Update document class and localStorage
+  // Use useLayoutEffect to update DOM synchronously before browser paint
+  useLayoutEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('darkMode', isDarkMode);
-
-    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [isDarkMode]);
 
-  // Wrapper function to update theme
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => !prev);
-  };
-
-  return [isDarkMode, toggleDarkMode];
+  // Return theme state and toggle function
+  return [isDarkMode, setIsDarkMode];
 }
 
 // Healthcare-specific color constants
@@ -60,16 +36,16 @@ export const HEALTHCARE_COLORS = {
     border: '#E5E7EB', // gray-200
   },
   dark: {
-    critical: '#EF4444', // red-500 (brighter for dark mode)
+    critical: '#EF4444', // red-500
     warning: '#F59E0B', // amber-500
     success: '#10B981', // emerald-500
     info: '#3B82F6', // blue-500
     background: '#111827', // gray-900
     surface: '#1F2937', // gray-800
-        text: {
-          primary: '#FFFFFF', // white for better contrast
-          secondary: '#E5E7EB', // gray-200 for improved readability
-        },
+    text: {
+      primary: '#FFFFFF', // white
+      secondary: '#E5E7EB', // gray-200
+    },
     border: '#374151', // gray-700
-  }
+  },
 };
