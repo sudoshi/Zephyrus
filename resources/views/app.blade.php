@@ -1,11 +1,24 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
+
+        <!-- Prevent flash of light mode -->
+        <script>
+            (function() {
+                document.documentElement.classList.add('dark', 'no-transitions');
+                window.addEventListener('load', function() {
+                    // Remove no-transitions after initial render
+                    requestAnimationFrame(function() {
+                        document.documentElement.classList.remove('no-transitions');
+                    });
+                });
+            })();
+        </script>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

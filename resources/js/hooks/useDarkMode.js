@@ -1,12 +1,21 @@
-import { useState, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect, useRef } from 'react';
 
 export function useDarkMode() {
-  // Initialize state from localStorage, defaulting to true (dark mode)
+  const initialized = useRef(false);
+
+  // Initialize state from localStorage, always defaulting to dark mode
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return true; // Force dark mode to be true by default
+    if (!initialized.current) {
+      // Force dark mode on first render
+      initialized.current = true;
+      return true;
+    }
+    const savedTheme = localStorage.getItem('darkMode');
+    // Only return false if explicitly set to false in localStorage
+    return savedTheme === 'false' ? false : true;
   });
 
-  // Use useLayoutEffect to update DOM synchronously before browser paint
+  // Synchronously update DOM and localStorage
   useLayoutEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -16,7 +25,6 @@ export function useDarkMode() {
     localStorage.setItem('darkMode', isDarkMode.toString());
   }, [isDarkMode]);
 
-  // Return theme state and setter function
   return [isDarkMode, setIsDarkMode];
 }
 

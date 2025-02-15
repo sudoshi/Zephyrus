@@ -1,13 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import { Listbox } from '@headlessui/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 import DataModeToggle from '@/Components/Common/DataModeToggle';
 import Card from '@/Components/Dashboard/Card';
 import { useDarkMode } from '@/hooks/useDarkMode';
-
 export default function Login({ status, canResetPassword }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -23,12 +22,19 @@ export default function Login({ status, canResetPassword }) {
         { value: 'ed', label: 'ED' },
     ];
 
-    const submit = (e) => {
-        e.preventDefault();
-        post('/login', {
-            onFinish: () => reset('password'),
-        });
-    };
+const submit = (e) => {
+    e.preventDefault();
+    post('/login', {
+        preserveState: false,
+        preserveScroll: false,
+        onFinish: () => reset('password'),
+        onError: (errors) => {
+            if (errors.general) {
+                setData('general', errors.general);
+            }
+        },
+    });
+};
 
     return (
         <GuestLayout>

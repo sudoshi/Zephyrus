@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark;
+  
   /* Core healthcare colors */
   --healthcare-primary: #2563EB;      /* Deep blue for Hospital */
   --healthcare-primary-dark: #3B82F6;
@@ -32,11 +34,21 @@
 
 /* Base styles */
 @layer base {
+  /* Prevent transitions during page load */
+  .no-transitions * {
+    transition: none !important;
+  }
+
   html {
     @apply antialiased;
     font-size: 16px;
-    @apply bg-healthcare-background dark:bg-healthcare-background-dark;
-    @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
+    @apply bg-healthcare-background-dark;
+    @apply text-healthcare-text-primary-dark;
+  }
+
+  /* Re-enable transitions after hydration */
+  html:not(.no-transitions) * {
+    @apply transition-colors duration-300;
   }
 
   body {

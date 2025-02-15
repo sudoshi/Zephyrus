@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
+
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { Icon } from '@iconify/react';
@@ -146,31 +147,31 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                       )}
                     </Menu.Item>
                     <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={() => router.post('/logout', {}, {
-                            preserveScroll: true,
-                            onSuccess: () => {
-                              // Logout successful, Inertia will handle the redirect
-                            },
-                            onError: () => {
-                              console.error('Logout failed');
-                            }
-                          })}
-                          className={`
-                            flex items-center px-4 py-2.5 text-sm transition-all duration-300 w-full text-left
-                            ${
-                              active
-                                ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark'
-                                : 'hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
-                            }
-                            text-healthcare-critical dark:text-healthcare-critical-dark
-                          `}
-                        >
-                          <Icon icon="heroicons:arrow-right-on-rectangle" className="w-4 h-4 mr-2" />
-                          Sign out
-                        </button>
-                      )}
+                      {({ active }) => {
+                        const form = useForm({});
+                        return (
+                          <button
+                            onClick={() => form.post('/logout', {
+                              preserveState: false,
+                              preserveScroll: false
+                            })}
+                            disabled={form.processing}
+                            className={`
+                              flex items-center px-4 py-2.5 text-sm transition-all duration-300 w-full text-left
+                              ${
+                                active
+                                  ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark'
+                                  : 'hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
+                              }
+                              text-healthcare-critical dark:text-healthcare-critical-dark
+                              ${form.processing ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                          >
+                            <Icon icon="heroicons:arrow-right-on-rectangle" className={`w-4 h-4 mr-2 ${form.processing ? 'animate-spin' : ''}`} />
+                            {form.processing ? 'Signing out...' : 'Sign out'}
+                          </button>
+                        );
+                      }}
                     </Menu.Item>
                   </Menu.Items>
                 </Transition>
