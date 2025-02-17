@@ -187,6 +187,12 @@ const workflowNavigationConfig = {
         icon: 'lucide:target'
       },
       {
+        name: 'Process',
+        href: '/improvement/process',
+        description: 'Process analysis and optimization',
+        icon: 'lucide:git-branch'
+      },
+      {
         name: 'Library',
         href: '/improvement/library',
         description: 'Access improvement resources and templates',

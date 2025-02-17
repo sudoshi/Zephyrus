@@ -30,6 +30,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('improvement')->name('improvement.')->group(function () {
         Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
         Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
+        Route::get('/process', [DashboardController::class, 'process'])->name('process');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
         Route::get('/active', [DashboardController::class, 'active'])->name('active');
         

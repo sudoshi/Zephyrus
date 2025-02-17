@@ -103,6 +103,11 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function process(Request $request)
+    {
+        return Inertia::render('Improvement/Process');
+    }
+
     public function pdsaIndex(Request $request)
     {
         return Inertia::render('Improvement/PDSA/Index', [
