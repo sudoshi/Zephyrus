@@ -6,11 +6,15 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Predictions;
+use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RTDCDashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+// Process Analysis API Routes
+Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -33,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/process', [DashboardController::class, 'process'])->name('process');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
         Route::get('/active', [DashboardController::class, 'active'])->name('active');
+        
         
         // PDSA Routes
         Route::prefix('pdsa')->name('pdsa.')->group(function () {

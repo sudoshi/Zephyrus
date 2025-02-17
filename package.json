@@ -26,11 +26,17 @@
     "dependencies": {
         "@heroui/react": "^2.6.14",
         "@iconify/icons-solar": "^1.2.3",
+        "@reactflow/background": "^11.3.14",
+        "@reactflow/controls": "^11.2.14",
+        "@reactflow/core": "^11.11.4",
+        "@reactflow/minimap": "^11.7.14",
+        "@reactflow/node-resizer": "^2.2.14",
         "chart.js": "^4.4.7",
         "clsx": "^2.1.1",
         "framer-motion": "^12.0.6",
         "lucide-react": "^0.475.0",
         "react-chartjs-2": "^5.3.0",
+        "reactflow": "^11.11.4",
         "tailwind-merge": "^3.0.1"
     }
 }
