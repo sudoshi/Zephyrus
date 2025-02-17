@@ -3,12 +3,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Filter, AlertCircle, Clock, FileX, Users, MessageSquare } from 'lucide-react';
 
 const DischargeProcessFailures = () => {
+  const [activeTab, setActiveTab] = React.useState('administrative');
   const [selectedFilters, setSelectedFilters] = React.useState({
     failureType: 'all',
     severity: 'all',
     unit: 'all',
     impact: 'all'
   });
+
+  const tabs = [
+    { id: 'administrative', label: 'Administrative' },
+    { id: 'clinical', label: 'Clinical' },
+    { id: 'logistical', label: 'Logistical' },
+    { id: 'communication', label: 'Communication' }
+  ];
 
   // Mock data for process failures
   const failureData = {
@@ -272,43 +280,58 @@ const DischargeProcessFailures = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Detailed Breakdown */}
-      <div className="space-y-6">
-        {Object.entries(failureData).map(([category, timeframes]) => (
-          <div key={category} className="space-y-4">
-            <h3 className="text-lg font-semibold capitalize">{category} Failures</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {Object.entries(timeframes).map(([timeframe, failures]) => (
-                <div 
-                  key={timeframe}
-                  className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg"
-                >
-                  <h4 className="text-sm font-medium mb-4">Past {timeframe}</h4>
-                  <div className="space-y-3">
-                    {failures.map((failure, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{failure.type}</span>
-                          <span className={`text-sm font-medium ${
-                            failure.severity === 'high' 
-                              ? 'text-healthcare-critical' 
-                              : 'text-healthcare-warning'
-                          }`}>
-                            {failure.count}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-healthcare-text-secondary">
-                          <span>Impact: {failure.impact}</span>
-                          <span className="capitalize">{failure.severity} severity</span>
-                        </div>
-                      </div>
-                    ))}
+      {/* Tab Navigation */}
+      <div className="border-b border-healthcare-border dark:border-healthcare-border-dark">
+        <nav className="flex space-x-4" aria-label="Failure Types">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-2 px-4 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === tab.id
+                  ? 'border-healthcare-primary text-healthcare-primary'
+                  : 'border-transparent text-healthcare-text-secondary hover:text-healthcare-primary hover:border-healthcare-primary'
+              }`}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {Object.entries(failureData[activeTab]).map(([timeframe, failures]) => (
+            <div 
+              key={timeframe}
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg"
+            >
+              <h4 className="text-sm font-medium mb-4">Past {timeframe}</h4>
+              <div className="space-y-3">
+                {failures.map((failure, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">{failure.type}</span>
+                      <span className={`text-sm font-medium ${
+                        failure.severity === 'high' 
+                          ? 'text-healthcare-critical' 
+                          : 'text-healthcare-warning'
+                      }`}>
+                        {failure.count}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-healthcare-text-secondary">
+                      <span>Impact: {failure.impact}</span>
+                      <span className="capitalize">{failure.severity} severity</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

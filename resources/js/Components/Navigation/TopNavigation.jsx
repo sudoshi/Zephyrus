@@ -6,6 +6,7 @@ import { Fragment } from 'react';
 import { Icon } from '@iconify/react';
 import UserAvatar from '@/Components/UserAvatar';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
+import { ensureValidToken } from '@/services/csrf';
 import { useDashboard } from '@/Contexts/DashboardContext';
 
 const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
@@ -151,10 +152,13 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                         const form = useForm({});
                         return (
                           <button
-                            onClick={() => form.post('/logout', {
-                              preserveState: false,
-                              preserveScroll: false
-                            })}
+onClick={async () => {
+  await ensureValidToken();
+  form.post('/logout', {
+    preserveState: false,
+    preserveScroll: false
+  });
+}}
                             disabled={form.processing}
                             className={`
                               flex items-center px-4 py-2.5 text-sm transition-all duration-300 w-full text-left

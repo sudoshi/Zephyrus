@@ -47,7 +47,7 @@ class AuthenticatedSessionController extends Controller
             default => 'dashboard'
         };
 
-        return redirect()->intended(route($dashboardRoute, absolute: false));
+        return Inertia::location($dashboardRoute);
     }
 
     /**
@@ -55,13 +55,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $response = redirect('/');
-
-        Auth::guard('web')->logout();
+            Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return $response;
+        return Inertia::location(url('/'));
     }
 }
