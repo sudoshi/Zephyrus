@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import ProcessFlowDiagram from '@/Components/Process/ProcessFlowDiagram';
 import ProcessMetricsModal from '@/Components/Process/ProcessMetricsModal';
 
-const Process = ({ auth }) => {
+const Process = ({ auth, savedLayout }) => {
   const [processData, setProcessData] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
+  const diagramRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +58,10 @@ const Process = ({ auth }) => {
     setIsMetricsModalOpen(true);
   };
 
+  const handleResetLayout = () => {
+    diagramRef.current?.resetLayout();
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -98,17 +103,27 @@ const Process = ({ auth }) => {
         subtitle="Analyze and optimize healthcare processes"
       >
         <div className="relative">
+          <div className="absolute top-4 right-4 z-10 flex gap-4">
+            <button
+              onClick={handleShowOverallMetrics}
+              className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
+            >
+              View Metrics
+            </button>
+            <button
+              onClick={handleResetLayout}
+              className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
+            >
+              Reset Layout
+            </button>
+          </div>
           <ProcessFlowDiagram 
+            ref={diagramRef}
             data={processData} 
+            savedLayout={savedLayout}
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
           />
-          <button
-            onClick={handleShowOverallMetrics}
-            className="absolute top-4 right-4 healthcare-button"
-          >
-            View Metrics
-          </button>
           <ProcessMetricsModal
             isOpen={isMetricsModalOpen}
             onClose={handleCloseModal}

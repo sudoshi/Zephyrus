@@ -34,7 +34,9 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('improvement')->name('improvement.')->group(function () {
         Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
         Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
-        Route::get('/process', [DashboardController::class, 'process'])->name('process');
+        Route::get('/process', [ProcessAnalysisController::class, 'index'])->name('process');
+        Route::post('/process/layout', [ProcessAnalysisController::class, 'saveLayout'])->name('process.saveLayout');
+        Route::get('/process/layout', [ProcessAnalysisController::class, 'getLayout'])->name('process.getLayout');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
         Route::get('/active', [DashboardController::class, 'active'])->name('active');
         
