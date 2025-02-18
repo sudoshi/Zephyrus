@@ -49,7 +49,7 @@ const ProcessSelector = ({
         </select>
       </div>
 
-      <div className="flex-1">
+      <div className="w-[220px]">
         <label className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           Process
         </label>
