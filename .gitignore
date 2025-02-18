@@ -21,3 +21,39 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Local Development
+*.log
+*.sqlite
+*.sqlite-journal
+.DS_Store
+Thumbs.db
+
+# Local Configuration
+config.local.php
+*.local.php
+*.local.json
+
+# Deployment specific
+/public/mix-manifest.json
+/public/css
+/public/js
+/public/media
+.env.*
+!.env.example
+
+# Temporary files
+*.swp
+*.swo
+*.tmp
+*~
+
+# Database
+*.sql
+*.dump
+/data-loaders/*.csv
+
+# Dependencies
+/bootstrap/cache/*
+!bootstrap/cache/.gitignore
+composer.phar
