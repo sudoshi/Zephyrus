@@ -4,6 +4,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import ProcessFlowDiagram from '@/Components/Process/ProcessFlowDiagram';
 import ProcessMetricsModal from '@/Components/Process/ProcessMetricsModal';
+import ProcessSelector, { hospitals, workflows, timeRanges } from '@/Components/Process/ProcessSelector';
 
 const Process = ({ auth, savedLayout }) => {
   const [processData, setProcessData] = useState(null);
@@ -12,12 +13,15 @@ const Process = ({ auth, savedLayout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState(hospitals[0]);
+  const [selectedWorkflow, setSelectedWorkflow] = useState(workflows[0]);
+  const [selectedTimeRange, setSelectedTimeRange] = useState(timeRanges[0]);
   const diagramRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/improvement/api/nursing-operations');
+        const response = await fetch(`/improvement/api/nursing-operations?hospital=${encodeURIComponent(selectedHospital)}&workflow=${encodeURIComponent(selectedWorkflow)}&timeRange=${encodeURIComponent(selectedTimeRange)}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -32,7 +36,7 @@ const Process = ({ auth, savedLayout }) => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedHospital, selectedWorkflow, selectedTimeRange]);
 
   const handleNodeClick = (node) => {
     setSelectedNode(node);
@@ -101,22 +105,20 @@ const Process = ({ auth, savedLayout }) => {
       <PageContentLayout
         title="Process Analysis"
         subtitle="Analyze and optimize healthcare processes"
+        headerContent={
+          <ProcessSelector
+            selectedHospital={selectedHospital}
+            selectedWorkflow={selectedWorkflow}
+            selectedTimeRange={selectedTimeRange}
+            onHospitalChange={setSelectedHospital}
+            onWorkflowChange={setSelectedWorkflow}
+            onTimeRangeChange={setSelectedTimeRange}
+            onShowMetrics={handleShowOverallMetrics}
+            onResetLayout={handleResetLayout}
+          />
+        }
       >
         <div className="relative">
-          <div className="absolute top-4 right-4 z-10 flex gap-4">
-            <button
-              onClick={handleShowOverallMetrics}
-              className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
-            >
-              View Metrics
-            </button>
-            <button
-              onClick={handleResetLayout}
-              className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
-            >
-              Reset Layout
-            </button>
-          </div>
           <ProcessFlowDiagram 
             ref={diagramRef}
             data={processData} 

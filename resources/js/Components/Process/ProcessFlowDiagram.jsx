@@ -159,12 +159,16 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
   const saveLayout = useCallback(
     debounce(async (nodes) => {
       try {
+        const urlParams = new URLSearchParams(window.location.search);
         await axios.post('/improvement/process/layout', {
           process_type: 'admission',
           layout_data: nodes.reduce((acc, node) => ({
             ...acc,
             [node.id]: node.position,
           }), {}),
+          hospital: urlParams.get('hospital') || 'Virtua Marlton Hospital',
+          workflow: urlParams.get('workflow') || 'Admissions',
+          time_range: urlParams.get('timeRange') || '24 Hours',
         });
       } catch (error) {
         console.error('Error saving layout:', error);
