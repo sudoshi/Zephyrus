@@ -1,4 +1,5 @@
 import React from 'react';
+import { Brain } from 'lucide-react';
 
 const hospitals = [
   'Virtua Marlton Hospital',
@@ -28,6 +29,7 @@ const ProcessSelector = ({
   onWorkflowChange, 
   onTimeRangeChange,
   onShowMetrics,
+  onShowIntelligence,
   onResetLayout
 }) => {
   return (
@@ -88,18 +90,25 @@ const ProcessSelector = ({
           Spacer
         </label>
         <div className="flex gap-4">
-        <button
-          onClick={onShowMetrics}
-          className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
-        >
-          View Metrics
-        </button>
-        <button
-          onClick={onResetLayout}
-          className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
-        >
-          Reset Layout
-        </button>
+          <button
+            onClick={onShowMetrics}
+            className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
+          >
+            View Metrics
+          </button>
+          <button
+            onClick={onShowIntelligence}
+            className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors flex items-center gap-2"
+          >
+            <Brain className="h-4 w-4" />
+            Process Intelligence
+          </button>
+          <button
+            onClick={onResetLayout}
+            className="px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark transition-colors"
+          >
+            Reset Layout
+          </button>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import ProcessFlowDiagram from '@/Components/Process/ProcessFlowDiagram';
 import ProcessMetricsModal from '@/Components/Process/ProcessMetricsModal';
+import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
 import ProcessSelector, { hospitals, workflows, timeRanges } from '@/Components/Process/ProcessSelector';
 
 const Process = ({ auth, savedLayout }) => {
@@ -13,6 +14,7 @@ const Process = ({ auth, savedLayout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
+  const [isIntelligenceModalOpen, setIsIntelligenceModalOpen] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState(hospitals[0]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(workflows[0]);
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRanges[0]);
@@ -60,6 +62,10 @@ const Process = ({ auth, savedLayout }) => {
     setSelectedNode(null);
     setSelectedEdge(null);
     setIsMetricsModalOpen(true);
+  };
+
+  const handleShowIntelligence = () => {
+    setIsIntelligenceModalOpen(true);
   };
 
   const handleResetLayout = () => {
@@ -114,6 +120,7 @@ const Process = ({ auth, savedLayout }) => {
             onWorkflowChange={setSelectedWorkflow}
             onTimeRangeChange={setSelectedTimeRange}
             onShowMetrics={handleShowOverallMetrics}
+            onShowIntelligence={handleShowIntelligence}
             onResetLayout={handleResetLayout}
           />
         }
@@ -132,6 +139,11 @@ const Process = ({ auth, savedLayout }) => {
             selectedNode={selectedNode}
             selectedEdge={selectedEdge}
             overallMetrics={processData?.metrics}
+          />
+          <ProcessIntelligenceModal
+            isOpen={isIntelligenceModalOpen}
+            onClose={() => setIsIntelligenceModalOpen(false)}
+            metrics={processData?.metrics}
           />
         </div>
       </PageContentLayout>

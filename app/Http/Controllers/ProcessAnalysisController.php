@@ -36,6 +36,163 @@ class ProcessAnalysisController extends Controller
 
         // For now, return the same data structure but we'll modify it based on the workflow
         $data = $this->getNursingOperationsData($workflow);
+        
+        // Add intelligence metrics
+        $data['metrics'] = [
+            'staffing' => [
+                'nurses' => [
+                    'assigned' => 18,
+                    'required' => 22
+                ],
+                'physicians' => [
+                    'assigned' => 8,
+                    'required' => 10
+                ]
+            ],
+            'space' => [
+                'rooms' => [
+                    'occupied' => 28,
+                    'capacity' => 32
+                ]
+            ],
+            'cascade' => [
+                'primaryProcess' => $workflow,
+                'affectedProcesses' => [
+                    [
+                        'name' => 'Bed Management',
+                        'severity' => 0.8,
+                        'timeImpact' => 45,
+                        'resourceImpact' => 0.7,
+                        'affectedVolume' => 85,
+                        'dependencies' => ['Nursing Assignment', 'Room Cleaning'],
+                        'type' => 'critical'
+                    ],
+                    [
+                        'name' => 'Staff Scheduling',
+                        'severity' => 0.6,
+                        'timeImpact' => 30,
+                        'resourceImpact' => 0.5,
+                        'affectedVolume' => 60,
+                        'dependencies' => ['Shift Planning'],
+                        'type' => 'operational'
+                    ],
+                    [
+                        'name' => 'Medication Administration',
+                        'severity' => 0.7,
+                        'timeImpact' => 25,
+                        'resourceImpact' => 0.6,
+                        'affectedVolume' => 70,
+                        'dependencies' => ['Pharmacy', 'Nursing'],
+                        'type' => 'clinical'
+                    ]
+                ]
+            ],
+            'waitTime' => [
+                'current' => [
+                    'registration' => 15,
+                    'triage' => 25,
+                    'bedAssignment' => 45,
+                    'physicianInitial' => 35,
+                    'nurseAssessment' => 25
+                ],
+                'benchmark' => [
+                    'registration' => 10,
+                    'triage' => 15,
+                    'bedAssignment' => 20,
+                    'physicianInitial' => 30,
+                    'nurseAssessment' => 20
+                ],
+                'peakMultipliers' => [
+                    'morning' => 1.3,    // 8-11am
+                    'afternoon' => 1.5,  // 2-5pm
+                    'evening' => 1.2,    // 6-9pm
+                    'night' => 1.0       // 10pm-7am
+                ]
+            ],
+            'acuity' => [
+                'patientVolume' => [
+                    'count' => 42,
+                    'totalDailyPatients' => 120,
+                    'acuityBreakdown' => [
+                        'high' => 15,
+                        'medium' => 20,
+                        'low' => 7
+                    ]
+                ],
+                'expectedAcuityMix' => [
+                    'high' => 0.25,    // 25% expected high acuity
+                    'medium' => 0.50,  // 50% expected medium acuity
+                    'low' => 0.25      // 25% expected low acuity
+                ]
+            ],
+            'predictions' => [
+                'resourceUtilization' => [
+                    'nextHour' => [
+                        'nurses' => 0.85,      // 85% utilization predicted
+                        'physicians' => 0.75,
+                        'rooms' => 0.90
+                    ],
+                    'nextShift' => [
+                        'nurses' => 0.80,
+                        'physicians' => 0.70,
+                        'rooms' => 0.85
+                    ],
+                    'nextDay' => [
+                        'nurses' => 0.75,
+                        'physicians' => 0.65,
+                        'rooms' => 0.80
+                    ]
+                ],
+                'patternAnalysis' => [
+                    'peakHours' => [
+                        ['start' => '09:00', 'end' => '11:00', 'severity' => 0.9],
+                        ['start' => '14:00', 'end' => '16:00', 'severity' => 0.85],
+                        ['start' => '19:00', 'end' => '21:00', 'severity' => 0.75]
+                    ],
+                    'quietHours' => [
+                        ['start' => '02:00', 'end' => '05:00', 'severity' => 0.3],
+                        ['start' => '23:00', 'end' => '01:00', 'severity' => 0.4]
+                    ],
+                    'weeklyPatterns' => [
+                        'monday' => 0.85,
+                        'tuesday' => 0.80,
+                        'wednesday' => 0.90,
+                        'thursday' => 0.85,
+                        'friday' => 0.95,
+                        'saturday' => 0.60,
+                        'sunday' => 0.50
+                    ]
+                ],
+                'correlations' => [
+                    'resourceImpact' => [
+                        ['factor' => 'staffing_level', 'impact' => 0.8],
+                        ['factor' => 'patient_acuity', 'impact' => 0.7],
+                        ['factor' => 'time_of_day', 'impact' => 0.6],
+                        ['factor' => 'day_of_week', 'impact' => 0.5]
+                    ],
+                    'bottleneckTriggers' => [
+                        ['trigger' => 'high_acuity_surge', 'probability' => 0.8],
+                        ['trigger' => 'staff_shortage', 'probability' => 0.7],
+                        ['trigger' => 'resource_conflict', 'probability' => 0.6],
+                        ['trigger' => 'process_delay', 'probability' => 0.5]
+                    ]
+                ],
+                'optimizationSuggestions' => [
+                    'staffing' => [
+                        ['action' => 'increase_nurses', 'impact' => 0.8, 'urgency' => 'high'],
+                        ['action' => 'adjust_physician_schedule', 'impact' => 0.6, 'urgency' => 'medium']
+                    ],
+                    'resources' => [
+                        ['action' => 'reallocate_rooms', 'impact' => 0.7, 'urgency' => 'high'],
+                        ['action' => 'optimize_equipment_usage', 'impact' => 0.5, 'urgency' => 'medium']
+                    ],
+                    'workflow' => [
+                        ['action' => 'streamline_admission_process', 'impact' => 0.9, 'urgency' => 'high'],
+                        ['action' => 'improve_discharge_coordination', 'impact' => 0.8, 'urgency' => 'medium']
+                    ]
+                ]
+            ]
+        ];
 
         // Simulate different counts based on hospital and time range
         $multiplier = match ($timeRange) {
@@ -142,7 +299,29 @@ class ProcessAnalysisController extends Controller
         }
 
         // Default Admissions workflow
-        return [
+        $data = [
+            'metrics' => [
+                'staffing' => [
+                    'nurses' => [
+                        'assigned' => 18,
+                        'required' => 22
+                    ],
+                    'physicians' => [
+                        'assigned' => 8,
+                        'required' => 10
+                    ]
+                ],
+                'space' => [
+                    'rooms' => [
+                        'occupied' => 28,
+                        'capacity' => 32
+                    ]
+                ],
+                'totalPatients' => 150,
+                'avgTotalTime' => '135m',
+                'activeCases' => 45,
+                'completedToday' => 105
+            ],
             'nodes' => [
                 ['id' => 'arrival', 'position' => ['x' => 0, 'y' => 0], 'data' => ['label' => 'Patient Arrival', 'metrics' => ['count' => 150, 'avgTime' => '5m']]],
                 ['id' => 'triage', 'position' => ['x' => 300, 'y' => 0], 'data' => ['label' => 'Triage', 'metrics' => ['count' => 150, 'avgTime' => '15m']]],
@@ -187,6 +366,8 @@ class ProcessAnalysisController extends Controller
                 ['id' => 'e18', 'source' => 'bed_assign', 'target' => 'transport'],
             ],
         ];
+
+        return $data;
     }
 
     /**

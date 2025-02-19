@@ -1,0 +1,74 @@
+.modal-overlay {
+  opacity: 0;
+  transition: opacity 200ms ease-in-out;
+}
+
+.modal-overlay.enter {
+  opacity: 1;
+}
+
+.modal-content {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transition: all 200ms ease-in-out;
+}
+
+.modal-content.enter {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Content animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 300ms ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 300ms ease-out forwards;
+}
+
+/* Ensure animations play smoothly */
+* {
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reduce motion if user prefers */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-slideIn {
+    animation: none;
+  }
+  
+  .modal-overlay,
+  .modal-content {
+    transition: none;
+  }
+}

@@ -47,7 +47,7 @@ class AuthenticatedSessionController extends Controller
             default => 'dashboard'
         };
 
-        return Inertia::location($dashboardRoute);
+        return redirect()->route($dashboardRoute);
     }
 
     /**
@@ -60,6 +60,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Inertia::location(url('/'));
+        return redirect('/');
     }
 }

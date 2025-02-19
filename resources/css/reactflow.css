@@ -1,0 +1,67 @@
+.react-flow__node {
+  @apply transition-all duration-200;
+}
+
+.react-flow__node:hover {
+  @apply scale-105;
+}
+
+.react-flow__node.selected {
+  @apply ring-2 ring-healthcare-primary dark:ring-healthcare-primary-dark;
+}
+
+.react-flow__handle {
+  @apply transition-all duration-200;
+}
+
+.react-flow__handle:hover {
+  @apply bg-healthcare-primary dark:bg-healthcare-primary-dark;
+}
+
+.react-flow__edge {
+  @apply transition-all duration-200;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  @apply stroke-[3];
+}
+
+.react-flow__edge-path {
+  @apply stroke-[2];
+}
+
+.react-flow__controls {
+  @apply !border-none !shadow-none;
+}
+
+.react-flow__controls-button {
+  @apply !border-none !bg-healthcare-surface hover:!bg-healthcare-surface-hover dark:!bg-healthcare-surface-dark dark:hover:!bg-healthcare-surface-hover-dark !text-healthcare-text-primary dark:!text-healthcare-text-primary-dark;
+}
+
+.react-flow__minimap {
+  @apply !border-none !shadow-none;
+}
+
+.react-flow__attribution {
+  @apply !bg-transparent !text-healthcare-text-secondary dark:!text-healthcare-text-secondary-dark;
+}
+
+.react-flow__background {
+  @apply !bg-healthcare-background dark:!bg-healthcare-background-dark;
+}
+
+.react-flow__node-process {
+  @apply !bg-transparent !border-none !shadow-none;
+}
+
+.react-flow__edge-path {
+  @apply !stroke-current;
+}
+
+.react-flow__edge-text {
+  @apply !fill-current;
+}
+
+.react-flow__edge-textbg {
+  @apply !fill-healthcare-background dark:!fill-healthcare-background-dark;
+}

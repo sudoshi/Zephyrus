@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import ReactFlow styles */
+@import 'reactflow/dist/style.css';
+@import './reactflow.css';
+
 :root {
   color-scheme: dark;
   

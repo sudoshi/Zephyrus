@@ -1,214 +1,84 @@
-import React from 'react';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel
-} from '@/Components/ui/alert-dialog';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Brain, X, Share2, Clock, Activity, AlertTriangle } from 'lucide-react';
+import ResourceStressAnalysis from './Intelligence/ResourceAnalysis/ResourceStressAnalysis';
+import CascadeAnalysis from './Intelligence/CascadeAnalysis/CascadeAnalysis';
+import WaitTimeAnalysis from './Intelligence/WaitTimeAnalysis/WaitTimeAnalysis';
+import AcuityAnalysis from './Intelligence/AcuityAnalysis/AcuityAnalysis';
+import BottleneckSummary from './Intelligence/Summary/BottleneckSummary';
 
-const ProcessIntelligenceModal = ({ 
-  open, 
-  onOpenChange, 
-  type,
-  data 
-}) => {
-  // Mock time-series data for trends
-  const trendData = [
-    { time: '08:00', value: 82 },
-    { time: '10:00', value: 85 },
-    { time: '12:00', value: 87 },
-    { time: '14:00', value: 84 },
-    { time: '16:00', value: 89 },
-    { time: '18:00', value: 91 },
-    { time: '20:00', value: 88 },
+const ProcessIntelligenceModal = ({ isOpen, onClose, metrics }) => {
+  const [activeTab, setActiveTab] = useState('summary');
+
+  if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'summary', label: 'Top Bottlenecks', icon: Brain },
+    { id: 'resource', label: 'Resource Stress', icon: Activity },
+    { id: 'cascade', label: 'Cascade Impact', icon: Share2 },
+    { id: 'wait', label: 'Wait Time', icon: Clock },
+    { id: 'acuity', label: 'Acuity Mix', icon: AlertTriangle }
   ];
 
-  const modalContent = {
-    staffing: {
-      title: "Staffing Intelligence Details",
-      metrics: [
-        { label: "Current Shift Coverage", value: "92%", trend: "+3%" },
-        { label: "Staff-to-Patient Ratio", value: "1:4", status: "optimal" },
-        { label: "Skill Mix Distribution", value: "Balanced", status: "good" },
-        { label: "Upcoming Shift Risk", value: "Low", status: "good" }
-      ],
-      insights: [
-        "Cross-training opportunities identified in ICU coverage",
-        "Overtime trending down by 8% this month",
-        "Staff satisfaction metrics improving"
-      ]
-    },
-    beds: {
-      title: "Bed Management Analytics",
-      metrics: [
-        { label: "Current Occupancy", value: "85%", trend: "+2%" },
-        { label: "Average Turnover Time", value: "45min", trend: "-5min" },
-        { label: "Discharge Accuracy", value: "94%", status: "good" },
-        { label: "Bottleneck Risk", value: "Low", status: "good" }
-      ],
-      insights: [
-        "Predicted discharge volumes above average for next 24h",
-        "ED admission rate stabilizing",
-        "Clean team performance exceeding targets"
-      ]
-    },
-    transport: {
-      title: "Transport System Analysis",
-      metrics: [
-        { label: "Active Requests", value: "12", status: "normal" },
-        { label: "Average Wait Time", value: "8min", trend: "-2min" },
-        { label: "Equipment Utilization", value: "88%", trend: "+4%" },
-        { label: "On-Time Rate", value: "95%", status: "excellent" }
-      ],
-      insights: [
-        "Route optimization reducing delays by 15%",
-        "Equipment tracking system showing improved efficiency",
-        "Peak demand periods well-staffed"
-      ]
-    },
-    home: {
-      title: "Hospital@Home Performance",
-      metrics: [
-        { label: "Active Patients", value: "45", trend: "+5" },
-        { label: "Monitoring Compliance", value: "97%", status: "excellent" },
-        { label: "Response Time", value: "5min", trend: "-2min" },
-        { label: "Patient Satisfaction", value: "4.8/5", status: "excellent" }
-      ],
-      insights: [
-        "Remote monitoring effectiveness at all-time high",
-        "Virtual visit completion rate above target",
-        "Medication adherence improving across cohort"
-      ]
-    },
-    discharge: {
-      title: "Care After Discharge Metrics",
-      metrics: [
-        { label: "Active Care Plans", value: "78", trend: "+12" },
-        { label: "Follow-up Completion", value: "92%", trend: "+4%" },
-        { label: "Readmission Risk", value: "Low", status: "good" },
-        { label: "Care Plan Progress", value: "88%", status: "good" }
-      ],
-      insights: [
-        "Medication reconciliation success rate improving",
-        "Post-discharge support calls exceeding targets",
-        "Patient engagement metrics trending positively"
-      ]
-    },
-    chronic: {
-      title: "Chronic Care Intelligence",
-      metrics: [
-        { label: "High Risk Conditions", value: "3", trend: "+1", status: "warning" },
-        { label: "Avg Medication Adherence", value: "89%", trend: "+2%", status: "good" },
-        { label: "Follow-up Compliance", value: "92%", trend: "+3%", status: "good" },
-        { label: "Critical Alerts", value: "2", status: "warning" }
-      ],
-      insights: [
-        "COPD and CKD showing elevated risk patterns",
-        "Medication adherence improving across conditions",
-        "Early intervention opportunities identified"
-      ]
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'resource':
+        return <ResourceStressAnalysis metrics={metrics} />;
+      case 'cascade':
+        return <CascadeAnalysis metrics={metrics} />;
+      case 'wait':
+        return <WaitTimeAnalysis metrics={metrics} />;
+      case 'acuity':
+        return <AcuityAnalysis metrics={metrics} />;
+      case 'summary':
+        return <BottleneckSummary metrics={metrics} />;
+      default:
+        return null;
     }
   };
 
-  const content = modalContent[type];
-  if (!content) return null;
-
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-3xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{content.title}</AlertDialogTitle>
-          <AlertDialogDescription>
-            <div className="space-y-6">
-              {/* Trend Chart */}
-              <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
-                    <XAxis 
-                      dataKey="time" 
-                      stroke="currentColor" 
-                      strokeOpacity={0.25}
-                      fontSize="12px"
-                    />
-                    <YAxis 
-                      stroke="currentColor"
-                      fontSize="12px"
-                    />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="var(--healthcare-primary)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-healthcare-background-dark rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
+          <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
+            <Brain className="h-6 w-6" />
+            Process Intelligence
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:text-healthcare-primary dark:hover:text-healthcare-primary-dark p-2 rounded-full hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark healthcare-transition"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
 
-              {/* Key Metrics */}
-              <div className="grid grid-cols-2 gap-4">
-                {content.metrics.map((metric, index) => (
-                  <div 
-                    key={index}
-                    className="p-4 bg-healthcare-surface-secondary dark:bg-healthcare-surface-dark rounded-lg"
-                  >
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                        {metric.label}
-                      </span>
-                      {metric.trend && (
-                        <div className={`flex items-center text-sm ${
-                          metric.trend.startsWith('+') || metric.trend.startsWith('-') && metric.trend.includes('min')
-                            ? 'text-healthcare-success'
-                            : 'text-healthcare-warning'
-                        }`}>
-                          {metric.trend.startsWith('+') ? (
-                            <TrendingUp className="h-4 w-4 mr-1" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 mr-1" />
-                          )}
-                          {metric.trend}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                      {metric.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* Tabs */}
+        <div className="border-b border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
+          <div className="px-6 flex space-x-2">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                className={`min-h-[44px] px-4 font-medium flex items-center gap-2 border-b-2 healthcare-transition ${
+                  activeTab === tab.id
+                    ? 'text-healthcare-primary dark:text-healthcare-primary-dark border-healthcare-primary dark:border-healthcare-primary-dark'
+                    : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-transparent hover:text-healthcare-primary dark:hover:text-healthcare-primary-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark'
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {/* Insights */}
-              <div className="space-y-2">
-                <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                  Key Insights
-                </h4>
-                {content.insights.map((insight, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-start gap-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
-                  >
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-healthcare-primary dark:text-healthcare-primary-dark" />
-                    <span>{insight}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Close</AlertDialogCancel>
-          <AlertDialogAction>Export Report</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 bg-healthcare-surface dark:bg-healthcare-surface-dark">
+          {renderTabContent()}
+        </div>
+      </div>
+    </div>
   );
 };
 
