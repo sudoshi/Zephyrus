@@ -45,9 +45,17 @@ log "Installing Node dependencies..."
 npm install
 
 # Build assets with proper permissions
+log "Setting up build directory..."
+# Create build directory if it doesn't exist
+mkdir -p /var/www/Zephyrus/public/build
+# Set permissions before building
+sudo_cmd chown -R $(whoami):$(whoami) /var/www/Zephyrus/public/build
+
 log "Building assets..."
-sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/public/build
 npm run build
+
+# Reset permissions after build
+sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/public/build
 
 # Clear caches
 log "Clearing caches..."
