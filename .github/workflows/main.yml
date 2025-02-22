@@ -125,12 +125,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /var/www/Zephyrus
+          git stash --include-untracked
           git pull origin main
-          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-          npm ci
-          npm run build
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          sudo chown -R www-data:www-data storage bootstrap/cache public/build
-          sudo systemctl restart apache2
+          chmod +x deploy-production.sh
+          SUDO_ASKPASS=/bin/echo ./deploy-production.sh
