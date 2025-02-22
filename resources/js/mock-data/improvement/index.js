@@ -10,6 +10,27 @@ export const opportunities = [
   }
 ];
 
+export const activePDSACycles = [
+  {
+    id: 1,
+    title: 'Reduce ED Wait Times',
+    status: 'active',
+    phase: 'do',
+    startDate: '2025-01-15',
+    endDate: '2025-03-15',
+    progress: 45
+  },
+  {
+    id: 2,
+    title: 'Improve Patient Handoffs',
+    status: 'active',
+    phase: 'study',
+    startDate: '2025-02-01',
+    endDate: '2025-04-01',
+    progress: 30
+  }
+];
+
 export const improvementStats = {
   totalOpportunities: 10,
   activeOpportunities: 5,
