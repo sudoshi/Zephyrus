@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Progress } from '@/Components/ui/progress';
+import Progress from '@/Components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/Components/ui/tabs';
 import { ArrowLeft, Pencil } from 'lucide-react';
 
