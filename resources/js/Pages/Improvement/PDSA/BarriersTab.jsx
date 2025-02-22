@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { barriers as mockBarriers } from '@/mock-data/pdsa';
 import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import { Textarea } from '@/Components/ui/textarea';
-import { Label } from '@/Components/ui/label';
+import Input from '@/Components/ui/input';
+import Textarea from '@/Components/ui/textarea';
+import Label from '@/Components/ui/label';
 import {
   Table,
   TableBody,

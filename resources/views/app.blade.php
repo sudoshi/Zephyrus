@@ -25,8 +25,16 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @viteReactRefresh
-        @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
+        @production
+            @php
+                $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
+            @endphp
+            <link rel="stylesheet" href="/build/{{ $manifest['resources/js/app.jsx']['css'][0] }}">
+            <script type="module" src="/build/{{ $manifest['resources/js/app.jsx']['file'] }}"></script>
+        @else
+            @viteReactRefresh
+            @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
+        @endproduction
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
