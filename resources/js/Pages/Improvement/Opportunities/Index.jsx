@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Plus, Search, ArrowRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { improvementOpportunities } from '@/mock-data/improvement/index.js';
+import { opportunities as improvementOpportunities } from '@/mock-data/improvement/index.js';
 
 const getTrendIcon = (trend) => {
   switch (trend.toLowerCase()) {
