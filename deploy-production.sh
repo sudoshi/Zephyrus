@@ -1,4 +1,5 @@
 #!/bin/bash
+# Deployment script for Zephyrus production environment
 
 # Check if SUDO_PASSWORD is set
 if [ -z "$SUDO_PASSWORD" ]; then
