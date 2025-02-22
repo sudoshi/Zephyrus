@@ -3,13 +3,16 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Traits\SafeMigration;
 
 return new class extends Migration
 {
+    use SafeMigration;
     public function up()
     {
         // ORCase
-        Schema::create('prod.or_cases', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.or_cases')) {
+            Schema::create('prod.or_cases', function (Blueprint $table) {
             $table->id('case_id');
             $table->string('patient_id');
             $table->date('surgery_date');
@@ -31,9 +34,11 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+        }
 
         // ORLog
-        Schema::create('prod.or_logs', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.or_logs')) {
+            Schema::create('prod.or_logs', function (Blueprint $table) {
             $table->id('log_id');
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id');
             $table->date('tracking_date');
@@ -57,9 +62,11 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+        }
 
         // CaseMetrics
-        Schema::create('prod.case_metrics', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.case_metrics')) {
+            Schema::create('prod.case_metrics', function (Blueprint $table) {
             $table->foreignId('case_id')->primary()->constrained('prod.or_cases', 'case_id');
             $table->integer('turnover_time')->nullable();
             $table->decimal('utilization_percentage', 5, 2)->nullable();
@@ -74,9 +81,11 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+        }
 
         // BlockUtilization
-        Schema::create('prod.block_utilization', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.block_utilization')) {
+            Schema::create('prod.block_utilization', function (Blueprint $table) {
             $table->id();
             $table->foreignId('block_id')->constrained('prod.block_templates', 'block_id');
             $table->date('date');
@@ -94,9 +103,11 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+        }
 
         // RoomUtilization
-        Schema::create('prod.room_utilization', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.room_utilization')) {
+            Schema::create('prod.room_utilization', function (Blueprint $table) {
             $table->id();
             $table->foreignId('room_id')->constrained('prod.rooms', 'room_id');
             $table->date('date');
@@ -111,15 +122,16 @@ return new class extends Migration
             $table->string('modified_by')->nullable();
             $table->boolean('is_deleted')->default(false);
         });
+        }
     }
 
     public function down()
     {
-        // Only drop tables in prod schema
-        Schema::dropIfExists('prod.room_utilization');
-        Schema::dropIfExists('prod.block_utilization');
-        Schema::dropIfExists('prod.case_metrics');
-        Schema::dropIfExists('prod.or_logs');
-        Schema::dropIfExists('prod.or_cases');
+        // Only drop tables in local environment
+        $this->safeDropIfExists('prod.room_utilization');
+        $this->safeDropIfExists('prod.block_utilization');
+        $this->safeDropIfExists('prod.case_metrics');
+        $this->safeDropIfExists('prod.or_logs');
+        $this->safeDropIfExists('prod.or_cases');
     }
 };

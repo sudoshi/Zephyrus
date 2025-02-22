@@ -4,9 +4,11 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use App\Traits\SafeMigration;
 
 return new class extends Migration
 {
+    use SafeMigration;
     public function up()
     {
         // Create enums for milestone types and statuses
@@ -29,15 +31,30 @@ return new class extends Migration
         END $$;");
 
         // Add new columns to or_cases table
-        Schema::table('prod.or_cases', function (Blueprint $table) {
-            $table->string('pre_procedure_location')->nullable();
-            $table->string('post_procedure_location')->nullable();
-            $table->string('safety_status')->default('Normal');
-            $table->integer('journey_progress')->default(0);
-        });
+        if (!Schema::hasColumn('prod.or_cases', 'pre_procedure_location')) {
+            Schema::table('prod.or_cases', function (Blueprint $table) {
+                $table->string('pre_procedure_location')->nullable();
+            });
+        }
+        if (!Schema::hasColumn('prod.or_cases', 'post_procedure_location')) {
+            Schema::table('prod.or_cases', function (Blueprint $table) {
+                $table->string('post_procedure_location')->nullable();
+            });
+        }
+        if (!Schema::hasColumn('prod.or_cases', 'safety_status')) {
+            Schema::table('prod.or_cases', function (Blueprint $table) {
+                $table->string('safety_status')->default('Normal');
+            });
+        }
+        if (!Schema::hasColumn('prod.or_cases', 'journey_progress')) {
+            Schema::table('prod.or_cases', function (Blueprint $table) {
+                $table->integer('journey_progress')->default(0);
+            });
+        }
 
         // Create care journey milestones table
-        Schema::create('prod.care_journey_milestones', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.care_journey_milestones')) {
+            Schema::create('prod.care_journey_milestones', function (Blueprint $table) {
             $table->id();
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id')->onDelete('cascade');
             $table->string('milestone_type');
@@ -48,9 +65,11 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
         });
+        }
 
         // Create case transport table
-        Schema::create('prod.case_transport', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.case_transport')) {
+            Schema::create('prod.case_transport', function (Blueprint $table) {
             $table->id();
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id')->onDelete('cascade');
             $table->string('transport_type');
@@ -63,9 +82,11 @@ return new class extends Migration
             $table->timestamp('actual_end')->nullable();
             $table->timestamps();
         });
+        }
 
         // Create case timings table
-        Schema::create('prod.case_timings', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.case_timings')) {
+            Schema::create('prod.case_timings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id')->onDelete('cascade');
             $table->string('phase');
@@ -76,9 +97,11 @@ return new class extends Migration
             $table->integer('variance')->nullable();
             $table->timestamps();
         });
+        }
 
         // Create case safety notes table
-        Schema::create('prod.case_safety_notes', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.case_safety_notes')) {
+            Schema::create('prod.case_safety_notes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id')->onDelete('cascade');
             $table->string('note_type');
@@ -89,92 +112,133 @@ return new class extends Migration
             $table->timestamp('acknowledged_at')->nullable();
             $table->timestamps();
         });
+        }
 
         // Create case staff table
-        Schema::create('prod.case_staff', function (Blueprint $table) {
+        if (!Schema::hasTable('prod.case_staff')) {
+            Schema::create('prod.case_staff', function (Blueprint $table) {
             $table->id();
             $table->foreignId('case_id')->constrained('prod.or_cases', 'case_id')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('role');
             $table->timestamps();
         });
+        }
 
-        // Add constraints
-        DB::statement("ALTER TABLE prod.or_cases ADD CONSTRAINT check_safety_status 
-            CHECK (safety_status IN ('Normal', 'Review_Required', 'Alert'))");
+        // Add constraints if they don't exist
+        if (!$this->constraintExists('prod.or_cases', 'check_safety_status')) {
+            DB::statement("ALTER TABLE prod.or_cases ADD CONSTRAINT check_safety_status 
+                CHECK (safety_status IN ('Normal', 'Review_Required', 'Alert'))");
+        }
 
-        DB::statement("ALTER TABLE prod.case_safety_notes ADD CONSTRAINT check_note_type 
-            CHECK (note_type IN ('Safety_Alert', 'Barrier', 'General'))");
+        if (!$this->constraintExists('prod.case_safety_notes', 'check_note_type')) {
+            DB::statement("ALTER TABLE prod.case_safety_notes ADD CONSTRAINT check_note_type 
+                CHECK (note_type IN ('Safety_Alert', 'Barrier', 'General'))");
+        }
 
-        DB::statement("ALTER TABLE prod.case_safety_notes ADD CONSTRAINT check_severity 
-            CHECK (severity IN ('Low', 'Medium', 'High', 'Critical'))");
+        if (!$this->constraintExists('prod.case_safety_notes', 'check_severity')) {
+            DB::statement("ALTER TABLE prod.case_safety_notes ADD CONSTRAINT check_severity 
+                CHECK (severity IN ('Low', 'Medium', 'High', 'Critical'))");
+        }
 
-        // Create indexes
-        Schema::table('prod.care_journey_milestones', function (Blueprint $table) {
-            $table->index(['case_id', 'status']);
-            $table->index(['milestone_type', 'status']);
-        });
+        // Create indexes if they don't exist
+        if (!$this->indexExists('prod.care_journey_milestones', 'prod_care_journey_milestones_case_id_status_index')) {
+            Schema::table('prod.care_journey_milestones', function (Blueprint $table) {
+                $table->index(['case_id', 'status']);
+            });
+        }
+        if (!$this->indexExists('prod.care_journey_milestones', 'prod_care_journey_milestones_milestone_type_status_index')) {
+            Schema::table('prod.care_journey_milestones', function (Blueprint $table) {
+                $table->index(['milestone_type', 'status']);
+            });
+        }
 
-        Schema::table('prod.case_transport', function (Blueprint $table) {
-            $table->index(['case_id', 'status']);
-            $table->index(['planned_time']);
-            $table->index(['assigned_to', 'status']);
-        });
+        if (!$this->indexExists('prod.case_transport', 'prod_case_transport_case_id_status_index')) {
+            Schema::table('prod.case_transport', function (Blueprint $table) {
+                $table->index(['case_id', 'status']);
+            });
+        }
+        if (!$this->indexExists('prod.case_transport', 'prod_case_transport_planned_time_index')) {
+            Schema::table('prod.case_transport', function (Blueprint $table) {
+                $table->index(['planned_time']);
+            });
+        }
+        if (!$this->indexExists('prod.case_transport', 'prod_case_transport_assigned_to_status_index')) {
+            Schema::table('prod.case_transport', function (Blueprint $table) {
+                $table->index(['assigned_to', 'status']);
+            });
+        }
 
-        Schema::table('prod.case_timings', function (Blueprint $table) {
-            $table->index(['case_id', 'phase']);
-            $table->index(['planned_start']);
-        });
+        if (!$this->indexExists('prod.case_timings', 'prod_case_timings_case_id_phase_index')) {
+            Schema::table('prod.case_timings', function (Blueprint $table) {
+                $table->index(['case_id', 'phase']);
+            });
+        }
+        if (!$this->indexExists('prod.case_timings', 'prod_case_timings_planned_start_index')) {
+            Schema::table('prod.case_timings', function (Blueprint $table) {
+                $table->index(['planned_start']);
+            });
+        }
 
-        Schema::table('prod.case_safety_notes', function (Blueprint $table) {
-            $table->index(['case_id', 'severity']);
-            $table->index(['acknowledged_at'], 'idx_unacknowledged_notes');
-        });
+        if (!$this->indexExists('prod.case_safety_notes', 'prod_case_safety_notes_case_id_severity_index')) {
+            Schema::table('prod.case_safety_notes', function (Blueprint $table) {
+                $table->index(['case_id', 'severity']);
+            });
+        }
+        if (!$this->indexExists('prod.case_safety_notes', 'idx_unacknowledged_notes')) {
+            Schema::table('prod.case_safety_notes', function (Blueprint $table) {
+                $table->index(['acknowledged_at'], 'idx_unacknowledged_notes');
+            });
+        }
     }
 
     public function down()
     {
-        // Drop indexes first
-        Schema::table('prod.care_journey_milestones', function (Blueprint $table) {
-            $table->dropIndex(['case_id', 'status']);
-            $table->dropIndex(['milestone_type', 'status']);
-        });
+        if ($this->isLocalEnvironment()) {
+            // Drop indexes first
+            Schema::table('prod.care_journey_milestones', function (Blueprint $table) {
+                $table->dropIndex(['case_id', 'status']);
+                $table->dropIndex(['milestone_type', 'status']);
+            });
 
-        Schema::table('prod.case_transport', function (Blueprint $table) {
-            $table->dropIndex(['case_id', 'status']);
-            $table->dropIndex(['planned_time']);
-            $table->dropIndex(['assigned_to', 'status']);
-        });
+            Schema::table('prod.case_transport', function (Blueprint $table) {
+                $table->dropIndex(['case_id', 'status']);
+                $table->dropIndex(['planned_time']);
+                $table->dropIndex(['assigned_to', 'status']);
+            });
 
-        Schema::table('prod.case_timings', function (Blueprint $table) {
-            $table->dropIndex(['case_id', 'phase']);
-            $table->dropIndex(['planned_start']);
-        });
+            Schema::table('prod.case_timings', function (Blueprint $table) {
+                $table->dropIndex(['case_id', 'phase']);
+                $table->dropIndex(['planned_start']);
+            });
 
-        Schema::table('prod.case_safety_notes', function (Blueprint $table) {
-            $table->dropIndex(['case_id', 'severity']);
-            $table->dropIndex('idx_unacknowledged_notes');
-        });
+            Schema::table('prod.case_safety_notes', function (Blueprint $table) {
+                $table->dropIndex(['case_id', 'severity']);
+                $table->dropIndex('idx_unacknowledged_notes');
+            });
+        }
 
         // Drop tables
-        Schema::dropIfExists('prod.case_staff');
-        Schema::dropIfExists('prod.case_safety_notes');
-        Schema::dropIfExists('prod.case_timings');
-        Schema::dropIfExists('prod.case_transport');
-        Schema::dropIfExists('prod.care_journey_milestones');
+        $this->safeDropIfExists('prod.case_staff');
+        $this->safeDropIfExists('prod.case_safety_notes');
+        $this->safeDropIfExists('prod.case_timings');
+        $this->safeDropIfExists('prod.case_transport');
+        $this->safeDropIfExists('prod.care_journey_milestones');
 
-        // Drop columns from or_cases
-        Schema::table('prod.or_cases', function (Blueprint $table) {
-            $table->dropColumn([
-                'pre_procedure_location',
-                'post_procedure_location',
-                'safety_status',
-                'journey_progress'
-            ]);
-        });
+        if ($this->isLocalEnvironment()) {
+            // Drop columns from or_cases
+            Schema::table('prod.or_cases', function (Blueprint $table) {
+                $table->dropColumn([
+                    'pre_procedure_location',
+                    'post_procedure_location',
+                    'safety_status',
+                    'journey_progress'
+                ]);
+            });
 
-        // Drop enums
-        DB::statement('DROP TYPE IF EXISTS milestone_type_enum');
-        DB::statement('DROP TYPE IF EXISTS milestone_status_enum');
+            // Drop enums
+            DB::statement('DROP TYPE IF EXISTS milestone_type_enum');
+            DB::statement('DROP TYPE IF EXISTS milestone_status_enum');
+        }
     }
 };
