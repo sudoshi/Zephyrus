@@ -1,4 +1,7 @@
 # Zephyrus
+
+[![CI/CD](https://github.com/sudoshi/Zephyrus/actions/workflows/main.yml/badge.svg)](https://github.com/sudoshi/Zephyrus/actions/workflows/main.yml)
+
 ## 🏥 Overview
 
 Zephyrus is a comprehensive healthcare operations platform that provides real-time analytics and process improvement tools across multiple critical areas of hospital management. The platform integrates various workflows to optimize hospital operations, improve patient care, and enhance operational efficiency.
@@ -123,5 +126,19 @@ npm run dev
 - Regular updates
 - Community support
 
+## 🚀 Deployment
+
+Zephyrus uses GitHub Actions for automated CI/CD pipeline:
+
+1. **Continuous Integration**:
+   - Automated testing
+   - Code quality checks
+   - Asset building
+
+2. **Continuous Deployment**:
+   - Automatic deployment to production on main branch updates
+   - Zero-downtime deployments
+   - Automated cache management
+
 ## 📄 License
-[License details to be added]
+This project is licensed under the MIT License.
