@@ -30,13 +30,20 @@ jobs:
           --health-retries 5
     
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: pdo_pgsql, mbstring, exif, pcntl, bcmath, gd
+        extensions: pdo_pgsql, mbstring, exif, pcntl, bcmath, gd, zip, dom, curl, libxml, fileinfo, iconv
+        coverage: none
+        tools: composer:v2
+      env:
+        COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup Node.js
       uses: actions/setup-node@v2
@@ -47,9 +54,31 @@ jobs:
     - name: Copy .env
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
     
+    - name: Debug PHP and Composer versions
+      run: |
+        php -v
+        composer -V
+        pwd
+        ls -la
+
+    - name: Validate composer.json
+      run: composer validate
+
     - name: Get composer cache directory
       id: composer-cache
-      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      run: |
+        echo "Current directory contents:"
+        ls -la
+        echo "\nComposer home directory:"
+        composer config --global home
+        echo "\nSetting cache directory:"
+        echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Verify cache directory
+      run: |
+        echo "Cache directory: ${{ steps.composer-cache.outputs.dir }}"
+        mkdir -p ${{ steps.composer-cache.outputs.dir }}
+        ls -la ${{ steps.composer-cache.outputs.dir }}
 
     - name: Cache composer dependencies
       uses: actions/cache@v3
@@ -59,7 +88,8 @@ jobs:
         restore-keys: ${{ runner.os }}-composer-
 
     - name: Install PHP Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      run: |
+        composer install --no-ansi --no-interaction --no-scripts --prefer-dist --verbose
     
     - name: Generate key
       run: php artisan key:generate
