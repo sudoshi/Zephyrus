@@ -2,7 +2,7 @@ import React from 'react';
 import { Head } from '@inertiajs/react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/button';
-import { Progress } from '@/Components/ui/progress';
+import Progress from '@/Components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/Components/ui/tabs';
 import { Edit3, ArrowLeft, ChevronRight } from 'lucide-react';
 
