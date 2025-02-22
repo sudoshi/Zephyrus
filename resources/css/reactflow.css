@@ -34,8 +34,10 @@
   @apply !border-none !shadow-none;
 }
 
-.react-flow__controls-button {
-  @apply !border-none !bg-healthcare-surface hover:!bg-healthcare-surface-hover/DEFAULT dark:!bg-healthcare-surface-dark dark:hover:!bg-healthcare-surface-hover/dark !text-healthcare-text-primary dark:!text-healthcare-text-primary-dark;
+@layer components {
+  .react-flow__controls-button {
+    @apply !border-none !bg-white hover:!bg-gray-50 dark:!bg-gray-800 dark:hover:!bg-gray-700 !text-gray-900 dark:!text-gray-100;
+  }
 }
 
 .react-flow__minimap {
