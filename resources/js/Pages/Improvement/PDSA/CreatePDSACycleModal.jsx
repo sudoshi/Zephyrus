@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/Components/ui/dialog';
 import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
+import Input from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
 import Label from '@/Components/ui/label';
 
