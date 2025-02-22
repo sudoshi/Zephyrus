@@ -22,8 +22,9 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'password',
+            'workflow' => 'rtdc',
         ]);
 
         $this->assertAuthenticated();
