@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, router } from '@inertiajs/react';
 
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -13,6 +13,36 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   const { currentWorkflow, navigationItems, mainNavigationItems, changeWorkflow } = useDashboard();
 
   const subNavigation = useMemo(() => {
+    // Special case for RTDC workflow
+    if (currentWorkflow === 'rtdc') {
+      return [
+        {
+          name: 'Global Huddle',
+          href: '/rtdc/global-huddle',
+          icon: 'heroicons:globe-alt',
+          key: 'rtdc-global-huddle'
+        },
+        {
+          name: 'Unit Huddle',
+          href: '/rtdc/service-huddle',
+          icon: 'heroicons:user-group',
+          key: 'rtdc-unit-huddle'
+        },
+        {
+          name: 'Ancillary Services',
+          href: '/rtdc/ancillary-services',
+          icon: 'heroicons:building-office-2',
+          key: 'rtdc-ancillary'
+        },
+        {
+          name: 'Discharge Priorities',
+          href: '/rtdc/predictions/discharge',
+          icon: 'heroicons:arrow-right-circle',
+          key: 'rtdc-discharge'
+        }
+      ];
+    }
+
     // Special case for improvement workflow
     if (currentWorkflow === 'improvement') {
       return (navigationItems?.analytics || []).map(item => ({
@@ -93,10 +123,14 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     href={item.href}
                     onClick={(e) => {
                       e.preventDefault();
-                      changeWorkflow(item.workflow);
+                      if (item.workflow === 'home') {
+                        window.location.href = '/home';
+                      } else {
+                        changeWorkflow(item.workflow);
+                      }
                     }}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
-                      currentWorkflow === item.workflow
+                      (item.workflow === 'home' ? location.pathname === '/home' : currentWorkflow === item.workflow)
                         ? 'bg-gradient-to-b from-healthcare-primary to-healthcare-primary/90 dark:from-healthcare-primary-dark dark:to-healthcare-primary-dark/90 text-white dark:text-white shadow-md dark:shadow-lg border-healthcare-primary/20 dark:border-healthcare-primary-dark/20 ring-1 ring-healthcare-primary/10 dark:ring-healthcare-primary-dark/10'
                         : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark hover:border-healthcare-border/80 dark:hover:border-healthcare-border-dark/80'
                     }`}
@@ -148,34 +182,22 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                       )}
                     </Menu.Item>
                     <Menu.Item>
-                      {({ active }) => {
-                        const form = useForm({});
-                        return (
-                          <button
-onClick={async () => {
-  await ensureValidToken();
-  form.post('/logout', {
-    preserveState: false,
-    preserveScroll: false
-  });
-}}
-                            disabled={form.processing}
-                            className={`
-                              flex items-center px-4 py-2.5 text-sm transition-all duration-300 w-full text-left
-                              ${
-                                active
-                                  ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark'
-                                  : 'hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
-                              }
-                              text-healthcare-critical dark:text-healthcare-critical-dark
-                              ${form.processing ? 'opacity-50 cursor-not-allowed' : ''}
-                            `}
-                          >
-                            <Icon icon="heroicons:arrow-right-on-rectangle" className={`w-4 h-4 mr-2 ${form.processing ? 'animate-spin' : ''}`} />
-                            {form.processing ? 'Signing out...' : 'Sign out'}
-                          </button>
-                        );
-                      }}
+                      {({ active }) => (
+                        <button
+                          onClick={() => router.post('/logout')}
+                          className={`
+                            flex items-center px-4 py-2.5 text-sm transition-all duration-300
+                            ${
+                              active
+                                ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
+                            }
+                          `}
+                        >
+                          <Icon icon="heroicons:logout" className="w-4 h-4 mr-2" />
+                          Logout
+                        </button>
+                      )}
                     </Menu.Item>
                   </Menu.Items>
                 </Transition>
@@ -191,7 +213,7 @@ onClick={async () => {
           <div className="flex justify-center h-12">
             <div className="flex items-center space-x-8">
               {subNavigation.map((item) => (
-                currentWorkflow === 'improvement' ? (
+                currentWorkflow === 'improvement' || currentWorkflow === 'rtdc' ? (
                   <Link
                     key={item.key}
                     href={item.href}

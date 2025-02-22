@@ -26,6 +26,7 @@
     "dependencies": {
         "@heroui/react": "^2.6.14",
         "@iconify/icons-solar": "^1.2.3",
+        "@radix-ui/react-dialog": "^1.1.6",
         "@reactflow/background": "^11.3.14",
         "@reactflow/controls": "^11.2.14",
         "@reactflow/core": "^11.11.4",

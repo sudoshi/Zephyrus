@@ -4,6 +4,11 @@ import { router, usePage } from '@inertiajs/react';
 
 // Move workflowNavigationConfig outside the DashboardProvider component
 const workflowNavigationConfig = {
+  home: {
+    name: 'Home',
+    analytics: [],
+    operations: [],
+  },
   rtdc: {
     name: 'RTDC',
     analytics: [
@@ -181,27 +186,27 @@ const workflowNavigationConfig = {
         icon: 'lucide:layout-dashboard'
       },
       {
-        name: 'Opportunities',
-        href: '/improvement/opportunities',
-        description: 'View improvement opportunities',
-        icon: 'lucide:target'
+        name: 'Bottlenecks',
+        href: '/improvement/bottlenecks',
+        description: 'Analyze and monitor system bottlenecks',
+        icon: 'lucide:alert-circle'
       },
       {
-        name: 'Process',
+        name: 'Process Maps',
         href: '/improvement/process',
         description: 'Process analysis and optimization',
         icon: 'lucide:git-branch'
       },
       {
-        name: 'Library',
-        href: '/improvement/library',
-        description: 'Access improvement resources and templates',
-        icon: 'lucide:library'
+        name: 'Root Cause',
+        href: '/improvement/root-cause',
+        description: 'Analyze and identify root causes of process bottlenecks and system issues',
+        icon: 'lucide:search'
       },
       {
         name: 'Active Cycles',
         href: '/improvement/active',
-        description: 'Track active improvement initiatives',
+        description: 'Track active improvement initiatives and explore opportunities',
         icon: 'lucide:refresh-ccw'
       },
     ],
@@ -237,7 +242,8 @@ export function DashboardProvider({ children }) {
         isLoading: true
       }));
 
-      router.visit(`/dashboard/${workflow}`, {
+      const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
+      router.visit(path, {
         preserveState: false, // Don't preserve state to ensure fresh data
         preserveScroll: false, // Don't preserve scroll position for a fresh start
         onBefore: () => {
@@ -270,6 +276,12 @@ export function DashboardProvider({ children }) {
 
   const mainNavigationItems = useMemo(
     () => [
+      {
+        name: 'Home',
+        workflow: 'home',
+        href: '/home',
+        icon: 'heroicons:home'
+      },
       { 
         name: 'RTDC', 
         workflow: 'rtdc', 

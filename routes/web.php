@@ -9,6 +9,7 @@ use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RTDCDashboardController;
+use App\Http\Controllers\RTDCController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,24 +18,45 @@ use Inertia\Inertia;
 Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    if (auth()->check()) {
+        return redirect()->route('home');
+    }
+    return Inertia::render('Auth/Login', [
+        'canResetPassword' => Route::has('password.request'),
+        'status' => session('status'),
+        'csrf_token' => csrf_token(),
+    ]);
 });
 
 Route::middleware(['auth'])->group(function () {
+    // Home Route
+    Route::get('/home', function() {
+        return Inertia::render('Home/Home', [
+            'workflow' => 'home'
+        ]);
+    })->name('home');
+
+    // RTDC Routes
+    Route::prefix('rtdc')->group(function () {
+        Route::get('/global-huddle', [RTDCController::class, 'globalHuddle'])->name('rtdc.global-huddle');
+        Route::post('/update-red-stretch-plan', [RTDCController::class, 'updateRedStretchPlan'])->name('rtdc.update-red-stretch-plan');
+    });
+
     // Dashboard Routes
     Route::get('/dashboard/rtdc', [RTDCDashboardController::class, 'index'])->name('dashboard.rtdc');
     Route::get('/dashboard/perioperative', [DashboardController::class, 'index'])->name('dashboard.perioperative');
     Route::get('/dashboard/emergency', [EDDashboardController::class, 'index'])->name('dashboard.emergency');
     Route::get('/dashboard/improvement', [DashboardController::class, 'improvement'])->name('dashboard.improvement');
     Route::get('/dashboard', function() {
-        return redirect()->route('dashboard.perioperative');
+        return redirect()->route('home');
     })->name('dashboard');
 
     // Improvement Routes
     Route::prefix('improvement')->name('improvement.')->group(function () {
         Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
-        Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
+        Route::get('/bottlenecks', [DashboardController::class, 'bottlenecks'])->name('bottlenecks');
         Route::get('/process', [ProcessAnalysisController::class, 'index'])->name('process');
+        Route::get('/root-cause', [DashboardController::class, 'rootCause'])->name('root-cause');
         Route::post('/process/layout', [ProcessAnalysisController::class, 'saveLayout'])->name('process.saveLayout');
         Route::get('/process/layout', [ProcessAnalysisController::class, 'getLayout'])->name('process.getLayout');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
@@ -68,7 +90,9 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('predictions')->name('predictions.')->group(function () {
             Route::get('/demand', [RTDCDashboardController::class, 'demandForecast'])->name('demand');
             Route::get('/resources', [RTDCDashboardController::class, 'resourcePlanning'])->name('resources');
-            Route::get('/discharge', [RTDCDashboardController::class, 'dischargePredictions'])->name('discharge');
+            Route::get('/discharge', function() {
+                return Inertia::render('RTDC/DischargePriorities');
+            })->name('discharge');
             Route::get('/risk', [RTDCDashboardController::class, 'riskAssessment'])->name('risk');
         });
     });
@@ -122,6 +146,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
 
     // Workflow Change Route
     Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])->name('change-workflow');

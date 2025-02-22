@@ -47,6 +47,129 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function bottlenecks(Request $request)
+    {
+        $request->session()->put('workflow', 'improvement');
+        return Inertia::render('Improvement/Bottlenecks', [
+            'workflow' => 'improvement',
+            'bottlenecks' => [
+                'stats' => [
+                    'active' => 12,
+                    'avgResolutionTime' => 4.2,
+                    'patientImpact' => 86
+                ]
+            ]
+        ]);
+    }
+
+    public function rootCause(Request $request)
+    {
+        $request->session()->put('workflow', 'improvement');
+
+        // Production data would come from ML models analyzing:
+        // - EMR timestamps
+        // - Bed management system
+        // - Staff scheduling data
+        // - Resource utilization metrics
+        $rootCauses = [
+            [
+                'rank' => 1,
+                'type' => 'Discharge Documentation Delays',
+                'location' => 'Med-Surg 3W',
+                'impactedPatients' => 14,
+                'impactDetails' => 'ICU Backlog (4), ED Boarding (8), Extended LOS (2)',
+                'score' => 76.6,
+                'avgDelay' => '4.2 hrs',  // More realistic timeframe
+                'stressLevel' => 3,
+                'weekTrend' => 12,
+                'causes' => [
+                    'Pharmacy staffing gap 1300-1700',
+                    'Pending specialist sign-off (>2hrs)',
+                    'Discharge summary documentation delays'
+                ],
+                'metrics' => [
+                    'Pharmacy verification: 95% utilization',
+                    'Care management workload: 88%',
+                    'Discharge nurse ratio: 1:12'
+                ]
+            ],
+            [
+                'rank' => 2,
+                'type' => 'OR to PACU Handoff',
+                'location' => 'Surgical Services',
+                'impactedPatients' => 11,
+                'impactDetails' => 'PACU Holding (6), Recovery Delays (5)',
+                'score' => 68.4,
+                'avgDelay' => '42 mins',
+                'stressLevel' => 3,
+                'weekTrend' => 8,
+                'causes' => [
+                    'Shift change overlap 1445-1515',
+                    'Complex post-op order sets >25 items',
+                    'Missing critical care documentation'
+                ],
+                'metrics' => [
+                    'PACU nurse ratio: 1:3',
+                    'OR utilization: 92%',
+                    'Handoff compliance: 76%'
+                ]
+            ],
+            [
+                'rank' => 3,
+                'type' => 'ICU to Step-Down Transfer',
+                'location' => 'ICU → 4E',
+                'impactedPatients' => 8,
+                'impactDetails' => 'PACU Holding (3 patients), OR Delays (4 cases)',
+                'score' => 45.3,
+                'avgDelay' => '5.1 hrs',
+                'stressLevel' => 2,
+                'weekTrend' => -5,
+                'causes' => [
+                    'Telemetry bed availability',
+                    'Staffing ratios',
+                    'Care team rounding timing'
+                ]
+            ],
+            [
+                'rank' => 4,
+                'type' => 'ED to Inpatient Admission',
+                'location' => 'ED → Med-Surg',
+                'impactedPatients' => 12,
+                'impactDetails' => 'Increased ED LOS, Ambulance Diversion Risk',
+                'score' => 41.9,
+                'avgDelay' => '4.8 hrs',
+                'stressLevel' => 2,
+                'weekTrend' => 15,
+                'causes' => [
+                    'Bed assignment delays',
+                    'Transport team availability',
+                    'Specialty consult timing'
+                ]
+            ],
+            [
+                'rank' => 5,
+                'type' => 'Radiology TAT',
+                'location' => 'CT/MRI',
+                'impactedPatients' => 16,
+                'impactDetails' => 'ED/Inpatient Discharge Delays',
+                'score' => 38.7,
+                'avgDelay' => '2.3 hrs',
+                'stressLevel' => 2,
+                'weekTrend' => -2,
+                'causes' => [
+                    'Equipment downtime',
+                    'After-hours staffing',
+                    'Order prioritization'
+                ]
+            ]
+        ];
+
+        return Inertia::render('Improvement/RootCause', [
+            'workflow' => 'improvement',
+            'rootCauses' => $rootCauses
+        ]);
+    }
+
     public function overview(Request $request)
     {
         return redirect()->route('dashboard.improvement');

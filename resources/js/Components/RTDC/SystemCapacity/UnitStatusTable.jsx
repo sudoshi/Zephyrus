@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import RedStretchPlanModal from './RedStretchPlanModal';
+import { router } from '@inertiajs/react';
 
 const UnitStatusTable = ({ units }) => {
     const [isDarkMode] = useDarkMode();
     const [focusedRow, setFocusedRow] = useState(null);
+    const [selectedUnit, setSelectedUnit] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleEditRedStretchPlan = (unit) => {
+        setSelectedUnit(unit);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveRedStretchPlan = (unitId, plan) => {
+        // In a real app, this would be an API call
+        router.post('/rtdc/update-red-stretch-plan', {
+            unitId,
+            plan
+        });
+    };
 
     const getStatusColor = (value) => {
         if (value <= -2) return 'text-healthcare-critical dark:text-healthcare-critical-dark';
@@ -107,19 +124,25 @@ const UnitStatusTable = ({ units }) => {
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                    {unit.redStretchPlan && (
+                                    {unit.status <= -1 ? (
                                         <div 
-                                            className="flex items-center gap-2 cursor-help"
-                                            title={unit.redStretchPlan}
-                                            role="tooltip"
+                                            className="flex items-center gap-2 cursor-pointer hover:text-healthcare-primary dark:hover:text-healthcare-primary-dark transition-colors duration-150"
+                                            onClick={() => handleEditRedStretchPlan(unit)}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleEditRedStretchPlan(unit)}
+                                            aria-label={`Edit Red Stretch Plan for ${unit.name}`}
                                         >
                                             <Icon 
                                                 icon="heroicons:exclamation-triangle" 
                                                 className="w-4 h-4 text-healthcare-warning dark:text-healthcare-warning-dark flex-shrink-0" 
                                             />
-                                            <span className="truncate">{unit.redStretchPlan}</span>
+                                            <span className="truncate">
+                                                {unit.redStretchPlan?.title || 'Add Red Stretch Plan'}
+                                            </span>
+                                            <Icon icon="lucide:edit" className="w-4 h-4 opacity-50 group-hover:opacity-100" />
                                         </div>
-                                    )}
+                                    ) : null}
                                 </td>
                             </tr>
                         );
@@ -136,6 +159,12 @@ const UnitStatusTable = ({ units }) => {
                     <li>Triple dot (●●●): Critical status</li>
                 </ul>
             </div>
+            <RedStretchPlanModal
+                isOpen={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                unit={selectedUnit}
+                onSave={handleSaveRedStretchPlan}
+            />
         </div>
     );
 };

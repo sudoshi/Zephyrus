@@ -7,13 +7,14 @@ import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 import DataModeToggle from '@/Components/Common/DataModeToggle';
 import Card from '@/Components/Dashboard/Card';
 import { useDarkMode } from '@/hooks/useDarkMode';
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, csrf_token }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
         workflow: 'rtdc',
         username: '',
         password: '',
         remember: false,
+        csrf_token,
     });
 
     const workflowOptions = [
@@ -25,6 +26,11 @@ export default function Login({ status, canResetPassword }) {
 const submit = (e) => {
     e.preventDefault();
     post('/login', {
+        workflow: data.workflow,
+        username: data.username,
+        password: data.password,
+        remember: data.remember,
+        csrf_token: csrf_token,
         preserveState: false,
         preserveScroll: false,
         onFinish: () => reset('password'),

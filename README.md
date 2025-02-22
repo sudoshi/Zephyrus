@@ -1,101 +1,127 @@
 # Zephyrus
 ## 🏥 Overview
 
-Zephyrus is an advanced analytics and optimization platform designed to transform operating room management across healthcare systems. By leveraging sophisticated data analysis and predictive modeling, ZephyrusOR helps healthcare providers maximize surgical capacity, improve resource utilization, and drive operational excellence.
+Zephyrus is a comprehensive healthcare operations platform that provides real-time analytics and process improvement tools across multiple critical areas of hospital management. The platform integrates various workflows to optimize hospital operations, improve patient care, and enhance operational efficiency.
 
-## 🚀 Key Features
+## 🚀 Key Workflows
 
-### Comprehensive Capacity Management
-- Real-time OR utilization tracking
-- Multi-site performance visualization
-- Capacity expansion insights without physical infrastructure changes
+### Emergency Department (ED)
+- Real-time ED operations monitoring
+- Patient tracking and triage management
+- ED-to-Inpatient conversion analytics
+- Resource utilization tracking
+- Waiting room management
+- Predictive alerts system
+- Department performance metrics
 
-### Intelligent Block Scheduling
-- Granular service-level block time analysis
-- Automated reallocation recommendations
-- Surgeon-specific performance benchmarking
+### Real Time Demand & Capacity (RTDC)
+- Hospital-wide capacity monitoring
+- Real-time alerts and statistics
+- Department-specific metrics
+- Bed capacity management
+- Staffing level tracking
+- Historical trends analysis
 
-### Advanced Analytics Modules
-- Tandem Room Optimization
-- Inter-site Case Movement Modeling
-- Scheduling White Space Identification
-- Predictive Surgical Pipeline Forecasting
+### Perioperative Management
+- Surgical services metrics
+- Operating room utilization
+- Case scheduling optimization
+- Resource allocation
+- Performance analytics
+
+### Process Improvement
+- Patient satisfaction tracking
+- Care response time monitoring
+- Clinical outcomes measurement
+- Process intelligence tools
+- Chronic care management
+- Discharge process optimization
 
 ## 💡 Core Benefits
-- Increase surgical case volume
-- Reduce operational inefficiencies
-- Optimize resource allocation
-- Data-driven decision support
-- Enhance surgical team productivity
+- Real-time operational visibility
+- Predictive analytics and alerts
+- Enhanced patient flow management
+- Resource optimization
+- Cross-department coordination
+- Data-driven decision making
+- Quality of care improvement
 
 ## 🔧 Technical Architecture
 - Cloud-native platform
-- EHR System Agnostic
-- Scalable Microservices Architecture
-- Real-time Data Processing
-- Advanced Security Protocols
+- Real-time data processing
+- EHR system integration
+- Advanced security protocols
+- Scalable microservices architecture
+- Modern web technologies
 
-## 📊 Data Insights Provided
-- Prime Time Utilization Percentages
-- Non-Prime Time Usage Metrics
-- Average Case Duration Analysis
-- Surgeon Efficiency Scoring
-- Potential Capacity Expansion Opportunities
+## 📊 Key Features
+- Real-time dashboards for each workflow
+- Customizable alerts and predictions
+- Department-specific analytics
+- Historical trend analysis
+- Process improvement tools
+- Performance benchmarking
+- Resource management
+- Patient flow tracking
 
-## 🔬 Specialty Coverage
-- Orthopedics
-- General Surgery
-- Urology
-- Gynecology
-- Cardiothoracic Surgery
-- And Many More...
+## 🏥 Clinical Areas
+- Emergency Department
+- Operating Rooms
+- Inpatient Units
+- Critical Care
+- Medical/Surgical Units
+- Support Services
 
 ## 📦 Installation
 
 ### Prerequisites
-- Cloud Infrastructure (AWS/Azure/GCP)
-- EHR System Access
-- Minimum Data Warehouse Requirements
+- Node.js and npm
+- Database system
+- EHR system access
+- Required environment variables
 
 ### Quick Start
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/zephyrusOR.git
+git clone https://github.com/acumenus/Zephyrus.git
 
 # Install dependencies
-npm install zephyrus-or
+npm install
 
 # Configure environment
-zephyrus config setup
+cp .env.example .env
 
-# Launch platform
-zephyrus start
+# Launch application
+npm run dev
 ```
 
 ## 🔐 Security
 - HIPAA Compliant
-- End-to-End Encryption
-- Role-Based Access Control
-- Comprehensive Audit Logging
+- Role-based access control
+- Data encryption
+- Audit logging
+- Secure API endpoints
 
-## 📈 Performance Metrics
-- Average Utilization Increase: 15-25%
-- Potential Case Volume Expansion: Up to 1000 cases/6 months
-- Scheduling Efficiency Improvement: 30-40%
+## 📈 Performance Impact
+- Reduced ED wait times
+- Improved patient throughput
+- Enhanced resource utilization
+- Better clinical outcomes
+- Streamlined workflows
+- Increased staff efficiency
 
-## 🤝 Integration Partners
-- Epic Systems
-- Cerner
-- Allscripts
-- Custom EHR Solutions
+## 🤝 Integration
+- EHR Systems
+- Staffing Systems
+- Resource Management Tools
+- Analytics Platforms
+- Clinical Decision Support Systems
 
 ## 📞 Support
-- 24/7 Technical Support
-- Dedicated Implementation Team
-- Continuous Platform Updates
+- Technical documentation
+- Implementation guidance
+- Regular updates
+- Community support
 
-## 📄 Licensing
-Available in multiple tiers:
-- Community Edition
-- Professional Edition
-- Enterprise Edition
+## 📄 License
+[License details to be added]
