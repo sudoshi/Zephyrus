@@ -23,3 +23,9 @@ export const SelectContent = ({ children, ...props }) => (
     {children}
   </div>
 );
+
+export const SelectItem = ({ children, ...props }) => (
+  <option {...props}>
+    {children}
+  </option>
+);
