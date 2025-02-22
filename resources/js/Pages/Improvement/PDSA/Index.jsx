@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Progress } from '@/Components/ui/progress';
+import Progress from '@/Components/ui/progress';
 import { Plus, Search, ArrowRight } from 'lucide-react';
 import { activePDSACycles } from '@/mock-data/improvement/index.js';
 
