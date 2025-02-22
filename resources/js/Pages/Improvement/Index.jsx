@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Progress } from '@/Components/ui/progress';
+import Progress from '@/Components/ui/progress';
 import { CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { 
   ClipboardList, 
