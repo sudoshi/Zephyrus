@@ -19,6 +19,20 @@ export default {
             },
             colors: {
                 healthcare: {
+                    background: {
+                        DEFAULT: '#f8fafc',
+                        dark: '#0f172a'
+                    },
+                    text: {
+                        primary: {
+                            DEFAULT: '#0f172a',
+                            dark: '#f8fafc'
+                        },
+                        secondary: {
+                            DEFAULT: '#475569',
+                            dark: '#94a3b8'
+                        }
+                    },
                     surface: {
                         DEFAULT: '#ffffff',
                         dark: '#1e293b',
