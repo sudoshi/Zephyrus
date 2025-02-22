@@ -36,6 +36,12 @@ git stash --include-untracked
 log "Pulling latest changes..."
 git pull origin main
 
+# Ensure bootstrap/cache directory exists with correct permissions
+log "Setting up bootstrap/cache directory..."
+mkdir -p /var/www/Zephyrus/bootstrap/cache
+sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/bootstrap/cache
+sudo_cmd chmod -R 775 /var/www/Zephyrus/bootstrap/cache
+
 # Install/update PHP dependencies
 log "Installing PHP dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader
