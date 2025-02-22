@@ -19,6 +19,14 @@ export default {
             },
             colors: {
                 healthcare: {
+                    surface: {
+                        DEFAULT: '#ffffff',
+                        dark: '#1e293b',
+                        hover: {
+                            DEFAULT: '#f8fafc',
+                            dark: '#334155'
+                        }
+                    },
                     primary: {
                         DEFAULT: '#2563EB', // Deep blue for Hospital
                         dark: '#3B82F6',
