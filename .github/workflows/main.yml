@@ -64,32 +64,22 @@ jobs:
     - name: Validate composer.json
       run: composer validate
 
-    - name: Get composer cache directory
-      id: composer-cache
-      run: |
-        echo "Current directory contents:"
-        ls -la
-        echo "\nComposer home directory:"
-        composer config --global home
-        echo "\nSetting cache directory:"
-        echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-    - name: Verify cache directory
-      run: |
-        echo "Cache directory: ${{ steps.composer-cache.outputs.dir }}"
-        mkdir -p ${{ steps.composer-cache.outputs.dir }}
-        ls -la ${{ steps.composer-cache.outputs.dir }}
-
-    - name: Cache composer dependencies
+    - name: Cache Composer dependencies
       uses: actions/cache@v3
       with:
-        path: ${{ steps.composer-cache.outputs.dir }}
+        path: ~/.cache/composer/files
         key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-composer-
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Create Composer cache directory
+      run: mkdir -p ~/.cache/composer/files
 
     - name: Install PHP Dependencies
       run: |
-        composer install --no-ansi --no-interaction --no-scripts --prefer-dist --verbose
+        composer config --global github-oauth.github.com "${{ secrets.GITHUB_TOKEN }}"
+        composer clear-cache
+        composer install --no-ansi --no-interaction --no-scripts --prefer-dist --verbose --optimize-autoloader
     
     - name: Generate key
       run: php artisan key:generate
