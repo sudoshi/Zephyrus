@@ -128,4 +128,5 @@ jobs:
           git stash --include-untracked
           git pull origin main
           chmod +x deploy-production.sh
-          SUDO_ASKPASS=/bin/echo ./deploy-production.sh
+          export SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
+          ./deploy-production.sh

@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Check if SUDO_PASSWORD is set
+if [ -z "$SUDO_PASSWORD" ]; then
+    echo "Error: SUDO_PASSWORD environment variable is not set"
+    exit 1
+fi
+
+# Function to run sudo commands with password
+sudo_cmd() {
+    echo "$SUDO_PASSWORD" | sudo -S $@
+}
+
 # Exit on error
 set -e
 
@@ -34,7 +45,7 @@ npm install
 
 # Build assets with proper permissions
 log "Building assets..."
-sudo -S chown -R www-data:www-data /var/www/Zephyrus/public/build
+sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/public/build
 npm run build
 
 # Clear caches
@@ -52,11 +63,11 @@ php artisan view:cache
 
 # Update permissions
 log "Updating permissions..."
-sudo -S chown -R www-data:www-data /var/www/Zephyrus/storage
-sudo -S chown -R www-data:www-data /var/www/Zephyrus/bootstrap/cache
+sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/storage
+sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/bootstrap/cache
 
 # Restart PHP-FPM
 log "Restarting PHP-FPM..."
-sudo -S systemctl restart php8.2-fpm
+sudo_cmd systemctl restart php8.2-fpm
 
 log "Deployment completed successfully!"
