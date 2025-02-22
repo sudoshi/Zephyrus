@@ -71,49 +71,54 @@ const DischargePriorities = () => {
       <div className="h-[calc(35vh-6rem)] overflow-y-auto">
         <div className="space-y-2">
           {patients.map((patient) => (
-          <div
-            key={patient.id}
-            className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-healthcare-border dark:border-healthcare-border-dark hover:shadow-md transition-shadow duration-300"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                  {patient.name}
-                </h4>
-                <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                  {patient.age} years • {patient.hospital}
-                </p>
-                <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                  {patient.service} • {patient.unit}
-                </p>
+            <div
+              key={patient.id}
+              className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-healthcare-border dark:border-healthcare-border-dark hover:shadow-md transition-shadow duration-300"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                    {patient.name}
+                  </h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    {patient.age} years • {patient.hospital}
+                  </p>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    {patient.service} • {patient.unit}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                    LOS: {patient.los}/{patient.expectedLos} days
+                  </p>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    Unit Capacity: {patient.unitCapacity}
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                  LOS: {patient.los}/{patient.expectedLos} days
-                </p>
-                <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                  Unit Capacity: {patient.unitCapacity}
-                </p>
+              <div className="mt-2 flex items-center justify-between">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  {
+                    'Rapid': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+                    'Steady': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+                    'Slow': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
+                  }[patient.improvement]
+                }`}>
+                  {patient.improvement} Improvement
+                </span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  {
+                    'Low': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+                    'Medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
+                    'High': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                  }[patient.risk]
+                }`}>
+                  {patient.risk} Risk
+                </span>
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${{
-                'Rapid': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-                'Steady': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
-                'Slow': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-              }[patient.improvement]}`}>
-                {patient.improvement} Improvement
-              </span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${{
-                'Low': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-                'Medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
-                'High': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-              }[patient.risk]}`}>
-                {patient.risk} Risk
-              </span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
