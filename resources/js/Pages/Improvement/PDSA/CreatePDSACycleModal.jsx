@@ -10,7 +10,7 @@ import {
 } from '@/Components/ui/dialog';
 import { Button } from '@/Components/ui/button';
 import Input from '@/Components/ui/input';
-import { Textarea } from '@/Components/ui/textarea';
+import Textarea from '@/Components/ui/textarea';
 import Label from '@/Components/ui/label';
 
 export default function CreatePDSACycleModal({ isOpen, onClose }) {
