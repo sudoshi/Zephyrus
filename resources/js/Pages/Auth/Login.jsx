@@ -1,12 +1,31 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import { Listbox } from '@headlessui/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 import DataModeToggle from '@/Components/Common/DataModeToggle';
 import Card from '@/Components/Dashboard/Card';
-import { useDarkMode } from '@/hooks/useDarkMode';
+
+// Inline implementation of useDarkMode hook
+const useDarkMode = () => {
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const savedMode = localStorage.getItem('darkMode');
+        return savedMode ? JSON.parse(savedMode) : false;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDarkMode]);
+
+    return [isDarkMode, setIsDarkMode];
+};
+
 export default function Login({ status, canResetPassword, csrf_token }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -23,24 +42,24 @@ export default function Login({ status, canResetPassword, csrf_token }) {
         { value: 'ed', label: 'ED' },
     ];
 
-const submit = (e) => {
-    e.preventDefault();
-    post('/login', {
-        workflow: data.workflow,
-        username: data.username,
-        password: data.password,
-        remember: data.remember,
-        csrf_token: csrf_token,
-        preserveState: false,
-        preserveScroll: false,
-        onFinish: () => reset('password'),
-        onError: (errors) => {
-            if (errors.general) {
-                setData('general', errors.general);
-            }
-        },
-    });
-};
+    const submit = (e) => {
+        e.preventDefault();
+        post('/login', {
+            workflow: data.workflow,
+            username: data.username,
+            password: data.password,
+            remember: data.remember,
+            csrf_token: csrf_token,
+            preserveState: false,
+            preserveScroll: false,
+            onFinish: () => reset('password'),
+            onError: (errors) => {
+                if (errors.general) {
+                    setData('general', errors.general);
+                }
+            },
+        });
+    };
 
     return (
         <GuestLayout>
@@ -117,7 +136,7 @@ const submit = (e) => {
                                 </p>
                             )}
                         </div>
-
+                            
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                 Password
@@ -181,7 +200,6 @@ const submit = (e) => {
                                 {errors.general}
                             </div>
                         )}
-
                     </form>
                 </Card.Content>
             </Card>

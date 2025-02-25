@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useDarkMode } from '../../../hooks/useDarkMode';
-import ErrorBoundary from '../../Common/ErrorBoundary';
-import { mockProviderAnalytics } from '../../../mock-data/provider-analytics';
+import { useDarkMode } from '@/hooks/useDarkMode';
+import ErrorBoundary from '@/Components/Common/ErrorBoundary';
+import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
 import { Icon } from '@iconify/react';
-import SummaryCards from '../BlockUtilization/SummaryCards';
-import FilterSidebar from '../BlockUtilization/FilterSidebar';
-import DarkModeToggle from '../../Common/DarkModeToggle';
+import SummaryCards from '@/Components/Analytics/BlockUtilization/SummaryCards';
+import FilterSidebar from '@/Components/Analytics/BlockUtilization/FilterSidebar';
+import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 import PropTypes from 'prop-types';
 
 const ProviderDashboard = () => {

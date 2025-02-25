@@ -82,19 +82,29 @@ const workflowNavigationConfig = {
     name: 'Perioperative',
     analytics: [
       {
-        name: 'Service Analytics',
-        href: '/analytics/service',
-        description: 'Analyze performance metrics across different services',
+        name: 'Block Utilization',
+        href: '/analytics/block-utilization',
+        description: 'Analyze block time utilization metrics',
       },
       {
-        name: 'Provider Analytics',
-        href: '/analytics/provider',
-        description: 'Monitor provider efficiency and performance metrics',
+        name: 'OR Utilization',
+        href: '/analytics/or-utilization',
+        description: 'Monitor operating room utilization',
       },
       {
-        name: 'Historical Trends',
-        href: '/analytics/trends',
-        description: 'Examine historical patterns and track performance over time',
+        name: 'Primetime Utilization',
+        href: '/analytics/primetime-utilization',
+        description: 'Analyze utilization during prime operating hours',
+      },
+      {
+        name: 'Room Running',
+        href: '/analytics/room-running',
+        description: 'Track operating room running metrics',
+      },
+      {
+        name: 'Turnover Times',
+        href: '/analytics/turnover-times',
+        description: 'Analyze room turnover performance',
       },
     ],
     operations: [

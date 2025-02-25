@@ -1,0 +1,292 @@
+[
+  {
+    "provider_name": "ABRAHAM, JOHN A",
+    "surgeon_group_name": "Abraham Orthopaedics",
+    "title": "MD",
+    "specialty": "Orthopaedic Surgery"
+  },
+  {
+    "provider_name": "YAROS, MICHAEL J.",
+    "surgeon_group_name": "Advanced Eyecare and Laser Center",
+    "title": "MD",
+    "specialty": "Ophthalmology"
+  },
+  {
+    "provider_name": "BOYAJIAN, STEPHEN S",
+    "surgeon_group_name": "Advanced Pain Consultants, PA",
+    "title": "DO",
+    "specialty": "Pain Medicine"
+  },
+  {
+    "provider_name": "DIENER, MELISSA",
+    "surgeon_group_name": "Advocare Berlin Medical Associates, P.A.",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "HAMMER, ASHLEY M",
+    "surgeon_group_name": "Advocare Burlington County Obstetrics & Gynecology",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "HULBERT, DAVID",
+    "surgeon_group_name": "Advocare Burlington County Obstetrics & Gynecology",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "SIEGEL, FRANCINE M.",
+    "surgeon_group_name": "Advocare Burlington County Obstetrics & Gynecology",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "ZALKIN, MICHAEL I.",
+    "surgeon_group_name": "Advocare Burlington County Obstetrics & Gynecology",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "BENETT, JODI A",
+    "surgeon_group_name": "Advocare Center for Specialized Gynecology",
+    "title": "DO",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "FISHER, RACHAEL L",
+    "surgeon_group_name": "Advocare Center for Specialized Gynecology",
+    "title": "DO",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "GORLITSKY, HELEN",
+    "surgeon_group_name": "Advocare Center for Specialized Gynecology",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "EMPAYNADO, EDWIN A",
+    "surgeon_group_name": "Advocare Colon and Rectal Surgical Specialists",
+    "title": "MD",
+    "specialty": "Colon and Rectal Surgery"
+  },
+  {
+    "provider_name": "IRWIN, EYTAN A",
+    "surgeon_group_name": "Advocare Colon and Rectal Surgical Specialists",
+    "title": "MD",
+    "specialty": "Colon and Rectal Surgery"
+  },
+  {
+    "provider_name": "AFTAB, SABA",
+    "surgeon_group_name": "Advocare ENT Specialty Center",
+    "title": "MD",
+    "specialty": "Otolaryngology"
+  },
+  {
+    "provider_name": "HJELM, NIKOLAUS STAFFAN",
+    "surgeon_group_name": "Advocare ENT Specialty Center",
+    "title": "MD",
+    "specialty": "Otolaryngology"
+  },
+  {
+    "provider_name": "SCHAFFER, SCOTT R",
+    "surgeon_group_name": "Advocare ENT Specialty Center",
+    "title": "MD",
+    "specialty": "Otolaryngology"
+  },
+  {
+    "provider_name": "WONG, GABRIEL",
+    "surgeon_group_name": "Advocare ENT Specialty Center",
+    "title": "MD",
+    "specialty": "Otolaryngology, Plastic Surgery"
+  },
+  {
+    "provider_name": "MAGNESS, ROSE L.",
+    "surgeon_group_name": "Advocare Magness & Stafford OBGYN Associates",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "STAFFORD, PATRICIA T.",
+    "surgeon_group_name": "Advocare Magness & Stafford OBGYN Associates",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "CAREY, CHRISTOPHER, T",
+    "surgeon_group_name": "Advocare Orthopedic Reconstruction Specialists",
+    "title": "MD",
+    "specialty": "Surgery"
+  },
+  {
+    "provider_name": "FELSENSTEIN, ROBERTA G",
+    "surgeon_group_name": "Advocare Premier OB/GYN of South Jersey",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "GOLDBERG, LEAH",
+    "surgeon_group_name": "Advocare Premier OB/GYN of South Jersey",
+    "title": "",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "GROSSMAN, ERIC B",
+    "surgeon_group_name": "Advocare Premier OB/GYN of South Jersey",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "MALDONADO-PUEBLA, MARIGLORIA",
+    "surgeon_group_name": "Advocare Premier OB/GYN of South Jersey",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "NUGENT, THOMAS R",
+    "surgeon_group_name": "Advocare Pulmonary and Sleep Physicians of South Jersey",
+    "title": "MD",
+    "specialty": "Pulmonary Disease"
+  },
+  {
+    "provider_name": "SCHNALL, BRUCE M",
+    "surgeon_group_name": "Advocare Schnall Pediatric Ophthamology",
+    "title": "MD",
+    "specialty": "Ophthalmology"
+  },
+  {
+    "provider_name": "BENSINGER, ANDREW",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "DO",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "COHEN, NEIL M",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "DEVITA, JACK J.",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "LANDER, JARED D",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "DO",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "LEVIN, GARY H.",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "PORAT, GAIL M",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "ZAVALA, STACEY R",
+    "surgeon_group_name": "Advocare South Jersey Gastroenterology",
+    "title": "MD",
+    "specialty": "Gastroenterology"
+  },
+  {
+    "provider_name": "DANIELS, JEFFREY B",
+    "surgeon_group_name": "Advocare South Jersey Orthopedic Associates",
+    "title": "MD",
+    "specialty": "Orthopaedic Surgery"
+  },
+  {
+    "provider_name": "NOVACK, THOMAS",
+    "surgeon_group_name": "Advocare South Jersey Orthopedic Associates",
+    "title": "MD",
+    "specialty": "Orthopaedic Surgery"
+  },
+  {
+    "provider_name": "O'DOWD, THOMAS J",
+    "surgeon_group_name": "Advocare South Jersey Orthopedic Associates",
+    "title": "MD",
+    "specialty": "Orthopaedic Surgery"
+  },
+  {
+    "provider_name": "WETZLER, MERRICK",
+    "surgeon_group_name": "Advocare South Jersey Orthopedic Associates",
+    "title": "MD",
+    "specialty": "Orthopaedic Surgery, Sports Medicine"
+  },
+  {
+    "provider_name": "D'ELIA, DONNA L",
+    "surgeon_group_name": "Advocare The OB/GYN Specialists",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "FERRILL, KAITLYN M",
+    "surgeon_group_name": "Advocare The OB/GYN Specialists",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "GODORECCI, MICHELE",
+    "surgeon_group_name": "Advocare The OB/GYN Specialists",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "MARTINEZ, WENDY",
+    "surgeon_group_name": "Advocare Women's Group for OB/GYN",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "CLARK, ROBIN",
+    "surgeon_group_name": "Advocare, LLC",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "TAI, STEPHEN J.",
+    "surgeon_group_name": "Advocare, LLC",
+    "title": "MD",
+    "specialty": "Otolaryngology"
+  },
+  {
+    "provider_name": "OBIANWU, CHIKE WILLIAM",
+    "surgeon_group_name": "Alliance OB/GYN Consultants",
+    "title": "MD",
+    "specialty": "Obstetrics and Gynecology"
+  },
+  {
+    "provider_name": "ABRAMSOHN, HOWARD S.",
+    "surgeon_group_name": "Ambulatory Foot and Ankle Associates",
+    "title": "DPM",
+    "specialty": "Podiatry"
+  },
+  {
+    "provider_name": "SANTOMAURO, JOSEPH",
+    "surgeon_group_name": "Ambulatory Foot and Ankle Associates",
+    "title": "DPM",
+    "specialty": "Podiatry"
+  },
+  {
+    "provider_name": "APPEL, DOUGLAS",
+    "surgeon_group_name": "Appel Foot & Ankle Center, LLC",
+    "title": "DPM",
+    "specialty": "Podiatry"
+  },
+  {
+    "provider_name": "ATLAS, ORIN",
+    "surgeon_group_name": "Atlas Spine",
+    "title": "MD",
+    "specialty": "Spine Surgery, Orthopaedic Surgery"
+  }
+
+  // ... Continue listing EVERY line from your CSV in the same format ...
+]

@@ -98,9 +98,12 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Analytics Routes
-    Route::get('/analytics/service', [Analytics\ServiceAnalyticsController::class, 'index'])->name('analytics.service');
-    Route::get('/analytics/provider', [Analytics\ProviderAnalyticsController::class, 'index'])->name('analytics.provider');
-    Route::get('/analytics/trends', [Analytics\HistoricalTrendsController::class, 'index'])->name('analytics.trends');
+    Route::get('/analytics', [Analytics\AnalyticsController::class, 'index'])->name('analytics');
+    Route::get('/analytics/block-utilization', [Analytics\BlockUtilizationController::class, 'index'])->name('analytics.block-utilization');
+    Route::get('/analytics/or-utilization', [Analytics\ORUtilizationController::class, 'index'])->name('analytics.or-utilization');
+    Route::get('/analytics/primetime-utilization', [Analytics\PrimetimeUtilizationController::class, 'index'])->name('analytics.primetime-utilization');
+    Route::get('/analytics/room-running', [Analytics\RoomRunningController::class, 'index'])->name('analytics.room-running');
+    Route::get('/analytics/turnover-times', [Analytics\TurnoverTimesController::class, 'index'])->name('analytics.turnover-times');
 
     // Operations Routes
     Route::get('/operations/room-status', [Operations\RoomStatusController::class, 'index'])->name('operations.room-status');
@@ -140,6 +143,13 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('design')->name('design.')->group(function () {
         Route::get('/components', [DesignController::class, 'components'])->name('components');
         Route::get('/cards', [DesignController::class, 'cards'])->name('cards');
+        Route::get('/ui-components', function() {
+            return Inertia::render('Examples/ComponentsDemo');
+        })->name('ui-components');
+        
+        Route::get('/simple-test', function() {
+            return Inertia::render('Examples/SimpleTest');
+        })->name('simple-test');
     });
 
     // Profile Routes

@@ -1,0 +1,497 @@
+{
+  "hospitals": [
+    {
+      "id": "marh",
+      "name": "Virtua Marlton Hospital",
+      "code": "MARH"
+    },
+    {
+      "id": "memh",
+      "name": "Virtua Mount Holly Hospital",
+      "code": "MEMH"
+    },
+    {
+      "id": "ollh",
+      "name": "Virtua Our Lady of Lourdes Hospital",
+      "code": "OLLH"
+    },
+    {
+      "id": "vorh",
+      "name": "Virtua Voorhees Hospital",
+      "code": "VORH"
+    },
+    {
+      "id": "wilh",
+      "name": "Virtua Willingboro Hospital",
+      "code": "WILH"
+    }
+  ],
+
+  "orLocations": [
+    {
+      "id": "marh-ir",
+      "name": "MARH IR",
+      "hospitalId": "marh",
+      "fullName": "Marlton Interventional Radiology"
+    },
+    {
+      "id": "marh-or",
+      "name": "MARH OR",
+      "hospitalId": "marh",
+      "fullName": "Marlton Operating Room"
+    },
+    {
+      "id": "memh-mhas-or",
+      "name": "MEMH MHAS OR",
+      "hospitalId": "memh",
+      "fullName": "Mt. Holly Ambulatory Surgery OR"
+    },
+    {
+      "id": "memh-or",
+      "name": "MEMH OR",
+      "hospitalId": "memh",
+      "fullName": "Mt. Holly Operating Room"
+    },
+    {
+      "id": "ollh-or",
+      "name": "OLLH OR",
+      "hospitalId": "ollh",
+      "fullName": "Our Lady of Lourdes Operating Room"
+    },
+    {
+      "id": "vorh-jri-or",
+      "name": "VORH JRI OR",
+      "hospitalId": "vorh",
+      "fullName": "Voorhees Joint Replacement Institute OR"
+    },
+    {
+      "id": "vorh-or",
+      "name": "VORH OR",
+      "hospitalId": "vorh",
+      "fullName": "Voorhees Operating Room"
+    },
+    {
+      "id": "vssc-or",
+      "name": "VSSC OR",
+      "hospitalId": "vorh",
+      "fullName": "Voorhees Surgical Short Case OR"
+    },
+    {
+      "id": "wilh-or",
+      "name": "WILH OR",
+      "hospitalId": "wilh",
+      "fullName": "Willingboro Operating Room"
+    }
+  ],
+
+  "locationMapping": [
+    {
+      "raw_room": "MARH IR RM 1",
+      "prod_room": "MARH IR"
+    },
+    {
+      "raw_room": "OLLH CATH LAB A",
+      "prod_room": "OLLCCLA"
+    },
+    {
+      "raw_room": "OLLH CATH LAB B",
+      "prod_room": "OLLCCLB"
+    },
+    {
+      "raw_room": "OLLH CATH LAB C",
+      "prod_room": "OLLCCLC"
+    },
+    {
+      "raw_room": "OLLH CATH LAB D",
+      "prod_room": "OLLCCLD"
+    },
+    {
+      "raw_room": "OLLH EP 5TH FL PROCEDURAL HOLDING",
+      "prod_room": "OLLH EP HLD"
+    },
+    {
+      "raw_room": "OLLH EP BASEMENT PROCEDURAL HOLDING",
+      "prod_room": "OLLH EP HLD"
+    },
+    {
+      "raw_room": "OLLH EP LAB 2",
+      "prod_room": "OLLEPL2"
+    },
+    {
+      "raw_room": "OLLH EP LAB 3",
+      "prod_room": "OLLEPL3"
+    },
+    {
+      "raw_room": "OLLH EP LAB 5",
+      "prod_room": "OLLEPL 5"
+    },
+    {
+      "raw_room": "VH MA MACCL 01",
+      "prod_room": "MACCL01"
+    },
+    {
+      "raw_room": "VH MA MACCL 02",
+      "prod_room": "MACCL02"
+    },
+    {
+      "raw_room": "VH MARH ENDO 01",
+      "prod_room": "MAE01"
+    },
+    {
+      "raw_room": "VH MARH ENDO 02",
+      "prod_room": "MAE02"
+    },
+    {
+      "raw_room": "VH MARH ENDO OFFSITE",
+      "prod_room": "MAE OFFSITE"
+    },
+    {
+      "raw_room": "VH MARH OR 01",
+      "prod_room": "MAOR01"
+    },
+    {
+      "raw_room": "VH MARH OR 02",
+      "prod_room": "MAOR02"
+    },
+    {
+      "raw_room": "VH MARH OR 04",
+      "prod_room": "MAOR04"
+    },
+    {
+      "raw_room": "VH MARH OR 05",
+      "prod_room": "MAOR05"
+    },
+    {
+      "raw_room": "VH MARH OR 06",
+      "prod_room": "MAOR06"
+    },
+    {
+      "raw_room": "VH MARH OR 07",
+      "prod_room": "MAOR07"
+    },
+    {
+      "raw_room": "VH MARH OR 08",
+      "prod_room": "MAOR08"
+    },
+    {
+      "raw_room": "VH ME MECCL 01",
+      "prod_room": "MECCL01"
+    },
+    {
+      "raw_room": "VH ME MECCL 02",
+      "prod_room": "MECCL02"
+    },
+    {
+      "raw_room": "VH MEMH ENDO 01",
+      "prod_room": "MHE01"
+    },
+    {
+      "raw_room": "VH MEMH ENDO 02",
+      "prod_room": "MHE02"
+    },
+    {
+      "raw_room": "VH MEMH ENDO 03",
+      "prod_room": "MHE03"
+    },
+    {
+      "raw_room": "VH MEMH ENDO OFFSITE",
+      "prod_room": "MHE OFFSITE"
+    },
+    {
+      "raw_room": "VH MEMH LD 01",
+      "prod_room": "VLD01"
+    },
+    {
+      "raw_room": "VH MEMH LD 02",
+      "prod_room": "VLD02"
+    },
+    {
+      "raw_room": "VH MEMH MHAS OR 01",
+      "prod_room": "MHASOR01"
+    },
+    {
+      "raw_room": "VH MEMH MHAS OR 02",
+      "prod_room": "MHASOR02"
+    },
+    {
+      "raw_room": "VH MEMH MHAS OR 03",
+      "prod_room": "MHASOR03"
+    },
+    {
+      "raw_room": "VH MEMH MHAS OR 04",
+      "prod_room": "MHASOR04"
+    },
+    {
+      "raw_room": "VH MEMH MHAS PAIN ROOM",
+      "prod_room": "PAIN"
+    },
+    {
+      "raw_room": "VH MEMH OR 01",
+      "prod_room": "MEOR01"
+    },
+    {
+      "raw_room": "VH MEMH OR 02",
+      "prod_room": "MEOR02"
+    },
+    {
+      "raw_room": "VH MEMH OR 03",
+      "prod_room": "MEOR03"
+    },
+    {
+      "raw_room": "VH MEMH OR 04",
+      "prod_room": "MEOR04"
+    },
+    {
+      "raw_room": "VH MEMH OR 05",
+      "prod_room": "MEOR05"
+    },
+    {
+      "raw_room": "VH MEMH OR 06",
+      "prod_room": "MEOR06"
+    },
+    {
+      "raw_room": "VH MEMH OR 07",
+      "prod_room": "MEOR07"
+    },
+    {
+      "raw_room": "VH MEMH OR 08",
+      "prod_room": "MEOR08"
+    },
+    {
+      "raw_room": "VH MEMH OR 09",
+      "prod_room": "MEOR09"
+    },
+    {
+      "raw_room": "VH MEMH OR 10",
+      "prod_room": "MEOR10"
+    },
+    {
+      "raw_room": "VH MEMH OR 11",
+      "prod_room": "MEOR11"
+    },
+    {
+      "raw_room": "VH MEMH OR OFFSITE",
+      "prod_room": "MEOROFF"
+    },
+    {
+      "raw_room": "VH OLLH ENDO 01",
+      "prod_room": "CENDO01"
+    },
+    {
+      "raw_room": "VH OLLH ENDO 02",
+      "prod_room": "CENDO02"
+    },
+    {
+      "raw_room": "VH OLLH ENDO 03",
+      "prod_room": "CENDO03"
+    },
+    {
+      "raw_room": "VH OLLH ENDO ISO 18",
+      "prod_room": "UNKNOWN"
+    },
+    {
+      "raw_room": "VH OLLH ENDO OFFSITE",
+      "prod_room": "CENDO03"
+    },
+    {
+      "raw_room": "VH OLLH HYBRID OR 11",
+      "prod_room": "CHYBRID11"
+    },
+    {
+      "raw_room": "VH OLLH LD 01",
+      "prod_room": "CLD01"
+    },
+    {
+      "raw_room": "VH OLLH LD 02",
+      "prod_room": "CLD02"
+    },
+    {
+      "raw_room": "VH OLLH OR 01",
+      "prod_room": "COR01"
+    },
+    {
+      "raw_room": "VH OLLH OR 02",
+      "prod_room": "COR02"
+    },
+    {
+      "raw_room": "VH OLLH OR 03",
+      "prod_room": "COR03"
+    },
+    {
+      "raw_room": "VH OLLH OR 04",
+      "prod_room": "COR04"
+    },
+    {
+      "raw_room": "VH OLLH OR 05",
+      "prod_room": "COR05"
+    },
+    {
+      "raw_room": "VH OLLH OR 06",
+      "prod_room": "COR06"
+    },
+    {
+      "raw_room": "VH OLLH OR 07",
+      "prod_room": "COR07"
+    },
+    {
+      "raw_room": "VH OLLH OR 08",
+      "prod_room": "COR08"
+    },
+    {
+      "raw_room": "VH OLLH OR 09",
+      "prod_room": "COR09"
+    },
+    {
+      "raw_room": "VH OLLH OR 10",
+      "prod_room": "COR10"
+    },
+    {
+      "raw_room": "VH OLLH OR OFFSITE",
+      "prod_room": "UNKNOWN"
+    },
+    {
+      "raw_room": "VH VORH ENDO 01",
+      "prod_room": "VE01"
+    },
+    {
+      "raw_room": "VH VORH ENDO 02",
+      "prod_room": "VE02"
+    },
+    {
+      "raw_room": "VH VORH JRI 01",
+      "prod_room": "JRI01"
+    },
+    {
+      "raw_room": "VH VORH JRI 02",
+      "prod_room": "JRI02"
+    },
+    {
+      "raw_room": "VH VORH JRI 03",
+      "prod_room": "JRI03"
+    },
+    {
+      "raw_room": "VH VORH JRI 04",
+      "prod_room": "JRI04"
+    },
+    {
+      "raw_room": "VH VORH JRI 05",
+      "prod_room": "JRI05"
+    },
+    {
+      "raw_room": "VH VORH JRI 06",
+      "prod_room": "JRI06"
+    },
+    {
+      "raw_room": "VH VORH LD 01",
+      "prod_room": "VLD01"
+    },
+    {
+      "raw_room": "VH VORH LD 02",
+      "prod_room": "VLD02"
+    },
+    {
+      "raw_room": "VH VORH LD 03",
+      "prod_room": "VLD 03"
+    },
+    {
+      "raw_room": "VH VORH LD 04",
+      "prod_room": "VLD04"
+    },
+    {
+      "raw_room": "VH VORH OR 01",
+      "prod_room": "VOR01"
+    },
+    {
+      "raw_room": "VH VORH OR 02",
+      "prod_room": "VOR02"
+    },
+    {
+      "raw_room": "VH VORH OR 03",
+      "prod_room": "VOR03"
+    },
+    {
+      "raw_room": "VH VORH OR 04",
+      "prod_room": "VOR04"
+    },
+    {
+      "raw_room": "VH VORH OR 05",
+      "prod_room": "VOR05"
+    },
+    {
+      "raw_room": "VH VORH OR 06",
+      "prod_room": "VOR06"
+    },
+    {
+      "raw_room": "VH VORH OR 07",
+      "prod_room": "VOR07"
+    },
+    {
+      "raw_room": "VH VORH OR 08",
+      "prod_room": "VOR08"
+    },
+    {
+      "raw_room": "VH VSSC ENDO 01",
+      "prod_room": "SSE01"
+    },
+    {
+      "raw_room": "VH VSSC ENDO 02",
+      "prod_room": "SSE02"
+    },
+    {
+      "raw_room": "VH VSSC OR 01",
+      "prod_room": "SSOR01"
+    },
+    {
+      "raw_room": "VH VSSC OR 02",
+      "prod_room": "SSOR02"
+    },
+    {
+      "raw_room": "VH VSSC OR 03",
+      "prod_room": "SSOR03"
+    },
+    {
+      "raw_room": "VH VSSC OR 04",
+      "prod_room": "SSOR04"
+    },
+    {
+      "raw_room": "VH VSSC OR 05",
+      "prod_room": "SSOR05"
+    },
+    {
+      "raw_room": "VH VSSC OR 06",
+      "prod_room": "SSOR06"
+    },
+    {
+      "raw_room": "VH VSSC OR 07",
+      "prod_room": "SSOR07"
+    },
+    {
+      "raw_room": "VH WILH OR 01",
+      "prod_room": "WOR01"
+    },
+    {
+      "raw_room": "VH WILH OR 02",
+      "prod_room": "WOR02"
+    },
+    {
+      "raw_room": "VH WILH OR 03",
+      "prod_room": "WOR03"
+    },
+    {
+      "raw_room": "VH WILH OR 04",
+      "prod_room": "WOR04"
+    },
+    {
+      "raw_room": "VH WILH OR 05",
+      "prod_room": "WOR05"
+    },
+    {
+      "raw_room": "VH WILH OR 07",
+      "prod_room": "WOR07"
+    },
+    {
+      "raw_room": "VH WILH OR OFFSITE",
+      "prod_room": "UNKNOWN"
+    }
+  ]
+}

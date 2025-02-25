@@ -1,5 +1,6 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+import flowbite from 'flowbite/plugin';
 const { heroui } = require("@heroui/react");
 
 /** @type {import('tailwindcss').Config} */
@@ -10,6 +11,8 @@ export default {
         './resources/views/**/*.blade.php',
         './resources/js/**/*.jsx',
         './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
+        './node_modules/flowbite-react/**/*.{js,jsx,ts,tsx}',
+        './node_modules/flowbite/**/*.js'
     ],
 
     theme: {
@@ -161,5 +164,6 @@ export default {
         strategy: 'class',
     }),
     heroui(),
+    require('flowbite/plugin'),
 ],
 };

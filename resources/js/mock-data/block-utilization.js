@@ -1,283 +1,368 @@
-// Mock data for block utilization dashboard
+// Mock data for block utilization analytics
 export const mockBlockUtilization = {
-  // Overall metrics across all sites
+  // Overall metrics across all sites and services
   overallMetrics: {
     byService: {
-      'VSG General/Vascular/Colorectal/Thoracic': {
-        cases: 1211,
-        in_block: 104049,
-        prime_out_block: 27286,
-        total_non_prime: 25832,
-        non_prime_percentage: 16.44,
-        block_time: 163920,
-        in_block_utilization: 63.48,
-        total_block_utilization: 80.12
+      'Orthopedics': {
+        in_block_utilization: 63.5,
+        total_block_utilization: 75.4,
+        non_prime_percentage: 16.4,
+        cases: 1106
       },
-      'Orthopedic Surgery': {
-        cases: 1170,
-        in_block: 121310,
-        prime_out_block: 37252,
-        total_non_prime: 21575,
-        non_prime_percentage: 11.98,
-        block_time: 216780,
-        in_block_utilization: 55.96,
-        total_block_utilization: 73.14
+      'General Surgery': {
+        in_block_utilization: 68.2,
+        total_block_utilization: 79.1,
+        non_prime_percentage: 14.8,
+        cases: 982
       },
-      'Urology': {
-        cases: 967,
-        in_block: 74953,
-        prime_out_block: 16426,
-        total_non_prime: 18562,
-        non_prime_percentage: 16.88,
-        block_time: 129390,
-        in_block_utilization: 57.93,
-        total_block_utilization: 70.62
+      'Neurosurgery': {
+        in_block_utilization: 71.3,
+        total_block_utilization: 82.7,
+        non_prime_percentage: 12.9,
+        cases: 543
       },
-      'Obstetrics and Gynecology': {
-        cases: 959,
-        in_block: 53214,
-        prime_out_block: 53035,
-        total_non_prime: 13624,
-        non_prime_percentage: 11.37,
-        block_time: 106530,
-        in_block_utilization: 49.95,
-        total_block_utilization: 99.74
+      'Cardiothoracic': {
+        in_block_utilization: 75.8,
+        total_block_utilization: 84.2,
+        non_prime_percentage: 10.5,
+        cases: 421
+      },
+      'ENT': {
+        in_block_utilization: 59.7,
+        total_block_utilization: 72.3,
+        non_prime_percentage: 18.2,
+        cases: 678
       }
     }
   },
-
+  
   // Site-specific data
   sites: {
     'MARH OR': {
-      services: [
-        {
-          service_id: 1,
-          service_name: 'Bariatrics',
-          numof_cases: 39,
-          before_block_start: 66,
-          in_block: 3427,
-          overusage: 0,
-          out_of_block: 2761,
-          after_block_finish: 344,
-          non_prime_percentage: 6.21,
-          block_time: 12210,
-          in_block_utilization: 28.07,
-          total_block_utilization: 50.68,
-          by_week: {
-            1: { utilization: 68.17, cases: 7 },
-            2: { utilization: 46.27, cases: 0 },
-            3: { utilization: 38.24, cases: 3 },
-            4: { utilization: 44.97, cases: 0 },
-            5: { utilization: 0.00, cases: 0 }
-          }
-        },
-        // ... existing MARH OR services ...
-      ],
       totals: {
-        numof_cases: 1106,
-        before_block_start: 1634,
-        in_block: 85874,
-        overusage: 13476,
-        out_of_block: 22236,
-        after_block_finish: 19260,
-        non_prime_percentage: 14.66,
-        block_time: 161370,
-        in_block_utilization: 53.22,
-        total_block_utilization: 75.35
-      }
-    },
-    'MEMH MHAS OR': {
+        in_block_utilization: 67.8,
+        total_block_utilization: 78.3,
+        non_prime_percentage: 15.2,
+        numof_cases: 2345
+      },
       services: [
         {
-          service_name: 'Obstetrics and Gynecology',
+          service_name: 'Orthopedics',
+          in_block_utilization: 65.2,
+          total_block_utilization: 76.8,
+          non_prime_percentage: 17.3,
           providers: [
-            {
-              name: 'ADVO BURLINGTON OB/GYN',
-              metrics: {
-                cases: 45,
-                utilization: 52.13,
-                by_day: {
-                  Tuesday: { cases: 12, utilization: 58.47 },
-                  Wednesday: { cases: 2, utilization: 19.51 },
-                  Thursday: { cases: 9, utilization: 45.82 },
-                  Friday: { cases: 22, utilization: 63.73 }
-                }
-              }
-            },
-            {
-              name: 'VIRTUA OB/GYN NORTH',
-              metrics: {
-                cases: 123,
-                utilization: 83.54,
-                by_day: {
-                  Tuesday: { cases: 10, utilization: 62.78 },
-                  Wednesday: { cases: 14, utilization: 43.65 },
-                  Thursday: { cases: 49, utilization: 217.09 },
-                  Friday: { cases: 50, utilization: 63.51 }
-                }
-              }
-            }
+            { name: 'Dr. Smith', in_block_utilization: 68.4, total_block_utilization: 79.2, non_prime_percentage: 15.8 },
+            { name: 'Dr. Johnson', in_block_utilization: 62.1, total_block_utilization: 74.5, non_prime_percentage: 18.9 }
           ]
         },
         {
-          service_name: 'Orthopedic Surgery',
+          service_name: 'General Surgery',
+          in_block_utilization: 70.5,
+          total_block_utilization: 81.2,
+          non_prime_percentage: 13.7,
           providers: [
-            {
-              name: 'B. C. ORTHO',
-              metrics: {
-                cases: 31,
-                utilization: 32.15,
-                by_day: {
-                  Tuesday: { cases: 20, utilization: 33.16 },
-                  Thursday: { cases: 11, utilization: 30.45 }
-                }
-              }
-            }
+            { name: 'Dr. Williams', in_block_utilization: 72.8, total_block_utilization: 83.4, non_prime_percentage: 12.5 },
+            { name: 'Dr. Davis', in_block_utilization: 68.2, total_block_utilization: 79.0, non_prime_percentage: 14.9 }
+          ]
+        },
+        {
+          service_name: 'Neurosurgery',
+          in_block_utilization: 73.4,
+          total_block_utilization: 84.1,
+          non_prime_percentage: 11.8,
+          providers: [
+            { name: 'Dr. Brown', in_block_utilization: 75.6, total_block_utilization: 86.3, non_prime_percentage: 10.2 },
+            { name: 'Dr. Miller', in_block_utilization: 71.2, total_block_utilization: 81.9, non_prime_percentage: 13.4 }
+          ]
+        },
+        {
+          service_name: 'Cardiothoracic',
+          in_block_utilization: 77.2,
+          total_block_utilization: 85.9,
+          non_prime_percentage: 9.8,
+          providers: [
+            { name: 'Dr. Wilson', in_block_utilization: 79.5, total_block_utilization: 87.2, non_prime_percentage: 8.6 },
+            { name: 'Dr. Moore', in_block_utilization: 74.9, total_block_utilization: 84.6, non_prime_percentage: 11.0 }
+          ]
+        },
+        {
+          service_name: 'ENT',
+          in_block_utilization: 61.3,
+          total_block_utilization: 73.8,
+          non_prime_percentage: 17.5,
+          providers: [
+            { name: 'Dr. Taylor', in_block_utilization: 63.7, total_block_utilization: 75.2, non_prime_percentage: 16.1 },
+            { name: 'Dr. Anderson', in_block_utilization: 58.9, total_block_utilization: 72.4, non_prime_percentage: 18.9 }
           ]
         }
       ]
     },
     'VORH JRI OR': {
-      services: {
-        'Breast Surgery': {
-          providers: {
-            'VIRTUA BREAST CARE - VOORHEES': {
-              metrics: {
-                by_month: {
-                  '2024-10': { cases: 27, utilization: 86.42 },
-                  '2024-11': { cases: 21, utilization: 77.99 },
-                  '2024-12': { cases: 19, utilization: 83.95 }
-                }
-              }
-            }
-          }
+      totals: {
+        in_block_utilization: 69.4,
+        total_block_utilization: 80.1,
+        non_prime_percentage: 14.3,
+        numof_cases: 1876
+      },
+      services: [
+        {
+          service_name: 'Orthopedics',
+          in_block_utilization: 67.8,
+          total_block_utilization: 78.5,
+          non_prime_percentage: 16.2,
+          providers: [
+            { name: 'Dr. Thomas', in_block_utilization: 70.1, total_block_utilization: 80.7, non_prime_percentage: 14.8 },
+            { name: 'Dr. Jackson', in_block_utilization: 65.5, total_block_utilization: 76.3, non_prime_percentage: 17.6 }
+          ]
         },
-        'Colon and Rectal Surgery': {
-          providers: {
-            'VSG COLORECTAL MOORESTOWN': {
-              metrics: {
-                by_month: {
-                  '2024-10': { cases: 14, utilization: 79.38 },
-                  '2024-11': { cases: 11, utilization: 57.50 },
-                  '2024-12': { cases: 15, utilization: 80.00 }
-                }
-              }
-            }
-          }
+        {
+          service_name: 'General Surgery',
+          in_block_utilization: 72.3,
+          total_block_utilization: 82.9,
+          non_prime_percentage: 12.8,
+          providers: [
+            { name: 'Dr. White', in_block_utilization: 74.6, total_block_utilization: 84.2, non_prime_percentage: 11.5 },
+            { name: 'Dr. Harris', in_block_utilization: 70.0, total_block_utilization: 81.6, non_prime_percentage: 14.1 }
+          ]
+        },
+        {
+          service_name: 'Neurosurgery',
+          in_block_utilization: 75.1,
+          total_block_utilization: 85.7,
+          non_prime_percentage: 10.9,
+          providers: [
+            { name: 'Dr. Martin', in_block_utilization: 77.3, total_block_utilization: 87.0, non_prime_percentage: 9.6 },
+            { name: 'Dr. Thompson', in_block_utilization: 72.9, total_block_utilization: 84.4, non_prime_percentage: 12.2 }
+          ]
+        },
+        {
+          service_name: 'Cardiothoracic',
+          in_block_utilization: 78.9,
+          total_block_utilization: 87.5,
+          non_prime_percentage: 9.1,
+          providers: [
+            { name: 'Dr. Garcia', in_block_utilization: 80.2, total_block_utilization: 88.9, non_prime_percentage: 8.0 },
+            { name: 'Dr. Martinez', in_block_utilization: 77.6, total_block_utilization: 86.1, non_prime_percentage: 10.2 }
+          ]
+        },
+        {
+          service_name: 'ENT',
+          in_block_utilization: 63.8,
+          total_block_utilization: 75.2,
+          non_prime_percentage: 16.7,
+          providers: [
+            { name: 'Dr. Robinson', in_block_utilization: 65.9, total_block_utilization: 76.8, non_prime_percentage: 15.3 },
+            { name: 'Dr. Clark', in_block_utilization: 61.7, total_block_utilization: 73.6, non_prime_percentage: 18.1 }
+          ]
         }
-      }
+      ]
+    },
+    'VORH Main OR': {
+      totals: {
+        in_block_utilization: 65.9,
+        total_block_utilization: 76.7,
+        non_prime_percentage: 16.1,
+        numof_cases: 2103
+      },
+      services: [
+        {
+          service_name: 'Orthopedics',
+          in_block_utilization: 63.4,
+          total_block_utilization: 74.9,
+          non_prime_percentage: 18.1,
+          providers: [
+            { name: 'Dr. Lewis', in_block_utilization: 65.7, total_block_utilization: 76.3, non_prime_percentage: 16.8 },
+            { name: 'Dr. Lee', in_block_utilization: 61.1, total_block_utilization: 73.5, non_prime_percentage: 19.4 }
+          ]
+        },
+        {
+          service_name: 'General Surgery',
+          in_block_utilization: 68.9,
+          total_block_utilization: 79.4,
+          non_prime_percentage: 14.5,
+          providers: [
+            { name: 'Dr. Walker', in_block_utilization: 71.2, total_block_utilization: 81.0, non_prime_percentage: 13.2 },
+            { name: 'Dr. Hall', in_block_utilization: 66.6, total_block_utilization: 77.8, non_prime_percentage: 15.8 }
+          ]
+        },
+        {
+          service_name: 'Neurosurgery',
+          in_block_utilization: 71.7,
+          total_block_utilization: 82.3,
+          non_prime_percentage: 12.3,
+          providers: [
+            { name: 'Dr. Allen', in_block_utilization: 73.9, total_block_utilization: 83.6, non_prime_percentage: 11.0 },
+            { name: 'Dr. Young', in_block_utilization: 69.5, total_block_utilization: 81.0, non_prime_percentage: 13.6 }
+          ]
+        },
+        {
+          service_name: 'Cardiothoracic',
+          in_block_utilization: 75.5,
+          total_block_utilization: 84.1,
+          non_prime_percentage: 10.2,
+          providers: [
+            { name: 'Dr. Hernandez', in_block_utilization: 77.8, total_block_utilization: 85.5, non_prime_percentage: 9.0 },
+            { name: 'Dr. King', in_block_utilization: 73.2, total_block_utilization: 82.7, non_prime_percentage: 11.4 }
+          ]
+        },
+        {
+          service_name: 'ENT',
+          in_block_utilization: 59.2,
+          total_block_utilization: 71.8,
+          non_prime_percentage: 18.9,
+          providers: [
+            { name: 'Dr. Wright', in_block_utilization: 61.5, total_block_utilization: 73.2, non_prime_percentage: 17.5 },
+            { name: 'Dr. Lopez', in_block_utilization: 56.9, total_block_utilization: 70.4, non_prime_percentage: 20.3 }
+          ]
+        }
+      ]
     }
   },
-
-  // Day of Week Utilization
+  
+  // Day of week data
   dayOfWeek: {
-    'VSG General/Vascular/Colorectal/Thoracic': {
-      Monday: 88.60,
-      Tuesday: 81.15,
-      Wednesday: 58.89,
-      Thursday: 86.21,
-      Friday: 92.89,
-      total: 81.26
+    'Orthopedics': {
+      'Monday': 64.2,
+      'Tuesday': 67.8,
+      'Wednesday': 65.9,
+      'Thursday': 66.3,
+      'Friday': 61.7,
+      'total': 65.2
     },
-    'Urology': {
-      Monday: 95.29,
-      Tuesday: 48.95,
-      Wednesday: 86.41,
-      Thursday: null,
-      Friday: 44.47,
-      total: 85.75
+    'General Surgery': {
+      'Monday': 71.3,
+      'Tuesday': 73.6,
+      'Wednesday': 70.8,
+      'Thursday': 72.1,
+      'Friday': 68.9,
+      'total': 71.3
     },
-    'OPEN': {
-      Monday: 0.00,
-      Tuesday: null,
-      Wednesday: null,
-      Thursday: 0.00,
-      Friday: 0.00,
-      total: 0.00
+    'Neurosurgery': {
+      'Monday': 74.2,
+      'Tuesday': 76.5,
+      'Wednesday': 73.8,
+      'Thursday': 75.1,
+      'Friday': 71.9,
+      'total': 74.3
+    },
+    'Cardiothoracic': {
+      'Monday': 78.1,
+      'Tuesday': 80.4,
+      'Wednesday': 77.7,
+      'Thursday': 79.0,
+      'Friday': 75.8,
+      'total': 78.2
+    },
+    'ENT': {
+      'Monday': 60.5,
+      'Tuesday': 62.8,
+      'Wednesday': 60.1,
+      'Thursday': 61.4,
+      'Friday': 58.2,
+      'total': 60.6
     }
   },
-
-  // Trend Data
+  
+  // Trend data over time
   trends: {
     'VORH JRI OR': {
       utilization: [
-        { month: 'Oct 2024', value: 75.9 },
-        { month: 'Nov 2024', value: 75.5 },
-        { month: 'Dec 2024', value: 67.8 }
+        { month: 'Jan', value: 68.2 },
+        { month: 'Feb', value: 69.5 },
+        { month: 'Mar', value: 70.8 },
+        { month: 'Apr', value: 71.3 },
+        { month: 'May', value: 72.6 },
+        { month: 'Jun', value: 73.9 },
+        { month: 'Jul', value: 72.1 },
+        { month: 'Aug', value: 70.4 },
+        { month: 'Sep', value: 71.7 },
+        { month: 'Oct', value: 73.0 },
+        { month: 'Nov', value: 74.3 },
+        { month: 'Dec', value: 72.5 }
       ],
       nonPrimeTime: [
-        { month: 'Oct 2024', value: 14.4 },
-        { month: 'Nov 2024', value: 14.4 },
-        { month: 'Dec 2024', value: 16.8 }
-      ],
-      comparative: {
-        current: {
-          nonPrimeTime: 16.8,
-          primeTimeUtil: 73.1
-        },
-        previous: {
-          nonPrimeTime: 16.8,
-          primeTimeUtil: 73.1
-        }
-      }
-    }
-  },
-
-  // Provider Details with enhanced metrics
-  providers: {
-    'WASSER, SAMUEL': {
-      service: 'Bariatrics',
-      metrics: {
-        cases: {
-          total: 73,
-          by_week: {
-            1: { count: 7, utilization: 68.17 },
-            2: { count: 0, utilization: 46.27 },
-            3: { count: 3, utilization: 38.24 },
-            4: { count: 0, utilization: 44.97 }
-          }
-        },
-        block_time: 14580,
-        in_block_utilization: 66.58,
-        total_block_utilization: 70.21,
-        non_prime_percentage: 12.88,
-        by_month: {
-          '2024-10': { utilization: 68.17, cases: 25 },
-          '2024-11': { utilization: 71.75, cases: 23 },
-          '2024-12': { utilization: 84.76, cases: 25 }
-        }
-      }
+        { month: 'Jan', value: 15.8 },
+        { month: 'Feb', value: 15.2 },
+        { month: 'Mar', value: 14.6 },
+        { month: 'Apr', value: 14.1 },
+        { month: 'May', value: 13.5 },
+        { month: 'Jun', value: 12.9 },
+        { month: 'Jul', value: 13.4 },
+        { month: 'Aug', value: 14.0 },
+        { month: 'Sep', value: 13.7 },
+        { month: 'Oct', value: 13.2 },
+        { month: 'Nov', value: 12.7 },
+        { month: 'Dec', value: 13.3 }
+      ]
     },
-    'VIRTUA BREAST CARE - VOORH': {
-      service: 'Breast Surgery',
-      metrics: {
-        cases: {
-          total: 117,
-          by_week: {
-            1: { count: 30, utilization: 70.04 },
-            2: { count: 28, utilization: 75.12 },
-            3: { count: 32, utilization: 80.45 },
-            4: { count: 27, utilization: 68.89 }
-          }
-        },
-        block_time: 14160,
-        in_block_utilization: 70.04,
-        total_block_utilization: 121.63,
-        non_prime_percentage: 5.11,
-        by_month: {
-          '2024-10': { utilization: 86.42, cases: 27 },
-          '2024-11': { utilization: 77.99, cases: 21 },
-          '2024-12': { utilization: 83.95, cases: 19 }
-        }
-      }
+    'MARH OR': {
+      utilization: [
+        { month: 'Jan', value: 66.5 },
+        { month: 'Feb', value: 67.8 },
+        { month: 'Mar', value: 69.1 },
+        { month: 'Apr', value: 69.6 },
+        { month: 'May', value: 70.9 },
+        { month: 'Jun', value: 72.2 },
+        { month: 'Jul', value: 70.4 },
+        { month: 'Aug', value: 68.7 },
+        { month: 'Sep', value: 70.0 },
+        { month: 'Oct', value: 71.3 },
+        { month: 'Nov', value: 72.6 },
+        { month: 'Dec', value: 70.8 }
+      ],
+      nonPrimeTime: [
+        { month: 'Jan', value: 16.7 },
+        { month: 'Feb', value: 16.1 },
+        { month: 'Mar', value: 15.5 },
+        { month: 'Apr', value: 15.0 },
+        { month: 'May', value: 14.4 },
+        { month: 'Jun', value: 13.8 },
+        { month: 'Jul', value: 14.3 },
+        { month: 'Aug', value: 14.9 },
+        { month: 'Sep', value: 14.6 },
+        { month: 'Oct', value: 14.1 },
+        { month: 'Nov', value: 13.6 },
+        { month: 'Dec', value: 14.2 }
+      ]
+    },
+    'VORH Main OR': {
+      utilization: [
+        { month: 'Jan', value: 64.6 },
+        { month: 'Feb', value: 65.9 },
+        { month: 'Mar', value: 67.2 },
+        { month: 'Apr', value: 67.7 },
+        { month: 'May', value: 69.0 },
+        { month: 'Jun', value: 70.3 },
+        { month: 'Jul', value: 68.5 },
+        { month: 'Aug', value: 66.8 },
+        { month: 'Sep', value: 68.1 },
+        { month: 'Oct', value: 69.4 },
+        { month: 'Nov', value: 70.7 },
+        { month: 'Dec', value: 68.9 }
+      ],
+      nonPrimeTime: [
+        { month: 'Jan', value: 17.6 },
+        { month: 'Feb', value: 17.0 },
+        { month: 'Mar', value: 16.4 },
+        { month: 'Apr', value: 15.9 },
+        { month: 'May', value: 15.3 },
+        { month: 'Jun', value: 14.7 },
+        { month: 'Jul', value: 15.2 },
+        { month: 'Aug', value: 15.8 },
+        { month: 'Sep', value: 15.5 },
+        { month: 'Oct', value: 15.0 },
+        { month: 'Nov', value: 14.5 },
+        { month: 'Dec', value: 15.1 }
+      ]
     }
   }
 };
 
-// Utilization range colors
+// Utilization ranges for color coding
 export const utilizationRanges = {
-  low: { min: 0, max: 35, color: '#ff9999' },    // Light red
-  medium: { min: 35, max: 65, color: '#ffcc99' }, // Light orange
-  high: { min: 65, max: 100, color: '#99ff99' },  // Light green
-  noBlock: { color: '#e6e6e6' }                   // Light gray
+  low: { min: 0, max: 50, color: '#ef4444' },
+  medium: { min: 50, max: 70, color: '#f59e0b' },
+  high: { min: 70, max: 85, color: '#10b981' },
+  optimal: { min: 85, max: 100, color: '#3b82f6' }
 };

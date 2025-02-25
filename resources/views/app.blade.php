@@ -10,13 +10,23 @@
         <!-- Prevent flash of light mode -->
         <script>
             (function() {
-                document.documentElement.classList.add('dark', 'no-transitions');
-                window.addEventListener('load', function() {
-                    // Remove no-transitions after initial render
-                    requestAnimationFrame(function() {
-                        document.documentElement.classList.remove('no-transitions');
-                    });
-                });
+                // Check localStorage first
+                const savedTheme = localStorage.getItem('darkMode');
+                // Use dark mode by default if no preference is stored
+                // or if system prefers dark mode
+                if (savedTheme === 'true' || savedTheme === null || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                    // Set localStorage to true if it's null
+                    if (savedTheme === null) {
+                        localStorage.setItem('darkMode', 'true');
+                    }
+                }
+                document.documentElement.classList.add('no-transitions');
+                // Add transition class after a short delay to ensure initial state is set
+                setTimeout(function() {
+                    document.documentElement.classList.remove('no-transitions');
+                    document.documentElement.classList.add('transition-colors', 'duration-200');
+                }, 0);
             })();
         </script>
 

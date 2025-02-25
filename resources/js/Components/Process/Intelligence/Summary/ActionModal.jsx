@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import ActionDetails from './ActionDetails';
-import useClickOutside from '@/Hooks/useClickOutside';
-import useModalAnimation from '@/Hooks/useModalAnimation';
+import useClickOutside from '@/hooks/useClickOutside';
+import useModalAnimation from '@/hooks/useModalAnimation';
 import './ActionModal.css';
 
 const ActionModal = ({ isOpen, onClose, action }) => {

@@ -24,13 +24,19 @@ const LineChart = ({
     const [isDarkMode] = useDarkMode();
 
     // Define colors based on the current theme
-    const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+    const themeColors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+    // Combine theme colors with primary colors and add critical alias for error
+    const colors = {
+        ...themeColors,
+        ...HEALTHCARE_COLORS,
+        critical: HEALTHCARE_COLORS.error // Add critical as alias for error
+    };
 
-    const gridStrokeColor = colors.border;
-    const axisTickColor = colors.text.primary;
-    const tooltipBgColor = colors.surface;
-    const tooltipTextColor = colors.text.primary;
-    const backgroundColor = colors.background;
+    const gridStrokeColor = themeColors.border;
+    const axisTickColor = themeColors.text;
+    const tooltipBgColor = themeColors.surface;
+    const tooltipTextColor = themeColors.text;
+    const backgroundColor = themeColors.background;
     
     // Calculate thresholds for shaded regions
     const getThresholdRegions = () => {
@@ -40,16 +46,24 @@ const LineChart = ({
         data.forEach((point, index) => {
             const diff = point.capacity - point.demand;
             if (diff <= criticalThreshold) {
+                // Safely handle color values that might be undefined
+                const criticalColor = colors.critical || colors.error || '#D32F2F';
                 regions.push({
                     x1: index,
                     x2: index + 1,
-                    fill: `rgba(${colors.critical.replace('rgb(', '').replace(')', '')}, 0.1)`
+                    fill: typeof criticalColor === 'string' && criticalColor.startsWith('rgb') 
+                        ? `rgba(${criticalColor.replace('rgb(', '').replace(')', '')}, 0.1)`
+                        : `rgba(211, 47, 47, 0.1)` // Fallback to #D32F2F (red) with 0.1 opacity
                 });
             } else if (diff <= warningThreshold) {
+                // Safely handle color values that might be undefined
+                const warningColor = colors.warning || '#ED6C02';
                 regions.push({
                     x1: index,
                     x2: index + 1,
-                    fill: `rgba(${colors.warning.replace('rgb(', '').replace(')', '')}, 0.1)`
+                    fill: typeof warningColor === 'string' && warningColor.startsWith('rgb')
+                        ? `rgba(${warningColor.replace('rgb(', '').replace(')', '')}, 0.1)`
+                        : `rgba(237, 108, 2, 0.1)` // Fallback to #ED6C02 (orange) with 0.1 opacity
                 });
             }
         });
@@ -117,7 +131,9 @@ const LineChart = ({
                                     <span 
                                         className="ml-2 text-xs"
                                         style={{
-                                            color: data.value >= target ? colors.success : colors.critical
+                                            color: data.value >= target 
+                                                ? (colors.success || '#2E7D32') 
+                                                : (colors.critical || colors.error || '#D32F2F')
                                         }}
                                     >
                                         ({data.value >= target ? '✓' : `${(target - data.value).toFixed(1)}% below target`})
@@ -165,27 +181,27 @@ const LineChart = ({
                         {isDemandCapacityFormat ? (
                             <>
                                 <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={colors.warning} stopOpacity={0.3}/>
-                                    <stop offset="100%" stopColor={colors.warning} stopOpacity={0.1}/>
+                                    <stop offset="0%" stopColor={colors.warning || '#ED6C02'} stopOpacity={0.3}/>
+                                    <stop offset="100%" stopColor={colors.warning || '#ED6C02'} stopOpacity={0.1}/>
                                 </linearGradient>
                                 <linearGradient id="colorCapacity" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={colors.info} stopOpacity={0.3}/>
-                                    <stop offset="100%" stopColor={colors.info} stopOpacity={0.1}/>
+                                    <stop offset="0%" stopColor={colors.info || '#0288D1'} stopOpacity={0.3}/>
+                                    <stop offset="100%" stopColor={colors.info || '#0288D1'} stopOpacity={0.1}/>
                                 </linearGradient>
                             </>
                         ) : (
                             <>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={colors.info} stopOpacity={0.3}/>
-                                    <stop offset="100%" stopColor={colors.info} stopOpacity={0.1}/>
+                                    <stop offset="0%" stopColor={colors.info || '#0288D1'} stopOpacity={0.3}/>
+                                    <stop offset="100%" stopColor={colors.info || '#0288D1'} stopOpacity={0.1}/>
                                 </linearGradient>
                                 <linearGradient id="colorStaffed" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={colors.success} stopOpacity={0.3}/>
-                                    <stop offset="100%" stopColor={colors.success} stopOpacity={0.1}/>
+                                    <stop offset="0%" stopColor={colors.success || '#2E7D32'} stopOpacity={0.3}/>
+                                    <stop offset="100%" stopColor={colors.success || '#2E7D32'} stopOpacity={0.1}/>
                                 </linearGradient>
                                 <linearGradient id="colorUnstaffed" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={colors.warning} stopOpacity={0.3}/>
-                                    <stop offset="100%" stopColor={colors.warning} stopOpacity={0.1}/>
+                                    <stop offset="0%" stopColor={colors.warning || '#ED6C02'} stopOpacity={0.3}/>
+                                    <stop offset="100%" stopColor={colors.warning || '#ED6C02'} stopOpacity={0.1}/>
                                 </linearGradient>
                             </>
                         )}
@@ -270,12 +286,12 @@ const LineChart = ({
                             {target && (
                                 <ReferenceLine 
                                     y={target} 
-                                    stroke={colors.critical}
+                                    stroke={colors.critical || colors.error || '#D32F2F'}
                                     strokeDasharray="3 3"
                                     label={{ 
                                         value: 'Target', 
                                         position: 'right',
-                                        fill: colors.critical,
+                                        fill: colors.critical || colors.error || '#D32F2F',
                                         fontSize: 14
                                     }}
                                 />
@@ -283,12 +299,12 @@ const LineChart = ({
                             {average && (
                                 <ReferenceLine 
                                     y={average} 
-                                    stroke={colors.info}
+                                    stroke={colors.info || '#0288D1'}
                                     strokeDasharray="3 3"
                                     label={{ 
                                         value: 'Average', 
                                         position: 'right',
-                                        fill: colors.info,
+                                        fill: colors.info || '#0288D1',
                                         fontSize: 14
                                     }}
                                 />
@@ -296,11 +312,11 @@ const LineChart = ({
                             <Area
                                 type="monotone"
                                 dataKey="value"
-                                stroke={colors.info}
+                                stroke={colors.info || '#0288D1'}
                                 strokeWidth={3}
                                 fill="url(#colorValue)"
-                                dot={{ r: 6, strokeWidth: 2, fill: colors.info }}
-                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.info }}
+                                dot={{ r: 6, strokeWidth: 2, fill: colors.info || '#0288D1' }}
+                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.info || '#0288D1' }}
                             />
                         </>
                     )}
@@ -311,21 +327,21 @@ const LineChart = ({
                                 type="monotone"
                                 dataKey="demand"
                                 name="Predicted Demand"
-                                stroke={colors.warning}
+                                stroke={colors.warning || '#ED6C02'}
                                 strokeWidth={3}
                                 fill="url(#colorDemand)"
-                                dot={{ r: 6, strokeWidth: 2, fill: colors.warning }}
-                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.warning }}
+                                dot={{ r: 6, strokeWidth: 2, fill: colors.warning || '#ED6C02' }}
+                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.warning || '#ED6C02' }}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="capacity"
                                 name="Available Capacity"
-                                stroke={colors.info}
+                                stroke={colors.info || '#0288D1'}
                                 strokeWidth={3}
                                 fill="url(#colorCapacity)"
-                                dot={{ r: 6, strokeWidth: 2, fill: colors.info }}
-                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.info }}
+                                dot={{ r: 6, strokeWidth: 2, fill: colors.info || '#0288D1' }}
+                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.info || '#0288D1' }}
                             />
                         </>
                     )}
@@ -336,21 +352,21 @@ const LineChart = ({
                                 type="monotone"
                                 dataKey="staffed"
                                 name="Staffed"
-                                stroke={colors.success}
+                                stroke={colors.success || '#2E7D32'}
                                 strokeWidth={3}
                                 fill="url(#colorStaffed)"
-                                dot={{ r: 6, strokeWidth: 2, fill: colors.success }}
-                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.success }}
+                                dot={{ r: 6, strokeWidth: 2, fill: colors.success || '#2E7D32' }}
+                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.success || '#2E7D32' }}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="unstaffed"
                                 name="Unstaffed"
-                                stroke={colors.warning}
+                                stroke={colors.warning || '#ED6C02'}
                                 strokeWidth={3}
                                 fill="url(#colorUnstaffed)"
-                                dot={{ r: 6, strokeWidth: 2, fill: colors.warning }}
-                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.warning }}
+                                dot={{ r: 6, strokeWidth: 2, fill: colors.warning || '#ED6C02' }}
+                                activeDot={{ r: 8, strokeWidth: 2, fill: colors.warning || '#ED6C02' }}
                             />
                         </>
                     )}

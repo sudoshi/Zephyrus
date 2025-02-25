@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useDarkMode } from '../../../hooks/useDarkMode';
-import ErrorBoundary from '../../Common/ErrorBoundary';
-import { mockServiceAnalytics } from '../../../mock-data/service-analytics';
+import { useDarkMode } from '@/hooks/useDarkMode';
+import ErrorBoundary from '@/Components/Common/ErrorBoundary';
+import { mockServiceAnalytics } from '@/mock-data/service-analytics';
 import { Icon } from '@iconify/react';
-import SummaryCards from '../BlockUtilization/SummaryCards';
-import DarkModeToggle from '../../Common/DarkModeToggle';
-import Select from '../../BlockSchedule/Select';
-import DateRangeSelector from '../../Common/DateRangeSelector';
+import SummaryCards from '@/Components/Analytics/BlockUtilization/SummaryCards';
+import DarkModeToggle from '@/Components/Common/DarkModeToggle';
+import Select from '@/Components/BlockSchedule/Select';
+import DateRangeSelector from '@/Components/Common/DateRangeSelector';
 import PropTypes from 'prop-types';
 
 const ServiceDashboard = () => {
