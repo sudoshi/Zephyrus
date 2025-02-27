@@ -133,6 +133,11 @@ LineChart.formatData = function formatData(data, xKey, yKeys, seriesNames = null
   const yKeysArray = Array.isArray(yKeys) ? yKeys : [yKeys];
   const seriesNamesArray = seriesNames ? (Array.isArray(seriesNames) ? seriesNames : [seriesNames]) : yKeysArray;
   
+  // Check if data is undefined or null
+  if (!data || !Array.isArray(data)) {
+    return [];
+  }
+  
   return yKeysArray.map((yKey, index) => ({
     id: seriesNamesArray[index] || yKey,
     data: data.map(item => ({

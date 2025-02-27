@@ -250,7 +250,7 @@ const ORUtilizationDashboard = () => {
         <ErrorBoundary>
           <Tabs 
             aria-label="OR Utilization Dashboard Tabs"
-            variant="underline"
+            style={{ base: "underline" }}
             className="mb-6"
           >
             {/* Overview Tab */}

@@ -57,12 +57,17 @@ export default function AnalyticsFilters({
         <label className="block text-sm font-medium mb-1">Start Date</label>
         <Datepicker
           value={dateRange.startDate}
-          onSelectedDateChanged={(date) => setDateRange(prev => ({ ...prev, startDate: date }))}
+          onChange={(date) => setDateRange(prev => ({ ...prev, startDate: date }))}
           inline={isStartDateOpen}
           onClose={() => setIsStartDateOpen(false)}
           theme={{
             root: {
               base: 'relative'
+            },
+            popup: {
+              root: {
+                base: 'absolute top-10 z-55 block pt-2'
+              }
             }
           }}
           title="Start Date"
@@ -84,13 +89,18 @@ export default function AnalyticsFilters({
         <label className="block text-sm font-medium mb-1">End Date</label>
         <Datepicker
           value={dateRange.endDate}
-          onSelectedDateChanged={(date) => setDateRange(prev => ({ ...prev, endDate: date }))}
+          onChange={(date) => setDateRange(prev => ({ ...prev, endDate: date }))}
           inline={isEndDateOpen}
           onClose={() => setIsEndDateOpen(false)}
           minDate={dateRange.startDate}
           theme={{
             root: {
               base: 'relative'
+            },
+            popup: {
+              root: {
+                base: 'absolute top-10 z-55 block pt-2'
+              }
             }
           }}
           title="End Date"

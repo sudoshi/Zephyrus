@@ -104,74 +104,80 @@ export default function ComponentsDemo({ auth }) {
                   {/* Tabs Example */}
                   <section className="mb-8">
                     <h2 className="text-xl font-semibold mb-4">Tabs Example</h2>
-                    <Tabs>
-                      <Tabs.Item title="Tab 1">
-                        <Card>
-                          <p>Content for Tab 1</p>
-                          <p className="mt-2">You can put any content here.</p>
-                        </Card>
-                      </Tabs.Item>
-                      <Tabs.Item title="Tab 2">
-                        <Card>
-                          <p>Content for Tab 2</p>
-                          <p className="mt-2">Different content for the second tab.</p>
-                        </Card>
-                      </Tabs.Item>
-                      <Tabs.Item title="Tab 3">
-                        <Card>
-                          <p>Content for Tab 3</p>
-                          <p className="mt-2">And even more content for the third tab.</p>
-                        </Card>
-                      </Tabs.Item>
-                    </Tabs>
+                    <Card className="mb-6">
+                      <h5 className="text-xl font-bold mb-4">Tabs</h5>
+                      <Tabs style={{ base: "underline" }}>
+                        <Tabs.Item title="Tab 1">
+                          <Card>
+                            <p>Content for Tab 1</p>
+                            <p className="mt-2">You can put any content here.</p>
+                          </Card>
+                        </Tabs.Item>
+                        <Tabs.Item title="Tab 2">
+                          <Card>
+                            <p>Content for Tab 2</p>
+                            <p className="mt-2">Different content for the second tab.</p>
+                          </Card>
+                        </Tabs.Item>
+                        <Tabs.Item title="Tab 3">
+                          <Card>
+                            <p>Content for Tab 3</p>
+                            <p className="mt-2">And even more content for the third tab.</p>
+                          </Card>
+                        </Tabs.Item>
+                      </Tabs>
+                    </Card>
                   </section>
                   
                   {/* Chart Examples */}
                   <section>
                     <h2 className="text-xl font-semibold mb-4">Chart Examples</h2>
-                    <Tabs>
-                      <Tabs.Item title="Bar Chart">
-                        <Card title="Bar Chart Example">
-                          <BarChart 
-                            data={barData} 
-                            keys={['value1', 'value2']} 
-                            indexBy="name"
-                            colorScheme="primary"
-                          />
-                        </Card>
-                      </Tabs.Item>
-                      <Tabs.Item title="Line Chart">
-                        <Card title="Line Chart Example">
-                          <LineChart 
-                            data={lineData} 
-                            colorScheme="mixed"
-                            enableArea={true}
-                            curve="monotoneX"
-                          />
-                        </Card>
-                      </Tabs.Item>
-                      <Tabs.Item title="Pie Chart">
-                        <Card title="Pie Chart Example">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h3 className="text-lg font-semibold mb-2">Regular Pie Chart</h3>
-                              <PieChart 
-                                data={pieData} 
-                                colorScheme="mixed"
-                              />
+                    <Card>
+                      <h5 className="text-xl font-bold mb-4">Charts</h5>
+                      <Tabs style={{ base: "underline" }}>
+                        <Tabs.Item title="Bar Chart">
+                          <Card title="Bar Chart Example">
+                            <BarChart 
+                              data={barData} 
+                              keys={['value1', 'value2']} 
+                              indexBy="name"
+                              colorScheme="primary"
+                            />
+                          </Card>
+                        </Tabs.Item>
+                        <Tabs.Item title="Line Chart">
+                          <Card title="Line Chart Example">
+                            <LineChart 
+                              data={lineData} 
+                              colorScheme="mixed"
+                              enableArea={true}
+                              curve="monotoneX"
+                            />
+                          </Card>
+                        </Tabs.Item>
+                        <Tabs.Item title="Pie Chart">
+                          <Card title="Pie Chart Example">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">Regular Pie Chart</h3>
+                                <PieChart 
+                                  data={pieData} 
+                                  colorScheme="mixed"
+                                />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">Donut Chart</h3>
+                                <PieChart 
+                                  data={pieData} 
+                                  colorScheme="primary"
+                                  innerRadius={0.6}
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="text-lg font-semibold mb-2">Donut Chart</h3>
-                              <PieChart 
-                                data={pieData} 
-                                colorScheme="primary"
-                                innerRadius={0.6}
-                              />
-                            </div>
-                          </div>
-                        </Card>
-                      </Tabs.Item>
-                    </Tabs>
+                          </Card>
+                        </Tabs.Item>
+                      </Tabs>
+                    </Card>
                   </section>
                 </div>
               </div>

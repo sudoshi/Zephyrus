@@ -21,6 +21,10 @@ export default {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             colors: {
+                'gray-850': '#1e2330', // Dark mode deeper gray
+                'gray-750': '#2d3748', // Dark mode medium-deep gray
+                'gray-150': '#edf2f7', // Light mode subtle gray
+                'gray-100': '#f7fafc', // Light mode very subtle gray
                 healthcare: {
                     background: {
                         DEFAULT: '#f8fafc',
@@ -154,6 +158,9 @@ export default {
                 xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
                 '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 inner: 'inset 0 2px 4px 0 rgba(0,0,0,0.06)',
+            },
+            zIndex: {
+                '55': '55',
             },
         },
     },

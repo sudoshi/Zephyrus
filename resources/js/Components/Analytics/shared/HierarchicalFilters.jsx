@@ -380,6 +380,11 @@ const HierarchicalFilters = ({
                   theme={{
                     root: {
                       base: 'relative'
+                    },
+                    popup: {
+                      root: {
+                        base: 'absolute top-10 z-55 block pt-2'
+                      }
                     }
                   }}
                   title="Start Date"
@@ -404,6 +409,11 @@ const HierarchicalFilters = ({
                   theme={{
                     root: {
                       base: 'relative'
+                    },
+                    popup: {
+                      root: {
+                        base: 'absolute top-10 z-55 block pt-2'
+                      }
                     }
                   }}
                   title="End Date"
@@ -450,6 +460,11 @@ const HierarchicalFilters = ({
                     theme={{
                       root: {
                         base: 'relative'
+                      },
+                      popup: {
+                        root: {
+                          base: 'absolute top-10 z-55 block pt-2'
+                        }
                       }
                     }}
                     title="Comparative Start Date"
@@ -474,6 +489,11 @@ const HierarchicalFilters = ({
                     theme={{
                       root: {
                         base: 'relative'
+                      },
+                      popup: {
+                        root: {
+                          base: 'absolute top-10 z-55 block pt-2'
+                        }
                       }
                     }}
                     title="Comparative End Date"

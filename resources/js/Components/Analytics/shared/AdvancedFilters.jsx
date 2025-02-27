@@ -323,13 +323,18 @@ const AdvancedFilters = ({
                 <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Start Date</label>
                 <Datepicker
                   value={startDate}
-                  onSelectedDateChanged={(date) => setStartDate(date)}
+                  onChange={(date) => setStartDate(date)}
                   inline={isStartDateOpen}
                   onClose={() => setIsStartDateOpen(false)}
                   maxDate={endDate}
                   theme={{
                     root: {
                       base: 'relative'
+                    },
+                    popup: {
+                      root: {
+                        base: 'absolute top-10 z-55 block pt-2'
+                      }
                     }
                   }}
                   title="Start Date"
@@ -350,13 +355,18 @@ const AdvancedFilters = ({
                 <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">End Date</label>
                 <Datepicker
                   value={endDate}
-                  onSelectedDateChanged={(date) => setEndDate(date)}
+                  onChange={(date) => setEndDate(date)}
                   inline={isEndDateOpen}
                   onClose={() => setIsEndDateOpen(false)}
                   minDate={startDate}
                   theme={{
                     root: {
                       base: 'relative'
+                    },
+                    popup: {
+                      root: {
+                        base: 'absolute top-10 z-55 block pt-2'
+                      }
                     }
                   }}
                   title="End Date"
@@ -398,13 +408,18 @@ const AdvancedFilters = ({
                     <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Start Date</label>
                     <Datepicker
                       value={compStartDate}
-                      onSelectedDateChanged={(date) => setCompStartDate(date)}
+                      onChange={(date) => setCompStartDate(date)}
                       inline={isCompStartDateOpen}
                       onClose={() => setIsCompStartDateOpen(false)}
                       maxDate={compEndDate}
                       theme={{
                         root: {
                           base: 'relative'
+                        },
+                        popup: {
+                          root: {
+                            base: 'absolute top-10 z-55 block pt-2'
+                          }
                         }
                       }}
                       title="Comparative Start Date"
@@ -425,13 +440,18 @@ const AdvancedFilters = ({
                     <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">End Date</label>
                     <Datepicker
                       value={compEndDate}
-                      onSelectedDateChanged={(date) => setCompEndDate(date)}
+                      onChange={(date) => setCompEndDate(date)}
                       inline={isCompEndDateOpen}
                       onClose={() => setIsCompEndDateOpen(false)}
                       minDate={compStartDate}
                       theme={{
                         root: {
                           base: 'relative'
+                        },
+                        popup: {
+                          root: {
+                            base: 'absolute top-10 z-55 block pt-2'
+                          }
                         }
                       }}
                       title="Comparative End Date"

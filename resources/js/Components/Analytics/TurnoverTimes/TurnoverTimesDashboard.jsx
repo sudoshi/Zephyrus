@@ -137,7 +137,7 @@ export default function TurnoverTimesDashboard() {
       </div>
 
       {/* Tabs */}
-      <Tabs>
+      <Tabs style={{ base: "underline" }}>
         <Tabs.Item title="Overview">
           <div className="space-y-4">
             <Card>

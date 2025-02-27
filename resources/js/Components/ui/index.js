@@ -10,6 +10,10 @@ export {
 // Export dark mode context and hook from AuthenticatedLayout
 export { DarkModeContext, useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
+// Export UI components
+export { default as MetricCard } from './MetricCard';
+export { default as Panel } from './Panel';
+
 // Export all Flowbite components
 export * from './flowbite';
 

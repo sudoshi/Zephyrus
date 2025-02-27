@@ -94,7 +94,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   return (
     <div className="flex flex-col">
       {/* Main Navigation Bar */}
-      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
+      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300 z-55 relative">
         <div className="max-w-full mx-auto px-4 relative">
           <div className="flex justify-between h-16">
             {/* Logo and Brand */}
@@ -208,7 +208,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
       </nav>
 
       {/* Sub Navigation Bar */}
-      <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-all duration-300">
+      <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-all duration-300 z-55 relative">
         <div className="max-w-full mx-auto px-4">
           <div className="flex justify-center h-12">
             <div className="flex items-center space-x-8">

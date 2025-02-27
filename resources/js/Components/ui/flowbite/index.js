@@ -1,5 +1,5 @@
-// Re-export official Flowbite components
-export { Button, Card, Datepicker } from 'flowbite-react';
+// Export components directly from flowbite-react
+export { Card, Datepicker, Tooltip, Button, Modal } from 'flowbite-react';
 
 // Export custom components
-export { Tabs } from './Tabs';
+export { Tabs, TabItem } from './Tabs';
