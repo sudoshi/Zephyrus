@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout, { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 import { FlowbiteThemeProvider, NivoThemeProvider } from '@/Components/ui';
 import ErrorBoundary from '@/Components/ErrorBoundary';
-import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
+import { AnalyticsProvider } from '@/Contexts/AnalyticsContext';
 
 export default function AnalyticsLayout({ children, auth, title, headerButtons }) {
   return (
