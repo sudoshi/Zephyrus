@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Head, usePage } from '@inertiajs/react';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import TurnoverTimesDashboard from '@/Components/Analytics/TurnoverTimes/TurnoverTimesDashboard';
-import { Tabs } from '@/Components/ui/flowbite';
+import TabNavigation from '@/Components/ui/TabNavigation';
 import { motion } from 'framer-motion';
 
 export default function TurnoverTimes({ auth }) {
@@ -27,12 +27,12 @@ export default function TurnoverTimes({ auth }) {
   }, [url]);
   
   // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
     
     // Update URL
     const url = new URL(window.location);
-    url.searchParams.set('tab', tab);
+    url.searchParams.set('tab', tabId);
     window.history.pushState({}, '', url);
   };
   
@@ -42,13 +42,23 @@ export default function TurnoverTimes({ auth }) {
     visible: { opacity: 1, transition: { duration: 0.3 } }
   };
   
-  // Tab configuration
-  const tabs = [
-    { id: 'overview', title: 'Overview' },
-    { id: 'hourly', title: 'Hourly Analysis' },
-    { id: 'trends', title: 'Trends' },
-    { id: 'location', title: 'Location Comparison' },
-    { id: 'service', title: 'Service Analysis' }
+  // Define menu groups
+  const menuGroups = [
+    {
+      title: 'Analysis Views',
+      items: [
+        { id: 'overview', label: 'Overview', icon: 'carbon:dashboard' },
+        { id: 'hourly', label: 'Hourly Analysis', icon: 'carbon:time' },
+        { id: 'trends', label: 'Trends', icon: 'carbon:chart-line' },
+      ]
+    },
+    {
+      title: 'Detailed Analysis',
+      items: [
+        { id: 'location', label: 'Location Comparison', icon: 'carbon:location' },
+        { id: 'service', label: 'Service Analysis', icon: 'carbon:data-table' },
+      ]
+    }
   ];
 
   return (
@@ -64,18 +74,12 @@ export default function TurnoverTimes({ auth }) {
         variants={variants}
         className="space-y-6"
       >
-        <div className="mb-4">
-          <Tabs style={{ base: "underline" }}>
-            {tabs.map(tab => (
-              <Tabs.Item
-                key={tab.id}
-                title={tab.title}
-                active={activeTab === tab.id}
-                onClick={() => handleTabChange(tab.id)}
-              />
-            ))}
-          </Tabs>
-        </div>
+        {/* Top Navigation Tabs */}
+        <TabNavigation 
+          menuGroups={menuGroups}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
         
         <TurnoverTimesDashboard activeView={activeTab} />
       </motion.div>
@@ -89,6 +93,6 @@ TurnoverTimes.propTypes = {
       id: PropTypes.number,
       name: PropTypes.string,
       email: PropTypes.string,
-    }).isRequired,
-  }).isRequired,
+    }),
+  }),
 };

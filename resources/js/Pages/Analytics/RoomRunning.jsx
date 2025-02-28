@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import RoomRunningDashboard from '@/Components/Analytics/RoomRunning/RoomRunningDashboard';
-import { Tabs } from '@/Components/ui/flowbite';
+import TabNavigation from '@/Components/ui/TabNavigation';
 import { motion } from 'framer-motion';
 
 export default function RoomRunning({ auth }) {
@@ -26,14 +26,33 @@ export default function RoomRunning({ auth }) {
   }, [url]);
   
   // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveView(tab);
+  const handleTabChange = (tabId) => {
+    setActiveView(tabId);
     
     // Update URL
     const url = new URL(window.location);
-    url.searchParams.set('view', tab);
+    url.searchParams.set('view', tabId);
     window.history.pushState({}, '', url);
   };
+  
+  // Define menu groups
+  const menuGroups = [
+    {
+      title: 'Analysis Views',
+      items: [
+        { id: 'overview', label: 'Overview', icon: 'carbon:dashboard' },
+        { id: 'hourly', label: 'Hourly Analysis', icon: 'carbon:time' },
+        { id: 'trends', label: 'Trends', icon: 'carbon:chart-line' },
+      ]
+    },
+    {
+      title: 'Detailed Analysis',
+      items: [
+        { id: 'location', label: 'Location Comparison', icon: 'carbon:location' },
+        { id: 'service', label: 'Service Analysis', icon: 'carbon:data-table' },
+      ]
+    }
+  ];
   
   // Animation variants for tab transitions
   const variants = {
@@ -52,25 +71,11 @@ export default function RoomRunning({ auth }) {
         variants={variants}
       >
         {/* Tabs */}
-        <div className="mb-6">
-          <Tabs style={{ base: "underline" }} onActiveTabChange={handleTabChange}>
-            <Tabs.Item title="Overview" active={activeView === 'overview'} tabName="overview">
-              {/* Content will be rendered by RoomRunningDashboard */}
-            </Tabs.Item>
-            <Tabs.Item title="Hourly Analysis" active={activeView === 'hourly'} tabName="hourly">
-              {/* Content will be rendered by RoomRunningDashboard */}
-            </Tabs.Item>
-            <Tabs.Item title="Trends" active={activeView === 'trends'} tabName="trends">
-              {/* Content will be rendered by RoomRunningDashboard */}
-            </Tabs.Item>
-            <Tabs.Item title="Location Comparison" active={activeView === 'location'} tabName="location">
-              {/* Content will be rendered by RoomRunningDashboard */}
-            </Tabs.Item>
-            <Tabs.Item title="Service Analysis" active={activeView === 'service'} tabName="service">
-              {/* Content will be rendered by RoomRunningDashboard */}
-            </Tabs.Item>
-          </Tabs>
-        </div>
+        <TabNavigation 
+          menuGroups={menuGroups}
+          activeTab={activeView}
+          onTabChange={handleTabChange}
+        />
         
         {/* Dashboard */}
         <RoomRunningDashboard activeView={activeView} />
