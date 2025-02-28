@@ -12,8 +12,15 @@ export default function AnalyticsLayout({ children, auth, title, headerButtons }
       user={auth.user}
       header={
         <div className="flex items-center justify-between w-full">
-          <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">{title}</h2>
-          {headerButtons && <div className="flex flex-wrap gap-2 ml-auto">{headerButtons}</div>}
+          <div className="w-1/3">
+            {/* Left section - empty for balance */}
+          </div>
+          <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight text-center w-1/3">
+            {title}
+          </h2>
+          <div className="flex flex-wrap gap-2 ml-auto w-1/3 justify-end">
+            {headerButtons}
+          </div>
         </div>
       }
     >
