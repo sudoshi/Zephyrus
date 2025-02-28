@@ -26,6 +26,7 @@ yarn-error.log
 *.sqlite-journal
 .DS_Store
 Thumbs.db
+*.pid
 
 # Local Configuration
 config.local.php

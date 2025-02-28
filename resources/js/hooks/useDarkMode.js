@@ -1,59 +1,50 @@
-import { useState, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
-export function useDarkMode() {
-  const initialized = useRef(false);
+export const HEALTHCARE_COLORS = {
+  primary: '#0077B6',
+  secondary: '#48CAE4',
+  tertiary: '#90E0EF',
+  quaternary: '#CAF0F8',
+  success: '#2E7D32',
+  warning: '#ED6C02',
+  error: '#D32F2F',
+  info: '#0288D1',
+  dark: {
+    background: '#1E293B',
+    surface: '#334155',
+    text: '#F8FAFC',
+    border: '#475569'
+  },
+  light: {
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#1E293B',
+    border: '#E2E8F0'
+  }
+};
 
-  // Initialize state from localStorage, always defaulting to dark mode
+export const useDarkMode = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (!initialized.current) {
-      // Force dark mode on first render
-      initialized.current = true;
-      return true;
+    const savedMode = localStorage.getItem('darkMode');
+    // If no preference is stored, use dark mode by default
+    // or check system preferences
+    if (savedMode === null) {
+      const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return prefersDarkMode || true; // Default to dark mode even if system doesn't prefer it
     }
-    const savedTheme = localStorage.getItem('darkMode');
-    // Only return false if explicitly set to false in localStorage
-    return savedTheme === 'false' ? false : true;
+    return savedMode === 'true' || JSON.parse(savedMode);
   });
 
-  // Synchronously update DOM and localStorage
-  useLayoutEffect(() => {
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('darkMode', isDarkMode.toString());
   }, [isDarkMode]);
 
   return [isDarkMode, setIsDarkMode];
-}
-
-// Healthcare-specific color constants
-export const HEALTHCARE_COLORS = {
-  light: {
-    critical: '#DC2626', // red-600
-    warning: '#D97706', // amber-600
-    success: '#059669', // emerald-600
-    info: '#2563EB', // blue-600
-    background: '#F9FAFB', // gray-50
-    surface: '#FFFFFF',
-    text: {
-      primary: '#111827', // gray-900
-      secondary: '#4B5563', // gray-600
-    },
-    border: '#E5E7EB', // gray-200
-  },
-  dark: {
-    critical: '#EF4444', // red-500
-    warning: '#F59E0B', // amber-500
-    success: '#10B981', // emerald-500
-    info: '#3B82F6', // blue-500
-    background: '#111827', // gray-900
-    surface: '#1F2937', // gray-800
-    text: {
-      primary: '#FFFFFF', // white
-      secondary: '#E5E7EB', // gray-200
-    },
-    border: '#374151', // gray-700
-  },
 };
+
+export default useDarkMode;

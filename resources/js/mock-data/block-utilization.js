@@ -1,283 +1,332 @@
 // Mock data for block utilization dashboard
 export const mockBlockUtilization = {
-  // Overall metrics across all sites
-  overallMetrics: {
-    byService: {
-      'VSG General/Vascular/Colorectal/Thoracic': {
-        cases: 1211,
-        in_block: 104049,
-        prime_out_block: 27286,
-        total_non_prime: 25832,
-        non_prime_percentage: 16.44,
-        block_time: 163920,
-        in_block_utilization: 63.48,
-        total_block_utilization: 80.12
-      },
-      'Orthopedic Surgery': {
-        cases: 1170,
-        in_block: 121310,
-        prime_out_block: 37252,
-        total_non_prime: 21575,
-        non_prime_percentage: 11.98,
-        block_time: 216780,
-        in_block_utilization: 55.96,
-        total_block_utilization: 73.14
-      },
-      'Urology': {
-        cases: 967,
-        in_block: 74953,
-        prime_out_block: 16426,
-        total_non_prime: 18562,
-        non_prime_percentage: 16.88,
-        block_time: 129390,
-        in_block_utilization: 57.93,
-        total_block_utilization: 70.62
-      },
-      'Obstetrics and Gynecology': {
-        cases: 959,
-        in_block: 53214,
-        prime_out_block: 53035,
-        total_non_prime: 13624,
-        non_prime_percentage: 11.37,
-        block_time: 106530,
-        in_block_utilization: 49.95,
-        total_block_utilization: 99.74
-      }
-    }
-  },
-
-  // Site-specific data
   sites: {
     'MARH OR': {
+      metrics: {
+        inBlockUtilization: '67.8%',
+        totalBlockUtilization: '82.3%',
+        nonPrimePercentage: '12.4%',
+        utilizationTrend: '+3.2%'
+      },
       services: [
         {
-          service_id: 1,
-          service_name: 'Bariatrics',
-          numof_cases: 39,
-          before_block_start: 66,
-          in_block: 3427,
-          overusage: 0,
-          out_of_block: 2761,
-          after_block_finish: 344,
-          non_prime_percentage: 6.21,
-          block_time: 12210,
-          in_block_utilization: 28.07,
-          total_block_utilization: 50.68,
-          by_week: {
-            1: { utilization: 68.17, cases: 7 },
-            2: { utilization: 46.27, cases: 0 },
-            3: { utilization: 38.24, cases: 3 },
-            4: { utilization: 44.97, cases: 0 },
-            5: { utilization: 0.00, cases: 0 }
-          }
-        },
-        // ... existing MARH OR services ...
-      ],
-      totals: {
-        numof_cases: 1106,
-        before_block_start: 1634,
-        in_block: 85874,
-        overusage: 13476,
-        out_of_block: 22236,
-        after_block_finish: 19260,
-        non_prime_percentage: 14.66,
-        block_time: 161370,
-        in_block_utilization: 53.22,
-        total_block_utilization: 75.35
-      }
-    },
-    'MEMH MHAS OR': {
-      services: [
-        {
-          service_name: 'Obstetrics and Gynecology',
-          providers: [
-            {
-              name: 'ADVO BURLINGTON OB/GYN',
-              metrics: {
-                cases: 45,
-                utilization: 52.13,
-                by_day: {
-                  Tuesday: { cases: 12, utilization: 58.47 },
-                  Wednesday: { cases: 2, utilization: 19.51 },
-                  Thursday: { cases: 9, utilization: 45.82 },
-                  Friday: { cases: 22, utilization: 63.73 }
-                }
-              }
-            },
-            {
-              name: 'VIRTUA OB/GYN NORTH',
-              metrics: {
-                cases: 123,
-                utilization: 83.54,
-                by_day: {
-                  Tuesday: { cases: 10, utilization: 62.78 },
-                  Wednesday: { cases: 14, utilization: 43.65 },
-                  Thursday: { cases: 49, utilization: 217.09 },
-                  Friday: { cases: 50, utilization: 63.51 }
-                }
-              }
-            }
-          ]
+          service_name: 'Orthopedics',
+          in_block_utilization: 72.5,
+          total_block_utilization: 85.3,
+          non_prime_percentage: 14.2
         },
         {
-          service_name: 'Orthopedic Surgery',
-          providers: [
-            {
-              name: 'B. C. ORTHO',
-              metrics: {
-                cases: 31,
-                utilization: 32.15,
-                by_day: {
-                  Tuesday: { cases: 20, utilization: 33.16 },
-                  Thursday: { cases: 11, utilization: 30.45 }
-                }
-              }
-            }
-          ]
+          service_name: 'General Surgery',
+          in_block_utilization: 65.8,
+          total_block_utilization: 78.6,
+          non_prime_percentage: 18.9
+        },
+        {
+          service_name: 'Neurosurgery',
+          in_block_utilization: 71.2,
+          total_block_utilization: 83.4,
+          non_prime_percentage: 9.7
+        },
+        {
+          service_name: 'Cardiology',
+          in_block_utilization: 69.4,
+          total_block_utilization: 81.2,
+          non_prime_percentage: 11.5
         }
       ]
     },
     'VORH JRI OR': {
-      services: {
-        'Breast Surgery': {
-          providers: {
-            'VIRTUA BREAST CARE - VOORHEES': {
-              metrics: {
-                by_month: {
-                  '2024-10': { cases: 27, utilization: 86.42 },
-                  '2024-11': { cases: 21, utilization: 77.99 },
-                  '2024-12': { cases: 19, utilization: 83.95 }
-                }
-              }
-            }
-          }
+      metrics: {
+        inBlockUtilization: '71.2%',
+        totalBlockUtilization: '84.7%',
+        nonPrimePercentage: '10.8%',
+        utilizationTrend: '+1.5%'
+      },
+      services: [
+        {
+          service_name: 'Orthopedics',
+          in_block_utilization: 75.6,
+          total_block_utilization: 88.3,
+          non_prime_percentage: 12.7
         },
-        'Colon and Rectal Surgery': {
-          providers: {
-            'VSG COLORECTAL MOORESTOWN': {
-              metrics: {
-                by_month: {
-                  '2024-10': { cases: 14, utilization: 79.38 },
-                  '2024-11': { cases: 11, utilization: 57.50 },
-                  '2024-12': { cases: 15, utilization: 80.00 }
-                }
-              }
-            }
-          }
+        {
+          service_name: 'General Surgery',
+          in_block_utilization: 68.4,
+          total_block_utilization: 80.1,
+          non_prime_percentage: 15.2
+        },
+        {
+          service_name: 'Neurosurgery',
+          in_block_utilization: 73.9,
+          total_block_utilization: 86.4,
+          non_prime_percentage: 7.6
         }
-      }
+      ]
     }
   },
-
-  // Day of Week Utilization
-  dayOfWeek: {
-    'VSG General/Vascular/Colorectal/Thoracic': {
-      Monday: 88.60,
-      Tuesday: 81.15,
-      Wednesday: 58.89,
-      Thursday: 86.21,
-      Friday: 92.89,
-      total: 81.26
+  
+  // Overall metrics across all sites
+  overallMetrics: {
+    inBlockUtilization: 69.5,
+    totalBlockUtilization: 83.5,
+    nonPrimePercentage: 11.6
+  },
+  
+  // Service data for charts
+  serviceData: [
+    {
+      name: 'Orthopedics',
+      metrics: {
+        inBlockUtilization: 74.1,
+        totalBlockUtilization: 86.8,
+        nonPrimePercentage: 13.5
+      },
+      sites: ['MARH OR', 'VORH JRI OR']
+    },
+    {
+      name: 'General Surgery',
+      metrics: {
+        inBlockUtilization: 67.1,
+        totalBlockUtilization: 79.3,
+        nonPrimePercentage: 17.1
+      },
+      sites: ['MARH OR', 'VORH JRI OR', 'MEMH OR']
+    },
+    {
+      name: 'Neurosurgery',
+      metrics: {
+        inBlockUtilization: 72.5,
+        totalBlockUtilization: 84.9,
+        nonPrimePercentage: 8.6
+      },
+      sites: ['MARH OR', 'OLLH OR']
+    },
+    {
+      name: 'Cardiology',
+      metrics: {
+        inBlockUtilization: 69.4,
+        totalBlockUtilization: 81.2,
+        nonPrimePercentage: 11.5
+      },
+      sites: ['VORH JRI OR', 'OLLH OR']
+    },
+    {
+      name: 'Urology',
+      metrics: {
+        inBlockUtilization: 65.2,
+        totalBlockUtilization: 77.8,
+        nonPrimePercentage: 14.3
+      },
+      sites: ['MARH OR', 'MEMH OR']
+    }
+  ],
+  
+  // Trend data for line charts
+  trendData: {
+    inBlock: [
+      { x: '2025-01-01', y: 63.2 },
+      { x: '2025-01-15', y: 65.8 },
+      { x: '2025-02-01', y: 68.4 },
+      { x: '2025-02-15', y: 67.1 },
+      { x: '2025-03-01', y: 69.5 }
+    ],
+    total: [
+      { x: '2025-01-01', y: 76.4 },
+      { x: '2025-01-15', y: 78.2 },
+      { x: '2025-02-01', y: 81.7 },
+      { x: '2025-02-15', y: 79.3 },
+      { x: '2025-03-01', y: 83.5 }
+    ]
+  },
+  
+  // Day of week data
+  dayOfWeekData: [
+    { name: 'Monday', utilization: 72.3 },
+    { name: 'Tuesday', utilization: 76.5 },
+    { name: 'Wednesday', utilization: 69.8 },
+    { name: 'Thursday', utilization: 74.1 },
+    { name: 'Friday', utilization: 65.7 }
+  ],
+  
+  // Non-prime time trend data
+  nonPrimeTimeTrendData: [
+    { x: '2025-01-01', y: 13.5 },
+    { x: '2025-01-15', y: 12.8 },
+    { x: '2025-02-01', y: 11.9 },
+    { x: '2025-02-15', y: 12.5 },
+    { x: '2025-03-01', y: 11.6 }
+  ],
+  
+  // Service non-prime time data
+  serviceNonPrime: {
+    'Orthopedics': {
+      nonPrime: 13.5,
+      prime: 86.5,
+      trend: '-1.2%',
+      status: 'Improving'
+    },
+    'General Surgery': {
+      nonPrime: 17.1,
+      prime: 82.9,
+      trend: '+0.8%',
+      status: 'Declining'
+    },
+    'Neurosurgery': {
+      nonPrime: 8.6,
+      prime: 91.4,
+      trend: '-0.5%',
+      status: 'Improving'
+    },
+    'Cardiology': {
+      nonPrime: 11.5,
+      prime: 88.5,
+      trend: '-1.0%',
+      status: 'Improving'
     },
     'Urology': {
-      Monday: 95.29,
-      Tuesday: 48.95,
-      Wednesday: 86.41,
-      Thursday: null,
-      Friday: 44.47,
-      total: 85.75
-    },
-    'OPEN': {
-      Monday: 0.00,
-      Tuesday: null,
-      Wednesday: null,
-      Thursday: 0.00,
-      Friday: 0.00,
-      total: 0.00
+      nonPrime: 14.3,
+      prime: 85.7,
+      trend: '+1.5%',
+      status: 'Declining'
     }
   },
-
-  // Trend Data
-  trends: {
-    'VORH JRI OR': {
-      utilization: [
-        { month: 'Oct 2024', value: 75.9 },
-        { month: 'Nov 2024', value: 75.5 },
-        { month: 'Dec 2024', value: 67.8 }
-      ],
-      nonPrimeTime: [
-        { month: 'Oct 2024', value: 14.4 },
-        { month: 'Nov 2024', value: 14.4 },
-        { month: 'Dec 2024', value: 16.8 }
-      ],
-      comparative: {
-        current: {
-          nonPrimeTime: 16.8,
-          primeTimeUtil: 73.1
-        },
-        previous: {
-          nonPrimeTime: 16.8,
-          primeTimeUtil: 73.1
-        }
-      }
-    }
-  },
-
-  // Provider Details with enhanced metrics
-  providers: {
-    'WASSER, SAMUEL': {
-      service: 'Bariatrics',
-      metrics: {
-        cases: {
-          total: 73,
-          by_week: {
-            1: { count: 7, utilization: 68.17 },
-            2: { count: 0, utilization: 46.27 },
-            3: { count: 3, utilization: 38.24 },
-            4: { count: 0, utilization: 44.97 }
-          }
-        },
-        block_time: 14580,
-        in_block_utilization: 66.58,
-        total_block_utilization: 70.21,
-        non_prime_percentage: 12.88,
-        by_month: {
-          '2024-10': { utilization: 68.17, cases: 25 },
-          '2024-11': { utilization: 71.75, cases: 23 },
-          '2024-12': { utilization: 84.76, cases: 25 }
-        }
-      }
+  
+  // Block data for block view
+  blockData: [
+    {
+      name: 'Orthopedics Block 1',
+      specialty: 'Orthopedics',
+      location: 'MARH OR',
+      utilization: 74.5,
+      released: false,
+      sites: ['MARH OR']
     },
-    'VIRTUA BREAST CARE - VOORH': {
-      service: 'Breast Surgery',
-      metrics: {
-        cases: {
-          total: 117,
-          by_week: {
-            1: { count: 30, utilization: 70.04 },
-            2: { count: 28, utilization: 75.12 },
-            3: { count: 32, utilization: 80.45 },
-            4: { count: 27, utilization: 68.89 }
-          }
-        },
-        block_time: 14160,
-        in_block_utilization: 70.04,
-        total_block_utilization: 121.63,
-        non_prime_percentage: 5.11,
-        by_month: {
-          '2024-10': { utilization: 86.42, cases: 27 },
-          '2024-11': { utilization: 77.99, cases: 21 },
-          '2024-12': { utilization: 83.95, cases: 19 }
-        }
-      }
+    {
+      name: 'Orthopedics Block 2',
+      specialty: 'Orthopedics',
+      location: 'VORH JRI OR',
+      utilization: 78.2,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'General Surgery Block 1',
+      specialty: 'General Surgery',
+      location: 'MARH OR',
+      utilization: 67.8,
+      released: false,
+      sites: ['MARH OR']
+    },
+    {
+      name: 'General Surgery Block 2',
+      specialty: 'General Surgery',
+      location: 'VORH JRI OR',
+      utilization: 68.9,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'Neurosurgery Block 1',
+      specialty: 'Neurosurgery',
+      location: 'MARH OR',
+      utilization: 72.1,
+      released: true,
+      sites: ['MARH OR']
+    },
+    {
+      name: 'Cardiology Block 1',
+      specialty: 'Cardiology',
+      location: 'VORH JRI OR',
+      utilization: 69.7,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'Urology Block 1',
+      specialty: 'Urology',
+      location: 'MARH OR',
+      utilization: 65.4,
+      released: true,
+      sites: ['MARH OR']
     }
+  ],
+  
+  // Location data for location view
+  locationData: [
+    {
+      name: 'MARH OR',
+      hospital: 'Memorial Academic Regional Hospital',
+      utilization: 67.8,
+      totalBlockUtilization: 82.3,
+      nonPrimePercentage: 12.4,
+      utilizationTrend: '+3.2%',
+      specialties: ['Orthopedics', 'General Surgery', 'Neurosurgery', 'Cardiology'],
+      services: [
+        { service_name: 'Orthopedics', in_block_utilization: 72.5 },
+        { service_name: 'General Surgery', in_block_utilization: 65.8 },
+        { service_name: 'Neurosurgery', in_block_utilization: 71.2 }
+      ]
+    },
+    {
+      name: 'VORH JRI OR',
+      hospital: 'Valley Orthopedic Regional Hospital',
+      utilization: 71.2,
+      totalBlockUtilization: 84.7,
+      nonPrimePercentage: 10.8,
+      utilizationTrend: '+1.5%',
+      specialties: ['Orthopedics', 'General Surgery', 'Neurosurgery'],
+      services: [
+        { service_name: 'Orthopedics', in_block_utilization: 75.6 },
+        { service_name: 'General Surgery', in_block_utilization: 68.4 },
+        { service_name: 'Neurosurgery', in_block_utilization: 73.9 }
+      ]
+    },
+    {
+      name: 'MEMH OR',
+      hospital: 'Memorial East Medical Hospital',
+      utilization: 69.5,
+      totalBlockUtilization: 83.1,
+      nonPrimePercentage: 11.2,
+      utilizationTrend: '+0.8%',
+      specialties: ['General Surgery', 'Urology'],
+      services: [
+        { service_name: 'General Surgery', in_block_utilization: 67.1 },
+        { service_name: 'Urology', in_block_utilization: 65.2 }
+      ]
+    },
+    {
+      name: 'OLLH OR',
+      hospital: 'Our Lady of Lourdes Hospital',
+      utilization: 70.8,
+      totalBlockUtilization: 83.9,
+      nonPrimePercentage: 9.7,
+      utilizationTrend: '+2.1%',
+      specialties: ['Neurosurgery', 'Cardiology'],
+      services: [
+        { service_name: 'Neurosurgery', in_block_utilization: 72.5 },
+        { service_name: 'Cardiology', in_block_utilization: 69.4 }
+      ]
+    }
+  ],
+  
+  // Non-prime data for non-prime view
+  nonPrimeData: {
+    weekendCases: 124,
+    afterHoursCases: 87,
+    trend: [
+      { x: '2025-01-01', y: 13.5 },
+      { x: '2025-01-15', y: 12.8 },
+      { x: '2025-02-01', y: 11.9 },
+      { x: '2025-02-15', y: 12.5 },
+      { x: '2025-03-01', y: 11.6 }
+    ]
   }
 };
 
-// Utilization range colors
+// Utilization ranges for color coding
 export const utilizationRanges = {
-  low: { min: 0, max: 35, color: '#ff9999' },    // Light red
-  medium: { min: 35, max: 65, color: '#ffcc99' }, // Light orange
-  high: { min: 65, max: 100, color: '#99ff99' },  // Light green
-  noBlock: { color: '#e6e6e6' }                   // Light gray
+  low: { min: 0, max: 50, color: '#ef4444' },
+  medium: { min: 50, max: 70, color: '#f59e0b' },
+  high: { min: 70, max: 85, color: '#10b981' },
+  optimal: { min: 85, max: 100, color: '#3b82f6' }
 };
