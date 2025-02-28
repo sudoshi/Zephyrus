@@ -1,50 +1,83 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { ResponsiveLine } from '@nivo/line';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
 const TrendView = ({ filters }) => {
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    // In a real application, we would filter the trend data based on the selected filters
+    // For now, we'll just use the mock data
+    return mockBlockUtilization.trendData;
+  }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
+  
   // Prepare data for the line chart
   const lineChartData = [
     {
       id: 'In-Block Utilization',
       color: '#3B82F6',
-      data: mockBlockUtilization.trendData.inBlock
+      data: filteredData.inBlock
     },
     {
       id: 'Total Block Utilization',
       color: '#10B981',
-      data: mockBlockUtilization.trendData.total
+      data: filteredData.total
     }
   ];
+
+  // Helper function to format percentages
+  const formatPercentage = (value) => {
+    if (typeof value === 'number') {
+      return `${value.toFixed(1)}%`;
+    } else if (typeof value === 'string') {
+      // If it's already a string, just return it (it might already have % sign)
+      return value;
+    }
+    return 'N/A';
+  };
+
+  // Get metrics based on filtered data
+  const getFilteredMetrics = () => {
+    // In a real application, we would calculate metrics based on filtered data
+    // For now, we'll just use the overall metrics
+    return mockBlockUtilization.overallMetrics;
+  };
+  
+  const metrics = getFilteredMetrics();
 
   return (
     <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard 
           title="In-Block Utilization" 
-          value={mockBlockUtilization.overallMetrics.inBlockUtilization} 
+          value={formatPercentage(metrics.inBlockUtilization)} 
           trend="+2.3%" 
           trendDirection="up"
           icon="chart-bar"
           iconColor="text-blue-500"
+          isSubpanel={true}
         />
         <MetricCard 
           title="Total Block Utilization" 
-          value={mockBlockUtilization.overallMetrics.totalBlockUtilization} 
+          value={formatPercentage(metrics.totalBlockUtilization)} 
           trend="+1.8%" 
           trendDirection="up"
           icon="chart-pie"
           iconColor="text-emerald-500"
+          isSubpanel={true}
         />
         <MetricCard 
           title="Non-Prime Time" 
-          value={mockBlockUtilization.overallMetrics.nonPrimePercentage} 
+          value={formatPercentage(metrics.nonPrimePercentage)} 
           trend="-0.7%" 
           trendDirection="down"
           icon="clock"
           iconColor="text-purple-500"
+          isSubpanel={true}
         />
       </div>
 

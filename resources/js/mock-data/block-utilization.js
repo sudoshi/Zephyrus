@@ -67,9 +67,9 @@ export const mockBlockUtilization = {
   
   // Overall metrics across all sites
   overallMetrics: {
-    inBlockUtilization: '69.5%',
-    totalBlockUtilization: '83.5%',
-    nonPrimePercentage: '11.6%'
+    inBlockUtilization: 69.5,
+    totalBlockUtilization: 83.5,
+    nonPrimePercentage: 11.6
   },
   
   // Service data for charts
@@ -80,7 +80,8 @@ export const mockBlockUtilization = {
         inBlockUtilization: 74.1,
         totalBlockUtilization: 86.8,
         nonPrimePercentage: 13.5
-      }
+      },
+      sites: ['MARH OR', 'VORH JRI OR']
     },
     {
       name: 'General Surgery',
@@ -88,7 +89,8 @@ export const mockBlockUtilization = {
         inBlockUtilization: 67.1,
         totalBlockUtilization: 79.3,
         nonPrimePercentage: 17.1
-      }
+      },
+      sites: ['MARH OR', 'VORH JRI OR', 'MEMH OR']
     },
     {
       name: 'Neurosurgery',
@@ -96,7 +98,8 @@ export const mockBlockUtilization = {
         inBlockUtilization: 72.5,
         totalBlockUtilization: 84.9,
         nonPrimePercentage: 8.6
-      }
+      },
+      sites: ['MARH OR', 'OLLH OR']
     },
     {
       name: 'Cardiology',
@@ -104,7 +107,8 @@ export const mockBlockUtilization = {
         inBlockUtilization: 69.4,
         totalBlockUtilization: 81.2,
         nonPrimePercentage: 11.5
-      }
+      },
+      sites: ['VORH JRI OR', 'OLLH OR']
     },
     {
       name: 'Urology',
@@ -112,7 +116,8 @@ export const mockBlockUtilization = {
         inBlockUtilization: 65.2,
         totalBlockUtilization: 77.8,
         nonPrimePercentage: 14.3
-      }
+      },
+      sites: ['MARH OR', 'MEMH OR']
     }
   ],
   
@@ -184,6 +189,137 @@ export const mockBlockUtilization = {
       trend: '+1.5%',
       status: 'Declining'
     }
+  },
+  
+  // Block data for block view
+  blockData: [
+    {
+      name: 'Orthopedics Block 1',
+      specialty: 'Orthopedics',
+      location: 'MARH OR',
+      utilization: 74.5,
+      released: false,
+      sites: ['MARH OR']
+    },
+    {
+      name: 'Orthopedics Block 2',
+      specialty: 'Orthopedics',
+      location: 'VORH JRI OR',
+      utilization: 78.2,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'General Surgery Block 1',
+      specialty: 'General Surgery',
+      location: 'MARH OR',
+      utilization: 67.8,
+      released: false,
+      sites: ['MARH OR']
+    },
+    {
+      name: 'General Surgery Block 2',
+      specialty: 'General Surgery',
+      location: 'VORH JRI OR',
+      utilization: 68.9,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'Neurosurgery Block 1',
+      specialty: 'Neurosurgery',
+      location: 'MARH OR',
+      utilization: 72.1,
+      released: true,
+      sites: ['MARH OR']
+    },
+    {
+      name: 'Cardiology Block 1',
+      specialty: 'Cardiology',
+      location: 'VORH JRI OR',
+      utilization: 69.7,
+      released: false,
+      sites: ['VORH JRI OR']
+    },
+    {
+      name: 'Urology Block 1',
+      specialty: 'Urology',
+      location: 'MARH OR',
+      utilization: 65.4,
+      released: true,
+      sites: ['MARH OR']
+    }
+  ],
+  
+  // Location data for location view
+  locationData: [
+    {
+      name: 'MARH OR',
+      hospital: 'Memorial Academic Regional Hospital',
+      utilization: 67.8,
+      totalBlockUtilization: 82.3,
+      nonPrimePercentage: 12.4,
+      utilizationTrend: '+3.2%',
+      specialties: ['Orthopedics', 'General Surgery', 'Neurosurgery', 'Cardiology'],
+      services: [
+        { service_name: 'Orthopedics', in_block_utilization: 72.5 },
+        { service_name: 'General Surgery', in_block_utilization: 65.8 },
+        { service_name: 'Neurosurgery', in_block_utilization: 71.2 }
+      ]
+    },
+    {
+      name: 'VORH JRI OR',
+      hospital: 'Valley Orthopedic Regional Hospital',
+      utilization: 71.2,
+      totalBlockUtilization: 84.7,
+      nonPrimePercentage: 10.8,
+      utilizationTrend: '+1.5%',
+      specialties: ['Orthopedics', 'General Surgery', 'Neurosurgery'],
+      services: [
+        { service_name: 'Orthopedics', in_block_utilization: 75.6 },
+        { service_name: 'General Surgery', in_block_utilization: 68.4 },
+        { service_name: 'Neurosurgery', in_block_utilization: 73.9 }
+      ]
+    },
+    {
+      name: 'MEMH OR',
+      hospital: 'Memorial East Medical Hospital',
+      utilization: 69.5,
+      totalBlockUtilization: 83.1,
+      nonPrimePercentage: 11.2,
+      utilizationTrend: '+0.8%',
+      specialties: ['General Surgery', 'Urology'],
+      services: [
+        { service_name: 'General Surgery', in_block_utilization: 67.1 },
+        { service_name: 'Urology', in_block_utilization: 65.2 }
+      ]
+    },
+    {
+      name: 'OLLH OR',
+      hospital: 'Our Lady of Lourdes Hospital',
+      utilization: 70.8,
+      totalBlockUtilization: 83.9,
+      nonPrimePercentage: 9.7,
+      utilizationTrend: '+2.1%',
+      specialties: ['Neurosurgery', 'Cardiology'],
+      services: [
+        { service_name: 'Neurosurgery', in_block_utilization: 72.5 },
+        { service_name: 'Cardiology', in_block_utilization: 69.4 }
+      ]
+    }
+  ],
+  
+  // Non-prime data for non-prime view
+  nonPrimeData: {
+    weekendCases: 124,
+    afterHoursCases: 87,
+    trend: [
+      { x: '2025-01-01', y: 13.5 },
+      { x: '2025-01-15', y: 12.8 },
+      { x: '2025-02-01', y: 11.9 },
+      { x: '2025-02-15', y: 12.5 },
+      { x: '2025-03-01', y: 11.6 }
+    ]
   }
 };
 

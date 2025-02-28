@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@iconify/react';
+import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
+import ErrorBoundary from '@/Components/ErrorBoundary';
 
 // Import view components
 import ServiceView from './Views/ServiceView';
@@ -15,68 +17,6 @@ import NonPrimeView from './Views/NonPrimeView';
 // Import mock data
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 
-// Filter sidebar component
-const FilterSidebar = ({ filters, onChange, visible }) => {
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    onChange({ ...filters, [name]: value });
-  };
-
-  return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-4 ${visible ? 'block' : 'hidden md:block'}`}>
-      <h3 className="text-lg font-medium mb-4 dark:text-white">Filters</h3>
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="site" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Site</label>
-          <select 
-            id="site" 
-            name="site" 
-            value={filters.site} 
-            onChange={handleFilterChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option value="all">All Sites</option>
-            {Object.keys(mockBlockUtilization.sites).map((site, index) => (
-              <option key={index} value={site}>{site}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="service" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service</label>
-          <select 
-            id="service" 
-            name="service" 
-            value={filters.service} 
-            onChange={handleFilterChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option value="all">All Services</option>
-            {mockBlockUtilization.serviceData.map((service, index) => (
-              <option key={index} value={service.name}>{service.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="timeRange" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time Range</label>
-          <select 
-            id="timeRange" 
-            name="timeRange" 
-            value={filters.timeRange} 
-            onChange={handleFilterChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-          >
-            <option value="30">Last 30 Days</option>
-            <option value="60">Last 60 Days</option>
-            <option value="90">Last 90 Days</option>
-            <option value="180">Last 6 Months</option>
-            <option value="365">Last 12 Months</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
   const { url } = usePage();
   
@@ -84,10 +24,21 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
   const [activeView, setActiveView] = useState(initialActiveView || 'service');
   const [filtersVisible, setFiltersVisible] = useState(false);
   
+  // Enhanced filters state to match HierarchicalFilters component
   const [filters, setFilters] = useState({
-    site: 'all',
-    service: 'all',
-    timeRange: '90'
+    selectedHospital: '',
+    selectedLocation: '',
+    selectedSpecialty: '',
+    selectedSurgeon: '',
+    dateRange: { 
+      startDate: new Date(new Date().setDate(new Date().getDate() - 90)), 
+      endDate: new Date() 
+    },
+    comparisonDateRange: { 
+      startDate: new Date(new Date().setDate(new Date().getDate() - 180)), 
+      endDate: new Date(new Date().setDate(new Date().getDate() - 91)) 
+    },
+    showComparison: false
   });
 
   // Update active view when initialActiveView prop changes
@@ -96,6 +47,11 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
       setActiveView(initialActiveView);
     }
   }, [initialActiveView]);
+
+  // Handle filter changes from HierarchicalFilters
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+  };
 
   // Get the appropriate view component based on activeView
   const getViewComponent = () => {
@@ -119,33 +75,36 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
     }
   };
 
-  // Get visible filters based on active view
-  const getVisibleFilters = () => {
-    const baseFilters = ['site', 'timeRange'];
-    
-    switch (activeView) {
-      case 'service':
-        return [...baseFilters];
-      case 'trend':
-        return [...baseFilters, 'service'];
-      case 'dayOfWeek':
-        return [...baseFilters, 'service'];
-      case 'location':
-        return ['timeRange', 'service'];
-      case 'block':
-        return [...baseFilters, 'service'];
-      case 'details':
-        return [...baseFilters, 'service'];
-      case 'nonprime':
-        return [...baseFilters, 'service'];
-      default:
-        return baseFilters;
-    }
-  };
-
   // Toggle mobile filters visibility
   const toggleFilters = () => {
     setFiltersVisible(!filtersVisible);
+  };
+
+  // Format locations data for HierarchicalFilters
+  const formatLocationsData = () => {
+    return Object.keys(mockBlockUtilization.sites).map(site => ({
+      id: site,
+      name: site,
+      hospitalId: site.split(' ')[0] // Extract hospital ID from site name (e.g., 'MARH' from 'MARH OR')
+    }));
+  };
+
+  // Format services data for HierarchicalFilters
+  const formatServicesData = () => {
+    const services = new Set();
+    Object.values(mockBlockUtilization.sites).forEach(site => {
+      site.services.forEach(service => {
+        services.add(service.service_name);
+      });
+    });
+    return Array.from(services);
+  };
+
+  // Format providers data for HierarchicalFilters (if available)
+  const formatProvidersData = () => {
+    // In a real application, this would come from the API
+    // For now, return an empty array
+    return [];
   };
 
   return (
@@ -160,12 +119,17 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
-        <div className="w-full md:w-64 flex-shrink-0">
-          <FilterSidebar 
-            filters={filters} 
-            onChange={setFilters} 
-            visible={filtersVisible} 
-          />
+        <div className="w-full md:w-80 flex-shrink-0">
+          <ErrorBoundary>
+            <HierarchicalFilters 
+              locations={formatLocationsData()}
+              services={formatServicesData()}
+              providers={formatProvidersData()}
+              onFilterChange={handleFilterChange}
+              initialFilters={filters}
+              className="sticky top-4"
+            />
+          </ErrorBoundary>
         </div>
 
         <div className="flex-grow">

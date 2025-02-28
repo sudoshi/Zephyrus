@@ -1,27 +1,67 @@
-import React from 'react';
-import { Card, Tabs } from '@/Components/ui/flowbite';
-import { BarChart, LineChart, PieChart } from '@/Components/ui/charts';
-import { useAnalytics } from '@/contexts/AnalyticsContext';
-import useAnalyticsData from '@/hooks/useAnalyticsData';
-import AnalyticsFilters from '@/Components/Analytics/AnalyticsFilters';
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { mockTurnoverTimes } from '@/mock-data/turnover-times';
+import useAnalyticsData from '@/hooks/useAnalyticsData';
+import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
+import OverviewView from './Views/OverviewView';
+import TrendsView from './Views/TrendsView';
+import HourlyAnalysisView from './Views/HourlyAnalysisView';
+import LocationComparisonView from './Views/LocationComparisonView';
+import ServiceAnalysisView from './Views/ServiceAnalysisView';
+import { AnimatePresence, motion } from 'framer-motion';
+import ErrorBoundary from '@/Components/ErrorBoundary';
 
-export default function TurnoverTimesDashboard() {
-  const { selectedLocation, selectedService, dateRange } = useAnalytics();
-  const [selectedTab, setSelectedTab] = React.useState('overview');
+export default function TurnoverTimesDashboard({ activeView = 'overview' }) {
+  // State for filters
+  const [filters, setFilters] = useState({
+    selectedHospital: '',
+    selectedLocation: '',
+    selectedSpecialty: '',
+    selectedSurgeon: '',
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
+    endDate: new Date(),
+    showComparison: false,
+    compStartDate: new Date(new Date().setDate(new Date().getDate() - 60)),
+    compEndDate: new Date(new Date().setDate(new Date().getDate() - 30))
+  });
 
-  const locationOptions = Object.keys(mockTurnoverTimes.sites);
-  const serviceOptions = Object.keys(mockTurnoverTimes.services);
+  // Format locations data for HierarchicalFilters
+  const formatLocationsData = () => {
+    return Object.keys(mockTurnoverTimes.sites).map(site => ({
+      id: site,
+      name: site,
+      hospitalId: site.split(' ')[0].toLowerCase() // Extract hospital ID from site name (e.g., 'marh' from 'MARH OR')
+    }));
+  };
+
+  // Format services data for HierarchicalFilters
+  const formatServicesData = () => {
+    return Object.keys(mockTurnoverTimes.services).map(service => ({
+      id: service,
+      name: service
+    }));
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters) => {
+    setFilters(prevFilters => ({ ...prevFilters, ...newFilters }));
+  };
 
   // In a real application, this would be an API call
   const fetchTurnoverData = async () => {
     return {
-      locationData: mockTurnoverTimes.sites[selectedLocation],
-      serviceData: selectedService ? mockTurnoverTimes.services[selectedService] : null
+      locationData: mockTurnoverTimes.sites[filters.selectedLocation] || mockTurnoverTimes.sites['MARH OR'],
+      serviceData: filters.selectedSpecialty ? mockTurnoverTimes.services[filters.selectedSpecialty] : null
     };
   };
 
-  const { data, isLoading, error } = useAnalyticsData(fetchTurnoverData, [selectedLocation, selectedService, dateRange]);
+  const { data, isLoading, error } = useAnalyticsData(fetchTurnoverData, [
+    filters.selectedHospital,
+    filters.selectedLocation,
+    filters.selectedSpecialty,
+    filters.startDate,
+    filters.endDate
+  ]);
   
   if (error) {
     throw error; // This will be caught by ErrorBoundary
@@ -30,364 +70,65 @@ export default function TurnoverTimesDashboard() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
       </div>
     );
   }
 
-  const selectedLocationData = data?.locationData;
-  const selectedServiceData = data?.serviceData;
-
-  // Format turnover distribution data for charts
-  const formatDistributionData = (distribution) => {
-    return Object.entries(distribution).map(([range, count]) => ({
-      id: range,
-      label: range,
-      value: count
-    }));
+  // Animation variants for view transitions
+  const variants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 }
   };
 
-  const distributionData = formatDistributionData(selectedLocationData.turnoverDistribution);
-
-  // Format line chart data
-  const trendData = LineChart.formatData(
-    selectedLocationData.trends.medianTurnoverTime.map((item, index) => ({
-      month: item.month,
-      median: item.value,
-      average: selectedLocationData.trends.averageTurnoverTime[index].value
-    })),
-    'month',
-    ['median', 'average'],
-    ['Median Turnover (min)', 'Average Turnover (min)']
-  );
-
-  // Format room data for bar chart
-  const roomData = selectedLocationData.rooms ? selectedLocationData.rooms.map(room => ({
-    name: room.room,
-    medianTurnoverTime: room.medianTurnoverTime,
-    averageTurnoverTime: room.averageTurnoverTime
-  })) : [];
-
-  // Format day of week data
-  const dayOfWeekData = Object.entries(mockTurnoverTimes.dayOfWeek[selectedLocation]).map(([day, data]) => ({
-    name: day,
-    median: data.median,
-    average: data.average
-  }));
-
-  // Format time of day data
-  const timeOfDayData = Object.entries(mockTurnoverTimes.timeOfDay[selectedLocation]).map(([timeRange, data]) => ({
-    name: timeRange,
-    median: data.median,
-    average: data.average
-  }));
-
-  // Format location comparison data
-  const locationComparisonData = Object.entries(mockTurnoverTimes.sites).map(([location, data]) => ({
-    name: location,
-    median: data.medianTurnoverTime,
-    average: data.averageTurnoverTime
-  }));
-
-  // Format service comparison data
-  const serviceComparisonData = Object.entries(mockTurnoverTimes.services).map(([service, data]) => ({
-    name: service,
-    median: data.medianTurnoverTime,
-    average: data.averageTurnoverTime
-  }));
+  // Render the appropriate view based on the active tab
+  const renderView = () => {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeView}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={variants}
+          transition={{ duration: 0.3 }}
+        >
+          {activeView === 'overview' && <OverviewView filters={filters} />}
+          {activeView === 'hourly' && <HourlyAnalysisView filters={filters} />}
+          {activeView === 'trends' && <TrendsView filters={filters} />}
+          {activeView === 'location' && <LocationComparisonView filters={filters} />}
+          {activeView === 'service' && <ServiceAnalysisView filters={filters} />}
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
 
   return (
-    <div>
-      <AnalyticsFilters 
-        locationOptions={locationOptions}
-        showServiceFilter={true}
-        serviceOptions={serviceOptions}
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Median Turnover Time</h5>
-          <div className="text-2xl font-bold">
-            {selectedServiceData ? selectedServiceData.medianTurnoverTime : selectedLocationData.medianTurnoverTime} min
-          </div>
-          <p className="text-xs text-muted-foreground">Median time between cases</p>
-        </Card>
-        <Card>
-          <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Average Turnover Time</h5>
-          <div className="text-2xl font-bold">
-            {selectedServiceData ? selectedServiceData.averageTurnoverTime : selectedLocationData.averageTurnoverTime} min
-          </div>
-          <p className="text-xs text-muted-foreground">Average time between cases</p>
-        </Card>
-        <Card>
-          <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Total Cases</h5>
-          <div className="text-2xl font-bold">
-            {selectedServiceData ? selectedServiceData.totalCases : selectedLocationData.totalCases}
-          </div>
-          <p className="text-xs text-muted-foreground">Cases performed in selected period</p>
-        </Card>
-        <Card>
-          <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Total Turnovers</h5>
-          <div className="text-2xl font-bold">
-            {selectedServiceData ? selectedServiceData.totalTurnovers : selectedLocationData.totalTurnovers}
-          </div>
-          <p className="text-xs text-muted-foreground">Number of room turnovers</p>
-        </Card>
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Sidebar with filters */}
+      <div className="lg:col-span-1">
+        <ErrorBoundary>
+          <HierarchicalFilters
+            locations={formatLocationsData()}
+            services={formatServicesData()}
+            providers={[]}
+            onFilterChange={handleFilterChange}
+            initialFilters={filters}
+          />
+        </ErrorBoundary>
       </div>
-
-      {/* Tabs */}
-      <Tabs style={{ base: "underline" }}>
-        <Tabs.Item title="Overview">
-          <div className="space-y-4">
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Turnover Time Trends - ${selectedLocation}`}</h5>
-              <LineChart 
-                data={trendData}
-                margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
-                axisBottom={{
-                  legend: 'Month',
-                  legendOffset: 36,
-                  legendPosition: 'middle'
-                }}
-                axisLeft={{
-                  legend: 'Time (minutes)',
-                  legendOffset: -40,
-                  legendPosition: 'middle'
-                }}
-                yScale={{ 
-                  type: 'linear', 
-                  min: 25, 
-                  max: 45, 
-                  stacked: false 
-                }}
-                colorScheme="primary"
-              />
-            </Card>
-            {selectedLocationData.rooms && (
-              <Card>
-                <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Turnover Time by Room - ${selectedLocation}`}</h5>
-                <BarChart
-                  data={roomData}
-                  keys={['medianTurnoverTime', 'averageTurnoverTime']}
-                  indexBy="name"
-                  margin={{ top: 20, right: 130, bottom: 70, left: 60 }}
-                  padding={0.3}
-                  colorScheme="primary"
-                  axisBottom={{
-                    tickRotation: -45,
-                    legend: 'Room',
-                    legendPosition: 'middle',
-                    legendOffset: 50
-                  }}
-                  axisLeft={{
-                    legend: 'Time (minutes)',
-                    legendPosition: 'middle',
-                    legendOffset: -40
-                  }}
-                  legends={[
-                    {
-                      dataFrom: 'keys',
-                      anchor: 'bottom-right',
-                      direction: 'column',
-                      justify: false,
-                      translateX: 120,
-                      translateY: 0,
-                      itemsSpacing: 2,
-                      itemWidth: 100,
-                      itemHeight: 20,
-                      itemDirection: 'left-to-right',
-                      itemOpacity: 0.85,
-                      symbolSize: 20
-                    }
-                  ]}
-                />
-              </Card>
-            )}
-          </div>
-        </Tabs.Item>
-        
-        <Tabs.Item title="Distribution">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Turnover Time Distribution - ${selectedLocation}`}</h5>
-              <PieChart
-                data={distributionData}
-                margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                innerRadius={0}
-                padAngle={0.7}
-                cornerRadius={3}
-                activeOuterRadiusOffset={8}
-                colorScheme="mixed"
-                arcLinkLabelsSkipAngle={10}
-                arcLinkLabelsTextColor="#f8fafc"
-                arcLinkLabelsThickness={2}
-                arcLabelsSkipAngle={10}
-                legends={[
-                  {
-                    anchor: 'bottom',
-                    direction: 'row',
-                    justify: false,
-                    translateX: 0,
-                    translateY: 56,
-                    itemsSpacing: 0,
-                    itemWidth: 100,
-                    itemHeight: 18,
-                    itemTextColor: '#999',
-                    itemDirection: 'left-to-right',
-                    itemOpacity: 1,
-                    symbolSize: 18,
-                    symbolShape: 'circle'
-                  }
-                ]}
-              />
-            </Card>
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Turnover Time Distribution - ${selectedLocation}`}</h5>
-              <BarChart
-                data={distributionData.map(item => ({ name: item.id, count: item.value }))}
-                keys={['count']}
-                indexBy="name"
-                margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
-                padding={0.3}
-                colorScheme="mixed"
-                axisBottom={{
-                  legend: 'Time Range',
-                  legendPosition: 'middle',
-                  legendOffset: 32
-                }}
-                axisLeft={{
-                  legend: 'Number of Turnovers',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-              />
-            </Card>
-          </div>
-        </Tabs.Item>
-        
-        <Tabs.Item title="Trends">
-          <div className="space-y-4">
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Day of Week Analysis - ${selectedLocation}`}</h5>
-              <BarChart
-                data={dayOfWeekData}
-                keys={['median', 'average']}
-                indexBy="name"
-                margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
-                padding={0.3}
-                colorScheme="primary"
-                axisBottom={{
-                  legend: 'Day of Week',
-                  legendPosition: 'middle',
-                  legendOffset: 32
-                }}
-                axisLeft={{
-                  legend: 'Time (minutes)',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-                yScale={{ 
-                  type: 'linear', 
-                  min: 25, 
-                  max: 45, 
-                  stacked: false 
-                }}
-              />
-            </Card>
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">{`Time of Day Analysis - ${selectedLocation}`}</h5>
-              <BarChart
-                data={timeOfDayData}
-                keys={['median', 'average']}
-                indexBy="name"
-                margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
-                padding={0.3}
-                colorScheme="primary"
-                axisBottom={{
-                  legend: 'Time of Day',
-                  legendPosition: 'middle',
-                  legendOffset: 32
-                }}
-                axisLeft={{
-                  legend: 'Time (minutes)',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-                yScale={{ 
-                  type: 'linear', 
-                  min: 25, 
-                  max: 45, 
-                  stacked: false 
-                }}
-              />
-            </Card>
-          </div>
-        </Tabs.Item>
-        
-        <Tabs.Item title="Comparison">
-          <div className="space-y-4">
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Location Comparison - Turnover Times</h5>
-              <BarChart
-                data={locationComparisonData}
-                keys={['median', 'average']}
-                indexBy="name"
-                margin={{ top: 20, right: 130, bottom: 70, left: 60 }}
-                padding={0.3}
-                colorScheme="primary"
-                axisBottom={{
-                  tickRotation: -45,
-                  legend: 'Location',
-                  legendPosition: 'middle',
-                  legendOffset: 50
-                }}
-                axisLeft={{
-                  legend: 'Time (minutes)',
-                  legendPosition: 'middle',
-                  legendOffset: -40
-                }}
-                yScale={{ 
-                  type: 'linear', 
-                  min: 25, 
-                  max: 45, 
-                  stacked: false 
-                }}
-              />
-            </Card>
-            <Card>
-              <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Service Comparison - Turnover Times</h5>
-              <div className="h-96">
-                <BarChart
-                  data={serviceComparisonData}
-                  keys={['median', 'average']}
-                  indexBy="name"
-                  margin={{ top: 20, right: 130, bottom: 50, left: 150 }}
-                  padding={0.3}
-                  colorScheme="primary"
-                  layout="horizontal"
-                  axisBottom={{
-                    legend: 'Time (minutes)',
-                    legendPosition: 'middle',
-                    legendOffset: 32
-                  }}
-                  axisLeft={{
-                    legend: 'Service',
-                    legendPosition: 'middle',
-                    legendOffset: -120
-                  }}
-                  yScale={{ 
-                    type: 'linear', 
-                    min: 25, 
-                    max: 45, 
-                    stacked: false 
-                  }}
-                />
-              </div>
-            </Card>
-          </div>
-        </Tabs.Item>
-      </Tabs>
+      
+      {/* Main content area */}
+      <div className="lg:col-span-3">
+        <ErrorBoundary>
+          {renderView()}
+        </ErrorBoundary>
+      </div>
     </div>
   );
 }
+
+TurnoverTimesDashboard.propTypes = {
+  activeView: PropTypes.oneOf(['overview', 'hourly', 'trends', 'location', 'service']).isRequired
+};

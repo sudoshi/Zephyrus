@@ -1,18 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { ResponsiveBar } from '@nivo/bar';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
 const BlockView = ({ filters }) => {
-  // For the demo, we'll use the serviceData as a proxy for block groups
-  // In a real implementation, this would be actual block group data
-  const blockData = mockBlockUtilization.serviceData.map(service => ({
-    name: `Block ${service.name}`,
-    inBlockUtilization: service.metrics.inBlockUtilization,
-    totalBlockUtilization: service.metrics.totalBlockUtilization,
-    nonPrimePercentage: service.metrics.nonPrimePercentage
-  }));
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    let filteredBlockData = [...mockBlockUtilization.blockData];
+    
+    // Filter by hospital if selected
+    if (selectedHospital) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.sites && block.sites.some(site => site.includes(selectedHospital))
+      );
+    }
+    
+    // Filter by location if selected
+    if (selectedLocation) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.sites && block.sites.some(site => site.includes(selectedLocation))
+      );
+    }
+    
+    // Filter by specialty if selected
+    if (selectedSpecialty) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.specialty === selectedSpecialty
+      );
+    }
+    
+    return filteredBlockData;
+  }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
 
   // Helper function to format percentages
   const formatPercentage = (value) => {
@@ -25,30 +47,64 @@ const BlockView = ({ filters }) => {
     return 'N/A';
   };
 
+  // Calculate metrics based on filtered data
+  const calculateMetrics = () => {
+    if (!filteredData || filteredData.length === 0) {
+      return {
+        totalBlocks: 0,
+        averageUtilization: 0,
+        releaseRate: 0
+      };
+    }
+    
+    const totalBlocks = filteredData.length;
+    const totalUtilization = filteredData.reduce((sum, block) => sum + (block.utilization || 0), 0);
+    const averageUtilization = totalUtilization / totalBlocks;
+    
+    // Count blocks that were released
+    const releasedBlocks = filteredData.filter(block => block.released).length;
+    const releaseRate = (releasedBlocks / totalBlocks) * 100;
+    
+    return {
+      totalBlocks,
+      averageUtilization,
+      releaseRate
+    };
+  };
+  
+  const metrics = calculateMetrics();
+
+  // Sort blocks by utilization for the chart
+  const sortedBlocks = [...filteredData].sort((a, b) => b.utilization - a.utilization).slice(0, 10);
+  
+  // Prepare data for the bar chart
+  const barChartData = sortedBlocks.map(block => ({
+    block: block.name,
+    utilization: block.utilization
+  }));
+
   return (
     <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard 
-          title="Average Block Utilization" 
-          value="72.3%" 
-          trend="+1.5%" 
-          trendDirection="up"
-          icon="chart-bar"
+          title="Total Blocks" 
+          value={metrics.totalBlocks.toString()} 
+          icon="calendar-check"
           iconColor="text-blue-500"
           isSubpanel={true}
         />
         <MetricCard 
-          title="Highest Block" 
-          value="Orthopedics (74.1%)" 
-          icon="arrow-trending-up"
+          title="Average Utilization" 
+          value={formatPercentage(metrics.averageUtilization)} 
+          icon="chart-pie"
           iconColor="text-emerald-500"
           isSubpanel={true}
         />
         <MetricCard 
-          title="Lowest Block" 
-          value="Urology (65.2%)" 
-          icon="arrow-trending-down"
-          iconColor="text-red-500"
+          title="Release Rate" 
+          value={formatPercentage(metrics.releaseRate)} 
+          icon="arrow-up-right"
+          iconColor="text-purple-500"
           isSubpanel={true}
         />
       </div>
@@ -56,14 +112,14 @@ const BlockView = ({ filters }) => {
       <Panel title="Block Group Utilization" dropLightIntensity="medium">
         <div className="h-80">
           <ResponsiveBar
-            data={blockData}
-            keys={['inBlockUtilization', 'totalBlockUtilization']}
-            indexBy="name"
+            data={barChartData}
+            keys={['utilization']}
+            indexBy="block"
             margin={{ top: 10, right: 130, bottom: 50, left: 60 }}
             padding={0.3}
             valueScale={{ type: 'linear' }}
             indexScale={{ type: 'band', round: true }}
-            colors={['#3B82F6', '#10B981']}
+            colors={['#3B82F6']}
             borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
             axisTop={null}
             axisRight={null}
@@ -166,22 +222,22 @@ const BlockView = ({ filters }) => {
         
         <Panel title="Block Utilization Ranking" isSubpanel={false} dropLightIntensity="medium">
           <div className="space-y-4">
-            {blockData
-              .sort((a, b) => b.inBlockUtilization - a.inBlockUtilization)
+            {filteredData
+              .sort((a, b) => b.utilization - a.utilization)
               .map((block, index) => (
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="flex justify-between mb-2">
                     <h3 className="font-medium dark:text-white">{block.name}</h3>
-                    <span className="text-blue-600 dark:text-blue-400">{formatPercentage(block.inBlockUtilization)}</span>
+                    <span className="text-blue-600 dark:text-blue-400">{formatPercentage(block.utilization)}</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
                     <div 
                       className={`h-2.5 rounded-full ${
-                        block.inBlockUtilization > 75 ? 'bg-emerald-500' : 
-                        block.inBlockUtilization > 70 ? 'bg-blue-600' : 
-                        block.inBlockUtilization > 65 ? 'bg-amber-500' : 'bg-red-500'
+                        block.utilization > 75 ? 'bg-emerald-500' : 
+                        block.utilization > 70 ? 'bg-blue-600' : 
+                        block.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
                       }`} 
-                      style={{ width: `${block.inBlockUtilization}%` }}
+                      style={{ width: `${block.utilization}%` }}
                     />
                   </div>
                 </div>

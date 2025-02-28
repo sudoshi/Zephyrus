@@ -1,62 +1,101 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { MetricCard, Panel } from '@/Components/ui';
 
 const LocationView = ({ filters }) => {
-  // Helper function to parse percentage strings into numeric values
-  const parsePercentage = (value) => {
-    if (typeof value === 'number') {
-      return value;
-    } else if (typeof value === 'string') {
-      // Extract number from string like "67.8%"
-      const match = value.match(/(\d+(\.\d+)?)/);
-      return match ? parseFloat(match[0]) : 0;
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    let filteredLocationData = [...mockBlockUtilization.locationData];
+    
+    // Filter by hospital if selected
+    if (selectedHospital) {
+      filteredLocationData = filteredLocationData.filter(location => 
+        location.hospital === selectedHospital
+      );
     }
-    return 0;
-  };
+    
+    // Filter by specialty if selected
+    if (selectedSpecialty) {
+      filteredLocationData = filteredLocationData.filter(location => 
+        location.specialties && location.specialties.includes(selectedSpecialty)
+      );
+    }
+    
+    return filteredLocationData;
+  }, [selectedHospital, selectedSpecialty, dateRange]);
 
-  // Transform location data and ensure all values are numeric
-  const locationData = Object.entries(mockBlockUtilization.sites).map(([name, data]) => ({
-    name,
-    inBlockUtilization: parsePercentage(data.metrics.inBlockUtilization),
-    totalBlockUtilization: parsePercentage(data.metrics.totalBlockUtilization)
-  }));
-
-  // Helper function to format percentages for display
+  // Helper function to format percentages
   const formatPercentage = (value) => {
-    if (value === null || value === undefined || isNaN(value)) {
-      return 'N/A';
-    }
     if (typeof value === 'number') {
       return `${value.toFixed(1)}%`;
     } else if (typeof value === 'string') {
-      // If it's already a string with % sign, just return it
-      return value.includes('%') ? value : `${value}%`;
+      // If it's already a string, just return it (it might already have % sign)
+      return value;
     }
     return 'N/A';
   };
+
+  // Calculate metrics based on filtered data
+  const calculateMetrics = () => {
+    if (!filteredData || filteredData.length === 0) {
+      return {
+        totalLocations: 0,
+        averageUtilization: 0,
+        highestLocation: { name: 'N/A', utilization: 0 }
+      };
+    }
+    
+    const totalLocations = filteredData.length;
+    const totalUtilization = filteredData.reduce((sum, location) => sum + (location.utilization || 0), 0);
+    const averageUtilization = totalUtilization / totalLocations;
+    
+    // Find location with highest utilization
+    const highestLocation = filteredData.reduce((highest, current) => 
+      (current.utilization > highest.utilization) ? current : highest
+    , { name: 'N/A', utilization: 0 });
+    
+    return {
+      totalLocations,
+      averageUtilization,
+      highestLocation
+    };
+  };
+  
+  const metrics = calculateMetrics();
+
+  // Prepare data for the bar chart
+  const barChartData = filteredData.map(location => ({
+    location: location.name,
+    utilization: location.utilization
+  }));
 
   return (
     <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard 
           title="Total Locations" 
-          value={Object.keys(mockBlockUtilization.sites).length.toString()} 
-          icon="building-office-2"
+          value={metrics.totalLocations.toString()} 
+          icon="map-marker"
           iconColor="text-blue-500"
+          isSubpanel={true}
         />
         <MetricCard 
-          title="Highest Utilization" 
-          value="VORH JRI OR (71.2%)" 
-          icon="arrow-trending-up"
+          title="Average Utilization" 
+          value={formatPercentage(metrics.averageUtilization)} 
+          icon="chart-pie"
           iconColor="text-emerald-500"
+          isSubpanel={true}
         />
         <MetricCard 
-          title="Lowest Utilization" 
-          value="MARH OR (67.8%)" 
-          icon="arrow-trending-down"
-          iconColor="text-amber-500"
+          title="Highest Location" 
+          value={`${metrics.highestLocation.name} (${formatPercentage(metrics.highestLocation.utilization)})`} 
+          icon="arrow-up-right"
+          iconColor="text-purple-500"
+          isSubpanel={true}
         />
       </div>
 
@@ -64,14 +103,14 @@ const LocationView = ({ filters }) => {
         <Panel title="Location Utilization" isSubpanel={true} dropLightIntensity="medium">
           <div className="h-80">
             <ResponsiveBar
-              data={locationData}
-              keys={['inBlockUtilization', 'totalBlockUtilization']}
-              indexBy="name"
+              data={barChartData}
+              keys={['utilization']}
+              indexBy="location"
               margin={{ top: 10, right: 130, bottom: 50, left: 60 }}
               padding={0.3}
               valueScale={{ type: 'linear' }}
               indexScale={{ type: 'band', round: true }}
-              colors={['#3B82F6', '#10B981']}
+              colors={['#3B82F6']}
               borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
               axisTop={null}
               axisRight={null}
@@ -142,22 +181,22 @@ const LocationView = ({ filters }) => {
 
         <Panel title="Location Comparison" isSubpanel={true} dropLightIntensity="medium">
           <div className="space-y-4">
-            {locationData
-              .sort((a, b) => b.inBlockUtilization - a.inBlockUtilization)
+            {filteredData
+              .sort((a, b) => b.utilization - a.utilization)
               .map((location, index) => (
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="flex justify-between mb-2">
                     <h3 className="font-medium dark:text-white">{location.name}</h3>
-                    <span className="text-blue-600 dark:text-blue-400">{formatPercentage(location.inBlockUtilization)}</span>
+                    <span className="text-blue-600 dark:text-blue-400">{formatPercentage(location.utilization)}</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                     <div 
                       className={`h-2.5 rounded-full ${
-                        location.inBlockUtilization > 75 ? 'bg-emerald-500' : 
-                        location.inBlockUtilization > 70 ? 'bg-blue-500' : 
-                        location.inBlockUtilization > 65 ? 'bg-amber-500' : 'bg-red-500'
+                        location.utilization > 75 ? 'bg-emerald-500' : 
+                        location.utilization > 70 ? 'bg-blue-500' : 
+                        location.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
                       }`}
-                      style={{ width: `${location.inBlockUtilization}%` }}
+                      style={{ width: `${location.utilization}%` }}
                     ></div>
                   </div>
                 </div>
@@ -171,11 +210,11 @@ const LocationView = ({ filters }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Panel title="Service Distribution by Location" isSubpanel={true} dropLightIntensity="subtle">
               <div className="space-y-4">
-                {Object.entries(mockBlockUtilization.sites).map(([siteName, data], index) => (
+                {filteredData.map((location, index) => (
                   <div key={index} className="border-b pb-3 last:border-0">
-                    <h3 className="font-medium mb-2 dark:text-white">{siteName}</h3>
+                    <h3 className="font-medium mb-2 dark:text-white">{location.name}</h3>
                     <div className="space-y-2">
-                      {data.services.slice(0, 3).map((service, sIndex) => (
+                      {location.services.slice(0, 3).map((service, sIndex) => (
                         <div key={sIndex} className="flex justify-between items-center text-sm">
                           <span className="text-gray-600 dark:text-gray-300">{service.service_name}</span>
                           <span className="text-blue-600 dark:text-blue-400">{formatPercentage(service.in_block_utilization)}</span>
@@ -237,22 +276,22 @@ const LocationView = ({ filters }) => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {Object.entries(mockBlockUtilization.sites).map(([name, data], index) => (
+                {filteredData.map((location, index) => (
                   <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {name}
+                      {location.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {formatPercentage(data.metrics.inBlockUtilization)}
+                      {formatPercentage(location.utilization)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {formatPercentage(data.metrics.totalBlockUtilization)}
+                      {formatPercentage(location.totalBlockUtilization)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {formatPercentage(data.metrics.nonPrimePercentage)}
+                      {formatPercentage(location.nonPrimePercentage)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {data.metrics.utilizationTrend}
+                      {location.utilizationTrend}
                     </td>
                   </tr>
                 ))}

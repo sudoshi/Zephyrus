@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { MetricCard, Panel } from '@/Components/ui';
 
 const DayOfWeekView = ({ filters }) => {
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    // In a real application, we would filter the day of week data based on the selected filters
+    // For now, we'll just use the mock data
+    return mockBlockUtilization.dayOfWeekData;
+  }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
+
   // Helper function to format percentages
   const formatPercentage = (value) => {
     if (typeof value === 'number') {
@@ -15,26 +25,44 @@ const DayOfWeekView = ({ filters }) => {
     return 'N/A';
   };
 
+  // Get metrics based on filtered data
+  const getFilteredMetrics = () => {
+    // In a real application, we would calculate metrics based on filtered data
+    // For now, we'll just use the overall metrics
+    return mockBlockUtilization.overallMetrics;
+  };
+  
+  const metrics = getFilteredMetrics();
+
   return (
     <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard 
-          title="Average Utilization" 
-          value={formatPercentage(71.7)} 
-          icon="chart-line"
+          title="In-Block Utilization" 
+          value={formatPercentage(metrics.inBlockUtilization)} 
+          trend="+2.3%" 
+          trendDirection="up"
+          icon="chart-bar"
           iconColor="text-blue-500"
+          isSubpanel={true}
         />
         <MetricCard 
-          title="Highest Day" 
-          value={formatPercentage("Tuesday (76.5%)")} 
-          icon="arrow-trending-up"
+          title="Total Block Utilization" 
+          value={formatPercentage(metrics.totalBlockUtilization)} 
+          trend="+1.8%" 
+          trendDirection="up"
+          icon="chart-pie"
           iconColor="text-emerald-500"
+          isSubpanel={true}
         />
         <MetricCard 
-          title="Lowest Day" 
-          value={formatPercentage("Friday (65.7%)")} 
-          icon="arrow-trending-down"
-          iconColor="text-red-500"
+          title="Non-Prime Time" 
+          value={formatPercentage(metrics.nonPrimePercentage)} 
+          trend="-0.7%" 
+          trendDirection="down"
+          icon="clock"
+          iconColor="text-purple-500"
+          isSubpanel={true}
         />
       </div>
 

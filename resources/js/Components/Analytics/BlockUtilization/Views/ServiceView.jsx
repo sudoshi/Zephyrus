@@ -1,12 +1,43 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { ResponsiveBar } from '@nivo/bar';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
 const ServiceView = ({ filters }) => {
-  // Transform mock data into the format needed for the chart
-  const chartData = mockBlockUtilization.serviceData.map(service => ({
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty } = filters;
+  
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    let filteredServiceData = [...mockBlockUtilization.serviceData];
+    
+    // Filter by hospital if selected
+    if (selectedHospital) {
+      filteredServiceData = filteredServiceData.filter(service => 
+        service.sites.some(site => site.includes(selectedHospital))
+      );
+    }
+    
+    // Filter by location if selected
+    if (selectedLocation) {
+      filteredServiceData = filteredServiceData.filter(service => 
+        service.sites.includes(selectedLocation)
+      );
+    }
+    
+    // Filter by specialty if selected
+    if (selectedSpecialty) {
+      filteredServiceData = filteredServiceData.filter(service => 
+        service.name === selectedSpecialty
+      );
+    }
+    
+    return filteredServiceData;
+  }, [selectedHospital, selectedLocation, selectedSpecialty]);
+
+  // Transform filtered data into the format needed for the chart
+  const chartData = filteredData.map(service => ({
     name: service.name,
     inBlockUtilization: service.metrics.inBlockUtilization,
     totalBlockUtilization: service.metrics.totalBlockUtilization,
@@ -23,12 +54,32 @@ const ServiceView = ({ filters }) => {
     return 'N/A';
   };
 
+  // Get metrics based on filtered data
+  const getFilteredMetrics = () => {
+    if (filteredData.length === 0) {
+      return mockBlockUtilization.overallMetrics;
+    }
+    
+    // Calculate average metrics from filtered services
+    const inBlockSum = filteredData.reduce((sum, service) => sum + parseFloat(service.metrics.inBlockUtilization), 0);
+    const totalBlockSum = filteredData.reduce((sum, service) => sum + parseFloat(service.metrics.totalBlockUtilization), 0);
+    const nonPrimeSum = filteredData.reduce((sum, service) => sum + parseFloat(service.metrics.nonPrimePercentage), 0);
+    
+    return {
+      inBlockUtilization: inBlockSum / filteredData.length,
+      totalBlockUtilization: totalBlockSum / filteredData.length,
+      nonPrimePercentage: nonPrimeSum / filteredData.length
+    };
+  };
+  
+  const metrics = getFilteredMetrics();
+
   return (
     <div className="animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard 
           title="In-Block Utilization" 
-          value={formatPercentage(mockBlockUtilization.overallMetrics.inBlockUtilization)} 
+          value={formatPercentage(metrics.inBlockUtilization)} 
           trend="+2.3%" 
           trendDirection="up"
           icon="chart-bar"
@@ -37,7 +88,7 @@ const ServiceView = ({ filters }) => {
         />
         <MetricCard 
           title="Total Block Utilization" 
-          value={formatPercentage(mockBlockUtilization.overallMetrics.totalBlockUtilization)} 
+          value={formatPercentage(metrics.totalBlockUtilization)} 
           trend="+1.8%" 
           trendDirection="up"
           icon="chart-pie"
@@ -46,7 +97,7 @@ const ServiceView = ({ filters }) => {
         />
         <MetricCard 
           title="Non-Prime Time" 
-          value={formatPercentage(mockBlockUtilization.overallMetrics.nonPrimePercentage)} 
+          value={formatPercentage(metrics.nonPrimePercentage)} 
           trend="-0.7%" 
           trendDirection="down"
           icon="clock"
@@ -142,7 +193,7 @@ const ServiceView = ({ filters }) => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {mockBlockUtilization.serviceData.map((service, index) => (
+                {filteredData.map((service, index) => (
                   <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       {service.name}

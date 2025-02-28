@@ -1,55 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { Icon } from '@iconify/react';
 import Panel from '@/Components/ui/Panel';
 
 const DetailsView = ({ filters }) => {
-  const [sortConfig, setSortConfig] = useState({
-    key: 'service',
-    direction: 'ascending'
-  });
+  // Extract filter values from the new filter structure
+  const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
-  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
   
-  // Combine service and site data for a comprehensive table
-  const tableData = [
-    ...mockBlockUtilization.serviceData.map(service => ({
-      id: `service-${service.name}`,
-      type: 'Service',
-      name: service.name,
-      inBlockUtilization: service.metrics.inBlockUtilization,
-      totalBlockUtilization: service.metrics.totalBlockUtilization,
-      nonPrimePercentage: service.metrics.nonPrimePercentage,
-      trend: service.metrics.utilizationTrend
-    })),
-    ...Object.entries(mockBlockUtilization.sites).map(([siteName, data], index) => ({
-      id: `site-${index}`,
-      type: 'Location',
-      name: siteName,
-      inBlockUtilization: data.metrics.inBlockUtilization,
-      totalBlockUtilization: data.metrics.totalBlockUtilization,
-      nonPrimePercentage: data.metrics.nonPrimePercentage,
-      trend: data.metrics.utilizationTrend
-    }))
-  ];
-  
-  // Sorting logic
-  const sortedData = [...tableData].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === 'ascending' ? -1 : 1;
+  // Filter data based on hierarchical filters
+  const filteredData = useMemo(() => {
+    let filteredBlockData = [...mockBlockUtilization.blockData];
+    
+    // Filter by hospital if selected
+    if (selectedHospital) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.sites && block.sites.some(site => site.includes(selectedHospital))
+      );
     }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === 'ascending' ? 1 : -1;
+    
+    // Filter by location if selected
+    if (selectedLocation) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.sites && block.sites.some(site => site.includes(selectedLocation))
+      );
     }
-    return 0;
-  });
-  
-  // Filtering logic
-  const filteredData = sortedData.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+    
+    // Filter by specialty if selected
+    if (selectedSpecialty) {
+      filteredBlockData = filteredBlockData.filter(block => 
+        block.specialty === selectedSpecialty
+      );
+    }
+    
+    return filteredBlockData;
+  }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
+
   // Helper function to format percentages
   const formatPercentage = (value) => {
     if (typeof value === 'number') {
@@ -61,43 +49,56 @@ const DetailsView = ({ filters }) => {
     return 'N/A';
   };
 
-  // Request a sort
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+  // Sort the data based on the selected field and direction
+  const sortedData = useMemo(() => {
+    if (!filteredData) return [];
+    
+    return [...filteredData].sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      // Handle string comparisons
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      // Handle numeric comparisons
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [filteredData, sortField, sortDirection]);
+
+  // Handle sorting when a column header is clicked
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to ascending
+      setSortField(field);
+      setSortDirection('asc');
     }
-    setSortConfig({ key, direction });
   };
-  
-  // Get the sort direction indicator
-  const getSortDirectionIndicator = (key) => {
-    if (sortConfig.key === key) {
-      return sortConfig.direction === 'ascending' 
-        ? <Icon icon="heroicons:chevron-up" className="w-4 h-4" />
-        : <Icon icon="heroicons:chevron-down" className="w-4 h-4" />;
-    }
-    return null;
+
+  // Render sort icon
+  const renderSortIcon = (field) => {
+    if (sortField !== field) return null;
+    
+    return (
+      <Icon 
+        icon={sortDirection === 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down'} 
+        className="inline-block ml-1" 
+      />
+    );
   };
 
   return (
     <div className="animate-fadeIn">
-      <Panel title="Block Utilization Details" dropLightIntensity="medium">
-        <div className="mb-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Icon icon="heroicons:magnifying-glass" className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md leading-5 bg-white dark:bg-gray-800 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Search by service or location"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
+      <Panel title="Block Details" dropLightIntensity="medium">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -105,244 +106,80 @@ const DetailsView = ({ filters }) => {
                 <th 
                   scope="col" 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('type')}
+                  onClick={() => handleSort('name')}
                 >
-                  <div className="flex items-center">
-                    Type
-                    {getSortDirectionIndicator('type')}
-                  </div>
+                  Block Name {renderSortIcon('name')}
                 </th>
                 <th 
                   scope="col" 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('name')}
+                  onClick={() => handleSort('specialty')}
                 >
-                  <div className="flex items-center">
-                    Name
-                    {getSortDirectionIndicator('name')}
-                  </div>
+                  Specialty {renderSortIcon('specialty')}
                 </th>
                 <th 
                   scope="col" 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('inBlockUtilization')}
+                  onClick={() => handleSort('location')}
                 >
-                  <div className="flex items-center">
-                    In-Block Utilization
-                    {getSortDirectionIndicator('inBlockUtilization')}
-                  </div>
+                  Location {renderSortIcon('location')}
                 </th>
                 <th 
                   scope="col" 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('totalBlockUtilization')}
+                  onClick={() => handleSort('utilization')}
                 >
-                  <div className="flex items-center">
-                    Total Block Utilization
-                    {getSortDirectionIndicator('totalBlockUtilization')}
-                  </div>
+                  Utilization {renderSortIcon('utilization')}
                 </th>
                 <th 
                   scope="col" 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('nonPrimePercentage')}
+                  onClick={() => handleSort('released')}
                 >
-                  <div className="flex items-center">
-                    Non-Prime Time
-                    {getSortDirectionIndicator('nonPrimePercentage')}
-                  </div>
-                </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                  onClick={() => requestSort('trend')}
-                >
-                  <div className="flex items-center">
-                    Trend
-                    {getSortDirectionIndicator('trend')}
-                  </div>
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
+                  Status {renderSortIcon('released')}
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredData.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {sortedData.map((block, index) => (
+                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.type === 'Service' ? 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100' : 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100'
+                    {block.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    {block.specialty}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    {block.location}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <div className="flex items-center">
+                      <div className="w-16 mr-2">{formatPercentage(block.utilization)}</div>
+                      <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
+                        <div 
+                          className={`h-2.5 rounded-full ${
+                            block.utilization > 75 ? 'bg-emerald-500' : 
+                            block.utilization > 70 ? 'bg-blue-600' : 
+                            block.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
+                          }`} 
+                          style={{ width: `${block.utilization}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      block.released ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     }`}>
-                      {item.type}
+                      {block.released ? 'Released' : 'Active'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {formatPercentage(item.inBlockUtilization)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {formatPercentage(item.totalBlockUtilization)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {formatPercentage(item.nonPrimePercentage)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    <div className={`flex items-center ${
-                      item.trend && item.trend.startsWith('+') ? 'text-emerald-500' : 
-                      item.trend && item.trend.startsWith('-') ? 'text-red-500' : 'text-gray-500'
-                    }`}>
-                      <Icon 
-                        icon={
-                          item.trend && item.trend.startsWith('+') ? 'heroicons:arrow-trending-up' : 
-                          item.trend && item.trend.startsWith('-') ? 'heroicons:arrow-trending-down' : 
-                          'heroicons:minus'
-                        } 
-                        className="w-4 h-4 mr-1" 
-                      />
-                      <span>{item.trend || 'N/A'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    <div className="flex space-x-2">
-                      <button className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
-                        <Icon icon="heroicons:eye" className="w-5 h-5" />
-                      </button>
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                        <Icon icon="heroicons:chart-bar" className="w-5 h-5" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">
-                        <Icon icon="heroicons:ellipsis-horizontal" className="w-5 h-5" />
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
-              {filteredData.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-500 dark:text-gray-300">
-                    No data found matching your search criteria
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
-        
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            Showing <span className="font-medium">{filteredData.length}</span> of <span className="font-medium">{tableData.length}</span> results
-          </div>
-          <div className="flex space-x-2">
-            <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm">Previous</button>
-            <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-blue-600 dark:bg-blue-800 text-white dark:text-white">1</button>
-            <button className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm">Next</button>
-          </div>
-        </div>
       </Panel>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <Panel title="Utilization Insights" dropLightIntensity="medium">
-          <div className="space-y-4">
-            <Panel title="Top Performers" isSubpanel={true} dropLightIntensity="subtle">
-              <ul className="space-y-2">
-                {sortedData
-                  .sort((a, b) => b.inBlockUtilization - a.inBlockUtilization)
-                  .slice(0, 3)
-                  .map((item, index) => (
-                    <li key={index} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{item.name} ({item.type})</span>
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{formatPercentage(item.inBlockUtilization)}</span>
-                    </li>
-                  ))}
-              </ul>
-            </Panel>
-            
-            <Panel title="Needs Improvement" isSubpanel={true} dropLightIntensity="subtle">
-              <ul className="space-y-2">
-                {sortedData
-                  .sort((a, b) => a.inBlockUtilization - b.inBlockUtilization)
-                  .slice(0, 3)
-                  .map((item, index) => (
-                    <li key={index} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{item.name} ({item.type})</span>
-                      <span className="text-sm font-medium text-red-600 dark:text-red-400">{formatPercentage(item.inBlockUtilization)}</span>
-                    </li>
-                  ))}
-              </ul>
-            </Panel>
-          </div>
-        </Panel>
-        
-        <Panel title="Utilization Analysis" dropLightIntensity="medium">
-          <div className="space-y-4">
-            <Panel title="Service vs. Location Analysis" isSubpanel={true} dropLightIntensity="medium">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Comparison of average utilization metrics between services and locations.
-              </p>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Services</h4>
-                  <p className="text-xl font-semibold text-blue-600 dark:text-blue-400">
-                    {formatPercentage(
-                      tableData
-                        .filter(item => item.type === 'Service')
-                        .reduce((sum, item) => sum + item.inBlockUtilization, 0) / 
-                        tableData.filter(item => item.type === 'Service').length
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Average In-Block Utilization</p>
-                </div>
-                
-                <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300 mb-1">Locations</h4>
-                  <p className="text-xl font-semibold text-green-600 dark:text-green-400">
-                    {formatPercentage(
-                      tableData
-                        .filter(item => item.type === 'Location')
-                        .reduce((sum, item) => sum + item.inBlockUtilization, 0) / 
-                        tableData.filter(item => item.type === 'Location').length
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Average In-Block Utilization</p>
-                </div>
-              </div>
-            </Panel>
-            
-            <Panel title="Recommendations" isSubpanel={true} dropLightIntensity="strong">
-              <ul className="space-y-2">
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
-                    <Icon icon="heroicons:check-circle" className="w-5 h-5" />
-                  </div>
-                  <p className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-                    Focus on improving utilization for the bottom 3 performers through targeted interventions.
-                  </p>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
-                    <Icon icon="heroicons:check-circle" className="w-5 h-5" />
-                  </div>
-                  <p className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-                    Analyze the practices of top performers to identify transferable strategies.
-                  </p>
-                </li>
-                <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
-                    <Icon icon="heroicons:check-circle" className="w-5 h-5" />
-                  </div>
-                  <p className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-                    Consider reallocating blocks from low-utilization services to high-demand areas.
-                  </p>
-                </li>
-              </ul>
-            </Panel>
-          </div>
-        </Panel>
-      </div>
     </div>
   );
 };

@@ -50,8 +50,8 @@ export default function BlockUtilization({ auth }) {
     {
       title: 'Details',
       items: [
-        { id: 'details', label: 'Details', icon: 'carbon:table' },
         { id: 'nonprime', label: 'Non-Primetime Usage', icon: 'carbon:time' },
+        { id: 'details', label: 'Details', icon: 'carbon:table' },
       ]
     }
   ];
