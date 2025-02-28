@@ -118,36 +118,36 @@ const nivoLightTheme = {
 // Define a theme that matches our healthcare dark theme
 const nivoDarkTheme = {
   background: 'transparent',
-  textColor: '#f8fafc', // healthcare-text-primary-dark
+  textColor: '#ffffff', // White text for better readability
   fontSize: 12,
   axis: {
     domain: {
       line: {
-        stroke: '#334155', // healthcare-border-dark
+        stroke: 'rgba(255, 255, 255, 0.2)', // Lighter border for dark mode
         strokeWidth: 1
       }
     },
     legend: {
       text: {
         fontSize: 12,
-        fill: '#f8fafc' // healthcare-text-primary-dark
+        fill: '#ffffff' // White text for better readability
       }
     },
     ticks: {
       line: {
-        stroke: '#334155', // healthcare-border-dark
+        stroke: 'rgba(255, 255, 255, 0.2)', // Lighter border for dark mode
         strokeWidth: 1
       },
       text: {
         fontSize: 11,
-        fill: '#cbd5e1', // healthcare-text-secondary-dark
+        fill: '#ffffff', // White text for better readability
         fontWeight: 500
       }
     }
   },
   grid: {
     line: {
-      stroke: '#334155', // healthcare-border-dark
+      stroke: 'rgba(255, 255, 255, 0.1)', // Subtle grid lines for dark mode
       strokeWidth: 1,
       strokeDasharray: '4 4'
     }
@@ -156,74 +156,68 @@ const nivoDarkTheme = {
     title: {
       text: {
         fontSize: 11,
-        fill: '#f8fafc', // healthcare-text-primary-dark
+        fill: '#ffffff', // White text for better readability
         fontWeight: 600
       }
     },
     text: {
       fontSize: 11,
-      fill: '#cbd5e1' // healthcare-text-secondary-dark
-    },
-    ticks: {
-      line: {
-        stroke: '#334155', // healthcare-border-dark
-        strokeWidth: 1
-      },
-      text: {
-        fontSize: 10,
-        fill: '#cbd5e1' // healthcare-text-secondary-dark
-      }
+      fill: '#ffffff', // White text for better readability
+      fontWeight: 500
     }
   },
-  annotations: {
+  labels: {
     text: {
-      fontSize: 13,
-      fill: '#f8fafc', // healthcare-text-primary-dark
-      outlineWidth: 2,
-      outlineColor: '#1e293b', // healthcare-surface-dark
-      outlineOpacity: 1
-    },
-    link: {
-      stroke: '#334155', // healthcare-border-dark
-      strokeWidth: 1,
-      outlineWidth: 2,
-      outlineColor: '#1e293b', // healthcare-surface-dark
-      outlineOpacity: 1
-    },
-    outline: {
-      stroke: '#334155', // healthcare-border-dark
-      strokeWidth: 2,
-      outlineWidth: 2,
-      outlineColor: '#1e293b', // healthcare-surface-dark
-      outlineOpacity: 1
-    },
-    symbol: {
-      fill: '#3b82f6', // healthcare-primary-dark
-      outlineWidth: 2,
-      outlineColor: '#1e293b', // healthcare-surface-dark
-      outlineOpacity: 1
+      fontSize: 11,
+      fill: '#ffffff', // White text for better readability
+      fontWeight: 500
     }
   },
   tooltip: {
     container: {
-      background: '#1e293b', // healthcare-surface-dark
-      color: '#f8fafc', // healthcare-text-primary-dark
+      background: '#1e293b',
+      color: '#ffffff',
       fontSize: 12,
-      borderRadius: 4,
+      borderRadius: '4px',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       padding: '8px 12px'
+    }
+  },
+  annotations: {
+    text: {
+      fontSize: 12,
+      fill: '#ffffff', // White text for better readability
+      outlineWidth: 2,
+      outlineColor: '#1e293b',
+      outlineOpacity: 1
     },
-    basic: {
-      whiteSpace: 'pre',
-      display: 'flex',
-      alignItems: 'center'
+    link: {
+      stroke: '#ffffff',
+      strokeWidth: 1,
+      outlineWidth: 2,
+      outlineColor: '#1e293b',
+      outlineOpacity: 1
     },
-    table: {},
-    tableCell: {
-      padding: '3px 5px'
+    outline: {
+      stroke: '#ffffff',
+      strokeWidth: 2,
+      outlineWidth: 2,
+      outlineColor: '#1e293b',
+      outlineOpacity: 1
     },
-    tableCellValue: {
-      fontWeight: 'bold'
+    symbol: {
+      fill: '#ffffff',
+      outlineWidth: 2,
+      outlineColor: '#1e293b',
+      outlineOpacity: 1
+    }
+  },
+  crosshair: {
+    line: {
+      stroke: '#ffffff',
+      strokeWidth: 1,
+      strokeOpacity: 0.5,
+      strokeDasharray: '6 6'
     }
   }
 };

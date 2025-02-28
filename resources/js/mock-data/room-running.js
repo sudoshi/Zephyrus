@@ -271,5 +271,168 @@ export const mockRoomRunning = {
       { month: 'Nov', value: 14.9 },
       { month: 'Dec', value: 14.4 }
     ]
+  },
+  
+  // MEMH OR data for rooms running chart
+  memhOR: {
+    filters: {
+      orGroup: "MEMH OR",
+      weekday: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      metricToShow: "Max Staffing"
+    },
+    // Data series for different metrics
+    dataSeries: {
+      maxStaffing: {
+        id: "Max Staffing",
+        color: "#4169E1", // Royal blue
+        data: [
+          { time: '0', value: 0 },
+          { time: '1', value: 0 },
+          { time: '2', value: 1.5 },
+          { time: '3', value: 1.8 },
+          { time: '4', value: 1.2 },
+          { time: '5', value: 1 },
+          { time: '6', value: 0.8 },
+          { time: '7', value: 0.5 },
+          { time: '7:30', value: 9.2 },
+          { time: '8', value: 11 },
+          { time: '9', value: 9.8 },
+          { time: '10', value: 9.2 },
+          { time: '11', value: 8.8 },
+          { time: '12', value: 8.6 },
+          { time: '13', value: 8.5 },
+          { time: '14', value: 8.6 },
+          { time: '15', value: 8.4 },
+          { time: '15:30', value: 6.8 },
+          { time: '16', value: 5.5 },
+          { time: '17', value: 4.2 },
+          { time: '17:30', value: 3.0 },
+          { time: '18', value: 2.5 },
+          { time: '19', value: 2.0 },
+          { time: '20', value: 1.9 },
+          { time: '21', value: 2.0 },
+          { time: '22', value: 2.0 },
+          { time: '23', value: 1.8 },
+          { time: '24', value: 0 }
+        ]
+      },
+      idealStaffing: {
+        id: "Ideal Staffing",
+        color: "#FFA500", // Orange
+        data: [
+          { time: '0', value: 0 },
+          { time: '1', value: 0 },
+          { time: '2', value: 1 },
+          { time: '3', value: 1.2 },
+          { time: '4', value: 1 },
+          { time: '5', value: 0.8 },
+          { time: '6', value: 0.6 },
+          { time: '7', value: 0.3 },
+          { time: '7:30', value: 8.5 },
+          { time: '8', value: 8.8 },
+          { time: '9', value: 8.2 },
+          { time: '10', value: 7.5 },
+          { time: '11', value: 7.2 },
+          { time: '12', value: 7.0 },
+          { time: '13', value: 6.8 },
+          { time: '14', value: 6.9 },
+          { time: '15', value: 6.7 },
+          { time: '15:30', value: 5.5 },
+          { time: '16', value: 4.2 },
+          { time: '17', value: 3.2 },
+          { time: '17:30', value: 2.5 },
+          { time: '18', value: 2.0 },
+          { time: '19', value: 1.8 },
+          { time: '20', value: 1.6 },
+          { time: '21', value: 1.7 },
+          { time: '22', value: 1.8 },
+          { time: '23', value: 1.6 },
+          { time: '24', value: 0 }
+        ]
+      },
+      avgTotalOccupied: {
+        id: "Avg_TotalOccupied",
+        color: "#FF4500", // OrangeRed
+        data: [
+          { time: '0', value: 0 },
+          { time: '1', value: 0 },
+          { time: '2', value: 0.8 },
+          { time: '3', value: 1 },
+          { time: '4', value: 0.8 },
+          { time: '5', value: 0.6 },
+          { time: '6', value: 0.4 },
+          { time: '7', value: 0.2 },
+          { time: '7:30', value: 6.8 },
+          { time: '8', value: 6.5 },
+          { time: '9', value: 6.2 },
+          { time: '10', value: 5.8 },
+          { time: '11', value: 5.6 },
+          { time: '12', value: 5.5 },
+          { time: '13', value: 5.3 },
+          { time: '14', value: 5.4 },
+          { time: '15', value: 5.2 },
+          { time: '15:30', value: 4.0 },
+          { time: '16', value: 3.0 },
+          { time: '17', value: 2.2 },
+          { time: '17:30', value: 1.8 },
+          { time: '18', value: 1.5 },
+          { time: '19', value: 1.3 },
+          { time: '20', value: 1.2 },
+          { time: '21', value: 1.3 },
+          { time: '22', value: 1.4 },
+          { time: '23', value: 1.2 },
+          { time: '24', value: 0 }
+        ]
+      },
+      maxOccupied: {
+        id: "Max Occupied",
+        color: "#20B2AA", // LightSeaGreen
+        data: [
+          { time: '0', value: 0 },
+          { time: '1', value: 0 },
+          { time: '2', value: 1 },
+          { time: '3', value: 1.2 },
+          { time: '4', value: 1 },
+          { time: '5', value: 0.8 },
+          { time: '6', value: 0.6 },
+          { time: '7', value: 0.3 },
+          { time: '7:30', value: 7.0 },
+          { time: '8', value: 7.2 },
+          { time: '9', value: 7.0 },
+          { time: '10', value: 6.5 },
+          { time: '11', value: 6.2 },
+          { time: '12', value: 6.0 },
+          { time: '13', value: 5.8 },
+          { time: '14', value: 5.9 },
+          { time: '15', value: 5.7 },
+          { time: '15:30', value: 4.5 },
+          { time: '16', value: 3.5 },
+          { time: '17', value: 2.8 },
+          { time: '17:30', value: 2.0 },
+          { time: '18', value: 1.7 },
+          { time: '19', value: 1.5 },
+          { time: '20', value: 1.4 },
+          { time: '21', value: 1.5 },
+          { time: '22', value: 1.6 },
+          { time: '23', value: 1.4 },
+          { time: '24', value: 0 }
+        ]
+      }
+    },
+    // Statistics for the chart
+    statistics: {
+      timeOfDay: '18:30',
+      average: 1.382,
+      averagePlus1StdDev: 2.295,
+      averagePlus2StdDev: 3.21,
+      max: 3,
+      sum: 55
+    },
+    // Vertical markers for key times
+    verticalMarkers: [
+      { time: '7:30', label: '07:30' },
+      { time: '15:30', label: '15:30' },
+      { time: '17:30', label: '17:30' }
+    ]
   }
 };

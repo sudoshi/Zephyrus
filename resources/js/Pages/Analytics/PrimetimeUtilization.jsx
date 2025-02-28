@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import AnalyticsLayout from '../../Layouts/AnalyticsLayout';
 import PrimetimeUtilizationDashboard from '../../Components/Analytics/PrimetimeUtilization/PrimetimeUtilizationDashboard';
-import { Tabs } from 'flowbite-react';
 import { Icon } from '@iconify/react';
 
 export default function PrimetimeUtilization({ auth }) {
@@ -22,8 +21,7 @@ export default function PrimetimeUtilization({ auth }) {
   }, [url]);
 
   // Handle tab change
-  const handleTabChange = (tabIndex) => {
-    const tabId = menuGroups.flatMap(group => group.items)[tabIndex].id;
+  const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     
     // Update URL
@@ -46,9 +44,25 @@ export default function PrimetimeUtilization({ auth }) {
       items: [
         { id: 'location', label: 'Location Comparison', icon: 'carbon:location' },
         { id: 'provider', label: 'Provider Analysis', icon: 'carbon:user-profile' },
+        { id: 'service', label: 'Service Analysis', icon: 'carbon:data-table' },
       ]
     }
   ];
+
+  // Custom TabButton component
+  const TabButton = ({ id, label, icon }) => (
+    <button
+      className={`flex items-center gap-2 px-4 py-2 rounded-t-lg ${
+        activeTab === id
+          ? 'bg-blue-600 text-white'
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+      }`}
+      onClick={() => handleTabChange(id)}
+    >
+      <Icon icon={icon} className="w-5 h-5" />
+      {label}
+    </button>
+  );
 
   return (
     <AnalyticsLayout
@@ -74,50 +88,18 @@ export default function PrimetimeUtilization({ auth }) {
         
         {/* Top Navigation Tabs */}
         <div className="healthcare-card dark:bg-gray-800 mb-6">
-          <Tabs 
-            aria-label="Primetime utilization tabs"
-            style={{ base: "underline" }}
-            onActiveTabChange={handleTabChange}
-            theme={{
-              tablist: {
-                base: "flex flex-wrap -mb-px",
-                styles: {
-                  underline: {
-                    base: "flex-wrap -mb-px border-b border-gray-200 dark:border-gray-700",
-                    tabitem: {
-                      base: "flex items-center justify-center p-4 rounded-t-lg text-sm font-medium first:ml-0 disabled:cursor-not-allowed disabled:text-gray-400 disabled:dark:text-gray-500 focus:outline-none",
-                      styles: {
-                        default: {
-                          base: "rounded-t-lg",
-                          active: {
-                            on: "bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-500 rounded-t-lg border-b-2 border-blue-600 dark:border-blue-500 active",
-                            off: "border-b-2 border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              tabpanel: "py-3"
-            }}
-          >
+          <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
             {menuGroups.flatMap(group => 
               group.items.map(item => (
-                <Tabs.Item 
+                <TabButton 
                   key={item.id}
-                  title={
-                    <div className="flex items-center gap-2">
-                      {item.icon && <Icon icon={item.icon} className="w-5 h-5" />}
-                      <span>{item.label}</span>
-                    </div>
-                  }
-                >
-                  {/* Content will be rendered by the dashboard below */}
-                </Tabs.Item>
+                  id={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                />
               ))
             )}
-          </Tabs>
+          </div>
         </div>
 
         {/* Main Dashboard Area */}

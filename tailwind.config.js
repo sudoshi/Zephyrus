@@ -145,6 +145,7 @@ export default {
                 22: '5.5rem', // 88px
                 26: '6.5rem', // 104px
                 30: '7.5rem', // 120px
+                192: '48rem', // 768px - for double height charts
             },
             boxShadow: {
                 'blue-light': '0 4px 12px rgba(37, 99, 235, 0.1)',

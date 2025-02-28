@@ -364,13 +364,257 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 115,
       casesInNonPrimeTime: 27
     }
-  }
-};
+  },
 
-// Utilization range colors
-export const utilizationRanges = {
-  low: { min: 0, max: 35, color: '#ff9999' },    // Light red
-  medium: { min: 35, max: 65, color: '#ffcc99' }, // Light orange
-  high: { min: 65, max: 100, color: '#99ff99' },  // Light green
-  noData: { color: '#e6e6e6' }                   // Light gray
+  // Service Analysis data
+  serviceAnalysis: {
+    'Grand Total': {
+      primeTimeCurrent: 70.52,
+      primeTimePrevious: 73.09,
+      workDuringPrimeTimeCurrent: 14.8,
+      workDuringPrimeTimePrevious: 14.5,
+      numOfCasesCurrent: 1110,
+      potentialCases: 1263,
+      additionalCasePotential: 153,
+      ORsPerWeekAvailable: 29.06,
+      ORsPerWeekNeeded: 25.55,
+      ORDifference: -3.51,
+      numOfCasesWeekend: 22,
+      ORsNeededPerWeekend: 0.37,
+      percentWeekendWork: 38.5
+    },
+    'VSG General / Vascular / Colorectal': {
+      primeTimeCurrent: 81.79,
+      primeTimePrevious: 85.63,
+      workDuringPrimeTimeCurrent: 15.8,
+      workDuringPrimeTimePrevious: 12.5,
+      numOfCasesCurrent: 626,
+      potentialCases: 616,
+      additionalCasePotential: -10,
+      ORsPerWeekAvailable: 14.90,
+      ORsPerWeekNeeded: 15.37,
+      ORDifference: 0.48,
+      numOfCasesWeekend: 12,
+      ORsNeededPerWeekend: 0.23,
+      percentWeekendWork: 39.3
+    },
+    'Urology': {
+      primeTimeCurrent: 116.62,
+      primeTimePrevious: 115.63,
+      workDuringPrimeTimeCurrent: 12.9,
+      workDuringPrimeTimePrevious: 12.0,
+      numOfCasesCurrent: 267,
+      potentialCases: 202,
+      additionalCasePotential: -65,
+      ORsPerWeekAvailable: 3.07,
+      ORsPerWeekNeeded: 4.37,
+      ORDifference: 1.30,
+      numOfCasesWeekend: 8,
+      ORsNeededPerWeekend: 0.10,
+      percentWeekendWork: 24.6
+    },
+    'Neurosurgery': {
+      primeTimeCurrent: 76.85,
+      primeTimePrevious: 54.33,
+      workDuringPrimeTimeCurrent: 9.7,
+      workDuringPrimeTimePrevious: 15.2,
+      numOfCasesCurrent: 46,
+      potentialCases: 54,
+      additionalCasePotential: 8,
+      ORsPerWeekAvailable: 1.56,
+      ORsPerWeekNeeded: 1.41,
+      ORDifference: -0.15,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: 0.0
+    },
+    'Podiatry': {
+      primeTimeCurrent: 48.6,
+      primeTimePrevious: 56.3,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 30,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: 0.00,
+      ORsPerWeekNeeded: 0.48,
+      ORDifference: 0.48,
+      numOfCasesWeekend: 1,
+      ORsNeededPerWeekend: 0.01,
+      percentWeekendWork: 0.0
+    },
+    'Thoracic Surgery': {
+      primeTimeCurrent: 46.51,
+      primeTimePrevious: 76.02,
+      workDuringPrimeTimeCurrent: 15.8,
+      workDuringPrimeTimePrevious: 19.7,
+      numOfCasesCurrent: 23,
+      potentialCases: 38,
+      additionalCasePotential: 15,
+      ORsPerWeekAvailable: 1.86,
+      ORsPerWeekNeeded: 1.09,
+      ORDifference: -0.77,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: 0.0
+    },
+    'Colon and Rectal Surgery': {
+      primeTimeCurrent: 218.20,
+      primeTimePrevious: 128.39,
+      workDuringPrimeTimeCurrent: 7.3,
+      workDuringPrimeTimePrevious: 22.7,
+      numOfCasesCurrent: 37,
+      potentialCases: 19,
+      additionalCasePotential: -18,
+      ORsPerWeekAvailable: 0.51,
+      ORsPerWeekNeeded: 1.27,
+      ORDifference: 0.76,
+      numOfCasesWeekend: 1,
+      ORsNeededPerWeekend: 0.03,
+      percentWeekendWork: 100.0
+    },
+    'Pulmonary Disease': {
+      primeTimeCurrent: 68.80,
+      primeTimePrevious: 29.74,
+      workDuringPrimeTimeCurrent: 7.2,
+      workDuringPrimeTimePrevious: 15.1,
+      numOfCasesCurrent: 79,
+      potentialCases: 101,
+      additionalCasePotential: 22,
+      ORsPerWeekAvailable: 1.69,
+      ORsPerWeekNeeded: 1.49,
+      ORDifference: -0.40,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: 0.0
+    },
+    'Otolaryngology': {
+      primeTimeCurrent: null,
+      primeTimePrevious: null,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: null,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Oral Surgery': {
+      primeTimeCurrent: 60.9,
+      primeTimePrevious: 0.0,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 2,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: 0.00,
+      ORsPerWeekNeeded: 0.07,
+      ORDifference: 0.07,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Vascular Surgery': {
+      primeTimeCurrent: null,
+      primeTimePrevious: 0.0,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: null,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Orthopaedic Surgery': {
+      primeTimeCurrent: 100.0,
+      primeTimePrevious: null,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: 0.00,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Cardiology': {
+      primeTimeCurrent: null,
+      primeTimePrevious: null,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: null,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Plastic Surgery': {
+      primeTimeCurrent: null,
+      primeTimePrevious: null,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: null,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'Trauma Surgery': {
+      primeTimeCurrent: null,
+      primeTimePrevious: null,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: 0,
+      additionalCasePotential: 0,
+      ORsPerWeekAvailable: null,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: null,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    },
+    'OPEN': {
+      primeTimeCurrent: 0.00,
+      primeTimePrevious: 0.00,
+      workDuringPrimeTimeCurrent: null,
+      workDuringPrimeTimePrevious: null,
+      numOfCasesCurrent: 0,
+      potentialCases: null,
+      additionalCasePotential: null,
+      ORsPerWeekAvailable: 5.28,
+      ORsPerWeekNeeded: 0.00,
+      ORDifference: -5.28,
+      numOfCasesWeekend: 0,
+      ORsNeededPerWeekend: 0.00,
+      percentWeekendWork: null
+    }
+  },
+
+  // Utilization range colors
+  utilizationRanges: {
+    low: { min: 0, max: 35, color: '#ff9999' },    // Light red
+    medium: { min: 35, max: 65, color: '#ffcc99' }, // Light orange
+    high: { min: 65, max: 100, color: '#99ff99' },  // Light green
+    noData: { color: '#e6e6e6' }                   // Light gray
+  }
 };

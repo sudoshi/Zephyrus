@@ -3,6 +3,7 @@ import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utiliz
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
+import getChartTheme from '@/utils/chartTheme';
 
 const OverviewView = ({ filters }) => {
   // Extract filter values
@@ -52,13 +53,16 @@ const OverviewView = ({ filters }) => {
   }];
   
   const nonPrimeChartData = [{
-    id: 'Non-Prime Time %',
+    id: 'Non-Prime Time Percentage',
     data: filteredData.nonPrimeData.map(item => ({
       x: item.month,
       y: item.value
     }))
   }];
   
+  // Get chart theme
+  const chartTheme = getChartTheme();
+
   // Format day of week data
   const dayOfWeekData = Object.entries(mockPrimetimeUtilization.weekdayData)
     .filter(([day]) => day !== 'Saturday' && day !== 'Sunday')
@@ -125,6 +129,7 @@ const OverviewView = ({ filters }) => {
               pointBorderWidth={2}
               pointBorderColor={{ from: 'serieColor' }}
               enableSlices="x"
+              theme={chartTheme}
               legends={[
                 {
                   anchor: 'bottom-right',
@@ -152,23 +157,24 @@ const OverviewView = ({ filters }) => {
               data={nonPrimeChartData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
               xScale={{ type: 'point' }}
-              yScale={{ type: 'linear', min: 0, max: 25, stacked: false }}
+              yScale={{ type: 'linear', min: 0, max: 40, stacked: false }}
               axisBottom={{
                 legend: 'Month',
                 legendOffset: 36,
                 legendPosition: 'middle'
               }}
               axisLeft={{
-                legend: 'Non-Prime Time (%)',
+                legend: 'Percentage (%)',
                 legendOffset: -40,
                 legendPosition: 'middle'
               }}
-              colors={{ scheme: 'accent' }}
+              colors={{ scheme: 'category10' }}
               pointSize={8}
               pointColor={{ theme: 'background' }}
               pointBorderWidth={2}
               pointBorderColor={{ from: 'serieColor' }}
               enableSlices="x"
+              theme={chartTheme}
               legends={[
                 {
                   anchor: 'bottom-right',
@@ -212,6 +218,7 @@ const OverviewView = ({ filters }) => {
             }}
             labelSkipWidth={12}
             labelSkipHeight={12}
+            theme={chartTheme}
             legends={[
               {
                 dataFrom: 'keys',
@@ -240,7 +247,7 @@ const OverviewView = ({ filters }) => {
             indexBy="name"
             margin={{ top: 20, right: 130, bottom: 70, left: 60 }}
             padding={0.3}
-            colors={{ scheme: 'accent' }}
+            colors={{ scheme: 'category10' }}
             axisBottom={{
               tickRotation: -45,
               legend: 'Location',
@@ -254,6 +261,7 @@ const OverviewView = ({ filters }) => {
             }}
             labelSkipWidth={12}
             labelSkipHeight={12}
+            theme={chartTheme}
             legends={[
               {
                 dataFrom: 'keys',

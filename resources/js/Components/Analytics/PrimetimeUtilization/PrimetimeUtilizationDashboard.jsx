@@ -10,6 +10,7 @@ import TrendsView from './Views/TrendsView';
 import DayOfWeekView from './Views/DayOfWeekView';
 import LocationComparisonView from './Views/LocationComparisonView';
 import ProviderAnalysisView from './Views/ProviderAnalysisView';
+import ServiceAnalysisView from './Views/ServiceAnalysisView';
 
 const PrimetimeUtilizationDashboard = ({ activeView = 'overview' }) => {
   // State for filters
@@ -52,6 +53,8 @@ const PrimetimeUtilizationDashboard = ({ activeView = 'overview' }) => {
         return <LocationComparisonView filters={filters} />;
       case 'provider':
         return <ProviderAnalysisView filters={filters} />;
+      case 'service':
+        return <ServiceAnalysisView filters={filters} />;
       default:
         return <OverviewView filters={filters} />;
     }
