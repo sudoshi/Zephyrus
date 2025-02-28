@@ -4,6 +4,7 @@ import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
+import PrimeTimeCapacityReview from '../PrimeTimeCapacityReview';
 
 const OverviewView = ({ filters }) => {
   // Extract filter values
@@ -80,6 +81,9 @@ const OverviewView = ({ filters }) => {
 
   return (
     <div className="space-y-6">
+      {/* Prime Time Capacity Review */}
+      <PrimeTimeCapacityReview site={selectedLocation || 'MARH OR'} />
+      
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Panel isSubpanel dropLightIntensity="medium">
