@@ -5,11 +5,13 @@ import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
 import { Icon } from '@iconify/react';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
 const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
   const [selectedSite, setSelectedSite] = useState(site);
   const [isLoading, setIsLoading] = useState(false);
   const siteData = mockPrimeTimeCapacityReview.sites[selectedSite] || mockPrimeTimeCapacityReview.sites['MARH OR'];
+  const { isDarkMode } = useDarkMode();
   
   // Handle site change with loading state
   const handleSiteChange = (newSite) => {
@@ -76,8 +78,8 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
     }
   ];
   
-  // Get chart theme
-  const chartTheme = getChartTheme();
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
   
   // Helper function to determine if a metric has improved or worsened
   const getMetricChangeIndicator = (current, previous, isHigherBetter = true) => {
@@ -404,8 +406,8 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
             {/* Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Average Prime Time Utilization Chart */}
-              <div className="h-80 bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="text-lg font-bold mb-2">Average Prime Time Utilization</div>
+              <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
+                <div className="text-lg font-bold mb-2 text-white">Average Prime Time Utilization</div>
                 <ResponsiveLine
                   data={utilizationTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
@@ -463,8 +465,8 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
               </div>
               
               {/* Average # of 8 Hour ORs per day Chart */}
-              <div className="h-80 bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="text-lg font-bold mb-2">Average # of 8 Hour ORs per day trend</div>
+              <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
+                <div className="text-lg font-bold mb-2 text-white">Average # of 8 Hour ORs per day trend</div>
                 <ResponsiveLine
                   data={orsPerDayTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}

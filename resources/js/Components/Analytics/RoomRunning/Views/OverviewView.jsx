@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import { mockRoomRunning } from '@/mock-data/room-running';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 import getChartTheme from '@/utils/chartTheme';
 
 const OverviewView = ({ filters }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
-  const [isDarkMode] = useDarkMode();
+  const { isDarkMode } = useDarkMode();
   
   // Get MEMH OR data
   const memhORData = useMemo(() => {
@@ -130,7 +130,7 @@ const OverviewView = ({ filters }) => {
   };
 
   // Use shared chart theme
-  const theme = getChartTheme();
+  const theme = getChartTheme(isDarkMode);
 
   // Custom tooltip component
   const CustomTooltip = ({ point }) => {
@@ -368,7 +368,7 @@ const OverviewView = ({ filters }) => {
         
         {/* Rooms Running by Hour */}
         <Panel title="Rooms Running by Hour - Weekdays" isSubpanel dropLightIntensity="medium">
-          <div className="h-80">
+          <div className="h-80 bg-gray-900 rounded-lg p-4">
             <ResponsiveLine
               data={roomsRunningByHourData}
               margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
@@ -438,7 +438,7 @@ const OverviewView = ({ filters }) => {
         
         {/* Room Utilization by Hour */}
         <Panel title={`Room Utilization by Hour - ${selectedLocation || Object.keys(mockRoomRunning.sites)[0]}`} isSubpanel dropLightIntensity="medium">
-          <div className="h-80">
+          <div className="h-80 bg-gray-900 rounded-lg p-4">
             <ResponsiveLine
               data={roomUtilizationByHourData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}

@@ -3,10 +3,16 @@ import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utiliz
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '../../../ui/Panel';
+import getChartTheme from '@/utils/chartTheme';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
 const ProviderAnalysisView = ({ filters }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  const { isDarkMode } = useDarkMode();
+  
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
   
   // Format provider data
   const providerData = useMemo(() => {
@@ -51,7 +57,7 @@ const ProviderAnalysisView = ({ filters }) => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Prime Time Utilization by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['primeTimeUtilization']}
@@ -88,12 +94,13 @@ const ProviderAnalysisView = ({ filters }) => {
                   symbolSize: 20
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>
 
         <Panel title="Non-Prime Time Percentage by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['nonPrimeTimePercentage']}
@@ -130,6 +137,7 @@ const ProviderAnalysisView = ({ filters }) => {
                   symbolSize: 20
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>
@@ -137,7 +145,7 @@ const ProviderAnalysisView = ({ filters }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Specialty Distribution" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsivePie
               data={specialtyDistribution}
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -180,12 +188,13 @@ const ProviderAnalysisView = ({ filters }) => {
                   ]
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>
 
         <Panel title="Cases in Non-Prime Time by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['casesInNonPrimeTime']}
@@ -222,6 +231,7 @@ const ProviderAnalysisView = ({ filters }) => {
                   symbolSize: 20
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>

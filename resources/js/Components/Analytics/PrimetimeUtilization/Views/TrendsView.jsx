@@ -2,10 +2,16 @@ import React, { useMemo } from 'react';
 import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utilization';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '../../../ui/Panel';
+import getChartTheme from '@/utils/chartTheme';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
 const TrendsView = ({ filters }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  const { isDarkMode } = useDarkMode();
+  
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
   
   // Filter data based on hierarchical filters
   const filteredData = useMemo(() => {
@@ -49,7 +55,7 @@ const TrendsView = ({ filters }) => {
   return (
     <div className="space-y-6">
       <Panel title="Prime Time Utilization Trend (6 Months)" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveLine
             data={primeTimeChartData}
             margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -74,6 +80,7 @@ const TrendsView = ({ filters }) => {
             enableArea={true}
             areaOpacity={0.1}
             useMesh={true}
+            theme={chartTheme}
             legends={[
               {
                 anchor: 'bottom-right',
@@ -96,7 +103,7 @@ const TrendsView = ({ filters }) => {
       </Panel>
       
       <Panel title="Non-Prime Time Percentage Trend (6 Months)" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveLine
             data={nonPrimeChartData}
             margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -121,6 +128,7 @@ const TrendsView = ({ filters }) => {
             enableArea={true}
             areaOpacity={0.1}
             useMesh={true}
+            theme={chartTheme}
             legends={[
               {
                 anchor: 'bottom-right',
@@ -143,7 +151,7 @@ const TrendsView = ({ filters }) => {
       </Panel>
       
       <Panel title="Yearly Comparison" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveLine
             data={[
               {
@@ -184,6 +192,7 @@ const TrendsView = ({ filters }) => {
             pointBorderWidth={2}
             pointBorderColor={{ from: 'serieColor' }}
             enableSlices="x"
+            theme={chartTheme}
             legends={[
               {
                 anchor: 'bottom-right',

@@ -3,10 +3,16 @@ import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utiliz
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '../../../ui/Panel';
+import getChartTheme from '@/utils/chartTheme';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
 const LocationComparisonView = ({ filters }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  const { isDarkMode } = useDarkMode();
+  
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
   
   // Format location comparison data
   const locationData = useMemo(() => {
@@ -41,7 +47,7 @@ const LocationComparisonView = ({ filters }) => {
   return (
     <div className="space-y-6">
       <Panel title="Prime Time Utilization by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={locationData}
             keys={['primeTimeUtilization']}
@@ -78,12 +84,13 @@ const LocationComparisonView = ({ filters }) => {
                 symbolSize: 20
               }
             ]}
+            theme={chartTheme}
           />
         </div>
       </Panel>
 
       <Panel title="Non-Prime Time Percentage by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={locationData}
             keys={['nonPrimeTimePercentage']}
@@ -120,13 +127,14 @@ const LocationComparisonView = ({ filters }) => {
                 symbolSize: 20
               }
             ]}
+            theme={chartTheme}
           />
         </div>
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Total Cases by Location" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsivePie
               data={pieChartData}
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -169,12 +177,13 @@ const LocationComparisonView = ({ filters }) => {
                   ]
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>
 
         <Panel title="Cases in Non-Prime Time by Location" isSubpanel dropLightIntensity="medium">
-          <div className="h-96">
+          <div className="h-96 bg-gray-900 rounded-lg p-4">
             <ResponsiveBar
               data={locationData}
               keys={['casesInNonPrimeTime']}
@@ -211,6 +220,7 @@ const LocationComparisonView = ({ filters }) => {
                   symbolSize: 20
                 }
               ]}
+              theme={chartTheme}
             />
           </div>
         </Panel>

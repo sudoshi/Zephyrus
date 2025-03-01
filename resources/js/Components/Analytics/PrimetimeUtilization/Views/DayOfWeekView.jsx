@@ -3,7 +3,8 @@ import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utiliz
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import { Icon } from '@iconify/react';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import getChartTheme from '@/utils/chartTheme';
 
 // Create a custom heatmap component to avoid defaultProps warnings
 const CustomHeatMap = ({
@@ -19,7 +20,7 @@ const CustomHeatMap = ({
   yLabelWidth = 60,
   onClick
 }) => {
-  const [isDarkMode] = useDarkMode();
+  const { isDarkMode } = useDarkMode();
   
   // Default styles
   const defaultXLabelStyle = {
@@ -136,7 +137,10 @@ const DayOfWeekView = ({ filters }) => {
   // State for modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTimeBlock, setSelectedTimeBlock] = useState(null);
-  const [isDarkMode] = useDarkMode();
+  const { isDarkMode } = useDarkMode();
+  
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
   
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
@@ -588,7 +592,7 @@ const DayOfWeekView = ({ filters }) => {
       </Panel>
 
       <Panel title="Prime Time Utilization by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['utilization']}
@@ -608,6 +612,7 @@ const DayOfWeekView = ({ filters }) => {
             }}
             labelSkipWidth={12}
             labelSkipHeight={12}
+            theme={chartTheme}
             legends={[
               {
                 dataFrom: 'keys',
@@ -629,7 +634,7 @@ const DayOfWeekView = ({ filters }) => {
       </Panel>
 
       <Panel title="Cases by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-96">
+        <div className="h-96 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['cases']}
@@ -649,6 +654,7 @@ const DayOfWeekView = ({ filters }) => {
             }}
             labelSkipWidth={12}
             labelSkipHeight={12}
+            theme={chartTheme}
             legends={[
               {
                 dataFrom: 'keys',

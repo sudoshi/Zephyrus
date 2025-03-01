@@ -4,11 +4,13 @@ import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
+import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 import PrimeTimeCapacityReview from '../PrimeTimeCapacityReview';
 
 const OverviewView = ({ filters }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  const { isDarkMode } = useDarkMode();
   
   // Filter data based on hierarchical filters
   const filteredData = useMemo(() => {
@@ -61,9 +63,9 @@ const OverviewView = ({ filters }) => {
     }))
   }];
   
-  // Get chart theme
-  const chartTheme = getChartTheme();
-
+  // Get chart theme with proper dark mode setting
+  const chartTheme = getChartTheme(isDarkMode);
+  
   // Format day of week data
   const dayOfWeekData = Object.entries(mockPrimetimeUtilization.weekdayData)
     .filter(([day]) => day !== 'Saturday' && day !== 'Sunday')
@@ -111,7 +113,7 @@ const OverviewView = ({ filters }) => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Prime Time Utilization Trend" isSubpanel dropLightIntensity="medium">
-          <div className="h-80">
+          <div className="h-80 bg-gray-900 rounded-lg p-4">
             <ResponsiveLine
               data={utilizationChartData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -156,7 +158,7 @@ const OverviewView = ({ filters }) => {
         </Panel>
         
         <Panel title="Non-Prime Time Percentage Trend" isSubpanel dropLightIntensity="medium">
-          <div className="h-80">
+          <div className="h-80 bg-gray-900 rounded-lg p-4">
             <ResponsiveLine
               data={nonPrimeChartData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -202,7 +204,7 @@ const OverviewView = ({ filters }) => {
       </div>
 
       <Panel title="Prime Time Utilization by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-80">
+        <div className="h-80 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['utilization']}
@@ -244,7 +246,7 @@ const OverviewView = ({ filters }) => {
       </Panel>
 
       <Panel title="Non-Prime Time Percentage by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-80">
+        <div className="h-80 bg-gray-900 rounded-lg p-4">
           <ResponsiveBar
             data={locationComparisonData}
             keys={['nonPrimeTimePercentage']}
