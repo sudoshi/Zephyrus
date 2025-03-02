@@ -27,7 +27,7 @@ class LoginRequest extends FormRequest
         return [
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
-            'workflow' => ['required', 'string', 'in:rtdc,or,ed'],
+            'workflow' => ['required', 'string', 'in:superuser,rtdc,perioperative,emergency,improvement'],
         ];
     }
 

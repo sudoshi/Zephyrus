@@ -18,7 +18,7 @@ class DashboardController extends Controller
     public function changeWorkflow(Request $request)
     {
         $request->validate([
-            'workflow' => 'required|in:rtdc,perioperative,emergency,improvement',
+            'workflow' => 'required|in:superuser,rtdc,perioperative,emergency,improvement',
         ]);
 
         // Update the workflow in the session

@@ -116,30 +116,28 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
 
             {/* Main Navigation Items */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="flex items-center space-x-8">
-                {mainNavigationItems.map((item) => (
-                  <Link
-                    key={item.workflow}
-                    href={item.href}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (item.workflow === 'home') {
-                        window.location.href = '/home';
-                      } else {
+              {currentWorkflow === 'superuser' && (
+                <div className="flex items-center space-x-8">
+                  {mainNavigationItems.map((item) => (
+                    <Link
+                      key={item.workflow}
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
                         changeWorkflow(item.workflow);
-                      }
-                    }}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
-                      (item.workflow === 'home' ? location.pathname === '/home' : currentWorkflow === item.workflow)
-                        ? 'bg-gradient-to-b from-healthcare-primary to-healthcare-primary/90 dark:from-healthcare-primary-dark dark:to-healthcare-primary-dark/90 text-white dark:text-white shadow-md dark:shadow-lg border-healthcare-primary/20 dark:border-healthcare-primary-dark/20 ring-1 ring-healthcare-primary/10 dark:ring-healthcare-primary-dark/10'
-                        : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark hover:border-healthcare-border/80 dark:hover:border-healthcare-border-dark/80'
-                    }`}
-                  >
-                    <Icon icon={item.icon} className="w-5 h-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                ))}
-              </div>
+                      }}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
+                        (currentWorkflow === item.workflow)
+                          ? 'bg-gradient-to-b from-healthcare-primary to-healthcare-primary/90 dark:from-healthcare-primary-dark dark:to-healthcare-primary-dark/90 text-white dark:text-white shadow-md dark:shadow-lg border-healthcare-primary/20 dark:border-healthcare-primary-dark/20 ring-1 ring-healthcare-primary/10 dark:ring-healthcare-primary-dark/10'
+                          : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark hover:border-healthcare-border/80 dark:hover:border-healthcare-border-dark/80'
+                      }`}
+                    >
+                      <Icon icon={item.icon} className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right side items */}

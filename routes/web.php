@@ -9,10 +9,11 @@ use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RTDCDashboardController;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 use App\Http\Controllers\RTDCController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 // Process Analysis API Routes
 Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
@@ -47,8 +48,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/perioperative', [DashboardController::class, 'index'])->name('dashboard.perioperative');
     Route::get('/dashboard/emergency', [EDDashboardController::class, 'index'])->name('dashboard.emergency');
     Route::get('/dashboard/improvement', [DashboardController::class, 'improvement'])->name('dashboard.improvement');
-    Route::get('/dashboard', function() {
-        return redirect()->route('home');
+    Route::get('/dashboard', function(Request $request) {
+        $request->session()->put('workflow', 'superuser');
+        return Inertia::render('Home/Home', [
+            'workflow' => 'superuser'
+        ]);
     })->name('dashboard');
 
     // Improvement Routes

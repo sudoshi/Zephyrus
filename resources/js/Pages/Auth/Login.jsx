@@ -29,7 +29,7 @@ const useDarkMode = () => {
 export default function Login({ status, canResetPassword, csrf_token }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
-        workflow: 'rtdc',
+        workflow: 'superuser',
         username: '',
         password: '',
         remember: false,
@@ -37,9 +37,11 @@ export default function Login({ status, canResetPassword, csrf_token }) {
     });
 
     const workflowOptions = [
+        { value: 'superuser', label: 'SUPERUSER' },
         { value: 'rtdc', label: 'RTDC' },
-        { value: 'or', label: 'OR' },
-        { value: 'ed', label: 'ED' },
+        { value: 'perioperative', label: 'PERIOPERATIVE' },
+        { value: 'emergency', label: 'EMERGENCY' },
+        { value: 'improvement', label: 'IMPROVEMENT' },
     ];
 
     const submit = (e) => {

@@ -43,12 +43,14 @@ class AuthenticatedSessionController extends Controller
         // Redirect to the appropriate dashboard based on workflow
         $dashboardRoute = match($request->workflow) {
             'rtdc' => 'dashboard.rtdc',
-            'or' => 'dashboard.or',
-            'ed' => 'dashboard.ed',
+            'perioperative' => 'dashboard.perioperative',
+            'emergency' => 'dashboard.emergency',
+            'improvement' => 'dashboard.improvement',
+            'superuser' => 'dashboard',
             default => 'dashboard'
         };
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        return redirect()->intended(route($dashboardRoute));
     }
 
     /**
