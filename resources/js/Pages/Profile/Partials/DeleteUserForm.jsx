@@ -11,11 +11,11 @@ export default function DeleteUserForm({ className = '' }) {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
     const passwordInput = useRef();
 
-    const [data, setData] = React.useState({
+    const [data, setData] = useState({
         password: '',
     });
-    const [processing, setProcessing] = React.useState(false);
-    const [errors, setErrors] = React.useState({});
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const confirmUserDeletion = () => {
         setConfirmingUserDeletion(true);

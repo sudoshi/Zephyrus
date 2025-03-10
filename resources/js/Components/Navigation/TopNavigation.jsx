@@ -49,7 +49,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
         name: item.name,
         href: item.href,
         icon: item.icon || 'heroicons:document-text',
-        dropdownItems: [],
+        dropdownItems: item.children || [],
         key: `improvement-${item.name.toLowerCase()}`,
       }));
     }
@@ -94,7 +94,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   return (
     <div className="flex flex-col">
       {/* Main Navigation Bar */}
-      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300 z-55 relative">
+      <nav className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300 z-65 relative">
         <div className="max-w-full mx-auto px-4 relative">
           <div className="flex justify-between h-16">
             {/* Logo and Brand */}
@@ -143,7 +143,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
             {/* Right side items */}
             <div className="flex items-center space-x-4">
               <DarkModeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
-              <Menu as="div" className="relative">
+              <Menu as="div" className="relative z-75">
                 <Menu.Button className="flex items-center space-x-2 p-2 rounded-md border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark transition-all duration-300">
                   <UserAvatar />
                   <Icon
@@ -160,7 +160,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 mt-2 w-48 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark z-50">
+                  <Menu.Items className="absolute right-0 mt-2 w-48 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark z-70">
                     <Menu.Item>
                       {({ active }) => (
                         <Link
@@ -205,13 +205,14 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
         </div>
       </nav>
 
-      {/* Sub Navigation Bar */}
-      <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-all duration-300 z-55 relative">
+      {/* Sub Navigation Bar - Hidden for SUPERUSER workflow */}
+      {currentWorkflow !== 'superuser' && (
+        <nav className="bg-healthcare-surface/80 dark:bg-healthcare-surface-dark/80 border-b border-healthcare-border dark:border-healthcare-border-dark backdrop-blur-sm transition-all duration-300 z-66 relative">
         <div className="max-w-full mx-auto px-4">
           <div className="flex justify-center h-12">
             <div className="flex items-center space-x-8">
               {subNavigation.map((item) => (
-                currentWorkflow === 'improvement' || currentWorkflow === 'rtdc' ? (
+                (currentWorkflow === 'improvement' || currentWorkflow === 'rtdc') && !item.dropdownItems?.length ? (
                   <Link
                     key={item.key}
                     href={item.href}
@@ -221,7 +222,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     {item.name}
                   </Link>
                 ) : (
-                  <Menu as="div" className="relative" key={item.key}>
+                  <Menu as="div" className="relative z-75" key={item.key}>
                     <div className="flex items-center">
                       <Menu.Button className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark rounded-md transition-all duration-300 border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark">
                         <Icon icon={item.icon} className="w-5 h-5 mr-2" />
@@ -238,7 +239,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                       leaveFrom="transform opacity-100 scale-100"
                       leaveTo="transform opacity-0 scale-95"
                     >
-                      <Menu.Items className="absolute right-0 mt-2 w-64 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark">
+                      <Menu.Items className="absolute left-0 mt-2 w-64 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg py-1 border border-healthcare-border dark:border-healthcare-border-dark z-70">
                         {item.dropdownItems.map((dropdownItem) => (
                           <Menu.Item key={dropdownItem.name}>
                             {({ active }) => (
@@ -267,6 +268,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
           </div>
         </div>
       </nav>
+      )}
     </div>
   );
 };

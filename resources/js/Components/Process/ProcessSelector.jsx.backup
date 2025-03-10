@@ -292,7 +292,7 @@ const ProcessSelector = ({
 
                 {/* Analysis Settings */}
                 {isProcessMapTab && showProcessMiningSettings && (
-                    <Panel title="Analysis Settings" dropLightIntensity="medium">
+                <Panel title="Analysis Settings" dropLightIntensity="medium">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
                         {/* Visualization Settings */}
                         <Panel title="Visualization" isSubpanel={true} dropLightIntensity="subtle">
@@ -417,12 +417,12 @@ const ProcessSelector = ({
                             </div>
                         </Panel>
                     </div>
-                    </Panel>
-                )}
+                </Panel>
+            )}
                 
                 {/* Advanced filters for PatientFlow */}
                 {isPatientFlowTab && filtersExpanded && (
-                    <Panel title="Advanced Filters" dropLightIntensity="medium">
+                <Panel title="Advanced Filters" dropLightIntensity="medium">
                     <div className="flex gap-4 items-start p-4">
                         <div className="w-[220px]">
                             <label className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -474,9 +474,8 @@ const ProcessSelector = ({
                             </div>
                         )}
                     </div>
-                    </Panel>
-                )}
-            </Panel>
+                </Panel>
+            )}
         </div>
     );
 };

@@ -1,23 +1,23 @@
+import React, { useState, useRef } from 'react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { router } from '@inertiajs/react';
-import { useRef } from 'react';
 
 export default function UpdatePasswordForm({ className = '' }) {
     const passwordInput = useRef();
     const currentPasswordInput = useRef();
 
-    const [data, setData] = React.useState({
+    const [data, setData] = useState({
         current_password: '',
         password: '',
         password_confirmation: '',
     });
-    const [errors, setErrors] = React.useState({});
-    const [processing, setProcessing] = React.useState(false);
-    const [recentlySuccessful, setRecentlySuccessful] = React.useState(false);
+    const [errors, setErrors] = useState({});
+    const [processing, setProcessing] = useState(false);
+    const [recentlySuccessful, setRecentlySuccessful] = useState(false);
 
     const resetField = (field) => {
         setData(prev => ({ ...prev, [field]: '' }));

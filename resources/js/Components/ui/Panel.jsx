@@ -6,7 +6,8 @@ const Panel = ({
   isSubpanel = false, 
   dropLightIntensity = 'medium', // 'subtle', 'medium', 'strong'
   className = "", 
-  titleClassName = "" 
+  titleClassName = "",
+  headerRight = null
 }) => {
   // Define gradient and shadow styles based on intensity
   const getDropLightStyles = () => {
@@ -44,9 +45,16 @@ const Panel = ({
       `}
     >
       {title && (
-        <h2 className={`text-lg font-semibold mb-4 dark:text-white ${titleClassName}`}>
-          {title}
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={`text-lg font-semibold dark:text-white ${titleClassName}`}>
+            {title}
+          </h2>
+          {headerRight && (
+            <div className="flex items-center">
+              {headerRight}
+            </div>
+          )}
+        </div>
       )}
       {children}
     </div>

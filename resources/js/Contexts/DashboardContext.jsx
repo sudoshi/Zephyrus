@@ -224,9 +224,9 @@ const workflowNavigationConfig = {
         icon: 'lucide:alert-circle'
       },
       {
-        name: 'Process Maps',
+        name: 'Process Analysis',
         href: '/improvement/process',
-        description: 'Process analysis and optimization',
+        description: 'Process analysis dashboard',
         icon: 'lucide:git-branch'
       },
       {

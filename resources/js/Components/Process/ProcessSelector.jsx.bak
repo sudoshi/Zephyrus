@@ -6,78 +6,78 @@ import Panel from '@/Components/ui/Panel';
 
 // View presets for different user roles
 const viewPresets = {
-    clinical: {
-        label: 'Clinical View',
-        icon: 'carbon:user-medical',
-        nodeCount: 60,
-        arcCount: 8,
-        parallelismFactor: 30,
-        frequencyMetric: 'case',
-        durationMetric: 'average'
-    },
-    operational: {
-        label: 'Operational View',
-        icon: 'carbon:analytics',
-        nodeCount: 80,
-        arcCount: 12,
-        parallelismFactor: 40,
-        frequencyMetric: 'absolute',
-        durationMetric: 'median'
-    },
-    detailed: {
-        label: 'Detailed View',
-        icon: 'carbon:data-vis-4',
-        nodeCount: 120,
-        arcCount: 15,
-        parallelismFactor: 50,
-        frequencyMetric: 'relative',
-        durationMetric: 'average'
-    }
+  clinical: {
+    label: 'Clinical View',
+    icon: 'carbon:user-medical',
+    nodeCount: 60,
+    arcCount: 8,
+    parallelismFactor: 30,
+    frequencyMetric: 'case',
+    durationMetric: 'average'
+  },
+  operational: {
+    label: 'Operational View',
+    icon: 'carbon:analytics',
+    nodeCount: 80,
+    arcCount: 12,
+    parallelismFactor: 40,
+    frequencyMetric: 'absolute',
+    durationMetric: 'median'
+  },
+  detailed: {
+    label: 'Detailed View',
+    icon: 'carbon:data-vis-4',
+    nodeCount: 120,
+    arcCount: 15,
+    parallelismFactor: 50,
+    frequencyMetric: 'relative',
+    durationMetric: 'average'
+  }
 };
 
 const hospitals = [
-    'Virtua Marlton Hospital',
-    'Virtua Mount Holly Hospital',
-    'Virtua Our Lady of Lourdes Hospital',
-    'Virtua Voorhees Hospital',
-    'Virtua Willingboro Hospital'
+  'Virtua Marlton Hospital',
+  'Virtua Mount Holly Hospital',
+  'Virtua Our Lady of Lourdes Hospital',
+  'Virtua Voorhees Hospital',
+  'Virtua Willingboro Hospital'
 ];
 
 const workflows = [
-    'Admissions',
-    'Discharges',
-    'ED to Inpatient',
-    'Surgery',
-    'Outpatient'
+  'Admissions',
+  'Discharges',
+  'ED to Inpatient',
+  'Surgery',
+  'Outpatient'
 ];
 
 const timeRanges = [
-    '24 Hours',
-    '7 Days',
-    '14 Days',
-    '1 Month',
-    '3 Months'
+  '24 Hours',
+  '7 Days',
+  '14 Days',
+  '1 Month',
+  '3 Months'
 ];
 
 const departments = [
-    'All Departments',
-    'Emergency',
-    'Surgery',
-    'Medical/Surgical',
-    'ICU',
-    'Cardiology',
-    'Orthopedics',
-    'Oncology',
-    'Neurology'
+  'All Departments',
+  'Emergency',
+  'Surgery',
+  'Medical/Surgical',
+  'ICU',
+  'Cardiology',
+  'Orthopedics',
+  'Oncology',
+  'Neurology'
 ];
 
 const patientTypes = [
-    'All Patients',
-    'Inpatient',
-    'Outpatient',
-    'Emergency',
-    'Observation',
-    'Surgical'
+  'All Patients',
+  'Inpatient',
+  'Outpatient',
+  'Emergency',
+  'Observation',
+  'Surgical'
 ];
 
 const ProcessSelector = ({
@@ -288,11 +288,10 @@ const ProcessSelector = ({
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Analysis Settings */}
-                {isProcessMapTab && showProcessMiningSettings && (
-                    <Panel title="Analysis Settings" dropLightIntensity="medium">
+            {/* Analysis Settings */}
+            {isProcessMapTab && showProcessMiningSettings && (
+                <Panel title="Analysis Settings" dropLightIntensity="medium">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
                         {/* Visualization Settings */}
                         <Panel title="Visualization" isSubpanel={true} dropLightIntensity="subtle">
@@ -417,12 +416,12 @@ const ProcessSelector = ({
                             </div>
                         </Panel>
                     </div>
-                    </Panel>
-                )}
-                
-                {/* Advanced filters for PatientFlow */}
-                {isPatientFlowTab && filtersExpanded && (
-                    <Panel title="Advanced Filters" dropLightIntensity="medium">
+                </Panel>
+            )}
+            
+            {/* Advanced filters for PatientFlow */}
+            {isPatientFlowTab && filtersExpanded && (
+                <Panel title="Advanced Filters" dropLightIntensity="medium">
                     <div className="flex gap-4 items-start p-4">
                         <div className="w-[220px]">
                             <label className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -474,9 +473,8 @@ const ProcessSelector = ({
                             </div>
                         )}
                     </div>
-                    </Panel>
-                )}
-            </Panel>
+                </Panel>
+            )}
         </div>
     );
 };

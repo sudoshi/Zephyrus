@@ -17,47 +17,164 @@ import 'reactflow/dist/style.css';
 // Node type components and helper functions remain the same...
 const nodeTypes = {
   process: ({ data }) => (
-    <div className="healthcare-card px-8 py-4 shadow-lg rounded-md bg-healthcare-surface dark:bg-healthcare-surface-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '280px' }}>
+    <div className="healthcare-card p-4 shadow-lg rounded-md bg-healthcare-surface dark:bg-healthcare-surface-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '320px' }}>
       <Handle type="target" position="left" id="target" />
       <Handle type="source" position="right" id="source" />
       <Handle type="source" position="bottom" id="source-bottom" />
       <Handle type="target" position="top" id="target-top" />
-      <div className="font-bold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{data.label}</div>
+      
+      {/* Header with activity name */}
+      <div className="font-bold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-b border-healthcare-border dark:border-healthcare-border-dark pb-2 mb-3">
+        {data.label}
+      </div>
+      
+      {/* Metrics section */}
       {data.metrics && (
-        <div className="mt-2 text-xs">
-          <div className="text-healthcare-info dark:text-healthcare-info-dark">Count: {data.metrics.count}</div>
-          <div className="text-healthcare-success dark:text-healthcare-success-dark">Avg Time: {data.metrics.avgTime}</div>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Left column - frequency metrics */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cases</span>
+              <span className="text-sm font-bold text-healthcare-primary dark:text-healthcare-primary-dark">{data.metrics.caseCount || data.metrics.count}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Events</span>
+              <span className="text-sm font-bold text-healthcare-info dark:text-healthcare-info-dark">{data.metrics.eventCount || '-'}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Frequency</span>
+              <span className="text-sm font-bold text-healthcare-purple dark:text-healthcare-purple-dark">{data.metrics.frequency || '100%'}</span>
+            </div>
+          </div>
+          
+          {/* Right column - time metrics */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg Time</span>
+              <span className="text-sm font-bold text-healthcare-success dark:text-healthcare-success-dark">{data.metrics.avgTime}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Min Time</span>
+              <span className="text-sm font-bold text-healthcare-success-light dark:text-healthcare-success-light-dark">{data.metrics.minTime || '-'}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Max Time</span>
+              <span className="text-sm font-bold text-healthcare-warning dark:text-healthcare-warning-dark">{data.metrics.maxTime || '-'}</span>
+            </div>
+          </div>
+          
+          {/* Bottom progress bar for performance indicator */}
+          <div className="col-span-2 mt-1">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Performance</span>
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{data.metrics.performance || '100%'}</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div 
+                className="bg-healthcare-primary dark:bg-healthcare-primary-dark h-2.5 rounded-full" 
+                style={{ width: data.metrics.performance || '100%' }}
+              ></div>
+            </div>
+          </div>
         </div>
       )}
     </div>
   ),
   decision: ({ data }) => (
-    <div className="healthcare-card px-8 py-4 shadow-lg rounded-md bg-healthcare-purple dark:bg-healthcare-purple-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '280px' }}>
-      <Handle type="target" position="left" id="target" />
-      <Handle type="source" position="right" id="source" />
-      <Handle type="source" position="bottom" id="source-bottom" />
-      <div className="font-bold text-base text-white">{data.label}</div>
-    </div>
-  ),
-  result: ({ data }) => (
-    <div className="healthcare-card px-8 py-4 shadow-lg rounded-md bg-healthcare-teal dark:bg-healthcare-teal-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '280px' }}>
+    <div className="healthcare-card p-4 shadow-lg rounded-md bg-healthcare-purple dark:bg-healthcare-purple-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '320px' }}>
       <Handle type="target" position="left" id="target" />
       <Handle type="source" position="right" id="source" />
       <Handle type="source" position="bottom" id="source-bottom" />
       <Handle type="target" position="top" id="target-top" />
-      <div className="font-bold text-base text-white">{data.label}</div>
+      
+      {/* Header with decision point name */}
+      <div className="font-bold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
+      
+      {/* Metrics section */}
       {data.metrics && (
-        <div className="mt-2 text-xs text-white/80">
-          <div>Count: {data.metrics.count}</div>
-          <div>Avg Time: {data.metrics.avgTime}</div>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Left column */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Cases</span>
+              <span className="text-sm font-bold text-white">{data.metrics.caseCount || data.metrics.count}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Paths</span>
+              <span className="text-sm font-bold text-white">{data.metrics.pathCount || '-'}</span>
+            </div>
+          </div>
+          
+          {/* Right column */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Avg Time</span>
+              <span className="text-sm font-bold text-white">{data.metrics.avgTime}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Complexity</span>
+              <span className="text-sm font-bold text-white">{data.metrics.complexity || 'Medium'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  ),
+  result: ({ data }) => (
+    <div className="healthcare-card p-4 shadow-lg rounded-md bg-healthcare-teal dark:bg-healthcare-teal-dark border-2 border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-all duration-200" style={{ width: '320px' }}>
+      <Handle type="target" position="left" id="target" />
+      <Handle type="source" position="right" id="source" />
+      <Handle type="source" position="bottom" id="source-bottom" />
+      <Handle type="target" position="top" id="target-top" />
+      
+      {/* Header with result name */}
+      <div className="font-bold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
+      
+      {/* Metrics section */}
+      {data.metrics && (
+        <div className="grid grid-cols-2 gap-3">
+          {/* Left column */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Cases</span>
+              <span className="text-sm font-bold text-white">{data.metrics.caseCount || data.metrics.count}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Frequency</span>
+              <span className="text-sm font-bold text-white">{data.metrics.frequency || '100%'}</span>
+            </div>
+          </div>
+          
+          {/* Right column */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Avg Time</span>
+              <span className="text-sm font-bold text-white">{data.metrics.avgTime}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/70">Outcome</span>
+              <div className="flex items-center">
+                <span className={`inline-block w-2 h-2 rounded-full mr-1 ${data.metrics.outcome === 'Positive' ? 'bg-healthcare-success' : data.metrics.outcome === 'Negative' ? 'bg-healthcare-danger' : 'bg-healthcare-warning'}`}></span>
+                <span className="text-sm font-bold text-white">{data.metrics.outcome || 'Neutral'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
   ),
 };
 
-const NODE_WIDTH = 280;
-const NODE_HEIGHT = 100;
+const NODE_WIDTH = 320;
+const NODE_HEIGHT = 180;
 
 const defaultEdgeOptions = {
   type: 'default',

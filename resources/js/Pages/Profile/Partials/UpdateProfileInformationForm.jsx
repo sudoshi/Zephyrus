@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -13,14 +14,14 @@ export default function UpdateProfileInformation({
 }) {
     const user = usePage().props.auth.user;
 
-    const [data, setData] = React.useState({
+    const [data, setData] = useState({
         name: user.name,
         username: user.username,
         email: user.email,
     });
-    const [errors, setErrors] = React.useState({});
-    const [processing, setProcessing] = React.useState(false);
-    const [recentlySuccessful, setRecentlySuccessful] = React.useState(false);
+    const [errors, setErrors] = useState({});
+    const [processing, setProcessing] = useState(false);
+    const [recentlySuccessful, setRecentlySuccessful] = useState(false);
 
     const submit = async (e) => {
         e.preventDefault();
