@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import  { useDarkMode } from '@/hooks/useDarkMode.js';
 
 const AlertCard = ({ alert }) => {
     const [isDarkMode] = useDarkMode();

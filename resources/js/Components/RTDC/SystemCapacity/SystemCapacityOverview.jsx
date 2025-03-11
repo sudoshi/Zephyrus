@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import MetricsCard from '@/Components/Analytics/Common/MetricsCard';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import  { useDarkMode } from '@/hooks/useDarkMode.js';
 
 const SystemCapacityOverview = ({ metrics }) => {
     const [isDarkMode] = useDarkMode();

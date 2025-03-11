@@ -9,7 +9,7 @@ import {
   Tooltip as RechartsTooltip,
   CartesianGrid
 } from 'recharts';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import  { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
 import Modal from '@/Components/Common/Modal';
 
 const DrillDownModal = ({ isOpen, onClose, metric, data }) => {

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import  { useDarkMode } from '@/hooks/useDarkMode.js';
 import TopNavigation from '@/Components/Navigation/TopNavigation';
 
 const DashboardLayout = ({ children }) => {

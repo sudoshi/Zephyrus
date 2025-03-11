@@ -11,7 +11,7 @@ import {
 } from '@/Components/ui/alert-dialog';
 
 import { Button } from '@/Components/ui/button';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import  { useDarkMode } from '@/hooks/useDarkMode.js';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 
 // Icons (using lucide-react)
