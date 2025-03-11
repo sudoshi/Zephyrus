@@ -109,6 +109,15 @@ node scripts/remove-extensions.cjs --fix
 
 In some cases, the CI/CD environment may behave differently from local development environments when resolving imports. Here are some guidelines for handling these situations:
 
+### Automated Solution for CI/CD Compatibility
+
+To address the difference between local development and CI/CD environments regarding import paths, we've implemented an automated solution:
+
+1. **add-extensions-for-ci.cjs Script**
+   - This script automatically adds `.js` extensions to all hook imports for CI/CD compatibility
+   - Run it before the build step in CI/CD environments: `node scripts/add-extensions-for-ci.cjs`
+   - You can test it locally with the `--dry-run` flag: `node scripts/add-extensions-for-ci.cjs --dry-run`
+
 ### Known Exceptions
 
 1. **Explicit Extensions for CI Compatibility**
