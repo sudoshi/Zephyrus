@@ -105,6 +105,46 @@ node scripts/remove-extensions.cjs
 node scripts/remove-extensions.cjs --fix
 ```
 
+## CI/CD Environment Considerations
+
+In some cases, the CI/CD environment may behave differently from local development environments when resolving imports. Here are some guidelines for handling these situations:
+
+### Known Exceptions
+
+1. **Explicit Extensions for CI Compatibility**
+   - While our standard is to omit file extensions in imports, some files may require explicit extensions in CI environments
+   - Example: `import { useORUtilizationData } from '@/hooks/useORUtilizationData.js';`
+   - When adding an explicit extension as an exception, always add a comment explaining why:
+     ```javascript
+     // NOTE: Explicit .js extension is required here for CI/CD build compatibility
+     // This is an exception to our standard import pattern (no extensions)
+     import { useComponent } from '@/path/to/component.js';
+     ```
+
+2. **Vite Configuration**
+   - Our `vite.config.js` includes the `extensions` array in the `resolve` section to help resolve imports without extensions:
+     ```javascript
+     resolve: {
+       alias: {
+         '@': '/resources/js',
+       },
+       extensions: ['.js', '.jsx', '.json'],
+     },
+     ```
+   - This configuration should handle most cases, but some edge cases may still require explicit extensions
+
+### Troubleshooting CI/CD Build Failures
+
+1. **Diagnosing Import Resolution Issues**
+   - If a build fails in CI but works locally, check for path resolution differences
+   - Add debugging steps to your GitHub Actions workflow to list directory contents
+   - Verify file case sensitivity (GitHub Actions runs on Linux which is case-sensitive)
+
+2. **Solutions for Import Resolution Failures**
+   - Add explicit file extensions for problematic imports as a temporary solution
+   - Document these exceptions with clear comments
+   - Consider adding the file to a list of known exceptions in this guide
+
 ## Common Issues and Solutions
 
 ### Issue: "Could not load module X (imported by Y)"

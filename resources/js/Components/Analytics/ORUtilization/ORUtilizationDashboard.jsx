@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+// NOTE: Explicit .js extension is required here for CI/CD build compatibility
+// This is an exception to our standard import pattern (no extensions)
 import { useORUtilizationData } from '@/hooks/useORUtilizationData.js';
 import { useAnalytics } from '@/Contexts/AnalyticsContext';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
