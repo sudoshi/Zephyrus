@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import usePatientFlowData from '@/hooks/usePatientFlowData';
+import { usePatientFlowData } from '@/hooks/usePatientFlowData';
 import { useAnalytics } from '@/Contexts/AnalyticsContext';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import { motion, AnimatePresence } from 'framer-motion';
