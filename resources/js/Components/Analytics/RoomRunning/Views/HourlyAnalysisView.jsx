@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { mockRoomRunning } from '@/mock-data/room-running';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/hooks/useDarkMode.js';
 
 const HourlyAnalysisView = ({ filters }) => {
   // Extract filter values

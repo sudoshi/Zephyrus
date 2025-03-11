@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
 import PropTypes from 'prop-types';
 import {
     LineChart,

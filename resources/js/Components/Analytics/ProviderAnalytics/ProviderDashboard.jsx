@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/hooks/useDarkMode.js';
 import ErrorBoundary from '@/Components/Common/ErrorBoundary';
 import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
 import { Icon } from '@iconify/react';

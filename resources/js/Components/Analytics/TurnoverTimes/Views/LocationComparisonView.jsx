@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { mockTurnoverTimes } from '@/mock-data/turnover-times';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/hooks/useDarkMode.js';
 
 const LocationComparisonView = ({ filters }) => {
   // Extract filter values

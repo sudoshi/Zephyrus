@@ -1,6 +1,6 @@
 import React from 'react';
 import DropLightPanel from './DropLightPanel';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { useDarkMode } from '@/hooks/useDarkMode.js';
 import { Button } from '@/Components/ui/button';
 
 const AnalyticsPanel = ({ 

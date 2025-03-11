@@ -1,7 +1,7 @@
 import React from 'react';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
 
 const MetricsCard = ({ 
     title, 

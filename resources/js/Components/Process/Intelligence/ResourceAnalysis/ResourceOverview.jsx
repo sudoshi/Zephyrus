@@ -3,8 +3,8 @@ import { TrendingUp, TrendingDown, AlertCircle, Users, DoorOpen, Stethoscope, He
 import ConfirmationDialog from './ConfirmationDialog';
 import ActionFeedback from './ActionFeedback';
 import StatusTooltip from './StatusTooltip';
-import { useResourceAction } from '@/hooks/useResourceAction';
-import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
+import { useResourceAction } from '@/hooks/useResourceAction.js';
+import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation.js';
 import getResourceTooltips from './getResourceTooltips';
 
 const ResourceOverview = ({ resourceData, predictions, onAction }) => {

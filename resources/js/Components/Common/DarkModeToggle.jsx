@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Icon } from '@iconify/react';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
 
 const DarkModeToggle = ({ isDarkMode, onToggle }) => {
   const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
