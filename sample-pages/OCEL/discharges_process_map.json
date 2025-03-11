@@ -1,0 +1,196 @@
+{
+  "nodes": [
+    {
+      "id": "input_inpatient",
+      "label": "Inpatient Units",
+      "type": "start",
+      "count": 145,
+      "metrics": {
+        "last24h": 145,
+        "last7d": 950,
+        "last30d": 4100
+      },
+      "description": "Patients from inpatient units ready for discharge"
+    },
+    {
+      "id": "input_icu",
+      "label": "ICU",
+      "type": "start",
+      "count": 35,
+      "metrics": {
+        "last24h": 35,
+        "last7d": 230,
+        "last30d": 980
+      },
+      "description": "Patients from ICU ready for discharge"
+    },
+    {
+      "id": "input_observation",
+      "label": "Observation Units",
+      "type": "start",
+      "count": 85,
+      "metrics": {
+        "last24h": 85,
+        "last7d": 560,
+        "last30d": 2400
+      },
+      "description": "Patients from observation units ready for discharge"
+    },
+    {
+      "id": "process_discharge_order",
+      "label": "Discharge Order",
+      "type": "activity",
+      "count": 265,
+      "metrics": {
+        "avgTime": "15 min",
+        "bottlenecks": 0.12,
+        "successRate": 0.99
+      },
+      "description": "Physician enters discharge order"
+    },
+    {
+      "id": "process_discharge_planning",
+      "label": "Discharge Planning",
+      "type": "activity",
+      "count": 265,
+      "metrics": {
+        "avgTime": "45 min",
+        "bottlenecks": 0.30,
+        "successRate": 0.95
+      },
+      "description": "Discharge planning with care team"
+    },
+    {
+      "id": "process_medication",
+      "label": "Medication Reconciliation",
+      "type": "activity",
+      "count": 260,
+      "metrics": {
+        "avgTime": "25 min",
+        "bottlenecks": 0.20,
+        "successRate": 0.97
+      },
+      "description": "Reconciliation of medications for discharge"
+    },
+    {
+      "id": "process_education",
+      "label": "Patient Education",
+      "type": "activity",
+      "count": 255,
+      "metrics": {
+        "avgTime": "30 min",
+        "bottlenecks": 0.18,
+        "successRate": 0.98
+      },
+      "description": "Education for patient and family"
+    },
+    {
+      "id": "process_final_discharge",
+      "label": "Final Discharge",
+      "type": "end",
+      "count": 250,
+      "metrics": {
+        "avgTotalTime": "2.8 hours",
+        "successRate": 0.96
+      },
+      "description": "Patient leaves hospital"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "input_inpatient",
+      "target": "process_discharge_order",
+      "count": 145,
+      "label": "145 patients"
+    },
+    {
+      "id": "e2",
+      "source": "input_icu",
+      "target": "process_discharge_order",
+      "count": 35,
+      "label": "35 patients"
+    },
+    {
+      "id": "e3",
+      "source": "input_observation",
+      "target": "process_discharge_order",
+      "count": 85,
+      "label": "85 patients"
+    },
+    {
+      "id": "e4",
+      "source": "process_discharge_order",
+      "target": "process_discharge_planning",
+      "count": 265,
+      "label": "265 patients"
+    },
+    {
+      "id": "e5",
+      "source": "process_discharge_planning",
+      "target": "process_medication",
+      "count": 260,
+      "label": "260 patients"
+    },
+    {
+      "id": "e6",
+      "source": "process_medication",
+      "target": "process_education",
+      "count": 255,
+      "label": "255 patients"
+    },
+    {
+      "id": "e7",
+      "source": "process_education",
+      "target": "process_final_discharge",
+      "count": 250,
+      "label": "250 patients"
+    }
+  ],
+  "metrics": {
+    "staffing": {
+      "nurses": {
+        "assigned": 20,
+        "required": 22
+      },
+      "physicians": {
+        "assigned": 8,
+        "required": 9
+      }
+    },
+    "space": {
+      "rooms": {
+        "occupied": 32,
+        "capacity": 35
+      }
+    },
+    "cascade": {
+      "primaryProcess": "Discharges",
+      "affectedProcesses": [
+        {
+          "name": "Bed Management",
+          "severity": 0.8,
+          "timeImpact": 40,
+          "resourceImpact": 0.7,
+          "affectedVolume": 80,
+          "dependencies": [
+            "Room Cleaning",
+            "Bed Assignment"
+          ],
+          "type": "operational"
+        },
+        {
+          "name": "Admissions",
+          "severity": 0.7,
+          "timeImpact": 35,
+          "resourceImpact": 0.6,
+          "affectedVolume": 75,
+          "dependencies": [
+            "Bed Availability"
+          ],
+          "type": "operational"
+        }
+      ]
+    }
+  }
+}

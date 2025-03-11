@@ -384,6 +384,14 @@ class ProcessAnalysisController extends Controller
                 'time_range' => 'required|string|max:50',
             ]);
 
+            // Log the validated data for debugging
+            \Log::info('Saving process layout with data:', [
+                'process_type' => $validated['process_type'],
+                'hospital' => $validated['hospital'],
+                'workflow' => $validated['workflow'],
+                'time_range' => $validated['time_range']
+            ]);
+            
             ProcessLayout::updateOrCreate(
                 [
                     'user_id' => Auth::id(),
@@ -392,6 +400,7 @@ class ProcessAnalysisController extends Controller
                     'time_range' => $validated['time_range'],
                 ],
                 [
+                    'process_type' => $validated['process_type'], // Add process_type to the update data
                     'layout_data' => $validated['layout_data'],
                 ]
             );
@@ -413,14 +422,91 @@ class ProcessAnalysisController extends Controller
             'time_range' => 'required|string|max:50',
         ]);
 
+        // Log the request parameters for debugging
+        \Log::info('Getting process layout with params:', [
+            'hospital' => $validated['hospital'],
+            'workflow' => $validated['workflow'],
+            'time_range' => $validated['time_range'],
+            'user_id' => Auth::id()
+        ]);
+
         $layout = ProcessLayout::where('user_id', Auth::id())
             ->where('hospital', $validated['hospital'])
             ->where('workflow', $validated['workflow'])
             ->where('time_range', $validated['time_range'])
             ->first();
 
+        // Log whether a layout was found
+        if ($layout) {
+            \Log::info('Found saved layout with ID: ' . $layout->id . ' and process_type: ' . $layout->process_type);
+        } else {
+            \Log::info('No saved layout found for the given parameters');
+        }
+
         return response()->json([
             'layout' => $layout ? $layout->layout_data : null,
+            'process_type' => $layout ? $layout->process_type : null,
+            'found' => $layout ? true : false
         ]);
+    }
+
+    /**
+     * Save the viewport state for a process.
+     */
+    public function saveViewport(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'process_type' => 'required|string|max:50',
+                'layout_data' => 'required|array',
+                'hospital' => 'required|string|max:100',
+                'workflow' => 'required|string|max:50',
+                'time_range' => 'required|string|max:50',
+            ]);
+
+            // Log the request for debugging
+            \Log::info('Saving viewport with params:', [
+                'hospital' => $validated['hospital'],
+                'workflow' => $validated['workflow'],
+                'time_range' => $validated['time_range'],
+                'process_type' => $validated['process_type'],
+                'user_id' => Auth::id()
+            ]);
+
+            // Get the existing layout record
+            $layout = ProcessLayout::where('user_id', Auth::id())
+                ->where('hospital', $validated['hospital'])
+                ->where('workflow', $validated['workflow'])
+                ->where('time_range', $validated['time_range'])
+                ->first();
+
+            if ($layout) {
+                // If layout exists, update it with viewport data
+                $layoutData = json_decode($layout->layout_data, true) ?: [];
+                $layoutData['viewport'] = $validated['layout_data']['viewport'];
+                
+                $layout->layout_data = $layoutData;
+                $layout->save();
+                
+                \Log::info('Updated existing layout with viewport data');
+            } else {
+                // If no layout exists, create a new one with just viewport data
+                ProcessLayout::create([
+                    'user_id' => Auth::id(),
+                    'process_type' => $validated['process_type'],
+                    'hospital' => $validated['hospital'],
+                    'workflow' => $validated['workflow'],
+                    'time_range' => $validated['time_range'],
+                    'layout_data' => $validated['layout_data'],
+                ]);
+                
+                \Log::info('Created new layout with viewport data');
+            }
+
+            return response()->noContent();
+        } catch (\Exception $e) {
+            \Log::error('Error saving viewport: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

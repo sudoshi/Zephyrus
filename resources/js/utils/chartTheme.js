@@ -6,6 +6,19 @@
 export const getChartTheme = (isDarkMode = true) => {
   // Always use white text for dark backgrounds in the dashboard
   return {
+    // Healthcare-themed color palette
+    colors: [
+      '#3b82f6', // Primary blue
+      '#10b981', // Success green
+      '#f59e0b', // Warning yellow
+      '#ef4444', // Danger red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#ec4899', // Pink
+      '#14b8a6', // Teal
+      '#f97316', // Orange
+      '#6366f1'  // Indigo
+    ],
     background: isDarkMode ? '#1f2937' : 'transparent',
     textColor: '#ffffff',
     fontSize: 12,

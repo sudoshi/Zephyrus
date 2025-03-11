@@ -63,6 +63,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/root-cause', [DashboardController::class, 'rootCause'])->name('root-cause');
         Route::post('/process/layout', [ProcessAnalysisController::class, 'saveLayout'])->name('process.saveLayout');
         Route::get('/process/layout', [ProcessAnalysisController::class, 'getLayout'])->name('process.getLayout');
+        Route::post('/process/viewport', [ProcessAnalysisController::class, 'saveViewport'])->name('process.saveViewport');
         Route::get('/library', [DashboardController::class, 'library'])->name('library');
         Route::get('/active', [DashboardController::class, 'active'])->name('active');
         

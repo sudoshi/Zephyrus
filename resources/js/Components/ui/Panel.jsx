@@ -7,7 +7,8 @@ const Panel = ({
   dropLightIntensity = 'medium', // 'subtle', 'medium', 'strong'
   className = "", 
   titleClassName = "",
-  headerRight = null
+  headerRight = null,
+  headerContent = null
 }) => {
   // Define gradient and shadow styles based on intensity
   const getDropLightStyles = () => {
@@ -54,6 +55,13 @@ const Panel = ({
               {headerRight}
             </div>
           )}
+        </div>
+      )}
+      
+      {/* Render headerContent if provided */}
+      {headerContent && (
+        <div className="mb-4">
+          {headerContent}
         </div>
       )}
       {children}

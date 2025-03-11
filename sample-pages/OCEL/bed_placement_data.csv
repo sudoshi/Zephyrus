@@ -1,0 +1,351 @@
+case_id,activity,timestamp,hospital,department,resource,duration_mins
+B044,Origin: Transfer,2025-03-10 00:30:00,Virtua Willingboro Hospital,Neurology,Staff_05,0
+B001,Origin: Emergency Department (ED),2025-03-10 00:54:00,Virtua Voorhees Hospital,Orthopedics,Staff_08,0
+B019,Origin: Emergency Department (ED),2025-03-10 00:55:00,Virtua Marlton Hospital,Cardiology,Staff_08,0
+B044,Bed request initiated,2025-03-10 01:03:00,Virtua Willingboro Hospital,Neurology,Staff_12,11
+B001,Bed request initiated,2025-03-10 01:06:00,Virtua Voorhees Hospital,Orthopedics,Staff_12,19
+B019,Bed request initiated,2025-03-10 01:06:00,Virtua Marlton Hospital,Cardiology,Staff_10,22
+B007,Origin: Emergency Department (ED),2025-03-10 01:12:00,Virtua Memorial Hospital,Neurology,Staff_17,0
+B001,Bed assignment decision,2025-03-10 01:17:00,Virtua Voorhees Hospital,Orthopedics,Staff_06,4
+B007,Bed request initiated,2025-03-10 01:19:00,Virtua Memorial Hospital,Neurology,Staff_18,7
+B019,Bed assignment decision,2025-03-10 01:21:00,Virtua Marlton Hospital,Cardiology,Staff_11,9
+B034,Origin: Transfer,2025-03-10 01:21:00,Virtua Voorhees Hospital,Orthopedics,Staff_01,0
+B001,Bed allocation,2025-03-10 01:33:00,Virtua Voorhees Hospital,Orthopedics,Staff_19,12
+B007,Bed assignment decision,2025-03-10 01:37:00,Virtua Memorial Hospital,Neurology,Staff_12,3
+B044,Bed assignment decision,2025-03-10 01:40:00,Virtua Willingboro Hospital,Neurology,Staff_17,15
+B001,Transportation ordered,2025-03-10 01:43:00,Virtua Voorhees Hospital,Orthopedics,Staff_06,4
+B019,Bed allocation,2025-03-10 01:43:00,Virtua Marlton Hospital,Cardiology,Staff_10,13
+B007,Bed allocation,2025-03-10 01:53:00,Virtua Memorial Hospital,Neurology,Staff_15,12
+B019,Transportation ordered,2025-03-10 01:54:00,Virtua Marlton Hospital,Cardiology,Staff_16,6
+B007,Transportation ordered,2025-03-10 02:00:00,Virtua Memorial Hospital,Neurology,Staff_03,3
+B001,Patient in transit,2025-03-10 02:03:00,Virtua Voorhees Hospital,Orthopedics,Staff_06,9
+B001,Patient arrived at bed,2025-03-10 02:03:00,Virtua Voorhees Hospital,Orthopedics,Staff_17,9
+B034,Bed request initiated,2025-03-10 02:03:00,Virtua Voorhees Hospital,Orthopedics,Staff_04,10
+B044,Bed allocation,2025-03-10 02:04:00,Virtua Willingboro Hospital,Neurology,Staff_06,23
+B019,Patient in transit,2025-03-10 02:13:00,Virtua Marlton Hospital,Cardiology,Staff_07,9
+B019,Patient arrived at bed,2025-03-10 02:13:00,Virtua Marlton Hospital,Cardiology,Staff_16,9
+B007,Patient in transit,2025-03-10 02:25:00,Virtua Memorial Hospital,Neurology,Staff_10,6
+B007,Patient arrived at bed,2025-03-10 02:25:00,Virtua Memorial Hospital,Neurology,Staff_03,15
+B044,Transportation ordered,2025-03-10 02:32:00,Virtua Willingboro Hospital,Neurology,Staff_08,18
+B034,Bed assignment decision,2025-03-10 02:33:00,Virtua Voorhees Hospital,Orthopedics,Staff_16,15
+B049,Origin: Operating Room (OR),2025-03-10 02:39:00,Virtua Voorhees Hospital,Cardiology,Staff_10,0
+B034,Bed allocation,2025-03-10 03:00:00,Virtua Voorhees Hospital,Orthopedics,Staff_13,37
+B049,Bed request initiated,2025-03-10 03:02:00,Virtua Voorhees Hospital,Cardiology,Staff_07,9
+B049,Bed assignment decision,2025-03-10 03:13:00,Virtua Voorhees Hospital,Cardiology,Staff_12,6
+B044,Patient in transit,2025-03-10 03:16:00,Virtua Willingboro Hospital,Neurology,Staff_10,18
+B044,Patient arrived at bed,2025-03-10 03:16:00,Virtua Willingboro Hospital,Neurology,Staff_07,15
+B034,Transportation ordered,2025-03-10 03:21:00,Virtua Voorhees Hospital,Orthopedics,Staff_10,27
+B049,Bed allocation,2025-03-10 03:44:00,Virtua Voorhees Hospital,Cardiology,Staff_19,8
+B008,Origin: Direct Admission,2025-03-10 03:46:00,Virtua Voorhees Hospital,Orthopedics,Staff_05,0
+B034,Patient in transit,2025-03-10 03:50:00,Virtua Voorhees Hospital,Orthopedics,Staff_09,33
+B034,Patient arrived at bed,2025-03-10 03:50:00,Virtua Voorhees Hospital,Orthopedics,Staff_07,21
+B049,Transportation ordered,2025-03-10 03:58:00,Virtua Voorhees Hospital,Cardiology,Staff_10,12
+B018,Origin: Operating Room (OR),2025-03-10 04:01:00,Virtua Willingboro Hospital,Neurology,Staff_18,0
+B006,Origin: Emergency Department (ED),2025-03-10 04:02:00,Virtua Memorial Hospital,Telemetry,Staff_15,0
+B006,Bed request initiated,2025-03-10 04:10:00,Virtua Memorial Hospital,Telemetry,Staff_14,7
+B029,Origin: Operating Room (OR),2025-03-10 04:12:00,Virtua Marlton Hospital,ICU,Staff_03,0
+B008,Bed request initiated,2025-03-10 04:19:00,Virtua Voorhees Hospital,Orthopedics,Staff_20,5
+B018,Bed request initiated,2025-03-10 04:25:00,Virtua Willingboro Hospital,Neurology,Staff_08,11
+B006,Bed assignment decision,2025-03-10 04:29:00,Virtua Memorial Hospital,Telemetry,Staff_09,5
+B029,Bed request initiated,2025-03-10 04:35:00,Virtua Marlton Hospital,ICU,Staff_17,10
+B049,Patient in transit,2025-03-10 04:36:00,Virtua Voorhees Hospital,Cardiology,Staff_13,7
+B049,Patient arrived at bed,2025-03-10 04:36:00,Virtua Voorhees Hospital,Cardiology,Staff_13,12
+B018,Bed assignment decision,2025-03-10 04:41:00,Virtua Willingboro Hospital,Neurology,Staff_14,7
+B008,Bed assignment decision,2025-03-10 04:42:00,Virtua Voorhees Hospital,Orthopedics,Staff_20,9
+B029,Bed assignment decision,2025-03-10 04:50:00,Virtua Marlton Hospital,ICU,Staff_11,9
+B006,Bed allocation,2025-03-10 04:55:00,Virtua Memorial Hospital,Telemetry,Staff_14,9
+B006,Transportation ordered,2025-03-10 05:04:00,Virtua Memorial Hospital,Telemetry,Staff_15,6
+B029,Bed allocation,2025-03-10 05:08:00,Virtua Marlton Hospital,ICU,Staff_19,8
+B018,Bed allocation,2025-03-10 05:09:00,Virtua Willingboro Hospital,Neurology,Staff_10,12
+B008,Bed allocation,2025-03-10 05:18:00,Virtua Voorhees Hospital,Orthopedics,Staff_05,13
+B006,Patient in transit,2025-03-10 05:21:00,Virtua Memorial Hospital,Telemetry,Staff_10,9
+B006,Patient arrived at bed,2025-03-10 05:21:00,Virtua Memorial Hospital,Telemetry,Staff_08,14
+B029,Transportation ordered,2025-03-10 05:22:00,Virtua Marlton Hospital,ICU,Staff_19,7
+B018,Transportation ordered,2025-03-10 05:24:00,Virtua Willingboro Hospital,Neurology,Staff_02,13
+B008,Transportation ordered,2025-03-10 05:34:00,Virtua Voorhees Hospital,Orthopedics,Staff_02,12
+B005,Origin: Emergency Department (ED),2025-03-10 05:40:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_04,0
+B005,Bed request initiated,2025-03-10 05:50:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_13,10
+B018,Patient in transit,2025-03-10 05:58:00,Virtua Willingboro Hospital,Neurology,Staff_05,10
+B018,Patient arrived at bed,2025-03-10 05:58:00,Virtua Willingboro Hospital,Neurology,Staff_20,12
+B029,Patient in transit,2025-03-10 05:59:00,Virtua Marlton Hospital,ICU,Staff_10,11
+B029,Patient arrived at bed,2025-03-10 05:59:00,Virtua Marlton Hospital,ICU,Staff_11,14
+B008,Patient in transit,2025-03-10 06:07:00,Virtua Voorhees Hospital,Orthopedics,Staff_13,12
+B008,Patient arrived at bed,2025-03-10 06:07:00,Virtua Voorhees Hospital,Orthopedics,Staff_15,7
+B005,Bed assignment decision,2025-03-10 06:08:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_08,5
+B005,Bed allocation,2025-03-10 06:30:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_17,13
+B005,Transportation ordered,2025-03-10 06:42:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_06,3
+B005,Patient in transit,2025-03-10 07:06:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_20,9
+B005,Patient arrived at bed,2025-03-10 07:06:00,Virtua Voorhees Hospital,Medical/Surgical,Staff_17,8
+B015,Origin: Emergency Department (ED),2025-03-10 07:22:00,Virtua Willingboro Hospital,Telemetry,Staff_17,0
+B015,Bed request initiated,2025-03-10 07:31:00,Virtua Willingboro Hospital,Telemetry,Staff_03,15
+B015,Bed assignment decision,2025-03-10 07:41:00,Virtua Willingboro Hospital,Telemetry,Staff_10,6
+B015,Bed allocation,2025-03-10 08:02:00,Virtua Willingboro Hospital,Telemetry,Staff_06,11
+B023,Origin: Emergency Department (ED),2025-03-10 08:05:00,Virtua Camden Hospital,Telemetry,Staff_13,0
+B015,Transportation ordered,2025-03-10 08:13:00,Virtua Willingboro Hospital,Telemetry,Staff_08,4
+B023,Bed request initiated,2025-03-10 08:17:00,Virtua Camden Hospital,Telemetry,Staff_07,22
+B023,Bed assignment decision,2025-03-10 08:27:00,Virtua Camden Hospital,Telemetry,Staff_13,9
+B015,Patient in transit,2025-03-10 08:30:00,Virtua Willingboro Hospital,Telemetry,Staff_05,10
+B015,Patient arrived at bed,2025-03-10 08:30:00,Virtua Willingboro Hospital,Telemetry,Staff_06,7
+B023,Bed allocation,2025-03-10 08:43:00,Virtua Camden Hospital,Telemetry,Staff_07,16
+B039,Origin: Operating Room (OR),2025-03-10 08:50:00,Virtua Willingboro Hospital,Telemetry,Staff_02,0
+B023,Transportation ordered,2025-03-10 08:53:00,Virtua Camden Hospital,Telemetry,Staff_11,9
+B020,Origin: Emergency Department (ED),2025-03-10 09:01:00,Virtua Marlton Hospital,Telemetry,Staff_06,1
+B046,Origin: Operating Room (OR),2025-03-10 09:13:00,Virtua Memorial Hospital,Orthopedics,Staff_15,0
+B020,Bed request initiated,2025-03-10 09:14:00,Virtua Marlton Hospital,Telemetry,Staff_11,3
+B039,Bed request initiated,2025-03-10 09:16:00,Virtua Willingboro Hospital,Telemetry,Staff_02,15
+B023,Patient in transit,2025-03-10 09:19:00,Virtua Camden Hospital,Telemetry,Staff_14,12
+B023,Patient arrived at bed,2025-03-10 09:19:00,Virtua Camden Hospital,Telemetry,Staff_05,22
+B020,Bed assignment decision,2025-03-10 09:25:00,Virtua Marlton Hospital,Telemetry,Staff_01,3
+B039,Bed assignment decision,2025-03-10 09:31:00,Virtua Willingboro Hospital,Telemetry,Staff_16,7
+B046,Bed request initiated,2025-03-10 09:38:00,Virtua Memorial Hospital,Orthopedics,Staff_02,7
+B020,Bed allocation,2025-03-10 09:42:00,Virtua Marlton Hospital,Telemetry,Staff_09,7
+B030,Origin: Emergency Department (ED),2025-03-10 09:44:00,Virtua Memorial Hospital,ICU,Staff_10,0
+B020,Transportation ordered,2025-03-10 09:50:00,Virtua Marlton Hospital,Telemetry,Staff_14,3
+B046,Bed assignment decision,2025-03-10 09:50:00,Virtua Memorial Hospital,Orthopedics,Staff_01,7
+B030,Bed request initiated,2025-03-10 09:54:00,Virtua Memorial Hospital,ICU,Staff_17,13
+B039,Bed allocation,2025-03-10 09:54:00,Virtua Willingboro Hospital,Telemetry,Staff_18,9
+B039,Transportation ordered,2025-03-10 10:07:00,Virtua Willingboro Hospital,Telemetry,Staff_18,7
+B030,Bed assignment decision,2025-03-10 10:10:00,Virtua Memorial Hospital,ICU,Staff_01,3
+B020,Patient in transit,2025-03-10 10:16:00,Virtua Marlton Hospital,Telemetry,Staff_05,6
+B020,Patient arrived at bed,2025-03-10 10:16:00,Virtua Marlton Hospital,Telemetry,Staff_06,4
+B046,Bed allocation,2025-03-10 10:17:00,Virtua Memorial Hospital,Orthopedics,Staff_02,12
+B030,Bed allocation,2025-03-10 10:30:00,Virtua Memorial Hospital,ICU,Staff_09,13
+B046,Transportation ordered,2025-03-10 10:31:00,Virtua Memorial Hospital,Orthopedics,Staff_01,12
+B011,Origin: Emergency Department (ED),2025-03-10 10:39:00,Virtua Marlton Hospital,Medical/Surgical,Staff_05,0
+B039,Patient in transit,2025-03-10 10:39:00,Virtua Willingboro Hospital,Telemetry,Staff_02,9
+B039,Patient arrived at bed,2025-03-10 10:39:00,Virtua Willingboro Hospital,Telemetry,Staff_08,14
+B030,Transportation ordered,2025-03-10 10:40:00,Virtua Memorial Hospital,ICU,Staff_06,3
+B011,Bed request initiated,2025-03-10 10:51:00,Virtua Marlton Hospital,Medical/Surgical,Staff_20,12
+B048,Origin: Operating Room (OR),2025-03-10 10:54:00,Virtua Memorial Hospital,Medical/Surgical,Staff_10,0
+B046,Patient in transit,2025-03-10 11:00:00,Virtua Memorial Hospital,Orthopedics,Staff_18,8
+B046,Patient arrived at bed,2025-03-10 11:00:00,Virtua Memorial Hospital,Orthopedics,Staff_06,9
+B045,Origin: Emergency Department (ED),2025-03-10 11:03:00,Virtua Memorial Hospital,Medical/Surgical,Staff_20,1
+B011,Bed assignment decision,2025-03-10 11:07:00,Virtua Marlton Hospital,Medical/Surgical,Staff_02,3
+B033,Origin: Emergency Department (ED),2025-03-10 11:09:00,Virtua Camden Hospital,Cardiology,Staff_06,0
+B045,Bed request initiated,2025-03-10 11:10:00,Virtua Memorial Hospital,Medical/Surgical,Staff_04,5
+B030,Patient in transit,2025-03-10 11:12:00,Virtua Memorial Hospital,ICU,Staff_14,7
+B030,Patient arrived at bed,2025-03-10 11:12:00,Virtua Memorial Hospital,ICU,Staff_17,5
+B032,Origin: Emergency Department (ED),2025-03-10 11:16:00,Virtua Willingboro Hospital,Telemetry,Staff_13,0
+B033,Bed request initiated,2025-03-10 11:16:00,Virtua Camden Hospital,Cardiology,Staff_08,15
+B048,Bed request initiated,2025-03-10 11:20:00,Virtua Memorial Hospital,Medical/Surgical,Staff_17,12
+B011,Bed allocation,2025-03-10 11:26:00,Virtua Marlton Hospital,Medical/Surgical,Staff_11,9
+B032,Bed request initiated,2025-03-10 11:26:00,Virtua Willingboro Hospital,Telemetry,Staff_19,7
+B045,Bed assignment decision,2025-03-10 11:27:00,Virtua Memorial Hospital,Medical/Surgical,Staff_16,3
+B033,Bed assignment decision,2025-03-10 11:30:00,Virtua Camden Hospital,Cardiology,Staff_16,3
+B011,Transportation ordered,2025-03-10 11:33:00,Virtua Marlton Hospital,Medical/Surgical,Staff_05,4
+B048,Bed assignment decision,2025-03-10 11:38:00,Virtua Memorial Hospital,Medical/Surgical,Staff_07,8
+B032,Bed assignment decision,2025-03-10 11:41:00,Virtua Willingboro Hospital,Telemetry,Staff_04,5
+B033,Bed allocation,2025-03-10 11:45:00,Virtua Camden Hospital,Cardiology,Staff_10,11
+B045,Bed allocation,2025-03-10 11:50:00,Virtua Memorial Hospital,Medical/Surgical,Staff_20,5
+B013,Origin: Direct Admission,2025-03-10 11:51:00,Virtua Memorial Hospital,Oncology,Staff_03,0
+B033,Transportation ordered,2025-03-10 11:53:00,Virtua Camden Hospital,Cardiology,Staff_01,5
+B032,Bed allocation,2025-03-10 11:55:00,Virtua Willingboro Hospital,Telemetry,Staff_15,12
+B048,Bed allocation,2025-03-10 11:56:00,Virtua Memorial Hospital,Medical/Surgical,Staff_11,9
+B045,Transportation ordered,2025-03-10 12:03:00,Virtua Memorial Hospital,Medical/Surgical,Staff_06,3
+B011,Patient in transit,2025-03-10 12:05:00,Virtua Marlton Hospital,Medical/Surgical,Staff_01,5
+B011,Patient arrived at bed,2025-03-10 12:05:00,Virtua Marlton Hospital,Medical/Surgical,Staff_16,8
+B032,Transportation ordered,2025-03-10 12:05:00,Virtua Willingboro Hospital,Telemetry,Staff_05,5
+B048,Transportation ordered,2025-03-10 12:12:00,Virtua Memorial Hospital,Medical/Surgical,Staff_19,12
+B004,Origin: Operating Room (OR),2025-03-10 12:14:00,Virtua Camden Hospital,Oncology,Staff_06,0
+B033,Patient in transit,2025-03-10 12:21:00,Virtua Camden Hospital,Cardiology,Staff_20,6
+B033,Patient arrived at bed,2025-03-10 12:21:00,Virtua Camden Hospital,Cardiology,Staff_14,7
+B045,Patient in transit,2025-03-10 12:23:00,Virtua Memorial Hospital,Medical/Surgical,Staff_05,6
+B045,Patient arrived at bed,2025-03-10 12:23:00,Virtua Memorial Hospital,Medical/Surgical,Staff_17,3
+B032,Patient in transit,2025-03-10 12:27:00,Virtua Willingboro Hospital,Telemetry,Staff_11,6
+B032,Patient arrived at bed,2025-03-10 12:27:00,Virtua Willingboro Hospital,Telemetry,Staff_19,11
+B013,Bed request initiated,2025-03-10 12:29:00,Virtua Memorial Hospital,Oncology,Staff_13,7
+B042,Origin: Operating Room (OR),2025-03-10 12:31:00,Virtua Camden Hospital,Medical/Surgical,Staff_13,0
+B048,Patient in transit,2025-03-10 12:34:00,Virtua Memorial Hospital,Medical/Surgical,Staff_08,9
+B048,Patient arrived at bed,2025-03-10 12:34:00,Virtua Memorial Hospital,Medical/Surgical,Staff_09,11
+B004,Bed request initiated,2025-03-10 12:37:00,Virtua Camden Hospital,Oncology,Staff_17,13
+B042,Bed request initiated,2025-03-10 12:51:00,Virtua Camden Hospital,Medical/Surgical,Staff_01,14
+B047,Origin: Emergency Department (ED),2025-03-10 12:52:00,Virtua Marlton Hospital,Neurology,Staff_10,0
+B004,Bed assignment decision,2025-03-10 12:53:00,Virtua Camden Hospital,Oncology,Staff_20,6
+B013,Bed assignment decision,2025-03-10 12:59:00,Virtua Memorial Hospital,Oncology,Staff_11,13
+B047,Bed request initiated,2025-03-10 13:02:00,Virtua Marlton Hospital,Neurology,Staff_06,10
+B042,Bed assignment decision,2025-03-10 13:03:00,Virtua Camden Hospital,Medical/Surgical,Staff_02,7
+B040,Origin: Emergency Department (ED),2025-03-10 13:12:00,Virtua Marlton Hospital,Telemetry,Staff_02,1
+B047,Bed assignment decision,2025-03-10 13:12:00,Virtua Marlton Hospital,Neurology,Staff_13,3
+B017,Origin: Emergency Department (ED),2025-03-10 13:17:00,Virtua Memorial Hospital,Cardiology,Staff_02,0
+B004,Bed allocation,2025-03-10 13:18:00,Virtua Camden Hospital,Oncology,Staff_20,12
+B040,Bed request initiated,2025-03-10 13:22:00,Virtua Marlton Hospital,Telemetry,Staff_03,4
+B042,Bed allocation,2025-03-10 13:25:00,Virtua Camden Hospital,Medical/Surgical,Staff_06,10
+B013,Bed allocation,2025-03-10 13:27:00,Virtua Memorial Hospital,Oncology,Staff_12,13
+B017,Bed request initiated,2025-03-10 13:28:00,Virtua Memorial Hospital,Cardiology,Staff_13,15
+B047,Bed allocation,2025-03-10 13:28:00,Virtua Marlton Hospital,Neurology,Staff_07,11
+B003,Origin: Operating Room (OR),2025-03-10 13:30:00,Virtua Marlton Hospital,Medical/Surgical,Staff_04,0
+B040,Bed assignment decision,2025-03-10 13:35:00,Virtua Marlton Hospital,Telemetry,Staff_13,1
+B047,Transportation ordered,2025-03-10 13:35:00,Virtua Marlton Hospital,Neurology,Staff_14,3
+B004,Transportation ordered,2025-03-10 13:37:00,Virtua Camden Hospital,Oncology,Staff_09,13
+B042,Transportation ordered,2025-03-10 13:38:00,Virtua Camden Hospital,Medical/Surgical,Staff_08,11
+B017,Bed assignment decision,2025-03-10 13:47:00,Virtua Memorial Hospital,Cardiology,Staff_19,5
+B013,Transportation ordered,2025-03-10 13:51:00,Virtua Memorial Hospital,Oncology,Staff_17,15
+B040,Bed allocation,2025-03-10 13:51:00,Virtua Marlton Hospital,Telemetry,Staff_18,4
+B003,Bed request initiated,2025-03-10 13:52:00,Virtua Marlton Hospital,Medical/Surgical,Staff_13,7
+B047,Patient in transit,2025-03-10 13:55:00,Virtua Marlton Hospital,Neurology,Staff_19,6
+B047,Patient arrived at bed,2025-03-10 13:55:00,Virtua Marlton Hospital,Neurology,Staff_20,14
+B004,Patient in transit,2025-03-10 13:58:00,Virtua Camden Hospital,Oncology,Staff_18,7
+B004,Patient arrived at bed,2025-03-10 13:58:00,Virtua Camden Hospital,Oncology,Staff_17,12
+B040,Transportation ordered,2025-03-10 13:58:00,Virtua Marlton Hospital,Telemetry,Staff_10,3
+B026,Origin: Direct Admission,2025-03-10 14:05:00,Virtua Camden Hospital,Oncology,Staff_20,0
+B017,Bed allocation,2025-03-10 14:06:00,Virtua Memorial Hospital,Cardiology,Staff_11,10
+B003,Bed assignment decision,2025-03-10 14:07:00,Virtua Marlton Hospital,Medical/Surgical,Staff_19,8
+B038,Origin: Emergency Department (ED),2025-03-10 14:08:00,Virtua Marlton Hospital,ICU,Staff_08,0
+B038,Bed request initiated,2025-03-10 14:16:00,Virtua Marlton Hospital,ICU,Staff_01,15
+B042,Patient in transit,2025-03-10 14:17:00,Virtua Camden Hospital,Medical/Surgical,Staff_16,9
+B042,Patient arrived at bed,2025-03-10 14:17:00,Virtua Camden Hospital,Medical/Surgical,Staff_02,14
+B017,Transportation ordered,2025-03-10 14:19:00,Virtua Memorial Hospital,Cardiology,Staff_11,3
+B003,Bed allocation,2025-03-10 14:24:00,Virtua Marlton Hospital,Medical/Surgical,Staff_19,10
+B040,Patient in transit,2025-03-10 14:26:00,Virtua Marlton Hospital,Telemetry,Staff_20,3
+B040,Patient arrived at bed,2025-03-10 14:26:00,Virtua Marlton Hospital,Telemetry,Staff_02,3
+B027,Origin: Emergency Department (ED),2025-03-10 14:28:00,Virtua Memorial Hospital,ICU,Staff_04,0
+B013,Patient in transit,2025-03-10 14:29:00,Virtua Memorial Hospital,Oncology,Staff_12,12
+B013,Patient arrived at bed,2025-03-10 14:29:00,Virtua Memorial Hospital,Oncology,Staff_15,8
+B026,Bed request initiated,2025-03-10 14:31:00,Virtua Camden Hospital,Oncology,Staff_04,22
+B038,Bed assignment decision,2025-03-10 14:32:00,Virtua Marlton Hospital,ICU,Staff_01,5
+B017,Patient in transit,2025-03-10 14:39:00,Virtua Memorial Hospital,Cardiology,Staff_10,6
+B017,Patient arrived at bed,2025-03-10 14:39:00,Virtua Memorial Hospital,Cardiology,Staff_13,15
+B003,Transportation ordered,2025-03-10 14:40:00,Virtua Marlton Hospital,Medical/Surgical,Staff_03,11
+B027,Bed request initiated,2025-03-10 14:41:00,Virtua Memorial Hospital,ICU,Staff_09,8
+B026,Bed assignment decision,2025-03-10 14:54:00,Virtua Camden Hospital,Oncology,Staff_07,12
+B027,Bed assignment decision,2025-03-10 14:57:00,Virtua Memorial Hospital,ICU,Staff_12,5
+B038,Bed allocation,2025-03-10 14:58:00,Virtua Marlton Hospital,ICU,Staff_05,7
+B003,Patient in transit,2025-03-10 15:04:00,Virtua Marlton Hospital,Medical/Surgical,Staff_15,9
+B003,Patient arrived at bed,2025-03-10 15:04:00,Virtua Marlton Hospital,Medical/Surgical,Staff_08,5
+B038,Transportation ordered,2025-03-10 15:05:00,Virtua Marlton Hospital,ICU,Staff_12,3
+B026,Bed allocation,2025-03-10 15:21:00,Virtua Camden Hospital,Oncology,Staff_18,22
+B027,Bed allocation,2025-03-10 15:23:00,Virtua Memorial Hospital,ICU,Staff_18,9
+B038,Patient in transit,2025-03-10 15:28:00,Virtua Marlton Hospital,ICU,Staff_05,10
+B038,Patient arrived at bed,2025-03-10 15:28:00,Virtua Marlton Hospital,ICU,Staff_18,6
+B050,Origin: Emergency Department (ED),2025-03-10 15:33:00,Virtua Camden Hospital,Medical/Surgical,Staff_12,0
+B027,Transportation ordered,2025-03-10 15:35:00,Virtua Memorial Hospital,ICU,Staff_17,4
+B050,Bed request initiated,2025-03-10 15:41:00,Virtua Camden Hospital,Medical/Surgical,Staff_02,7
+B026,Transportation ordered,2025-03-10 15:47:00,Virtua Camden Hospital,Oncology,Staff_17,16
+B031,Origin: Operating Room (OR),2025-03-10 15:57:00,Virtua Memorial Hospital,Cardiology,Staff_05,0
+B050,Bed assignment decision,2025-03-10 15:57:00,Virtua Camden Hospital,Medical/Surgical,Staff_07,5
+B027,Patient in transit,2025-03-10 16:07:00,Virtua Memorial Hospital,ICU,Staff_12,9
+B027,Patient arrived at bed,2025-03-10 16:07:00,Virtua Memorial Hospital,ICU,Staff_11,13
+B050,Bed allocation,2025-03-10 16:12:00,Virtua Camden Hospital,Medical/Surgical,Staff_10,9
+B031,Bed request initiated,2025-03-10 16:17:00,Virtua Memorial Hospital,Cardiology,Staff_07,10
+B026,Patient in transit,2025-03-10 16:18:00,Virtua Camden Hospital,Oncology,Staff_19,19
+B026,Patient arrived at bed,2025-03-10 16:18:00,Virtua Camden Hospital,Oncology,Staff_03,10
+B050,Transportation ordered,2025-03-10 16:21:00,Virtua Camden Hospital,Medical/Surgical,Staff_10,5
+B031,Bed assignment decision,2025-03-10 16:35:00,Virtua Memorial Hospital,Cardiology,Staff_17,10
+B012,Origin: Transfer,2025-03-10 16:37:00,Virtua Marlton Hospital,Telemetry,Staff_07,0
+B050,Patient in transit,2025-03-10 16:44:00,Virtua Camden Hospital,Medical/Surgical,Staff_13,5
+B050,Patient arrived at bed,2025-03-10 16:44:00,Virtua Camden Hospital,Medical/Surgical,Staff_19,8
+B031,Bed allocation,2025-03-10 16:58:00,Virtua Memorial Hospital,Cardiology,Staff_02,12
+B041,Origin: Emergency Department (ED),2025-03-10 17:02:00,Virtua Voorhees Hospital,Neurology,Staff_02,0
+B031,Transportation ordered,2025-03-10 17:10:00,Virtua Memorial Hospital,Cardiology,Staff_02,10
+B041,Bed request initiated,2025-03-10 17:15:00,Virtua Voorhees Hospital,Neurology,Staff_18,12
+B024,Origin: Emergency Department (ED),2025-03-10 17:20:00,Virtua Marlton Hospital,Neurology,Staff_06,0
+B012,Bed request initiated,2025-03-10 17:22:00,Virtua Marlton Hospital,Telemetry,Staff_02,8
+B024,Bed request initiated,2025-03-10 17:28:00,Virtua Marlton Hospital,Neurology,Staff_20,15
+B041,Bed assignment decision,2025-03-10 17:28:00,Virtua Voorhees Hospital,Neurology,Staff_19,7
+B031,Patient in transit,2025-03-10 17:31:00,Virtua Memorial Hospital,Cardiology,Staff_17,12
+B031,Patient arrived at bed,2025-03-10 17:31:00,Virtua Memorial Hospital,Cardiology,Staff_12,10
+B041,Bed allocation,2025-03-10 17:42:00,Virtua Voorhees Hospital,Neurology,Staff_06,10
+B012,Bed assignment decision,2025-03-10 17:43:00,Virtua Marlton Hospital,Telemetry,Staff_15,19
+B024,Bed assignment decision,2025-03-10 17:43:00,Virtua Marlton Hospital,Neurology,Staff_06,6
+B041,Transportation ordered,2025-03-10 17:51:00,Virtua Voorhees Hospital,Neurology,Staff_18,6
+B010,Origin: Operating Room (OR),2025-03-10 18:00:00,Virtua Memorial Hospital,Orthopedics,Staff_18,0
+B024,Bed allocation,2025-03-10 18:08:00,Virtua Marlton Hospital,Neurology,Staff_10,11
+B012,Bed allocation,2025-03-10 18:11:00,Virtua Marlton Hospital,Telemetry,Staff_14,24
+B024,Transportation ordered,2025-03-10 18:17:00,Virtua Marlton Hospital,Neurology,Staff_15,6
+B041,Patient in transit,2025-03-10 18:17:00,Virtua Voorhees Hospital,Neurology,Staff_03,12
+B041,Patient arrived at bed,2025-03-10 18:17:00,Virtua Voorhees Hospital,Neurology,Staff_08,10
+B010,Bed request initiated,2025-03-10 18:19:00,Virtua Memorial Hospital,Orthopedics,Staff_04,14
+B035,Origin: Transfer,2025-03-10 18:28:00,Virtua Memorial Hospital,Telemetry,Staff_01,0
+B012,Transportation ordered,2025-03-10 18:33:00,Virtua Marlton Hospital,Telemetry,Staff_06,15
+B010,Bed assignment decision,2025-03-10 18:34:00,Virtua Memorial Hospital,Orthopedics,Staff_14,5
+B024,Patient in transit,2025-03-10 18:47:00,Virtua Marlton Hospital,Neurology,Staff_06,6
+B024,Patient arrived at bed,2025-03-10 18:47:00,Virtua Marlton Hospital,Neurology,Staff_13,7
+B010,Bed allocation,2025-03-10 19:02:00,Virtua Memorial Hospital,Orthopedics,Staff_04,9
+B010,Transportation ordered,2025-03-10 19:13:00,Virtua Memorial Hospital,Orthopedics,Staff_16,13
+B025,Origin: Operating Room (OR),2025-03-10 19:18:00,Virtua Camden Hospital,ICU,Staff_06,0
+B012,Patient in transit,2025-03-10 19:23:00,Virtua Marlton Hospital,Telemetry,Staff_04,16
+B012,Patient arrived at bed,2025-03-10 19:23:00,Virtua Marlton Hospital,Telemetry,Staff_05,12
+B035,Bed request initiated,2025-03-10 19:24:00,Virtua Memorial Hospital,Telemetry,Staff_18,19
+B025,Bed request initiated,2025-03-10 19:42:00,Virtua Camden Hospital,ICU,Staff_18,12
+B010,Patient in transit,2025-03-10 19:52:00,Virtua Memorial Hospital,Orthopedics,Staff_13,11
+B010,Patient arrived at bed,2025-03-10 19:52:00,Virtua Memorial Hospital,Orthopedics,Staff_02,5
+B035,Bed assignment decision,2025-03-10 19:55:00,Virtua Memorial Hospital,Telemetry,Staff_05,19
+B009,Origin: Operating Room (OR),2025-03-10 20:01:00,Virtua Marlton Hospital,Cardiology,Staff_15,0
+B016,Origin: Emergency Department (ED),2025-03-10 20:01:00,Virtua Camden Hospital,Oncology,Staff_15,0
+B025,Bed assignment decision,2025-03-10 20:01:00,Virtua Camden Hospital,ICU,Staff_17,7
+B036,Origin: Direct Admission,2025-03-10 20:07:00,Virtua Marlton Hospital,Orthopedics,Staff_15,0
+B016,Bed request initiated,2025-03-10 20:09:00,Virtua Camden Hospital,Oncology,Staff_08,11
+B009,Bed request initiated,2025-03-10 20:15:00,Virtua Marlton Hospital,Cardiology,Staff_18,12
+B025,Bed allocation,2025-03-10 20:22:00,Virtua Camden Hospital,ICU,Staff_10,12
+B016,Bed assignment decision,2025-03-10 20:23:00,Virtua Camden Hospital,Oncology,Staff_07,3
+B009,Bed assignment decision,2025-03-10 20:27:00,Virtua Marlton Hospital,Cardiology,Staff_01,13
+B035,Bed allocation,2025-03-10 20:37:00,Virtua Memorial Hospital,Telemetry,Staff_08,37
+B036,Bed request initiated,2025-03-10 20:38:00,Virtua Marlton Hospital,Orthopedics,Staff_10,13
+B016,Bed allocation,2025-03-10 20:40:00,Virtua Camden Hospital,Oncology,Staff_09,11
+B025,Transportation ordered,2025-03-10 20:41:00,Virtua Camden Hospital,ICU,Staff_09,11
+B009,Bed allocation,2025-03-10 20:47:00,Virtua Marlton Hospital,Cardiology,Staff_01,21
+B014,Origin: Emergency Department (ED),2025-03-10 20:52:00,Virtua Camden Hospital,Oncology,Staff_08,1
+B016,Transportation ordered,2025-03-10 20:53:00,Virtua Camden Hospital,Oncology,Staff_17,4
+B035,Transportation ordered,2025-03-10 20:56:00,Virtua Memorial Hospital,Telemetry,Staff_10,24
+B009,Transportation ordered,2025-03-10 21:00:00,Virtua Marlton Hospital,Cardiology,Staff_19,12
+B036,Bed assignment decision,2025-03-10 21:02:00,Virtua Marlton Hospital,Orthopedics,Staff_16,19
+B014,Bed request initiated,2025-03-10 21:03:00,Virtua Camden Hospital,Oncology,Staff_11,7
+B025,Patient in transit,2025-03-10 21:11:00,Virtua Camden Hospital,ICU,Staff_16,12
+B025,Patient arrived at bed,2025-03-10 21:11:00,Virtua Camden Hospital,ICU,Staff_14,8
+B016,Patient in transit,2025-03-10 21:12:00,Virtua Camden Hospital,Oncology,Staff_19,5
+B016,Patient arrived at bed,2025-03-10 21:12:00,Virtua Camden Hospital,Oncology,Staff_04,14
+B014,Bed assignment decision,2025-03-10 21:15:00,Virtua Camden Hospital,Oncology,Staff_05,3
+B036,Bed allocation,2025-03-10 21:33:00,Virtua Marlton Hospital,Orthopedics,Staff_20,28
+B009,Patient in transit,2025-03-10 21:34:00,Virtua Marlton Hospital,Cardiology,Staff_04,15
+B009,Patient arrived at bed,2025-03-10 21:34:00,Virtua Marlton Hospital,Cardiology,Staff_05,22
+B014,Bed allocation,2025-03-10 21:39:00,Virtua Camden Hospital,Oncology,Staff_02,6
+B022,Origin: Emergency Department (ED),2025-03-10 21:41:00,Virtua Willingboro Hospital,Oncology,Staff_20,1
+B037,Origin: Emergency Department (ED),2025-03-10 21:41:00,Virtua Memorial Hospital,Cardiology,Staff_04,0
+B035,Patient in transit,2025-03-10 21:42:00,Virtua Memorial Hospital,Telemetry,Staff_11,28
+B035,Patient arrived at bed,2025-03-10 21:42:00,Virtua Memorial Hospital,Telemetry,Staff_20,22
+B014,Transportation ordered,2025-03-10 21:47:00,Virtua Camden Hospital,Oncology,Staff_01,2
+B022,Bed request initiated,2025-03-10 21:50:00,Virtua Willingboro Hospital,Oncology,Staff_09,4
+B037,Bed request initiated,2025-03-10 21:52:00,Virtua Memorial Hospital,Cardiology,Staff_15,10
+B043,Origin: Emergency Department (ED),2025-03-10 21:56:00,Virtua Memorial Hospital,ICU,Staff_17,0
+B036,Transportation ordered,2025-03-10 21:59:00,Virtua Marlton Hospital,Orthopedics,Staff_03,22
+B022,Bed assignment decision,2025-03-10 22:06:00,Virtua Willingboro Hospital,Oncology,Staff_18,3
+B037,Bed assignment decision,2025-03-10 22:06:00,Virtua Memorial Hospital,Cardiology,Staff_12,4
+B028,Origin: Operating Room (OR),2025-03-10 22:07:00,Virtua Camden Hospital,Neurology,Staff_15,1
+B043,Bed request initiated,2025-03-10 22:09:00,Virtua Memorial Hospital,ICU,Staff_09,8
+B014,Patient in transit,2025-03-10 22:19:00,Virtua Camden Hospital,Oncology,Staff_06,3
+B014,Patient arrived at bed,2025-03-10 22:19:00,Virtua Camden Hospital,Oncology,Staff_18,5
+B022,Bed allocation,2025-03-10 22:23:00,Virtua Willingboro Hospital,Oncology,Staff_16,6
+B043,Bed assignment decision,2025-03-10 22:24:00,Virtua Memorial Hospital,ICU,Staff_13,3
+B037,Bed allocation,2025-03-10 22:27:00,Virtua Memorial Hospital,Cardiology,Staff_17,11
+B028,Bed request initiated,2025-03-10 22:28:00,Virtua Camden Hospital,Neurology,Staff_04,7
+B022,Transportation ordered,2025-03-10 22:31:00,Virtua Willingboro Hospital,Oncology,Staff_13,2
+B028,Bed assignment decision,2025-03-10 22:38:00,Virtua Camden Hospital,Neurology,Staff_17,5
+B037,Transportation ordered,2025-03-10 22:38:00,Virtua Memorial Hospital,Cardiology,Staff_06,4
+B036,Patient in transit,2025-03-10 22:39:00,Virtua Marlton Hospital,Orthopedics,Staff_11,21
+B036,Patient arrived at bed,2025-03-10 22:39:00,Virtua Marlton Hospital,Orthopedics,Staff_06,19
+B043,Bed allocation,2025-03-10 22:43:00,Virtua Memorial Hospital,ICU,Staff_12,7
+B022,Patient in transit,2025-03-10 22:48:00,Virtua Willingboro Hospital,Oncology,Staff_12,3
+B022,Patient arrived at bed,2025-03-10 22:48:00,Virtua Willingboro Hospital,Oncology,Staff_16,6
+B002,Origin: Transfer,2025-03-10 22:52:00,Virtua Memorial Hospital,Oncology,Staff_11,1
+B028,Bed allocation,2025-03-10 22:55:00,Virtua Camden Hospital,Neurology,Staff_11,7
+B043,Transportation ordered,2025-03-10 22:56:00,Virtua Memorial Hospital,ICU,Staff_18,6
+B037,Patient in transit,2025-03-10 23:10:00,Virtua Memorial Hospital,Cardiology,Staff_17,5
+B037,Patient arrived at bed,2025-03-10 23:10:00,Virtua Memorial Hospital,Cardiology,Staff_14,6
+B028,Transportation ordered,2025-03-10 23:12:00,Virtua Camden Hospital,Neurology,Staff_04,4
+B043,Patient in transit,2025-03-10 23:19:00,Virtua Memorial Hospital,ICU,Staff_11,7
+B043,Patient arrived at bed,2025-03-10 23:19:00,Virtua Memorial Hospital,ICU,Staff_16,9
+B028,Patient in transit,2025-03-10 23:38:00,Virtua Camden Hospital,Neurology,Staff_10,6
+B028,Patient arrived at bed,2025-03-10 23:38:00,Virtua Camden Hospital,Neurology,Staff_05,7
+B002,Bed request initiated,2025-03-10 23:39:00,Virtua Memorial Hospital,Oncology,Staff_03,8
+B021,Origin: Operating Room (OR),2025-03-10 23:43:00,Virtua Memorial Hospital,Medical/Surgical,Staff_18,0
+B021,Bed request initiated,2025-03-11 00:07:00,Virtua Memorial Hospital,Medical/Surgical,Staff_05,13
+B002,Bed assignment decision,2025-03-11 00:10:00,Virtua Memorial Hospital,Oncology,Staff_06,6
+B021,Bed assignment decision,2025-03-11 00:22:00,Virtua Memorial Hospital,Medical/Surgical,Staff_07,13
+B021,Bed allocation,2025-03-11 00:45:00,Virtua Memorial Hospital,Medical/Surgical,Staff_17,21
+B002,Bed allocation,2025-03-11 00:48:00,Virtua Memorial Hospital,Oncology,Staff_04,14
+B021,Transportation ordered,2025-03-11 01:03:00,Virtua Memorial Hospital,Medical/Surgical,Staff_08,13
+B002,Transportation ordered,2025-03-11 01:19:00,Virtua Memorial Hospital,Oncology,Staff_04,9
+B021,Patient in transit,2025-03-11 01:31:00,Virtua Memorial Hospital,Medical/Surgical,Staff_14,19
+B021,Patient arrived at bed,2025-03-11 01:31:00,Virtua Memorial Hospital,Medical/Surgical,Staff_06,22
+B002,Patient in transit,2025-03-11 01:56:00,Virtua Memorial Hospital,Oncology,Staff_08,15
+B002,Patient arrived at bed,2025-03-11 01:56:00,Virtua Memorial Hospital,Oncology,Staff_02,4

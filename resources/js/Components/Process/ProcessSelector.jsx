@@ -43,12 +43,12 @@ const hospitals = [
     'Virtua Willingboro Hospital'
 ];
 
-const workflows = [
+// Define available workflows for process maps
+export const workflows = [
+    'Bed Placement',
     'Admissions',
     'Discharges',
-    'ED to Inpatient',
-    'Surgery',
-    'Outpatient'
+    'ED to Inpatient'
 ];
 
 const timeRanges = [
@@ -523,10 +523,12 @@ ProcessSelector.propTypes = {
 // Export the constants for reuse
 export {
     hospitals,
-    workflows,
     timeRanges,
     departments,
     patientTypes
 };
+
+// Log available workflows for debugging
+console.log('Available workflows in ProcessSelector:', workflows);
 
 export default ProcessSelector;

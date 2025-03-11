@@ -1,0 +1,204 @@
+{
+  "nodes": [
+    {
+      "id": "input_referral",
+      "label": "Physician Referral",
+      "node_type": "start",
+      "count": 120,
+      "metrics": {
+        "last24h": 120,
+        "last7d": 780,
+        "last30d": 3200
+      },
+      "description": "Patients referred by physicians"
+    },
+    {
+      "id": "input_self",
+      "label": "Self Referral",
+      "node_type": "start",
+      "count": 65,
+      "metrics": {
+        "last24h": 65,
+        "last7d": 420,
+        "last30d": 1800
+      },
+      "description": "Patients who self-refer for admission"
+    },
+    {
+      "id": "input_transfer",
+      "label": "External Transfer",
+      "node_type": "start",
+      "count": 30,
+      "metrics": {
+        "last24h": 30,
+        "last7d": 210,
+        "last30d": 900
+      },
+      "description": "Patients transferred from external facilities"
+    },
+    {
+      "id": "process_screening",
+      "label": "Admission Screening",
+      "node_type": "activity",
+      "count": 215,
+      "metrics": {
+        "avgTime": 18,
+        "bottlenecks": 0.15,
+        "successRate": 0.95
+      },
+      "description": "Initial screening of admission requests"
+    },
+    {
+      "id": "process_insurance",
+      "label": "Insurance Verification",
+      "node_type": "activity",
+      "count": 215,
+      "metrics": {
+        "avgTime": 35,
+        "bottlenecks": 0.28,
+        "successRate": 0.92
+      },
+      "description": "Verification of insurance coverage"
+    },
+    {
+      "id": "process_registration",
+      "label": "Patient Registration",
+      "node_type": "activity",
+      "count": 205,
+      "metrics": {
+        "avgTime": 22,
+        "bottlenecks": 0.18,
+        "successRate": 0.98
+      },
+      "description": "Complete patient registration process"
+    },
+    {
+      "id": "process_bed_assignment",
+      "label": "Bed Assignment",
+      "node_type": "activity",
+      "count": 200,
+      "metrics": {
+        "avgTime": 45,
+        "bottlenecks": 0.35,
+        "successRate": 0.96
+      },
+      "description": "Assignment of appropriate bed"
+    },
+    {
+      "id": "process_admission",
+      "label": "Admission Process",
+      "node_type": "end",
+      "count": 195,
+      "metrics": {},
+      "description": "Final admission to hospital unit"
+    }
+  ],
+  "edges": [
+    {
+      "id": "input_referral_to_process_screening",
+      "source": "input_referral",
+      "target": "process_screening",
+      "count": 120,
+      "value": 120,
+      "label": "120 patients"
+    },
+    {
+      "id": "input_self_to_process_screening",
+      "source": "input_self",
+      "target": "process_screening",
+      "count": 65,
+      "value": 65,
+      "label": "65 patients"
+    },
+    {
+      "id": "input_transfer_to_process_screening",
+      "source": "input_transfer",
+      "target": "process_screening",
+      "count": 30,
+      "value": 30,
+      "label": "30 patients"
+    },
+    {
+      "id": "process_screening_to_process_insurance",
+      "source": "process_screening",
+      "target": "process_insurance",
+      "count": 215,
+      "value": 215,
+      "label": "215 patients"
+    },
+    {
+      "id": "process_insurance_to_process_registration",
+      "source": "process_insurance",
+      "target": "process_registration",
+      "count": 205,
+      "value": 205,
+      "label": "205 patients"
+    },
+    {
+      "id": "process_registration_to_process_bed_assignment",
+      "source": "process_registration",
+      "target": "process_bed_assignment",
+      "count": 200,
+      "value": 200,
+      "label": "200 patients"
+    },
+    {
+      "id": "process_bed_assignment_to_process_admission",
+      "source": "process_bed_assignment",
+      "target": "process_admission",
+      "count": 195,
+      "value": 195,
+      "label": "195 patients"
+    }
+  ],
+  "overall_metrics": {
+    "avgTotalTime": 150,
+    "successRate": 0.97
+  },
+  "metrics": {
+    "staffing": {
+      "nurses": {
+        "assigned": 16,
+        "required": 18
+      },
+      "physicians": {
+        "assigned": 6,
+        "required": 8
+      }
+    },
+    "space": {
+      "rooms": {
+        "occupied": 24,
+        "capacity": 30
+      }
+    },
+    "cascade": {
+      "primaryProcess": "Admissions",
+      "affectedProcesses": [
+        {
+          "name": "Bed Management",
+          "severity": 0.7,
+          "timeImpact": 35,
+          "resourceImpact": 0.6,
+          "affectedVolume": 75,
+          "dependencies": [
+            "Nursing Assignment",
+            "Room Cleaning"
+          ],
+          "type": "operational"
+        },
+        {
+          "name": "Staff Scheduling",
+          "severity": 0.5,
+          "timeImpact": 25,
+          "resourceImpact": 0.4,
+          "affectedVolume": 50,
+          "dependencies": [
+            "Shift Planning"
+          ],
+          "type": "operational"
+        }
+      ]
+    }
+  }
+}

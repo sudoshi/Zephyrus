@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "id": "input_ed_arrival",
+      "label": "ED Arrival",
+      "type": "start",
+      "count": 180,
+      "metrics": {
+        "last24h": 180,
+        "last7d": 1200,
+        "last30d": 5100
+      },
+      "description": "Patient arrives at Emergency Department"
+    },
+    {
+      "id": "process_triage",
+      "label": "Triage",
+      "type": "activity",
+      "count": 180,
+      "metrics": {
+        "avgTime": "12 min",
+        "bottlenecks": 0.15,
+        "successRate": 0.99
+      },
+      "description": "Initial assessment and prioritization"
+    },
+    {
+      "id": "process_registration",
+      "label": "ED Registration",
+      "type": "activity",
+      "count": 180,
+      "metrics": {
+        "avgTime": "18 min",
+        "bottlenecks": 0.20,
+        "successRate": 0.98
+      },
+      "description": "Patient registration in ED"
+    },
+    {
+      "id": "process_assessment",
+      "label": "Physician Assessment",
+      "type": "activity",
+      "count": 180,
+      "metrics": {
+        "avgTime": "25 min",
+        "bottlenecks": 0.35,
+        "successRate": 0.97
+      },
+      "description": "Initial physician assessment"
+    },
+    {
+      "id": "process_diagnostics",
+      "label": "Diagnostics",
+      "type": "activity",
+      "count": 165,
+      "metrics": {
+        "avgTime": "75 min",
+        "bottlenecks": 0.45,
+        "successRate": 0.95
+      },
+      "description": "Diagnostic tests and procedures"
+    },
+    {
+      "id": "process_decision",
+      "label": "Admission Decision",
+      "type": "activity",
+      "count": 160,
+      "metrics": {
+        "avgTime": "30 min",
+        "bottlenecks": 0.25,
+        "successRate": 0.98
+      },
+      "description": "Decision to admit patient"
+    },
+    {
+      "id": "process_bed_request",
+      "label": "Bed Request",
+      "type": "activity",
+      "count": 110,
+      "metrics": {
+        "avgTime": "15 min",
+        "bottlenecks": 0.20,
+        "successRate": 0.99
+      },
+      "description": "Request for inpatient bed"
+    },
+    {
+      "id": "process_bed_assignment",
+      "label": "Bed Assignment",
+      "type": "activity",
+      "count": 110,
+      "metrics": {
+        "avgTime": "55 min",
+        "bottlenecks": 0.60,
+        "successRate": 0.92
+      },
+      "description": "Assignment of inpatient bed"
+    },
+    {
+      "id": "process_transfer",
+      "label": "Transfer to Unit",
+      "type": "end",
+      "count": 105,
+      "metrics": {
+        "avgTotalTime": "4.2 hours",
+        "successRate": 0.94
+      },
+      "description": "Patient transfer to inpatient unit"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "input_ed_arrival",
+      "target": "process_triage",
+      "count": 180,
+      "label": "180 patients"
+    },
+    {
+      "id": "e2",
+      "source": "process_triage",
+      "target": "process_registration",
+      "count": 180,
+      "label": "180 patients"
+    },
+    {
+      "id": "e3",
+      "source": "process_registration",
+      "target": "process_assessment",
+      "count": 180,
+      "label": "180 patients"
+    },
+    {
+      "id": "e4",
+      "source": "process_assessment",
+      "target": "process_diagnostics",
+      "count": 165,
+      "label": "165 patients"
+    },
+    {
+      "id": "e5",
+      "source": "process_diagnostics",
+      "target": "process_decision",
+      "count": 160,
+      "label": "160 patients"
+    },
+    {
+      "id": "e6",
+      "source": "process_decision",
+      "target": "process_bed_request",
+      "count": 110,
+      "label": "110 patients"
+    },
+    {
+      "id": "e7",
+      "source": "process_bed_request",
+      "target": "process_bed_assignment",
+      "count": 110,
+      "label": "110 patients"
+    },
+    {
+      "id": "e8",
+      "source": "process_bed_assignment",
+      "target": "process_transfer",
+      "count": 105,
+      "label": "105 patients"
+    }
+  ],
+  "metrics": {
+    "staffing": {
+      "nurses": {
+        "assigned": 22,
+        "required": 25
+      },
+      "physicians": {
+        "assigned": 10,
+        "required": 12
+      }
+    },
+    "space": {
+      "rooms": {
+        "occupied": 30,
+        "capacity": 32
+      }
+    },
+    "cascade": {
+      "primaryProcess": "ED to Inpatient",
+      "affectedProcesses": [
+        {
+          "name": "Bed Management",
+          "severity": 0.9,
+          "timeImpact": 50,
+          "resourceImpact": 0.8,
+          "affectedVolume": 90,
+          "dependencies": [
+            "Nursing Assignment",
+            "Room Cleaning"
+          ],
+          "type": "critical"
+        },
+        {
+          "name": "ED Throughput",
+          "severity": 0.8,
+          "timeImpact": 45,
+          "resourceImpact": 0.7,
+          "affectedVolume": 85,
+          "dependencies": [
+            "Bed Availability"
+          ],
+          "type": "operational"
+        }
+      ]
+    }
+  }
+}

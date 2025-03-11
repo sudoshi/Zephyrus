@@ -16,6 +16,9 @@ class ProcessLayout extends Model
         'user_id',
         'process_type',
         'layout_data',
+        'hospital',
+        'workflow',
+        'time_range',
     ];
 
     /**

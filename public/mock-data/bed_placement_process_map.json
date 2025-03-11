@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    {
+      "id": "input_ed",
+      "label": "Emergency Department",
+      "node_type": "start",
+      "count": 138,
+      "metrics": {
+        "last24h": 138,
+        "last7d": 873,
+        "last30d": 3648
+      },
+      "description": "Patients coming from the Emergency Department"
+    },
+    {
+      "id": "input_or",
+      "label": "Operating Room",
+      "node_type": "start",
+      "count": 84,
+      "metrics": {
+        "last24h": 84,
+        "last7d": 562,
+        "last30d": 2539
+      },
+      "description": "Patients coming from the Operating Room"
+    },
+    {
+      "id": "input_direct",
+      "label": "Direct Admissions",
+      "node_type": "start",
+      "count": 52,
+      "metrics": {
+        "last24h": 52,
+        "last7d": 346,
+        "last30d": 1428
+      },
+      "description": "Patients directly admitted to the hospital"
+    },
+    {
+      "id": "input_transfers",
+      "label": "Transfers",
+      "node_type": "start",
+      "count": 13,
+      "metrics": {
+        "last24h": 13,
+        "last7d": 95,
+        "last30d": 319
+      },
+      "description": "Patients transferred from other facilities"
+    },
+    {
+      "id": "process_bed_request",
+      "label": "Bed Request Initiated",
+      "node_type": "activity",
+      "count": 287,
+      "metrics": {
+        "avgTime": 20,
+        "bottlenecks": 0.25
+      },
+      "description": "Request for inpatient bed is initiated in the system"
+    },
+    {
+      "id": "process_bed_assignment",
+      "label": "Bed Assignment Decision",
+      "node_type": "decision",
+      "count": 287,
+      "metrics": {
+        "avgTime": 40,
+        "bottlenecks": 0.35
+      },
+      "description": "Decision on which bed to assign based on patient needs and availability"
+    },
+    {
+      "id": "process_patient_bedding",
+      "label": "Patient Bedding",
+      "node_type": "end",
+      "count": 269,
+      "metrics": {
+        "successRate": 0.94
+      },
+      "description": "Patient successfully placed in assigned bed"
+    }
+  ],
+  "edges": [
+    {
+      "id": "input_ed_to_process_bed_request",
+      "source": "input_ed",
+      "target": "process_bed_request",
+      "count": 138,
+      "value": 138,
+      "label": "138 patients"
+    },
+    {
+      "id": "input_or_to_process_bed_request",
+      "source": "input_or",
+      "target": "process_bed_request",
+      "count": 84,
+      "value": 84,
+      "label": "84 patients"
+    },
+    {
+      "id": "input_direct_to_process_bed_request",
+      "source": "input_direct",
+      "target": "process_bed_request",
+      "count": 52,
+      "value": 52,
+      "label": "52 patients"
+    },
+    {
+      "id": "input_transfers_to_process_bed_request",
+      "source": "input_transfers",
+      "target": "process_bed_request",
+      "count": 13,
+      "value": 13,
+      "label": "13 patients"
+    },
+    {
+      "id": "process_bed_request_to_process_bed_assignment",
+      "source": "process_bed_request",
+      "target": "process_bed_assignment",
+      "count": 287,
+      "value": 287,
+      "label": "287 total"
+    },
+    {
+      "id": "process_bed_assignment_to_process_patient_bedding",
+      "source": "process_bed_assignment",
+      "target": "process_patient_bedding",
+      "count": 269,
+      "value": 269,
+      "label": "269 successful"
+    }
+  ],
+  "overall_metrics": {
+    "totalCases": 287,
+    "avgDuration": 192,
+    "bottleneckCount": 2,
+    "successRate": 0.94,
+    "throughput": 287,
+    "complianceRate": 0.93
+  }
+}
