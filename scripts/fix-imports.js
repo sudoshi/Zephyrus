@@ -23,6 +23,16 @@ const HOOKS_DIR = path.join(JS_ROOT, 'hooks');
 const COMPONENTS_DIR = path.join(JS_ROOT, 'Components');
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// Path case sensitivity fixes
+const PATH_CASE_FIXES = [
+  { incorrect: /@\/Hooks\//g, correct: '@/hooks/' },
+  { incorrect: /@\\Hooks\\/g, correct: '@\\hooks\\' },
+  // The validate-imports.js script is flagging these, but they appear to be false positives
+  // Components should remain capitalized as per the project structure
+  // { incorrect: /@\/components\//gi, correct: '@/Components/' },
+  // { incorrect: /@\\components\\/gi, correct: '@\\Components\\' }
+];
+
 // Stats
 const stats = {
   hooksAnalyzed: 0,
@@ -186,6 +196,22 @@ jsFiles.forEach(filePath => {
   
   stats.filesWithImportsAnalyzed++;
   
+  // Fix case sensitivity issues in import paths
+  PATH_CASE_FIXES.forEach(({ incorrect, correct }) => {
+    if (newContent.match(incorrect)) {
+      console.log(`${colors.yellow}⚠️ Case sensitivity issue in:${colors.reset} ${filePath}`);
+      console.log(`   Replacing: ${incorrect} with ${correct}`);
+      
+      if (!DRY_RUN) {
+        newContent = newContent.replace(incorrect, correct);
+        fileModified = true;
+        stats.importsFixed++;
+      } else {
+        console.log(`${colors.green}✅ Would fix case sensitivity in:${colors.reset} ${filePath} (dry run)`);
+      }
+    }
+  });
+  
   // Find all import statements
   const importRegex = /import\s+(?:{([^}]+)}|([^;{]+))\s+from\s+['"]([^'"]+)['"]/g;
   let match;
@@ -252,6 +278,7 @@ console.log(`Hooks analyzed: ${stats.hooksAnalyzed}`);
 console.log(`Hooks fixed: ${DRY_RUN ? '0 (dry run)' : stats.hooksFixed}`);
 console.log(`Files with imports analyzed: ${stats.filesWithImportsAnalyzed}`);
 console.log(`Imports fixed: ${DRY_RUN ? '0 (dry run)' : stats.importsFixed}`);
+console.log(`Case sensitivity issues fixed: ${DRY_RUN ? '0 (dry run)' : stats.importsFixed}`);
 
 if (DRY_RUN) {
   console.log(`\n${colors.yellow}This was a dry run. Run without --dry-run to apply changes.${colors.reset}`);
