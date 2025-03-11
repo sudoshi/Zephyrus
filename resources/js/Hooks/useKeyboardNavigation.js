@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const useKeyboardNavigation = (containerRef, itemSelector, onSelect) => {
+const useKeyboardNavigationImpl = (containerRef, itemSelector, onSelect) => {
   const currentFocusIndex = useRef(-1);
 
   useEffect(() => {
@@ -71,4 +71,4 @@ const useKeyboardNavigation = (containerRef, itemSelector, onSelect) => {
   };
 };
 
-export default useKeyboardNavigation;
+export const useKeyboardNavigation = useKeyboardNavigationImpl;

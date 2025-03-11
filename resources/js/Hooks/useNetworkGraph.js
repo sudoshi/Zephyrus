@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const useNetworkGraph = (initialData) => {
+const useNetworkGraphImpl = (initialData) => {
   const [data, setData] = useState(initialData);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -130,4 +130,4 @@ const useNetworkGraph = (initialData) => {
   };
 };
 
-export default useNetworkGraph;
+export const useNetworkGraph = useNetworkGraphImpl;

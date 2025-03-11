@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const useTheme = () => {
+const useThemeImpl = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check local storage first
     const stored = localStorage.getItem('theme');
@@ -45,4 +45,4 @@ const useTheme = () => {
   };
 };
 
-export default useTheme;
+export const useTheme = useThemeImpl;
