@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { usePage } from '@inertiajs/react';
-import { useDarkMode } from '@/hooks/useDarkMode.js';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 const AppWrapper = ({ children }) => {
   const { url } = usePage();

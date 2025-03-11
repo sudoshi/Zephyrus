@@ -11,7 +11,7 @@ import {
     ReferenceLine,
     Cell
 } from 'recharts';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const ServiceBarChart = ({ 
     data, 

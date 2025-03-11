@@ -11,7 +11,7 @@ import {
     ReferenceLine,
     Area
 } from 'recharts';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const LineChart = ({ 
     data,

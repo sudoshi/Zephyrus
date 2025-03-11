@@ -4,7 +4,7 @@ import { Popover } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 import CircularProgress from './CircularProgress';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const MetricCard = ({ 
     title, 

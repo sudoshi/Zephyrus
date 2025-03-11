@@ -10,7 +10,7 @@ import {
     ResponsiveContainer,
     ReferenceLine
 } from 'recharts';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const DualBarChart = ({ 
     data,

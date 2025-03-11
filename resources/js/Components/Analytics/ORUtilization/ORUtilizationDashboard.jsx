@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useORUtilizationData } from '@/hooks/useORUtilizationData.js';
+import { useORUtilizationData } from '@/hooks/useORUtilizationData';
 import { useAnalytics } from '@/Contexts/AnalyticsContext';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import { motion, AnimatePresence } from 'framer-motion';

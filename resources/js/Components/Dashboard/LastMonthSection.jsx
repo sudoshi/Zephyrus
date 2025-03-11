@@ -3,7 +3,7 @@ import { Icon } from '@iconify/react';
 import MetricCard from './MetricCard';
 import { syntheticData } from '../../mock-data/dashboard';
 import DrillDownModal from './DrillDownModal';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const LastMonthSection = () => {
     const data = syntheticData.lastMonth;

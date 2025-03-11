@@ -17,6 +17,7 @@ We've established consistent patterns for exports and imports in our codebase. T
 ### For Hooks:
 - Always use named exports: `export const useMyHook = () => { ... }`
 - Import using named import syntax: `import { useMyHook } from '@/hooks/useMyHook'`
+- **IMPORTANT**: Do NOT include file extensions in import paths (e.g., `from '@/hooks/useMyHook'` NOT `from '@/hooks/useMyHook.js'`)
 
 ### For Components:
 - Use named exports for multiple components in a file
@@ -37,15 +38,17 @@ Key rules that help prevent import/export issues:
 - `import/default`: Ensures default imports correspond to default exports
 - `import/namespace`: Ensures namespace imports are valid
 - `import/export`: Reports any invalid exports
+- `import/extensions`: Enforces no file extensions in import paths
 
 ## Pre-commit Hooks
 
 We've set up Husky and lint-staged to run checks before allowing commits:
 
 1. **ESLint** checks for syntax and import/export issues
-2. **check-exports.js** verifies that hooks use named exports consistently
-3. **check-imports.js** verifies that imports match the export patterns
-4. **build:check** runs a quick build to catch any Vite build issues
+2. **validate-imports.js** verifies that hooks use named exports consistently
+3. **fix-imports.js** automatically fixes common import/export pattern issues
+4. **remove-extensions.cjs** removes file extensions from hook imports
+5. **build:check** runs a quick build to catch any Vite build issues
 
 These checks run automatically when you commit changes, preventing problematic code from being committed.
 
@@ -65,6 +68,42 @@ This script:
 1. Finds all hook files and ensures they use named exports
 2. Finds all imports of those hooks and ensures they use the correct import syntax
 3. Generates a report of issues found and fixed
+
+## Utility Scripts
+
+We have several utility scripts to help maintain import/export consistency:
+
+### fix-imports.js
+
+This script analyzes and automatically fixes common import/export issues:
+
+```bash
+# Run in check mode (no changes)
+npm run fix-imports -- --dry-run
+
+# Apply fixes automatically
+npm run fix-imports
+```
+
+### validate-imports.js
+
+This script validates imports/exports and flags potential issues:
+
+```bash
+npm run validate-imports
+```
+
+### remove-extensions.cjs
+
+This script finds and removes `.js` extensions from hook imports:
+
+```bash
+# Check for imports with extensions
+node scripts/remove-extensions.cjs
+
+# Fix imports by removing extensions
+node scripts/remove-extensions.cjs --fix
+```
 
 ## Common Issues and Solutions
 

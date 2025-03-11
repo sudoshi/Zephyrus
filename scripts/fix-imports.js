@@ -164,7 +164,9 @@ const hookImportMap = {};
 hookFiles.forEach(filePath => {
   const content = fs.readFileSync(filePath, 'utf8');
   const hookName = path.basename(filePath, path.extname(filePath));
+  // Ensure we don't include file extensions in import paths
   const relativePath = path.relative(JS_ROOT, filePath).replace(/\.js$/, '');
+  // Import path should NOT include the .js extension according to project standards
   const importPath = `@/${relativePath}`;
   
   const hasNamedExport = content.includes(`export const ${hookName}`);
@@ -211,6 +213,28 @@ jsFiles.forEach(filePath => {
       }
     }
   });
+  
+  // Remove any .js extensions from hook imports
+  const extensionFixRegex = /import\s+(?:{([^}]+)}|([^;{]+))\s+from\s+['"]((@\/hooks\/[^\."']+)\.js)['"]\s*;?/g;
+  let extensionMatch;
+  
+  while ((extensionMatch = extensionFixRegex.exec(content)) !== null) {
+    const fullImport = extensionMatch[0];
+    const importPathWithExt = extensionMatch[3]; // '@/hooks/useHook.js'
+    const importPathNoExt = extensionMatch[4]; // '@/hooks/useHook'
+    
+    console.log(`${colors.yellow}⚠️ Found .js extension in hook import:${colors.reset} ${filePath}`);
+    console.log(`   Current: ${importPathWithExt}`);
+    console.log(`   Should be: ${importPathNoExt}`);
+    
+    if (!DRY_RUN) {
+      newContent = newContent.replace(importPathWithExt, importPathNoExt);
+      fileModified = true;
+      stats.importsFixed++;
+    } else {
+      console.log(`${colors.green}✅ Would remove extension in:${colors.reset} ${filePath} (dry run)`);
+    }
+  }
   
   // Find all import statements
   const importRegex = /import\s+(?:{([^}]+)}|([^;{]+))\s+from\s+['"]([^'"]+)['"]/g;

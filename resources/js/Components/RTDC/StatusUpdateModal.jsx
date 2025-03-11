@@ -16,7 +16,7 @@ import DischargeReadinessScore from '@/Components/RTDC/DischargeReadinessScore';
 import DischargeChecklistTimeline from '@/Components/RTDC/DischargeChecklistTimeline';
 import PostDischargeRequirements from '@/Components/RTDC/PostDischargeRequirements';
 import DischargePathwaysSection from '@/Components/RTDC/DischargePathwaysSection';
-import { useDarkMode } from '@/hooks/useDarkMode.js';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { UNITS } from '@/mock-data/rtdc-service-huddle-constants';
 
 const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Script to find all imports that are missing file extensions
- * This specifically targets hook imports that don't have .js extensions
+ * Script to find all imports with file extensions and remove them
+ * This specifically targets hook imports that have .js extensions
+ * (Project standard is to NOT include file extensions in imports)
  */
 
 const fs = require('fs');
@@ -23,8 +24,8 @@ const JS_ROOT = path.join(process.cwd(), 'resources', 'js');
 const HOOKS_DIR = path.join(JS_ROOT, 'hooks');
 const FIX_MODE = process.argv.includes('--fix');
 
-console.log(colors.cyan('Zephyrus Missing Extensions Finder'));
-console.log(colors.cyan('==================================='));
+console.log(colors.cyan('Zephyrus Extension Remover'));
+console.log(colors.cyan('========================='));
 
 // Get all hook files
 const hookFiles = glob.sync(`${HOOKS_DIR}/*.js`);
@@ -38,14 +39,14 @@ const jsFiles = glob.sync(`${JS_ROOT}/**/*.{js,jsx}`);
 // Stats
 const stats = {
   filesChecked: 0,
-  issuesFound: 0,
+  extensionsFound: 0,
   filesFixed: 0
 };
 
 // Track files with issues for reporting
 const filesWithIssues = [];
 
-// Check all JS files for imports without extensions
+// Check all JS files for imports WITH extensions (we want to remove them)
 jsFiles.forEach(filePath => {
   // Skip the hook files themselves
   if (hookFiles.includes(filePath)) {
@@ -71,10 +72,10 @@ jsFiles.forEach(filePath => {
       }
       
       if (FIX_MODE) {
-        // Replace with correct import path including .js extension
+        // Replace with correct import path WITHOUT .js extension
         newContent = newContent.replace(
           importRegex, 
-          `from '@/hooks/${hookName}.js'`
+          `from '@/hooks/${hookName}'`
         );
         fileModified = true;
       }
@@ -93,13 +94,13 @@ jsFiles.forEach(filePath => {
 console.log('\n' + colors.cyan('Summary:'));
 console.log(colors.cyan('========'));
 console.log(`Files checked: ${stats.filesChecked}`);
-console.log(`Files with missing extensions: ${filesWithIssues.length}`);
-console.log(`Total issues found: ${stats.issuesFound}`);
+console.log(`Files with extensions: ${filesWithIssues.length}`);
+console.log(`Total extensions found: ${stats.extensionsFound}`);
 
 if (FIX_MODE) {
   console.log(`Files fixed: ${stats.filesFixed}`);
 } else {
-  console.log(colors.yellow('\nRun with --fix to automatically add missing extensions'));
+  console.log(colors.yellow('\nRun with --fix to automatically remove extensions'));
 }
 
 // List all files with issues
@@ -111,8 +112,8 @@ if (filesWithIssues.length > 0) {
   });
 }
 
-// Exit with error code if issues were found and not fixed
-if (stats.issuesFound > 0 && !FIX_MODE) {
+// Exit with error code if extensions were found and not fixed
+if (stats.extensionsFound > 0 && !FIX_MODE) {
   process.exit(1);
 }
 

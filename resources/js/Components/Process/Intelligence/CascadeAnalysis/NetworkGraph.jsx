@@ -9,7 +9,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ProcessNode from './ProcessNode';
-import { useTheme } from '@/hooks/useTheme.js';;
+import { useTheme } from '@/hooks/useTheme';;
 import StatusTooltip from '../ResourceAnalysis/StatusTooltip';
 
 const nodeTypes = {

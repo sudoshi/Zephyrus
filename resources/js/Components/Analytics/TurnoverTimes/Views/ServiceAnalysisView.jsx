@@ -4,7 +4,7 @@ import { mockTurnoverTimes } from '@/mock-data/turnover-times';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '@/Components/ui/Panel';
-import { useDarkMode } from '@/hooks/useDarkMode.js';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 const ServiceAnalysisView = ({ filters }) => {
   // Extract filter values

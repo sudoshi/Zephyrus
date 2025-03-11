@@ -48,6 +48,43 @@ const sensitivePathPatterns = [
   // { pattern: /@\/components\//gi, correct: '@/Components/' }
 ];
 
+// 3. Check for imports with file extensions (should not include file extensions)
+console.log(chalk.cyan('\nChecking for imports with file extensions...'));
+
+// Helper function to check if a file contains imports with extensions
+function checkForFileExtensionsInImports(file) {
+  const content = fs.readFileSync(file, 'utf8');
+  
+  // Look for hook imports with .js extension
+  const extensionRegex = /import\s+(?:{[^}]+}|[^;{]+)\s+from\s+['"]([@\w\/\\-]+\.js)['"];?/g;
+  
+  let match;
+  let hasIssues = false;
+  
+  while ((match = extensionRegex.exec(content)) !== null) {
+    const importPath = match[1];
+    
+    // Only flag hooks imports with extensions (we're focusing on the hooks directory for now)
+    if (importPath.includes('/hooks/')) {
+      console.log(chalk.red(`❌ Import with file extension in ${chalk.yellow(path.relative('.', file))}:`));
+      console.log(chalk.yellow(`   ${match[0]}`));
+      console.log(chalk.green(`   Fix: Remove the .js extension from import paths`));
+      hasIssues = true;
+      issuesFound++;
+    }
+  }
+  
+  if (!hasIssues) {
+    console.log(chalk.green(`✓ No imports with extensions in ${path.relative('.', file)}`));
+  }
+  
+  return hasIssues;
+}
+
+// Apply the file extension check to all JS files
+jsFiles.forEach(file => checkForFileExtensionsInImports(file));
+
+// Continue with case sensitivity checks
 jsFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   let fileHasIssues = false;

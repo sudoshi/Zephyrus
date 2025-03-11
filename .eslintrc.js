@@ -45,6 +45,7 @@ export default {
     'import/export': 'error', // Reports any invalid exports
     'import/no-mutable-exports': 'warn',
     'import/no-unused-modules': ['warn', { unusedExports: true }],
+    'import/extensions': ['error', 'never'], // Enforces no file extensions in import paths
     'import/order': [
       'warn',
       {

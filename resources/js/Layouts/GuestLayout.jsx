@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from '@inertiajs/react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { useDarkMode } from '@/hooks/useDarkMode.js';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import LoginRipple from '@/assets/Login-Ripple.svg';
 
 export default function GuestLayout({ children }) {

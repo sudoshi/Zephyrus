@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode.js';
+import { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
 const Card = ({ children, className = '' }) => {
     const [isDarkMode] = useDarkMode();

@@ -4,7 +4,7 @@ import { mockTurnoverTimes } from '@/mock-data/turnover-times';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
-import { useDarkMode } from '@/hooks/useDarkMode.js';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 const OverviewView = ({ filters }) => {
   // Extract filter values
