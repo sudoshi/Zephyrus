@@ -47,4 +47,4 @@ export const useDarkMode = () => {
   return [isDarkMode, setIsDarkMode];
 };
 
-export default useDarkMode;
+// Default export removed to standardize on named exports only

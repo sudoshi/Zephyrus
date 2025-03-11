@@ -32,4 +32,4 @@ export const useAnalyticsData = (fetchFunction, deps = []) => {
   return { data, isLoading, error };
 };
 
-export default useAnalyticsData;
+// Default export removed to standardize on named exports only

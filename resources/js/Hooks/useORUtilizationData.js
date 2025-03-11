@@ -431,4 +431,4 @@ export const useORUtilizationData = (filters = {}, autoLoad = true) => {
   };
 };
 
-export default useORUtilizationData;
+// Default export removed to standardize on named exports only
