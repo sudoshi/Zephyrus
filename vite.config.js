@@ -20,6 +20,7 @@ export default defineConfig({
         alias: {
             '@': '/resources/js',
         },
+        extensions: ['.js', '.jsx', '.json'],
     },
     assetsInclude: ['**/*.svg'],
 });
