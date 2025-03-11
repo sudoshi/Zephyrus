@@ -91,7 +91,7 @@ jobs:
       run: npm ci
     
     - name: Add .js Extensions for CI Compatibility
-      run: node scripts/add-extensions-for-ci-v2.cjs
+      run: node scripts/add-extensions-for-ci.cjs
       
     - name: Build Assets
       run: npm run build
