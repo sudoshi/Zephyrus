@@ -107,54 +107,42 @@ node scripts/remove-extensions.cjs --fix
 
 ## CI/CD Environment Considerations
 
-To ensure consistent import resolution between local development and CI/CD environments, we've implemented a custom Vite plugin solution:
+In some cases, the CI/CD environment may behave differently from local development environments when resolving imports. Here are some guidelines for handling these situations:
 
-### Automated Import Resolution
+### Automated Solution for CI/CD Compatibility
 
-1. **Vite Import Resolver Plugin**
-   - Located in `vite.import-resolver.js`
-   - Automatically handles extension resolution for hook imports
-   - No need for explicit extensions or special cases
-   - Works consistently across all environments
+To address the difference between local development and CI/CD environments regarding import paths, we've implemented an automated solution:
 
-2. **How It Works**
-   ```javascript
-   // Your imports should NOT include extensions
-   import { useORUtilizationData } from '@/hooks/useORUtilizationData';
-   import { usePatientFlowData } from '@/hooks/usePatientFlowData';
-   ```
+1. **add-extensions-for-ci.cjs Script**
+   - This script automatically adds `.js` extensions to all hook imports for CI/CD compatibility
+   - Run it before the build step in CI/CD environments: `node scripts/add-extensions-for-ci.cjs`
+   - You can test it locally with the `--dry-run` flag: `node scripts/add-extensions-for-ci.cjs --dry-run`
 
-   The plugin will:
-   - Intercept imports from `@/hooks/*`
-   - Try resolving with `.js` extension first
-   - Fall back to `.jsx` if needed
-   - Handle this consistently in both development and production
+### Known Exceptions
 
-3. **Vite Configuration**
-   ```javascript
-   // vite.config.js
-   import importResolver from './vite.import-resolver';
+1. **Explicit Extensions for CI Compatibility**
+   - While our standard is to omit file extensions in imports, some files may require explicit extensions in CI environments
+   - Current exceptions that require explicit extensions:
+     - `useORUtilizationData.js` in ORUtilizationDashboard.jsx
+     - `usePatientFlowData.js` in PatientFlowDashboard.jsx
+   - When adding an explicit extension as an exception, always add a comment explaining why:
+     ```javascript
+     // NOTE: Explicit .js extension is required here for CI/CD build compatibility
+     // This is an exception to our standard import pattern (no extensions)
+     import { useComponent } from '@/path/to/component.js';
+     ```
 
-   export default defineConfig({
-     plugins: [
-       importResolver(),  // Our custom import resolution plugin
-       // ... other plugins
-     ],
+2. **Vite Configuration**
+   - Our `vite.config.js` includes the `extensions` array in the `resolve` section to help resolve imports without extensions:
+     ```javascript
      resolve: {
        alias: {
          '@': '/resources/js',
        },
        extensions: ['.js', '.jsx', '.json'],
      },
-   });
-   ```
-
-### No More Special Cases
-
-- ✅ No need for explicit extensions in imports
-- ✅ No need to maintain a list of exceptions
-- ✅ No need for CI/CD-specific scripts
-- ✅ Consistent behavior across all environments
+     ```
+   - This configuration should handle most cases, but some edge cases may still require explicit extensions
 
 ### Troubleshooting CI/CD Build Failures
 
@@ -179,15 +167,13 @@ This error occurs when Vite cannot resolve an import. Common causes:
    - But imported as: `import useMyHook from ...`
    - Solution: Use named import syntax: `import { useMyHook } from ...`
 
-2. **Hook import resolution**:
-   - For hooks in `@/hooks/*`, never include file extensions
-   - Our Vite plugin will handle extension resolution automatically
-   - Example: `import { useMyHook } from '@/hooks/useMyHook'`
+2. **Missing file extension**:
+   - Some build tools require file extensions in import paths
+   - Solution: Add the extension: `import { x } from './y.js'`
 
 3. **Incorrect path**:
    - Double-check that the path is correct
    - Use the `@` alias for imports from the resources/js directory
-   - For hooks, ensure they are in the `@/hooks/` directory
 
 ### Issue: "Export 'X' not found"
 
