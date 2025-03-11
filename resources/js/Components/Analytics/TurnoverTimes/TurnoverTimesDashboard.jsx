@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { mockTurnoverTimes } from '@/mock-data/turnover-times';
-import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { useAnalyticsData } from '@/hooks/analyticsHook';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import OverviewView from './Views/OverviewView';
 import TrendsView from './Views/TrendsView';
