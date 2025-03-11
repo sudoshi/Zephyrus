@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { mockTurnoverTimes } from '@/mock-data/turnover-times';
-import { useAnalyticsData } from '@/hooks/analyticsHook';
+// NOTE: Explicit .js extension is required here for CI/CD build compatibility
+// This is an exception to our standard import pattern (no extensions)
+import { useAnalyticsData } from '@/hooks/analyticsHook.js';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import OverviewView from './Views/OverviewView';
 import TrendsView from './Views/TrendsView';
