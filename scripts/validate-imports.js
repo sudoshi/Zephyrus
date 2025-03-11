@@ -48,41 +48,59 @@ const sensitivePathPatterns = [
   // { pattern: /@\/components\//gi, correct: '@/Components/' }
 ];
 
-// 3. Check for imports with file extensions (should not include file extensions)
-console.log(chalk.cyan('\nChecking for imports with file extensions...'));
+// 3. Check for required hook extensions
+console.log(chalk.cyan('\nChecking for required hook extensions...'));
 
-// Helper function to check if a file contains imports with extensions
-function checkForFileExtensionsInImports(file) {
+// Known hooks that require explicit .js extensions for CI/CD compatibility
+const HOOKS_REQUIRING_EXTENSIONS = new Set([
+  'useORUtilizationData',
+  'usePatientFlowData',
+  'useAnalyticsData'
+]);
+
+// Helper function to check if hook imports have required extensions
+function checkHookImports(file) {
   const content = fs.readFileSync(file, 'utf8');
-  
-  // Look for hook imports with .js extension
-  const extensionRegex = /import\s+(?:{[^}]+}|[^;{]+)\s+from\s+['"]([@\w\/\\-]+\.js)['"];?/g;
-  
-  let match;
   let hasIssues = false;
-  
-  while ((match = extensionRegex.exec(content)) !== null) {
+
+  // Check for hooks that require extensions
+  HOOKS_REQUIRING_EXTENSIONS.forEach(hookName => {
+    const withoutExtension = new RegExp(`import\s+{[^}]+}\s+from\s+['"]([@/\w-]+/${hookName})['"]
+`, 'g');
+    const withExtension = new RegExp(`import\s+{[^}]+}\s+from\s+['"]([@/\w-]+/${hookName}\.js)['"]
+`, 'g');
+
+    if (content.match(withoutExtension)) {
+      console.log(chalk.red(`❌ Missing required .js extension in ${chalk.yellow(path.relative('.', file))}:`));
+      console.log(chalk.yellow(`   import from '${hookName}' must include .js extension for CI/CD compatibility`));
+      hasIssues = true;
+      issuesFound++;
+    }
+  });
+
+  // Check for hooks that should NOT have extensions
+  const allHookImports = /import\s+{[^}]+}\s+from\s+['"]([@/\w-]+\/(?!(?:${Array.from(HOOKS_REQUIRING_EXTENSIONS).join('|')})[^'"]+)\.js)['"]/g;
+  let match;
+  while ((match = allHookImports.exec(content)) !== null) {
     const importPath = match[1];
-    
-    // Only flag hooks imports with extensions (we're focusing on the hooks directory for now)
     if (importPath.includes('/hooks/')) {
-      console.log(chalk.red(`❌ Import with file extension in ${chalk.yellow(path.relative('.', file))}:`));
+      console.log(chalk.red(`❌ Unnecessary .js extension in ${chalk.yellow(path.relative('.', file))}:`));
       console.log(chalk.yellow(`   ${match[0]}`));
-      console.log(chalk.green(`   Fix: Remove the .js extension from import paths`));
+      console.log(chalk.green(`   Fix: Remove the .js extension as this hook doesn't require it`));
       hasIssues = true;
       issuesFound++;
     }
   }
-  
+
   if (!hasIssues) {
-    console.log(chalk.green(`✓ No imports with extensions in ${path.relative('.', file)}`));
+    console.log(chalk.green(`✓ Hook imports are correctly formatted in ${path.relative('.', file)}`));
   }
-  
+
   return hasIssues;
 }
 
-// Apply the file extension check to all JS files
-jsFiles.forEach(file => checkForFileExtensionsInImports(file));
+// Apply the hook import checks to all JS files
+jsFiles.forEach(file => checkHookImports(file));
 
 // Continue with case sensitivity checks
 jsFiles.forEach(file => {

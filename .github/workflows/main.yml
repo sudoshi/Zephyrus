@@ -89,9 +89,15 @@ jobs:
     
     - name: Install Node Dependencies
       run: npm ci
-    
-    - name: Add .js Extensions for CI Compatibility
-      run: node scripts/add-extensions-for-ci.cjs
+
+    - name: Run ESLint
+      run: npm run lint
+      
+    - name: Validate Hook Imports
+      run: npm run validate-imports
+      
+    - name: Check Build
+      run: npm run build:check
       
     - name: Build Assets
       run: npm run build
