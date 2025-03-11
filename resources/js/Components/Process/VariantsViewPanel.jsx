@@ -11,11 +11,12 @@ const VariantsViewPanel = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('frequency');
   const [hospitalFilter, setHospitalFilter] = useState('all');
+  const [selectedMap, setSelectedMap] = useState('bed-assignment');
   
   // Mock data for Virtua Health system bed assignment process
   const bedAssignmentStats = {
     totalCases: 287,
-    totalVariants: 24,
+    totalVariants: 4,
     meanTime: "3.2 hours",
     medianTime: "2.4 hours",
     modeTime: "1.8 hours",
@@ -28,58 +29,64 @@ const VariantsViewPanel = () => {
     }
   };
   
-  // Process variants data for visualization
+  // Process variants data for visualization - updated to include all 4 input sources + critical pathway
   const processVariants = [
     {
-      traces: 109,
-      percentage: 38.0,
-      steps: [{ name: "ED", color: "#3b82f6" }, { name: "Bed", color: "#3b82f6" }],
-      timing: "35 min avg",
+      traces: 118,
+      percentage: 41.1,
+      steps: [
+        { name: "ED", color: "#3b82f6" }, 
+        { name: "Bed Request", color: "#93c5fd", timing: "38 min" }, 
+        { name: "Bed Assignment", color: "#93c5fd", timing: "42 min" }, 
+        { name: "Bedding", color: "#86efac" }
+      ],
+      timing: "80 min avg",
       isOutlier: false
     },
     {
-      traces: 75,
-      percentage: 26.1,
+      traces: 68,
+      percentage: 23.7,
       steps: [
         { name: "Direct Admit", color: "#93c5fd" }, 
         { name: "Bed Request", color: "#93c5fd", timing: "42 min" }, 
-        { name: "Bed", color: "#3b82f6" }
-      ],
-      timing: "67 min avg",
-      isOutlier: false
-    },
-    {
-      traces: 52,
-      percentage: 18.1,
-      steps: [
-        { name: "ED", color: "#93c5fd" }, 
-        { name: "Bed Request", color: "#93c5fd", timing: "38 min" }, 
-        { name: "Bed Assignment", color: "#93c5fd", timing: "65 min" }, 
+        { name: "Bed Assignment", color: "#93c5fd", timing: "35 min" }, 
         { name: "Bedding", color: "#86efac" }
       ],
-      timing: "103 min avg",
+      timing: "77 min avg",
       isOutlier: false
     },
     {
-      traces: 34,
-      percentage: 11.8,
+      traces: 45,
+      percentage: 15.7,
       steps: [
-        { name: "Transfer", color: "#93c5fd" }, 
-        { name: "Bed Request", color: "#93c5fd", timing: "55 min" }, 
-        { name: "Bed Assignment", color: "#93c5fd", timing: "90 min" }, 
-        { name: "Bed", color: "#3b82f6" }
+        { name: "OR", color: "#93c5fd" }, 
+        { name: "Bed Request", color: "#93c5fd", timing: "25 min" }, 
+        { name: "Bed Assignment", color: "#93c5fd", timing: "30 min" }, 
+        { name: "Bedding", color: "#86efac" }
+      ],
+      timing: "55 min avg",
+      isOutlier: false
+    },
+    {
+      traces: 39,
+      percentage: 13.6,
+      steps: [
+        { name: "Transfer", color: "#fbbf24" }, 
+        { name: "Bed Request", color: "#fbbf24", timing: "55 min" }, 
+        { name: "Bed Assignment", color: "#fbbf24", timing: "90 min" }, 
+        { name: "Bedding", color: "#fbbf24" }
       ],
       timing: "145 min avg",
       isOutlier: true
     },
     {
       traces: 17,
-      percentage: 6.0,
+      percentage: 5.9,
       steps: [
         { name: "ED (ICU)", color: "#f87171" }, 
         { name: "Bed Request", color: "#f87171", timing: "85 min" }, 
         { name: "Bed Assignment", color: "#f87171", timing: "132 min" }, 
-        { name: "Bed", color: "#f87171" }
+        { name: "Bedding", color: "#f87171" }
       ],
       timing: "217 min avg",
       isOutlier: true,
@@ -290,6 +297,14 @@ const VariantsViewPanel = () => {
         { id: 'statistics', label: 'Statistics', icon: 'carbon:chart-line' }
       ]
     }
+  ];
+
+  // Map options for dropdown
+  const mapOptions = [
+    { id: 'bed-assignment', label: 'Bed Assignment' },
+    { id: 'or-turnover', label: 'OR Turnover' },
+    { id: 'discharge', label: 'Discharge Process' },
+    { id: 'lab-results', label: 'Lab Results' }
   ];
 
   const renderSummaryTab = () => (
@@ -883,8 +898,25 @@ const VariantsViewPanel = () => {
     </div>
   );
   
+  // Create the Map dropdown for the header right section
+  const mapDropdown = (
+    <div className="flex items-center">
+      <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">Map:</span>
+      <select
+        className="text-sm border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white py-1 px-2"
+        value={selectedMap}
+        onChange={(e) => setSelectedMap(e.target.value)}
+      >
+        <option value="bed-assignment">Bed Assignment</option>
+        <option value="or-turnover">OR Turnover</option>
+        <option value="discharge">Discharge Process</option>
+        <option value="lab-results">Lab Results</option>
+      </select>
+    </div>
+  );
+
   return (
-    <Panel title="Process Variants">
+    <Panel title="Process Variants" headerRight={mapDropdown}>
       <TabNavigation
         menuGroups={menuGroups}
         activeTab={activeTab}
