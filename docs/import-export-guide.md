@@ -17,7 +17,11 @@ We've established consistent patterns for exports and imports in our codebase. T
 ### For Hooks:
 - Always use named exports: `export const useMyHook = () => { ... }`
 - Import using named import syntax: `import { useMyHook } from '@/hooks/useMyHook'`
-- **IMPORTANT**: Do NOT include file extensions in import paths (e.g., `from '@/hooks/useMyHook'` NOT `from '@/hooks/useMyHook.js'`)
+- **IMPORTANT**: Do NOT include file extensions in import paths EXCEPT for known CI/CD compatibility exceptions
+- Current hooks requiring explicit `.js` extensions:
+  - `useORUtilizationData.js`
+  - `usePatientFlowData.js`
+  - `useAnalyticsData.js`
 
 ### For Components:
 - Use named exports for multiple components in a file
@@ -69,9 +73,23 @@ This script:
 2. Finds all imports of those hooks and ensures they use the correct import syntax
 3. Generates a report of issues found and fixed
 
-## Utility Scripts
+## Validation Tools
 
-We have several utility scripts to help maintain import/export consistency:
+We have several tools to help maintain import/export consistency:
+
+### validate-imports.js
+
+This script validates imports/exports and flags potential issues:
+
+```bash
+npm run validate-imports
+```
+
+The script checks for:
+- Hooks using default exports (not allowed)
+- Case sensitivity issues in import paths
+- Required `.js` extensions for CI/CD compatibility
+- Import/export type mismatches
 
 ### fix-imports.js
 
@@ -85,38 +103,18 @@ npm run fix-imports -- --dry-run
 npm run fix-imports
 ```
 
-### validate-imports.js
-
-This script validates imports/exports and flags potential issues:
-
-```bash
-npm run validate-imports
-```
-
-### remove-extensions.cjs
-
-This script finds and removes `.js` extensions from hook imports:
-
-```bash
-# Check for imports with extensions
-node scripts/remove-extensions.cjs
-
-# Fix imports by removing extensions
-node scripts/remove-extensions.cjs --fix
-```
-
 ## CI/CD Environment Considerations
 
 In some cases, the CI/CD environment may behave differently from local development environments when resolving imports. Here are some guidelines for handling these situations:
 
-### Automated Solution for CI/CD Compatibility
+### CI/CD Import Resolution
 
-To address the difference between local development and CI/CD environments regarding import paths, we've implemented an automated solution:
+To address the difference between local development and CI/CD environments regarding import paths, we follow these guidelines:
 
-1. **add-extensions-for-ci.cjs Script**
-   - This script automatically adds `.js` extensions to all hook imports for CI/CD compatibility
-   - Run it before the build step in CI/CD environments: `node scripts/add-extensions-for-ci.cjs`
-   - You can test it locally with the `--dry-run` flag: `node scripts/add-extensions-for-ci.cjs --dry-run`
+1. **Explicit Extensions for Known Issues**
+   - We maintain a list of hooks that require explicit `.js` extensions for CI/CD compatibility
+   - These exceptions are documented and enforced by our validation tools
+   - When adding a new hook that requires an extension, update the `HOOKS_REQUIRING_EXTENSIONS` list in `validate-imports.js`
 
 ### Known Exceptions
 
