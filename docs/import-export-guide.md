@@ -113,12 +113,10 @@ In some cases, the CI/CD environment may behave differently from local developme
 
 To address the difference between local development and CI/CD environments regarding import paths, we've implemented an automated solution:
 
-1. **add-extensions-for-ci-v2.cjs Script**
+1. **add-extensions-for-ci.cjs Script**
    - This script automatically adds `.js` extensions to all hook imports for CI/CD compatibility
-   - Handles all types of hook imports, including those without the 'use' prefix
-   - Supports both named imports (`import { x } from '@/hooks/y'`) and default imports (`import x from '@/hooks/y'`)
-   - Run it before the build step in CI/CD environments: `node scripts/add-extensions-for-ci-v2.cjs`
-   - You can test it locally with the `--dry-run` flag: `node scripts/add-extensions-for-ci-v2.cjs --dry-run`
+   - Run it before the build step in CI/CD environments: `node scripts/add-extensions-for-ci.cjs`
+   - You can test it locally with the `--dry-run` flag: `node scripts/add-extensions-for-ci.cjs --dry-run`
 
 ### Known Exceptions
 
@@ -127,7 +125,6 @@ To address the difference between local development and CI/CD environments regar
    - Current exceptions that require explicit extensions:
      - `useORUtilizationData.js` in ORUtilizationDashboard.jsx
      - `usePatientFlowData.js` in PatientFlowDashboard.jsx
-     - `analyticsHook.js` in TurnoverTimesDashboard.jsx
    - When adding an explicit extension as an exception, always add a comment explaining why:
      ```javascript
      // NOTE: Explicit .js extension is required here for CI/CD build compatibility
