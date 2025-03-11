@@ -113,7 +113,9 @@ In some cases, the CI/CD environment may behave differently from local developme
 
 1. **Explicit Extensions for CI Compatibility**
    - While our standard is to omit file extensions in imports, some files may require explicit extensions in CI environments
-   - Example: `import { useORUtilizationData } from '@/hooks/useORUtilizationData.js';`
+   - Current exceptions that require explicit extensions:
+     - `useORUtilizationData.js` in ORUtilizationDashboard.jsx
+     - `usePatientFlowData.js` in PatientFlowDashboard.jsx
    - When adding an explicit extension as an exception, always add a comment explaining why:
      ```javascript
      // NOTE: Explicit .js extension is required here for CI/CD build compatibility
