@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { usePatientFlowData } from '@/hooks/usePatientFlowData';
+// NOTE: Explicit .js extension is required here for CI/CD build compatibility
+// This is an exception to our standard import pattern (no extensions)
+import { usePatientFlowData } from '@/hooks/usePatientFlowData.js';
 import { useAnalytics } from '@/Contexts/AnalyticsContext';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import { motion, AnimatePresence } from 'framer-motion';
