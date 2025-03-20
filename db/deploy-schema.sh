@@ -8,7 +8,7 @@ set -e  # Exit on error
 # Configuration
 DB_HOST=${PGHOST:-localhost}
 DB_PORT=${PGPORT:-5432}
-DB_NAME=${PGDATABASE:-oap_db}
+DB_NAME=${PGDATABASE:-zephyrus_db}
 DB_USER=${PGUSER:-postgres}
 
 # Schema order based on dependencies

@@ -66,7 +66,7 @@ db/
    # Set database connection details
    export PGHOST=localhost
    export PGPORT=5432
-   export PGDATABASE=oap_db
+   export PGDATABASE=zephyrus
    export PGUSER=postgres
    ```
 

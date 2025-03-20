@@ -17,7 +17,7 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_DB: OAP
+          POSTGRES_DB: zephyrus
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: acumenus
           POSTGRES_SCHEMA: prod
