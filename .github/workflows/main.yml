@@ -53,6 +53,11 @@ jobs:
     
     - name: Copy .env
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      
+    - name: Update .env Database Configuration
+      run: |
+        sed -i 's/DB_DATABASE=.*/DB_DATABASE=zephyrus/g' .env
+        sed -i 's/CACHE_STORE=.*/CACHE_STORE=file/g' .env
     
     - name: Debug PHP and Composer versions
       run: |
@@ -83,6 +88,14 @@ jobs:
     
     - name: Generate key
       run: php artisan key:generate
+      env:
+        DB_CONNECTION: pgsql
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_DATABASE: zephyrus
+        DB_USERNAME: postgres
+        DB_PASSWORD: acumenus
+        CACHE_DRIVER: file
     
     - name: Set Directory Permissions
       run: chmod -R 777 storage bootstrap/cache

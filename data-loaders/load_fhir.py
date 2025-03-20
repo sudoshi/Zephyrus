@@ -30,7 +30,7 @@ console = Console()
 # Database configuration
 # Configuration
 DB_CONFIG = {
-    'dbname': 'OAP',
+    'dbname': 'zephyrus',
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', 'acumenus'),
     'host': os.getenv('DB_HOST', 'localhost'),
