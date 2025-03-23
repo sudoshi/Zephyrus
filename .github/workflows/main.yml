@@ -138,26 +138,31 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /var/www/Zephyrus
-          # Completely bypass git stash and use a safer approach
-          # First, save any local config changes if needed
+          
+          # Use sudo to remove the problematic backup file
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S rm -f .env.bak.20250320205817 || true
+          
+          # Backup current .env if possible (with sudo if needed)
           if [ -f .env ]; then
-            cp -f .env .env.backup
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp -f .env .env.temp || true
           fi
           
-          # Reset any local changes to tracked files
-          git reset --hard HEAD
+          # Reset to the latest code without using git stash
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S git reset --hard HEAD || true
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S git clean -f -d || true
           
-          # Fetch and update to the latest code
-          git fetch origin main
-          git checkout main
-          git pull origin main
+          # Pull the latest code
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S git fetch origin main
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S git checkout main
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S git pull origin main
           
-          # Restore local config if it was backed up
-          if [ -f .env.backup ]; then
-            cp -f .env.backup .env
+          # Restore .env if it was backed up
+          if [ -f .env.temp ]; then
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp -f .env.temp .env
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S rm -f .env.temp
           fi
           
           # Make the deployment script executable and run it
-          chmod +x deploy-production.sh
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S chmod +x deploy-production.sh
           export SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
-          ./deploy-production.sh
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S ./deploy-production.sh
