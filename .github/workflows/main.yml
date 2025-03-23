@@ -138,12 +138,26 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /var/www/Zephyrus
-          # Handle potential permission issues with untracked files
-          git clean -f -d -n | grep -v ".env" || true  # List files that would be removed (dry run), excluding .env files
-          git stash  # Stash tracked changes without including untracked files
-          # Clean untracked files that might have permission issues, excluding .env files
-          find . -type f -not -path "*/\.git/*" -not -name ".env*" -not -path "*/vendor/*" -not -path "*/node_modules/*" | xargs -r chmod 664 || true
+          # Completely bypass git stash and use a safer approach
+          # First, save any local config changes if needed
+          if [ -f .env ]; then
+            cp -f .env .env.backup
+          fi
+          
+          # Reset any local changes to tracked files
+          git reset --hard HEAD
+          
+          # Fetch and update to the latest code
+          git fetch origin main
+          git checkout main
           git pull origin main
+          
+          # Restore local config if it was backed up
+          if [ -f .env.backup ]; then
+            cp -f .env.backup .env
+          fi
+          
+          # Make the deployment script executable and run it
           chmod +x deploy-production.sh
           export SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
           ./deploy-production.sh
