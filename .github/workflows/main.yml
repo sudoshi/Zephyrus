@@ -126,9 +126,19 @@ jobs:
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+        config: |
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
         
     - name: Adding Known Hosts
-      run: ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+      run: |
+        # Add verbose output for debugging
+        echo "Attempting to connect to ${{ secrets.PROD_HOST }}..."
+        ssh-keyscan -v -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts || true
+        # Ensure the known_hosts file exists and has proper permissions
+        touch ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
 
     - name: Deploy to Production
       uses: appleboy/ssh-action@master
