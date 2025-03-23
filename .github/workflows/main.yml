@@ -138,7 +138,11 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /var/www/Zephyrus
-          git stash --include-untracked
+          # Handle potential permission issues with untracked files
+          git clean -f -d -n | grep -v ".env" || true  # List files that would be removed (dry run), excluding .env files
+          git stash  # Stash tracked changes without including untracked files
+          # Clean untracked files that might have permission issues, excluding .env files
+          find . -type f -not -path "*/\.git/*" -not -name ".env*" -not -path "*/vendor/*" -not -path "*/node_modules/*" | xargs -r chmod 664 || true
           git pull origin main
           chmod +x deploy-production.sh
           export SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
