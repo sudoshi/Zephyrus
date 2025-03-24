@@ -11,10 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Remove the default VerifyCsrfToken middleware
-        $middleware->removeWebMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
-        
-        // Add our custom BypassCsrf middleware before the other middleware
+        // Instead of removing the VerifyCsrfToken middleware, we'll add our bypass middleware
+        // to the beginning of the middleware stack
         $middleware->web(prepend: [
             \App\Http\Middleware\BypassCsrfMiddleware::class,
         ]);
