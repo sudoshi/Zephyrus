@@ -26,14 +26,13 @@ const useDarkMode = () => {
     return [isDarkMode, setIsDarkMode];
 };
 
-export default function Login({ status, canResetPassword, csrf_token }) {
+export default function Login({ status, canResetPassword }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
         workflow: 'superuser',
         username: '',
         password: '',
         remember: false,
-        csrf_token,
     });
 
     const workflowOptions = [
@@ -51,7 +50,6 @@ export default function Login({ status, canResetPassword, csrf_token }) {
             username: data.username,
             password: data.password,
             remember: data.remember,
-            csrf_token: csrf_token,
             preserveState: false,
             preserveScroll: false,
             onFinish: () => reset('password'),
