@@ -20,10 +20,9 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    // Use both approaches - direct PHP script and controller with middleware exclusion
+    // Use controller with only CSRF middleware exclusion, keeping other web middleware intact
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
-        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
-        ->withoutMiddleware(['web']);
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
