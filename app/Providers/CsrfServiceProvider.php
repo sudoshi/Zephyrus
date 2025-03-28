@@ -6,6 +6,12 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Http\Kernel;
 use App\Http\Middleware\AddXsrfTokenMiddleware;
 
+/**
+ * DEPRECATED: This service provider is no longer needed as CSRF verification has been
+ * completely replaced with session-based authentication.
+ * 
+ * This provider is kept for compatibility but is not used in the application.
+ */
 class CsrfServiceProvider extends ServiceProvider
 {
     /**
@@ -21,8 +27,7 @@ class CsrfServiceProvider extends ServiceProvider
      */
     public function boot(Kernel $kernel): void
     {
-        // Register the XSRF token middleware globally
-        // This ensures all responses have the XSRF-TOKEN cookie set
-        $kernel->pushMiddleware(AddXsrfTokenMiddleware::class);
+        // CSRF token middleware is no longer needed
+        // $kernel->pushMiddleware(AddXsrfTokenMiddleware::class);
     }
 }

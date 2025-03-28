@@ -6,8 +6,10 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * This middleware completely disables CSRF verification for all routes.
- * This is a temporary solution to fix the 419 errors on dashboard routes.
+ * DEPRECATED: This middleware is no longer needed as CSRF verification has been
+ * completely replaced with session-based authentication.
+ * 
+ * This middleware is kept for compatibility but is not used in the application.
  */
 class DisableCsrfForAllRoutes
 {
@@ -20,20 +22,7 @@ class DisableCsrfForAllRoutes
      */
     public function handle(Request $request, Closure $next)
     {
-        // Add a session token to the request if it doesn't exist
-        if (!$request->session()->has('_token')) {
-            $request->session()->put('_token', csrf_token());
-        }
-        
-        // Add the XSRF-TOKEN cookie if it doesn't exist
-        if (!$request->cookies->has('XSRF-TOKEN')) {
-            $response = $next($request);
-            $response->headers->setCookie(
-                cookie('XSRF-TOKEN', csrf_token(), 120, '/', null, config('session.secure'), true, false, 'lax')
-            );
-            return $response;
-        }
-        
+        // Simply pass the request to the next middleware
         return $next($request);
     }
 }

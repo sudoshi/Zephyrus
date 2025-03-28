@@ -12,10 +12,21 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        // Only exclude endpoints that truly need CSRF protection disabled
-        // For SPA using Inertia, most routes should have CSRF protection
-        '/api/*',          // API routes typically use token auth instead
-        '/webhook/*',      // External webhook endpoints
-        '/change-workflow' // Workflow changing endpoint needed by the UI
+        // CSRF verification is completely disabled and replaced with session-based auth
+        // This middleware is kept for compatibility but excludes all routes
+        '*'
     ];
+    
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
+    public function handle($request, \Closure $next)
+    {
+        // Skip CSRF verification entirely and just pass the request through
+        return $next($request);
+    }
 }

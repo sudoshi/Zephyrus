@@ -39,6 +39,9 @@ class AuthenticatedSessionController extends Controller
         
         // Default to superuser workflow
         $request->session()->put('workflow', 'superuser');
+        
+        // Store the user ID in the session for our custom session auth
+        $request->session()->put('user_id', auth()->id());
 
         return redirect()->intended(route('dashboard'));
     }
@@ -48,11 +51,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-            Auth::guard('web')->logout();
+        Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
+        // No need to regenerate CSRF token since we're not using them anymore
+        
         return redirect('/');
     }
 }

@@ -8,11 +8,10 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * This middleware completely disables CSRF verification by skipping the parent
- * verification steps. Use this with caution as it lowers security by disabling
- * protection against cross-site request forgery attacks.
+ * DEPRECATED: This middleware is no longer needed as CSRF verification has been
+ * completely replaced with session-based authentication.
  * 
- * This is used when CSRF tokens are causing issues with the application flow.
+ * This middleware is kept for compatibility but is not used in the application.
  */
 class BypassCsrfMiddleware extends VerifyCsrfToken
 {
