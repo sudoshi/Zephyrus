@@ -122,11 +122,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                   {mainNavigationItems.map((item) => (
                     <button
                       key={item.workflow}
-                      disabled={isNavigating}
-                      onClick={() => {
-                        setIsNavigating(true);
-                        changeWorkflow(item.workflow);
-                      }}
+                      onClick={() => changeWorkflow(item.workflow)}
                       className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
                         (currentWorkflow === item.workflow)
                           ? 'bg-gradient-to-b from-healthcare-primary to-healthcare-primary/90 dark:from-healthcare-primary-dark dark:to-healthcare-primary-dark/90 text-white dark:text-white shadow-md dark:shadow-lg border-healthcare-primary/20 dark:border-healthcare-primary-dark/20 ring-1 ring-healthcare-primary/10 dark:ring-healthcare-primary-dark/10'
