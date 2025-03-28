@@ -269,70 +269,48 @@ export function DashboardProvider({ children }) {
 
   const changeWorkflow = useCallback(
     (workflow) => {
+      // Set loading state
       setState((prevState) => ({
         ...prevState,
         isLoading: true
       }));
 
-      // First, make a server request to update the workflow in the session
-      fetch('/change-workflow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ workflow }),
-        credentials: 'same-origin'
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // After the session is updated, navigate to the new dashboard
-          const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
-          router.visit(path, {
-            preserveState: true, // Preserve state to maintain authentication
-            preserveScroll: false, // Don't preserve scroll position for a fresh start
-            onBefore: () => {
-              // Update navigation items before navigation
-              setState((prevState) => ({
-                ...prevState,
-                currentWorkflow: workflow,
-                navigationItems: workflowNavigationConfig[workflow] || null
-              }));
-            },
-            onSuccess: () => {
-              // Update state with new workflow data
-              setState((prevState) => ({
-                ...prevState,
-                currentWorkflow: workflow,
-                navigationItems: workflowNavigationConfig[workflow],
-                isLoading: false
-              }));
-            },
-            onError: () => {
-              setState((prevState) => ({ 
-                ...prevState, 
-                isLoading: false,
-                navigationItems: workflowNavigationConfig[prevState.currentWorkflow] // Restore previous navigation items on error
-              }));
-            }
-          });
-        } else {
-          // Handle error if the server request fails
-          setState((prevState) => ({
-            ...prevState,
-            isLoading: false
-          }));
-        }
-      })
-      .catch(error => {
-        console.error('Error changing workflow:', error);
-        setState((prevState) => ({
-          ...prevState,
-          isLoading: false
-        }));
-      });
+      // Simple direct approach - use window.location for a full page reload
+      // This ensures a clean state and avoids CSRF issues
+      const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
+      
+      // Update the workflow in session via a form submission
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/change-workflow';
+      form.style.display = 'none';
+      
+      // Add CSRF token
+      const csrfToken = document.createElement('input');
+      csrfToken.type = 'hidden';
+      csrfToken.name = '_token';
+      csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      form.appendChild(csrfToken);
+      
+      // Add workflow input
+      const workflowInput = document.createElement('input');
+      workflowInput.type = 'hidden';
+      workflowInput.name = 'workflow';
+      workflowInput.value = workflow;
+      form.appendChild(workflowInput);
+      
+      // Add redirect path
+      const redirectInput = document.createElement('input');
+      redirectInput.type = 'hidden';
+      redirectInput.name = 'redirect';
+      redirectInput.value = path;
+      form.appendChild(redirectInput);
+      
+      // Submit the form
+      document.body.appendChild(form);
+      form.submit();
+      
+      // No need for complex state management here since we're doing a full page reload
     },
     []
   );
