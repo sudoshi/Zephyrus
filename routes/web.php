@@ -184,8 +184,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
 
-    // Workflow Change Route
-    Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])->name('change-workflow');
+    // Workflow Change Route - Excluded from CSRF verification
+    Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])
+        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+        ->name('change-workflow');
 });
 
 require __DIR__.'/auth.php';
