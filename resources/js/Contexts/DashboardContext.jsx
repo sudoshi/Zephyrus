@@ -285,6 +285,13 @@ export function DashboardProvider({ children }) {
       form.action = '/change-workflow';
       form.style.display = 'none';
       
+      // Add CSRF token
+      const csrfToken = document.createElement('input');
+      csrfToken.type = 'hidden';
+      csrfToken.name = '_token';
+      csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      form.appendChild(csrfToken);
+      
       // Add the workflow input
       const workflowInput = document.createElement('input');
       workflowInput.type = 'hidden';
