@@ -6,11 +6,9 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios.defaults.withCredentials = true; // This ensures cookies are sent with requests
 window.axios.defaults.baseURL = '/';
 
-// Add CSRF token to all requests
-const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-if (token) {
-    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
-}
+// Disable CSRF token requirement for all requests
+window.axios.defaults.headers.common['X-CSRF-TOKEN'] = 'disabled';
+window.axios.defaults.headers.common['X-XSRF-TOKEN'] = 'disabled';
 
 // Improved error handling with better logging and redirect to login if session expired
 window.axios.interceptors.response.use(

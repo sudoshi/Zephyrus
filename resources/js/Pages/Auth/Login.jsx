@@ -34,26 +34,41 @@ export default function Login({ status, canResetPassword }) {
         remember: false,
     });
 
-
-
     const submit = (e) => {
         e.preventDefault();
-        post('/login', {
-            username: data.username,
-            password: data.password,
-            remember: data.remember,
-            preserveState: false,
-            preserveScroll: false,
-            onFinish: () => reset('password'),
-            onError: (errors) => {
-                if (errors.general) {
-                    setData('general', errors.general);
-                }
-            },
-            headers: {
-                'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1]
-            }
-        });
+        
+        // Create a simple form submission instead of using Inertia
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/login';
+        form.style.display = 'none';
+        
+        // Add username input
+        const usernameInput = document.createElement('input');
+        usernameInput.type = 'hidden';
+        usernameInput.name = 'username';
+        usernameInput.value = data.username;
+        form.appendChild(usernameInput);
+        
+        // Add password input
+        const passwordInput = document.createElement('input');
+        passwordInput.type = 'hidden';
+        passwordInput.name = 'password';
+        passwordInput.value = data.password;
+        form.appendChild(passwordInput);
+        
+        // Add remember input if checked
+        if (data.remember) {
+            const rememberInput = document.createElement('input');
+            rememberInput.type = 'hidden';
+            rememberInput.name = 'remember';
+            rememberInput.value = '1';
+            form.appendChild(rememberInput);
+        }
+        
+        // Append the form to the body and submit it
+        document.body.appendChild(form);
+        form.submit();
     };
 
     return (
@@ -75,8 +90,6 @@ export default function Login({ status, canResetPassword }) {
                 <Card.Content>
                     <DataModeToggle />
                     <form onSubmit={submit} className="mt-4 space-y-4">
-
-
                         <div>
                             <label htmlFor="username" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                 Username
