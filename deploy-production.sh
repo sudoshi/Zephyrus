@@ -63,6 +63,22 @@ npm run build
 # Reset permissions after build
 sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/public/build
 
+# Update .env file to use database sessions
+log "Updating .env file to use database sessions..."
+if grep -q "^SESSION_DRIVER=" .env; then
+    # Replace the existing SESSION_DRIVER line
+    sed -i 's/^SESSION_DRIVER=.*/SESSION_DRIVER=database/' .env
+    log "Updated SESSION_DRIVER to 'database' in .env file."
+else
+    # Add SESSION_DRIVER if it doesn't exist
+    echo "SESSION_DRIVER=database" >> .env
+    log "Added SESSION_DRIVER=database to .env file."
+fi
+
+# Run migrations to ensure sessions table exists
+log "Running migrations to ensure sessions table exists..."
+php artisan migrate --force
+
 # Clear caches
 log "Clearing caches..."
 php artisan config:clear
