@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useForm, router } from '@inertiajs/react';
 
 import { Menu, Transition } from '@headlessui/react';
@@ -11,6 +11,7 @@ import { useDashboard } from '@/Contexts/DashboardContext';
 
 const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
   const { currentWorkflow, navigationItems, mainNavigationItems, changeWorkflow } = useDashboard();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const subNavigation = useMemo(() => {
     // Special case for RTDC workflow
@@ -119,12 +120,14 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
               {currentWorkflow === 'superuser' && (
                 <div className="flex items-center space-x-8">
                   {mainNavigationItems.map((item) => (
-                    <Link
+                    <button
                       key={item.workflow}
-                      href={item.href}
-                      onClick={(e) => {
-                        e.preventDefault();
+                      disabled={isNavigating}
+                      onClick={() => {
+                        setIsNavigating(true);
                         changeWorkflow(item.workflow);
+                        // Reset navigation state after a timeout in case the navigation fails
+                        setTimeout(() => setIsNavigating(false), 3000);
                       }}
                       className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
                         (currentWorkflow === item.workflow)
@@ -134,7 +137,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     >
                       <Icon icon={item.icon} className="w-5 h-5" />
                       <span>{item.name}</span>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}
@@ -234,6 +237,10 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                   <Link
                     key={item.key}
                     href={item.href}
+                    as="button"
+                    method="get"
+                    preserveState={true}
+                    preserveScroll={false}
                     className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark rounded-md transition-all duration-300 border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark"
                   >
                     <Icon icon={item.icon} className="w-5 h-5 mr-2" />
@@ -263,6 +270,10 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                             {({ active }) => (
                               <Link
                                 href={dropdownItem.href}
+                                as="button"
+                                method="get"
+                                preserveState={true}
+                                preserveScroll={false}
                                 className={`
                                   block px-4 py-2 text-sm transition-all duration-300
                                   ${
