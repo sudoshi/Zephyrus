@@ -19,6 +19,11 @@ class SessionAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip authentication check for login routes
+        if ($request->is('login') || $request->is('*/login')) {
+            return $next($request);
+        }
+        
         // If the user is already authenticated, proceed
         if (Auth::check()) {
             return $next($request);
