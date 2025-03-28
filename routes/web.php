@@ -35,18 +35,27 @@ Route::get('/debug-session', function (Request $request) {
     ]);
 });
 
-Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('home');
-    }
-    return Inertia::render('Auth/Login', [
-        'canResetPassword' => Route::has('password.request'),
-        'status' => session('status'),
-    ]);
+// Auto-authenticate as superuser and redirect to dashboard
+Route::get('/', function (Request $request) {
+    // Find or create a default superuser
+    $user = \App\Models\User::firstOrCreate(
+        ['username' => 'admin'],
+        [
+            'name' => 'Administrator',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'workflow_preference' => 'superuser'
+        ]
+    );
+    
+    // Auto-login
+    auth()->login($user);
+    
+    return redirect()->route('dashboard');
 });
 
-Route::middleware(['auth'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+// Remove authentication requirement
+Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->group(function () {
     // Home Route
     Route::get('/home', function() {
