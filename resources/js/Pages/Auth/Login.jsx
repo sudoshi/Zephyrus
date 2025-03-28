@@ -34,41 +34,79 @@ export default function Login({ status, canResetPassword }) {
         remember: false,
     });
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
         
-        // Create a simple form submission instead of using Inertia
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/login';
-        form.style.display = 'none';
+        // Set the form submission state
+        setData('general', '');
         
-        // Add username input
-        const usernameInput = document.createElement('input');
-        usernameInput.type = 'hidden';
-        usernameInput.name = 'username';
-        usernameInput.value = data.username;
-        form.appendChild(usernameInput);
-        
-        // Add password input
-        const passwordInput = document.createElement('input');
-        passwordInput.type = 'hidden';
-        passwordInput.name = 'password';
-        passwordInput.value = data.password;
-        form.appendChild(passwordInput);
-        
-        // Add remember input if checked
-        if (data.remember) {
-            const rememberInput = document.createElement('input');
-            rememberInput.type = 'hidden';
-            rememberInput.name = 'remember';
-            rememberInput.value = '1';
-            form.appendChild(rememberInput);
+        try {
+            // Method 1: Try the direct PHP script first (entirely bypasses middleware)
+            const formData = new FormData();
+            formData.append('username', data.username);
+            formData.append('password', data.password);
+            if (data.remember) {
+                formData.append('remember', '1');
+            }
+            
+            try {
+                console.log('Attempting direct login...');
+                const response = await fetch('/direct-login.php', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    console.log('Direct login successful');
+                    window.location.href = result.redirect || '/dashboard';
+                    return;
+                }
+            } catch (directError) {
+                console.error('Direct login failed:', directError);
+                // Continue to fallback methods
+            }
+            
+            // Method 2: Try traditional form submission
+            console.log('Attempting traditional form submission...');
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/login';
+            form.style.display = 'none';
+            
+            // Add username input
+            const usernameInput = document.createElement('input');
+            usernameInput.type = 'hidden';
+            usernameInput.name = 'username';
+            usernameInput.value = data.username;
+            form.appendChild(usernameInput);
+            
+            // Add password input
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'hidden';
+            passwordInput.name = 'password';
+            passwordInput.value = data.password;
+            form.appendChild(passwordInput);
+            
+            // Add remember input if checked
+            if (data.remember) {
+                const rememberInput = document.createElement('input');
+                rememberInput.type = 'hidden';
+                rememberInput.name = 'remember';
+                rememberInput.value = '1';
+                form.appendChild(rememberInput);
+            }
+            
+            // Append the form to the body and submit it
+            document.body.appendChild(form);
+            form.submit();
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            setData('general', 'An unexpected error occurred during login.');
         }
-        
-        // Append the form to the body and submit it
-        document.body.appendChild(form);
-        form.submit();
     };
 
     return (
