@@ -50,6 +50,9 @@ export default function Login({ status, canResetPassword }) {
                     setData('general', errors.general);
                 }
             },
+            headers: {
+                'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1]
+            }
         });
     };
 
