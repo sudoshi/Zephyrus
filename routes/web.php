@@ -45,7 +45,9 @@ Route::get('/', function () {
     ]);
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->group(function () {
     // Home Route
     Route::get('/home', function() {
         return Inertia::render('Home/Home', [
