@@ -278,13 +278,21 @@ export function DashboardProvider({ children }) {
       // Determine the redirect path
       const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
       
-      // Use Inertia's router.post() for a smoother SPA experience
-      router.post('/change-workflow', {
-        workflow: workflow,
+      // Use Inertia's router.patch() to update user preferences
+      router.patch('/user/preferences', {
+        workflow_preference: workflow,
         redirect: path
       }, {
         preserveState: false,
         preserveScroll: false,
+        onSuccess: () => {
+          setState((prevState) => ({
+            ...prevState,
+            currentWorkflow: workflow,
+            navigationItems: workflowNavigationConfig[workflow],
+            isLoading: false
+          }));
+        },
         onError: () => {
           // Reset loading state on error
           setState((prevState) => ({

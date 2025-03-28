@@ -183,11 +183,9 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', \App\Http\Controllers\UserController::class);
     });
 
-
-    // Workflow Change Route - Excluded from CSRF verification
-    Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])
-        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-        ->name('change-workflow');
+    // User Preferences Route
+    Route::patch('/user/preferences', [DashboardController::class, 'updatePreferences'])
+        ->name('user.preferences.update');
 });
 
 require __DIR__.'/auth.php';

@@ -9,9 +9,9 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $request->session()->put('workflow', 'perioperative');
+        $workflow = auth()->user()->workflow_preference;
         return Inertia::render('Dashboard/Perioperative', [
-            'workflow' => 'perioperative'
+            'workflow' => $workflow
         ]);
     }
 
@@ -22,9 +22,9 @@ class DashboardController extends Controller
             'redirect' => 'nullable|string',
         ]);
 
-        // Update the workflow in the session
+        // Update the user's workflow preference
         $workflow = $request->input('workflow');
-        $request->session()->put('workflow', $workflow);
+        auth()->user()->update(['workflow_preference' => $workflow]);
 
         // If a redirect path is provided, redirect to it
         if ($request->has('redirect')) {
@@ -40,9 +40,9 @@ class DashboardController extends Controller
 
     public function improvement(Request $request)
     {
-        $request->session()->put('workflow', 'improvement');
+        auth()->user()->update(['workflow_preference' => 'improvement']);
         return Inertia::render('Dashboard/Improvement', [
-            'workflow' => 'improvement',
+            'workflow' => auth()->user()->workflow_preference,
             'stats' => [
                 'total' => 0,
                 'activePDSA' => 0,
@@ -55,9 +55,9 @@ class DashboardController extends Controller
 
     public function bottlenecks(Request $request)
     {
-        $request->session()->put('workflow', 'improvement');
+        auth()->user()->update(['workflow_preference' => 'improvement']);
         return Inertia::render('Improvement/Bottlenecks', [
-            'workflow' => 'improvement',
+            'workflow' => auth()->user()->workflow_preference,
             'bottlenecks' => [
                 'stats' => [
                     'active' => 12,
@@ -70,7 +70,7 @@ class DashboardController extends Controller
 
     public function rootCause(Request $request)
     {
-        $request->session()->put('workflow', 'improvement');
+        auth()->user()->update(['workflow_preference' => 'improvement']);
 
         // Production data would come from ML models analyzing:
         // - EMR timestamps
@@ -259,6 +259,30 @@ class DashboardController extends Controller
                     'act' => []
                 ]
             ]
+        ]);
+    }
+
+    /**
+     * Update user preferences.
+     */
+    public function updatePreferences(Request $request)
+    {
+        $request->validate([
+            'workflow_preference' => 'required|in:superuser,rtdc,perioperative,emergency,improvement',
+            'redirect' => 'nullable|string',
+        ]);
+
+        auth()->user()->update([
+            'workflow_preference' => $request->workflow_preference
+        ]);
+
+        if ($request->has('redirect')) {
+            return redirect($request->redirect);
+        }
+
+        return response()->json([
+            'success' => true,
+            'workflow' => $request->workflow_preference,
         ]);
     }
 }
