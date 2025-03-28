@@ -252,8 +252,8 @@ const DashboardContext = createContext();
 export function DashboardProvider({ children }) {
   const { workflow: initialWorkflow } = usePage().props;
   const [state, setState] = useState({
-    currentWorkflow: initialWorkflow || 'perioperative',
-    navigationItems: workflowNavigationConfig[initialWorkflow || 'perioperative'],
+    currentWorkflow: initialWorkflow || 'superuser',
+    navigationItems: workflowNavigationConfig[initialWorkflow || 'superuser'],
     isLoading: false,
   });
 
@@ -278,9 +278,8 @@ export function DashboardProvider({ children }) {
       // Determine the redirect path
       const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
       
-      // Use Inertia's router.patch() to update user preferences
-      router.patch('/user/preferences', {
-        workflow_preference: workflow,
+      // Use Inertia's router.get() with URL parameters
+      router.get(`/set-preference/${workflow}`, {
         redirect: path
       }, {
         preserveState: false,

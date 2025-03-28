@@ -183,9 +183,10 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', \App\Http\Controllers\UserController::class);
     });
 
-    // User Preferences Route
-    Route::patch('/user/preferences', [DashboardController::class, 'updatePreferences'])
-        ->name('user.preferences.update');
+    // User Preferences Route - Using GET with URL parameters
+    Route::get('/set-preference/{workflow}', [DashboardController::class, 'setPreference'])
+        ->name('user.set-preference')
+        ->where('workflow', 'superuser|rtdc|perioperative|emergency|improvement');
 });
 
 require __DIR__.'/auth.php';

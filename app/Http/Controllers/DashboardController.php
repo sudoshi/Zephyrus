@@ -263,26 +263,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Update user preferences.
+     * Set user workflow preference with URL parameters.
      */
-    public function updatePreferences(Request $request)
+    public function setPreference(Request $request, $workflow)
     {
-        $request->validate([
-            'workflow_preference' => 'required|in:superuser,rtdc,perioperative,emergency,improvement',
-            'redirect' => 'nullable|string',
-        ]);
+        // Update user's workflow preference
+        auth()->user()->update(['workflow_preference' => $workflow]);
 
-        auth()->user()->update([
-            'workflow_preference' => $request->workflow_preference
-        ]);
-
-        if ($request->has('redirect')) {
-            return redirect($request->redirect);
+        // Handle redirect from query parameter if present
+        $redirect = $request->query('redirect');
+        if ($redirect) {
+            return redirect($redirect);
         }
 
-        return response()->json([
-            'success' => true,
-            'workflow' => $request->workflow_preference,
-        ]);
+        // Default redirect to dashboard with the selected workflow
+        return redirect("/dashboard/{$workflow}");
     }
 }
