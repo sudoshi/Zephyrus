@@ -2,16 +2,17 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class SessionAuthMiddleware
 {
     /**
-     * Handle an incoming request.
+     * Auto-login middleware that ensures a user is always authenticated.
+     * Replaces traditional authentication with an automatic login as admin user.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
@@ -19,43 +20,29 @@ class SessionAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip authentication check for login routes
-        if ($request->is('login') || $request->is('*/login')) {
-            return $next($request);
-        }
-        
         // If the user is already authenticated, proceed
         if (Auth::check()) {
             return $next($request);
         }
-
-        // Get the session ID
-        $sessionId = $request->session()->getId();
         
-        // Check if the session exists in the database
-        $sessionExists = DB::table('sessions')
-            ->where('id', $sessionId)
-            ->exists();
-            
-        // If the session doesn't exist, redirect to login
-        if (!$sessionExists) {
-            return redirect()->route('login');
-        }
+        // Auto-login as admin user
+        $user = User::firstOrCreate(
+            ['username' => 'admin'],
+            [
+                'name' => 'Administrator',
+                'email' => 'admin@example.com',
+                'password' => bcrypt('password'),
+                'workflow_preference' => 'superuser'
+            ]
+        );
         
-        // Get user_id from the session data
-        $session = DB::table('sessions')
-            ->where('id', $sessionId)
-            ->first();
-            
-        if ($session && $session->user_id) {
-            // Log the user in
-            Auth::loginUsingId($session->user_id);
-            
-            // Proceed with the request
-            return $next($request);
-        }
+        // Log the user in
+        Auth::login($user);
         
-        // If no user_id in session, redirect to login
-        return redirect()->route('login');
+        // Set the workflow preference in session
+        $request->session()->put('workflow', 'superuser');
+        
+        // Proceed with the request
+        return $next($request);
     }
 }
