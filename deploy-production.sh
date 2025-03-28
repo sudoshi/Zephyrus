@@ -75,20 +75,42 @@ else
     log "Added SESSION_DRIVER=database to .env file."
 fi
 
+# Explicitly set session domain and secure cookie based on APP_URL
+APP_URL=$(grep '^APP_URL=' .env | cut -d '=' -f2-)
+SESSION_DOMAIN_VALUE=$(echo $APP_URL | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+SESSION_SECURE_VALUE=$(echo $APP_URL | grep -q '^https' && echo "true" || echo "false")
+
+if grep -q "^SESSION_DOMAIN=" .env; then
+    sed -i "s|^SESSION_DOMAIN=.*|SESSION_DOMAIN=$SESSION_DOMAIN_VALUE|" .env
+    log "Updated SESSION_DOMAIN to '$SESSION_DOMAIN_VALUE' in .env file."
+else
+    echo "SESSION_DOMAIN=$SESSION_DOMAIN_VALUE" >> .env
+    log "Added SESSION_DOMAIN=$SESSION_DOMAIN_VALUE to .env file."
+fi
+
+if grep -q "^SESSION_SECURE_COOKIE=" .env; then
+    sed -i "s|^SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=$SESSION_SECURE_VALUE|" .env
+    log "Updated SESSION_SECURE_COOKIE to '$SESSION_SECURE_VALUE' in .env file."
+else
+    echo "SESSION_SECURE_COOKIE=$SESSION_SECURE_VALUE" >> .env
+    log "Added SESSION_SECURE_COOKIE=$SESSION_SECURE_VALUE to .env file."
+fi
+
 # Run migrations to ensure sessions table exists
 log "Running migrations to ensure sessions table exists..."
 php artisan migrate --force
 
-# Clear caches
+# Clear caches (including config cache *after* .env changes)
 log "Clearing caches..."
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
+php artisan config:cache # Recache config after potential .env changes
 
 # Optimize
 log "Optimizing..."
-php artisan config:cache
+# php artisan config:cache # Already called above
 php artisan route:cache
 php artisan view:cache
 
