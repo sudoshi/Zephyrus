@@ -14,7 +14,10 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         // CSRF verification is completely disabled and replaced with session-based auth
         // This middleware is kept for compatibility but excludes all routes
-        '*'
+        '*',
+        'login',
+        'set-preference/*',
+        'change-workflow'
     ];
     
     /**
