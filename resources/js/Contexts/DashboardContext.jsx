@@ -275,40 +275,35 @@ export function DashboardProvider({ children }) {
         isLoading: true
       }));
 
-      // Simple direct approach - use window.location for a full page reload
-      // This ensures a clean state and avoids CSRF issues
+      // Determine the redirect path
       const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
       
-      // Update the workflow in session via a form submission
+      // Create a form element for a traditional form submission
+      // This approach is more reliable for handling CSRF tokens
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = '/change-workflow';
       form.style.display = 'none';
       
-      // Add CSRF token
-      const csrfToken = document.createElement('input');
-      csrfToken.type = 'hidden';
-      csrfToken.name = '_token';
-      csrfToken.value = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-      form.appendChild(csrfToken);
-      
-      // Add workflow input
+      // Add the workflow input
       const workflowInput = document.createElement('input');
       workflowInput.type = 'hidden';
       workflowInput.name = 'workflow';
       workflowInput.value = workflow;
       form.appendChild(workflowInput);
       
-      // Add redirect path
+      // Add the redirect path
       const redirectInput = document.createElement('input');
       redirectInput.type = 'hidden';
       redirectInput.name = 'redirect';
       redirectInput.value = path;
       form.appendChild(redirectInput);
       
-      // Submit the form
+      // Append the form to the body and submit it
       document.body.appendChild(form);
       form.submit();
+      
+      // The page will reload after form submission
       
       // No need for complex state management here since we're doing a full page reload
     },
