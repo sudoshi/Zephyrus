@@ -274,33 +274,64 @@ export function DashboardProvider({ children }) {
         isLoading: true
       }));
 
-      const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
-      router.visit(path, {
-        preserveState: false, // Don't preserve state to ensure fresh data
-        preserveScroll: false, // Don't preserve scroll position for a fresh start
-        onBefore: () => {
-          // Clear current state before navigation
-          setState((prevState) => ({
-            ...prevState,
-            navigationItems: null
-          }));
+      // First, make a server request to update the workflow in the session
+      fetch('/change-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+          'Accept': 'application/json',
         },
-        onSuccess: () => {
-          // Update state with new workflow data
+        body: JSON.stringify({ workflow }),
+        credentials: 'same-origin'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // After the session is updated, navigate to the new dashboard
+          const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
+          router.visit(path, {
+            preserveState: true, // Preserve state to maintain authentication
+            preserveScroll: false, // Don't preserve scroll position for a fresh start
+            onBefore: () => {
+              // Update navigation items before navigation
+              setState((prevState) => ({
+                ...prevState,
+                currentWorkflow: workflow,
+                navigationItems: workflowNavigationConfig[workflow] || null
+              }));
+            },
+            onSuccess: () => {
+              // Update state with new workflow data
+              setState((prevState) => ({
+                ...prevState,
+                currentWorkflow: workflow,
+                navigationItems: workflowNavigationConfig[workflow],
+                isLoading: false
+              }));
+            },
+            onError: () => {
+              setState((prevState) => ({ 
+                ...prevState, 
+                isLoading: false,
+                navigationItems: workflowNavigationConfig[prevState.currentWorkflow] // Restore previous navigation items on error
+              }));
+            }
+          });
+        } else {
+          // Handle error if the server request fails
           setState((prevState) => ({
             ...prevState,
-            currentWorkflow: workflow,
-            navigationItems: workflowNavigationConfig[workflow],
             isLoading: false
           }));
-        },
-        onError: () => {
-          setState((prevState) => ({ 
-            ...prevState, 
-            isLoading: false,
-            navigationItems: workflowNavigationConfig[prevState.currentWorkflow] // Restore previous navigation items on error
-          }));
-        },
+        }
+      })
+      .catch(error => {
+        console.error('Error changing workflow:', error);
+        setState((prevState) => ({
+          ...prevState,
+          isLoading: false
+        }));
       });
     },
     []
