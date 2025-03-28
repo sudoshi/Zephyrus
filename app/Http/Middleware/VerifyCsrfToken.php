@@ -12,9 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        '/change-workflow', // Exempt the workflow change route
-        '/login', // Exempt the login route
-        '/logout', // Exempt the logout route
-        'api/*' // Exempt API routes
+        '/change-workflow',
+        '/login',
+        '/logout'
     ];
 }
