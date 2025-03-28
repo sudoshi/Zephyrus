@@ -55,6 +55,7 @@ The application was experiencing 419 (CSRF token mismatch) errors during login a
 - Overrode handle() method in VerifyCsrfToken to bypass all validation
 - Explicitly unset CSRF tokens in Axios defaults
 - Added multiple routes to CSRF exclusion list in VerifyCsrfToken middleware
+- Bypassed the entire 'web' middleware group for the login route to prevent any middleware interference
 
 ### 6. Cache Clearing
 
