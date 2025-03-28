@@ -24,6 +24,31 @@ else
     service apache2 restart
 fi
 
+echo "===== Verifying database connection ====="
+# Ensure the database is properly connected
+php artisan db:monitor
+
+echo "===== Creating admin user if needed ====="
+# Run a small PHP script to ensure the admin user exists
+php -r '
+require __DIR__ . "/vendor/autoload.php";
+$app = require_once __DIR__ . "/bootstrap/app.php";
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+$user = \App\Models\User::firstOrCreate(
+    ["username" => "admin"],
+    [
+        "name" => "Administrator",
+        "email" => "admin@example.com",
+        "password" => \Illuminate\Support\Facades\Hash::make("password"),
+        "workflow_preference" => "superuser"
+    ]
+);
+
+echo "Admin user created or verified: " . $user->username . "\n";
+'
+
 echo "===== Deployment complete ====="
-echo "The CSRF and Content Security Policy fixes have been deployed."
-echo "If you experience any issues, please check the Apache error logs."
+echo "The auto-login solution has been deployed."
+echo "The application now bypasses login and uses an admin account automatically."
+echo "Visit the site at: https://demo.zephyrus.care"
