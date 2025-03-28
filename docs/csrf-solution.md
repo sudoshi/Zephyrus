@@ -25,6 +25,9 @@ The application was experiencing 419 (CSRF token mismatch) errors during login a
 - Added explicit headers to unset any CSRF-related headers
 - Configured CORS headers to allow form submissions
 - Added security headers to maintain site protection
+- Configured Content Security Policy to allow required external resources:
+  - fonts.bunny.net for typography
+  - iconify.design and related domains for icons
 - Disabled mod_security for login routes (if installed)
 
 ### 2. Direct Login Script
