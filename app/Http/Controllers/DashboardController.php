@@ -19,13 +19,19 @@ class DashboardController extends Controller
     {
         $request->validate([
             'workflow' => 'required|in:superuser,rtdc,perioperative,emergency,improvement',
+            'redirect' => 'nullable|string',
         ]);
 
         // Update the workflow in the session
         $workflow = $request->input('workflow');
         $request->session()->put('workflow', $workflow);
 
-        // Return JSON response with the new workflow
+        // If a redirect path is provided, redirect to it
+        if ($request->has('redirect')) {
+            return redirect($request->input('redirect'));
+        }
+
+        // Otherwise return JSON response with the new workflow
         return response()->json([
             'success' => true,
             'workflow' => $workflow,

@@ -126,8 +126,6 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                       onClick={() => {
                         setIsNavigating(true);
                         changeWorkflow(item.workflow);
-                        // Reset navigation state after a timeout in case the navigation fails
-                        setTimeout(() => setIsNavigating(false), 3000);
                       }}
                       className={`flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-all duration-300 border ${
                         (currentWorkflow === item.workflow)
@@ -234,18 +232,14 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
             <div className="flex items-center space-x-8">
               {subNavigation.map((item) => (
                 (currentWorkflow === 'improvement' || currentWorkflow === 'rtdc') && !item.dropdownItems?.length ? (
-                  <Link
+                  <a
                     key={item.key}
                     href={item.href}
-                    as="button"
-                    method="get"
-                    preserveState={true}
-                    preserveScroll={false}
                     className="flex items-center px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark rounded-md transition-all duration-300 border border-transparent hover:border-healthcare-border dark:hover:border-healthcare-border-dark"
                   >
                     <Icon icon={item.icon} className="w-5 h-5 mr-2" />
                     {item.name}
-                  </Link>
+                  </a>
                 ) : (
                   <Menu as="div" className="relative z-75" key={item.key}>
                     <div className="flex items-center">
@@ -268,12 +262,8 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                         {item.dropdownItems.map((dropdownItem) => (
                           <Menu.Item key={dropdownItem.name}>
                             {({ active }) => (
-                              <Link
+                              <a
                                 href={dropdownItem.href}
-                                as="button"
-                                method="get"
-                                preserveState={true}
-                                preserveScroll={false}
                                 className={`
                                   block px-4 py-2 text-sm transition-all duration-300
                                   ${
@@ -284,7 +274,7 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                                 `}
                               >
                                 {dropdownItem.name}
-                              </Link>
+                              </a>
                             )}
                           </Menu.Item>
                         ))}
