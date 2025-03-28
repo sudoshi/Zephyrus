@@ -16,5 +16,6 @@ class VerifyCsrfToken extends Middleware
         // For SPA using Inertia, most routes should have CSRF protection
         '/api/*',          // API routes typically use token auth instead
         '/webhook/*',      // External webhook endpoints
+        '/change-workflow' // Workflow changing endpoint needed by the UI
     ];
 }
