@@ -34,23 +34,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Store the selected workflow in the session
-        $request->session()->put('workflow', $request->workflow);
-
         // Store the username in the session
         $request->session()->put('username', $request->username);
+        
+        // Default to superuser workflow
+        $request->session()->put('workflow', 'superuser');
 
-        // Redirect to the appropriate dashboard based on workflow
-        $dashboardRoute = match($request->workflow) {
-            'rtdc' => 'dashboard.rtdc',
-            'perioperative' => 'dashboard.perioperative',
-            'emergency' => 'dashboard.emergency',
-            'improvement' => 'dashboard.improvement',
-            'superuser' => 'dashboard',
-            default => 'dashboard'
-        };
-
-        return redirect()->intended(route($dashboardRoute));
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

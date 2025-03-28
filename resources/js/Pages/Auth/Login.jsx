@@ -29,24 +29,16 @@ const useDarkMode = () => {
 export default function Login({ status, canResetPassword }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { data, setData, post, processing, errors, reset } = useForm({
-        workflow: 'superuser',
         username: '',
         password: '',
         remember: false,
     });
 
-    const workflowOptions = [
-        { value: 'superuser', label: 'SUPERUSER' },
-        { value: 'rtdc', label: 'RTDC' },
-        { value: 'perioperative', label: 'PERIOPERATIVE' },
-        { value: 'emergency', label: 'EMERGENCY' },
-        { value: 'improvement', label: 'IMPROVEMENT' },
-    ];
+
 
     const submit = (e) => {
         e.preventDefault();
         post('/login', {
-            workflow: data.workflow,
             username: data.username,
             password: data.password,
             remember: data.remember,
@@ -80,42 +72,7 @@ export default function Login({ status, canResetPassword }) {
                 <Card.Content>
                     <DataModeToggle />
                     <form onSubmit={submit} className="mt-4 space-y-4">
-                        <div>
-                            <label htmlFor="workflow" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                Workflow
-                            </label>
-                            <Listbox value={data.workflow} onChange={(value) => setData('workflow', value)}>
-                                <div className="relative mt-1">
-                                    <Listbox.Button className="relative w-full rounded-md border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark px-4 py-2 text-left">
-                                        <span className="block truncate">
-                                            {workflowOptions.find(option => option.value === data.workflow)?.label}
-                                        </span>
-                                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                                            <Icon
-                                                icon="heroicons:chevron-down"
-                                                className="h-5 w-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
-                                                aria-hidden="true"
-                                            />
-                                        </span>
-                                    </Listbox.Button>
-                                    <Listbox.Options className="absolute z-10 w-full mt-1 overflow-auto rounded-md bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark shadow-lg">
-                                        {workflowOptions.map((option) => (
-                                            <Listbox.Option
-                                                key={option.value}
-                                                value={option.value}
-                                                className={({ active }) =>
-                                                    `relative cursor-pointer select-none py-2 px-4 ${
-                                                        active ? 'bg-healthcare-info dark:bg-healthcare-info-dark text-white' : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                                    }`
-                                                }
-                                            >
-                                                {option.label}
-                                            </Listbox.Option>
-                                        ))}
-                                    </Listbox.Options>
-                                </div>
-                            </Listbox>
-                        </div>
+
 
                         <div>
                             <label htmlFor="username" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">

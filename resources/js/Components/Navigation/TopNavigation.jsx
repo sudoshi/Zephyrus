@@ -181,6 +181,24 @@ const TopNavigation = ({ isDarkMode, setIsDarkMode }) => {
                     </Menu.Item>
                     <Menu.Item>
                       {({ active }) => (
+                        <Link
+                          href="/users"
+                          className={`
+                            flex items-center px-4 py-2.5 text-sm transition-all duration-300
+                            ${
+                              active
+                                ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-hover/50 dark:hover:bg-healthcare-hover-dark/50'
+                            }
+                          `}
+                        >
+                          <Icon icon="heroicons:users" className="w-4 h-4 mr-2" />
+                          User Management
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
                         <button
                           onClick={() => router.post('/logout')}
                           className={`

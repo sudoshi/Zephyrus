@@ -178,6 +178,11 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // User Management Routes - Only accessible to admins
+    Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class);
+    });
+
 
     // Workflow Change Route
     Route::post('/change-workflow', [DashboardController::class, 'changeWorkflow'])->name('change-workflow');
