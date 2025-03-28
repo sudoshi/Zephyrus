@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Http\Kernel;
-use App\Http\Middleware\DisableCsrfForAllRoutes;
+use App\Http\Middleware\AddXsrfTokenMiddleware;
 
 class CsrfServiceProvider extends ServiceProvider
 {
@@ -21,7 +21,8 @@ class CsrfServiceProvider extends ServiceProvider
      */
     public function boot(Kernel $kernel): void
     {
-        // Register the middleware globally
-        $kernel->pushMiddleware(DisableCsrfForAllRoutes::class);
+        // Register the XSRF token middleware globally
+        // This ensures all responses have the XSRF-TOKEN cookie set
+        $kernel->pushMiddleware(AddXsrfTokenMiddleware::class);
     }
 }
