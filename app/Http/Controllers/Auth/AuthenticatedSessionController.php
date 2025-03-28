@@ -37,8 +37,10 @@ class AuthenticatedSessionController extends Controller
         // Store the username in the session
         $request->session()->put('username', $request->username);
         
-        // Default to superuser workflow
-        $request->session()->put('workflow', 'superuser');
+        // Ensure user has default workflow preference
+        if (auth()->user()->workflow_preference === null) {
+            auth()->user()->update(['workflow_preference' => 'superuser']);
+        }
         
         // Store the user ID in the session for our custom session auth
         $request->session()->put('user_id', auth()->id());
