@@ -1,0 +1,7 @@
+import{j as e,P as a}from"./app-DNCPaP7U.js";import{I as o}from"./iconify-CuDxMG-b.js";const h=({isDarkMode:r,onToggle:t})=>e.jsxs("button",{onClick:t,className:`
+        relative p-2.5 rounded-lg transition-all duration-300
+        ${r?"bg-healthcare-surface-dark hover:bg-healthcare-hover-dark text-healthcare-info-dark":"bg-healthcare-surface hover:bg-healthcare-hover text-healthcare-info"}
+        focus:outline-none focus:ring-2 focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark focus:ring-opacity-50
+        border border-healthcare-border dark:border-healthcare-border-dark
+        group
+      `,"aria-label":`Switch to ${r?"light":"dark"} mode`,title:`Switch to ${r?"light":"dark"} mode`,children:[e.jsx("div",{className:"relative w-5 h-5",children:e.jsx(o,{icon:r?"heroicons:sun":"heroicons:moon",className:"w-5 h-5 absolute inset-0 transform transition-all duration-300 rotate-0 group-hover:rotate-12","aria-hidden":"true"})}),e.jsx("span",{className:"absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark border border-healthcare-border dark:border-healthcare-border-dark shadow-sm",children:r?"Switch to light mode":"Switch to dark mode"})]});h.propTypes={isDarkMode:a.bool.isRequired,onToggle:a.func.isRequired};export{h as D};

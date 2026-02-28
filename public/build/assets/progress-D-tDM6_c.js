@@ -1,0 +1,1 @@
+import{j as r}from"./app-DNCPaP7U.js";const s=({value:e})=>r.jsx("div",{className:"w-full bg-gray-200 rounded-full dark:bg-gray-700",children:r.jsxs("div",{className:"bg-blue-500 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full dark:bg-blue-800 dark:text-blue-300",style:{width:`${e}%`},children:[e,"%"]})});export{s as P};

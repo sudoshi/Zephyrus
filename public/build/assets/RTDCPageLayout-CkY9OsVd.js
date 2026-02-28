@@ -1,0 +1,1 @@
+import{j as s,L as t}from"./app-DNCPaP7U.js";import{D as e}from"./DashboardLayout-BfUOEmbm.js";import{P as m}from"./PageContentLayout-DDKRpoW7.js";const j=({title:a,subtitle:o,children:r})=>s.jsxs(e,{children:[s.jsx(t,{title:`${a} - RTDC`}),s.jsx(m,{title:a,subtitle:o,children:s.jsx("div",{className:"space-y-6",children:r})})]});export{j as R};
