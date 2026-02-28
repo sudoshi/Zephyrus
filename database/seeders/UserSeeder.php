@@ -13,31 +13,46 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create default admin user first
+        User::updateOrCreate(
+            ['username' => 'admin'],
+            [
+                'name' => 'Administrator',
+                'email' => 'admin@example.com',
+                'password' => Hash::make('password'),
+                'workflow_preference' => 'superuser',
+            ]
+        );
+
         // Create users with matching usernames and passwords
         $users = [
             [
                 'name' => 'Sanjay',
                 'email' => 'sanjay@example.com',
                 'username' => 'sanjay',
-                'password' => 'sanjay'
+                'password' => 'sanjay',
+                'workflow_preference' => 'perioperative',
             ],
             [
                 'name' => 'Acumenus',
                 'email' => 'acumenus@example.com',
                 'username' => 'acumenus',
-                'password' => 'acumenus'
+                'password' => 'acumenus',
+                'workflow_preference' => 'superuser',
             ],
             [
                 'name' => 'Kartheek',
                 'email' => 'kartheek@example.com',
                 'username' => 'kartheek',
-                'password' => 'kartheek'
+                'password' => 'kartheek',
+                'workflow_preference' => 'rtdc',
             ],
             [
                 'name' => 'Hakan',
                 'email' => 'hakan@example.com',
                 'username' => 'hakan',
-                'password' => 'hakan'
+                'password' => 'hakan',
+                'workflow_preference' => 'improvement',
             ]
         ];
 
@@ -48,6 +63,7 @@ class UserSeeder extends Seeder
                     'name' => $userData['name'],
                     'username' => $userData['username'],
                     'password' => Hash::make($userData['password']),
+                    'workflow_preference' => $userData['workflow_preference'] ?? 'superuser',
                 ]
             );
         }

@@ -35,27 +35,17 @@ Route::get('/debug-session', function (Request $request) {
     ]);
 });
 
-// Auto-authenticate as superuser and redirect to dashboard
+// Root route - redirect to login or dashboard based on auth state
 Route::get('/', function (Request $request) {
-    // Find or create a default superuser
-    $user = \App\Models\User::firstOrCreate(
-        ['username' => 'admin'],
-        [
-            'name' => 'Administrator',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
-            'workflow_preference' => 'superuser'
-        ]
-    );
-    
-    // Auto-login
-    auth()->login($user);
-    
-    return redirect()->route('dashboard');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
-// Remove authentication requirement
-Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+// Authenticated routes with CSRF disabled for development
+Route::middleware(['auth'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->group(function () {
     // Home Route
     Route::get('/home', function() {
