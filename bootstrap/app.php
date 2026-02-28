@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\AddXsrfTokenMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             ],
             append: [
-                \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
                 \App\Http\Middleware\HandleInertiaRequests::class,
                 \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             ]
