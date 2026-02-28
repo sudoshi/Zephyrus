@@ -20,7 +20,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
                 \App\Http\Middleware\HandleInertiaRequests::class,
                 \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-                \App\Http\Middleware\SessionAuthMiddleware::class,
             ]
         );
     })
