@@ -5,10 +5,10 @@
 set -e
 
 # Check if we're in the development directory
-if [[ "$(pwd)" != "/home/acumenus/GitHub/Zephyrus"* ]]; then
+if [[ "$(pwd)" != "/home/smudoshi/Github/Zephyrus"* ]]; then
     echo "❌ Error: This script must be run from the development directory"
     echo "📂 Current directory: $(pwd)"
-    echo "📂 Expected directory: /home/acumenus/GitHub/Zephyrus"
+    echo "📂 Expected directory: /home/smudoshi/Github/Zephyrus"
     exit 1
 fi
 
@@ -54,7 +54,7 @@ sudo rsync -av --exclude 'node_modules' \
             --exclude '.github' \
             --exclude 'tests' \
             --exclude 'deploy.sh' \
-            /home/acumenus/GitHub/Zephyrus/ /var/www/Zephyrus/
+            /home/smudoshi/Github/Zephyrus/ /var/www/Zephyrus/
 
 echo "Setting permissions..."
 # Set proper permissions

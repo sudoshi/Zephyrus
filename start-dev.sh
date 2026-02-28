@@ -45,13 +45,13 @@ if [ ! -f "${SCRIPT_DIR}/.env" ]; then
 fi
 
 # Check if required ports are available
-if check_port 8000; then
-    print_status "$RED" "Error: Port 8000 is already in use"
+if check_port 8001; then
+    print_status "$RED" "Error: Port 8001 is already in use"
     exit 1
 fi
 
-if check_port 5173; then
-    print_status "$RED" "Error: Port 5173 is already in use"
+if check_port 5176; then
+    print_status "$RED" "Error: Port 5176 is already in use"
     exit 1
 fi
 
@@ -79,7 +79,7 @@ php artisan view:clear
 
 # Start Laravel development server
 print_status "$YELLOW" "Starting Laravel development server..."
-php artisan serve > /dev/null 2>&1 & echo $! > "${LARAVEL_PID_FILE}"
+php artisan serve --port=8001 > /dev/null 2>&1 & echo $! > "${LARAVEL_PID_FILE}"
 
 # Start Vite development server
 print_status "$YELLOW" "Starting Vite development server..."
@@ -89,17 +89,17 @@ npm run dev > /dev/null 2>&1 & echo $! > "${VITE_PID_FILE}"
 sleep 3
 
 # Check if servers are running
-if ! check_port 8000; then
+if ! check_port 8001; then
     print_status "$RED" "Error: Laravel development server failed to start"
     exit 1
 fi
 
-if ! check_port 5173; then
+if ! check_port 5176; then
     print_status "$RED" "Error: Vite development server failed to start"
     exit 1
 fi
 
 print_status "$GREEN" "Development servers started successfully!"
-print_status "$GREEN" "Laravel: http://localhost:8000"
-print_status "$GREEN" "Vite: http://localhost:5173"
+print_status "$GREEN" "Laravel: http://localhost:8001"
+print_status "$GREEN" "Vite: http://localhost:5176"
 print_status "$YELLOW" "Use ./stop-dev.sh to stop the servers"

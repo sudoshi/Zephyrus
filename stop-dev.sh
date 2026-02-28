@@ -63,22 +63,22 @@ stop_process "$LARAVEL_PID_FILE" "Laravel development server"
 stop_process "$VITE_PID_FILE" "Vite development server"
 
 # Check for any remaining processes on the ports
-if check_port 8000; then
-    print_status "$YELLOW" "Cleaning up remaining process on port 8000..."
-    lsof -ti :8000 | xargs kill -9 > /dev/null 2>&1
+if check_port 8001; then
+    print_status "$YELLOW" "Cleaning up remaining process on port 8001..."
+    lsof -ti :8001 | xargs kill -9 > /dev/null 2>&1
 fi
 
-if check_port 5173; then
-    print_status "$YELLOW" "Cleaning up remaining process on port 5173..."
-    lsof -ti :5173 | xargs kill -9 > /dev/null 2>&1
+if check_port 5176; then
+    print_status "$YELLOW" "Cleaning up remaining process on port 5176..."
+    lsof -ti :5176 | xargs kill -9 > /dev/null 2>&1
 fi
 
 # Final verification
-if ! check_port 8000 && ! check_port 5173; then
+if ! check_port 8001 && ! check_port 5176; then
     print_status "$GREEN" "Development servers stopped successfully!"
 else
     print_status "$RED" "Warning: Some processes may still be running"
-    print_status "$YELLOW" "Please check manually with: lsof -i :8000 and lsof -i :5173"
+    print_status "$YELLOW" "Please check manually with: lsof -i :8001 and lsof -i :5176"
 fi
 
 # Clean up PID directory if empty

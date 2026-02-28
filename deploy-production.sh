@@ -121,6 +121,6 @@ sudo_cmd chown -R www-data:www-data /var/www/Zephyrus/bootstrap/cache
 
 # Restart PHP-FPM
 log "Restarting PHP-FPM..."
-sudo_cmd systemctl restart php8.2-fpm
+sudo_cmd systemctl restart php8.4-fpm
 
 log "Deployment completed successfully!"
