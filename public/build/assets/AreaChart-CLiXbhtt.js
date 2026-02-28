@@ -1,1 +1,0 @@
-import{v as a,X as r,Y as s,x as i}from"./LineChart-BiJvPHt8.js";import{A as x}from"./Area-Cf-Jitxr.js";var o=a({chartName:"AreaChart",GraphicalChild:x,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:s}],formatAxisMap:i});export{o as A};

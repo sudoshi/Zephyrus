@@ -35,7 +35,7 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('login'), {
+        post('/login', {
             onFinish: () => {
                 // Reset password field on error
                 if (Object.keys(errors).length > 0) {
@@ -171,9 +171,9 @@ export default function Login({ status, canResetPassword }) {
                                     Remember me
                                 </Checkbox>
 
-                                {canResetPassword && (
+                {canResetPassword && (
                                     <Link
-                                        href={route('password.request')}
+                                        href="/forgot-password"
                                         className="text-sm text-primary hover:underline transition-colors"
                                     >
                                         Forgot password?
