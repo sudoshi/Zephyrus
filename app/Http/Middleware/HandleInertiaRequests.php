@@ -36,6 +36,8 @@ class HandleInertiaRequests extends Middleware
         $request->user()->toArray(),
         ['must_change_password' => (bool) $request->user()->must_change_password]
     ) : null,
+    'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
+    'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
 ],
 'workflow' => $request->session()->get('workflow'),
             'flash' => [

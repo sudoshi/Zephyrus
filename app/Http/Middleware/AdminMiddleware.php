@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminMiddleware
@@ -16,16 +15,8 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // For now, we'll consider specific usernames as admins
-        // In a more robust implementation, you'd have a role system
-        $adminUsernames = ['acumenus', 'sanjay'];
-        
-        if (!Auth::check() || !in_array(Auth::user()->username, $adminUsernames)) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
-            }
-            
-            return redirect()->route('dashboard')->with('error', 'You do not have permission to access this page.');
+        if (!$request->user() || !$request->user()->hasRole(['super-admin', 'admin'])) {
+            abort(403, 'Unauthorized');
         }
 
         return $next($request);

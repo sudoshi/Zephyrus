@@ -14,8 +14,25 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Health Check
+Route::get('/health', function () {
+    try {
+        \DB::connection()->getPdo();
+        return response()->json([
+            'status' => 'healthy',
+            'database' => 'connected',
+            'timestamp' => now()->toISOString(),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'unhealthy',
+            'database' => 'disconnected',
+        ], 503);
+    }
+});
+
 // OR Cases
-Route::prefix('cases')->group(function () {
+Route::prefix('cases')->middleware('throttle:60,1')->group(function () {
     Route::get('/', [ORCaseController::class, 'index']);
     Route::post('/', [ORCaseController::class, 'store']);
     Route::put('/{id}', [ORCaseController::class, 'update']);
@@ -25,7 +42,7 @@ Route::prefix('cases')->group(function () {
 });
 
 // Block Schedule
-Route::prefix('blocks')->group(function () {
+Route::prefix('blocks')->middleware('throttle:60,1')->group(function () {
     Route::get('/', [BlockScheduleController::class, 'index']);
     Route::post('/', [BlockScheduleController::class, 'store']);
     Route::get('/utilization', [BlockScheduleController::class, 'utilization']);
@@ -34,19 +51,21 @@ Route::prefix('blocks')->group(function () {
 });
 
 // Analytics
-Route::prefix('analytics')->group(function () {
+Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
     Route::get('/service-performance', [AnalyticsController::class, 'servicePerformance']);
     Route::get('/provider-performance', [AnalyticsController::class, 'providerPerformance']);
     Route::get('/historical-trends', [AnalyticsController::class, 'historicalTrends']);
 });
 
 // Reference Data
-Route::get('/services', [ServiceController::class, 'index']);
-Route::get('/rooms', [RoomController::class, 'index']);
-Route::get('/providers', [ProviderController::class, 'index']);
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/rooms', [RoomController::class, 'index']);
+    Route::get('/providers', [ProviderController::class, 'index']);
+});
 
 // Improvement Process Maps
-Route::prefix('improvement')->group(function () {
+Route::prefix('improvement')->middleware('throttle:60,1')->group(function () {
     Route::get('/api/nursing-operations', function () {
         $workflow = request('workflow', 'Bed Placement');
         $format = request('format', 'mock_data');
