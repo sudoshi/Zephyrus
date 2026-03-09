@@ -1,0 +1,63 @@
+/* ============================================================
+   Focus Management Utilities
+   Accessibility-first focus indicators using Acumenus tokens
+   ============================================================ */
+
+/* Skip to content link — visually hidden until focused */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: var(--z-tooltip);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--surface-base);
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top var(--duration-fast) var(--ease-out);
+}
+
+.skip-to-content:focus {
+  top: var(--space-2);
+  outline: none;
+}
+
+/* Global focus ring using gold accent */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Focus ring on interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* Remove default outline when box-shadow is applied */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Focus-within for composite widgets */
+[role="listbox"]:focus-within,
+[role="menu"]:focus-within,
+[role="tablist"]:focus-within {
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+
+/* Reduced motion: simplify focus indicators */
+@media (prefers-reduced-motion: reduce) {
+  .skip-to-content {
+    transition: none;
+  }
+}
