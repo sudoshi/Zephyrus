@@ -2,511 +2,92 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProcessLayout;
+use App\Http\Helpers\ApiResponse;
+use App\Http\Requests\GetProcessLayoutRequest;
+use App\Http\Requests\SaveProcessLayoutRequest;
+use App\Http\Requests\SaveViewportRequest;
+use App\Services\ProcessAnalysisService;
+use App\Services\ProcessLayoutService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class ProcessAnalysisController extends Controller
 {
+    public function __construct(
+        private readonly ProcessAnalysisService $processAnalysisService,
+        private readonly ProcessLayoutService $processLayoutService,
+    ) {}
+
     /**
      * Display the process analysis page.
      */
-    public function index()
+    public function index(): InertiaResponse
     {
-        $layout = ProcessLayout::where('user_id', Auth::id())
-            ->where('hospital', request('hospital', 'Virtua Marlton Hospital'))
-            ->where('workflow', request('workflow', 'Admissions'))
-            ->where('time_range', request('timeRange', '24 Hours'))
-            ->first();
+        $savedLayout = $this->processAnalysisService->getSavedLayout(
+            Auth::id(),
+            request('hospital', 'Virtua Marlton Hospital'),
+            request('workflow', 'Admissions'),
+            request('timeRange', '24 Hours'),
+        );
 
         return Inertia::render('Improvement/Process', [
-            'savedLayout' => $layout ? $layout->layout_data : null,
+            'savedLayout' => $savedLayout,
         ]);
     }
 
     /**
      * Get nursing operations data for process visualization.
      */
-    public function getNursingOperations(Request $request)
+    public function getNursingOperations(Request $request): JsonResponse
     {
         $hospital = $request->query('hospital', 'Virtua Marlton Hospital');
         $workflow = $request->query('workflow', 'Admissions');
         $timeRange = $request->query('timeRange', '24 Hours');
 
-        // For now, return the same data structure but we'll modify it based on the workflow
-        $data = $this->getNursingOperationsData($workflow);
-        
-        // Add intelligence metrics
-        $data['metrics'] = [
-            'staffing' => [
-                'nurses' => [
-                    'assigned' => 18,
-                    'required' => 22
-                ],
-                'physicians' => [
-                    'assigned' => 8,
-                    'required' => 10
-                ]
-            ],
-            'space' => [
-                'rooms' => [
-                    'occupied' => 28,
-                    'capacity' => 32
-                ]
-            ],
-            'cascade' => [
-                'primaryProcess' => $workflow,
-                'affectedProcesses' => [
-                    [
-                        'name' => 'Bed Management',
-                        'severity' => 0.8,
-                        'timeImpact' => 45,
-                        'resourceImpact' => 0.7,
-                        'affectedVolume' => 85,
-                        'dependencies' => ['Nursing Assignment', 'Room Cleaning'],
-                        'type' => 'critical'
-                    ],
-                    [
-                        'name' => 'Staff Scheduling',
-                        'severity' => 0.6,
-                        'timeImpact' => 30,
-                        'resourceImpact' => 0.5,
-                        'affectedVolume' => 60,
-                        'dependencies' => ['Shift Planning'],
-                        'type' => 'operational'
-                    ],
-                    [
-                        'name' => 'Medication Administration',
-                        'severity' => 0.7,
-                        'timeImpact' => 25,
-                        'resourceImpact' => 0.6,
-                        'affectedVolume' => 70,
-                        'dependencies' => ['Pharmacy', 'Nursing'],
-                        'type' => 'clinical'
-                    ]
-                ]
-            ],
-            'waitTime' => [
-                'current' => [
-                    'registration' => 15,
-                    'triage' => 25,
-                    'bedAssignment' => 45,
-                    'physicianInitial' => 35,
-                    'nurseAssessment' => 25
-                ],
-                'benchmark' => [
-                    'registration' => 10,
-                    'triage' => 15,
-                    'bedAssignment' => 20,
-                    'physicianInitial' => 30,
-                    'nurseAssessment' => 20
-                ],
-                'peakMultipliers' => [
-                    'morning' => 1.3,    // 8-11am
-                    'afternoon' => 1.5,  // 2-5pm
-                    'evening' => 1.2,    // 6-9pm
-                    'night' => 1.0       // 10pm-7am
-                ]
-            ],
-            'acuity' => [
-                'patientVolume' => [
-                    'count' => 42,
-                    'totalDailyPatients' => 120,
-                    'acuityBreakdown' => [
-                        'high' => 15,
-                        'medium' => 20,
-                        'low' => 7
-                    ]
-                ],
-                'expectedAcuityMix' => [
-                    'high' => 0.25,    // 25% expected high acuity
-                    'medium' => 0.50,  // 50% expected medium acuity
-                    'low' => 0.25      // 25% expected low acuity
-                ]
-            ],
-            'predictions' => [
-                'resourceUtilization' => [
-                    'nextHour' => [
-                        'nurses' => 0.85,      // 85% utilization predicted
-                        'physicians' => 0.75,
-                        'rooms' => 0.90
-                    ],
-                    'nextShift' => [
-                        'nurses' => 0.80,
-                        'physicians' => 0.70,
-                        'rooms' => 0.85
-                    ],
-                    'nextDay' => [
-                        'nurses' => 0.75,
-                        'physicians' => 0.65,
-                        'rooms' => 0.80
-                    ]
-                ],
-                'patternAnalysis' => [
-                    'peakHours' => [
-                        ['start' => '09:00', 'end' => '11:00', 'severity' => 0.9],
-                        ['start' => '14:00', 'end' => '16:00', 'severity' => 0.85],
-                        ['start' => '19:00', 'end' => '21:00', 'severity' => 0.75]
-                    ],
-                    'quietHours' => [
-                        ['start' => '02:00', 'end' => '05:00', 'severity' => 0.3],
-                        ['start' => '23:00', 'end' => '01:00', 'severity' => 0.4]
-                    ],
-                    'weeklyPatterns' => [
-                        'monday' => 0.85,
-                        'tuesday' => 0.80,
-                        'wednesday' => 0.90,
-                        'thursday' => 0.85,
-                        'friday' => 0.95,
-                        'saturday' => 0.60,
-                        'sunday' => 0.50
-                    ]
-                ],
-                'correlations' => [
-                    'resourceImpact' => [
-                        ['factor' => 'staffing_level', 'impact' => 0.8],
-                        ['factor' => 'patient_acuity', 'impact' => 0.7],
-                        ['factor' => 'time_of_day', 'impact' => 0.6],
-                        ['factor' => 'day_of_week', 'impact' => 0.5]
-                    ],
-                    'bottleneckTriggers' => [
-                        ['trigger' => 'high_acuity_surge', 'probability' => 0.8],
-                        ['trigger' => 'staff_shortage', 'probability' => 0.7],
-                        ['trigger' => 'resource_conflict', 'probability' => 0.6],
-                        ['trigger' => 'process_delay', 'probability' => 0.5]
-                    ]
-                ],
-                'optimizationSuggestions' => [
-                    'staffing' => [
-                        ['action' => 'increase_nurses', 'impact' => 0.8, 'urgency' => 'high'],
-                        ['action' => 'adjust_physician_schedule', 'impact' => 0.6, 'urgency' => 'medium']
-                    ],
-                    'resources' => [
-                        ['action' => 'reallocate_rooms', 'impact' => 0.7, 'urgency' => 'high'],
-                        ['action' => 'optimize_equipment_usage', 'impact' => 0.5, 'urgency' => 'medium']
-                    ],
-                    'workflow' => [
-                        ['action' => 'streamline_admission_process', 'impact' => 0.9, 'urgency' => 'high'],
-                        ['action' => 'improve_discharge_coordination', 'impact' => 0.8, 'urgency' => 'medium']
-                    ]
-                ]
-            ]
-        ];
-
-        // Simulate different counts based on hospital and time range
-        $multiplier = match ($timeRange) {
-            '7 Days' => 7,
-            '14 Days' => 14,
-            '1 Month' => 30,
-            default => 1,
-        };
-
-        // Adjust counts based on multiplier
-        foreach ($data['nodes'] as &$node) {
-            if (isset($node['data']['metrics']['count'])) {
-                $node['data']['metrics']['count'] *= $multiplier;
-            }
-        }
-
-        foreach ($data['edges'] as &$edge) {
-            if (isset($edge['data']['patientCount'])) {
-                $edge['data']['patientCount'] *= $multiplier;
-            }
-        }
+        $data = $this->processAnalysisService->getNursingOperations($hospital, $workflow, $timeRange);
 
         return response()->json($data);
     }
 
     /**
-     * Generate sample nursing operations data.
-     */
-    private function getNursingOperationsData($workflow = 'Admissions')
-    {
-        if ($workflow === 'Discharges') {
-            return [
-                'nodes' => [
-                    // Clinical Branch
-                    ['id' => 'discharge_order', 'position' => ['x' => 0, 'y' => 0], 'data' => ['label' => 'Discharge Order Entry', 'metrics' => ['count' => 120, 'avgTime' => '5m']]],
-                    ['id' => 'med_reconciliation', 'position' => ['x' => 300, 'y' => 0], 'data' => ['label' => 'Medication Reconciliation', 'metrics' => ['count' => 120, 'avgTime' => '20m']]],
-                    ['id' => 'discharge_summary', 'position' => ['x' => 600, 'y' => 0], 'data' => ['label' => 'Discharge Summary', 'metrics' => ['count' => 120, 'avgTime' => '25m']]],
-                    ['id' => 'care_team_signoff', 'position' => ['x' => 900, 'y' => 0], 'data' => ['label' => 'Care Team Sign-offs', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    ['id' => 'final_assessment', 'position' => ['x' => 1200, 'y' => 0], 'data' => ['label' => 'Final Clinical Assessment', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    ['id' => 'patient_education', 'position' => ['x' => 1500, 'y' => 0], 'data' => ['label' => 'Patient Education', 'metrics' => ['count' => 120, 'avgTime' => '20m']]],
-                    
-                    // Pharmacy Branch
-                    ['id' => 'med_review', 'position' => ['x' => 300, 'y' => 200], 'data' => ['label' => 'Medication Review', 'metrics' => ['count' => 110, 'avgTime' => '15m']]],
-                    ['id' => 'rx_processing', 'position' => ['x' => 600, 'y' => 200], 'data' => ['label' => 'Prescription Processing', 'metrics' => ['count' => 110, 'avgTime' => '20m']]],
-                    ['id' => 'med_teaching', 'position' => ['x' => 900, 'y' => 200], 'data' => ['label' => 'Medication Teaching', 'metrics' => ['count' => 110, 'avgTime' => '15m']]],
-                    ['id' => 'take_home_meds', 'position' => ['x' => 1200, 'y' => 200], 'data' => ['label' => 'Take-Home Medications', 'metrics' => ['count' => 110, 'avgTime' => '10m']]],
-                    
-                    // Care Coordination Branch
-                    ['id' => 'post_discharge_plan', 'position' => ['x' => 300, 'y' => 400], 'data' => ['label' => 'Post-Discharge Planning', 'metrics' => ['count' => 100, 'avgTime' => '25m']]],
-                    ['id' => 'home_health', 'position' => ['x' => 600, 'y' => 400], 'data' => ['label' => 'Home Health Coordination', 'metrics' => ['count' => 60, 'avgTime' => '20m']]],
-                    ['id' => 'equipment', 'position' => ['x' => 900, 'y' => 400], 'data' => ['label' => 'Equipment Arrangements', 'metrics' => ['count' => 40, 'avgTime' => '15m']]],
-                    ['id' => 'followup_appts', 'position' => ['x' => 1200, 'y' => 400], 'data' => ['label' => 'Follow-up Appointments', 'metrics' => ['count' => 100, 'avgTime' => '15m']]],
-                    ['id' => 'caregiver_education', 'position' => ['x' => 1500, 'y' => 400], 'data' => ['label' => 'Caregiver Education', 'metrics' => ['count' => 80, 'avgTime' => '20m']]],
-                    
-                    // Administrative Branch
-                    ['id' => 'insurance_auth', 'position' => ['x' => 300, 'y' => 600], 'data' => ['label' => 'Insurance Authorization', 'metrics' => ['count' => 120, 'avgTime' => '30m']]],
-                    ['id' => 'billing_process', 'position' => ['x' => 600, 'y' => 600], 'data' => ['label' => 'Billing Processing', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    ['id' => 'discharge_papers', 'position' => ['x' => 900, 'y' => 600], 'data' => ['label' => 'Discharge Paperwork', 'metrics' => ['count' => 120, 'avgTime' => '20m']]],
-                    ['id' => 'medical_records', 'position' => ['x' => 1200, 'y' => 600], 'data' => ['label' => 'Medical Records', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    
-                    // Final Steps
-                    ['id' => 'belongings', 'position' => ['x' => 600, 'y' => 800], 'data' => ['label' => 'Belongings Collection', 'metrics' => ['count' => 120, 'avgTime' => '10m']]],
-                    ['id' => 'transport_arrange', 'position' => ['x' => 900, 'y' => 800], 'data' => ['label' => 'Transport Arrangement', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    ['id' => 'escort', 'position' => ['x' => 1200, 'y' => 800], 'data' => ['label' => 'Patient Escort', 'metrics' => ['count' => 120, 'avgTime' => '15m']]],
-                    ['id' => 'departure', 'position' => ['x' => 1500, 'y' => 800], 'data' => ['label' => 'Final Departure', 'metrics' => ['count' => 120, 'avgTime' => '5m']]]
-                ],
-                'edges' => [
-                    // Clinical Branch - Main Flow
-                    ['id' => 'e1', 'source' => 'discharge_order', 'target' => 'med_reconciliation', 'data' => ['patientCount' => 120, 'avgTime' => '5m', 'isMainFlow' => true]],
-                    ['id' => 'e2', 'source' => 'med_reconciliation', 'target' => 'discharge_summary', 'data' => ['patientCount' => 120, 'avgTime' => '10m', 'isMainFlow' => true]],
-                    ['id' => 'e3', 'source' => 'discharge_summary', 'target' => 'care_team_signoff', 'data' => ['patientCount' => 120, 'avgTime' => '15m', 'isMainFlow' => true]],
-                    ['id' => 'e4', 'source' => 'care_team_signoff', 'target' => 'final_assessment', 'data' => ['patientCount' => 120, 'avgTime' => '10m', 'isMainFlow' => true]],
-                    ['id' => 'e5', 'source' => 'final_assessment', 'target' => 'patient_education', 'data' => ['patientCount' => 120, 'avgTime' => '5m', 'isMainFlow' => true]],
-                    
-                    // Pharmacy Branch
-                    ['id' => 'e6', 'source' => 'med_reconciliation', 'target' => 'med_review'],
-                    ['id' => 'e7', 'source' => 'med_review', 'target' => 'rx_processing'],
-                    ['id' => 'e8', 'source' => 'rx_processing', 'target' => 'med_teaching'],
-                    ['id' => 'e9', 'source' => 'med_teaching', 'target' => 'take_home_meds'],
-                    ['id' => 'e10', 'source' => 'take_home_meds', 'target' => 'patient_education', 'data' => ['isResultFlow' => true]],
-                    
-                    // Care Coordination Branch
-                    ['id' => 'e11', 'source' => 'discharge_order', 'target' => 'post_discharge_plan'],
-                    ['id' => 'e12', 'source' => 'post_discharge_plan', 'target' => 'home_health'],
-                    ['id' => 'e13', 'source' => 'post_discharge_plan', 'target' => 'equipment'],
-                    ['id' => 'e14', 'source' => 'post_discharge_plan', 'target' => 'followup_appts'],
-                    ['id' => 'e15', 'source' => 'post_discharge_plan', 'target' => 'caregiver_education'],
-                    ['id' => 'e16', 'source' => 'caregiver_education', 'target' => 'patient_education', 'data' => ['isResultFlow' => true]],
-                    
-                    // Administrative Branch
-                    ['id' => 'e17', 'source' => 'discharge_order', 'target' => 'insurance_auth'],
-                    ['id' => 'e18', 'source' => 'insurance_auth', 'target' => 'billing_process'],
-                    ['id' => 'e19', 'source' => 'billing_process', 'target' => 'discharge_papers'],
-                    ['id' => 'e20', 'source' => 'discharge_papers', 'target' => 'medical_records'],
-                    ['id' => 'e21', 'source' => 'medical_records', 'target' => 'patient_education', 'data' => ['isResultFlow' => true]],
-                    
-                    // Final Steps
-                    ['id' => 'e22', 'source' => 'patient_education', 'target' => 'belongings', 'data' => ['patientCount' => 120, 'avgTime' => '5m', 'isMainFlow' => true]],
-                    ['id' => 'e23', 'source' => 'belongings', 'target' => 'transport_arrange', 'data' => ['patientCount' => 120, 'avgTime' => '10m', 'isMainFlow' => true]],
-                    ['id' => 'e24', 'source' => 'transport_arrange', 'target' => 'escort', 'data' => ['patientCount' => 120, 'avgTime' => '5m', 'isMainFlow' => true]],
-                    ['id' => 'e25', 'source' => 'escort', 'target' => 'departure', 'data' => ['patientCount' => 120, 'avgTime' => '5m', 'isMainFlow' => true]]
-                ],
-            ];
-        }
-
-        // Default Admissions workflow
-        $data = [
-            'metrics' => [
-                'staffing' => [
-                    'nurses' => [
-                        'assigned' => 18,
-                        'required' => 22
-                    ],
-                    'physicians' => [
-                        'assigned' => 8,
-                        'required' => 10
-                    ]
-                ],
-                'space' => [
-                    'rooms' => [
-                        'occupied' => 28,
-                        'capacity' => 32
-                    ]
-                ],
-                'totalPatients' => 150,
-                'avgTotalTime' => '135m',
-                'activeCases' => 45,
-                'completedToday' => 105
-            ],
-            'nodes' => [
-                ['id' => 'arrival', 'position' => ['x' => 0, 'y' => 0], 'data' => ['label' => 'Patient Arrival', 'metrics' => ['count' => 150, 'avgTime' => '5m']]],
-                ['id' => 'triage', 'position' => ['x' => 300, 'y' => 0], 'data' => ['label' => 'Triage', 'metrics' => ['count' => 150, 'avgTime' => '15m']]],
-                ['id' => 'quick_reg', 'position' => ['x' => 600, 'y' => 0], 'data' => ['label' => 'Quick Registration', 'metrics' => ['count' => 150, 'avgTime' => '10m']]],
-                ['id' => 'nursing', 'position' => ['x' => 900, 'y' => 0], 'data' => ['label' => 'Nursing Assessment', 'metrics' => ['count' => 150, 'avgTime' => '25m']]],
-                ['id' => 'provider', 'position' => ['x' => 1200, 'y' => 0], 'data' => ['label' => 'Provider Exam', 'metrics' => ['count' => 150, 'avgTime' => '30m']]],
-                ['id' => 'decision', 'position' => ['x' => 1500, 'y' => 0], 'data' => ['label' => 'Disposition Decision', 'metrics' => ['count' => 150, 'avgTime' => '10m']]],
-                ['id' => 'bed_request', 'position' => ['x' => 1800, 'y' => 0], 'data' => ['label' => 'Bed Request', 'metrics' => ['count' => 90, 'avgTime' => '20m']]],
-                ['id' => 'transport', 'position' => ['x' => 2100, 'y' => 0], 'data' => ['label' => 'Transport', 'metrics' => ['count' => 90, 'avgTime' => '15m']]],
-                ['id' => 'unit', 'position' => ['x' => 2400, 'y' => 0], 'data' => ['label' => 'Unit Arrival', 'metrics' => ['count' => 90, 'avgTime' => '5m']]],
-                // Clinical branch
-                ['id' => 'lab_orders', 'position' => ['x' => 900, 'y' => 200], 'data' => ['label' => 'Lab Orders', 'metrics' => ['count' => 120, 'avgTime' => '5m']]],
-                ['id' => 'lab_results', 'position' => ['x' => 1200, 'y' => 200], 'data' => ['label' => 'Lab Results', 'metrics' => ['count' => 120, 'avgTime' => '45m']]],
-                ['id' => 'imaging_orders', 'position' => ['x' => 900, 'y' => 400], 'data' => ['label' => 'Imaging Orders', 'metrics' => ['count' => 80, 'avgTime' => '5m']]],
-                ['id' => 'imaging_results', 'position' => ['x' => 1200, 'y' => 400], 'data' => ['label' => 'Imaging Results', 'metrics' => ['count' => 80, 'avgTime' => '35m']]],
-                // Administrative branch
-                ['id' => 'full_reg', 'position' => ['x' => 600, 'y' => 200], 'data' => ['label' => 'Full Registration', 'metrics' => ['count' => 150, 'avgTime' => '15m']]],
-                ['id' => 'insurance', 'position' => ['x' => 600, 'y' => 400], 'data' => ['label' => 'Insurance Verification', 'metrics' => ['count' => 150, 'avgTime' => '20m']]],
-                ['id' => 'bed_assign', 'position' => ['x' => 1800, 'y' => 200], 'data' => ['label' => 'Bed Assignment', 'metrics' => ['count' => 90, 'avgTime' => '15m']]],
-            ],
-            'edges' => [
-                // Main flow
-                ['id' => 'e1', 'source' => 'arrival', 'target' => 'triage', 'data' => ['patientCount' => 150, 'avgTime' => '2m', 'isMainFlow' => true]],
-                ['id' => 'e2', 'source' => 'triage', 'target' => 'quick_reg', 'data' => ['patientCount' => 150, 'avgTime' => '3m', 'isMainFlow' => true]],
-                ['id' => 'e3', 'source' => 'quick_reg', 'target' => 'nursing', 'data' => ['patientCount' => 150, 'avgTime' => '5m', 'isMainFlow' => true]],
-                ['id' => 'e4', 'source' => 'nursing', 'target' => 'provider', 'data' => ['patientCount' => 150, 'avgTime' => '10m', 'isMainFlow' => true]],
-                ['id' => 'e5', 'source' => 'provider', 'target' => 'decision', 'data' => ['patientCount' => 150, 'avgTime' => '5m', 'isMainFlow' => true]],
-                ['id' => 'e6', 'source' => 'decision', 'target' => 'bed_request', 'data' => ['patientCount' => 90, 'avgTime' => '5m', 'isMainFlow' => true]],
-                ['id' => 'e7', 'source' => 'bed_request', 'target' => 'transport', 'data' => ['patientCount' => 90, 'avgTime' => '10m', 'isMainFlow' => true]],
-                ['id' => 'e8', 'source' => 'transport', 'target' => 'unit', 'data' => ['patientCount' => 90, 'avgTime' => '15m', 'isMainFlow' => true]],
-                // Clinical branch
-                ['id' => 'e9', 'source' => 'nursing', 'target' => 'lab_orders'],
-                ['id' => 'e10', 'source' => 'lab_orders', 'target' => 'lab_results'],
-                ['id' => 'e11', 'source' => 'nursing', 'target' => 'imaging_orders'],
-                ['id' => 'e12', 'source' => 'imaging_orders', 'target' => 'imaging_results'],
-                ['id' => 'e13', 'source' => 'lab_results', 'target' => 'provider', 'data' => ['isResultFlow' => true]],
-                ['id' => 'e14', 'source' => 'imaging_results', 'target' => 'provider', 'data' => ['isResultFlow' => true]],
-                // Administrative branch
-                ['id' => 'e15', 'source' => 'quick_reg', 'target' => 'full_reg'],
-                ['id' => 'e16', 'source' => 'full_reg', 'target' => 'insurance'],
-                ['id' => 'e17', 'source' => 'bed_request', 'target' => 'bed_assign'],
-                ['id' => 'e18', 'source' => 'bed_assign', 'target' => 'transport'],
-            ],
-        ];
-
-        return $data;
-    }
-
-    /**
      * Save the process layout.
      */
-    public function saveLayout(Request $request)
+    public function saveLayout(SaveProcessLayoutRequest $request): Response|JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'process_type' => 'required|string|max:50',
-                'layout_data' => 'required|array',
-                'hospital' => 'required|string|max:100',
-                'workflow' => 'required|string|max:50',
-                'time_range' => 'required|string|max:50',
-            ]);
-
-            // Log the validated data for debugging
-            \Log::info('Saving process layout with data:', [
-                'process_type' => $validated['process_type'],
-                'hospital' => $validated['hospital'],
-                'workflow' => $validated['workflow'],
-                'time_range' => $validated['time_range']
-            ]);
-            
-            ProcessLayout::updateOrCreate(
-                [
-                    'user_id' => Auth::id(),
-                    'hospital' => $validated['hospital'],
-                    'workflow' => $validated['workflow'],
-                    'time_range' => $validated['time_range'],
-                ],
-                [
-                    'process_type' => $validated['process_type'], // Add process_type to the update data
-                    'layout_data' => $validated['layout_data'],
-                ]
-            );
+            $this->processLayoutService->saveLayout(Auth::id(), $request->validated());
 
             return response()->noContent();
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return ApiResponse::error($e->getMessage(), 500);
         }
     }
 
     /**
      * Get the saved process layout.
      */
-    public function getLayout(Request $request)
+    public function getLayout(GetProcessLayoutRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'hospital' => 'required|string|max:100',
-            'workflow' => 'required|string|max:50',
-            'time_range' => 'required|string|max:50',
-        ]);
+        $result = $this->processLayoutService->getLayout(Auth::id(), $request->validated());
 
-        // Log the request parameters for debugging
-        \Log::info('Getting process layout with params:', [
-            'hospital' => $validated['hospital'],
-            'workflow' => $validated['workflow'],
-            'time_range' => $validated['time_range'],
-            'user_id' => Auth::id()
-        ]);
-
-        $layout = ProcessLayout::where('user_id', Auth::id())
-            ->where('hospital', $validated['hospital'])
-            ->where('workflow', $validated['workflow'])
-            ->where('time_range', $validated['time_range'])
-            ->first();
-
-        // Log whether a layout was found
-        if ($layout) {
-            \Log::info('Found saved layout with ID: ' . $layout->id . ' and process_type: ' . $layout->process_type);
-        } else {
-            \Log::info('No saved layout found for the given parameters');
-        }
-
-        return response()->json([
-            'layout' => $layout ? $layout->layout_data : null,
-            'process_type' => $layout ? $layout->process_type : null,
-            'found' => $layout ? true : false
-        ]);
+        return response()->json($result);
     }
 
     /**
      * Save the viewport state for a process.
      */
-    public function saveViewport(Request $request)
+    public function saveViewport(SaveViewportRequest $request): Response|JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'process_type' => 'required|string|max:50',
-                'layout_data' => 'required|array',
-                'hospital' => 'required|string|max:100',
-                'workflow' => 'required|string|max:50',
-                'time_range' => 'required|string|max:50',
-            ]);
-
-            // Log the request for debugging
-            \Log::info('Saving viewport with params:', [
-                'hospital' => $validated['hospital'],
-                'workflow' => $validated['workflow'],
-                'time_range' => $validated['time_range'],
-                'process_type' => $validated['process_type'],
-                'user_id' => Auth::id()
-            ]);
-
-            // Get the existing layout record
-            $layout = ProcessLayout::where('user_id', Auth::id())
-                ->where('hospital', $validated['hospital'])
-                ->where('workflow', $validated['workflow'])
-                ->where('time_range', $validated['time_range'])
-                ->first();
-
-            if ($layout) {
-                // If layout exists, update it with viewport data
-                $layoutData = json_decode($layout->layout_data, true) ?: [];
-                $layoutData['viewport'] = $validated['layout_data']['viewport'];
-                
-                $layout->layout_data = $layoutData;
-                $layout->save();
-                
-                \Log::info('Updated existing layout with viewport data');
-            } else {
-                // If no layout exists, create a new one with just viewport data
-                ProcessLayout::create([
-                    'user_id' => Auth::id(),
-                    'process_type' => $validated['process_type'],
-                    'hospital' => $validated['hospital'],
-                    'workflow' => $validated['workflow'],
-                    'time_range' => $validated['time_range'],
-                    'layout_data' => $validated['layout_data'],
-                ]);
-                
-                \Log::info('Created new layout with viewport data');
-            }
+            $this->processLayoutService->saveViewport(Auth::id(), $request->validated());
 
             return response()->noContent();
         } catch (\Exception $e) {
-            \Log::error('Error saving viewport: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return ApiResponse::error($e->getMessage(), 500);
         }
     }
 }

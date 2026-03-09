@@ -2,169 +2,145 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\RTDCService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class RTDCDashboardController extends Controller
 {
+    public function __construct(
+        private readonly RTDCService $rtdcService,
+    ) {}
+
     /**
      * Display the RTDC dashboard.
-     *
-     * @return \Inertia\Response
      */
-public function index(Request $request)
-{
-    $request->session()->put('workflow', 'rtdc');
-    return Inertia::render('Dashboard/RTDC');
-}
+    public function index(Request $request): InertiaResponse
+    {
+        $this->rtdcService->activateWorkflow($request);
+
+        return Inertia::render('Dashboard/RTDC');
+    }
 
     /**
      * Display the department census page.
-     *
-     * @return \Inertia\Response
      */
-    public function departmentCensus()
+    public function departmentCensus(): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/DepartmentCensus');
     }
 
     /**
      * Display the bed tracking page.
-     *
-     * @return \Inertia\Response
      */
-    public function bedTracking()
+    public function bedTracking(): InertiaResponse
     {
         return Inertia::render('RTDC/BedTracking');
     }
 
     /**
      * Display the ancillary services page.
-     *
-     * @return \Inertia\Response
      */
-    public function ancillaryServices()
+    public function ancillaryServices(): InertiaResponse
     {
         return Inertia::render('RTDC/AncillaryServices');
     }
 
     /**
      * Display the discharge prediction page.
-     *
-     * @return \Inertia\Response
      */
-    public function dischargePrediction()
+    public function dischargePrediction(): InertiaResponse
     {
         return Inertia::render('RTDC/DischargePrediction');
     }
 
     /**
      * Display the global huddle page.
-     *
-     * @return \Inertia\Response
      */
-    public function globalHuddle()
+    public function globalHuddle(): InertiaResponse
     {
         return Inertia::render('RTDC/GlobalHuddle');
     }
 
     /**
      * Display the unit huddle page.
-     *
-     * @return \Inertia\Response
      */
-    public function unitHuddle()
+    public function unitHuddle(): InertiaResponse
     {
         return Inertia::render('RTDC/UnitHuddle');
     }
 
     /**
      * Display the service huddle page.
-     *
-     * @return \Inertia\Response
      */
-    public function serviceHuddle(Request $request)
+    public function serviceHuddle(Request $request): InertiaResponse
     {
-        $request->session()->put('workflow', 'rtdc');
+        $this->rtdcService->activateWorkflow($request);
+
         return Inertia::render('RTDC/ServiceHuddle');
     }
 
     /**
      * Display the utilization page.
-     *
-     * @return \Inertia\Response
      */
-    public function utilization()
+    public function utilization(): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Utilization');
     }
 
     /**
      * Display the performance metrics page.
-     *
-     * @return \Inertia\Response
      */
-    public function performance()
+    public function performance(): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Performance');
     }
 
     /**
      * Display the resources analytics page.
-     *
-     * @return \Inertia\Response
      */
-    public function resources()
+    public function resources(): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Resources');
     }
 
     /**
      * Display the trends page.
-     *
-     * @return \Inertia\Response
      */
-    public function trends()
+    public function trends(): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Trends');
     }
 
     /**
      * Display the demand forecast page.
-     *
-     * @return \Inertia\Response
      */
-    public function demandForecast()
+    public function demandForecast(): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/DemandForecast');
     }
 
     /**
      * Display the resource planning page.
-     *
-     * @return \Inertia\Response
      */
-    public function resourcePlanning()
+    public function resourcePlanning(): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/ResourcePlanning');
     }
 
     /**
      * Display the discharge predictions page.
-     *
-     * @return \Inertia\Response
      */
-    public function dischargePredictions()
+    public function dischargePredictions(): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/DischargePredictions');
     }
 
     /**
      * Display the risk assessment page.
-     *
-     * @return \Inertia\Response
      */
-    public function riskAssessment()
+    public function riskAssessment(): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/RiskAssessment');
     }
