@@ -1,8 +1,12 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { HeroUIProvider } from '@heroui/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { DashboardProvider } from '@/Contexts/DashboardContext';
 import { ModeProvider } from '@/Contexts/ModeContext';
+import { ToastProvider } from '@/components/ui/Toast';
+import { queryClient } from '@/lib/queryClient';
 import { usePage } from '@inertiajs/react';
 
 interface ProvidersProps {
@@ -13,14 +17,18 @@ export function Providers({ children }: ProvidersProps) {
     const { url } = usePage();
 
     return (
-        <HeroUIProvider>
-            <ModeProvider>
-                <DashboardProvider currentUrl={url}>
-                    <div className="min-h-screen bg-healthcare-background dark:bg-healthcare-background-dark">
-                        {children}
-                    </div>
-                </DashboardProvider>
-            </ModeProvider>
-        </HeroUIProvider>
+        <QueryClientProvider client={queryClient}>
+            <HeroUIProvider>
+                <ModeProvider>
+                    <DashboardProvider currentUrl={url}>
+                        <div className="min-h-screen bg-healthcare-background dark:bg-healthcare-background-dark">
+                            {children}
+                        </div>
+                        <ToastProvider />
+                    </DashboardProvider>
+                </ModeProvider>
+            </HeroUIProvider>
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
     );
 }

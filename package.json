@@ -10,6 +10,7 @@
         "@iconify/react": "^5.2.0",
         "@inertiajs/react": "^2.0.0",
         "@tailwindcss/forms": "^0.5.10",
+        "@tanstack/react-query-devtools": "^5.91.3",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^4.2.0",
@@ -43,8 +44,10 @@
         "@reactflow/core": "^11.11.4",
         "@reactflow/minimap": "^11.7.14",
         "@reactflow/node-resizer": "^2.2.14",
+        "@tanstack/react-query": "^5.90.21",
         "chart.js": "^4.4.7",
         "clsx": "^2.1.1",
+        "cmdk": "^1.1.1",
         "d3-force": "^3.0.0",
         "dagre": "^0.8.5",
         "date-fns": "^4.1.0",
@@ -56,7 +59,9 @@
         "react-chartjs-2": "^5.3.0",
         "react-force-graph": "^1.47.3",
         "react-heatmap-grid": "^0.9.1",
+        "react-hot-toast": "^2.6.0",
         "reactflow": "^11.11.4",
-        "tailwind-merge": "^3.0.1"
+        "tailwind-merge": "^3.0.1",
+        "zustand": "^5.0.11"
     }
 }

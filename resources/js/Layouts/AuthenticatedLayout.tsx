@@ -3,6 +3,7 @@ import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import TopNavigation from '@/Components/Navigation/TopNavigation';
 import ChangePasswordModal from '@/Components/ChangePasswordModal';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 import { useDashboard } from '@/Contexts/DashboardContext';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
@@ -67,6 +68,9 @@ export default function AuthenticatedLayout({ header, children }: AuthenticatedL
 
                 {/* Main Content */}
                 <main>{children}</main>
+
+                {/* Command Palette (Cmd+K / Ctrl+K) */}
+                <CommandPalette />
             </div>
         </DarkModeContext.Provider>
     );
