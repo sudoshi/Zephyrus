@@ -18,23 +18,6 @@ use Illuminate\Support\Facades\Route;
 // Process Analysis API Routes
 Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
 
-// Temporary debug route for checking CSRF token issues
-Route::get('/debug-session', function (Request $request) {
-    return response()->json([
-        'csrf_token' => csrf_token(),
-        'session_id' => session()->getId(),
-        'session_status' => session()->isStarted(),
-        'cookies' => $request->cookies->all(),
-        'session_domain' => config('session.domain'),
-        'session_secure' => config('session.secure'),
-        'app_url' => config('app.url'),
-        'stateful_domains' => config('sanctum.stateful'),
-        'request_url' => $request->url(),
-        'request_host' => $request->getHost(),
-        'xsrf_token_cookie' => $request->cookie('XSRF-TOKEN')
-    ]);
-});
-
 // Root route - redirect to login or dashboard based on auth state
 Route::get('/', function (Request $request) {
     if (auth()->check()) {
@@ -43,9 +26,8 @@ Route::get('/', function (Request $request) {
     return redirect()->route('login');
 });
 
-// Authenticated routes with CSRF disabled for development
+// Authenticated routes
 Route::middleware(['auth'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->group(function () {
     // Home Route
     Route::get('/home', function() {
