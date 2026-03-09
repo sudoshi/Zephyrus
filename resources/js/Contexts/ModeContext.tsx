@@ -1,9 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
-const ModeContext = createContext();
+type Mode = 'dev' | 'prod' | string;
 
-export const ModeProvider = ({ children }) => {
-    const [mode, setMode] = useState(() => {
+interface ModeContextType {
+    mode: Mode;
+    setMode: React.Dispatch<React.SetStateAction<Mode>>;
+}
+
+const ModeContext = createContext<ModeContextType | undefined>(undefined);
+
+interface ModeProviderProps {
+    children: ReactNode;
+}
+
+export const ModeProvider = ({ children }: ModeProviderProps) => {
+    const [mode, setMode] = useState<Mode>(() => {
         // Try to get the mode from sessionStorage, default to 'dev'
         return sessionStorage.getItem('mode') || 'dev';
     });
@@ -20,7 +32,7 @@ export const ModeProvider = ({ children }) => {
     );
 };
 
-export const useMode = () => {
+export const useMode = (): ModeContextType => {
     const context = useContext(ModeContext);
     if (!context) {
         throw new Error('useMode must be used within a ModeProvider');

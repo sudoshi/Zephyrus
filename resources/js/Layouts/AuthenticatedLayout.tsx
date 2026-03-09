@@ -1,24 +1,36 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import TopNavigation from '@/Components/Navigation/TopNavigation';
 import ChangePasswordModal from '@/Components/ChangePasswordModal';
 import { useDashboard } from '@/Contexts/DashboardContext';
 import { usePage } from '@inertiajs/react';
+import type { PageProps } from '@/types';
+
+interface DarkModeContextType {
+    isDarkMode: boolean;
+    setIsDarkMode: Dispatch<SetStateAction<boolean>>;
+}
+
+interface AuthenticatedLayoutProps {
+    header?: ReactNode;
+    children: ReactNode;
+}
 
 // Create a context for dark mode
-export const DarkModeContext = createContext({
+export const DarkModeContext = createContext<DarkModeContextType>({
     isDarkMode: false,
     setIsDarkMode: () => {}
 });
 
 // Custom hook to use dark mode
-export const useDarkMode = () => useContext(DarkModeContext);
+export const useDarkMode = (): DarkModeContextType => useContext(DarkModeContext);
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({ header, children }: AuthenticatedLayoutProps) {
     const { currentWorkflow } = useDashboard();
-    const { auth } = usePage().props;
+    const { auth } = usePage<PageProps>().props;
     const mustChangePassword = auth?.user?.must_change_password;
-    const [isDarkMode, setIsDarkMode] = useState(() => {
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
         const savedTheme = localStorage.getItem('darkMode');
         // If no preference is stored, use dark mode by default
         // or check system preferences
@@ -27,7 +39,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
     // Set localStorage when dark mode changes
     useEffect(() => {
-        localStorage.setItem('darkMode', isDarkMode);
+        localStorage.setItem('darkMode', String(isDarkMode));
         if (isDarkMode) {
             document.documentElement.classList.add('dark');
         } else {

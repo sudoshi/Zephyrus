@@ -1,10 +1,15 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { HeroUIProvider } from '@heroui/react';
 import { DashboardProvider } from '@/Contexts/DashboardContext';
 import { ModeProvider } from '@/Contexts/ModeContext';
 import { usePage } from '@inertiajs/react';
 
-export function Providers({ children }) {
+interface ProvidersProps {
+    children: ReactNode;
+}
+
+export function Providers({ children }: ProvidersProps) {
     const { url } = usePage();
 
     return (

@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
-export const HEALTHCARE_COLORS = {
+interface HealthcareThemeColors {
+  background: string;
+  surface: string;
+  text: string;
+  border: string;
+}
+
+interface HealthcareColors {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+  quaternary: string;
+  success: string;
+  warning: string;
+  error: string;
+  info: string;
+  dark: HealthcareThemeColors;
+  light: HealthcareThemeColors;
+}
+
+export const HEALTHCARE_COLORS: HealthcareColors = {
   primary: '#0077B6',
   secondary: '#48CAE4',
   tertiary: '#90E0EF',
@@ -23,8 +44,8 @@ export const HEALTHCARE_COLORS = {
   }
 };
 
-export const useDarkMode = () => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+export const useDarkMode = (): [boolean, Dispatch<SetStateAction<boolean>>] => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const savedMode = localStorage.getItem('darkMode');
     // If no preference is stored, use dark mode by default
     // or check system preferences

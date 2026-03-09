@@ -1,9 +1,21 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import type { ReactNode } from 'react';
 import { router, usePage } from '@inertiajs/react';
+import type { NavigationItem, WorkflowNavigationItem } from '@/types';
+
+interface WorkflowNavigation {
+  name: string;
+  analytics: NavigationItem[];
+  operations: NavigationItem[];
+  predictions?: NavigationItem[];
+}
+
+interface WorkflowNavigationConfig {
+  [key: string]: WorkflowNavigation;
+}
 
 // Move workflowNavigationConfig outside the DashboardProvider component
-const workflowNavigationConfig = {
+const workflowNavigationConfig: WorkflowNavigationConfig = {
   superuser: {
     name: 'SUPERUSER',
     analytics: [
@@ -247,11 +259,30 @@ const workflowNavigationConfig = {
   },
 };
 
-const DashboardContext = createContext();
+interface DashboardState {
+  currentWorkflow: string;
+  navigationItems: WorkflowNavigation;
+  isLoading: boolean;
+}
 
-export function DashboardProvider({ children }) {
-  const { workflow: initialWorkflow } = usePage().props;
-  const [state, setState] = useState({
+interface DashboardContextType {
+  currentWorkflow: string;
+  changeWorkflow: (workflow: string) => void;
+  navigationItems: WorkflowNavigation;
+  mainNavigationItems: WorkflowNavigationItem[];
+  isLoading: boolean;
+}
+
+const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+
+interface DashboardProviderProps {
+  children: ReactNode;
+  currentUrl?: string;
+}
+
+export function DashboardProvider({ children }: DashboardProviderProps) {
+  const { workflow: initialWorkflow } = usePage<{ workflow?: string }>().props;
+  const [state, setState] = useState<DashboardState>({
     currentWorkflow: initialWorkflow || 'superuser',
     navigationItems: workflowNavigationConfig[initialWorkflow || 'superuser'],
     isLoading: false,
@@ -268,7 +299,7 @@ export function DashboardProvider({ children }) {
   }, [initialWorkflow]);
 
   const changeWorkflow = useCallback(
-    (workflow) => {
+    (workflow: string) => {
       // Set loading state
       setState((prevState) => ({
         ...prevState,
@@ -277,7 +308,7 @@ export function DashboardProvider({ children }) {
 
       // Determine the redirect path
       const path = workflow === 'home' ? '/home' : `/dashboard/${workflow}`;
-      
+
       // Use Inertia's router.get() with URL parameters
       router.get(`/set-preference/${workflow}`, {
         redirect: path
@@ -304,35 +335,35 @@ export function DashboardProvider({ children }) {
     []
   );
 
-  const mainNavigationItems = useMemo(
+  const mainNavigationItems = useMemo<WorkflowNavigationItem[]>(
     () => [
-      { 
-        name: 'SUPERUSER', 
-        workflow: 'superuser', 
+      {
+        name: 'SUPERUSER',
+        workflow: 'superuser',
         href: '/dashboard',
         icon: 'heroicons:key'
       },
-      { 
-        name: 'RTDC', 
-        workflow: 'rtdc', 
+      {
+        name: 'RTDC',
+        workflow: 'rtdc',
         href: '/dashboard/rtdc',
         icon: 'heroicons:command-line'
       },
-      { 
-        name: 'Perioperative', 
-        workflow: 'perioperative', 
+      {
+        name: 'Perioperative',
+        workflow: 'perioperative',
         href: '/dashboard/perioperative',
         icon: 'heroicons:heart'
       },
-      { 
-        name: 'Emergency', 
-        workflow: 'emergency', 
+      {
+        name: 'Emergency',
+        workflow: 'emergency',
         href: '/dashboard/emergency',
         icon: 'heroicons:exclamation-triangle'
       },
-      { 
-        name: 'Improvement', 
-        workflow: 'improvement', 
+      {
+        name: 'Improvement',
+        workflow: 'improvement',
         href: '/dashboard/improvement',
         icon: 'heroicons:arrow-trending-up'
       },
@@ -340,7 +371,7 @@ export function DashboardProvider({ children }) {
     []
   );
 
-  const value = {
+  const value: DashboardContextType = {
     currentWorkflow: state.currentWorkflow,
     changeWorkflow,
     navigationItems: state.navigationItems,
@@ -355,11 +386,7 @@ export function DashboardProvider({ children }) {
   );
 }
 
-DashboardProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};
-
-export function useDashboard() {
+export function useDashboard(): DashboardContextType {
   const context = useContext(DashboardContext);
   if (context === undefined) {
     throw new Error('useDashboard must be used within a DashboardProvider');

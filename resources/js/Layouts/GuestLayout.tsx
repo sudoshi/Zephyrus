@@ -1,9 +1,14 @@
 import React from 'react';
+import type { ReactNode } from 'react';
 import { Link } from '@inertiajs/react';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
+interface ElegantMarkProps {
+    className?: string;
+}
+
 /* Elegant abstract mark — concentric arcs evoking a rising pulse / horizon */
-const ElegantMark = ({ className = '' }) => (
+const ElegantMark = ({ className = '' }: ElegantMarkProps) => (
     <svg
         viewBox="0 0 80 80"
         fill="none"
@@ -45,7 +50,11 @@ const ElegantMark = ({ className = '' }) => (
     </svg>
 );
 
-export default function GuestLayout({ children }) {
+interface GuestLayoutProps {
+    children: ReactNode;
+}
+
+export default function GuestLayout({ children }: GuestLayoutProps) {
     const [isDarkMode] = useDarkMode();
 
     return (
