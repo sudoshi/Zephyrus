@@ -84,12 +84,12 @@
   }
 
   /* Improved focus styles for accessibility */
-  :focus-visible {
+  :focus-visible:not(.guest-page :focus-visible) {
     @apply outline-none ring-2 ring-healthcare-primary ring-offset-2;
   }
 
-  /* Smooth transitions for dark mode */
-  *, *::before, *::after {
+  /* Smooth transitions for dark mode (exclude guest pages for clean animations) */
+  *:not(.guest-page *), *:not(.guest-page *)::before, *:not(.guest-page *)::after {
     @apply transition-colors duration-300;
   }
 
@@ -100,33 +100,33 @@
   }
 
   /* Headings */
-  h1 {
+  h1:not(.guest-page h1) {
     @apply text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
   }
 
-  h2 {
+  h2:not(.guest-page h2) {
     @apply text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
   }
 
-  h3 {
+  h3:not(.guest-page h3) {
     @apply text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
   }
 
   /* Larger touch targets for healthcare environments */
-  button, 
-  [role="button"],
-  input,
-  select {
+  button:not(.guest-page button), 
+  [role="button"]:not(.guest-page [role="button"]),
+  input:not(.guest-page input),
+  select:not(.guest-page select) {
     @apply min-h-[44px] min-w-[44px];
   }
 
   /* Links */
-  a {
+  a:not(.guest-page a) {
     @apply text-healthcare-primary hover:text-healthcare-primary-hover dark:text-healthcare-primary-dark;
   }
 
   /* Form elements */
-  input, select, textarea {
+  input:not(.guest-page input), select:not(.guest-page select), textarea:not(.guest-page textarea) {
     @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
     @apply border-healthcare-border dark:border-healthcare-border-dark;
     @apply text-healthcare-text-primary dark:text-healthcare-text-primary-dark;

@@ -1,182 +1,161 @@
-name: Zephyrus CI/CD
+name: CI / CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  # ---------------------------------------------------------------------------
+  # Backend — Pint, PHPUnit, migrations
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend (Laravel)
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 20
+
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:16-alpine
         env:
-          POSTGRES_DB: zephyrus
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: acumenus
-          POSTGRES_SCHEMA: prod
+          POSTGRES_DB: zephyrus_test
+          POSTGRES_USER: zephyrus
+          POSTGRES_PASSWORD: test_pass
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    
+          --health-cmd="pg_isready -U zephyrus"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: pdo_pgsql, mbstring, exif, pcntl, bcmath, gd, zip, dom, curl, libxml, fileinfo, iconv
-        coverage: none
-        tools: composer:v2
-      env:
-        COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Copy .env
-      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-      
-    - name: Update .env Database Configuration
-      run: |
-        sed -i 's/DB_DATABASE=.*/DB_DATABASE=zephyrus/g' .env
-        sed -i 's/CACHE_STORE=.*/CACHE_STORE=file/g' .env
-    
-    - name: Debug PHP and Composer versions
-      run: |
-        php -v
-        composer -V
-        pwd
-        ls -la
+      - uses: actions/checkout@v4
 
-    - name: Validate composer.json
-      run: composer validate
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_pgsql, pgsql, mbstring, exif, pcntl, bcmath, gd, zip, dom, curl
+          coverage: none
 
-    - name: Cache Composer dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/composer/files
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-composer-
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
 
-    - name: Create Composer cache directory
-      run: mkdir -p ~/.cache/composer/files
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
 
-    - name: Install PHP Dependencies
-      run: |
-        composer config --global github-oauth.github.com "${{ secrets.GITHUB_TOKEN }}"
-        composer clear-cache
-        composer install --no-ansi --no-interaction --no-scripts --prefer-dist --verbose --optimize-autoloader
-    
-    - name: Generate key
-      run: php artisan key:generate
-      env:
-        DB_CONNECTION: pgsql
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_DATABASE: zephyrus
-        DB_USERNAME: postgres
-        DB_PASSWORD: acumenus
-        CACHE_DRIVER: file
-    
-    - name: Set Directory Permissions
-      run: chmod -R 777 storage bootstrap/cache
-    
-    - name: Install Node Dependencies
-      run: npm ci
-    
-    - name: Build Assets
-      run: npm run build
-    
-    # Uncomment when you have tests
-    # - name: Run PHP Tests
-    #   run: php artisan test
-    
-    # - name: Run Frontend Tests
-    #   run: npm test
+      - name: Copy .env and generate key
+        run: cp .env.example .env && php artisan key:generate
 
-  deploy-production:
-    needs: test
-    if: github.ref == 'refs/heads/main'
+      - name: Run Pint (code style)
+        run: ./vendor/bin/pint --test
+
+      - name: Run migrations
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: zephyrus_test
+          DB_USERNAME: zephyrus
+          DB_PASSWORD: test_pass
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+
+      - name: Run PHPUnit tests
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: zephyrus_test
+          DB_USERNAME: zephyrus
+          DB_PASSWORD: test_pass
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+
+  # ---------------------------------------------------------------------------
+  # Frontend — Node/Vite build
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (Node/Vite)
     runs-on: ubuntu-latest
-    environment: production
-    concurrency: production_environment
-    
-    steps:
-    - name: Install SSH Key
-      uses: shimataro/ssh-key-action@v2
-      with:
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
-        config: |
-          Host *
-            StrictHostKeyChecking no
-            UserKnownHostsFile=/dev/null
-        
-    - name: Adding Known Hosts
-      run: |
-        # Add verbose output for debugging
-        echo "Attempting to connect to ${{ secrets.PROD_HOST }}..."
-        ssh-keyscan -v -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts || true
-        # Ensure the known_hosts file exists and has proper permissions
-        touch ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts
+    timeout-minutes: 10
 
-    - name: Deploy to Production
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        envs: SUDO_PASSWORD=${{ secrets.SUDO_PASSWORD }}
-        script: |
-          cd /var/www/Zephyrus
-          
-          # Set the SUDO_PASSWORD for the entire script
-          export SUDO_PASSWORD="acumenus"
-          
-          # Use sudo to remove the problematic backup file
-          echo "$SUDO_PASSWORD" | sudo -S rm -f .env.bak.* || true
-          
-          # Backup current .env if possible (with sudo if needed)
-          if [ -f .env ]; then
-            echo "$SUDO_PASSWORD" | sudo -S cp -f .env .env.temp || true
-          fi
-          
-          # Reset to the latest code without using git stash
-          echo "$SUDO_PASSWORD" | sudo -S git reset --hard HEAD || true
-          echo "$SUDO_PASSWORD" | sudo -S git clean -f -d || true
-          
-          # Pull the latest code
-          echo "$SUDO_PASSWORD" | sudo -S git fetch origin main
-          echo "$SUDO_PASSWORD" | sudo -S git checkout main
-          echo "$SUDO_PASSWORD" | sudo -S git pull origin main
-          
-          # Restore .env if it was backed up
-          if [ -f .env.temp ]; then
-            echo "$SUDO_PASSWORD" | sudo -S cp -f .env.temp .env
-            echo "$SUDO_PASSWORD" | sudo -S rm -f .env.temp
-          fi
-          
-          # Make the deployment script executable and run it
-          echo "$SUDO_PASSWORD" | sudo -S chmod +x deploy-production.sh
-          echo "Running deployment script with SUDO_PASSWORD environment variable set"
-          echo "$SUDO_PASSWORD" | sudo -S -E ./deploy-production.sh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Deploy — SSH to production (main branch only, after CI passes)
+  #
+  # Required GitHub secrets:
+  #   DEPLOY_HOST      — server hostname/IP
+  #   DEPLOY_USER      — SSH user (should have passwordless sudo for specific
+  #                      commands via /etc/sudoers.d/ — NOT a blanket password)
+  #   DEPLOY_SSH_KEY   — PEM private key; public key in authorized_keys on server
+  #   DEPLOY_DIR       — absolute path on server (e.g. /var/www/Zephyrus)
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    concurrency:
+      group: production_deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add known host
+        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_DIR:  ${{ secrets.DEPLOY_DIR }}
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" bash -s << 'ENDSSH'
+            set -e
+            cd $DEPLOY_DIR
+            git fetch origin main && git checkout main && git pull origin main
+            composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache && php artisan route:cache && php artisan view:cache
+            npm ci --omit=dev && npm run build
+            php artisan queue:restart
+            echo "Deploy complete $(date -u)"
+          ENDSSH

@@ -29,6 +29,10 @@ class User extends Authenticatable
         'username',
         'password',
         'workflow_preference',
+        'must_change_password',
+        'role',
+        'is_active',
+        'phone',
     ];
 
     /**
@@ -48,6 +52,8 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'must_change_password' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     /**

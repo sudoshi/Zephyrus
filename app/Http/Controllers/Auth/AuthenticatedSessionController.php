@@ -45,6 +45,11 @@ class AuthenticatedSessionController extends Controller
         // Store the user ID in the session for our custom session auth
         $request->session()->put('user_id', auth()->id());
 
+        // Check if user must change their password
+        if (auth()->user()->must_change_password) {
+            return redirect()->route('password.change');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 

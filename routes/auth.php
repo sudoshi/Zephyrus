@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -38,6 +39,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('change-password', [ChangePasswordController::class, 'show'])
+        ->name('password.change');
+
+    Route::post('change-password', [ChangePasswordController::class, 'update'])
+        ->name('password.change.update');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

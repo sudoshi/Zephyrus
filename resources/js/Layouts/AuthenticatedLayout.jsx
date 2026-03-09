@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import TopNavigation from '@/Components/Navigation/TopNavigation';
+import ChangePasswordModal from '@/Components/ChangePasswordModal';
 import { useDashboard } from '@/Contexts/DashboardContext';
+import { usePage } from '@inertiajs/react';
 
 // Create a context for dark mode
 export const DarkModeContext = createContext({
@@ -14,6 +16,8 @@ export const useDarkMode = () => useContext(DarkModeContext);
 
 export default function AuthenticatedLayout({ header, children }) {
     const { currentWorkflow } = useDashboard();
+    const { auth } = usePage().props;
+    const mustChangePassword = auth?.user?.must_change_password;
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const savedTheme = localStorage.getItem('darkMode');
         // If no preference is stored, use dark mode by default
@@ -34,6 +38,9 @@ export default function AuthenticatedLayout({ header, children }) {
     return (
         <DarkModeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
             <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+                {/* Force password change modal */}
+                {mustChangePassword && <ChangePasswordModal />}
+
                 {/* Navigation */}
                 <TopNavigation isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
 

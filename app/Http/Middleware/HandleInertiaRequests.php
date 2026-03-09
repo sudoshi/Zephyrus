@@ -32,7 +32,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
 'auth' => [
-    'user' => $request->user(),
+    'user' => $request->user() ? array_merge(
+        $request->user()->toArray(),
+        ['must_change_password' => (bool) $request->user()->must_change_password]
+    ) : null,
 ],
 'workflow' => $request->session()->get('workflow'),
             'flash' => [
