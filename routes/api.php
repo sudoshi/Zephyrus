@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Rtdc\BarrierController;
 use App\Http\Controllers\Api\Rtdc\CensusController;
 use App\Http\Controllers\Api\Rtdc\HuddleController;
 use App\Http\Controllers\Api\Rtdc\PredictionController;
+use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +53,8 @@ Route::middleware('auth')->prefix('rtdc')->group(function () {
     Route::get('/barriers', [BarrierController::class, 'index']);
     Route::post('/barriers', [BarrierController::class, 'store']);
     Route::post('/barriers/{barrierId}/resolve', [BarrierController::class, 'resolve']);
+
+    Route::get('/units/{unitId}/reliability', [ReconciliationController::class, 'latest']);
 });
 
 // OR Cases

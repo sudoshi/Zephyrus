@@ -26,6 +26,6 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withSchedule(function (Schedule $schedule) {
-        // RTDC Step-4 reconciliation registered in Phase F.
+        $schedule->job(new \App\Jobs\ReconcileRtdcPredictions)->dailyAt('02:00');
     })
     ->create();
