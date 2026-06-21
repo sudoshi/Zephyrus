@@ -11,6 +11,8 @@ export interface User {
 export interface PageProps {
   auth: {
     user: User | null;
+    roles?: string[];
+    is_admin?: boolean;
   };
   flash?: {
     message?: string;
