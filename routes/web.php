@@ -88,6 +88,7 @@ Route::middleware(['auth'])
         Route::get('/bed-tracking', [RTDCDashboardController::class, 'bedTracking'])->name('bed-tracking');
         Route::get('/ancillary-services', [RTDCDashboardController::class, 'ancillaryServices'])->name('ancillary-services');
         Route::get('/global-huddle', [RTDCDashboardController::class, 'globalHuddle'])->name('global-huddle');
+        Route::get('/unit-huddle', [RTDCDashboardController::class, 'unitHuddle'])->name('unit-huddle');
         Route::get('/service-huddle', [RTDCDashboardController::class, 'serviceHuddle'])->name('service-huddle');
 
         // Predictions Routes

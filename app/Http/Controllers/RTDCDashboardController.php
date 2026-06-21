@@ -66,8 +66,10 @@ class RTDCDashboardController extends Controller
     /**
      * Display the unit huddle page.
      */
-    public function unitHuddle(): InertiaResponse
+    public function unitHuddle(Request $request): InertiaResponse
     {
+        $this->rtdcService->activateWorkflow($request);
+
         return Inertia::render('RTDC/UnitHuddle');
     }
 
