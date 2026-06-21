@@ -15,7 +15,6 @@ import {
   Gauge,
   GitBranch,
   HeartPulse,
-  KeyRound,
   LineChart,
   ListChecks,
   PieChart,
@@ -225,7 +224,9 @@ export const NAVIGATION: readonly NavDomain[] = [
         title: '',
         items: [
           { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
-          { label: 'Auth Providers', href: '/admin/auth-providers/oidc', icon: KeyRound, adminOnly: true },
+          // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
+          // is a JSON API endpoint with no Inertia page, so a nav link would break
+          // navigation. Re-add once a real OIDC admin Inertia page exists.
         ],
       },
     ],
