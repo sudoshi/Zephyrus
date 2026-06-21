@@ -57,10 +57,10 @@ sudo rsync -av --exclude 'node_modules' \
             /home/smudoshi/Github/Zephyrus/ /var/www/Zephyrus/
 
 echo "Setting permissions..."
-# Set proper permissions
-sudo chown -R www-data:www-data /var/www/Zephyrus/storage
-sudo chown -R www-data:www-data /var/www/Zephyrus/bootstrap/cache
-sudo chown -R www-data:www-data /var/www/Zephyrus/public/build
+# rsync -a preserves dev (smudoshi) ownership, but Apache/PHP-FPM runs as www-data.
+# The ENTIRE tree must be www-data-owned or vendor/autoload reads fail with a
+# site-wide 500 (e.g. "Permission denied" on vendor/.../functions_include.php).
+sudo chown -R www-data:www-data /var/www/Zephyrus
 
 echo "Clearing Laravel caches..."
 # Clear Laravel caches
@@ -84,8 +84,10 @@ if ! systemctl is-active --quiet apache2; then
     exit 1
 fi
 
-# Check if the site is responding
-if ! curl -s -o /dev/null -w "%{http_code}" http://localhost | grep -q "^[23]"; then
+# Check if the site is responding. Target the Zephyrus vhost explicitly via the
+# Host header — bare http://localhost resolves to the DEFAULT vhost (Aurora), not
+# Zephyrus, so it would report a false failure even on a healthy deploy.
+if ! curl -s -o /dev/null -w "%{http_code}" -H "Host: zephyrus.acumenus.net" http://localhost | grep -q "^[23]"; then
     echo "❌ Error: Site is not responding correctly"
     echo "💡 Check the Laravel logs: tail -f /var/www/Zephyrus/storage/logs/laravel.log"
     exit 1
