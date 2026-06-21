@@ -42,19 +42,47 @@ class SyntheticEventSource implements EventSource
             $tickTime = $now->copy()->addHours($t);
 
             for ($d = 0; $d < $this->config->dischargesPerTick; $d++) {
-                $enc = Encounter::active()->inRandomOrder()->first();
+                // Seed-controlled selection: order by primary key (stable) and pick an
+                // index via mt_rand(), which IS governed by the mt_srand($this->seed)
+                // above. inRandomOrder() uses the DB RNG and would NOT be reproducible.
+                $enc = $this->pickDeterministic(
+                    Encounter::active()->orderBy('encounter_id')->pluck('encounter_id'),
+                    fn (int $id) => Encounter::active()->whereKey($id)->first(),
+                );
                 if ($enc) {
                     yield CanonicalEvent::encounterDischarged($enc->patient_ref, $tickTime);
                 }
             }
 
             for ($a = 0; $a < $this->config->admitsPerTick; $a++) {
-                $bed = Bed::available()->inRandomOrder()->first();
+                $bed = $this->pickDeterministic(
+                    Bed::available()->orderBy('bed_id')->pluck('bed_id'),
+                    fn (int $id) => Bed::available()->whereKey($id)->first(),
+                );
                 if ($bed) {
                     yield CanonicalEvent::encounterStarted($this->nextPatient(), $bed->unit_id, $this->randomAcuity($bed->unit->type), $tickTime, $bed->bed_id);
                 }
             }
         }
+    }
+
+    /**
+     * Deterministically select one row from a collection of primary keys using
+     * the seeded mt_rand(), then re-resolve it through the given scope. Returns
+     * null when there are no candidates.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $ids
+     * @param  callable(int): ?\Illuminate\Database\Eloquent\Model  $resolve
+     */
+    private function pickDeterministic($ids, callable $resolve)
+    {
+        if ($ids->isEmpty()) {
+            return null;
+        }
+
+        $id = $ids[mt_rand(0, $ids->count() - 1)];
+
+        return $resolve($id);
     }
 
     private function nextPatient(): string
