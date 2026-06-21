@@ -38,4 +38,25 @@ class AcuityService
         // Convert remaining workload back to standard-patient slots, never negative.
         return max(0, (int) floor($remaining / $this->tierWeight(1)));
     }
+
+    /**
+     * Remaining nursing workload budget (in tier-1-equivalent units) on a unit.
+     */
+    public function remainingWorkload(int $unitId): float
+    {
+        $unit = \App\Models\Unit::findOrFail($unitId);
+        $currentLoad = \App\Models\Encounter::active()->where('unit_id', $unitId)->get()
+            ->sum(fn (\App\Models\Encounter $e) => $this->tierWeight($e->acuity_tier));
+
+        return (float) $unit->staffed_bed_count - $currentLoad;
+    }
+
+    /**
+     * Can the unit safely accept one more patient at the given acuity tier
+     * without exceeding its nursing workload budget? (Nurse-safety-to-accept.)
+     */
+    public function canAccept(int $unitId, int $acuityTier): bool
+    {
+        return $this->remainingWorkload($unitId) >= $this->tierWeight($acuityTier);
+    }
 }
