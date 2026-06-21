@@ -44,9 +44,7 @@ vi.mock('cmdk', () => {
 describe('CommandPalette', () => {
   beforeEach(() => {
     useUIStore.setState({
-      sidebarOpen: true,
       commandPaletteOpen: false,
-      mobileDrawerOpen: false,
     });
   });
 
