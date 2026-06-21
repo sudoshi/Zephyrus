@@ -22,4 +22,19 @@ class SchemaTest extends TestCase
             'bed_id', 'unit_id', 'label', 'status', 'bed_type', 'isolation_capable', 'is_deleted',
         ]));
     }
+
+    public function test_encounters_census_and_events_tables_exist(): void
+    {
+        $this->assertTrue(Schema::hasColumns('prod.encounters', [
+            'encounter_id', 'patient_ref', 'unit_id', 'bed_id', 'admitted_at',
+            'expected_discharge_date', 'acuity_tier', 'status', 'is_deleted',
+        ]));
+        $this->assertTrue(Schema::hasColumns('prod.census_snapshots', [
+            'census_snapshot_id', 'unit_id', 'captured_at', 'staffed_beds',
+            'occupied', 'available', 'blocked', 'acuity_adjusted_capacity',
+        ]));
+        $this->assertTrue(Schema::hasColumns('prod.operational_events', [
+            'operational_event_id', 'event_id', 'type', 'encounter_ref', 'payload', 'occurred_at',
+        ]));
+    }
 }
