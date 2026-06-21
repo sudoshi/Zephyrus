@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { echo } from '@/lib/echo';
 import {
   fetchUnits, fetchPrediction, upsertCapacity, upsertDemand, developPlan,
-  fetchBedMeeting, fetchBarriers, type CapacityInput, type DemandInput,
+  fetchBedMeeting, fetchBarriers, fetchReliability, type CapacityInput, type DemandInput,
 } from './api';
 import { censusUpdatedEventSchema } from '@/schemas/rtdc';
 
@@ -27,6 +27,10 @@ export function useBedMeeting(serviceDate: string, horizon: string) {
 
 export function useBarriers(unitId?: number) {
   return useQuery({ queryKey: ['rtdc', 'barriers', unitId], queryFn: () => fetchBarriers(unitId) });
+}
+
+export function useReliability(unitId: number) {
+  return useQuery({ queryKey: ['rtdc', 'reliability', unitId], queryFn: () => fetchReliability(unitId) });
 }
 
 export function useUpsertCapacity(unitId: number) {

@@ -4,9 +4,10 @@ import { BedNeedReadout } from '@/Components/RTDC/BedNeedReadout';
 import { DischargeTierEntry } from '@/Components/RTDC/DischargeTierEntry';
 import { DemandBySourceEntry } from '@/Components/RTDC/DemandBySourceEntry';
 import { BarrierBoard } from '@/Components/RTDC/BarrierBoard';
+import { ReliabilityTile } from '@/Components/RTDC/ReliabilityTile';
 import {
   useUnits, usePrediction, useBarriers, useUpsertCapacity, useUpsertDemand,
-  useDevelopPlan, useLiveCensus,
+  useDevelopPlan, useLiveCensus, useReliability,
 } from '@/features/rtdc/hooks';
 import { fetchBarriers } from '@/features/rtdc/api';
 import axios from 'axios';
@@ -25,6 +26,7 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
   const unit = units?.find((u) => u.unit_id === unitId);
   const { data: prediction } = usePrediction(unitId, TODAY, horizon);
   const { data: barriers } = useBarriers(unitId);
+  const { data: reliability } = useReliability(unitId);
 
   const capacityMut = useUpsertCapacity(unitId);
   const demandMut = useUpsertDemand(unitId);
@@ -78,6 +80,7 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
           {prediction && (
             <BedNeedReadout bedNeed={prediction.bed_need} capacityNow={prediction.capacity_now} demandExpected={prediction.demand_expected} />
           )}
+          <ReliabilityTile score={reliability?.reliability_score ?? null} />
         </aside>
       </div>
     </RTDCPageLayout>

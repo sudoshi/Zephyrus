@@ -47,6 +47,9 @@ describe('UnitHuddle (live)', () => {
       if (url.includes('/barriers')) {
         return Promise.resolve({ data: { data: [] } });
       }
+      if (url.includes('/reliability')) {
+        return Promise.resolve({ data: { data: { unit_id: 1, service_date: '2026-06-19', predicted_discharges: 4, actual_discharges: 5, reliability_score: 0.8 } } });
+      }
       return Promise.resolve({ data: { data: null } });
     });
 
@@ -54,5 +57,6 @@ describe('UnitHuddle (live)', () => {
 
     await waitFor(() => expect(screen.getByText('5 East')).toBeInTheDocument());
     expect(screen.getByText(/short 3 beds/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('80%')).toBeInTheDocument());
   });
 });

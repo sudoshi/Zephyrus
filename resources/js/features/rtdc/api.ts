@@ -44,3 +44,16 @@ export async function fetchBarriers(unitId?: number): Promise<Barrier[]> {
   const res = await axios.get('/api/rtdc/barriers', { params: unitId ? { unit_id: unitId } : {} });
   return envelope(z.array(barrierSchema)).parse(res.data).data;
 }
+
+export const reliabilitySchema = z.object({
+  unit_id: z.number(),
+  service_date: z.string(),
+  predicted_discharges: z.coerce.number(),
+  actual_discharges: z.number(),
+  reliability_score: z.coerce.number().nullable(),
+});
+
+export async function fetchReliability(unitId: number) {
+  const res = await axios.get(`/api/rtdc/units/${unitId}/reliability`);
+  return z.object({ data: reliabilitySchema.nullable() }).parse(res.data).data;
+}
