@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\Rtdc\BarrierController;
+use App\Http\Controllers\Api\Rtdc\BedRequestController;
 use App\Http\Controllers\Api\Rtdc\CensusController;
 use App\Http\Controllers\Api\Rtdc\HuddleController;
 use App\Http\Controllers\Api\Rtdc\PredictionController;
@@ -59,6 +60,11 @@ Route::middleware(['web', 'auth'])->prefix('rtdc')->group(function () {
     Route::post('/barriers/{barrierId}/resolve', [BarrierController::class, 'resolve']);
 
     Route::get('/units/{unitId}/reliability', [ReconciliationController::class, 'latest']);
+
+    Route::get('/bed-requests', [BedRequestController::class, 'index']);
+    Route::post('/bed-requests', [BedRequestController::class, 'store']);
+    Route::get('/bed-requests/{bedRequestId}/recommendations', [BedRequestController::class, 'recommendations']);
+    Route::post('/bed-requests/{bedRequestId}/decision', [BedRequestController::class, 'decision']);
 });
 
 // OR Cases
