@@ -35,8 +35,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('prod.users', function (Blueprint $table) {
-            $table->dropColumn(['must_change_password', 'role', 'is_active', 'phone']);
-        });
+        // Intentionally a no-op. These columns pre-existed in prod (applied directly,
+        // never owned by a migration); this migration only back-fills them on fresh/test
+        // databases via hasColumn guards. Dropping them on rollback would destroy the
+        // live auth flow + RBAC. See .claude/rules/auth-system.md.
     }
 };
