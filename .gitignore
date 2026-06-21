@@ -59,3 +59,4 @@ composer.phar
 
 # PID files
 storage/pids/*.pid
+.env.testing
