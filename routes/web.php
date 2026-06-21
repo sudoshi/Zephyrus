@@ -90,6 +90,7 @@ Route::middleware(['auth'])
         Route::get('/global-huddle', [RTDCDashboardController::class, 'globalHuddle'])->name('global-huddle');
         Route::get('/unit-huddle', [RTDCDashboardController::class, 'unitHuddle'])->name('unit-huddle');
         Route::get('/service-huddle', [RTDCDashboardController::class, 'serviceHuddle'])->name('service-huddle');
+        Route::get('/bed-placement', [RTDCDashboardController::class, 'bedPlacement'])->name('bed-placement');
 
         // Predictions Routes
         Route::prefix('predictions')->name('predictions.')->group(function () {

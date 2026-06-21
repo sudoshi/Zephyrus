@@ -84,6 +84,16 @@ class RTDCDashboardController extends Controller
     }
 
     /**
+     * Display the bed placement page.
+     */
+    public function bedPlacement(Request $request): InertiaResponse
+    {
+        $this->rtdcService->activateWorkflow($request);
+
+        return Inertia::render('RTDC/BedPlacement');
+    }
+
+    /**
      * Display the utilization page.
      */
     public function utilization(): InertiaResponse
