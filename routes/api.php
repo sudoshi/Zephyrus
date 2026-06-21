@@ -38,7 +38,11 @@ Route::get('/health', function () {
 });
 
 // RTDC — Real-Time Demand Capacity (web session auth)
-Route::middleware('auth')->prefix('rtdc')->group(function () {
+// The `web` group provides StartSession (reads the session cookie) so the Inertia SPA
+// authenticates via the web guard. Without it these routes 401 in the browser because
+// the `api` middleware group has no session. CSRF is auto-skipped in the testing env;
+// in the browser axios sends the X-XSRF-TOKEN header (bootstrap.js withXSRFToken=true).
+Route::middleware(['web', 'auth'])->prefix('rtdc')->group(function () {
     Route::get('/units', [CensusController::class, 'units']);
 
     Route::get('/units/{unitId}/prediction', [PredictionController::class, 'show']);
