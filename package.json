@@ -3,7 +3,10 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:e2e": "playwright test"
     },
     "devDependencies": {
         "@headlessui/react": "^2.2.0",
