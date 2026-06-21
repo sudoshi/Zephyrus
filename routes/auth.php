@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthProviderController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -67,4 +68,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    Route::get('admin/auth-providers/{type}', [AuthProviderController::class, 'show'])->name('admin.auth-providers.show');
+    Route::put('admin/auth-providers/{type}', [AuthProviderController::class, 'update'])->name('admin.auth-providers.update');
 });
