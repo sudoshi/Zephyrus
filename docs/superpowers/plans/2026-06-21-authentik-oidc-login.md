@@ -6,9 +6,19 @@
 
 **Architecture:** Port Aurora's `App\Services\Auth\Oidc\*` stack (discovery/JWKS, PKCE handshake, JWT validation, reconciliation, driver registry) adapted to Zephyrus's `web` guard, `prod` schema, and varchar `role`. The OIDC callback logs the user in via the web guard and mirrors the session setup of the existing `AuthenticatedSessionController::store`. All existing local/temp-password auth is untouched (additions only — `.claude/rules/auth-system.md`).
 
-**Tech Stack:** Laravel 12 + Inertia/React (JSX), PostgreSQL `prod` schema, `firebase/php-jwt`, Pest, Vitest. Authentik at `auth.acumenus.net` (Acropolis).
+**Tech Stack:** Laravel 11 + Inertia/React (JSX), PostgreSQL `prod` schema, `firebase/php-jwt`, PHPUnit 11, Vitest. Authentik at `auth.acumenus.net` (Acropolis).
 
 **Spec:** `docs/superpowers/specs/2026-06-21-authentik-oidc-login-design.md`
+
+> **TESTING FRAMEWORK NOTE (2026-06-21):** The repo references Pest (`tests/Pest.php`, allow-plugins) but Pest is **not installed and cannot be** — every `laravel/framework` version new enough for Pest 3's `nunomaduro/collision` requirement (≥11.44.2) is blocked by composer security advisories, and the app intentionally pins to the last clean release (v11.41.0). Installing Pest would require a known-vulnerable framework or disabling composer's security auditing — unacceptable for a clinical app. **All backend tests in this plan are therefore written in PHPUnit 11 class syntax** (matching the 28 existing working test files), NOT the Pest snippets shown below. Conversion rules applied to every test task:
+> - Class `final class XTest extends \Tests\TestCase` (boots the Laravel app so facades/config/DB work). Add `use \Illuminate\Foundation\Testing\RefreshDatabase;` for DB-touching tests.
+> - `it('does x', fn)` → `public function test_does_x(): void`.
+> - `beforeEach(fn)` → `protected function setUp(): void { parent::setUp(); ... }`.
+> - `expect($a)->toBe($b)` → `$this->assertSame($b, $a)`; `->toBeTrue()`/`->toBeFalse()`/`->toBeNull()` → `assertTrue/assertFalse/assertNull`; `->toContain($x)` → `assertContains($x, ...)`; `->not->toBeEmpty()` → `assertNotEmpty`.
+> - `(fn)->throws(X::class)` → `$this->expectException(X::class);` before the call.
+> - Helper functions (e.g. `claims()`, `mintIdToken()`) become `private` methods or `static` helpers on the test class.
+> - `Http::fake`, `Cache::flush`, `config()->set`, `$this->get`, `$this->actingAs`, factories — all work unchanged in PHPUnit + Laravel `TestCase`.
+> The Vitest test (Task 13) is unaffected. Each implementer is given the already-converted PHPUnit code in its dispatch prompt.
 
 ---
 
