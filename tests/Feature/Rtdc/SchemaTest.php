@@ -61,4 +61,13 @@ class SchemaTest extends TestCase
             'description', 'owner', 'status', 'opened_at', 'resolved_at',
         ]));
     }
+
+    public function test_reconciliations_table_exists(): void
+    {
+        $this->assertTrue(Schema::hasColumns('prod.rtdc_reconciliations', [
+            'rtdc_reconciliation_id', 'unit_id', 'service_date',
+            'predicted_discharges', 'actual_discharges',
+            'predicted_admissions', 'actual_admissions', 'reliability_score',
+        ]));
+    }
 }
