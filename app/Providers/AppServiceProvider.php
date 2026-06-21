@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            \App\Rtdc\Optimizer\Contracts\BedAssignmentOptimizer::class,
+            \App\Rtdc\Optimizer\HeuristicBedAssignmentOptimizer::class,
+        );
+
         $this->app->singleton(OidcProviderConfig::class);
 
         $this->app->bind(OidcDiscoveryService::class, fn ($app) => new OidcDiscoveryService(
