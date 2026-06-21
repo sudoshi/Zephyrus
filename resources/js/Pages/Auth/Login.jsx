@@ -30,7 +30,7 @@ const fadeUp = (delay = 0) => ({
     transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94], delay },
 });
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, oidcEnabled = false, oidcLabel = 'Sign in with Authentik' }) {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const [showPassword, setShowPassword] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
@@ -201,6 +201,23 @@ export default function Login({ status, canResetPassword }) {
                                     {processing ? "Signing in…" : "Sign in"}
                                 </Button>
                             </form>
+
+                            {oidcEnabled && (
+                                <div className="mt-5">
+                                    <div className="relative flex items-center">
+                                        <div className="flex-grow border-t border-slate-200 dark:border-slate-700/50" />
+                                        <span className="mx-3 text-xs text-slate-400">or</span>
+                                        <div className="flex-grow border-t border-slate-200 dark:border-slate-700/50" />
+                                    </div>
+                                    <a
+                                        href="/auth/oidc/redirect"
+                                        className="mt-4 inline-flex w-full items-center justify-center gap-2 h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+                                    >
+                                        <Icon icon="lucide:shield-check" className="w-4 h-4 text-indigo-500" />
+                                        {oidcLabel}
+                                    </a>
+                                </div>
+                            )}
 
                             {/* Divider + dark mode */}
                             <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/50 flex justify-center">
