@@ -99,7 +99,7 @@ class HeuristicOptimizerTest extends TestCase
                         // isolation
                         $this->assertTrue($iso === 'none' || $bed->isolation_capable, 'isolation violated');
                         // safety: the unit could accept this acuity at recommend time
-                        $this->assertTrue($acuity->canAccept($bed->unit_id, $tier) || true); // see note
+                        $this->assertTrue($acuity->canAccept($bed->unit_id, $tier), 'recommended bed unit must have acuity headroom');
                     }
                     $req->delete();
                     Encounter::where('patient_ref', 'r')->delete();

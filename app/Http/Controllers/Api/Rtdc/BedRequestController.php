@@ -36,13 +36,20 @@ class BedRequestController extends Controller
     {
         $bedRequest = BedRequest::findOrFail($bedRequestId);
         $v = $request->validated();
-        $decision = $this->placement->decide(
-            $bedRequest,
-            $v['action'],
-            $v['chosen_bed_id'] ?? null,
-            $v['reason'] ?? null,
-            $request->user()?->id,
-        );
+
+        try {
+            $decision = $this->placement->decide(
+                $bedRequest,
+                $v['action'],
+                $v['chosen_bed_id'] ?? null,
+                $v['reason'] ?? null,
+                $request->user()?->id,
+            );
+        } catch (\App\Exceptions\UnsafePlacementException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\App\Exceptions\BedUnavailableException $e) {
+            return response()->json(['error' => $e->getMessage()], 409);
+        }
 
         return response()->json(['data' => $decision]);
     }

@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Exceptions\BedUnavailableException;
+use App\Exceptions\UnsafePlacementException;
 use App\Models\Bed;
 use App\Models\BedPlacementDecision;
 use App\Models\BedRequest;
 use App\Rtdc\EventDispatcher;
 use App\Rtdc\Events\CanonicalEvent;
+use App\Rtdc\Optimizer\BedFeasibility;
 use App\Rtdc\Optimizer\Contracts\BedAssignmentOptimizer;
 use App\Rtdc\Optimizer\RankedRecommendations;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +24,7 @@ class BedPlacementService
     public function __construct(
         private readonly BedAssignmentOptimizer $optimizer,
         private readonly EventDispatcher $dispatcher,
+        private readonly BedFeasibility $feasibility,
     ) {}
 
     public function recommend(BedRequest $request): RankedRecommendations
@@ -45,7 +49,18 @@ class BedPlacementService
             ]);
 
             if (in_array($action, ['accepted', 'edited'], true) && $chosenBedId !== null) {
-                $bed = Bed::findOrFail($chosenBedId);
+                // Re-check availability + hard constraints server-side; the client's
+                // chosen_bed_id is never trusted. Locking the row serializes concurrent
+                // accepts so the same bed cannot be claimed twice. Throwing rolls back
+                // the transaction → no audit row, no placement for a failed attempt.
+                $bed = Bed::where('bed_id', $chosenBedId)->where('status', 'available')->lockForUpdate()->first();
+                if ($bed === null) {
+                    throw new BedUnavailableException("bed {$chosenBedId} is not available");
+                }
+                $violation = $this->feasibility->violation($request, $bed->loadMissing('unit'));
+                if ($violation !== null) {
+                    throw new UnsafePlacementException($violation);
+                }
                 $this->dispatcher->dispatch(CanonicalEvent::encounterStarted(
                     $request->patient_ref,
                     $bed->unit_id,

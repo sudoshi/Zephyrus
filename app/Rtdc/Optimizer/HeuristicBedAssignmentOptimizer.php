@@ -23,7 +23,10 @@ class HeuristicBedAssignmentOptimizer implements BedAssignmentOptimizer
 
     private const W_ISOLATION_FRAGMENTATION = 25;
 
-    public function __construct(private readonly AcuityService $acuity) {}
+    public function __construct(
+        private readonly AcuityService $acuity,
+        private readonly BedFeasibility $feasibility,
+    ) {}
 
     public function recommend(BedRequest $request): RankedRecommendations
     {
@@ -48,17 +51,7 @@ class HeuristicBedAssignmentOptimizer implements BedAssignmentOptimizer
 
     private function hardConstraintViolation(BedRequest $req, Bed $bed): ?string
     {
-        if ($req->required_unit_type !== 'any' && $bed->unit->type !== $req->required_unit_type) {
-            return "capability: needs {$req->required_unit_type}, bed is {$bed->unit->type}";
-        }
-        if ($req->isolation_required !== 'none' && ! $bed->isolation_capable) {
-            return "isolation: needs {$req->isolation_required}, bed not isolation-capable";
-        }
-        if (! $this->acuity->canAccept($bed->unit_id, $req->acuity_tier)) {
-            return 'safety: unit nursing workload cannot safely accept this acuity';
-        }
-
-        return null;
+        return $this->feasibility->violation($req, $bed);
     }
 
     private function score(BedRequest $req, Bed $bed): Recommendation
