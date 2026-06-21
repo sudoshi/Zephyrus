@@ -20,6 +20,7 @@ import {
   ListChecks,
   PieChart,
   RefreshCcw,
+  Repeat,
   Search,
   Shield,
   Siren,
@@ -187,7 +188,7 @@ export const NAVIGATION: readonly NavDomain[] = [
         title: 'Improve',
         items: [
           { label: 'Active Cycles', href: '/improvement/active', icon: RefreshCcw },
-          { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: RefreshCcw },
+          { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: Repeat },
           { label: 'Library', href: '/improvement/library', icon: BookOpen },
         ],
       },
@@ -232,7 +233,7 @@ export const NAVIGATION: readonly NavDomain[] = [
 ];
 
 export function isDomainActive(domain: NavDomain, url: string): boolean {
-  const path = (url || '').split('?')[0];
+  const path = (url || '').split('?')[0].split('#')[0];
   return domain.matchPrefixes.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
@@ -246,21 +247,31 @@ export interface FlatNavEntry {
   readonly group: string;
 }
 
-/** Flatten the config for the command palette, respecting admin gating. */
-export function flattenNavigation(isAdmin: boolean): FlatNavEntry[] {
-  const entries: FlatNavEntry[] = [
-    { label: TOP_LEVEL_DASHBOARD.label, href: TOP_LEVEL_DASHBOARD.href, group: 'Navigation' },
-  ];
+/** Flatten the config for the command palette, respecting admin gating.
+ *  Deduplicates by href (first occurrence wins) because some pages (the
+ *  /analytics/* set) are intentionally surfaced under more than one domain.
+ */
+export function flattenNavigation(isAdmin: boolean): readonly FlatNavEntry[] {
+  const seen = new Set<string>();
+  const entries: FlatNavEntry[] = [];
+
+  function push(entry: FlatNavEntry): void {
+    if (seen.has(entry.href)) return;
+    seen.add(entry.href);
+    entries.push(entry);
+  }
+
+  push({ label: TOP_LEVEL_DASHBOARD.label, href: TOP_LEVEL_DASHBOARD.href, group: 'Navigation' });
 
   for (const domain of visibleDomains(isAdmin)) {
     if (domain.dashboardHref) {
-      entries.push({ label: domain.label, href: domain.dashboardHref, group: 'Navigation' });
+      push({ label: domain.label, href: domain.dashboardHref, group: 'Navigation' });
     }
     for (const group of domain.groups) {
       const groupLabel = group.title ? `${domain.label} ${group.title}` : domain.label;
       for (const item of group.items) {
         if (item.adminOnly && !isAdmin) continue;
-        entries.push({ label: item.label, href: item.href, group: groupLabel });
+        push({ label: item.label, href: item.href, group: groupLabel });
       }
     }
   }

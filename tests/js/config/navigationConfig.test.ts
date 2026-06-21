@@ -68,4 +68,14 @@ describe('navigationConfig', () => {
     // Sub-pages are present and grouped by "Domain Group"
     expect(userFlat.some((e) => e.label === 'Bed Tracking' && e.group === 'RTDC Operations')).toBe(true);
   });
+
+  it('flattenNavigation returns each href at most once', () => {
+    const hrefs = flattenNavigation(true).map((e) => e.href);
+    expect(hrefs.length).toBe(new Set(hrefs).size);
+  });
+
+  it('isDomainActive ignores hash fragments', () => {
+    const rtdc = NAVIGATION.find((d) => d.key === 'rtdc')!;
+    expect(isDomainActive(rtdc, '/rtdc#section')).toBe(true);
+  });
 });
