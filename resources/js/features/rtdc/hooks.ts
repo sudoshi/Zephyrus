@@ -60,31 +60,48 @@ export function useDevelopPlan(unitId: number) {
 
 /**
  * Live census subscription. Research §7: snapshot-on-reconnect — we invalidate
- * the units query whenever the socket (re)connects so we never rely on replaying
- * missed messages (Reverb/Pusher do not replay).
+ * the relevant queries whenever the socket (re)connects so we never rely on
+ * replaying missed messages (Reverb/Pusher do not replay).
+ *
+ * Per subscribed `unit.{id}` channel we listen for both `.census.updated`
+ * (refreshes the unit census) and `.huddle.updated` (refreshes that unit's
+ * prediction). We also subscribe to the `hospital.beds` channel and refresh the
+ * bed-meeting rollup on `.bedmeeting.updated` so multi-user huddle edits sync.
  */
 export function useLiveCensus() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const refetch = () => qc.invalidateQueries({ queryKey: ['rtdc', 'units'] });
+    const refetchCensus = () => qc.invalidateQueries({ queryKey: ['rtdc', 'units'] });
+    const refetchBedMeeting = () => qc.invalidateQueries({ queryKey: ['rtdc', 'bed-meeting'] });
 
     const units = qc.getQueryData<{ unit_id: number }[]>(['rtdc', 'units']) ?? [];
-    const channels = units.map((u) => `unit.${u.unit_id}`);
+    const unitChannels = units.map((u) => `unit.${u.unit_id}`);
 
-    channels.forEach((name) => {
-      echo.channel(name).listen('.census.updated', (raw: unknown) => {
-        censusUpdatedEventSchema.parse(raw); // validate the wire payload
-        refetch();
-      });
+    units.forEach((u) => {
+      echo.channel(`unit.${u.unit_id}`)
+        .listen('.census.updated', (raw: unknown) => {
+          censusUpdatedEventSchema.parse(raw); // validate the wire payload
+          refetchCensus();
+        })
+        .listen('.huddle.updated', () => {
+          qc.invalidateQueries({ queryKey: ['rtdc', 'prediction', u.unit_id] });
+        });
     });
 
-    // Snapshot-on-(re)connect.
-    echo.connector.pusher.connection.bind('connected', refetch);
+    echo.channel('hospital.beds').listen('.bedmeeting.updated', refetchBedMeeting);
+
+    // Snapshot-on-(re)connect: refresh everything we track.
+    const onConnect = () => {
+      refetchCensus();
+      refetchBedMeeting();
+    };
+    echo.connector.pusher.connection.bind('connected', onConnect);
 
     return () => {
-      channels.forEach((name) => echo.leaveChannel(name));
-      echo.connector.pusher.connection.unbind('connected', refetch);
+      unitChannels.forEach((name) => echo.leaveChannel(name));
+      echo.leaveChannel('hospital.beds');
+      echo.connector.pusher.connection.unbind('connected', onConnect);
     };
   }, [qc]);
 }
