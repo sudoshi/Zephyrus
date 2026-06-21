@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\RoomController;
+use App\Http\Controllers\Api\Rtdc\BarrierController;
 use App\Http\Controllers\Api\Rtdc\CensusController;
+use App\Http\Controllers\Api\Rtdc\HuddleController;
 use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +44,14 @@ Route::middleware('auth')->prefix('rtdc')->group(function () {
     Route::post('/units/{unitId}/capacity', [PredictionController::class, 'capacity']);
     Route::post('/units/{unitId}/demand', [PredictionController::class, 'demand']);
     Route::post('/units/{unitId}/plan', [PredictionController::class, 'plan']);
+
+    Route::post('/huddles', [HuddleController::class, 'open']);
+    Route::post('/huddles/{huddleId}/close', [HuddleController::class, 'close']);
+    Route::get('/bed-meeting', [HuddleController::class, 'bedMeeting']);
+
+    Route::get('/barriers', [BarrierController::class, 'index']);
+    Route::post('/barriers', [BarrierController::class, 'store']);
+    Route::post('/barriers/{barrierId}/resolve', [BarrierController::class, 'resolve']);
 });
 
 // OR Cases
