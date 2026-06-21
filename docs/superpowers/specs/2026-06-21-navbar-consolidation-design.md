@@ -171,9 +171,10 @@ Authentik/OIDC provider). Rendered only when `auth.is_admin`.
 ## Emergency stub pages
 
 Create 9 placeholder Inertia pages matching the existing controller render targets, so the
-Emergency menu links resolve. Each is a minimal page using the standard
-`AuthenticatedLayout` + a "Coming soon" content card (consistent dark clinical styling),
-no new backend data required (controllers already return the render with no props):
+Emergency menu links resolve. Each is a minimal page using the standard `DashboardLayout`
++ `PageContentLayout` pattern (matching sibling content pages like
+`Pages/Improvement/Library.jsx`) with a "Coming soon" card, no new backend data required
+(controllers already return the render with no props):
 
 ```
 resources/js/Pages/ED/Analytics/WaitTime.jsx
@@ -193,16 +194,40 @@ exist.
 
 ## Layout integration
 
-`resources/js/Layouts/AuthenticatedLayout.tsx` is rewired:
+**Key finding:** `TopNavigation` is the single nav component, but it is rendered by **two**
+layouts, and *every* authenticated page funnels through one of them:
 
+```
+RTDCPageLayout  → DashboardLayout ─────┐
+DashboardLayout (28 pages) ────────────┼─→ TopNavigation
+AnalyticsLayout → AuthenticatedLayout ─┘
+AuthenticatedLayout (17 pages) ────────→ TopNavigation (+ Sidebar, MobileDrawer,
+                                          CommandPalette, ChangePasswordModal)
+```
+
+So `TopNavbar` must replace `TopNavigation` in **both** files. Both take the same
+`{ isDarkMode, setIsDarkMode }` props, so `TopNavbar` is a drop-in replacement.
+
+`resources/js/Layouts/AuthenticatedLayout.tsx`:
 - **Remove:** `<Sidebar />`, `<MobileDrawer />` + `<MobileDrawerTrigger />`, the
-  `marginLeft: sidebarWidth` offset on `.layout-main`, and the `<TopNavigation />` usage.
-- **Add:** `<TopNavbar isDarkMode setIsDarkMode />` in the sticky top bar slot. The mobile
-  hamburger + `MobileNavMenu` live inside `TopNavbar` (shown < 1024px). Main content goes
-  full-width (no sidebar offset).
-- **Preserved exactly (auth rules — do not touch):** `{mustChangePassword && <ChangePasswordModal />}`,
-  `DarkModeContext` provider + `useDarkMode`, Google Fonts injection, skip-to-content
-  link, `<CommandPalette />`.
+  `marginLeft: sidebarWidth` offset on `.layout-main`, the `useUIStore().sidebarOpen` use,
+  the standalone `<CommandPalette />` (now owned by `TopNavbar`), and the `<TopNavigation />`
+  usage.
+- **Add:** `<TopNavbar isDarkMode setIsDarkMode />` in the sticky top bar slot. Main content
+  goes full-width (no sidebar offset).
+- **Preserved exactly (auth rules — do not touch):**
+  `{mustChangePassword && <ChangePasswordModal />}`, `DarkModeContext` provider +
+  `useDarkMode`, Google Fonts injection, skip-to-content link.
+
+`resources/js/Components/Dashboard/DashboardLayout.jsx`:
+- **Replace** `<TopNavigation .../>` with `<TopNavbar .../>` (same props). No other change —
+  it never had a sidebar.
+
+**CommandPalette ownership:** `TopNavbar` mounts `<CommandPalette />` itself, so the palette
++ the search button + Cmd+K work on *every* page. (Today the palette is only in
+`AuthenticatedLayout`, so Cmd+K is silently dead on the 28 `DashboardLayout` pages — this
+fixes that.) The palette mounts exactly once per page because each page renders exactly one
+layout, which renders one `TopNavbar`.
 
 ## Removed / deprecated
 
