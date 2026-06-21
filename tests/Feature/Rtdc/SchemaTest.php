@@ -50,4 +50,15 @@ class SchemaTest extends TestCase
             'rtdc_plan_id', 'rtdc_prediction_id', 'action_text', 'owner', 'due_at', 'status',
         ]));
     }
+
+    public function test_huddles_and_barriers_tables_exist(): void
+    {
+        $this->assertTrue(Schema::hasColumns('prod.huddles', [
+            'huddle_id', 'type', 'unit_id', 'service_date', 'status', 'facilitator_id',
+        ]));
+        $this->assertTrue(Schema::hasColumns('prod.barriers', [
+            'barrier_id', 'encounter_id', 'unit_id', 'category', 'reason_code',
+            'description', 'owner', 'status', 'opened_at', 'resolved_at',
+        ]));
+    }
 }
