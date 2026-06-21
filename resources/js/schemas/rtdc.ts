@@ -73,3 +73,33 @@ export const censusUpdatedEventSchema = z.object({
   acuity_adjusted_capacity: z.number(),
 });
 export type CensusUpdatedEvent = z.infer<typeof censusUpdatedEventSchema>;
+
+export const bedRequestSchema = z.object({
+  bed_request_id: z.number(),
+  patient_ref: z.string(),
+  source: z.enum(['ed', 'transfer', 'direct', 'or']),
+  sex: z.string().nullable().optional(),
+  service: z.string().nullable().optional(),
+  acuity_tier: z.number(),
+  isolation_required: z.enum(['none', 'contact', 'droplet', 'airborne']),
+  required_unit_type: z.enum(['any', 'med_surg', 'icu', 'step_down']),
+  status: z.enum(['pending', 'placed', 'cancelled']),
+});
+export type BedRequest = z.infer<typeof bedRequestSchema>;
+
+export const recommendationSchema = z.object({
+  bed_id: z.number(),
+  bed_label: z.string(),
+  unit_id: z.number(),
+  unit_name: z.string(),
+  score: z.number(),
+  breakdown: z.array(z.object({ term: z.string(), value: z.number() })),
+  chips: z.array(z.object({ label: z.string(), ok: z.boolean() })),
+});
+
+export const rankedRecommendationsSchema = z.object({
+  recommendations: z.array(recommendationSchema),
+  runner_up_delta: z.number().nullable(),
+  excluded: z.array(z.object({ bed_id: z.number(), reason: z.string() })),
+});
+export type RankedRecommendations = z.infer<typeof rankedRecommendationsSchema>;
