@@ -48,11 +48,11 @@
             @php
                 $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
             @endphp
-            <link rel="stylesheet" href="/build/{{ $manifest['resources/js/app.jsx']['css'][0] }}">
-            <script type="module" src="/build/{{ $manifest['resources/js/app.jsx']['file'] }}"></script>
+            <link rel="stylesheet" href="/build/{{ $manifest['resources/js/app.tsx']['css'][0] }}">
+            <script type="module" src="/build/{{ $manifest['resources/js/app.tsx']['file'] }}"></script>
         @else
             @viteReactRefresh
-            @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
+            @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.jsx"])
         @endproduction
         @inertiaHead
     </head>
