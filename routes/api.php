@@ -43,7 +43,7 @@ Route::get('/health', function () {
 // authenticates via the web guard. Without it these routes 401 in the browser because
 // the `api` middleware group has no session. CSRF is auto-skipped in the testing env;
 // in the browser axios sends the X-XSRF-TOKEN header (bootstrap.js withXSRFToken=true).
-Route::middleware(['web', 'auth'])->prefix('rtdc')->group(function () {
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(function () {
     Route::get('/units', [CensusController::class, 'units']);
 
     Route::get('/units/{unitId}/prediction', [PredictionController::class, 'show']);
