@@ -38,6 +38,9 @@ mobile menu, and the command palette.
 | Top-level axis | **Domain-led, always visible** (no workflow gating) |
 | Dropdown style | **Grouped mega-menu** (Operations / Analytics / Predictions columns) |
 | Emergency dead links | **Build 9 minimal stub pages** so every link is live |
+| Improvement layout | **Grouped** (Diagnose / Improve columns), not a flat list |
+| Analytics domain | **Keep as a distinct top-level dropdown** (cross-org shortcut) |
+| RTDC Risk + dead superuser routes | **Excluded** from nav (building them is separate scope) |
 
 ## Architecture: one config, three consumers
 
@@ -142,12 +145,19 @@ pages" below) so every link is live:
 - Dashboard header → `/dashboard/emergency`
 
 ### Improvement
-Single column (no Ops/Analytics/Predictions split — these are program-level pages):
-Overview (`/improvement/overview`), Bottlenecks (`/improvement/bottlenecks`),
-Process Analysis (`/improvement/process`), Root Cause (`/improvement/root-cause`),
-Active Cycles (`/improvement/active`), PDSA Cycles (`/improvement/pdsa`),
-Library (`/improvement/library`).
+Grouped by the QI workflow (Improvement pages don't map to the Ops/Analytics/Predictions
+axis, so it uses its own two groups):
+- **Diagnose:** Bottlenecks (`/improvement/bottlenecks`),
+  Process Analysis (`/improvement/process`), Root Cause (`/improvement/root-cause`)
+- **Improve:** Active Cycles (`/improvement/active`), PDSA Cycles (`/improvement/pdsa`),
+  Library (`/improvement/library`)
 - Dashboard header → `/dashboard/improvement`
+- *Overview (`/improvement/overview`) omitted* — it redirects to `/dashboard/improvement`,
+  which the Dashboard header already covers (no duplicate links).
+
+> The `NavGroup.title` field already supports arbitrary group labels, so Improvement's
+> `Diagnose`/`Improve` columns and the clinical domains' `Operations`/`Analytics`/
+> `Predictions` columns share the same rendering path.
 
 ### Analytics (cross-org)
 Flat list — the org-wide entry point into the perioperative analytics pages:
