@@ -159,5 +159,13 @@ describe('CommandPalette', () => {
 
       expect(screen.getByText('RTDC')).toBeInTheDocument();
     });
+
+    it('includes config-driven sub-pages like Bed Tracking', () => {
+      useUIStore.setState({ commandPaletteOpen: true });
+
+      render(React.createElement(CommandPalette));
+
+      expect(screen.getByText('Bed Tracking')).toBeInTheDocument();
+    });
   });
 });
