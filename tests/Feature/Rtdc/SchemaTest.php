@@ -37,4 +37,17 @@ class SchemaTest extends TestCase
             'operational_event_id', 'event_id', 'type', 'encounter_ref', 'payload', 'occurred_at',
         ]));
     }
+
+    public function test_predictions_and_plans_tables_exist(): void
+    {
+        $this->assertTrue(Schema::hasColumns('prod.rtdc_predictions', [
+            'rtdc_prediction_id', 'unit_id', 'service_date', 'horizon',
+            'discharges_definite', 'discharges_probable', 'discharges_possible', 'discharges_weighted',
+            'demand_ed', 'demand_or', 'demand_transfer', 'demand_direct', 'demand_expected',
+            'capacity_now', 'bed_need', 'status', 'created_by',
+        ]));
+        $this->assertTrue(Schema::hasColumns('prod.rtdc_plans', [
+            'rtdc_plan_id', 'rtdc_prediction_id', 'action_text', 'owner', 'due_at', 'status',
+        ]));
+    }
 }
