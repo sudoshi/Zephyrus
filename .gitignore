@@ -60,3 +60,7 @@ composer.phar
 # PID files
 storage/pids/*.pid
 .env.testing
+
+# Python (helper scripts)
+__pycache__/
+*.pyc
