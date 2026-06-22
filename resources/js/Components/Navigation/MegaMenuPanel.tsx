@@ -14,7 +14,7 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
         <Link
           href={domain.dashboardHref}
           onClick={onNavigate}
-          className="mb-3 block border-b border-healthcare-border pb-2 text-sm font-semibold text-healthcare-text-primary hover:text-healthcare-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:text-healthcare-primary-dark"
+          className="mb-3 block border-b border-healthcare-border pb-2 text-[14px]/[18px] font-semibold text-healthcare-text-primary hover:text-healthcare-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:text-healthcare-primary-dark"
         >
           {domain.dashboardLabel}
         </Link>
@@ -26,7 +26,7 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
           return (
             <div key={group.title || domain.key} className="min-w-[160px]">
               {group.title && (
-                <div className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                <div className="mb-1 px-2 text-[12px]/[16px] font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   {group.title}
                 </div>
               )}
@@ -38,7 +38,7 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
                       <Link
                         href={item.href}
                         onClick={onNavigate}
-                        className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark"
+                        className="flex items-center gap-2 rounded-md px-2 py-1 text-[14px]/[18px] text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark"
                       >
                         <Icon className="h-4 w-4 flex-shrink-0" />
                         <span>{item.label}</span>

@@ -33,7 +33,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
           {/* Logo */}
           <Link href="/dashboard" className="flex flex-shrink-0 items-center gap-2">
             <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-8 w-auto" />
-            <span className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <span className="text-[17px]/[24px] font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
           </Link>
@@ -43,28 +43,32 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
               controls off-screen; the dropdown panels are anchored/portaled in
               NavMegaMenu so they are not clipped by this scroll container. */}
           <div
-            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+            className="flex min-w-0 flex-1 items-center overflow-x-auto [&::-webkit-scrollbar]:hidden"
             style={{ scrollbarWidth: 'none' }}
           >
-            <Link
-              href={TOP_LEVEL_DASHBOARD.href}
-              aria-current={dashboardActive ? 'page' : undefined}
-              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
-                dashboardActive
-                  ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
-                  : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-              }`}
-            >
-              {TOP_LEVEL_DASHBOARD.label}
-            </Link>
-            {domains.map((domain) => (
-              <NavMegaMenu
-                key={domain.key}
-                domain={domain}
-                isAdmin={isAdmin}
-                active={isDomainActive(domain, url)}
-              />
-            ))}
+            {/* mx-auto centers the nav group when it fits; collapses to 0 (left-aligned,
+                scrollable) when the items overflow on narrow widths. */}
+            <div className="mx-auto flex items-center gap-1">
+              <Link
+                href={TOP_LEVEL_DASHBOARD.href}
+                aria-current={dashboardActive ? 'page' : undefined}
+                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[14px]/[18px] font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
+                  dashboardActive
+                    ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                    : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                }`}
+              >
+                {TOP_LEVEL_DASHBOARD.label}
+              </Link>
+              {domains.map((domain) => (
+                <NavMegaMenu
+                  key={domain.key}
+                  domain={domain}
+                  isAdmin={isAdmin}
+                  active={isDomainActive(domain, url)}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Right: search, dark mode, user */}

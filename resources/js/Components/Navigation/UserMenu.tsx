@@ -48,7 +48,7 @@ export function UserMenu({ isAdmin }: UserMenuProps) {
             <Menu.Item key={item.label}>
               {({ active }) => {
                 const Icon = item.icon;
-                const className = `flex w-full items-center px-4 py-2 text-sm transition-all duration-300 ${
+                const className = `flex w-full items-center px-4 py-2 text-[14px]/[18px] transition-all duration-300 ${
                   active
                     ? 'bg-healthcare-hover text-healthcare-text-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
                     : 'text-healthcare-text-secondary hover:bg-healthcare-hover/50 dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark/50'
