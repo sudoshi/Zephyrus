@@ -33,9 +33,33 @@ class CommandCenterDemoSeeder extends Seeder
         mt_srand(20260622);
 
         // ----------------------------------------------------------------
-        // 0. Resolve canonical units (use lowest unit_id set, units 1–6).
+        // 0a. De-duplicate units — idempotent soft-delete.
+        //
+        //     For each abbreviation group with more than one non-deleted
+        //     unit, keep the lowest unit_id (canonical) and set is_deleted=true
+        //     on all higher ones. If no duplicates exist (prod, fresh seed)
+        //     this is a complete no-op.
+        //
+        //     Reversible: only sets the is_deleted flag; no rows are removed.
+        //     Never touches beds/encounters/census of the soft-deleted units.
         // ----------------------------------------------------------------
-        $units = Unit::orderBy('unit_id')->get()->unique('abbreviation')->values();
+        $allUnits = Unit::orderBy('unit_id')->where('is_deleted', false)->get();
+        $seenAbbreviations = [];
+        foreach ($allUnits as $unit) {
+            if (! in_array($unit->abbreviation, $seenAbbreviations, true)) {
+                $seenAbbreviations[] = $unit->abbreviation;
+            } else {
+                // Duplicate — soft-delete it.
+                DB::table('prod.units')
+                    ->where('unit_id', $unit->unit_id)
+                    ->update(['is_deleted' => true, 'updated_at' => now()]);
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // 0b. Resolve canonical units (non-deleted, lowest unit_id per abbr).
+        // ----------------------------------------------------------------
+        $units = Unit::orderBy('unit_id')->where('is_deleted', false)->get()->values();
 
         // Map abbreviation → unit model for convenience.
         /** @var array<string, Unit> $unitMap */
@@ -101,12 +125,12 @@ class CommandCenterDemoSeeder extends Seeder
         //
         //     Idempotent: uses updateOrInsert / deterministic ID selection.
         //     Never touches the users table or drops core RTDC data.
+        //
+        //     Duplicates are now soft-deleted (step 0a), so the service
+        //     excludes them via WHERE u.is_deleted = false. We only need to
+        //     tune the 6 canonical units.
         // ----------------------------------------------------------------
-        // Pass ALL units (not just the deduplicated canonical set) so that
-        // duplicate-abbreviation units (7-12) also get a busy sentinel snapshot
-        // and don't dilute the house-wide occupancy calculation in the service.
-        $allUnitsIncludingDupes = Unit::orderBy('unit_id')->get();
-        $this->tuneCommandCenterBusyState($allUnitsIncludingDupes, $edUnit);
+        $this->tuneCommandCenterBusyState($units, $edUnit);
     }
 
     // ====================================================================
@@ -123,8 +147,11 @@ class CommandCenterDemoSeeder extends Seeder
      * at noon), so updateOrInsert matches the same row on re-runs.
      * Bed-request and encounter updates are idempotent by design (WHERE +
      * UPDATE, not INSERT).
+     *
+     * Duplicates are soft-deleted in step 0a, so $canonicalUnits contains
+     * exactly 6 rows (one per abbreviation). No workaround needed.
      */
-    private function tuneCommandCenterBusyState($allUnits, ?Unit $edUnit): void
+    private function tuneCommandCenterBusyState($canonicalUnits, ?Unit $edUnit): void
     {
         // ------------------------------------------------------------------
         // 10a. Census snapshots — one deterministic "latest" row per unit.
@@ -133,34 +160,22 @@ class CommandCenterDemoSeeder extends Seeder
         // The service uses DISTINCT ON (unit_id) ORDER BY captured_at DESC,
         // so this row always wins over earlier snapshots from the core seeder.
         //
-        // The DB contains duplicate abbreviation groups (unit_ids 1-6 and
-        // 7-12 share the same abbreviations). The service queries ALL
-        // non-deleted units, so both groups contribute to house totals.
+        // Duplicates are soft-deleted; the service filters WHERE u.is_deleted=false,
+        // so only these 6 canonical units contribute to house totals.
         //
-        // Strategy:
-        //   - Canonical units (lowest unit_id per abbreviation) get the full
-        //     per-unit census targets below.
-        //   - Duplicate units (higher unit_ids with the same abbreviation)
-        //     get available=0, occupied matching canonical, blocked absorbing
-        //     the remainder. This keeps house occupancy at target while
-        //     preventing available-bed double-counting.
-        //
-        // Canonical unit targets (units 1-6, staffed total = 180):
+        // Unit targets (staffed total = 180):
         //   ED  (40): occ=35 avail=3 blocked=2  → 87.5% ; aac=37
         //   5E  (32): occ=28 avail=2 blocked=2  → 87.5% ; aac=29
         //   5W  (32): occ=27 avail=3 blocked=2  → 84.4% ; aac=28
         //   6E  (32): occ=30 avail=1 blocked=1  → 93.75%; aac=28  (RED)
         //   ICU (20): occ=18 avail=1 blocked=1  → 90%   ; aac=17  (RED)
         //   SD  (24): occ=19 avail=4 blocked=1  → 79.2% ; aac=21
-        //   Canonical totals: occ=157, avail=14, staffed=180 → 87.2%
-        //
-        // With duplicate units contributing 0 available:
-        //   House avail=14, pending=12 → net_beds = 2  (tight house ✓)
+        //   House totals: occ=157, avail=14, staffed=180 → 87.2% occupancy
+        //   avail=14, pending=12 → net_beds = 2  (tight house ✓)
         // ------------------------------------------------------------------
         $sentinelAt = now()->startOfDay()->addHours(12); // today at 12:00:00
 
         // Keyed by unit abbreviation → [occupied, available, blocked, aac]
-        // These are the targets for the CANONICAL (lowest unit_id) instance.
         $censusTargets = [
             'ED' => [35, 3, 2, 37],
             '5E' => [28, 2, 2, 29],
@@ -170,29 +185,13 @@ class CommandCenterDemoSeeder extends Seeder
             'SD' => [19, 4, 1, 21],
         ];
 
-        // Track which abbreviations have already been assigned canonical targets.
-        $seenAbbreviations = [];
-
-        // $allUnits is ordered by unit_id ASC, so the first occurrence of each
-        // abbreviation is the canonical unit; subsequent ones are duplicates.
-        foreach ($allUnits as $unit) {
+        foreach ($canonicalUnits as $unit) {
             $abbr = $unit->abbreviation;
             if (! isset($censusTargets[$abbr])) {
                 continue; // unknown abbreviation — skip
             }
 
-            if (! in_array($abbr, $seenAbbreviations, true)) {
-                // Canonical unit: apply full busy-state targets.
-                $seenAbbreviations[] = $abbr;
-                [$occ, $avail, $blocked, $aac] = $censusTargets[$abbr];
-            } else {
-                // Duplicate unit: same occupancy, zero available, absorb
-                // remainder into blocked so occ+avail+blocked = staffed.
-                [$occ, , , $aac] = $censusTargets[$abbr];
-                $avail = 0;
-                $blocked = $unit->staffed_bed_count - $occ; // ≥ 0 always
-                // aac mirrors canonical (acuity pressure consistent).
-            }
+            [$occ, $avail, $blocked, $aac] = $censusTargets[$abbr];
 
             DB::table('prod.census_snapshots')->updateOrInsert(
                 [
