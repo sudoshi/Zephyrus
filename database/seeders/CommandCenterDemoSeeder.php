@@ -1010,14 +1010,14 @@ class CommandCenterDemoSeeder extends Seeder
                         $procStartOffset = null; // reset each iteration to avoid cross-case leakage
 
                         if ($cIdx === 0) {
-                            // FCOTS target: exactly 17/20 first cases on-time = 85%.
-                            // Hard-code the 3 late slots as (dayIdx, roomIdx) pairs so
-                            // the result is stable across re-runs and immune to LCG patterns.
-                            // Late slots spread across the week: one per ~day.
-                            // 3 late slots across the week — none on today (dayIdx=4)
-                            // so today's 4 first-cases are all on-time → FCOTS=100% today,
-                            // giving 17/20 = 85% across the full 5-day window.
-                            $lateSlots = [[0, 3], [2, 1], [3, 0]]; // (dayIdx, roomIdx)
+                            // FCOTS target on the most recent OR day (dayIdx=4): exactly
+                            // 1 of 4 first-cases late → 3/4 = 75% on the latest day,
+                            // which is what CommandCenterDataService reports (it queries
+                            // only the max(surgery_date) day).
+                            // Hard-code late slots as (dayIdx, roomIdx) pairs for
+                            // determinism across re-runs. dayIdx=4 roomIdx=1 is the
+                            // designated late case on the latest OR day.
+                            $lateSlots = [[0, 3], [2, 1], [3, 0], [4, 1]]; // (dayIdx, roomIdx)
                             $isLate = false;
                             foreach ($lateSlots as $slot) {
                                 if ($slot[0] === $dayIdx && $slot[1] === $roomIdx) {
