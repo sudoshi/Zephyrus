@@ -557,7 +557,69 @@ class CommandCenterLiveDataTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // 12. unitCensus does NOT expose the internal _netBedUnit key.
+    // 12. Readmission rate uses the forward-looking 30-day definition.
+    //
+    //     Fixtures:
+    //       Patient A — discharged 15 days ago, readmitted 5 days ago (qualifies).
+    //       Patient B — discharged 10 days ago, no subsequent admission (does not qualify).
+    //
+    //     Expected rate = 1 readmission / 2 cohort discharges = 50.0%.
+    //
+    //     This test FAILS against the old backward-looking query and PASSES
+    //     after Fix 1 (forward-looking JOIN direction + 30-day cohort window).
+    // -----------------------------------------------------------------------
+
+    public function test_readmission_rate_uses_forward_looking_definition(): void
+    {
+        $unitId = $this->insertUnit('Readmit Unit', 'med_surg');
+
+        // Patient A: discharged 15 days ago → readmitted 5 days ago (10 days later, within 30-day window).
+        DB::table('prod.encounters')->insert([
+            'patient_ref' => 'readmit-pt-a',
+            'unit_id' => $unitId,
+            'status' => 'discharged',
+            'admitted_at' => now()->subDays(20)->toDateTimeString(),
+            'discharged_at' => now()->subDays(15)->toDateTimeString(),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        // The qualifying readmission for Patient A.
+        DB::table('prod.encounters')->insert([
+            'patient_ref' => 'readmit-pt-a',
+            'unit_id' => $unitId,
+            'status' => 'active',
+            'admitted_at' => now()->subDays(5)->toDateTimeString(),
+            'discharged_at' => null,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Patient B: discharged 10 days ago, no readmission.
+        DB::table('prod.encounters')->insert([
+            'patient_ref' => 'readmit-pt-b',
+            'unit_id' => $unitId,
+            'status' => 'discharged',
+            'admitted_at' => now()->subDays(15)->toDateTimeString(),
+            'discharged_at' => now()->subDays(10)->toDateTimeString(),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $data = app(CommandCenterDataService::class)->build();
+
+        $readmMetric = collect($data['outcomes']['metrics'])->firstWhere('key', 'readmission');
+        $this->assertNotNull($readmMetric);
+
+        // 1 readmission out of 2 cohort discharges = 50.0%.
+        $this->assertSame(50.0, $readmMetric['value'],
+            'Readmission rate should be 50.0%: 1 qualifying forward readmission out of 2 cohort discharges.');
+    }
+
+    // -----------------------------------------------------------------------
+    // 13. unitCensus does NOT expose the internal _netBedUnit key.
     // -----------------------------------------------------------------------
 
     public function test_unit_census_does_not_expose_internal_net_bed_unit_key(): void

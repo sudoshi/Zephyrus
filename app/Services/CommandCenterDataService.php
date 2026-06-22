@@ -89,6 +89,9 @@ class CommandCenterDataService
         // --- Outcomes (computed once, reused in objectives) ---------------
         $outcomesMetrics = $this->computeOutcomesMetrics();
 
+        // --- Forecast metrics (computed once, shared by forecastBand + forecastDetail) ---
+        $forecastMetrics = $this->computeForecastMetrics($netBeds, $occupancyPct, $totalAvailable);
+
         return [
             'generatedAtIso' => now()->toIso8601String(),
             'strain' => $strain,
@@ -98,8 +101,8 @@ class CommandCenterDataService
             'capacity' => $this->capacityBand($units, $totalAvailable, $totalBlocked, $occupancyPct),
             'flow' => $this->flowBand($flowMetrics, $edBoarding),
             'outcomes' => $this->outcomesBand($outcomesMetrics),
-            'forecast' => $this->forecastBand($netBeds, $occupancyPct, $pendingAdmits, $totalAvailable),
-            'forecastDetail' => $this->forecastDetail($netBeds, $units, $occupancyPct),
+            'forecast' => $this->forecastBand($forecastMetrics, $netBeds, $occupancyPct, $pendingAdmits),
+            'forecastDetail' => $this->forecastDetail($forecastMetrics, $netBeds, $units, $occupancyPct),
             'unitCensus' => array_values(array_map(
                 fn (array $u): array => array_diff_key($u, ['_netBedUnit' => true]),
                 $units
@@ -265,7 +268,7 @@ class CommandCenterDataService
                 ['label' => 'Occupancy', 'value' => "{$occupancyPct}%",
                     'status' => $this->bandHighBad($occupancyPct, 92, 85)],
                 ['label' => 'ED boarding', 'value' => (string) $boarding,
-                    'status' => $boarding >= 6 ? 'critical' : 'warning'],
+                    'status' => $boarding >= 6 ? 'critical' : ($boarding > 0 ? 'warning' : 'success')],
                 ['label' => 'Pending admits', 'value' => (string) $pendingAdmits,
                     'status' => $pendingAdmits >= 10 ? 'warning' : 'success'],
             ],
@@ -401,15 +404,17 @@ class CommandCenterDataService
         $edLos = (int) ($edLosRow->med_min ?? 0);
 
         // --- Inpatient flow -----------------------------------------------
+        // 7-day window — reflects recent performance, not all-history cumulative.
         $admToBedRow = DB::selectOne(
-            'SELECT CAST(
+            "SELECT CAST(
                  percentile_cont(0.5) WITHIN GROUP (
                      ORDER BY EXTRACT(EPOCH FROM bpd.created_at - br.created_at) / 60
                  ) AS integer
              ) AS med_min
              FROM prod.bed_placement_decisions bpd
              JOIN prod.bed_requests br ON br.bed_request_id = bpd.bed_request_id
-             WHERE br.is_deleted = false'
+             WHERE br.is_deleted = false
+               AND bpd.created_at >= now() - INTERVAL '7 days'"
         );
         $admToBed = (int) ($admToBedRow->med_min ?? 0);
 
@@ -605,22 +610,26 @@ class CommandCenterDataService
         $window = Carbon::now()->subHours(24);
         $today = Carbon::today();
 
-        // Readmission: 30-day all-cause (discharges in window that had a
-        // same patient_ref admission within 30 days before).
+        // Readmission: 30-day all-cause forward-looking definition.
+        // Cohort = discharges in the last 30 days (metric window must match horizon).
+        // Readmission = a LATER admission for the same patient_ref within 30 days AFTER discharged_at.
+        $readm30 = Carbon::now()->subDays(30);
         $readmRow = DB::selectOne(
             "SELECT
                  COUNT(*) AS total_discharged,
-                 SUM(CASE WHEN prior.encounter_id IS NOT NULL THEN 1 ELSE 0 END) AS readmitted
+                 SUM(CASE WHEN readmit.encounter_id IS NOT NULL THEN 1 ELSE 0 END) AS readmitted
              FROM prod.encounters e
-             LEFT JOIN prod.encounters prior
-                 ON prior.patient_ref = e.patient_ref
-                AND prior.admitted_at >= e.discharged_at - INTERVAL '30 days'
-                AND prior.admitted_at < e.discharged_at
-                AND prior.encounter_id <> e.encounter_id
-                AND prior.is_deleted = false
-             WHERE e.discharged_at >= ?
+             LEFT JOIN prod.encounters readmit
+                 ON readmit.patient_ref = e.patient_ref
+                AND readmit.admitted_at > e.discharged_at
+                AND readmit.admitted_at <= e.discharged_at + INTERVAL '30 days'
+                AND readmit.encounter_id <> e.encounter_id
+                AND readmit.is_deleted = false
+             WHERE e.status = 'discharged'
+               AND e.discharged_at IS NOT NULL
+               AND e.discharged_at >= ?
                AND e.is_deleted = false",
-            [$window->toDateTimeString()]
+            [$readm30->toDateTimeString()]
         );
         $readmTotal = (int) ($readmRow->total_discharged ?? 0);
         $readmCount = (int) ($readmRow->readmitted ?? 0);
@@ -628,7 +637,7 @@ class CommandCenterDataService
             ? round(100.0 * $readmCount / $readmTotal, 1)
             : 0.0;
 
-        // LOS vs GMLOS — for discharged encounters joined to unit type + gmlos ref.
+        // LOS vs GMLOS — unbounded by design: cumulative quality metric, not a rolling window.
         $losRow = DB::selectOne(
             'SELECT
                  SUM(EXTRACT(EPOCH FROM e.discharged_at - e.admitted_at) / 86400) AS sum_los,
@@ -730,32 +739,46 @@ class CommandCenterDataService
     }
 
     // -----------------------------------------------------------------------
-    // Forecast band
+    // Forecast metrics — computed once, shared by forecastBand + forecastDetail
+    //
+    // Horizon convention:
+    //   24h metrics  → by_2pm horizon only  (one row per unit)
+    //   48h metric   → both horizons summed (by_2pm + by_midnight = two rows per unit)
     // -----------------------------------------------------------------------
 
-    /** @return array<string,mixed> */
-    private function forecastBand(int $netBeds, int $occupancyPct, int $pendingAdmits, int $available): array
+    /** @return array<string,mixed> Raw computed forecast values */
+    private function computeForecastMetrics(int $netBeds, int $occupancyPct, int $available): array
     {
         $today = Carbon::today()->toDateString();
 
-        $predRow = DB::table('prod.rtdc_predictions')
+        // 24h: by_2pm horizon only — avoids double-counting the two daily rows.
+        $row24 = DB::table('prod.rtdc_predictions')
             ->where('service_date', $today)
+            ->where('horizon', 'by_2pm')
             ->where('is_deleted', false)
             ->selectRaw(
                 'SUM(discharges_definite + discharges_probable) AS pred_discharges,
-                 SUM(demand_ed)       AS pred_arrivals,
-                 SUM(demand_expected) AS pred_admissions,
-                 SUM(discharges_weighted) AS sum_wt_dc,
-                 AVG(capacity_now)    AS avg_cap_now'
+                 SUM(demand_ed)           AS pred_arrivals,
+                 SUM(demand_expected)     AS pred_admissions,
+                 SUM(discharges_weighted) AS sum_wt_dc'
             )
             ->first();
 
-        $predDischarges = (int) round((float) ($predRow->pred_discharges ?? 0));
-        $predArrivals = (int) round((float) ($predRow->pred_arrivals ?? 0));
-        $predAdmissions = (int) round((float) ($predRow->pred_admissions ?? 0));
-        $sumWtDc = (float) ($predRow->sum_wt_dc ?? 0);
+        $predDischarges24h = (int) round((float) ($row24->pred_discharges ?? 0));
+        $predArrivals = (int) round((float) ($row24->pred_arrivals ?? 0));
+        $predAdmissions = (int) round((float) ($row24->pred_admissions ?? 0));
+        $sumWtDc = (float) ($row24->sum_wt_dc ?? 0);
 
-        // Net beds (projected) = available_now + weighted_discharges − expected_demand
+        // 48h: both horizons (by_2pm + by_midnight) legitimately summed for a longer window.
+        $row48 = DB::table('prod.rtdc_predictions')
+            ->where('service_date', $today)
+            ->where('is_deleted', false)
+            ->selectRaw('SUM(discharges_definite + discharges_probable) AS pred_discharges')
+            ->first();
+
+        $predDischarges48h = (int) round((float) ($row48->pred_discharges ?? 0));
+
+        // Net beds (projected) = available_now + weighted_discharges − expected_demand (24h).
         $netBedsFc = (int) round($available + $sumWtDc - $predAdmissions);
 
         // Average reliability for surge heuristic.
@@ -767,6 +790,29 @@ class CommandCenterDataService
         $surgePct = (int) max(0, min(95,
             round(($occupancyPct - 80) * 4 + max(0, -$netBeds) * 5 + (1 - $avgReliability) * 20)
         ));
+
+        return [
+            'pred_discharges_24h' => $predDischarges24h,
+            'pred_discharges_48h' => $predDischarges48h,
+            'pred_arrivals' => $predArrivals,
+            'pred_admissions' => $predAdmissions,
+            'sum_wt_dc' => $sumWtDc,
+            'net_beds_fc' => $netBedsFc,
+            'surge_pct' => $surgePct,
+        ];
+    }
+
+    // -----------------------------------------------------------------------
+    // Forecast band
+    // -----------------------------------------------------------------------
+
+    /** @return array<string,mixed> */
+    private function forecastBand(array $fm, int $netBeds, int $occupancyPct, int $pendingAdmits): array
+    {
+        $predDischarges = $fm['pred_discharges_24h'];
+        $predArrivals = $fm['pred_arrivals'];
+        $netBedsFc = $fm['net_beds_fc'];
+        $surgePct = $fm['surge_pct'];
 
         return [
             'key' => 'forecast',
@@ -808,35 +854,14 @@ class CommandCenterDataService
     // -----------------------------------------------------------------------
 
     /** @return array<string,mixed> */
-    private function forecastDetail(int $netBeds, array $units, int $occupancyPct): array
+    private function forecastDetail(array $fm, int $netBeds, array $units, int $occupancyPct): array
     {
-        $today = Carbon::today()->toDateString();
-
-        $pred2Row = DB::table('prod.rtdc_predictions')
-            ->where('service_date', $today)
-            ->where('is_deleted', false)
-            ->selectRaw(
-                'SUM(discharges_definite + discharges_probable) AS pred_dc24,
-                 SUM(discharges_definite + discharges_probable + discharges_possible) AS pred_dc48,
-                 SUM(demand_ed)       AS pred_arr,
-                 SUM(demand_expected) AS pred_adm,
-                 SUM(discharges_weighted) AS sum_wt_dc'
-            )
-            ->first();
-
-        $predDc24 = (int) round((float) ($pred2Row->pred_dc24 ?? 0));
-        $predDc48 = (int) round((float) ($pred2Row->pred_dc48 ?? 0));
-        $predArr = (int) round((float) ($pred2Row->pred_arr ?? 0));
-        $predAdm = (int) round((float) ($pred2Row->pred_adm ?? 0));
-        $sumWtDc = (float) ($pred2Row->sum_wt_dc ?? 0);
-
-        // Surge prob (recompute for detail consistency).
-        $avgRel = (float) (DB::table('prod.rtdc_reconciliations')
-            ->selectRaw('AVG(reliability_score) AS avg_rel')
-            ->first()?->avg_rel ?? 0.8);
-        $surgePct = (int) max(0, min(95,
-            round(($occupancyPct - 80) * 4 + max(0, -$netBeds) * 5 + (1 - $avgRel) * 20)
-        ));
+        $predDc24 = $fm['pred_discharges_24h'];
+        $predDc48 = $fm['pred_discharges_48h'];
+        $predArr = $fm['pred_arrivals'];
+        $predAdm = $fm['pred_admissions'];
+        $sumWtDc = $fm['sum_wt_dc'];
+        $surgePct = $fm['surge_pct'];
 
         // Occupancy curve: 24h deterministic heuristic.
         // Distribute predicted admissions to afternoon/evening and discharges to late morning.
