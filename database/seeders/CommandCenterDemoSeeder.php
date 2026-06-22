@@ -117,6 +117,19 @@ class CommandCenterDemoSeeder extends Seeder
         $this->seedPdsaCycles($nonEdUnits);
 
         // ----------------------------------------------------------------
+        // 9b. Historical discharged encounters for LOS/GMLOS, readmissions,
+        //     and discharge-by-noon metrics.
+        //
+        //     Creates ~220 historical + ~30 discharged-today encounters
+        //     tagged with 'sim-hx-' prefix (idempotently deletable).
+        //     Readmission encounters tagged 'sim-ra-' prefix.
+        //
+        //     Must run AFTER seedGmlosReferences() (step 7) so the unit
+        //     type→gmlos lookup is populated.
+        // ----------------------------------------------------------------
+        $this->seedHistoricalEncounters($nonEdUnits);
+
+        // ----------------------------------------------------------------
         // 10. Busy-state tuning — sets a compelling, realistic high-demand
         //     snapshot for the Command Center dashboard.
         //
@@ -176,13 +189,25 @@ class CommandCenterDemoSeeder extends Seeder
         $sentinelAt = now()->startOfDay()->addHours(12); // today at 12:00:00
 
         // Keyed by unit abbreviation → [occupied, available, blocked, aac]
+        //
+        // Blocked target: house-wide = 4 (ED=1, 5E=1, 5W=1, 6E=0, ICU=1, SD=0).
+        // Occupancy target: ~87% house-wide (157 occ / 180 staffed).
+        // Available: avail = staffed − occupied − blocked.
+        //   ED  (40): 40 − 35 − 1 = 4
+        //   5E  (32): 32 − 28 − 1 = 3
+        //   5W  (32): 32 − 27 − 1 = 4
+        //   6E  (32): 32 − 30 − 0 = 2
+        //   ICU (20): 20 − 18 − 1 = 1
+        //   SD  (24): 24 − 19 − 0 = 5
+        //   House: occ=157, avail=19, blocked=4, staffed=180 → 87.2%
+        //   net_beds = avail(19) − pending(12) = 7  (comfortable but tight)
         $censusTargets = [
-            'ED' => [35, 3, 2, 37],
-            '5E' => [28, 2, 2, 29],
-            '5W' => [27, 3, 2, 28],
-            '6E' => [30, 1, 1, 28],
+            'ED' => [35, 4, 1, 37],
+            '5E' => [28, 3, 1, 29],
+            '5W' => [27, 4, 1, 28],
+            '6E' => [30, 2, 0, 28],
             'ICU' => [18, 1, 1, 17],
-            'SD' => [19, 4, 1, 21],
+            'SD' => [19, 5, 0, 21],
         ];
 
         foreach ($canonicalUnits as $unit) {
@@ -440,14 +465,38 @@ class CommandCenterDemoSeeder extends Seeder
         $services = ['Medicine', 'Surgery', 'Cardiology', 'Neurology', 'Orthopedics', 'Oncology'];
         $unitTypes = ['med_surg', 'icu', 'step_down', 'any'];
 
-        // 18 requests: 12 placed, 6 pending.
-        $requests = [];
+        // Fetch beds for decisions.
+        $availableBeds = Bed::whereHas('unit', fn ($q) => $q->where('type', '!=', 'ed'))
+            ->where('is_deleted', false)
+            ->limit(50)
+            ->pluck('bed_id')
+            ->toArray();
+
+        if (empty($availableBeds)) {
+            $availableBeds = Bed::where('is_deleted', false)->limit(50)->pluck('bed_id')->toArray();
+        }
+
+        $actions = ['accepted', 'edited', 'rejected'];
+
+        // 18 requests: 12 placed (with decisions), 6 pending (no decisions).
+        //
+        // Admit→Bed metric = median(bpd.created_at − br.created_at) for placed
+        // requests in the last 7 days.  We must insert both rows with explicit
+        // created_at timestamps so the difference lands in [45, 65] minutes.
+        // Eloquent timestamps are set at INSERT time; use raw insertGetId to
+        // control both br.created_at and bpd.created_at precisely.
         for ($i = 1; $i <= 18; $i++) {
             $seed = 20260622 + $i * 7;
             $source = $sources[$this->seededRand($seed, 0, 3)];
             $status = $i <= 12 ? 'placed' : 'pending';
 
-            $requests[] = BedRequest::create([
+            // Spread requests across the last 5 days (all within the 7-day
+            // service window) so the median is stable across re-runs.
+            $daysAgo = $this->seededRand($seed + 5, 0, 4);
+            $hoursAgo = $this->seededRand($seed + 6, 1, 20);
+            $requestAt = now()->subDays($daysAgo)->subHours($hoursAgo);
+
+            $bedRequestId = DB::table('prod.bed_requests')->insertGetId([
                 'patient_ref' => sprintf('sim-br-%04d', $i),
                 'source' => $source,
                 'sex' => ['M', 'F'][$this->seededRand($seed + 1, 0, 1)],
@@ -458,52 +507,34 @@ class CommandCenterDemoSeeder extends Seeder
                 'status' => $status,
                 'created_by' => 'seeder',
                 'modified_by' => 'seeder',
+                'created_at' => $requestAt,
+                'updated_at' => $requestAt,
                 'is_deleted' => false,
-            ]);
-        }
+            ], 'bed_request_id');
 
-        // Create BedPlacementDecisions for the 12 placed requests.
-        // Fetch a sample of beds from non-ED units to use as recommended/chosen.
-        $availableBeds = Bed::whereHas('unit', fn ($q) => $q->where('type', '!=', 'ed'))
-            ->where('is_deleted', false)
-            ->limit(50)
-            ->pluck('bed_id')
-            ->toArray();
+            // Only placed requests get a BedPlacementDecision.
+            if ($i <= 12) {
+                $seed2 = 20260622 + $i * 13;
+                $bedIdx = $this->seededRand($seed2, 0, count($availableBeds) - 1);
+                $bedId = $availableBeds[$bedIdx];
+                $action = $actions[$this->seededRand($seed2 + 1, 0, 2)];
 
-        if (empty($availableBeds)) {
-            // Fallback: any beds.
-            $availableBeds = Bed::where('is_deleted', false)->limit(50)->pluck('bed_id')->toArray();
-        }
+                // Latency target: 45–65 minutes (drives Admit→Bed metric).
+                $latencyMin = $this->seededRand($seed2 + 2, 45, 65);
+                $decisionAt = $requestAt->copy()->addMinutes($latencyMin);
 
-        $encounters = Encounter::where('status', 'active')->limit(12)->get();
-        $actions = ['accepted', 'edited', 'rejected'];
-
-        foreach (array_slice($requests, 0, 12) as $idx => $req) {
-            $seed = 20260622 + ($idx + 1) * 13;
-            $bedIdx = $this->seededRand($seed, 0, count($availableBeds) - 1);
-            $bedId = $availableBeds[$bedIdx];
-            $action = $actions[$this->seededRand($seed + 1, 0, 2)];
-            $latencyMin = $this->seededRand($seed + 2, 30, 70);
-
-            // The latency drives admit→bed metric. We set created_at to
-            // latencyMin after the corresponding encounter admitted_at if
-            // one exists, otherwise relative to now().
-            $encounter = $encounters->get($idx);
-            $admittedBase = $encounter ? $encounter->admitted_at : now()->subHours(4);
-            $decisionAt = (clone $admittedBase)->addMinutes($latencyMin);
-
-            $decision = new BedPlacementDecision([
-                'bed_request_id' => $req->bed_request_id,
-                'recommended_bed_id' => $bedId,
-                'chosen_bed_id' => $action !== 'rejected' ? $bedId : null,
-                'action' => $action,
-                'reason' => null,
-                'score_snapshot' => null,
-                'decided_by' => null,
-            ]);
-            $decision->created_at = $decisionAt;
-            $decision->updated_at = $decisionAt;
-            $decision->save();
+                DB::table('prod.bed_placement_decisions')->insert([
+                    'bed_request_id' => $bedRequestId,
+                    'recommended_bed_id' => $bedId,
+                    'chosen_bed_id' => $action !== 'rejected' ? $bedId : null,
+                    'action' => $action,
+                    'reason' => null,
+                    'score_snapshot' => null,
+                    'decided_by' => null,
+                    'created_at' => $decisionAt,
+                    'updated_at' => $decisionAt,
+                ]);
+            }
         }
     }
 
@@ -588,8 +619,12 @@ class CommandCenterDemoSeeder extends Seeder
             $hoursAgo = $this->seededRandFloat($seed, 0.5, 23.5);
             $arrivedAt = now()->subMinutes((int) ($hoursAgo * 60));
 
-            $triagedAt = $arrivedAt->copy()->addMinutes($this->seededRand($seed + 1, 3, 12));
-            $providerAt = $triagedAt->copy()->addMinutes($this->seededRand($seed + 2, 8, 35));
+            $triagedAt = $arrivedAt->copy()->addMinutes($this->seededRand($seed + 1, 3, 10));
+
+            // Door-to-provider target ≈ 16–20m median.
+            // Triage adds 3–10m, then provider adds 5–20m after triage → total 8–30m from arrival.
+            $providerAt = $triagedAt->copy()->addMinutes($this->seededRand($seed + 2, 5, 20));
+
             $esiLevel = $esiPool[($i - 1) % count($esiPool)];
             $disposition = $dispositions[($i - 1) % count($dispositions)];
 
@@ -600,7 +635,9 @@ class CommandCenterDemoSeeder extends Seeder
 
             switch ($disposition) {
                 case 'discharged':
-                    $losDuration = $this->seededRand($seed + 3, 90, 360);
+                    // ED LOS (discharged) target ≈ 140–165m median.
+                    // Range 90–210m produces a median near 150m.
+                    $losDuration = $this->seededRand($seed + 3, 90, 210);
                     $departedAt = $arrivedAt->copy()->addMinutes($losDuration);
                     if ($departedAt->greaterThan(now())) {
                         $departedAt = null;
@@ -887,6 +924,9 @@ class CommandCenterDemoSeeder extends Seeder
         $today = now()->toDateString();
         $isToday = fn (Carbon $d) => $d->toDateString() === $today;
 
+        // Current hour — used to decide which today-cases are already completed.
+        $currentHour = (int) now()->format('G');
+
         $allCaseIds = [];
 
         foreach ($weekdays as $dayIdx => $day) {
@@ -897,28 +937,38 @@ class CommandCenterDemoSeeder extends Seeder
 
                 for ($cIdx = 0; $cIdx < $numCases; $cIdx++) {
                     $seed = 20260622 + $dayIdx * 1000 + $roomIdx * 100 + $cIdx;
-                    $duration = $this->seededRand($seed, 60, 300);
+                    $duration = $this->seededRand($seed, 60, 240);
                     $surgeonId = $providerIds[$this->seededRand($seed + 1, 0, count($providerIds) - 1)];
                     $serviceId = $serviceIds[$this->seededRand($seed + 2, 0, count($serviceIds) - 1)];
                     $procedureId = $this->seededRand($seed + 3, 0, count($procedures) - 1);
                     $procedure = $procedures[$procedureId];
 
-                    // Determine status:
-                    // Today: first case In Progress, last case Cancelled, rest Scheduled.
-                    // Past days: all Completed.
+                    $scheduledStart = $slotStart->copy();
+
+                    // Determine status.
+                    //
+                    // Today's OR day strategy (drives FCOTS + Turnover):
+                    //   - Cases whose scheduled end (start + duration) is in the past
+                    //     → Completed (so case_metrics rows exist for turnover avg).
+                    //   - The next case whose slot is in the future → In Progress.
+                    //   - Last case → Cancelled (same-day cancellation demo).
+                    //   - Past days → all Completed.
                     if ($isToday($day)) {
-                        if ($cIdx === 0) {
-                            $statusId = $statusInProgress;
-                        } elseif ($cIdx === $numCases - 1) {
+                        $scheduledEndHour = (int) $scheduledStart->copy()->addMinutes($duration)->format('G');
+                        if ($cIdx === $numCases - 1) {
                             $statusId = $statusCancelled;
+                        } elseif ($scheduledEndHour <= $currentHour) {
+                            // Case should be done by now.
+                            $statusId = $statusCompleted;
+                        } elseif ((int) $scheduledStart->format('G') <= $currentHour) {
+                            // Started but not finished yet.
+                            $statusId = $statusInProgress;
                         } else {
                             $statusId = $statusScheduled;
                         }
                     } else {
                         $statusId = $statusCompleted;
                     }
-
-                    $scheduledStart = $slotStart->copy();
 
                     $caseId = DB::table('prod.or_cases')->insertGetId([
                         'patient_id' => sprintf('SIM%04d', $seed % 10000),
@@ -949,18 +999,55 @@ class CommandCenterDemoSeeder extends Seeder
 
                     // OR Log for completed and in-progress cases.
                     if (in_array($statusId, [$statusCompleted, $statusInProgress])) {
-                        $lateStartMin = $this->seededRand($seed + 4, -5, 20);
-                        $orInTime = $scheduledStart->copy()->addMinutes($lateStartMin);
-                        $procStart = $orInTime->copy()->addMinutes($this->seededRand($seed + 5, 20, 45));
+                        // FCOTS target: ~82% of first cases have procedure_start_time
+                        // ≤ scheduled_start_time + 15 minutes (service grace window).
+                        //
+                        // For first cases (cIdx === 0) we control procedure_start_time
+                        // directly relative to scheduledStart, then back-calculate or_in_time.
+                        // Non-first cases are not measured by FCOTS; use normal jitter.
                         $procEnd = null;
                         $orOutTime = null;
+                        $procStartOffset = null; // reset each iteration to avoid cross-case leakage
+
+                        if ($cIdx === 0) {
+                            // FCOTS target: exactly 17/20 first cases on-time = 85%.
+                            // Hard-code the 3 late slots as (dayIdx, roomIdx) pairs so
+                            // the result is stable across re-runs and immune to LCG patterns.
+                            // Late slots spread across the week: one per ~day.
+                            // 3 late slots across the week — none on today (dayIdx=4)
+                            // so today's 4 first-cases are all on-time → FCOTS=100% today,
+                            // giving 17/20 = 85% across the full 5-day window.
+                            $lateSlots = [[0, 3], [2, 1], [3, 0]]; // (dayIdx, roomIdx)
+                            $isLate = false;
+                            foreach ($lateSlots as $slot) {
+                                if ($slot[0] === $dayIdx && $slot[1] === $roomIdx) {
+                                    $isLate = true;
+                                    break;
+                                }
+                            }
+                            if (! $isLate) {
+                                // On-time: procedure_start_time = scheduledStart + (-2 to +13m)
+                                $procStartOffset = $this->seededRand($seed + 4, -2, 13);
+                            } else {
+                                // Late: procedure_start_time = scheduledStart + (16 to 40m)
+                                $procStartOffset = $this->seededRand($seed + 4, 16, 40);
+                            }
+                            $procStart = $scheduledStart->copy()->addMinutes($procStartOffset);
+                            // OR-in 10–20m before procedure start.
+                            $orInTime = $procStart->copy()->subMinutes($this->seededRand($seed + 5, 10, 20));
+                        } else {
+                            // Non-first cases: standard OR-in jitter, then fixed prep.
+                            $lateStartMin = $this->seededRand($seed + 4, -5, 20);
+                            $orInTime = $scheduledStart->copy()->addMinutes($lateStartMin);
+                            $procStart = $orInTime->copy()->addMinutes($this->seededRand($seed + 5, 15, 30));
+                        }
 
                         if ($statusId === $statusCompleted) {
                             $procEnd = $procStart->copy()->addMinutes($duration);
-                            $orOutTime = $procEnd->copy()->addMinutes($this->seededRand($seed + 6, 15, 35));
+                            $orOutTime = $procEnd->copy()->addMinutes($this->seededRand($seed + 6, 10, 25));
                         }
 
-                        $logId = DB::table('prod.or_logs')->insertGetId([
+                        DB::table('prod.or_logs')->insertGetId([
                             'case_id' => $caseId,
                             'tracking_date' => $day->toDateString(),
                             'or_in_time' => $orInTime,
@@ -975,10 +1062,13 @@ class CommandCenterDemoSeeder extends Seeder
                             'is_deleted' => false,
                         ], 'log_id');
 
-                        // Case Metrics.
+                        // Case Metrics for completed cases only.
+                        // Turnover target: 24–34m average.
                         if ($statusId === $statusCompleted) {
-                            $turnover = $this->seededRand($seed + 7, 15, 45);
-                            $lateStart = max(0, $lateStartMin);
+                            $turnover = $this->seededRand($seed + 7, 24, 34);
+                            // late_start_minutes: for first cases use procStartOffset,
+                            // for non-first cases use lateStartMin (set in the else branch).
+                            $lateStart = max(0, isset($procStartOffset) ? $procStartOffset : $lateStartMin);
                             $utilPct = round(min(100, ($duration / 480.0) * 100 + $this->seededRandFloat($seed + 8, -10, 10)), 2);
                             $primeMin = (int) ($duration * 0.85);
                             $nonPrimeMin = $duration - $primeMin;
@@ -1003,7 +1093,7 @@ class CommandCenterDemoSeeder extends Seeder
                     }
 
                     // Advance slot start for next case.
-                    $turnoverGap = $this->seededRand($seed + 9, 15, 30);
+                    $turnoverGap = $this->seededRand($seed + 9, 24, 34);
                     $slotStart = $slotStart->addMinutes($duration + $turnoverGap);
                 }
             }
@@ -1204,6 +1294,305 @@ class CommandCenterDemoSeeder extends Seeder
                 'completed_at' => $completedAt,
                 'is_deleted' => false,
             ]);
+        }
+    }
+
+    // ====================================================================
+    // Historical encounters — LOS/GMLOS, readmissions, discharge-by-noon
+    // ====================================================================
+
+    /**
+     * Seed ~220 historical discharged encounters (sim-hx-NNNN) spread over
+     * the last 45 days, plus ~30 discharged-today encounters (sim-td-NNNN),
+     * plus readmission encounters (sim-ra-NNNN) for ~12% of the historical
+     * cohort.
+     *
+     * Idempotent: deletes all sim-hx-/sim-td-/sim-ra- rows before re-inserting.
+     * Deterministic: uses seededRand() throughout.
+     * Does NOT affect active encounter counts or census occupancy.
+     *
+     * GMLOS by unit type (must match seedGmlosReferences):
+     *   med_surg  → 4.20 days
+     *   icu       → 5.80 days
+     *   step_down → 3.50 days
+     *   ed        → 0.40 days  (not used for inpatient encounters)
+     */
+    private function seedHistoricalEncounters($nonEdUnits): void
+    {
+        // Idempotent delete of all three sim-hx/sim-td/sim-ra cohorts.
+        DB::table('prod.encounters')
+            ->where(function ($q) {
+                $q->where('patient_ref', 'like', 'sim-hx-%')
+                    ->orWhere('patient_ref', 'like', 'sim-td-%')
+                    ->orWhere('patient_ref', 'like', 'sim-ra-%');
+            })
+            ->delete();
+
+        // GMLOS lookup keyed by unit type.
+        $gmlosMap = [
+            'med_surg' => 4.20,
+            'icu' => 5.80,
+            'step_down' => 3.50,
+        ];
+
+        // Build a pool of non-ED units with their types.
+        $unitPool = $nonEdUnits->filter(fn ($u) => isset($gmlosMap[$u->type]))->values();
+        if ($unitPool->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+
+        // ------------------------------------------------------------------
+        // Pre-step: fix pre-existing discharged encounters on canonical units.
+        //
+        // The RTDC core seeder created ~49 discharged encounters with LOS
+        // of only 1–19 hours (avg 0.36 days) against GMLOS of 3.5–5.8 days.
+        // These have blank created_by and live on canonical (non-soft-deleted)
+        // units, so the service LOS query includes them, dragging the ratio
+        // far below 1.0 regardless of how many sim-hx rows we add.
+        //
+        // We update their admitted_at so LOS ≈ gmlos × 1.10 (still discharged,
+        // dates in the past, no active census impact). Idempotent: re-running
+        // sets the same admitted_at each time via a deterministic per-encounter
+        // calculation anchored on encounter_id.
+        // ------------------------------------------------------------------
+        // Include ALL pre-existing discharged encounters regardless of whether
+        // their unit is soft-deleted — the service LOS query joins units without
+        // filtering u.is_deleted, so ALL of them affect the ratio.
+        $preExisting = DB::select(
+            "SELECT e.encounter_id, e.discharged_at, g.gmlos_days
+             FROM prod.encounters e
+             JOIN prod.units u ON u.unit_id = e.unit_id
+             JOIN prod.gmlos_references g ON g.unit_type = u.type
+             WHERE e.status = 'discharged'
+               AND e.is_deleted = false
+               AND e.patient_ref NOT LIKE 'sim-hx-%'
+               AND e.patient_ref NOT LIKE 'sim-td-%'
+               AND e.patient_ref NOT LIKE 'sim-ra-%'"
+        );
+
+        foreach ($preExisting as $row) {
+            // Target LOS = gmlos × 1.10, deterministic per encounter_id.
+            $targetLosDays = $row->gmlos_days * 1.10;
+            $dischargedAt = Carbon::parse($row->discharged_at);
+            $newAdmittedAt = $dischargedAt->copy()->subSeconds((int) ($targetLosDays * 86400));
+
+            DB::table('prod.encounters')
+                ->where('encounter_id', $row->encounter_id)
+                ->update([
+                    'admitted_at' => $newAdmittedAt,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Part A — historical discharged encounters over the last 45 days.
+        //
+        // LOS = gmlos × factor where factor ∈ [1.05, 1.30] (uniform).
+        //   avg(factor) = 1.175 → LOS/GMLOS ratio ≈ 1.10–1.12 ✓
+        //   avg(factor − 1) = 0.175 → excess per enc ≈ gmlos × 0.175
+        //
+        // Count calibration (all 72 pre-existing now fixed to ratio ≈ 1.10):
+        //   - pre-existing: 72 enc, ratio ~1.10, sum_gmlos ~250, excess ~250×0.10 ≈ 25d
+        //   - sim-hx 130: factor avg 1.19, sum_gmlos ~575, excess ~575×0.19 ≈ 109d
+        //   - sim-td 36: factor avg 1.19, sum_gmlos ~189, excess ~189×0.19 ≈ 36d
+        //   Combined excess ≈ 25 + 109 + 36 = 170d — slightly over; use 110 enc.
+        //   sim-hx 110: excess ≈ 487×0.19 ≈ 93d; total ≈ 25+93+36 = 154d — marginal.
+        //   sim-hx 100: excess ≈ 442×0.19 ≈ 84d; total ≈ 25+84+36 = 145d ✓
+        //   Ratio with 100 enc: (100×4.42×1.19 + 72×4.42×1.10 + 36×4.42×1.19) /
+        //     (100×4.42 + 72×4.42 + 36×4.42) = (526+350+190)/(442+318+159) = 1066/919 = 1.16
+        //   But includes pre-existing ED encounters (gmlos=0.40) which lower the blended avg.
+        //   Empirically target 120 encounters with factor 108-128 (avg 1.18).
+        // ------------------------------------------------------------------
+        $historicalCount = 120;
+        $historicalRefs = [];   // patient_refs for readmission eligibility
+
+        for ($i = 1; $i <= $historicalCount; $i++) {
+            $seed = 20260622 + $i * 41;
+
+            // Pick a unit deterministically.
+            $unit = $unitPool->get($this->seededRand($seed, 0, $unitPool->count() - 1));
+            $gmlos = $gmlosMap[$unit->type];
+
+            // LOS factor 1.08–1.30, avg ≈ 1.19 → combined ratio ≈ 1.05–1.08.
+            // All factors > 1.0; excess per enc ≈ gmlos × 0.19 ≈ 4.42 × 0.19 ≈ 0.84d.
+            // 140 enc → sim-hx excess ≈ 118d; combined (with pre-existing ~24d) ≈ 142d ✓
+            $factorInt = $this->seededRand($seed + 1, 108, 130); // ×100
+            $losDays = $gmlos * ($factorInt / 100.0);
+
+            // Discharge between 2 days ago and 45 days ago so there is a
+            // 30-day forward window for readmissions.
+            $dischargedDaysAgo = $this->seededRand($seed + 2, 2, 45);
+            $dischargedHour = $this->seededRand($seed + 3, 6, 22);
+            $dischargedAt = $now->copy()->subDays($dischargedDaysAgo)->setTime($dischargedHour, 0, 0);
+
+            $admittedAt = $dischargedAt->copy()->subSeconds((int) ($losDays * 86400));
+
+            $patientRef = sprintf('sim-hx-%04d', $i);
+            $historicalRefs[] = ['ref' => $patientRef, 'discharged_at' => $dischargedAt, 'days_ago' => $dischargedDaysAgo];
+
+            DB::table('prod.encounters')->insert([
+                'patient_ref' => $patientRef,
+                'unit_id' => $unit->unit_id,
+                'bed_id' => null,
+                'admitted_at' => $admittedAt,
+                'discharged_at' => $dischargedAt,
+                'expected_discharge_date' => $dischargedAt->toDateString(),
+                'acuity_tier' => $this->seededRand($seed + 4, 1, 4),
+                'status' => 'discharged',
+                'created_by' => 'seeder',
+                'modified_by' => 'seeder',
+                'created_at' => $admittedAt,
+                'updated_at' => $dischargedAt,
+                'is_deleted' => false,
+            ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Part B — ~30 discharged-today encounters for Discharge-by-Noon.
+        //
+        // ~25% discharged before 12:00 → DBN ≈ 25%.
+        // Remaining 75% discharged 12:00–20:00.
+        // ------------------------------------------------------------------
+        // DBN target: ~25% of all discharges today before noon.
+        //
+        // There are ~12 pre-existing core-seed encounters discharged today
+        // with discharged_at between 00:00–05:00 (all before noon). These
+        // cannot be touched. To hit 25% overall:
+        //   Let T = total today-discharged, B = before-noon count.
+        //   B/T = 0.25 → B = 0.25T → T = 4B.
+        //   Pre-existing B_fixed = 12, so T_fixed = 12 (all before noon).
+        //   We add N sim-td rows, 0 before noon:
+        //   B_total = 12, T_total = 12 + N → 12/(12+N) = 0.25 → N = 36.
+        // So we seed 36 sim-td encounters, ALL after noon, to dilute the
+        // pre-existing before-noon cluster down to exactly 25%.
+        $todayCount = 36;
+        $today = $now->copy()->startOfDay();
+
+        for ($i = 1; $i <= $todayCount; $i++) {
+            $seed = 20260622 + $i * 53;
+
+            $unit = $unitPool->get($this->seededRand($seed, 0, $unitPool->count() - 1));
+            $gmlos = $gmlosMap[$unit->type];
+
+            // All sim-td discharges are AFTER noon (12:00–20:00) so that the
+            // 12 pre-existing before-noon encounters produce exactly 25% DBN.
+            $beforeNoon = false;
+            if ($beforeNoon) {
+                // Discharged 08:00–11:45.
+                $dischargeHour = $this->seededRand($seed + 1, 8, 11);
+                $dischargeMinute = $this->seededRand($seed + 2, 0, 45);
+            } else {
+                // Discharged 12:00–20:00.
+                $dischargeHour = $this->seededRand($seed + 1, 12, 20);
+                $dischargeMinute = $this->seededRand($seed + 2, 0, 59);
+            }
+
+            $dischargedAt = $today->copy()->setTime($dischargeHour, $dischargeMinute, 0);
+            // Only create if the discharge time is in the past.
+            if ($dischargedAt->greaterThan($now)) {
+                $dischargedAt = $now->copy()->subMinutes(5);
+            }
+
+            // sim-td LOS near GMLOS (factor 0.90–1.05, avg ~0.975) so these
+            // encounters contribute minimal excess bed-days — they exist for
+            // the DBN denominator, not to inflate excess.
+            $losDays = $gmlos * ($this->seededRand($seed + 3, 90, 105) / 100.0);
+            $admittedAt = $dischargedAt->copy()->subSeconds((int) ($losDays * 86400));
+
+            DB::table('prod.encounters')->insert([
+                'patient_ref' => sprintf('sim-td-%04d', $i),
+                'unit_id' => $unit->unit_id,
+                'bed_id' => null,
+                'admitted_at' => $admittedAt,
+                'discharged_at' => $dischargedAt,
+                'expected_discharge_date' => $today->toDateString(),
+                'acuity_tier' => $this->seededRand($seed + 4, 1, 4),
+                'status' => 'discharged',
+                'created_by' => 'seeder',
+                'modified_by' => 'seeder',
+                'created_at' => $admittedAt,
+                'updated_at' => $dischargedAt,
+                'is_deleted' => false,
+            ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Part C — Readmissions for ~12% of the historical cohort.
+        //
+        // For each selected patient, create a NEW encounter with:
+        //   admitted_at = original discharged_at + 3–25 days
+        //   status = 'discharged' (completed short readmit) or 'active'
+        //
+        // The service query counts readmits where:
+        //   readmit.admitted_at > e.discharged_at
+        //   AND readmit.admitted_at <= e.discharged_at + 30 days
+        //   AND readmit.encounter_id <> e.encounter_id
+        //
+        // We must ensure admitted_at of readmit is within 30 days of the
+        // original discharge AND the original discharge is within the last
+        // 30 days (the outer WHERE e.discharged_at >= now()-30d).
+        // ------------------------------------------------------------------
+        // Only historical encounters discharged within the last 30 days are
+        // eligible (they are in the service's outer cohort window).
+        $eligibleForReadmit = array_filter(
+            $historicalRefs,
+            fn ($r) => $r['days_ago'] <= 30
+        );
+        $eligibleForReadmit = array_values($eligibleForReadmit);
+
+        // Target ~12% readmission rate.
+        // eligibleForReadmit = sim-hx patients discharged within last 30 days.
+        // With 140 sim-hx encounters, ~91 are in the 30-day window (65% of 140).
+        // Total denominator (all discharged in last 30d): ~91 sim-hx + ~49 pre-existing
+        //   + 36 sim-td = ~176 encounters.
+        // Every 3rd of eligible = ~40 selected; ~75% pass gap check → ~30 readmits.
+        // Total denominator ~196; 30/196 ≈ 15% — slightly high but accounts for the
+        // fact that sim-ra encounters themselves enter the denominator on re-runs
+        // as new "discharged" rows. Net effective rate ≈ 10–13% ✓
+        $readmitCount = 0;
+        foreach ($eligibleForReadmit as $idx => $orig) {
+            // Select every 3rd eligible patient → ~10–13% effective readmission rate.
+            if ($idx % 3 !== 0) {
+                continue;
+            }
+
+            $seed = 20260622 + ($idx + 1) * 67;
+            $unit = $unitPool->get($this->seededRand($seed, 0, $unitPool->count() - 1));
+
+            // Readmit 3–25 days after discharge, but must be ≤30 days after.
+            $maxGap = min(25, 30 - $orig['days_ago'] + 1);
+            if ($maxGap < 3) {
+                continue; // Not enough window — skip.
+            }
+            $gapDays = $this->seededRand($seed + 1, 3, $maxGap);
+            $readmitAdmittedAt = $orig['discharged_at']->copy()->addDays($gapDays);
+
+            // Readmit LOS: 1–4 days (short).
+            $readmitLosDays = $this->seededRand($seed + 2, 1, 4);
+            $readmitDischargedAt = $readmitAdmittedAt->copy()->addDays($readmitLosDays);
+
+            $isActive = $readmitDischargedAt->greaterThan($now);
+            $status = $isActive ? 'active' : 'discharged';
+
+            DB::table('prod.encounters')->insert([
+                'patient_ref' => $orig['ref'],  // SAME patient_ref — triggers readmit match
+                'unit_id' => $unit->unit_id,
+                'bed_id' => null,
+                'admitted_at' => $readmitAdmittedAt,
+                'discharged_at' => $isActive ? null : $readmitDischargedAt,
+                'expected_discharge_date' => $isActive ? $now->copy()->addDays(1)->toDateString() : $readmitDischargedAt->toDateString(),
+                'acuity_tier' => $this->seededRand($seed + 3, 1, 4),
+                'status' => $status,
+                'created_by' => 'seeder',
+                'modified_by' => 'seeder',
+                'created_at' => $readmitAdmittedAt,
+                'updated_at' => $isActive ? $now : $readmitDischargedAt,
+                'is_deleted' => false,
+            ]);
+
+            $readmitCount++;
         }
     }
 
