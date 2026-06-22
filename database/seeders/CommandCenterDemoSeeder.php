@@ -91,6 +91,250 @@ class CommandCenterDemoSeeder extends Seeder
         // 9. PDSA Cycles (5 active, 2 completed).
         // ----------------------------------------------------------------
         $this->seedPdsaCycles($nonEdUnits);
+
+        // ----------------------------------------------------------------
+        // 10. Busy-state tuning — sets a compelling, realistic high-demand
+        //     snapshot for the Command Center dashboard.
+        //
+        //     Target: occupancy ≈ 87%, net beds ≈ 0–4, ED boarding = 5,
+        //             dc_ready = 12, strain level 2 (warning).
+        //
+        //     Idempotent: uses updateOrInsert / deterministic ID selection.
+        //     Never touches the users table or drops core RTDC data.
+        // ----------------------------------------------------------------
+        // Pass ALL units (not just the deduplicated canonical set) so that
+        // duplicate-abbreviation units (7-12) also get a busy sentinel snapshot
+        // and don't dilute the house-wide occupancy calculation in the service.
+        $allUnitsIncludingDupes = Unit::orderBy('unit_id')->get();
+        $this->tuneCommandCenterBusyState($allUnitsIncludingDupes, $edUnit);
+    }
+
+    // ====================================================================
+    // Busy-state tuning
+    // ====================================================================
+
+    /**
+     * Tune the Command Center demo to a busy, high-demand state.
+     *
+     * Called AFTER all other seeders so it always wins the "latest snapshot"
+     * race regardless of what earlier steps inserted.
+     *
+     * Idempotent: census snapshots use a fixed sentinel captured_at (today
+     * at noon), so updateOrInsert matches the same row on re-runs.
+     * Bed-request and encounter updates are idempotent by design (WHERE +
+     * UPDATE, not INSERT).
+     */
+    private function tuneCommandCenterBusyState($allUnits, ?Unit $edUnit): void
+    {
+        // ------------------------------------------------------------------
+        // 10a. Census snapshots — one deterministic "latest" row per unit.
+        //
+        // captured_at sentinel = today 12:00:00 (fixed per calendar day).
+        // The service uses DISTINCT ON (unit_id) ORDER BY captured_at DESC,
+        // so this row always wins over earlier snapshots from the core seeder.
+        //
+        // The DB contains duplicate abbreviation groups (unit_ids 1-6 and
+        // 7-12 share the same abbreviations). The service queries ALL
+        // non-deleted units, so both groups contribute to house totals.
+        //
+        // Strategy:
+        //   - Canonical units (lowest unit_id per abbreviation) get the full
+        //     per-unit census targets below.
+        //   - Duplicate units (higher unit_ids with the same abbreviation)
+        //     get available=0, occupied matching canonical, blocked absorbing
+        //     the remainder. This keeps house occupancy at target while
+        //     preventing available-bed double-counting.
+        //
+        // Canonical unit targets (units 1-6, staffed total = 180):
+        //   ED  (40): occ=35 avail=3 blocked=2  → 87.5% ; aac=37
+        //   5E  (32): occ=28 avail=2 blocked=2  → 87.5% ; aac=29
+        //   5W  (32): occ=27 avail=3 blocked=2  → 84.4% ; aac=28
+        //   6E  (32): occ=30 avail=1 blocked=1  → 93.75%; aac=28  (RED)
+        //   ICU (20): occ=18 avail=1 blocked=1  → 90%   ; aac=17  (RED)
+        //   SD  (24): occ=19 avail=4 blocked=1  → 79.2% ; aac=21
+        //   Canonical totals: occ=157, avail=14, staffed=180 → 87.2%
+        //
+        // With duplicate units contributing 0 available:
+        //   House avail=14, pending=12 → net_beds = 2  (tight house ✓)
+        // ------------------------------------------------------------------
+        $sentinelAt = now()->startOfDay()->addHours(12); // today at 12:00:00
+
+        // Keyed by unit abbreviation → [occupied, available, blocked, aac]
+        // These are the targets for the CANONICAL (lowest unit_id) instance.
+        $censusTargets = [
+            'ED' => [35, 3, 2, 37],
+            '5E' => [28, 2, 2, 29],
+            '5W' => [27, 3, 2, 28],
+            '6E' => [30, 1, 1, 28],
+            'ICU' => [18, 1, 1, 17],
+            'SD' => [19, 4, 1, 21],
+        ];
+
+        // Track which abbreviations have already been assigned canonical targets.
+        $seenAbbreviations = [];
+
+        // $allUnits is ordered by unit_id ASC, so the first occurrence of each
+        // abbreviation is the canonical unit; subsequent ones are duplicates.
+        foreach ($allUnits as $unit) {
+            $abbr = $unit->abbreviation;
+            if (! isset($censusTargets[$abbr])) {
+                continue; // unknown abbreviation — skip
+            }
+
+            if (! in_array($abbr, $seenAbbreviations, true)) {
+                // Canonical unit: apply full busy-state targets.
+                $seenAbbreviations[] = $abbr;
+                [$occ, $avail, $blocked, $aac] = $censusTargets[$abbr];
+            } else {
+                // Duplicate unit: same occupancy, zero available, absorb
+                // remainder into blocked so occ+avail+blocked = staffed.
+                [$occ, , , $aac] = $censusTargets[$abbr];
+                $avail = 0;
+                $blocked = $unit->staffed_bed_count - $occ; // ≥ 0 always
+                // aac mirrors canonical (acuity pressure consistent).
+            }
+
+            DB::table('prod.census_snapshots')->updateOrInsert(
+                [
+                    'unit_id' => $unit->unit_id,
+                    'captured_at' => $sentinelAt,
+                ],
+                [
+                    'staffed_beds' => $unit->staffed_bed_count,
+                    'occupied' => $occ,
+                    'available' => $avail,
+                    'blocked' => $blocked,
+                    'acuity_adjusted_capacity' => $aac,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
+        // ------------------------------------------------------------------
+        // 10b. Bed requests — ensure exactly 12 rows with status='pending'.
+        //
+        // The core seeder (step 3) already created 18 seeder-tagged rows:
+        //   12 placed + 6 pending.
+        // Here we flip 6 of the 'placed' rows to 'pending' by updating them
+        // deterministically (lowest bed_request_id among placed rows).
+        // On re-run the WHERE will find them already 'pending' and update
+        // idempotently (SET status='pending' WHERE status='pending' is a no-op
+        // in Postgres and affects the same rows because the IDs are stable).
+        // ------------------------------------------------------------------
+        $placedIds = DB::table('prod.bed_requests')
+            ->where('created_by', 'seeder')
+            ->where('status', 'placed')
+            ->orderBy('bed_request_id')
+            ->limit(6)
+            ->pluck('bed_request_id');
+
+        if ($placedIds->isNotEmpty()) {
+            DB::table('prod.bed_requests')
+                ->whereIn('bed_request_id', $placedIds)
+                ->update(['status' => 'pending', 'updated_at' => now()]);
+        }
+
+        // Confirm total pending count is at least 12 (guard for re-runs
+        // where all 6 targets are already pending and $placedIds was empty).
+        // Nothing needed — if placedIds was empty, all 12 are already pending.
+
+        // ------------------------------------------------------------------
+        // 10c. Encounters — set 12 active encounters' expected_discharge_date
+        //      to today, making dc_ready = 12.
+        //
+        // We pick the 12 lowest encounter_ids with status='active' (stable
+        // across re-runs). We then ensure any previously-set dc_ready rows
+        // that are NOT in our target set are cleared, so the count is exactly
+        // 12 on every run.
+        // ------------------------------------------------------------------
+        $dcTargetIds = DB::table('prod.encounters')
+            ->where('status', 'active')
+            ->where('is_deleted', false)
+            ->orderBy('encounter_id')
+            ->limit(12)
+            ->pluck('encounter_id');
+
+        if ($dcTargetIds->isNotEmpty()) {
+            // Set today on our 12 targets.
+            DB::table('prod.encounters')
+                ->whereIn('encounter_id', $dcTargetIds)
+                ->update([
+                    'expected_discharge_date' => now()->toDateString(),
+                    'updated_at' => now(),
+                ]);
+
+            // Clear expected_discharge_date = today on any OTHER active rows
+            // (in case a previous run used different IDs or there are organic rows).
+            DB::table('prod.encounters')
+                ->where('status', 'active')
+                ->where('is_deleted', false)
+                ->whereNotIn('encounter_id', $dcTargetIds)
+                ->whereDate('expected_discharge_date', now()->toDateString())
+                ->update([
+                    'expected_discharge_date' => null,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        // ------------------------------------------------------------------
+        // 10d. ED visits — ensure exactly 5 boarding patients.
+        //      (disposition='admitted' AND bed_assigned_at IS NULL)
+        //
+        // The core seeder (step 5) creates maxBoarding = 4. We find one
+        // admitted ED visit that already has a bed_assigned_at and set it
+        // to NULL, bringing the count to 5.
+        //
+        // We target a seeder row with a deterministic patient_ref (sim-ed-
+        // prefix). On re-run, the row is already NULL so the UPDATE is a
+        // no-op in effect. If exactly 5 already exist, we skip.
+        // ------------------------------------------------------------------
+        $currentBoarding = (int) DB::table('prod.ed_visits')
+            ->where('disposition', 'admitted')
+            ->whereNull('bed_assigned_at')
+            ->where('is_deleted', false)
+            ->count();
+
+        if ($currentBoarding < 5) {
+            $needed = 5 - $currentBoarding;
+
+            // Find admitted seeder rows that have a bed_assigned_at (not yet boarding).
+            $toBoard = DB::table('prod.ed_visits')
+                ->where('patient_ref', 'like', 'sim-ed-%')
+                ->where('disposition', 'admitted')
+                ->whereNotNull('bed_assigned_at')
+                ->where('is_deleted', false)
+                ->orderBy('ed_visit_id')
+                ->limit($needed)
+                ->pluck('ed_visit_id');
+
+            if ($toBoard->isNotEmpty()) {
+                DB::table('prod.ed_visits')
+                    ->whereIn('ed_visit_id', $toBoard)
+                    ->update(['bed_assigned_at' => null, 'updated_at' => now()]);
+            }
+        } elseif ($currentBoarding > 5) {
+            // Too many boarding — assign a bed to the extras (deterministic).
+            $excess = $currentBoarding - 5;
+            $toAssign = DB::table('prod.ed_visits')
+                ->where('patient_ref', 'like', 'sim-ed-%')
+                ->where('disposition', 'admitted')
+                ->whereNull('bed_assigned_at')
+                ->where('is_deleted', false)
+                ->orderByDesc('ed_visit_id')
+                ->limit($excess)
+                ->pluck('ed_visit_id');
+
+            if ($toAssign->isNotEmpty()) {
+                DB::table('prod.ed_visits')
+                    ->whereIn('ed_visit_id', $toAssign)
+                    ->update([
+                        'bed_assigned_at' => now()->subMinutes(30),
+                        'updated_at' => now(),
+                    ]);
+            }
+        }
+        // If $currentBoarding === 5, nothing to do.
     }
 
     // ====================================================================
