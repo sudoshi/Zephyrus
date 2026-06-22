@@ -68,3 +68,11 @@ vi.mock('@inertiajs/react', () => ({
   },
   Head: ({ children }: any) => null,
 }));
+
+// Mock ResizeObserver — jsdom doesn't implement it, but Headless UI's floating
+// (`anchor`) Popover panels reference it at mount. Real browsers have it.
+global.ResizeObserver = class ResizeObserver {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+};

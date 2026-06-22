@@ -12,7 +12,6 @@ import {
 import type { PageProps } from '@/types';
 import { NavMegaMenu } from './NavMegaMenu';
 import { UserMenu } from './UserMenu';
-import { MobileNavMenu } from './MobileNavMenu';
 
 interface TopNavbarProps {
   isDarkMode: boolean;
@@ -30,24 +29,27 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
   return (
     <>
       <nav className="sticky top-0 z-[65] border-b border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <div className="mx-auto flex h-[var(--topbar-height)] max-w-full items-center justify-between px-4">
-          {/* Left: mobile hamburger + logo */}
-          <div className="flex items-center gap-2">
-            <MobileNavMenu isAdmin={isAdmin} url={url} />
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-8 w-auto" />
-              <span className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                Zephyrus
-              </span>
-            </Link>
-          </div>
+        <div className="mx-auto flex h-[var(--topbar-height)] max-w-full items-center gap-3 px-4">
+          {/* Logo */}
+          <Link href="/dashboard" className="flex flex-shrink-0 items-center gap-2">
+            <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-8 w-auto" />
+            <span className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Zephyrus
+            </span>
+          </Link>
 
-          {/* Center: desktop domain navigation */}
-          <div className="hidden items-center gap-1 lg:flex">
+          {/* Domain navigation — always on the top bar at every width. Scrolls
+              horizontally when space is tight so it never pushes the right-side
+              controls off-screen; the dropdown panels are anchored/portaled in
+              NavMegaMenu so they are not clipped by this scroll container. */}
+          <div
+            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+            style={{ scrollbarWidth: 'none' }}
+          >
             <Link
               href={TOP_LEVEL_DASHBOARD.href}
               aria-current={dashboardActive ? 'page' : undefined}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
                 dashboardActive
                   ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
                   : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
@@ -66,7 +68,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
           </div>
 
           {/* Right: search, dark mode, user */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-2">
             <button
               type="button"
               aria-label="Search (Cmd+K)"
