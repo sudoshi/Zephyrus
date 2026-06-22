@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CaseManagementSeeder::class, // Run this before TestDataSeeder since it sets up reference data
             TestDataSeeder::class,
+            CommandCenterDemoSeeder::class,
         ]);
     }
 }
