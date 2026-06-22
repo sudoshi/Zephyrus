@@ -1,16 +1,13 @@
 // resources/js/Components/CommandCenter/OkrScoreboard.tsx
 import type { Objective } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
+import { Panel } from './Panel';
 
 export function OkrScoreboard({ objectives }: { objectives: Objective[] }) {
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
       {objectives.map((o) => (
-        <div key={o.key}
-             className="flex flex-col gap-2 rounded-lg p-3
-                        bg-healthcare-surface dark:bg-healthcare-surface-dark
-                        border border-healthcare-border dark:border-healthcare-border-dark
-                        shadow-sm transition-colors duration-300">
+        <Panel key={o.key} className="flex flex-col gap-2 p-4">
           <h3 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{o.title}</h3>
           <ul className="flex flex-col gap-2">
             {o.keyResults.map((kr) => {
@@ -29,7 +26,7 @@ export function OkrScoreboard({ objectives }: { objectives: Objective[] }) {
               );
             })}
           </ul>
-        </div>
+        </Panel>
       ))}
     </div>
   );

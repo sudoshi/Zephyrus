@@ -23,7 +23,7 @@ export function HeroWall({ role, strain, heroMetrics, objectives }: HeroWallProp
 
   return (
     <div className="grid gap-2"
-         style={{ gridTemplateColumns: 'minmax(220px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr))' }}>
+         style={{ gridTemplateColumns: 'minmax(240px, 1.3fr) repeat(auto-fit, minmax(168px, 1fr))' }}>
       <StrainIndex strain={strain} />
       {heroMetrics.map((m) => <KpiTile key={m.key} metric={m} />)}
     </div>

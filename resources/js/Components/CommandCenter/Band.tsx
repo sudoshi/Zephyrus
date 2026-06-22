@@ -1,9 +1,17 @@
 // resources/js/Components/CommandCenter/Band.tsx
 import { Link } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 import type { BandData, KpiMetric } from '@/types/commandCenter';
 import { KpiTile } from './KpiTile';
 
-const GRID = 'repeat(auto-fit, minmax(150px, 1fr))';
+const GRID = 'repeat(auto-fit, minmax(168px, 1fr))';
+
+const BAND_ICON: Record<BandData['key'], string> = {
+  capacity: 'heroicons:building-office-2',
+  flow: 'heroicons:arrows-right-left',
+  outcomes: 'heroicons:shield-check',
+  forecast: 'heroicons:presentation-chart-line',
+};
 
 function TileGrid({ metrics }: { metrics: KpiMetric[] }) {
   return (
@@ -18,9 +26,13 @@ export function Band({ band }: { band: BandData }) {
     <section aria-label={band.title} className="flex flex-col gap-2">
       <header className="flex items-center justify-between gap-3 border-b border-healthcare-border dark:border-healthcare-border-dark pb-1 transition-colors duration-300">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-            {band.title}
-          </h2>
+          <span className="flex items-center gap-2">
+            <Icon icon={BAND_ICON[band.key]} aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              {band.title}
+            </h2>
+          </span>
           <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{band.summary}</span>
         </div>
         <Link href={band.drillHref}

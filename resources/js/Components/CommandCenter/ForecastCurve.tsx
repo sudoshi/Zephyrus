@@ -2,6 +2,7 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ForecastState } from '@/types/commandCenter';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { Panel } from './Panel';
 
 export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
   const [isDarkMode] = useDarkMode();
@@ -11,10 +12,7 @@ export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
   const panelFill = isDarkMode ? '#1E293B' : '#FFFFFF';
   const netColor = forecast.netBedPosition < 0 ? 'var(--critical)' : 'var(--success)';
   return (
-    <div className="flex flex-col gap-2 rounded-lg p-3
-                    bg-healthcare-surface dark:bg-healthcare-surface-dark
-                    border border-healthcare-border dark:border-healthcare-border-dark
-                    shadow-sm transition-colors duration-300">
+    <Panel className="flex flex-col gap-2 p-3">
       <div className="flex flex-wrap gap-4 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         <span>Predicted discharges 24h:{' '}
           <strong className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{forecast.predictedDischarges24h}</strong></span>
@@ -40,6 +38,6 @@ export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Panel>
   );
 }
