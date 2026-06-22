@@ -30,19 +30,23 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
     : null;
 
   const body = (
-    <div className="flex h-full flex-col gap-1 rounded-md p-3"
-         style={{ background: 'var(--surface-raised)', borderLeft: `3px solid ${color}` }}>
+    <div className="flex h-full flex-col gap-1 rounded-md p-3
+                    bg-healthcare-surface dark:bg-healthcare-surface-dark
+                    border border-healthcare-border dark:border-healthcare-border-dark
+                    shadow-sm hover:shadow-md dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+                    transition-all duration-300"
+         style={{ borderLeft: `3px solid ${color}` }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           {metric.label}
         </span>
         <span title={metric.definition} aria-label={`Definition: ${metric.definition}`}
-              className="text-xs leading-none" style={{ color: 'var(--text-ghost)' }}>
+              className="text-xs leading-none text-healthcare-text-secondary/50 dark:text-healthcare-text-secondary-dark/50">
           {'ⓘ'}
         </span>
       </div>
       <div className="flex items-end justify-between gap-2">
-        <span className="text-2xl font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+        <span className="text-2xl font-semibold tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           {metric.display}
         </span>
         {metric.trajectory && (
@@ -53,7 +57,7 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
         )}
       </div>
       {metric.targetDisplay && (
-        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           Target {metric.targetDisplay}
         </span>
       )}

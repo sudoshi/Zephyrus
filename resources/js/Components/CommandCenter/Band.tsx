@@ -16,15 +16,15 @@ function TileGrid({ metrics }: { metrics: KpiMetric[] }) {
 export function Band({ band }: { band: BandData }) {
   return (
     <section aria-label={band.title} className="flex flex-col gap-2">
-      <header className="flex items-center justify-between gap-3 border-b pb-1"
-              style={{ borderColor: 'var(--surface-elevated)' }}>
+      <header className="flex items-center justify-between gap-3 border-b border-healthcare-border dark:border-healthcare-border-dark pb-1 transition-colors duration-300">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {band.title}
           </h2>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{band.summary}</span>
+          <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{band.summary}</span>
         </div>
-        <Link href={band.drillHref} className="whitespace-nowrap text-xs" style={{ color: 'var(--accent)' }}>
+        <Link href={band.drillHref}
+              className="whitespace-nowrap text-xs font-medium text-healthcare-primary dark:text-healthcare-primary-dark hover:underline">
           {band.drillLabel} {'→'}
         </Link>
       </header>
@@ -33,7 +33,7 @@ export function Band({ band }: { band: BandData }) {
         <div className="flex flex-col gap-2">
           {band.subgroups.map((g) => (
             <div key={g.key} className="flex flex-col gap-1">
-              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{g.label}</span>
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{g.label}</span>
               <TileGrid metrics={g.metrics} />
             </div>
           ))}

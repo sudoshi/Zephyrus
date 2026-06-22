@@ -9,9 +9,11 @@ export function StrainIndex({ strain }: { strain: StrainState }) {
 
   return (
     <div role="status" aria-label={`${strain.label}, status ${strain.status}`}
-         className="flex h-full flex-col gap-2 rounded-lg p-4"
-         style={{ background: 'var(--surface-overlay)', border: `1px solid ${color}` }}>
-      <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+         className="flex h-full flex-col gap-2 rounded-lg p-4
+                    bg-healthcare-surface dark:bg-healthcare-surface-dark
+                    shadow-sm transition-colors duration-300"
+         style={{ border: `1px solid ${color}` }}>
+      <span className="text-xs uppercase tracking-widest text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         House Status
       </span>
       <div className="flex items-baseline gap-2">
@@ -23,7 +25,7 @@ export function StrainIndex({ strain }: { strain: StrainState }) {
       <ul className="mt-1 flex flex-col gap-1">
         {strain.drivers.map((d) => (
           <li key={d.label} className="flex items-center justify-between text-xs">
-            <span style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
+            <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{d.label}</span>
             <span className="tabular-nums" style={{ color: STATUS_VAR[d.status] }}>{d.value}</span>
           </li>
         ))}

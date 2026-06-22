@@ -20,11 +20,14 @@ export function CommandCenterView({ data, onRefresh, refreshedLabel }: CommandCe
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <RoleSwitcher />
-        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           <span>Updated {refreshedLabel}</span>
           <button type="button" onClick={onRefresh} aria-label="Refresh data"
-                  className="rounded px-2 py-1"
-                  style={{ background: 'var(--surface-raised)', color: 'var(--text-secondary)' }}>
+                  className="rounded-md border border-healthcare-border dark:border-healthcare-border-dark
+                             bg-healthcare-surface dark:bg-healthcare-surface-dark
+                             px-2 py-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
+                             shadow-sm hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark
+                             transition-colors duration-300">
             {'⟳'} Refresh
           </button>
         </div>

@@ -1,6 +1,7 @@
 /* Acumenus Clinical Design System Tokens */
 @import './tokens-base.css';
 @import './tokens-dark.css';
+@import './tokens-light.css';
 @import './components/focus.css';
 
 /* Import ReactFlow styles */

@@ -1,0 +1,128 @@
+/* ============================================================
+   Acumenus Clinical Design System — Light Theme Tokens
+   Light-mode overrides for the CSS-variable token system.
+
+   The dark theme (tokens-dark.css) defines every color token on
+   :root unconditionally, so without this file the CSS-variable
+   surfaces/text stay dark even when the `.dark` class is removed —
+   i.e. panel backgrounds never switch in light mode.
+
+   Dark mode is the default and is toggled by `.dark` on <html>
+   (see useDarkMode.ts + tailwind darkMode:"class"). Light mode is
+   therefore the *absence* of `.dark`, which we target with
+   `:root:not(.dark)`. That selector outranks the bare `:root`
+   declarations in tokens-dark.css, so these values win whenever
+   the document is not in dark mode, and lose (fail to match) the
+   moment `.dark` is present.
+
+   Values are aligned with the healthcare-* Tailwind palette
+   (white #FFFFFF surfaces, slate text, #E2E8F0 borders) so the
+   CSS-variable components render identically to the gold-standard
+   Perioperative dashboard in light mode.
+   ============================================================ */
+
+:root:not(.dark) {
+  color-scheme: light;
+
+  /* Primary — Crimson reads well on white; keep brand, soften glows */
+  --primary:          #9B1B30;
+  --primary-light:    #B82D42;
+  --primary-dark:     #7A1525;
+  --primary-lighter:  #C13A50;
+  --primary-glow:     rgba(155, 27, 48, 0.18);
+  --primary-bg:       rgba(155, 27, 48, 0.08);
+  --primary-border:   rgba(155, 27, 48, 0.30);
+
+  /* Accent — gold is illegible on white; darken for contrast */
+  --accent:           #A6791A;
+  --accent-dark:      #8A6415;
+  --accent-light:     #C9A227;
+  --accent-lighter:   #D4B340;
+  --accent-muted:     #8A6415;
+  --accent-pale:      rgba(166, 121, 26, 0.12);
+  --accent-bg:        rgba(166, 121, 26, 0.08);
+  --accent-glow:      rgba(166, 121, 26, 0.20);
+  --focus-ring:       0 0 0 3px rgba(37, 99, 235, 0.30);
+
+  /* Surfaces — light stack: off-white page → white cards → subtle elevation
+     (mirrors healthcare-background #F8FAFC / healthcare-surface #FFFFFF) */
+  --surface-darkest:   #EEF2F6;
+  --surface-base:      #F8FAFC;
+  --surface-raised:    #FFFFFF;
+  --surface-overlay:   #FFFFFF;
+  --surface-elevated:  #F1F5F9;
+  --surface-accent:    #E2E8F0;
+  --surface-highlight: #CBD5E1;
+
+  --sidebar-bg:        #FFFFFF;
+  --sidebar-bg-light:  #F8FAFC;
+
+  /* Text — slate scale (mirrors healthcare-text-primary #1E293B) */
+  --text-primary:   #1E293B;
+  --text-secondary: #475569;
+  --text-muted:     #64748B;
+  --text-ghost:     #94A3B8;
+  --text-disabled:  #CBD5E1;
+
+  /* Semantic — healthcare light hexes (full-saturation reads on white) */
+  --critical:        #DC2626;
+  --critical-dark:   #B91C1C;
+  --critical-light:  #EF4444;
+  --critical-bg:     rgba(220, 38, 38, 0.10);
+  --critical-border: rgba(220, 38, 38, 0.30);
+  --critical-glow:   rgba(220, 38, 38, 0.18);
+
+  --warning:         #D97706;
+  --warning-dark:    #B45309;
+  --warning-light:   #F59E0B;
+  --warning-bg:      rgba(217, 119, 6, 0.10);
+  --warning-border:  rgba(217, 119, 6, 0.30);
+  --warning-glow:    rgba(217, 119, 6, 0.18);
+
+  --success:         #059669;
+  --success-dark:    #047857;
+  --success-light:   #10B981;
+  --success-bg:      rgba(5, 150, 105, 0.10);
+  --success-border:  rgba(5, 150, 105, 0.30);
+  --success-glow:    rgba(5, 150, 105, 0.18);
+
+  --info:            #0284C7;
+  --info-dark:       #0369A1;
+  --info-light:      #0EA5E9;
+  --info-bg:         rgba(2, 132, 199, 0.10);
+  --info-border:     rgba(2, 132, 199, 0.30);
+  --info-glow:       rgba(2, 132, 199, 0.18);
+
+  /* Borders — light gray (mirrors healthcare-border #E2E8F0) */
+  --border-default: #E2E8F0;
+  --border-subtle:  rgba(226, 232, 240, 0.70);
+  --border-hover:   #94A3B8;
+  --border-focus:   #2563EB;
+  --border-active:  #9B1B30;
+
+  /* Glassmorphism — invert: dark sheen over light surfaces */
+  --glass-00: rgba(15, 23, 42, 0.01);
+  --glass-01: rgba(15, 23, 42, 0.02);
+  --glass-02: rgba(15, 23, 42, 0.04);
+  --glass-03: rgba(15, 23, 42, 0.06);
+  --glass-04: rgba(15, 23, 42, 0.08);
+  --glass-05: rgba(15, 23, 42, 0.10);
+  --glass-dark-00: rgba(0, 0, 0, 0.04);
+  --glass-dark-01: rgba(0, 0, 0, 0.08);
+  --glass-dark-02: rgba(0, 0, 0, 0.12);
+
+  /* Gradients — subtle light sheen (replaces white-on-white no-op) */
+  --gradient-panel:        linear-gradient(135deg, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0) 100%);
+  --gradient-panel-raised: linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.10) 100%);
+  --gradient-panel-inset:  linear-gradient(135deg, rgba(15,23,42,0.05) 0%, rgba(15,23,42,0.01) 100%);
+
+  /* Shadows — soft neutral shadows for light surfaces (dark uses heavy black) */
+  --shadow-xs:       0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm:       0 1px 3px rgba(15, 23, 42, 0.10);
+  --shadow-md:       0 4px 12px rgba(15, 23, 42, 0.10);
+  --shadow-lg:       0 8px 24px rgba(15, 23, 42, 0.12);
+  --shadow-xl:       0 16px 48px rgba(15, 23, 42, 0.14);
+  --shadow-2xl:      0 24px 64px rgba(15, 23, 42, 0.16);
+  --shadow-inset:    inset 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-inset-lg: inset 0 2px 6px rgba(15, 23, 42, 0.10);
+}
