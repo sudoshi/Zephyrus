@@ -16,13 +16,16 @@ export function RoleSwitcher() {
          style={{ background: 'var(--surface-raised)' }}>
       {ROLES.map((r) => {
         const active = r.value === role;
+        const comingSoon = r.value === 'service-line';
         return (
           <button key={r.value} type="button" role="tab" aria-selected={active}
                   onClick={() => setRole(r.value)}
+                  title={comingSoon ? 'Service-line scoping — coming soon' : undefined}
                   className="rounded px-3 py-1 text-xs"
                   style={{
                     background: active ? 'var(--surface-elevated)' : 'transparent',
                     color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                    opacity: comingSoon ? 0.6 : 1,
                   }}>
             {r.label}
           </button>

@@ -5,6 +5,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\CommandCenterDataService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -17,8 +18,10 @@ class CommandCenterController extends Controller
     /**
      * Display the Hospital Operations Command Center (main dashboard).
      */
-    public function index(): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
+        $request->session()->put('workflow', 'superuser');
+
         return Inertia::render('Dashboard/CommandCenter', [
             'data' => $this->dataService->build(),
         ]);

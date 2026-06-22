@@ -21,9 +21,13 @@ export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
           <AreaChart data={forecast.occupancyCurve}>
             <XAxis dataKey="hourOffset" tick={{ fontSize: 10 }} />
             <YAxis domain={[60, 100]} width={28} tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Area type="monotone" dataKey="upperPct" stroke="none" fill="var(--info)" fillOpacity={0.15} />
-            <Area type="monotone" dataKey="occupancyPct" stroke="var(--info)" fill="var(--info)" fillOpacity={0.3} />
+            <Tooltip
+              formatter={((value: number, name: string) => [`${value}%`, name]) as never}
+              labelFormatter={((h: number) => `+${h}h`) as never}
+            />
+            <Area type="monotone" dataKey="upperPct" stroke="none" fill="var(--info)" fillOpacity={0.18} />
+            <Area type="monotone" dataKey="lowerPct" stroke="none" fill="var(--surface-base)" fillOpacity={1} />
+            <Area type="monotone" dataKey="occupancyPct" stroke="var(--info)" fill="none" strokeWidth={1.5} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -36,11 +36,10 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
         <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
           {metric.label}
         </span>
-        <button type="button" title={metric.definition}
-                aria-label={`Definition: ${metric.definition}`}
-                className="text-xs leading-none" style={{ color: 'var(--text-ghost)' }}>
+        <span title={metric.definition} aria-label={`Definition: ${metric.definition}`}
+              className="text-xs leading-none" style={{ color: 'var(--text-ghost)' }}>
           {'ⓘ'}
-        </button>
+        </span>
       </div>
       <div className="flex items-end justify-between gap-2">
         <span className="text-2xl font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>

@@ -17,6 +17,9 @@ namespace App\Services;
  */
 class CommandCenterDataService
 {
+    /** Representative-data only: reserve 1 bed per unit for isolation / turn latency. */
+    private const NET_BED_SAFETY_BUFFER = 1;
+
     /** @return array<string,mixed> */
     public function build(): array
     {
@@ -93,8 +96,8 @@ class CommandCenterDataService
                 0, '≥0', 'critical', [2, 1, 0, -2, -3], 'down', false, '/rtdc/predictions/demand',
                 'Projected available minus projected demand over the next 4–8h.'),
             $this->metric('ed_boarding', 'ED Boarding', $boarding, 'pts', (string) $boarding,
-                4, '<4', 'warning', [6, 5, 5, 4, 4], 'down', true, '/dashboard/emergency',
-                'Admitted ED patients awaiting an inpatient bed. Target boarding time <4h.'),
+                0, '0', 'warning', [6, 5, 5, 4, 4], 'down', true, '/dashboard/emergency',
+                'Count of admitted ED patients awaiting an inpatient bed; goal is zero boarding, with each placed within 4h of the admit decision (Joint Commission).'),
             $this->metric('dc_ready', 'Discharges Ready', 9, 'pts', '9',
                 null, 'DBN 25%', 'success', [5, 6, 7, 8, 9], 'up', false, '/rtdc/bed-placement',
                 'Patients with completed discharge orders awaiting departure.'),
@@ -244,7 +247,8 @@ class CommandCenterDataService
             'occupancyCurve' => $curve,
             'netBedByUnit' => array_map(
                 fn (array $u): array => ['unitId' => $u['unitId'], 'name' => $u['name'],
-                    'net' => $u['available'] - ($u['blocked'] + 1)],
+                    // Live phase replaces this with projected supply − projected demand.
+                    'net' => $u['available'] - ($u['blocked'] + self::NET_BED_SAFETY_BUFFER)],
                 $units,
             ),
         ];

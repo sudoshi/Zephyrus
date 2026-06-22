@@ -24,6 +24,11 @@ class CommandCenterControllerTest extends TestCase
                 ->has('data.heroMetrics')
                 ->has('data.capacity')
                 ->has('data.flow')
-                ->has('data.forecast'));
+                ->has('data.forecast')
+                ->has('data.outcomes')
+                ->has('data.forecastDetail')
+                ->has('data.unitCensus')
+                ->has('data.objectives')
+                ->has('data.generatedAtIso'));
     }
 }
