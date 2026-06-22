@@ -76,10 +76,10 @@ export default function GuestLayout({ children }: GuestLayoutProps) {
                 }}
             />
 
-            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-12">
+            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-8">
                 {/* Elegant mark + wordmark */}
-                <Link href="/" className="mb-10 flex flex-col items-center gap-3 group">
-                    <ElegantMark className="h-16 w-16 transition-transform duration-300 group-hover:scale-105" />
+                <Link href="/" className="mb-6 flex flex-col items-center gap-3 group">
+                    <ElegantMark className="h-12 w-12 transition-transform duration-300 group-hover:scale-105" />
                     <span className="text-[1.35rem] font-extralight tracking-[.35em] uppercase text-slate-700 dark:text-slate-300 select-none">
                         Zephyrus
                     </span>
@@ -91,7 +91,7 @@ export default function GuestLayout({ children }: GuestLayoutProps) {
                 </div>
 
                 {/* Minimal footer */}
-                <p className="mt-12 text-[0.7rem] tracking-widest uppercase text-slate-400 dark:text-slate-600 select-none">
+                <p className="mt-8 text-[0.7rem] tracking-widest uppercase text-slate-400 dark:text-slate-600 select-none">
                     Healthcare Operations Platform
                 </p>
             </div>

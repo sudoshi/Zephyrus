@@ -8,14 +8,14 @@ const ImprovementCard = ({ title, description, icon: Icon, href, count, countLab
       href={href}
       className="block bg-healthcare-surface dark:bg-healthcare-surface-dark shadow-sm rounded-lg overflow-hidden hover:bg-healthcare-surface-secondary hover:shadow-md transition-all duration-300 border border-healthcare-border dark:border-healthcare-border-dark"
     >
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="p-2 bg-healthcare-background-soft dark:bg-healthcare-primary-dark/10 rounded-lg transition-colors duration-300">
             <Icon className="h-6 w-6 text-healthcare-primary dark:text-healthcare-primary-dark transition-colors duration-300" />
           </div>
           {count !== undefined && (
             <div className="text-right">
-              <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark transition-colors duration-300">
+              <div className="text-xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark transition-colors duration-300">
                 {count}
               </div>
               <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">

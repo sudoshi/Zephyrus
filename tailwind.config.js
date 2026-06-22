@@ -125,17 +125,21 @@ export default {
                 },
             },
             fontSize: {
-                // Larger default sizes for better readability
-                xs: ['0.75rem', '1rem'],      // 12px
-                sm: ['0.875rem', '1.25rem'],  // 14px
-                base: ['1rem', '1.5rem'],     // 16px
-                lg: ['1.125rem', '1.75rem'],  // 18px
-                xl: ['1.25rem', '1.75rem'],   // 20px
-                '2xl': ['1.5rem', '2rem'],    // 24px
-                '3xl': ['1.875rem', '2.25rem'], // 30px
-                '4xl': ['2.25rem', '2.5rem'], // 36px
-                '5xl': ['3rem', '1'],         // 48px
-                '6xl': ['3.75rem', '1'],      // 60px
+                // Density-tuned scale — aligned to the Acumenus Clinical token scale
+                // (tokens-base.css) for dense operational dashboards. Body kept at a
+                // 13px "compromise" (one notch tighter than the old 14/16px scale,
+                // one notch looser than the full 12px token scale) for sustained
+                // readability on clinical workstations.
+                xs: ['0.6875rem', '1rem'],      // 11px / 16
+                sm: ['0.8125rem', '1.125rem'],  // 13px / 18
+                base: ['0.875rem', '1.25rem'],  // 14px / 20
+                lg: ['1rem', '1.5rem'],         // 16px / 24
+                xl: ['1.125rem', '1.625rem'],   // 18px / 26
+                '2xl': ['1.375rem', '1.75rem'], // 22px / 28
+                '3xl': ['1.75rem', '2.125rem'], // 28px / 34
+                '4xl': ['2.25rem', '2.5rem'],   // 36px / 40
+                '5xl': ['3rem', '1'],           // 48px
+                '6xl': ['3.75rem', '1'],        // 60px
             },
             spacing: {
                 // Existing spacing

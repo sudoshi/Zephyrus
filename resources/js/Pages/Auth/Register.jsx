@@ -60,7 +60,7 @@ export default function Register() {
                 className="w-full max-w-[420px] mx-auto"
             >
                 {/* Header */}
-                <motion.div {...fadeUp(0.1)} className="text-center mb-8">
+                <motion.div {...fadeUp(0.1)} className="text-center mb-6">
                     <h1 className="text-3xl font-extralight tracking-tight text-slate-800 dark:text-slate-100">
                         Create Account
                     </h1>
@@ -91,7 +91,7 @@ export default function Register() {
                 {/* Card */}
                 <motion.div {...fadeUp(0.2)}>
                     <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur-xl shadow-xl shadow-slate-900/[0.04] dark:shadow-black/20">
-                        <div className="p-7">
+                        <div className="p-6">
                             <AnimatePresence mode="wait">
                                 {success ? (
                                     <motion.div

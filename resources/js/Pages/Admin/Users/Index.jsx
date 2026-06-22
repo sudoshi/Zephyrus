@@ -14,7 +14,7 @@ export default function Index({ auth, users }) {
 
             <div className="py-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-4">
                         <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             Users
                         </h1>
@@ -33,19 +33,19 @@ export default function Index({ auth, users }) {
                                 <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                                                 Name
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                                                 Username
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                                                 Email
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                                                 Created At
                                             </th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
+                                            <th className="px-4 py-2 text-right text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                                                 Actions
                                             </th>
                                         </tr>
@@ -53,19 +53,19 @@ export default function Index({ auth, users }) {
                                     <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                         {users.map((user) => (
                                             <tr key={user.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {user.name}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {user.username}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {user.email}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {new Date(user.created_at).toLocaleDateString()}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <td className="px-4 py-2.5 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
                                                         <Link
                                                             href={route('users.edit', user.id)}

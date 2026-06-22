@@ -9,7 +9,7 @@ const EDPlaceholder = ({ title, subtitle }) => {
         <DashboardLayout>
             <Head title={`${title} - Emergency`} />
             <PageContentLayout title={title} subtitle={subtitle}>
-                <div className="flex flex-col items-center justify-center rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark py-16 text-center shadow-sm transition-colors duration-300">
+                <div className="flex flex-col items-center justify-center rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark py-10 text-center shadow-sm transition-colors duration-300">
                     <div className="mb-4 rounded-full bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/10 p-4">
                         <Construction className="h-8 w-8 text-healthcare-primary dark:text-healthcare-primary-dark" />
                     </div>

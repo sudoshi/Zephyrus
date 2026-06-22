@@ -23,7 +23,7 @@ export default function AnalyticsFilters({
   const [isEndDateOpen, setIsEndDateOpen] = React.useState(false);
 
   return (
-    <div className="flex flex-wrap gap-4 mb-6">
+    <div className="flex flex-wrap gap-3 mb-4">
       <div className="w-64">
         <label className="block text-sm font-medium mb-1">Location</label>
         <select 

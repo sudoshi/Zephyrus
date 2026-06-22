@@ -20,7 +20,7 @@ const Library = ({ resources = [] }) => {
         subtitle="Access improvement resources and templates"
       >
         {/* Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {categories.map((category, index) => {
             const Icon = category.icon;
             return (

@@ -30,13 +30,13 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
   return (
     <>
       <nav className="sticky top-0 z-[65] border-b border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <div className="mx-auto flex h-16 max-w-full items-center justify-between px-4">
+        <div className="mx-auto flex h-[var(--topbar-height)] max-w-full items-center justify-between px-4">
           {/* Left: mobile hamburger + logo */}
           <div className="flex items-center gap-2">
             <MobileNavMenu isAdmin={isAdmin} url={url} />
             <Link href="/dashboard" className="flex items-center gap-2">
-              <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-9 w-auto" />
-              <span className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-8 w-auto" />
+              <span className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 Zephyrus
               </span>
             </Link>
@@ -47,7 +47,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
             <Link
               href={TOP_LEVEL_DASHBOARD.href}
               aria-current={dashboardActive ? 'page' : undefined}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
                 dashboardActive
                   ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
                   : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'

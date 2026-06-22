@@ -54,7 +54,7 @@ const CascadeAnalysis = ({ metrics }) => {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header Cards */}
       <div className="grid grid-cols-2 gap-6">
         <ScoreCard

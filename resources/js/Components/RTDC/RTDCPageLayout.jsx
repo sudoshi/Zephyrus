@@ -8,7 +8,7 @@ const RTDCPageLayout = ({ title, subtitle, children }) => {
         <DashboardLayout>
             <Head title={`${title} - RTDC`} />
             <PageContentLayout title={title} subtitle={subtitle}>
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {children}
                 </div>
             </PageContentLayout>

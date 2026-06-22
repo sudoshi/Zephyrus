@@ -46,8 +46,8 @@ const Panel = ({
       `}
     >
       {title && (
-        <div className="flex justify-between items-center mb-4">
-          <h2 className={`text-lg font-semibold dark:text-white ${titleClassName}`}>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className={`text-base font-semibold dark:text-white ${titleClassName}`}>
             {title}
           </h2>
           {headerRight && (

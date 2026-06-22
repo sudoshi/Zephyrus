@@ -8,11 +8,11 @@ const Stats = ({ title, value, description, trend, icon }) => {
     };
 
     return (
-        <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-100 hover:border-indigo-100 transition-all duration-200 group">
+        <div className="rounded-lg bg-white p-4 shadow-sm border border-gray-100 hover:border-indigo-100 transition-all duration-200 group">
             <div className="flex items-center justify-between">
                 <div className="flex items-center">
                     {icon && (
-                        <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors duration-200">
+                        <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors duration-200">
                             {icon}
                         </div>
                     )}
@@ -30,7 +30,7 @@ const Stats = ({ title, value, description, trend, icon }) => {
                                     </div>
                                 </div>
                             </div>
-                            <p className="mt-1 text-3xl font-semibold text-gray-900">{value}</p>
+                            <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
                         </div>
                     </div>
                 </div>

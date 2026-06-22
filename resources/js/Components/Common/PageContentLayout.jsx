@@ -2,8 +2,8 @@ import React from 'react';
 
 const PageContentLayout = ({ title, subtitle, headerContent, children }) => {
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-start mb-6">
+    <div className="p-4">
+      <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {title}

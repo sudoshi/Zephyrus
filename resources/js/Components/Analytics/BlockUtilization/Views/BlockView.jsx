@@ -246,7 +246,7 @@ const BlockView = ({ filters }) => {
         </Panel>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <Panel title="Nested Panels Example" dropLightIntensity="medium">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Panel title="Subtle Drop Light" isSubpanel={true} dropLightIntensity="subtle">

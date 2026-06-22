@@ -104,7 +104,7 @@ const BlockSchedule = () => {
                                         Add Block
                                     </button>
                                 </div>
-                                <div className="h-[600px] flex items-center justify-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                <div className="h-96 flex items-center justify-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Calendar placeholder
                                 </div>
                             </div>

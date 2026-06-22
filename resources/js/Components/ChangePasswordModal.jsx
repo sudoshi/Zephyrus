@@ -29,7 +29,7 @@ export default function ChangePasswordModal() {
                 className="w-full max-w-md mx-4"
             >
                 <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800 shadow-2xl">
-                    <div className="p-7">
+                    <div className="p-6">
                         {/* Header */}
                         <div className="text-center mb-6">
                             <div className="flex justify-center mb-3">

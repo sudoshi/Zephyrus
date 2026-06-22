@@ -119,7 +119,7 @@ const WaitTimeAnalysis = ({ metrics }) => {
   const criticalDelays = waitData.filter(d => d.deviation > 50);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header Cards */}
       <div className="grid grid-cols-2 gap-6">
         <ScoreCard

@@ -91,7 +91,7 @@ const DischargeChecklistTimeline = ({ milestones }) => {
             </Card.Header>
             <Card.Content>
                 <div className="flow-root">
-                    <ul className="-mb-8">
+                    <ul className="-mb-6">
                         {milestones.map((milestone, idx) => (
                             <li key={milestone.id}>
                                 <TimelineItem 

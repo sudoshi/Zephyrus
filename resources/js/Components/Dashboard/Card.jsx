@@ -32,7 +32,7 @@ Card.Header = ({ children, className = '' }) => {
         <div
             className={`
                 border-b border-healthcare-border dark:border-healthcare-border-dark
-                p-6 transition-colors duration-300
+                p-4 transition-colors duration-300
                 ${className}
             `}
         >
@@ -45,7 +45,7 @@ Card.Title = ({ children, className = '' }) => {
     return (
         <h3
             className={`
-                text-lg font-medium leading-6
+                text-base font-semibold leading-6
                 text-healthcare-text-primary dark:text-healthcare-text-primary-dark
                 transition-colors duration-300
                 ${className}
@@ -73,7 +73,7 @@ Card.Description = ({ children, className = '' }) => {
 
 Card.Content = ({ children, className = '' }) => {
     return (
-        <div className={`p-6 overflow-x-auto ${className}`}>
+        <div className={`p-4 overflow-x-auto ${className}`}>
             {children}
         </div>
     );
@@ -83,7 +83,7 @@ Card.Item = ({ title, subtitle, meta, className = '' }) => {
     return (
         <div
             className={`
-                flex items-center justify-between rounded-md p-4
+                flex items-center justify-between rounded-md p-3
                 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark
                 transition-colors duration-300
                 ${className}

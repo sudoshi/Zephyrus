@@ -204,7 +204,7 @@ const OptimizationView = ({ data }) => {
           <div className="relative">
             <div className="absolute h-full w-0.5 bg-blue-200 dark:bg-blue-800 left-6 top-0"></div>
             
-            <div className="relative z-10 mb-8">
+            <div className="relative z-10 mb-6">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
                   <Icon icon="carbon:analytics" className="h-6 w-6" />
@@ -219,7 +219,7 @@ const OptimizationView = ({ data }) => {
               </div>
             </div>
             
-            <div className="relative z-10 mb-8">
+            <div className="relative z-10 mb-6">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
                   <Icon icon="carbon:development" className="h-6 w-6" />
@@ -234,7 +234,7 @@ const OptimizationView = ({ data }) => {
               </div>
             </div>
             
-            <div className="relative z-10 mb-8">
+            <div className="relative z-10 mb-6">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
                   <Icon icon="carbon:deployment-policy" className="h-6 w-6" />

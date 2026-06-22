@@ -22,10 +22,11 @@ const Button = React.forwardRef(({
   };
 
   const sizes = {
-    default: 'h-10 px-4 py-2',
-    sm: 'h-9 rounded-md px-3',
-    lg: 'h-11 rounded-md px-8',
-    icon: 'h-10 w-10',
+    xs: 'h-7 rounded-md px-2 text-xs',
+    default: 'h-9 px-4 py-2',
+    sm: 'h-8 rounded-md px-3',
+    lg: 'h-10 rounded-md px-8',
+    icon: 'h-9 w-9',
   };
 
   return (
@@ -51,7 +52,7 @@ Button.displayName = 'Button';
 Button.propTypes = {
   className: PropTypes.string,
   variant: PropTypes.oneOf(['default', 'outline', 'secondary', 'ghost', 'link']),
-  size: PropTypes.oneOf(['default', 'sm', 'lg', 'icon']),
+  size: PropTypes.oneOf(['xs', 'default', 'sm', 'lg', 'icon']),
   type: PropTypes.string,
   disabled: PropTypes.bool,
   children: PropTypes.node.isRequired,

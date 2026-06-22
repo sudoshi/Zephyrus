@@ -36,7 +36,7 @@ const HistoricalMetricsSection = () => {
     return (
         <div className="healthcare-card overflow-visible">
             {/* Section Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         Historical Trends
@@ -52,7 +52,7 @@ const HistoricalMetricsSection = () => {
             </div>
 
             {/* Charts Grid - Added min-h-0 to enable proper grid sizing and prevent overflow */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-visible">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-visible">
                 {/* Row 1 */}
                 <div className="lg:col-span-1">
                     <ALOSChart data={filteredData.alos} />

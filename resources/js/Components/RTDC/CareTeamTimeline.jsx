@@ -60,7 +60,7 @@ const CareTeamTimeline = ({ teamCommunication }) => {
             </Card.Header>
             <Card.Content>
                 <div className="flow-root">
-                    <ul className="-mb-8">
+                    <ul className="-mb-6">
                         {teamCommunication
                             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                             .map((activity, idx) => (

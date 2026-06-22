@@ -87,7 +87,7 @@ const MonthToDateSection = () => {
     );
 
     return (
-        <section className="space-y-8">
+        <section className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                     Month to Date
@@ -111,7 +111,7 @@ const MonthToDateSection = () => {
                 </div>
             </div>
             
-            <div className="space-y-8">
+            <div className="space-y-6">
                 {/* Performance Metrics Section */}
                 {renderCollapsibleSection(
                     "Performance Metrics",
@@ -120,7 +120,7 @@ const MonthToDateSection = () => {
                             "On Time Starts",
                             "Displays the percentage of cases that were on time and took place within the current calendar month.",
                             <div className="space-y-6">
-                                <ServiceBarChart data={data.onTimeStarts.byService} height={350} />
+                                <ServiceBarChart data={data.onTimeStarts.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("First Case", "85%")}
                                     {renderMetricBox("Subsequent", "78%")}
@@ -133,7 +133,7 @@ const MonthToDateSection = () => {
                             "Case Length Accuracy",
                             "Displays the percentage of cases performed within the current calendar month that were accurately scheduled.",
                             <div className="space-y-6">
-                                <StackedBarChart data={data.caseLengthAccuracy.byService} height={350} />
+                                <StackedBarChart data={data.caseLengthAccuracy.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Under", "15%")}
                                     {renderMetricBox("Accurate", "70%")}
@@ -220,7 +220,7 @@ const MonthToDateSection = () => {
                             "Primetime Utilization",
                             "Displays the total in-room and setup/cleanup minutes over the available primetime minutes.",
                             <div className="space-y-6">
-                                <LineChart data={data.primetimeUtilization.trend} height={350} />
+                                <LineChart data={data.primetimeUtilization.trend} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("In-Room Time", "82%")}
                                     {renderMetricBox("Setup/Cleanup", "12%")}
@@ -240,7 +240,7 @@ const MonthToDateSection = () => {
                             "Performed Cases",
                             "Displays the volume of cases that were performed within the current calendar month.",
                             <div className="space-y-6">
-                                <ServiceBarChart data={data.performedCases.byService} height={350} />
+                                <ServiceBarChart data={data.performedCases.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Total", "324")}
                                     {renderMetricBox("Emergency", "45")}
@@ -253,7 +253,7 @@ const MonthToDateSection = () => {
                             "Average Turnover",
                             "Displays the average room and procedure turnover for cases.",
                             <div className="space-y-6">
-                                <DualBarChart data={data.avgTurnover.byService} height={350} />
+                                <DualBarChart data={data.avgTurnover.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Average", "32m")}
                                     {renderMetricBox("Min", "22m")}

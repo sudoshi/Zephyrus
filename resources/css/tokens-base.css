@@ -44,8 +44,8 @@
   --sidebar-width-collapsed: 72px;
   --topbar-height:           56px;
   --content-max-width:       1600px;
-  --panel-padding:           var(--space-5);
-  --content-padding:         var(--space-6);
+  --panel-padding:           var(--space-4);  /* 20px → 16px: denser card interiors */
+  --content-padding:         var(--space-4);  /* 24px → 16px: tighter page gutters */
 
   /* 4.4 Z-Index Scale */
   --z-base:           0;

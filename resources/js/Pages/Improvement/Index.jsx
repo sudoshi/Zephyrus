@@ -96,7 +96,7 @@ const Index = ({ auth }) => {
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Success Rate</h3>
               <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ const Index = ({ auth }) => {
           </div>
 
           {/* Recent PDSA Activity */}
-          <div className="mt-8 healthcare-card">
+          <div className="mt-6 healthcare-card">
             <div className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Recent PDSA Activity

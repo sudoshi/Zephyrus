@@ -117,12 +117,25 @@
     @apply text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark;
   }
 
-  /* Larger touch targets for healthcare environments */
-  button:not(.guest-page button), 
+  /* Control sizing — pointer-aware.
+     Desktop (mouse/fine pointer): a compact 36px floor, no forced min-width,
+     so toolbars, filter rows, and icon buttons stay dense. */
+  button:not(.guest-page button),
   [role="button"]:not(.guest-page [role="button"]),
   input:not(.guest-page input),
   select:not(.guest-page select) {
-    @apply min-h-[44px] min-w-[44px];
+    @apply min-h-[36px];
+  }
+
+  /* Touch devices (coarse pointer): enforce 44×44 accessible targets per
+     WCAG 2.5.5 for healthcare environments at the bedside / on tablets. */
+  @media (pointer: coarse) {
+    button:not(.guest-page button),
+    [role="button"]:not(.guest-page [role="button"]),
+    input:not(.guest-page input),
+    select:not(.guest-page select) {
+      @apply min-h-[44px] min-w-[44px];
+    }
   }
 
   /* Links */
@@ -154,7 +167,7 @@
   .healthcare-card {
     @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
     @apply rounded-lg shadow-sm;
-    @apply p-6;
+    @apply p-4;
     @apply border border-healthcare-border dark:border-healthcare-border-dark;
   }
 
@@ -184,7 +197,7 @@
   }
 
   .healthcare-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
   }
 
   .healthcare-transition {

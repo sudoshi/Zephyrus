@@ -39,7 +39,7 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange, onQuickSelect }) 
     };
 
     return (
-        <div className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow">
             <div className="flex items-center space-x-2">
                 <Icon icon="heroicons:calendar" className="w-5 h-5 text-gray-500 dark:text-gray-300" />
                     <input

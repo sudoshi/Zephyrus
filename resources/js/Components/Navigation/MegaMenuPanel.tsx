@@ -9,7 +9,7 @@ interface MegaMenuPanelProps {
 
 export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProps) {
   return (
-    <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 shadow-xl dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+    <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-3 shadow-xl dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
       {domain.dashboardHref && (
         <Link
           href={domain.dashboardHref}
@@ -19,12 +19,12 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
           {domain.dashboardLabel}
         </Link>
       )}
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         {domain.groups.map((group) => {
           const items = group.items.filter((item) => !item.adminOnly || isAdmin);
           if (items.length === 0) return null;
           return (
-            <div key={group.title || domain.key} className="min-w-[180px]">
+            <div key={group.title || domain.key} className="min-w-[160px]">
               {group.title && (
                 <div className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   {group.title}
@@ -38,7 +38,7 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
                       <Link
                         href={item.href}
                         onClick={onNavigate}
-                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark"
+                        className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark"
                       >
                         <Icon className="h-4 w-4 flex-shrink-0" />
                         <span>{item.label}</span>

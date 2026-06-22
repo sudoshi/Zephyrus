@@ -221,7 +221,7 @@ export default function PDSACycleManagementPage({ id }) {
           </Tabs>
 
           {/* Footer actions */}
-          <div className="mt-8 flex items-center justify-between border-t pt-4">
+          <div className="mt-6 flex items-center justify-between border-t pt-4">
             <Button 
             variant="outline" 
             href="/improvement/pdsa"

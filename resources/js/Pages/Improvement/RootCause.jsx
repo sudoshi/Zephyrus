@@ -644,7 +644,7 @@ const RootCause = ({ rootCauses = [] }) => {
       >
         <Panel className="p-6 flex flex-col">
           {/* Filters */}
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-3 gap-6 mb-6">
             {/* Location filter */}
             <div>
               <label htmlFor="location-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

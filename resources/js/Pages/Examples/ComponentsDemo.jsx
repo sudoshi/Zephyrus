@@ -55,7 +55,7 @@ export default function ComponentsDemo({ auth }) {
                   <h1 className="text-2xl font-bold mb-6">UI Components Demo</h1>
                   
                   {/* Button Examples */}
-                  <section className="mb-8">
+                  <section className="mb-6">
                     <h2 className="text-xl font-semibold mb-4">Button Examples</h2>
                     <div className="flex flex-wrap gap-4">
                       <Button color="primary">Primary Button</Button>
@@ -74,7 +74,7 @@ export default function ComponentsDemo({ auth }) {
                   </section>
                   
                   {/* Card Examples */}
-                  <section className="mb-8">
+                  <section className="mb-6">
                     <h2 className="text-xl font-semibold mb-4">Card Examples</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Card title="Basic Card">
@@ -102,7 +102,7 @@ export default function ComponentsDemo({ auth }) {
                   </section>
                   
                   {/* Tabs Example */}
-                  <section className="mb-8">
+                  <section className="mb-6">
                     <h2 className="text-xl font-semibold mb-4">Tabs Example</h2>
                     <Card className="mb-6">
                       <h5 className="text-xl font-bold mb-4">Tabs</h5>

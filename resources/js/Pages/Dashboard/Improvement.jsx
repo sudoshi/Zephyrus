@@ -153,9 +153,9 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
         </div>
 
         {/* Two-column grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* Left Column */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Process Intelligence Panel */}
             <AnalyticsPanel
               title="Process Intelligence"
@@ -289,7 +289,7 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
           </div>
 
           {/* Right Column */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Resource Utilization */}
             <AnalyticsPanel
               title="Resource Utilization"

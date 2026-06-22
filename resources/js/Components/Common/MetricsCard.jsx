@@ -44,7 +44,7 @@ const MetricsCard = ({
 
     return (
         <Card className="transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg">
-            <Card.Content className="p-6">
+            <Card.Content className="p-4">
                 <div className="flex items-center justify-between">
                     <div 
                         className={`
@@ -83,7 +83,7 @@ const MetricsCard = ({
                         </div>
                     )}
                 </div>
-                <div className="mt-5 space-y-2">
+                <div className="mt-3 space-y-1.5">
                     <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
                         {title}
                     </h3>
@@ -110,7 +110,7 @@ const MetricsCard = ({
 
 export const MetricsCardGroup = ({ children, cols = 4 }) => {
     return (
-        <div className={`grid grid-cols-1 md:grid-cols-${cols} gap-6`}>
+        <div className={`grid grid-cols-1 md:grid-cols-${cols} gap-4`}>
             {children}
         </div>
     );

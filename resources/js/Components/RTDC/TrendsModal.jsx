@@ -306,7 +306,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                 {/* Main Chart/Table */}
                                 <div className="lg:col-span-3 bg-white dark:bg-gray-900 rounded-lg shadow p-4">
                                     {viewMode === 'chart' ? (
-                                        <div className="h-[400px]">
+                                        <div className="h-[340px]">
                                             <TrendChart
                                                 data={sortedData}
                                                 series={[{

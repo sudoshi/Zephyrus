@@ -51,7 +51,7 @@ const AlertCard = ({ alert }) => {
             role="alert"
             aria-live={alert.type === 'critical' ? 'assertive' : 'polite'}
         >
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
                 <div className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
                     <div className="relative">
                         <Icon 

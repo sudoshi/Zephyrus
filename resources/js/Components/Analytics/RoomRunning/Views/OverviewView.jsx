@@ -216,7 +216,7 @@ const OverviewView = ({ filters }) => {
       
       {/* Main Rooms Running Chart */}
       <Panel title="Rooms Running by Time of Day" isSubpanel dropLightIntensity="medium">
-        <div className="h-192">
+        <div className="h-96">
           <ResponsiveLine
             data={roomsRunningChartData}
             margin={{ top: 40, right: 20, bottom: 60, left: 60 }}
@@ -340,7 +340,7 @@ const OverviewView = ({ filters }) => {
       </Panel>
       
       {/* Original charts */}
-      <div className="mt-8">
+      <div className="mt-6">
         <h3 className="text-lg font-medium mb-4">Additional Analysis</h3>
         
         {/* Summary Metrics */}

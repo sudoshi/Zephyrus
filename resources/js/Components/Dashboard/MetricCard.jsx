@@ -60,7 +60,7 @@ return isDarkMode
             className={`
                 p-4 shadow-sm border-l-4 transition-all duration-300
                 ${getStatusColor(numericValue)}
-                ${size === 'small' ? 'h-32' : 'h-40'}
+                ${size === 'small' ? 'h-28' : 'h-36'}
                 ${isHovered ? 'transform scale-[1.02]' : ''}
                 hover:shadow-lg dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.25)]
             `}
@@ -111,7 +111,7 @@ return isDarkMode
                                     color={getSparklineColor()}
                                 />
                             ) : (
-                                <span className="text-3xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                <span className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                     {value}
                                 </span>
                             )}

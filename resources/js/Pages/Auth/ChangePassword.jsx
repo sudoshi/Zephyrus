@@ -67,10 +67,10 @@ export default function ChangePassword() {
                 className="w-full max-w-[420px] mx-auto"
             >
                 {/* Header */}
-                <motion.div {...fadeUp(0.1)} className="text-center mb-8">
-                    <div className="flex justify-center mb-4">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                            <Icon icon="lucide:shield-alert" className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                <motion.div {...fadeUp(0.1)} className="text-center mb-6">
+                    <div className="flex justify-center mb-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                            <Icon icon="lucide:shield-alert" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                         </div>
                     </div>
                     <h1 className="text-3xl font-extralight tracking-tight text-slate-800 dark:text-slate-100">
@@ -103,7 +103,7 @@ export default function ChangePassword() {
                 {/* Card */}
                 <motion.div {...fadeUp(0.2)}>
                     <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white/70 dark:bg-slate-800/50 backdrop-blur-xl shadow-xl shadow-slate-900/[0.04] dark:shadow-black/20">
-                        <div className="p-7">
+                        <div className="p-6">
                             <form onSubmit={submit} className="space-y-5">
                                 {/* Current (Temporary) Password */}
                                 <div>
