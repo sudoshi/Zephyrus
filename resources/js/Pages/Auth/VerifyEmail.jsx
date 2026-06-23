@@ -1,69 +1,58 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { Icon } from '@iconify/react';
-import { Button } from '@heroui/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import AuthLayout from '@/Layouts/AuthLayout';
+import PrimaryButton from '@/Components/PrimaryButton';
+import GuestLayout from '@/Layouts/GuestLayout';
+import { Head, Link, router } from '@inertiajs/react';
+import React from 'react';
 
 export default function VerifyEmail({ status }) {
-    const { post, processing } = useForm({});
+    const [processing, setProcessing] = React.useState(false);
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
-        post('/email/verification-notification');
+        setProcessing(true);
+
+        try {
+            await router.post('/email/verification-notification');
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
-        <AuthLayout>
-            <Head title="Verify Email — Zephyrus" />
+        <GuestLayout>
+            <Head title="Email Verification" />
 
-            {/* Heading */}
-            <div className="mb-6 text-center">
-                <div className="mb-3 flex justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/15">
-                        <Icon icon="lucide:mail-check" className="h-6 w-6 text-indigo-400" />
-                    </div>
-                </div>
-                <h2 className="text-2xl font-light text-slate-100">Verify your email.</h2>
-                <p className="mt-1.5 text-sm text-slate-400">
-                    Thanks for signing up! Before getting started, please verify your email address by clicking the link we sent you. If you didn't receive it, we can send another.
-                </p>
+            <div className="mb-4 text-sm text-gray-600">
+                Thanks for signing up! Before getting started, could you verify
+                your email address by clicking on the link we just emailed to
+                you? If you didn't receive the email, we will gladly send you
+                another.
             </div>
 
-            {/* Status */}
-            <AnimatePresence mode="wait">
-                {status === 'verification-link-sent' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                        className="mb-5 flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3"
-                    >
-                        <Icon icon="lucide:check-circle-2" className="h-4 w-4 shrink-0 text-emerald-400" />
-                        <p className="text-sm text-emerald-300">
-                            A new verification link has been sent to the email address you provided during registration.
-                        </p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {status === 'verification-link-sent' && (
+                <div className="mb-4 text-sm font-medium text-green-600">
+                    A new verification link has been sent to the email address
+                    you provided during registration.
+                </div>
+            )}
 
-            <form onSubmit={submit} className="space-y-4">
-                <Button
-                    type="submit" size="lg" isLoading={processing} radius="lg"
-                    className="h-12 w-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:from-indigo-600 hover:via-blue-600 hover:to-cyan-600 hover:shadow-indigo-500/30"
-                    startContent={!processing && <Icon icon="lucide:send" className="h-4 w-4" />}
-                >
-                    {processing ? 'Sending…' : 'Resend Verification Email'}
-                </Button>
+            <form onSubmit={submit}>
+                <div className="mt-4 flex items-center justify-between">
+                    <PrimaryButton disabled={processing}>
+                        Resend Verification Email
+                    </PrimaryButton>
 
-                <div className="text-center">
                     <Link
                         href="/logout"
                         method="post"
                         as="button"
-                        className="text-sm text-slate-400 transition-colors hover:text-slate-200"
+                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
                         Log Out
                     </Link>
                 </div>
             </form>
-        </AuthLayout>
+        </GuestLayout>
     );
 }
