@@ -1,0 +1,15 @@
+/* ============================================================
+   Auth (guest) page motion — keyframes only.
+   Layout/visuals are Tailwind utilities + inline styles.
+   ============================================================ */
+
+@keyframes auth-shimmer-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Honour reduced-motion: stop the rotating shimmer border.
+   !important overrides the element's inline animation. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-shimmer__spin { animation: none !important; }
+}

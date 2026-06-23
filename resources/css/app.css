@@ -3,6 +3,7 @@
 @import './tokens-dark.css';
 @import './tokens-light.css';
 @import './components/focus.css';
+@import './auth.css';
 
 /* Import ReactFlow styles */
 @import 'reactflow/dist/style.css';
