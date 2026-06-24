@@ -49,12 +49,30 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="za-brand-mid">
             <span className="za-eyebrow">Operations Command Center</span>
             <h2 className="za-headline">
-              See hospital <span className="za-accent">demand &amp; capacity</span> the moment it shifts.
+              Coordinate <span className="za-accent">ED, RTDC, perioperative &amp; improvement</span> decisions in one live view.
             </h2>
             <p className="za-sub">
-              Real-time demand and capacity intelligence — bed flow, boarding, and throughput,
-              surfaced before they become bottlenecks.
+              Zephyrus connects hospital-wide strain to unit-level action: demand signals,
+              capacity plans, operating room flow, and process improvement work.
             </p>
+            <div className="za-domain-map" aria-label="Zephyrus workflow coverage">
+              <div className="za-domain za-domain-ed">
+                <span>Emergency Department</span>
+                <p>Arrivals, acuity, wait times, boarding, treatment flow.</p>
+              </div>
+              <div className="za-domain za-domain-rtdc">
+                <span>RTDC</span>
+                <p>Bed capacity, unit census, discharges, placement decisions.</p>
+              </div>
+              <div className="za-domain za-domain-or">
+                <span>Perioperative</span>
+                <p>Block use, room status, case timing, turnover performance.</p>
+              </div>
+              <div className="za-domain za-domain-pi">
+                <span>Process Improvement</span>
+                <p>Process mining, bottlenecks, root cause work, PDSA cycles.</p>
+              </div>
+            </div>
             <div className="za-sparkwrap" aria-hidden="true">
               <svg className="za-sparkline" viewBox="0 0 360 54" fill="none">
                 <defs>
@@ -82,7 +100,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <div className="za-mobile-lockup">
               <ZephyrusMark className="za-mark" gradId="za-mark-mobile" />
               <span className="za-wordmark">Zephyrus</span>
-              <span className="za-m-tag">Real-time hospital demand &amp; capacity intelligence.</span>
+              <span className="za-m-tag">ED, RTDC, perioperative, and improvement intelligence for hospital operations.</span>
             </div>
             {children}
           </div>

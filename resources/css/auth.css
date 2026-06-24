@@ -80,17 +80,60 @@
 .za-lockup .za-mark { width: 44px; height: 44px; flex: none; }
 .za-wordmark { font-size: 0.95rem; font-weight: 300; letter-spacing: 0.42em; text-transform: uppercase; color: var(--txt); padding-left: 0.1em; }
 
-.za-brand-mid { max-width: 30ch; }
+.za-brand-mid { max-width: min(42rem, 100%); }
 .za-eyebrow { display: inline-block; font-size: 0.7rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--cyan); margin-bottom: 1.4rem; opacity: 0.85; }
 .za-headline {
-  font-size: clamp(1.9rem, 3.1vw, 2.85rem); font-weight: 600; line-height: 1.16; letter-spacing: -0.02em;
+  max-width: 13.5em; font-size: clamp(1.75rem, 2.55vw, 2.55rem); font-weight: 600; line-height: 1.16; letter-spacing: -0.02em;
   background: linear-gradient(180deg, #ffffff 0%, #c7cfe6 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .za-headline .za-accent { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.za-sub { margin-top: 1.25rem; font-size: 1rem; font-weight: 400; line-height: 1.6; color: var(--muted); max-width: 38ch; }
+.za-sub { margin-top: 1.15rem; font-size: 0.98rem; font-weight: 400; line-height: 1.58; color: var(--muted); max-width: 48ch; }
 
-.za-sparkwrap { margin-top: 2.4rem; max-width: 360px; }
+.za-domain-map {
+  margin-top: 1.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.05rem 1.35rem;
+  max-width: 39rem;
+}
+.za-domain {
+  position: relative;
+  min-width: 0;
+  padding-left: 0.95rem;
+  border-left: 1px solid var(--hair-strong);
+}
+.za-domain::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 0.42rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--domain-color, var(--cyan));
+  box-shadow: 0 0 12px var(--domain-glow, rgba(34,211,238,0.5));
+}
+.za-domain span {
+  display: block;
+  margin-bottom: 0.26rem;
+  color: #f6f8ff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.za-domain p {
+  color: var(--muted);
+  font-size: 0.81rem;
+  line-height: 1.42;
+}
+.za-domain-ed { --domain-color: #45e0cf; --domain-glow: rgba(69,224,207,0.5); }
+.za-domain-rtdc { --domain-color: #818cf8; --domain-glow: rgba(129,140,248,0.5); }
+.za-domain-or { --domain-color: #60a5fa; --domain-glow: rgba(96,165,250,0.5); }
+.za-domain-pi { --domain-color: #f0b85c; --domain-glow: rgba(240,184,92,0.5); }
+
+.za-sparkwrap { margin-top: 1.9rem; max-width: 360px; }
 .za-sparkline { width: 100%; height: 54px; display: block; }
 .za-spark-path {
   stroke: url(#za-sparkgrad); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;

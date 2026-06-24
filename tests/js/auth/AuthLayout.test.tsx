@@ -15,5 +15,9 @@ describe('AuthLayout', () => {
     expect(screen.getByText('my form')).toBeInTheDocument();
     expect(screen.getAllByText('Zephyrus')).toHaveLength(2);
     expect(screen.getByText('Operations Command Center')).toBeInTheDocument();
+    expect(screen.getByText('Emergency Department')).toBeInTheDocument();
+    expect(screen.getByText('RTDC')).toBeInTheDocument();
+    expect(screen.getByText('Perioperative')).toBeInTheDocument();
+    expect(screen.getByText('Process Improvement')).toBeInTheDocument();
   });
 });
