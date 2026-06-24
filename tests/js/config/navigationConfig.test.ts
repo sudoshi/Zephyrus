@@ -8,12 +8,13 @@ import {
 } from '@/config/navigationConfig';
 
 describe('navigationConfig', () => {
-  it('exposes the six dropdown domains in order', () => {
+  it('exposes the dropdown domains in order', () => {
     expect(NAVIGATION.map((d) => d.key)).toEqual([
       'rtdc',
       'perioperative',
       'emergency',
       'improvement',
+      'transport',
       'analytics',
       'admin',
     ]);
@@ -67,6 +68,7 @@ describe('navigationConfig', () => {
     expect(userFlat.some((e) => e.href === '/users')).toBe(false);
     // Sub-pages are present and grouped by "Domain Group"
     expect(userFlat.some((e) => e.label === 'Bed Tracking' && e.group === 'RTDC Operations')).toBe(true);
+    expect(userFlat.some((e) => e.label === 'Dispatch' && e.group === 'Transport Operations')).toBe(true);
   });
 
   it('flattenNavigation returns each href at most once', () => {

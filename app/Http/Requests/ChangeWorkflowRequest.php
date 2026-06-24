@@ -14,7 +14,7 @@ class ChangeWorkflowRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'workflow' => 'required|in:superuser,rtdc,perioperative,emergency,improvement',
+            'workflow' => 'required|in:superuser,rtdc,perioperative,emergency,improvement,transport',
             'redirect' => 'nullable|string',
         ];
     }

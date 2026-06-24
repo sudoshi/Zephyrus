@@ -11,6 +11,7 @@ use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RTDCController;
 use App\Http\Controllers\RTDCDashboardController;
+use App\Http\Controllers\Transport\TransportDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -48,6 +49,7 @@ Route::middleware(['auth'])
         Route::get('/dashboard/perioperative', [DashboardController::class, 'index'])->name('dashboard.perioperative');
         Route::get('/dashboard/emergency', [EDDashboardController::class, 'index'])->name('dashboard.emergency');
         Route::get('/dashboard/improvement', [DashboardController::class, 'improvement'])->name('dashboard.improvement');
+        Route::get('/dashboard/transport', [TransportDashboardController::class, 'dashboard'])->name('dashboard.transport');
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
 
         // Improvement Routes
@@ -140,6 +142,20 @@ Route::middleware(['auth'])
             });
         });
 
+        // Transport Routes
+        Route::prefix('transport')->name('transport.')->group(function () {
+            Route::get('/requests', [TransportDashboardController::class, 'requests'])->name('requests');
+            Route::get('/dispatch', [TransportDashboardController::class, 'dispatch'])->name('dispatch');
+            Route::get('/inpatient', [TransportDashboardController::class, 'inpatient'])->name('inpatient');
+            Route::get('/transfers', [TransportDashboardController::class, 'transfers'])->name('transfers');
+            Route::get('/discharge', [TransportDashboardController::class, 'discharge'])->name('discharge');
+            Route::get('/ems', [TransportDashboardController::class, 'ems'])->name('ems');
+            Route::get('/care-transitions', [TransportDashboardController::class, 'careTransitions'])->name('care-transitions');
+            Route::get('/resources', [TransportDashboardController::class, 'resources'])->name('resources');
+            Route::get('/analytics', [TransportDashboardController::class, 'analytics'])->name('analytics');
+            Route::get('/settings/integrations', [TransportDashboardController::class, 'settings'])->name('settings.integrations');
+        });
+
         // Design Routes
         Route::prefix('design')->name('design.')->group(function () {
             Route::get('/components', [DesignController::class, 'components'])->name('components');
@@ -166,7 +182,7 @@ Route::middleware(['auth'])
         // User Preferences Route - Using GET with URL parameters
         Route::get('/set-preference/{workflow}', [DashboardController::class, 'setPreference'])
             ->name('user.set-preference')
-            ->where('workflow', 'superuser|rtdc|perioperative|emergency|improvement');
+            ->where('workflow', 'superuser|rtdc|perioperative|emergency|improvement|transport');
     });
 
 require __DIR__.'/auth.php';

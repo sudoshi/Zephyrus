@@ -257,6 +257,81 @@ const workflowNavigationConfig: WorkflowNavigationConfig = {
     operations: [],
     predictions: [],
   },
+  transport: {
+    name: 'Transport',
+    analytics: [
+      {
+        name: 'Command Center',
+        href: '/dashboard/transport',
+        description: 'Monitor active movement, SLA risk, and throughput',
+        icon: 'lucide:truck'
+      },
+      {
+        name: 'Analytics',
+        href: '/transport/analytics',
+        description: 'Review transport cycle times, delays, and vendor performance',
+        icon: 'lucide:bar-chart-3'
+      },
+    ],
+    operations: [
+      {
+        name: 'Requests',
+        href: '/transport/requests',
+        description: 'Create and manage canonical transport requests',
+        icon: 'lucide:clipboard-list'
+      },
+      {
+        name: 'Dispatch',
+        href: '/transport/dispatch',
+        description: 'Assign teams, vendors, and operational status',
+        icon: 'lucide:route'
+      },
+      {
+        name: 'Inpatient',
+        href: '/transport/inpatient',
+        description: 'Coordinate internal patient movement',
+        icon: 'lucide:bed'
+      },
+      {
+        name: 'Transfers',
+        href: '/transport/transfers',
+        description: 'Coordinate interfacility transfers and bed dependencies',
+        icon: 'lucide:building-2'
+      },
+      {
+        name: 'Discharge',
+        href: '/transport/discharge',
+        description: 'Coordinate discharge rides and NEMT',
+        icon: 'lucide:send'
+      },
+      {
+        name: 'EMS',
+        href: '/transport/ems',
+        description: 'Track inbound EMS handoffs and ETAs',
+        icon: 'lucide:ambulance'
+      },
+      {
+        name: 'Care Transitions',
+        href: '/transport/care-transitions',
+        description: 'Monitor post-acute referrals and transition packets',
+        icon: 'lucide:network'
+      },
+      {
+        name: 'Resources',
+        href: '/transport/resources',
+        description: 'Manage teams, equipment, and vendor capacity',
+        icon: 'lucide:boxes'
+      },
+    ],
+    predictions: [
+      {
+        name: 'Integration Settings',
+        href: '/transport/settings/integrations',
+        description: 'Review connector capabilities and implementation posture',
+        icon: 'lucide:settings'
+      },
+    ],
+  },
 };
 
 interface DashboardState {
@@ -366,6 +441,12 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
         workflow: 'improvement',
         href: '/dashboard/improvement',
         icon: 'heroicons:arrow-trending-up'
+      },
+      {
+        name: 'Transport',
+        workflow: 'transport',
+        href: '/dashboard/transport',
+        icon: 'heroicons:truck'
       },
     ],
     []
