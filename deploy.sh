@@ -65,10 +65,10 @@ sudo chown -R www-data:www-data /var/www/Zephyrus
 echo "Clearing Laravel caches..."
 # Clear Laravel caches
 cd /var/www/Zephyrus
-php artisan cache:clear
-php artisan view:clear
-php artisan config:clear
-php artisan route:clear
+sudo -u www-data php artisan cache:clear
+sudo -u www-data php artisan view:clear
+sudo -u www-data php artisan config:clear
+sudo -u www-data php artisan route:clear
 
 echo "🔄 Restarting Apache..."
 # Restart Apache
