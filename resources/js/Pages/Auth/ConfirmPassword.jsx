@@ -1,15 +1,11 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, router } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 import React from 'react';
+import AuthLayout from '@/Layouts/AuthLayout';
+import { AuthField } from '@/Components/Auth/AuthField';
 
 export default function ConfirmPassword() {
-    const [data, setData] = React.useState({
-        password: '',
-    });
+    const [data, setData] = React.useState({ password: '' });
     const [processing, setProcessing] = React.useState(false);
     const [errors, setErrors] = React.useState({});
 
@@ -19,7 +15,7 @@ export default function ConfirmPassword() {
 
         try {
             await router.post('/confirm-password', data);
-            setData(prev => ({ ...prev, password: '' }));
+            setData((prev) => ({ ...prev, password: '' }));
         } catch (error) {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
@@ -30,37 +26,29 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Confirm Password" />
+        <AuthLayout>
+            <Head title="Confirm Password — Zephyrus" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
+            <div className="za-form-head">
+                <div className="za-head-icon">
+                    <Icon icon="lucide:lock" width="22" height="22" />
+                </div>
+                <h1>Confirm your password</h1>
+                <p>This is a secure area. Please confirm your password before continuing.</p>
             </div>
 
             <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                <AuthField
+                    id="password" label="Password" icon="lucide:lock" type="password" revealable
+                    value={data.password} onChange={(v) => setData((p) => ({ ...p, password: v }))}
+                    autoComplete="current-password" autoFocus required error={errors.password}
+                />
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        isFocused={true}
-                        onChange={(e) => setData(prev => ({ ...prev, password: e.target.value }))}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
-                    </PrimaryButton>
-                </div>
+                <button type="submit" className="za-btn-primary" disabled={processing}>
+                    {processing ? 'Confirming…' : 'Confirm'}
+                    {!processing && <Icon icon="lucide:arrow-right" width="18" height="18" />}
+                </button>
             </form>
-        </GuestLayout>
+        </AuthLayout>
     );
 }

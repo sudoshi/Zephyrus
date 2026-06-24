@@ -1,7 +1,7 @@
-import PrimaryButton from '@/Components/PrimaryButton';
-import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 import React from 'react';
+import AuthLayout from '@/Layouts/AuthLayout';
 
 export default function VerifyEmail({ status }) {
     const [processing, setProcessing] = React.useState(false);
@@ -20,39 +20,35 @@ export default function VerifyEmail({ status }) {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Email Verification" />
+        <AuthLayout>
+            <Head title="Email Verification — Zephyrus" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn't receive the email, we will gladly send you
-                another.
+            <div className="za-state">
+                <div className="za-state-icon">
+                    <Icon icon="lucide:mail" width="26" height="26" />
+                </div>
+                <h2>Verify your email</h2>
+                <p>
+                    Thanks for signing up! Please verify your email address by clicking the link
+                    we just emailed you. If you didn't receive it, we'll gladly send another.
+                </p>
             </div>
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
+                <div className="za-alert za-alert-ok">
+                    <Icon icon="lucide:check-circle-2" width="16" height="16" />
+                    <span>A new verification link has been sent to your email address.</span>
                 </div>
             )}
 
             <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
-                        Resend Verification Email
-                    </PrimaryButton>
-
-                    <Link
-                        href="/logout"
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Log Out
-                    </Link>
-                </div>
+                <button type="submit" className="za-btn-primary" disabled={processing}>
+                    {processing ? 'Sending…' : 'Resend verification email'}
+                </button>
+                <p className="za-create">
+                    <Link href="/logout" method="post" as="button">Log out</Link>
+                </p>
             </form>
-        </GuestLayout>
+        </AuthLayout>
     );
 }

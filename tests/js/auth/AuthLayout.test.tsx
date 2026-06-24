@@ -13,6 +13,7 @@ describe('AuthLayout', () => {
   it('renders children and the brand hero', () => {
     render(<AuthLayout><div>my form</div></AuthLayout>);
     expect(screen.getByText('my form')).toBeInTheDocument();
-    expect(screen.getByText('Zephyrus')).toBeInTheDocument();
+    expect(screen.getAllByText('Zephyrus')).toHaveLength(2);
+    expect(screen.getByText('Operations Command Center')).toBeInTheDocument();
   });
 });

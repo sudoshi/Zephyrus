@@ -25,15 +25,15 @@ export function AuthField({
   const inputType = revealable ? (revealed ? 'text' : 'password') : type;
 
   return (
-    <div>
-      <label htmlFor={id} className="block text-xs font-medium text-slate-400 mb-1.5">
+    <div className="za-field">
+      <label htmlFor={id}>
         {label}
-        {optional && <span className="text-slate-500"> (optional)</span>}
+        {optional && <span className="za-opt"> (optional)</span>}
       </label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-          <Icon icon={icon} className="w-[18px] h-[18px] text-slate-500" />
-        </div>
+      <div className={`za-input-wrap${error ? ' za-invalid' : ''}`}>
+        <span className="za-lead-icon">
+          <Icon icon={icon} width="18" height="18" />
+        </span>
         <input
           id={id}
           type={inputType}
@@ -43,27 +43,21 @@ export function AuthField({
           required={required}
           autoFocus={autoFocus}
           autoComplete={autoComplete}
-          className={[
-            'w-full rounded-xl border bg-white/[0.04] py-3 pl-11 text-sm text-slate-100',
-            'placeholder-slate-500 outline-none transition-colors',
-            revealable ? 'pr-11' : 'pr-4',
-            error ? 'border-red-500/50' : 'border-white/10',
-            'hover:border-indigo-400/60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/25',
-          ].join(' ')}
+          className={revealable ? 'za-has-trail' : undefined}
         />
         {revealable && (
           <button
             type="button"
             tabIndex={-1}
-            onClick={() => setRevealed((v) => !v)}
+            className="za-trail-btn"
             aria-label={revealed ? 'Hide password' : 'Show password'}
-            className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500 hover:text-slate-300 transition-colors"
+            onClick={() => setRevealed((v) => !v)}
           >
-            <Icon icon={revealed ? 'lucide:eye-off' : 'lucide:eye'} className="w-[18px] h-[18px]" />
+            <Icon icon={revealed ? 'lucide:eye-off' : 'lucide:eye'} width="18" height="18" />
           </button>
         )}
       </div>
-      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+      {error && <p className="za-field-error">{error}</p>}
     </div>
   );
 }

@@ -1,10 +1,8 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, router } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 import React from 'react';
+import AuthLayout from '@/Layouts/AuthLayout';
+import { AuthField } from '@/Components/Auth/AuthField';
 
 export default function ResetPassword({ token, email }) {
     const [data, setData] = React.useState({
@@ -22,7 +20,7 @@ export default function ResetPassword({ token, email }) {
 
         try {
             await router.post('/reset-password', data);
-            setData(prev => ({ ...prev, password: '', password_confirmation: '' }));
+            setData((prev) => ({ ...prev, password: '', password_confirmation: '' }));
         } catch (error) {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
@@ -33,73 +31,38 @@ export default function ResetPassword({ token, email }) {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Reset Password" />
+        <AuthLayout>
+            <Head title="Reset Password — Zephyrus" />
+
+            <div className="za-form-head">
+                <h1>Choose a new password</h1>
+                <p>Set a new password for your account.</p>
+            </div>
 
             <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                <AuthField
+                    id="email" label="Email address" icon="lucide:mail" type="email"
+                    value={data.email} onChange={(v) => setData((p) => ({ ...p, email: v }))}
+                    autoComplete="username" required error={errors.email}
+                />
+                <AuthField
+                    id="password" label="New password" icon="lucide:lock" type="password" revealable
+                    value={data.password} onChange={(v) => setData((p) => ({ ...p, password: v }))}
+                    placeholder="At least 8 characters" autoComplete="new-password" autoFocus required
+                    error={errors.password}
+                />
+                <AuthField
+                    id="password_confirmation" label="Confirm password" icon="lucide:lock-keyhole" type="password" revealable
+                    value={data.password_confirmation} onChange={(v) => setData((p) => ({ ...p, password_confirmation: v }))}
+                    placeholder="Re-enter new password" autoComplete="new-password" required
+                    error={errors.password_confirmation}
+                />
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        onChange={(e) => setData(prev => ({ ...prev, email: e.target.value }))}
-                    />
-
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        isFocused={true}
-                        onChange={(e) => setData(prev => ({ ...prev, password: e.target.value }))}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
-                    <TextInput
-                        type="password"
-                        id="password_confirmation"
-                        name="password_confirmation"
-                        value={data.password_confirmation}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        onChange={(e) =>
-                            setData(prev => ({ ...prev, password_confirmation: e.target.value }))
-                        }
-                    />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Reset Password
-                    </PrimaryButton>
-                </div>
+                <button type="submit" className="za-btn-primary" disabled={processing}>
+                    {processing ? 'Resetting…' : 'Reset password'}
+                    {!processing && <Icon icon="lucide:check" width="18" height="18" />}
+                </button>
             </form>
-        </GuestLayout>
+        </AuthLayout>
     );
 }

@@ -1,14 +1,11 @@
-import InputError from '@/Components/InputError';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Icon } from '@iconify/react';
 import React from 'react';
+import AuthLayout from '@/Layouts/AuthLayout';
+import { AuthField } from '@/Components/Auth/AuthField';
 
 export default function ForgotPassword({ status }) {
-    const [data, setData] = React.useState({
-        email: '',
-    });
+    const [data, setData] = React.useState({ email: '' });
     const [processing, setProcessing] = React.useState(false);
     const [errors, setErrors] = React.useState({});
 
@@ -28,40 +25,36 @@ export default function ForgotPassword({ status }) {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Forgot Password" />
+        <AuthLayout>
+            <Head title="Forgot Password — Zephyrus" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                Forgot your password? No problem. Just let us know your email
-                address and we will email you a password reset link that will
-                allow you to choose a new one.
+            <div className="za-form-head">
+                <h1>Reset your password</h1>
+                <p>Enter your email and we'll send you a secure reset link.</p>
             </div>
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
+                <div className="za-alert za-alert-ok">
+                    <Icon icon="lucide:check-circle-2" width="16" height="16" />
+                    <span>{status}</span>
                 </div>
             )}
 
             <form onSubmit={submit}>
-                <TextInput
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={data.email}
-                    className="mt-1 block w-full"
-                    isFocused={true}
-                    onChange={(e) => setData(prev => ({ ...prev, email: e.target.value }))}
+                <AuthField
+                    id="email" label="Email address" icon="lucide:mail" type="email"
+                    value={data.email} onChange={(v) => setData((p) => ({ ...p, email: v }))}
+                    placeholder="you@hospital.org" autoComplete="email" autoFocus required
+                    error={errors.email}
                 />
 
-                <InputError message={errors.email} className="mt-2" />
+                <button type="submit" className="za-btn-primary" disabled={processing}>
+                    {processing ? 'Sending…' : 'Send reset link'}
+                    {!processing && <Icon icon="lucide:arrow-right" width="18" height="18" />}
+                </button>
 
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Email Password Reset Link
-                    </PrimaryButton>
-                </div>
+                <p className="za-create"><Link href="/login">← Back to sign in</Link></p>
             </form>
-        </GuestLayout>
+        </AuthLayout>
     );
 }
