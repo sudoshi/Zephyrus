@@ -134,23 +134,43 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Check deploy secrets
+        id: deploy-secrets
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ] || [ -z "$DEPLOY_SSH_KEY" ] || [ -z "$DEPLOY_DIR" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Production deploy skipped because one or more deploy secrets are not configured."
+            exit 0
+          fi
+
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
       - name: Set up SSH agent
+        if: steps.deploy-secrets.outputs.configured == 'true'
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Add known host
+        if: steps.deploy-secrets.outputs.configured == 'true'
         run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
+        if: steps.deploy-secrets.outputs.configured == 'true'
         env:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_DIR:  ${{ secrets.DEPLOY_DIR }}
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" bash -s << 'ENDSSH'
+          DEPLOY_DIR_ESCAPED=$(printf '%q' "$DEPLOY_DIR")
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "DEPLOY_DIR=$DEPLOY_DIR_ESCAPED bash -s" << 'ENDSSH'
             set -e
-            cd $DEPLOY_DIR
+            cd "$DEPLOY_DIR"
             git fetch origin main && git checkout main && git pull origin main
             composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
             php artisan migrate --force
