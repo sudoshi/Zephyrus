@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8765/viewer/",
+  "generatedAt": "2026-06-25T01:34:17.891Z",
+  "results": [
+    {
+      "name": "desktop-1440x900",
+      "screenshotPath": "/Users/sudoshi/Github/Parthenon/docs/research/hospital-cad-model/verification/desktop-1440x900.png",
+      "pixelStats": {
+        "width": 1440,
+        "height": 900,
+        "totalPixels": 1296000,
+        "nonBackground": 221434,
+        "minRgb": 23,
+        "maxRgb": 255,
+        "colorRange": 232,
+        "nonBackgroundRatio": 0.17085956790123458,
+        "modelCount": "1,472 visible",
+        "status": "Model loaded"
+      }
+    },
+    {
+      "name": "mobile-390x844",
+      "screenshotPath": "/Users/sudoshi/Github/Parthenon/docs/research/hospital-cad-model/verification/mobile-390x844.png",
+      "pixelStats": {
+        "width": 390,
+        "height": 844,
+        "totalPixels": 329160,
+        "nonBackground": 153568,
+        "minRgb": 23,
+        "maxRgb": 255,
+        "colorRange": 232,
+        "nonBackgroundRatio": 0.466545145218131,
+        "modelCount": "1,472 visible",
+        "status": "Model loaded"
+      }
+    }
+  ]
+}

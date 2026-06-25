@@ -29,6 +29,16 @@ The database is organized into multiple schemas, each serving a specific purpose
    - Mapping tables to internal data
    - FHIR operations tracking
 
+6. `hosp_ingest` - Hospital blueprint/CAD/BIM ingestion
+   - Tracks each source import and revision
+   - Stores extracted objects, geometry metadata, floor coordinates, classification, and review state
+   - Preserves source evidence before it is promoted into canonical facility spaces
+
+7. `hosp_ref` / `hosp_space` - Canonical hospital facility model
+   - `hosp_ref` stores facility-object category mappings used by blueprint imports
+   - `hosp_space` stores canonical facility spaces and maps them to `prod.locations`, `prod.rooms`, `prod.units`, and `prod.beds`
+   - This layer is the bridge between CAD/BIM detail and Zephyrus operational workflows
+
 ## Schema Dependencies
 
 ```
@@ -36,7 +46,31 @@ raw   → stg   (ETL processing)
 stg   → prod  (Data validation/transformation)
 prod  → star  (Analytics transformation)
 prod  → fhir  (FHIR conversion)
+hosp_ingest → hosp_space → prod (Blueprint/CAD/BIM ingestion and operational mapping)
 ```
+
+## Facility Blueprint Import
+
+Generated hospital CAD catalogs can be imported with:
+
+```bash
+php artisan facility:import-catalog hospital-cad-model/data/model_catalog.json \
+  --facility-code=ZEPHYRUS-500 \
+  --facility-name="500-Bed Level I Trauma Academic Medical Center" \
+  --source-name=local-500-bed-catalog \
+  --map-operational
+```
+
+The command records the source import, stores extracted catalog objects, promotes them to canonical facility spaces, and optionally creates/attaches operational `prod.units` and `prod.beds` plus `hosp_space.operational_space_maps`.
+
+Authenticated clients can inspect import and mapping coverage with:
+
+```http
+GET /api/facility/model/summary
+GET /api/facility/model/summary?facility_code=ZEPHYRUS-500
+```
+
+The summary reports the latest import, import status counts, latest-import object counts, canonical facility-space counts, active operational mapping coverage, unmapped spaces, and linked `prod` rows.
 
 ## Directory Structure
 

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
 use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\ProviderController;
@@ -45,6 +46,11 @@ Route::get('/health', function () {
 // Command Center drill-downs (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->group(function () {
     Route::get('/drilldown', [CommandCenterController::class, 'drilldown']);
+});
+
+// Facility blueprint/digital twin model (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('facility')->group(function () {
+    Route::get('/model/summary', [FacilityModelController::class, 'summary']);
 });
 
 // RTDC — Real-Time Demand Capacity (web session auth)

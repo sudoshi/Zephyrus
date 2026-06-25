@@ -1,0 +1,184 @@
+{
+  "model_name": "Fixture Academic Medical Center",
+  "generated_at": "2026-06-25",
+  "summary": {
+    "objects": 6,
+    "beds": 1,
+    "patient_rooms": 1,
+    "corridor_segments": 1,
+    "elevators": 1,
+    "ed_positions": 0,
+    "procedure_rooms": 0
+  },
+  "categories": {
+    "floor": 1,
+    "care_unit": 1,
+    "patient_room": 1,
+    "bed": 1,
+    "corridor": 1,
+    "elevator": 1
+  },
+  "floors": {
+    "3": 4,
+    "99": 1
+  },
+  "objects": [
+    {
+      "code": "FLOOR-L3",
+      "name": "L3 Adult ICU floor",
+      "category": "floor",
+      "material": "floor",
+      "floor": 3,
+      "position_ft": {
+        "x": 0,
+        "level": 60,
+        "z": 0
+      },
+      "size_ft": {
+        "x": 430,
+        "y": 0.55,
+        "z": 270
+      },
+      "metadata": {
+        "floor_code": "L3",
+        "program": "Adult ICUs",
+        "public_access": false,
+        "level_ft": 60
+      }
+    },
+    {
+      "code": "UNIT-TICU",
+      "name": "Test Surgical Trauma ICU",
+      "category": "care_unit",
+      "material": "icu",
+      "floor": 3,
+      "position_ft": {
+        "x": -50,
+        "level": 61.25,
+        "z": 0
+      },
+      "size_ft": {
+        "x": 128,
+        "y": 2.5,
+        "z": 104
+      },
+      "metadata": {
+        "unit_code": "TICU",
+        "service_line": "trauma_surgery",
+        "acuity": "icu",
+        "planned_beds": 1,
+        "isolation_target_pct": 100,
+        "optimization_notes": "Fixture ICU unit"
+      }
+    },
+    {
+      "code": "TICU-R001",
+      "name": "Test Surgical Trauma ICU patient room 001",
+      "category": "patient_room",
+      "material": "icu",
+      "floor": 3,
+      "position_ft": {
+        "x": -72,
+        "level": 62.1,
+        "z": 38
+      },
+      "size_ft": {
+        "x": 18,
+        "y": 4.2,
+        "z": 22
+      },
+      "metadata": {
+        "unit_code": "TICU",
+        "bed_code": "TICU-B001",
+        "service_line": "trauma_surgery",
+        "acuity": "icu",
+        "single_patient_room": true,
+        "same_handed": true,
+        "negative_or_protective_isolation_candidate": true,
+        "hand_hygiene_on_entry": true,
+        "ceiling_lift": true
+      }
+    },
+    {
+      "code": "TICU-B001",
+      "name": "Test Surgical Trauma ICU bed 001",
+      "category": "bed",
+      "material": "isolation_bed",
+      "floor": 3,
+      "position_ft": {
+        "x": -74.2,
+        "level": 64.85,
+        "z": 36.5
+      },
+      "size_ft": {
+        "x": 6.8,
+        "y": 2.2,
+        "z": 3.2
+      },
+      "metadata": {
+        "unit_code": "TICU",
+        "service_line": "trauma_surgery",
+        "acuity": "icu",
+        "licensed_bed": true,
+        "staffed_bed": true,
+        "icu_capable": true,
+        "telemetry_capable": true,
+        "negative_pressure_capable": true,
+        "protective_environment_capable": false,
+        "medical_gas_headwall": true,
+        "nurse_call_endpoint": "NC-TICU-B001"
+      }
+    },
+    {
+      "code": "L3-icu_patient-01",
+      "name": "L3 ICU patient corridor segment 01",
+      "category": "corridor",
+      "material": "corridor_patient",
+      "floor": 3,
+      "position_ft": {
+        "x": -20,
+        "level": 63,
+        "z": -42
+      },
+      "size_ft": {
+        "x": 96,
+        "y": 1.2,
+        "z": 10
+      },
+      "metadata": {
+        "flow_class": "patient_transport",
+        "contamination_class": "patient",
+        "min_clear_width_ft": 10,
+        "public_access": false,
+        "optimization_notes": "Fixture patient transport corridor",
+        "clean_soiled_separation": false
+      }
+    },
+    {
+      "code": "TRM-01",
+      "name": "Trauma priority elevator 01",
+      "category": "elevator",
+      "material": "elevator_trauma",
+      "floor": 99,
+      "position_ft": {
+        "x": -8,
+        "level": 121.5,
+        "z": -74
+      },
+      "size_ft": {
+        "x": 10.5,
+        "y": 239,
+        "z": 11.5
+      },
+      "metadata": {
+        "elevator_class": "trauma_priority",
+        "capacity_lb": 6500,
+        "bed_stretcher_capable": true,
+        "serves_helipad": true,
+        "public_access": false,
+        "lowest_floor": -2,
+        "highest_floor": 14
+      }
+    }
+  ]
+}

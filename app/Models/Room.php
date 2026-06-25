@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Facility\FacilitySpace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Room extends Model
 {
     public $timestamps = true;
+
     protected $table = 'prod.rooms';
+
     protected $primaryKey = 'room_id';
 
     protected $fillable = [
@@ -19,21 +22,27 @@ class Room extends Model
         'active_status',
         'created_by',
         'modified_by',
+        'facility_space_id',
         'created_at',
         'updated_at',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
         'is_deleted' => 'boolean',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id', 'location_id');
+    }
+
+    public function facilitySpace(): BelongsTo
+    {
+        return $this->belongsTo(FacilitySpace::class, 'facility_space_id', 'facility_space_id');
     }
 
     public function cases(): HasMany
@@ -54,7 +63,7 @@ class Room extends Model
     public function scopeActive($query)
     {
         return $query->where('active_status', true)
-                    ->where('is_deleted', false);
+            ->where('is_deleted', false);
     }
 
     public function scopeOperatingRooms($query)
