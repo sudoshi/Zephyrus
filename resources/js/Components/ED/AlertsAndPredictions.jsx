@@ -60,7 +60,7 @@ const AlertsAndPredictions = ({ alerts, predictions }) => {
                         {alerts.map((alert) => (
                             <div key={alert.id} className="flex items-start space-x-4 p-4 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                                 <div className={`flex-shrink-0 p-2 rounded-lg ${getAlertColor(alert.type)}`}>
-                                    <Icon icon={getAlertIcon(alert.type)} className="w-5 h-5" />
+                                    <Icon icon={getAlertIcon(alert.type)} className={getAlertIcon(alert.type) === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'} />
                                 </div>
                                 <div className="flex-grow">
                                     <div className="flex items-center justify-between">

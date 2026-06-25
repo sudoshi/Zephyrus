@@ -246,7 +246,7 @@ const Home = ({ workflow }) => {
                                                 <div key={index} className={`p-4 border-l-4 ${severityColors[alert.severity]} rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark`}>
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex items-center space-x-2">
-                                                            <Icon icon={severityIcons[alert.severity]} className={`w-5 h-5 ${severityColors[alert.severity].split(' ')[0]}`} />
+                                                            <Icon icon={severityIcons[alert.severity]} className={`${severityIcons[alert.severity] === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'} ${severityColors[alert.severity].split(' ')[0]}`} />
                                                             <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{alert.title}</span>
                                                         </div>
                                                         <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{alert.time}</span>

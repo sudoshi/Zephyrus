@@ -304,7 +304,7 @@ const BottlenecksView = ({ data }) => {
                           ? 'carbon:idea'
                           : 'carbon:information'
                     } 
-                    className="w-5 h-5" 
+                    className={recommendation.priority === 'low' ? 'w-10 h-10' : 'w-5 h-5'}
                   />
                 </div>
                 <div>

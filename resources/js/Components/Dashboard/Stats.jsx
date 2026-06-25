@@ -23,7 +23,7 @@ const Stats = ({ title, value, description, trend, icon }) => {
                                 <div className="relative group/tooltip cursor-help">
                                     <Icon 
                                         icon="heroicons:information-circle" 
-                                        className="w-4 h-4 text-gray-400 hover:text-gray-600"
+                                        className="w-8 h-8 text-gray-400 hover:text-gray-600"
                                     />
                                     <div className="absolute z-10 w-48 p-2 mt-2 text-xs bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none left-0">
                                         {description || `Details about ${title.toLowerCase()}`}

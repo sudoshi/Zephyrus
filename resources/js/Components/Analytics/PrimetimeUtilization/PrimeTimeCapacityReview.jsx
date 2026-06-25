@@ -161,7 +161,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
         >
           <span className="font-medium">{value}</span>
           {previousValue !== undefined && getChangeIndicator()}
-          <Icon icon="carbon:information" className="ml-1 text-gray-400 h-4 w-4" />
+          <Icon icon="carbon:information" className="ml-1 text-gray-400 h-8 w-8" />
         </div>
         
         {showTooltip && (

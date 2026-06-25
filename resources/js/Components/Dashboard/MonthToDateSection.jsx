@@ -35,7 +35,7 @@ const MonthToDateSection = () => {
                             <div className="relative group">
                                 <Icon 
                                     icon="heroicons:information-circle" 
-                                    className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
+                                    className="w-10 h-10 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
                                 />
                                 <div className="absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none right-0">
                                     {info}

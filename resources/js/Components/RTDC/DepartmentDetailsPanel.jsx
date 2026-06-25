@@ -27,7 +27,7 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                     <div className="flex items-center justify-between">
                         <Card.Title>
                             <div className="flex items-center space-x-2">
-                                <Icon icon="heroicons:information-circle" className="w-5 h-5" />
+                                <Icon icon="heroicons:information-circle" className="w-10 h-10" />
                                 <span>{name} Details</span>
                             </div>
                         </Card.Title>

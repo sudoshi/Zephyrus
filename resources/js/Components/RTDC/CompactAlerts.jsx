@@ -38,7 +38,7 @@ const AlertDetails = ({ alert, onClose }) => {
             onClose={onClose}
             title={
                 <div className="flex items-center space-x-3">
-                    <Icon icon={styles.icon} className={`w-5 h-5 ${styles.text}`} />
+                    <Icon icon={styles.icon} className={`${styles.icon === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'} ${styles.text}`} />
                     <span>{alert.title}</span>
                 </div>
             }

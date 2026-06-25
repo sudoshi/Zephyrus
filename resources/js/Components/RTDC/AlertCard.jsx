@@ -56,7 +56,7 @@ const AlertCard = ({ alert }) => {
                     <div className="relative">
                         <Icon 
                             icon={styles.icon}
-                            className="w-5 h-5"
+                            className={styles.icon === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'}
                         />
                         <span className="sr-only">{styles.pattern}</span>
                     </div>

@@ -206,7 +206,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                               ? 'carbon:warning-alt'
                               : 'carbon:information'
                         } 
-                        className="w-5 h-5" 
+                        className={insight.type === 'positive' || insight.type === 'negative' ? 'w-5 h-5' : 'w-10 h-10'}
                       />
                     </div>
                     <div>

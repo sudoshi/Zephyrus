@@ -87,7 +87,7 @@ return isDarkMode
                             >
                                 <Icon 
                                     icon="heroicons:information-circle" 
-                                    className="w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300" 
+                                    className="w-8 h-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300"
                                 />
                             </Popover.Button>
                             <Popover.Panel className="absolute z-10 w-64 px-4 py-2 mt-2 -right-2 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg border border-healthcare-border dark:border-healthcare-border-dark transition-all duration-300">
