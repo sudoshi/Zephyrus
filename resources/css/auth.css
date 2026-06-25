@@ -92,6 +92,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: min(42rem, 100%);
   max-width: min(42rem, 100%);
   text-align: center;
 }
@@ -110,24 +111,25 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.05rem 1.35rem;
   max-width: 39rem;
-  text-align: left;
+  text-align: center;
 }
 .za-domain {
   position: relative;
   min-width: 0;
-  padding-left: 0.95rem;
-  border-left: 1px solid var(--hair-strong);
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--hair-strong);
 }
 .za-domain::before {
   content: "";
   position: absolute;
-  left: -3px;
-  top: 0.42rem;
+  left: 50%;
+  top: -3px;
   width: 5px;
   height: 5px;
   border-radius: 999px;
   background: var(--domain-color, var(--cyan));
   box-shadow: 0 0 12px var(--domain-glow, rgba(34,211,238,0.5));
+  transform: translateX(-50%);
 }
 .za-domain span {
   display: block;
@@ -160,7 +162,7 @@
 @keyframes za-pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
 .za-spark-rule { margin-top: 1rem; height: 1px; width: 100%; background: linear-gradient(90deg, transparent, var(--hair-strong) 30%, transparent); }
 
-.za-brand-bottom { font-size: 0.7rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--ghost); display: flex; align-items: center; gap: 0.6rem; }
+.za-brand-bottom { width: 100%; font-size: 0.7rem; letter-spacing: 0.26em; text-align: center; text-transform: uppercase; color: var(--ghost); display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
 .za-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(34,211,238,0.8); }
 
 /* ============ RIGHT FORM PANEL ============ */
