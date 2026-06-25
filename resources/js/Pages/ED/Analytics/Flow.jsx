@@ -1,6 +1,17 @@
 import React from 'react';
-import EDPlaceholder from '@/Components/ED/EDPlaceholder';
+import { Head } from '@inertiajs/react';
+import { TopNavbar } from '@/Components/Navigation/TopNavbar';
+import PatientFlowNavigator from '@/Components/PatientFlowNavigator/PatientFlowNavigator';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export default function Flow() {
-    return <EDPlaceholder title="Patient Flow" subtitle="Assess patient movement through the ED" />;
+    const [isDarkMode, setIsDarkMode] = useDarkMode();
+
+    return (
+        <div className="min-h-screen bg-healthcare-background text-healthcare-text-primary dark:bg-healthcare-background-dark dark:text-healthcare-text-primary-dark">
+            <Head title="Patient Flow - Emergency" />
+            <TopNavbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+            <PatientFlowNavigator initialFloor="1" />
+        </div>
+    );
 }

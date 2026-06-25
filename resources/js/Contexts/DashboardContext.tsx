@@ -30,7 +30,7 @@ const workflowNavigationConfig: WorkflowNavigationConfig = {
       { name: 'Capacity Management', href: '/operations/capacity-management' },
       { name: 'Staffing', href: '/operations/staffing' },
       { name: 'Scheduling', href: '/operations/scheduling' },
-      { name: 'Patient Flow', href: '/operations/patient-flow' },
+      { name: 'Patient Flow', href: '/rtdc/patient-flow-navigator' },
     ],
     predictions: [
       { name: 'Volume Forecasting', href: '/predictions/volume-forecasting' },
@@ -72,6 +72,11 @@ const workflowNavigationConfig: WorkflowNavigationConfig = {
         name: 'Bed Tracking',
         href: '/rtdc/bed-tracking',
         description: 'Real-time bed monitoring',
+      },
+      {
+        name: 'Patient Flow 4D',
+        href: '/rtdc/patient-flow-navigator',
+        description: 'Replay and monitor patient movement on the facility model',
       },
       {
         name: 'Ancillary Services',

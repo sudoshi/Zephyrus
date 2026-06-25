@@ -1,0 +1,53 @@
+{
+  "asset": {
+    "version": "1.1",
+    "tilesetVersion": "2026-06-25-concept",
+    "gltfUpAxis": "Y"
+  },
+  "geometricError": 500,
+  "root": {
+    "boundingVolume": {
+      "box": [
+        -0.8382000000000005,
+        38.141909999999996,
+        -0.7620000000000005,
+        68.6562,
+        0,
+        0,
+        0,
+        38.22573,
+        0,
+        0,
+        0,
+        44.043600000000005
+      ]
+    },
+    "geometricError": 0,
+    "refine": "ADD",
+    "content": {
+      "uri": "../model/hospital_model.glb",
+      "metadata": {
+        "name": "500-bed Level I trauma academic medical center concept GLB"
+      }
+    }
+  },
+  "schema": {
+    "id": "HospitalPlanningModel",
+    "classes": {
+      "HospitalElement": {
+        "properties": {
+          "code": {
+            "type": "STRING"
+          },
+          "category": {
+            "type": "STRING"
+          },
+          "floor": {
+            "type": "SCALAR",
+            "componentType": "INT32"
+          }
+        }
+      }
+    }
+  }
+}

@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
 use App\Http\Controllers\Api\ORCaseController;
+use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
+use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
+use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\Rtdc\BarrierController;
@@ -51,6 +54,18 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->g
 // Facility blueprint/digital twin model (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('facility')->group(function () {
     Route::get('/model/summary', [FacilityModelController::class, 'summary']);
+});
+
+// Patient Flow 4D navigator (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->group(function () {
+    Route::get('/summary', [PatientFlowController::class, 'summary']);
+    Route::get('/locations', [PatientFlowController::class, 'locations']);
+    Route::get('/events', [PatientFlowController::class, 'events']);
+    Route::get('/tracks', [PatientFlowController::class, 'tracks']);
+    Route::get('/state', [PatientFlowController::class, 'state']);
+    Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
+    Route::get('/stream/adt', PatientFlowStreamController::class);
+    Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
 });
 
 // RTDC — Real-Time Demand Capacity (web session auth)

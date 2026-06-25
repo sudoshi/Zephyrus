@@ -1,0 +1,336 @@
+.patient-flow-shell {
+  position: relative;
+  height: calc(100vh - 64px);
+  min-height: 640px;
+  overflow: hidden;
+  background: #121514;
+  color: #f3efe5;
+}
+
+.patient-flow-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.patient-flow-toolbar,
+.patient-flow-inspector,
+.patient-flow-feed,
+.patient-flow-statusbar {
+  position: absolute;
+  z-index: 3;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  background: rgba(27, 31, 29, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.patient-flow-toolbar {
+  top: 16px;
+  left: 16px;
+  width: min(350px, calc(100vw - 32px));
+  max-height: calc(100% - 88px);
+  overflow: auto;
+  padding: 14px;
+}
+
+.patient-flow-brand,
+.patient-flow-statusbar,
+.patient-flow-feed li,
+.patient-flow-control-row,
+.patient-flow-layer-grid,
+.patient-flow-inspector dl {
+  font-size: 12px;
+}
+
+.patient-flow-brand {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #b9b2a6;
+}
+
+.patient-flow-brand strong {
+  color: #f3efe5;
+  font-size: 16px;
+}
+
+.patient-flow-time {
+  display: grid;
+  gap: 8px;
+}
+
+.patient-flow-time output {
+  min-height: 20px;
+  color: #ddd4c5;
+  font-size: 13px;
+}
+
+.patient-flow-time input[type='range'] {
+  width: 100%;
+  accent-color: #e0a33f;
+}
+
+.patient-flow-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 42px);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.patient-flow-icon-button {
+  width: 42px;
+  height: 38px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: #2a2f2c;
+  color: #f3efe5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.patient-flow-icon-button.active {
+  border-color: #e0a33f;
+  background: #3a2f1f;
+  color: #ffd795;
+}
+
+.patient-flow-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.patient-flow-control-grid {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.patient-flow-control-grid label,
+.patient-flow-layer-grid label,
+.patient-flow-feed,
+.patient-flow-inspector dl,
+.patient-flow-statusbar {
+  color: #b9b2a6;
+}
+
+.patient-flow-control-grid select,
+.patient-flow-control-grid input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: #202522;
+  color: #f3efe5;
+  padding: 0 9px;
+  outline: none;
+}
+
+.patient-flow-control-grid select:focus,
+.patient-flow-control-grid input:focus,
+.patient-flow-icon-button:focus-visible {
+  border-color: #64bfd0;
+  box-shadow: 0 0 0 2px rgba(100, 191, 208, 0.25);
+}
+
+.patient-flow-layer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.patient-flow-layer-grid label {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 8px;
+}
+
+.patient-flow-layer-grid input {
+  width: 14px;
+  height: 14px;
+  accent-color: #e0a33f;
+}
+
+.patient-flow-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.patient-flow-metrics div {
+  min-height: 54px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.patient-flow-metrics span {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.patient-flow-metrics small {
+  color: #b9b2a6;
+  font-size: 12px;
+}
+
+.patient-flow-inspector {
+  right: 16px;
+  bottom: 48px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(440px, calc(100% - 140px));
+  overflow: auto;
+  padding: 14px;
+}
+
+.patient-flow-inspector strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.patient-flow-inspector dl {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.45fr) 1fr;
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.patient-flow-inspector dt {
+  color: #ddd6c7;
+}
+
+.patient-flow-inspector dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.patient-flow-feed {
+  top: 16px;
+  right: 16px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: 190px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.patient-flow-feed ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.patient-flow-feed li {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 5px;
+}
+
+.patient-flow-statusbar {
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+}
+
+.patient-flow-error {
+  position: absolute;
+  z-index: 4;
+  inset: 88px auto auto 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px));
+  border: 1px solid rgba(240, 103, 85, 0.55);
+  background: rgba(63, 25, 20, 0.94);
+  color: #ffe2dc;
+  padding: 14px;
+}
+
+@media (max-width: 760px) {
+  .patient-flow-shell {
+    height: calc(100vh - 56px);
+    min-height: 560px;
+  }
+
+  .patient-flow-toolbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 64%;
+    padding: 10px;
+  }
+
+  .patient-flow-control-grid {
+    grid-template-columns: 54px 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .patient-flow-control-grid select,
+  .patient-flow-control-grid input {
+    height: 32px;
+  }
+
+  .patient-flow-buttons {
+    grid-template-columns: repeat(4, 38px);
+    margin: 10px 0;
+  }
+
+  .patient-flow-icon-button {
+    width: 38px;
+    height: 34px;
+  }
+
+  .patient-flow-feed {
+    display: none;
+  }
+
+  .patient-flow-metrics {
+    display: none;
+  }
+
+  .patient-flow-inspector {
+    left: 8px;
+    right: 8px;
+    bottom: 42px;
+    width: auto;
+    max-height: 24%;
+    padding: 10px;
+  }
+
+  .patient-flow-statusbar {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .patient-flow-camera {
+    display: none;
+  }
+}

@@ -40,6 +40,19 @@ class RTDCDashboardController extends Controller
     }
 
     /**
+     * Display the 4D patient-flow navigator.
+     */
+    public function patientFlowNavigator(Request $request): InertiaResponse
+    {
+        $this->rtdcService->activateWorkflow($request);
+
+        return Inertia::render('RTDC/PatientFlowNavigator', [
+            'workflow' => 'rtdc',
+            'facilityCode' => config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500'),
+        ]);
+    }
+
+    /**
      * Display the ancillary services page.
      */
     public function ancillaryServices(): InertiaResponse
