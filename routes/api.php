@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Ops\OperationsGraphController;
 use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\RoomController;
@@ -86,6 +88,17 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('transport')->group(
     Route::post('/requests/{transportRequestId}/handoff', [TransportRequestController::class, 'handoff']);
     Route::get('/resources', [TransportRequestController::class, 'resources']);
     Route::get('/vendors', [TransportRequestController::class, 'vendors']);
+});
+
+// Operations graph foundation (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(function () {
+    Route::get('/graph/snapshot', [OperationsGraphController::class, 'snapshot']);
+    Route::get('/graph/nodes/{node}', [OperationsGraphController::class, 'node']);
+});
+
+// Admin integration health (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('admin/integrations')->group(function () {
+    Route::get('/health', IntegrationHealthController::class);
 });
 
 // OR Cases
