@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
                 'username' => 'hakan',
                 'password' => 'hakan',
                 'workflow_preference' => 'improvement',
-            ]
+            ],
         ];
 
         foreach ($users as $userData) {

@@ -20,7 +20,7 @@ class UserController extends Controller
             ->get();
 
         return Inertia::render('Admin/Users/Index', [
-            'users' => $users
+            'users' => $users,
         ]);
     }
 
@@ -61,7 +61,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         return Inertia::render('Admin/Users/Edit', [
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -72,8 +72,8 @@ class UserController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:prod.users,email,' . $user->id,
-            'username' => 'required|string|max:255|unique:prod.users,username,' . $user->id,
+            'email' => 'required|string|email|max:255|unique:prod.users,email,'.$user->id,
+            'username' => 'required|string|max:255|unique:prod.users,username,'.$user->id,
         ];
 
         // Only validate password if it's provided

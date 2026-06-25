@@ -9,10 +9,10 @@ return new class extends Migration
     {
         // Drop existing migrations table if it exists
         DB::statement('DROP TABLE IF EXISTS migrations CASCADE');
-        
+
         // Set search path to prod for new migrations table
         DB::statement('SET search_path TO prod, public');
-        
+
         // Create migrations table in prod schema
         DB::statement('
             CREATE TABLE migrations (
@@ -27,10 +27,10 @@ return new class extends Migration
     {
         // Drop migrations table from prod schema
         DB::statement('DROP TABLE IF EXISTS prod.migrations CASCADE');
-        
+
         // Reset search path to public
         DB::statement('SET search_path TO public');
-        
+
         // Recreate migrations table in public schema
         DB::statement('
             CREATE TABLE migrations (

@@ -54,7 +54,7 @@ class ProcessLayoutService
             ->first();
 
         if ($layout) {
-            Log::info('Found saved layout with ID: ' . $layout->id . ' and process_type: ' . $layout->process_type);
+            Log::info('Found saved layout with ID: '.$layout->id.' and process_type: '.$layout->process_type);
         } else {
             Log::info('No saved layout found for the given parameters');
         }

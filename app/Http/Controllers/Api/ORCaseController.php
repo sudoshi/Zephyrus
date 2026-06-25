@@ -24,19 +24,19 @@ class ORCaseController extends Controller
             'scheduled_start_time' => 'required|date_format:H:i',
             'estimated_duration' => 'required|integer|min:15',
             'case_class' => 'required|in:Elective,Urgent,Emergency',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
         ]);
     }
 
     public function store(Request $request)
     {
         $validator = $this->validateCase($request);
-        
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $case = new ORCase();
+        $case = new ORCase;
         $case->fill($request->all());
         $case->status = 'Scheduled';
         $case->is_deleted = false;
@@ -48,7 +48,7 @@ class ORCaseController extends Controller
     public function update(Request $request, $id)
     {
         $validator = $this->validateCase($request);
-        
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
@@ -90,12 +90,13 @@ class ORCaseController extends Controller
 
             return response()->json($cases);
         } catch (\Exception $e) {
-            Log::error('Error in index: ' . $e->getMessage());
+            Log::error('Error in index: '.$e->getMessage());
             Log::error($e->getTraceAsString());
+
             return response()->json([
                 'error' => 'Internal server error',
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -103,23 +104,25 @@ class ORCaseController extends Controller
     public function todaysCases()
     {
         try {
-            Log::info('Fetching today\'s cases for date: ' . now()->toDateString());
-            
+            Log::info('Fetching today\'s cases for date: '.now()->toDateString());
+
             $cases = ORCase::with(['surgeon', 'room', 'service', 'status'])
                 ->where('surgery_date', now()->toDateString())
                 ->where('is_deleted', false)
                 ->orderBy('scheduled_start_time', 'asc')
                 ->get();
 
-            Log::info('Found ' . $cases->count() . ' cases for today');
+            Log::info('Found '.$cases->count().' cases for today');
+
             return response()->json($cases);
         } catch (\Exception $e) {
-            Log::error('Error in todaysCases: ' . $e->getMessage());
+            Log::error('Error in todaysCases: '.$e->getMessage());
             Log::error($e->getTraceAsString());
+
             return response()->json([
                 'error' => 'Internal server error',
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -128,7 +131,7 @@ class ORCaseController extends Controller
     {
         try {
             Log::info('Fetching metrics for last 7 days');
-            
+
             $utilization = DB::table('prod.case_metrics')
                 ->join('prod.orcase', 'case_metrics.case_id', '=', 'orcase.case_id')
                 ->where('orcase.surgery_date', '>=', now()->subDays(7)->toDateString())
@@ -142,22 +145,24 @@ class ORCaseController extends Controller
                 ->orderBy('orcase.surgery_date')
                 ->get();
 
-            Log::info('Found metrics for ' . $utilization->count() . ' days');
+            Log::info('Found metrics for '.$utilization->count().' days');
+
             return response()->json([
                 'utilization' => $utilization,
                 'summary' => [
                     'avg_utilization' => $utilization->avg('utilization'),
                     'avg_turnover' => $utilization->avg('avg_turnover'),
-                    'total_cases' => $utilization->sum('case_count')
-                ]
+                    'total_cases' => $utilization->sum('case_count'),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in metrics: ' . $e->getMessage());
+            Log::error('Error in metrics: '.$e->getMessage());
             Log::error($e->getTraceAsString());
+
             return response()->json([
                 'error' => 'Internal server error',
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -166,14 +171,14 @@ class ORCaseController extends Controller
     {
         try {
             Log::info('Fetching room status');
-            
+
             // Get all active rooms
             $rooms = DB::table('prod.room')
                 ->where('active_status', true)
                 ->orderBy('name')
                 ->get();
 
-            Log::info('Found ' . $rooms->count() . ' active rooms');
+            Log::info('Found '.$rooms->count().' active rooms');
 
             // Get current cases and logs
             $currentCases = DB::table('prod.orcase as c')
@@ -201,12 +206,12 @@ class ORCaseController extends Controller
                 ->where('c.is_deleted', false)
                 ->get();
 
-            Log::info('Found ' . $currentCases->count() . ' current cases');
+            Log::info('Found '.$currentCases->count().' current cases');
 
             // Map room status
             $status = $rooms->map(function ($room) use ($currentCases) {
                 $currentCase = $currentCases->firstWhere('room_id', $room->room_id);
-                
+
                 return [
                     'room_id' => $room->room_id,
                     'room_name' => $room->name,
@@ -217,18 +222,19 @@ class ORCaseController extends Controller
                     'scheduled_duration' => $currentCase ? $currentCase->scheduled_duration : null,
                     'or_in_time' => $currentCase ? $currentCase->or_in_time : null,
                     'or_out_time' => $currentCase ? $currentCase->or_out_time : null,
-                    'status' => $currentCase ? $currentCase->status : 'Available'
+                    'status' => $currentCase ? $currentCase->status : 'Available',
                 ];
             });
 
             return response()->json($status);
         } catch (\Exception $e) {
-            Log::error('Error in roomStatus: ' . $e->getMessage());
+            Log::error('Error in roomStatus: '.$e->getMessage());
             Log::error($e->getTraceAsString());
+
             return response()->json([
                 'error' => 'Internal server error',
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }

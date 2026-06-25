@@ -8,14 +8,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CaseStatus extends BaseReference
 {
     public $timestamps = false;
+
     protected $table = 'prod.case_statuses';
+
     protected $primaryKey = 'status_id';
 
     // Status Constants
     const SCHEDULED = 1;
+
     const IN_PROGRESS = 2;
+
     const DELAYED = 3;
+
     const COMPLETED = 4;
+
     const CANCELLED = 5;
 
     protected $fillable = [
@@ -26,14 +32,14 @@ class CaseStatus extends BaseReference
         'modified_by',
         'created_date',
         'modified_date',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
         'is_deleted' => 'boolean',
         'created_date' => 'datetime',
-        'modified_date' => 'datetime'
+        'modified_date' => 'datetime',
     ];
 
     public function cases(): HasMany
@@ -48,13 +54,14 @@ class CaseStatus extends BaseReference
             self::IN_PROGRESS => 'in_progress',
             self::DELAYED => 'delayed',
             self::COMPLETED => 'completed',
-            self::CANCELLED => 'cancelled'
+            self::CANCELLED => 'cancelled',
         ];
     }
 
     public static function getStatusId(string $status): ?int
     {
         $map = array_flip(self::getStatusMap());
+
         return $map[$status] ?? null;
     }
 

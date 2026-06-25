@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Provider extends Model
 {
     public $timestamps = true;
+
     protected $table = 'prod.providers';
+
     protected $primaryKey = 'provider_id';
 
     protected $fillable = [
@@ -23,14 +25,14 @@ class Provider extends Model
         'modified_by',
         'created_at',
         'updated_at',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
         'is_deleted' => 'boolean',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     public function specialty(): BelongsTo
@@ -51,7 +53,7 @@ class Provider extends Model
     public function scopeActive($query)
     {
         return $query->where('active_status', true)
-                    ->where('is_deleted', false);
+            ->where('is_deleted', false);
     }
 
     public function scopeSurgeons($query)

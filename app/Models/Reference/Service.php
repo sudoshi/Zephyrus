@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Service extends BaseReference
 {
     public $timestamps = true;
+
     protected $table = 'prod.services';
+
     protected $primaryKey = 'service_id';
 
     protected $fillable = [
@@ -19,14 +21,14 @@ class Service extends BaseReference
         'modified_by',
         'created_at',
         'updated_at',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
         'is_deleted' => 'boolean',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     public function cases(): HasMany

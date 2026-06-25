@@ -45,7 +45,7 @@ class CaseManagementMockData
     private static function getMockProcedures()
     {
         $jsContent = file_get_contents(resource_path('js/mock-data/case-management.js'));
-        
+
         // Extract the mockProcedures array from the JS file
         if (preg_match('/export const mockProcedures = (\[.*?\]);/s', $jsContent, $matches)) {
             $jsonStr = $matches[1];
@@ -56,7 +56,7 @@ class CaseManagementMockData
                 return $procedures;
             }
         }
-        
+
         // Fallback to minimal set if parsing fails
         return [
             [
@@ -75,14 +75,14 @@ class CaseManagementMockData
                 'staff' => [
                     ['name' => 'Dr. Smith', 'role' => 'Surgeon'],
                     ['name' => 'Dr. Jones', 'role' => 'Anesthesiologist'],
-                    ['name' => 'Nurse Johnson', 'role' => 'Scrub Nurse']
+                    ['name' => 'Nurse Johnson', 'role' => 'Scrub Nurse'],
                 ],
                 'resources' => [
                     ['name' => 'OR 3', 'status' => 'onTime'],
                     ['name' => 'Anesthesia Machine', 'status' => 'onTime'],
-                    ['name' => 'Laparoscopic Tower', 'status' => 'onTime']
-                ]
-            ]
+                    ['name' => 'Laparoscopic Tower', 'status' => 'onTime'],
+                ],
+            ],
         ];
     }
 }

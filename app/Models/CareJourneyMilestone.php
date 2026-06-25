@@ -13,12 +13,12 @@ class CareJourneyMilestone extends Model
         'required',
         'completed_at',
         'completed_by',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'required' => 'boolean',
-        'completed_at' => 'datetime'
+        'completed_at' => 'datetime',
     ];
 
     // Relationships
@@ -65,7 +65,7 @@ class CareJourneyMilestone extends Model
             'status' => 'Completed',
             'completed_at' => now(),
             'completed_by' => $userId,
-            'notes' => $notes ?? $this->notes
+            'notes' => $notes ?? $this->notes,
         ]);
     }
 
@@ -74,7 +74,7 @@ class CareJourneyMilestone extends Model
         $this->update([
             'status' => 'Verified',
             'completed_by' => $userId,
-            'completed_at' => now()
+            'completed_at' => now(),
         ]);
     }
 
@@ -82,7 +82,7 @@ class CareJourneyMilestone extends Model
     {
         $this->update([
             'status' => 'Action_Required',
-            'notes' => $notes ?? $this->notes
+            'notes' => $notes ?? $this->notes,
         ]);
     }
 
@@ -91,13 +91,13 @@ class CareJourneyMilestone extends Model
         $this->update([
             'status' => 'Pending',
             'completed_at' => null,
-            'completed_by' => null
+            'completed_by' => null,
         ]);
     }
 
     public function isComplete()
     {
-        return !is_null($this->completed_at);
+        return ! is_null($this->completed_at);
     }
 
     public function isVerified()

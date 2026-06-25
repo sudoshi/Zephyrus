@@ -14,7 +14,7 @@ class RTDCController extends Controller
     {
         $validated = $request->validate([
             'unitId' => 'required|integer',
-            'plan' => 'required|string|max:500'
+            'plan' => 'required|string|max:500',
         ]);
 
         try {
@@ -22,20 +22,20 @@ class RTDCController extends Controller
             // For now, we'll just log it
             Log::info('Updating Red Stretch Plan', [
                 'unitId' => $validated['unitId'],
-                'plan' => $validated['plan']
+                'plan' => $validated['plan'],
             ]);
 
             return response()->json([
-                'message' => 'Red Stretch Plan updated successfully'
+                'message' => 'Red Stretch Plan updated successfully',
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating Red Stretch Plan', [
                 'error' => $e->getMessage(),
-                'unitId' => $validated['unitId']
+                'unitId' => $validated['unitId'],
             ]);
 
             return response()->json([
-                'message' => 'Failed to update Red Stretch Plan'
+                'message' => 'Failed to update Red Stretch Plan',
             ], 500);
         }
     }

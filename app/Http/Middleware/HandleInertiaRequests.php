@@ -31,15 +31,15 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-'auth' => [
-    'user' => $request->user() ? array_merge(
-        $request->user()->toArray(),
-        ['must_change_password' => (bool) $request->user()->must_change_password]
-    ) : null,
-    'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
-    'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
-],
-'workflow' => $request->session()->get('workflow'),
+            'auth' => [
+                'user' => $request->user() ? array_merge(
+                    $request->user()->toArray(),
+                    ['must_change_password' => (bool) $request->user()->must_change_password]
+                ) : null,
+                'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
+                'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
+            ],
+            'workflow' => $request->session()->get('workflow'),
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),
                 'error' => fn () => $request->session()->get('error'),

@@ -14,8 +14,6 @@ class SessionAuthMiddleware
      * Auto-login middleware that ensures a user is always authenticated.
      * Replaces traditional authentication with an automatic login as admin user.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next): Response
@@ -24,7 +22,7 @@ class SessionAuthMiddleware
         if (Auth::check()) {
             return $next($request);
         }
-        
+
         // Auto-login as admin user
         $user = User::firstOrCreate(
             ['username' => 'admin'],
@@ -32,16 +30,16 @@ class SessionAuthMiddleware
                 'name' => 'Administrator',
                 'email' => 'admin@example.com',
                 'password' => bcrypt('password'),
-                'workflow_preference' => 'superuser'
+                'workflow_preference' => 'superuser',
             ]
         );
-        
+
         // Log the user in
         Auth::login($user);
-        
+
         // Set the workflow preference in session
         $request->session()->put('workflow', 'superuser');
-        
+
         // Proceed with the request
         return $next($request);
     }

@@ -33,7 +33,7 @@ trait SafeMigration
             AND constraint_name = ?
         ", [$table, $table, $constraintName]);
 
-        return !empty($result);
+        return ! empty($result);
     }
 
     protected function indexExists(string $table, string $indexName): bool
@@ -46,6 +46,6 @@ trait SafeMigration
             AND indexname = ?
         ", [$table, $table, $indexName]);
 
-        return !empty($result);
+        return ! empty($result);
     }
 }

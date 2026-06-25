@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         // Service
-        if (!Schema::hasTable('prod.services')) {
+        if (! Schema::hasTable('prod.services')) {
             Schema::create('prod.services', function (Blueprint $table) {
                 $table->id('service_id');
                 $table->string('name');
@@ -23,7 +23,7 @@ return new class extends Migration
         }
 
         // CaseType
-        if (!Schema::hasTable('prod.case_types')) {
+        if (! Schema::hasTable('prod.case_types')) {
             Schema::create('prod.case_types', function (Blueprint $table) {
                 $table->id('case_type_id');
                 $table->string('name');
@@ -37,7 +37,7 @@ return new class extends Migration
         }
 
         // CaseClass
-        if (!Schema::hasTable('prod.case_classes')) {
+        if (! Schema::hasTable('prod.case_classes')) {
             Schema::create('prod.case_classes', function (Blueprint $table) {
                 $table->id('case_class_id');
                 $table->string('name');
@@ -51,7 +51,7 @@ return new class extends Migration
         }
 
         // PatientClass
-        if (!Schema::hasTable('prod.patient_classes')) {
+        if (! Schema::hasTable('prod.patient_classes')) {
             Schema::create('prod.patient_classes', function (Blueprint $table) {
                 $table->id('patient_class_id');
                 $table->string('name');
@@ -65,7 +65,7 @@ return new class extends Migration
         }
 
         // CaseStatus
-        if (!Schema::hasTable('prod.case_statuses')) {
+        if (! Schema::hasTable('prod.case_statuses')) {
             Schema::create('prod.case_statuses', function (Blueprint $table) {
                 $table->id('status_id');
                 $table->string('name');
@@ -79,7 +79,7 @@ return new class extends Migration
         }
 
         // CancellationReason
-        if (!Schema::hasTable('prod.cancellation_reasons')) {
+        if (! Schema::hasTable('prod.cancellation_reasons')) {
             Schema::create('prod.cancellation_reasons', function (Blueprint $table) {
                 $table->id('cancellation_id');
                 $table->string('name');
@@ -93,7 +93,7 @@ return new class extends Migration
         }
 
         // ASARating
-        if (!Schema::hasTable('prod.asa_ratings')) {
+        if (! Schema::hasTable('prod.asa_ratings')) {
             Schema::create('prod.asa_ratings', function (Blueprint $table) {
                 $table->id('asa_id');
                 $table->string('name');
@@ -107,7 +107,7 @@ return new class extends Migration
         }
 
         // Specialty
-        if (!Schema::hasTable('prod.specialties')) {
+        if (! Schema::hasTable('prod.specialties')) {
             Schema::create('prod.specialties', function (Blueprint $table) {
                 $table->id('specialty_id');
                 $table->string('name');

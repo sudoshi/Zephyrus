@@ -15,7 +15,7 @@ class AcuityCanAcceptTest extends TestCase
     public function test_remaining_workload_decreases_with_load(): void
     {
         $unit = Unit::create(['name' => 'ICU', 'type' => 'icu', 'staffed_bed_count' => 12, 'ratio_floor' => 2]);
-        $svc = new AcuityService();
+        $svc = new AcuityService;
         $this->assertEqualsWithDelta(12.0, $svc->remainingWorkload($unit->unit_id), 0.001);
 
         Encounter::create(['patient_ref' => 'p1', 'unit_id' => $unit->unit_id, 'acuity_tier' => 4, 'status' => 'active']);
@@ -26,7 +26,7 @@ class AcuityCanAcceptTest extends TestCase
     public function test_can_accept_respects_remaining_workload_and_acuity(): void
     {
         $unit = Unit::create(['name' => 'SD', 'type' => 'step_down', 'staffed_bed_count' => 2, 'ratio_floor' => 3]);
-        $svc = new AcuityService();
+        $svc = new AcuityService;
         // Fill to remaining 0.3 workload (2 - 1.7 = 0.3 with one tier-3).
         Encounter::create(['patient_ref' => 'a', 'unit_id' => $unit->unit_id, 'acuity_tier' => 3, 'status' => 'active']);
 

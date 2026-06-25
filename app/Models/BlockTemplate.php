@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class BlockTemplate extends Model
 {
     protected $table = 'prod.block_templates';
+
     protected $primaryKey = 'block_id';
 
     protected $fillable = [
@@ -24,7 +25,7 @@ class BlockTemplate extends Model
         'abbreviation',
         'created_by',
         'modified_by',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
@@ -32,7 +33,7 @@ class BlockTemplate extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'is_public' => 'boolean',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function room(): BelongsTo
@@ -57,7 +58,7 @@ class BlockTemplate extends Model
 
     public function getFormattedTimeAttribute(): string
     {
-        return $this->start_time->format('H:i') . ' - ' . $this->end_time->format('H:i');
+        return $this->start_time->format('H:i').' - '.$this->end_time->format('H:i');
     }
 
     public function getDurationMinutesAttribute(): int

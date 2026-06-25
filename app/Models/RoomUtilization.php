@@ -20,13 +20,13 @@ class RoomUtilization extends Model
         'avg_case_duration',
         'created_by',
         'modified_by',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'date' => 'date',
         'utilization_percentage' => 'decimal:2',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function room(): BelongsTo
@@ -36,27 +36,27 @@ class RoomUtilization extends Model
 
     public function getFormattedAvailableTimeAttribute(): string
     {
-        return floor($this->available_minutes / 60) . ':' . str_pad($this->available_minutes % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->available_minutes / 60).':'.str_pad($this->available_minutes % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedUtilizedTimeAttribute(): string
     {
-        return floor($this->utilized_minutes / 60) . ':' . str_pad($this->utilized_minutes % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->utilized_minutes / 60).':'.str_pad($this->utilized_minutes % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedTurnoverTimeAttribute(): string
     {
-        return floor($this->turnover_minutes / 60) . ':' . str_pad($this->turnover_minutes % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->turnover_minutes / 60).':'.str_pad($this->turnover_minutes % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedAvgCaseDurationAttribute(): string
     {
-        return floor($this->avg_case_duration / 60) . ':' . str_pad($this->avg_case_duration % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->avg_case_duration / 60).':'.str_pad($this->avg_case_duration % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedUtilizationAttribute(): string
     {
-        return number_format($this->utilization_percentage, 1) . '%';
+        return number_format($this->utilization_percentage, 1).'%';
     }
 
     public function getUnderutilizedAttribute(): bool

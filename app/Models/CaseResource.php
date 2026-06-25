@@ -9,7 +9,7 @@ class CaseResource extends Model
     protected $fillable = [
         'case_id',
         'resource_name',
-        'status'
+        'status',
     ];
 
     public function case()

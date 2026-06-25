@@ -73,7 +73,6 @@ class FacilitySpaceLocationResolver
     }
 
     /**
-     * @param  FacilitySpace|stdClass|null  $space
      * @return array<string, mixed>|null
      */
     public function spaceToPayload(FacilitySpace|stdClass|null $space): ?array

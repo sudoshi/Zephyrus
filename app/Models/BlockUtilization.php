@@ -23,7 +23,7 @@ class BlockUtilization extends Model
         'non_prime_time_percentage',
         'created_by',
         'modified_by',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
@@ -31,7 +31,7 @@ class BlockUtilization extends Model
         'utilization_percentage' => 'decimal:2',
         'prime_time_percentage' => 'decimal:2',
         'non_prime_time_percentage' => 'decimal:2',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function blockTemplate(): BelongsTo
@@ -51,22 +51,22 @@ class BlockUtilization extends Model
 
     public function getFormattedScheduledTimeAttribute(): string
     {
-        return floor($this->scheduled_minutes / 60) . ':' . str_pad($this->scheduled_minutes % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->scheduled_minutes / 60).':'.str_pad($this->scheduled_minutes % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedActualTimeAttribute(): string
     {
-        return floor($this->actual_minutes / 60) . ':' . str_pad($this->actual_minutes % 60, 2, '0', STR_PAD_LEFT);
+        return floor($this->actual_minutes / 60).':'.str_pad($this->actual_minutes % 60, 2, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedUtilizationAttribute(): string
     {
-        return number_format($this->utilization_percentage, 1) . '%';
+        return number_format($this->utilization_percentage, 1).'%';
     }
 
     public function getFormattedPrimeTimeAttribute(): string
     {
-        return number_format($this->prime_time_percentage, 1) . '%';
+        return number_format($this->prime_time_percentage, 1).'%';
     }
 
     public function getUnderutilizedAttribute(): bool

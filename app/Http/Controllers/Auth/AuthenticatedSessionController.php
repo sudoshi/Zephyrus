@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Inertia\Response;
-use App\Providers\RouteServiceProvider; // Import the RouteServiceProvider class
+use Inertia\Response; // Import the RouteServiceProvider class
 
 class AuthenticatedSessionController extends Controller
 {
@@ -40,12 +40,12 @@ class AuthenticatedSessionController extends Controller
 
         // Store the username in the session
         $request->session()->put('username', $request->username);
-        
+
         // Ensure user has default workflow preference
         if (auth()->user()->workflow_preference === null) {
             auth()->user()->update(['workflow_preference' => 'superuser']);
         }
-        
+
         // Store the user ID in the session for our custom session auth
         $request->session()->put('user_id', auth()->id());
 
@@ -66,7 +66,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->invalidate();
         // No need to regenerate CSRF token since we're not using them anymore
-        
+
         return redirect('/');
     }
 }

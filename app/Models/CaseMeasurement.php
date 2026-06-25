@@ -14,7 +14,7 @@ class CaseMeasurement extends Model
         'dbp',
         'spo2',
         'temp',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -23,7 +23,7 @@ class CaseMeasurement extends Model
         'sbp' => 'integer',
         'dbp' => 'integer',
         'spo2' => 'integer',
-        'temp' => 'decimal:1'
+        'temp' => 'decimal:1',
     ];
 
     public function case()
@@ -37,6 +37,7 @@ class CaseMeasurement extends Model
         if ($this->sbp && $this->dbp) {
             return round(($this->sbp + (2 * $this->dbp)) / 3);
         }
+
         return null;
     }
 
@@ -63,7 +64,7 @@ class CaseMeasurement extends Model
 
         return [
             'status' => empty($alerts) ? 'normal' : 'alert',
-            'alerts' => $alerts
+            'alerts' => $alerts,
         ];
     }
 
@@ -84,14 +85,14 @@ class CaseMeasurement extends Model
     {
         return $query->where(function ($q) {
             $q->where('hr', '<', 60)
-              ->orWhere('hr', '>', 100)
-              ->orWhere('sbp', '<', 90)
-              ->orWhere('sbp', '>', 140)
-              ->orWhere('dbp', '<', 60)
-              ->orWhere('dbp', '>', 90)
-              ->orWhere('spo2', '<', 95)
-              ->orWhere('temp', '<', 36.5)
-              ->orWhere('temp', '>', 37.5);
+                ->orWhere('hr', '>', 100)
+                ->orWhere('sbp', '<', 90)
+                ->orWhere('sbp', '>', 140)
+                ->orWhere('dbp', '<', 60)
+                ->orWhere('dbp', '>', 90)
+                ->orWhere('spo2', '<', 95)
+                ->orWhere('temp', '<', 36.5)
+                ->orWhere('temp', '>', 37.5);
         });
     }
 }

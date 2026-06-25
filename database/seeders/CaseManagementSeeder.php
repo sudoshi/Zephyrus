@@ -20,7 +20,7 @@ class CaseManagementSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ],
             [
                 'status_id' => 2,
@@ -31,7 +31,7 @@ class CaseManagementSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ],
             [
                 'status_id' => 3,
@@ -42,7 +42,7 @@ class CaseManagementSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ],
             [
                 'status_id' => 4,
@@ -53,7 +53,7 @@ class CaseManagementSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ],
             [
                 'status_id' => 5,
@@ -64,8 +64,8 @@ class CaseManagementSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
-            ]
+                'is_deleted' => false,
+            ],
         ];
 
         foreach ($statuses as $status) {

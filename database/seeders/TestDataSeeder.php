@@ -5,12 +5,9 @@ namespace Database\Seeders;
 use App\Models\ORCase;
 use App\Models\ORLog;
 use App\Models\Provider;
-use App\Models\Room;
-use App\Models\Reference\Service;
 use App\Models\Reference\CaseStatus;
-use App\Models\Reference\CaseType;
-use App\Models\Reference\CaseClass;
-use App\Models\Reference\PatientClass;
+use App\Models\Reference\Service;
+use App\Models\Room;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -23,7 +20,7 @@ class TestDataSeeder extends Seeder
             ['name' => 'General Surgery', 'code' => 'GS'],
             ['name' => 'Orthopedics', 'code' => 'ORTHO'],
             ['name' => 'Cardiology', 'code' => 'CARD'],
-            ['name' => 'Neurosurgery', 'code' => 'NEURO']
+            ['name' => 'Neurosurgery', 'code' => 'NEURO'],
         ];
 
         $serviceIds = [];
@@ -36,7 +33,7 @@ class TestDataSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ]);
             $serviceIds[] = $newService->service_id;
         }
@@ -46,7 +43,7 @@ class TestDataSeeder extends Seeder
             ['name' => 'OR-1', 'type' => 'OR'],
             ['name' => 'OR-2', 'type' => 'OR'],
             ['name' => 'OR-3', 'type' => 'OR'],
-            ['name' => 'OR-4', 'type' => 'OR']
+            ['name' => 'OR-4', 'type' => 'OR'],
         ];
 
         $roomIds = [];
@@ -60,7 +57,7 @@ class TestDataSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ]);
             $roomIds[] = $newRoom->room_id;
         }
@@ -70,7 +67,7 @@ class TestDataSeeder extends Seeder
             ['name' => 'Dr. Smith', 'provider_type' => 'surgeon', 'specialty_id' => 1],
             ['name' => 'Dr. Johnson', 'provider_type' => 'surgeon', 'specialty_id' => 2],
             ['name' => 'Dr. Williams', 'provider_type' => 'surgeon', 'specialty_id' => 3],
-            ['name' => 'Dr. Brown', 'provider_type' => 'surgeon', 'specialty_id' => 4]
+            ['name' => 'Dr. Brown', 'provider_type' => 'surgeon', 'specialty_id' => 4],
         ];
 
         $providerIds = [];
@@ -84,7 +81,7 @@ class TestDataSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ]);
             $providerIds[] = $newProvider->provider_id;
         }
@@ -94,7 +91,7 @@ class TestDataSeeder extends Seeder
             'Scheduled' => CaseStatus::where('code', 'SCHED')->first()->status_id,
             'In Progress' => CaseStatus::where('code', 'INPROG')->first()->status_id,
             'Completed' => CaseStatus::where('code', 'COMP')->first()->status_id,
-            'Cancelled' => CaseStatus::where('code', 'CANC')->first()->status_id
+            'Cancelled' => CaseStatus::where('code', 'CANC')->first()->status_id,
         ];
 
         // Create test cases for today
@@ -107,7 +104,7 @@ class TestDataSeeder extends Seeder
                 'room' => $roomIds[0],
                 'surgeon' => $providerIds[0],
                 'service' => $serviceIds[0],
-                'procedure' => 'Laparoscopic Cholecystectomy'
+                'procedure' => 'Laparoscopic Cholecystectomy',
             ],
             [
                 'start_time' => '11:30',
@@ -116,7 +113,7 @@ class TestDataSeeder extends Seeder
                 'room' => $roomIds[0],
                 'surgeon' => $providerIds[0],
                 'service' => $serviceIds[0],
-                'procedure' => 'Appendectomy'
+                'procedure' => 'Appendectomy',
             ],
             [
                 'start_time' => '08:30',
@@ -125,7 +122,7 @@ class TestDataSeeder extends Seeder
                 'room' => $roomIds[1],
                 'surgeon' => $providerIds[1],
                 'service' => $serviceIds[1],
-                'procedure' => 'Total Knee Replacement'
+                'procedure' => 'Total Knee Replacement',
             ],
             [
                 'start_time' => '13:00',
@@ -134,7 +131,7 @@ class TestDataSeeder extends Seeder
                 'room' => $roomIds[1],
                 'surgeon' => $providerIds[1],
                 'service' => $serviceIds[1],
-                'procedure' => 'Hip Arthroplasty'
+                'procedure' => 'Hip Arthroplasty',
             ],
             [
                 'start_time' => '09:00',
@@ -143,15 +140,15 @@ class TestDataSeeder extends Seeder
                 'room' => $roomIds[2],
                 'surgeon' => $providerIds[2],
                 'service' => $serviceIds[2],
-                'procedure' => 'Coronary Artery Bypass'
-            ]
+                'procedure' => 'Coronary Artery Bypass',
+            ],
         ];
 
         foreach ($cases as $case) {
-            $startTime = Carbon::createFromFormat('Y-m-d H:i', $today->format('Y-m-d') . ' ' . $case['start_time']);
-            
+            $startTime = Carbon::createFromFormat('Y-m-d H:i', $today->format('Y-m-d').' '.$case['start_time']);
+
             $orCase = ORCase::create([
-                'patient_id' => 'TEST' . rand(1000, 9999),
+                'patient_id' => 'TEST'.rand(1000, 9999),
                 'surgery_date' => $today,
                 'room_id' => $case['room'],
                 'location_id' => 1,
@@ -169,7 +166,7 @@ class TestDataSeeder extends Seeder
                 'modified_by' => 'system',
                 'created_at' => now(),
                 'updated_at' => now(),
-                'is_deleted' => false
+                'is_deleted' => false,
             ]);
 
             // Create OR logs for completed and in-progress cases
@@ -196,7 +193,7 @@ class TestDataSeeder extends Seeder
                     'modified_by' => 'system',
                     'created_at' => now(),
                     'updated_at' => now(),
-                    'is_deleted' => false
+                    'is_deleted' => false,
                 ]);
             }
         }

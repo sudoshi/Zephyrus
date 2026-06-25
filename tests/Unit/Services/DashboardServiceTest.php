@@ -4,7 +4,7 @@ use App\Models\User;
 use App\Services\DashboardService;
 
 beforeEach(function () {
-    $this->service = new DashboardService();
+    $this->service = new DashboardService;
 });
 
 describe('getImprovementStats', function () {

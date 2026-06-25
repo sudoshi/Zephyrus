@@ -1,12 +1,13 @@
 <?php
 
+use App\Traits\SafeMigration;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use App\Traits\SafeMigration;
 
 return new class extends Migration
 {
     use SafeMigration;
+
     public function up()
     {
         // Set search path to include prod schema
@@ -32,10 +33,10 @@ return new class extends Migration
             END
             $$;
         ');
-        
+
         // Drop prod schema only in local environment
         $this->safeDropSchema('prod');
-        
+
         // Reset search path to public
         DB::unprepared('SET search_path TO public');
     }

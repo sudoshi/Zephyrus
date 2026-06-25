@@ -14,18 +14,17 @@ abstract class BaseReference extends Model
         'active_status',
         'created_by',
         'modified_by',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'active_status' => 'boolean',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function scopeActive($query)
     {
         return $query->where('active_status', true)
-                    ->where('is_deleted', false);
+            ->where('is_deleted', false);
     }
-
 }

@@ -13,21 +13,26 @@ class CaseSafetyNote extends Model
         'severity',
         'created_by',
         'acknowledged_by',
-        'acknowledged_at'
+        'acknowledged_at',
     ];
 
     protected $casts = [
-        'acknowledged_at' => 'datetime'
+        'acknowledged_at' => 'datetime',
     ];
 
     // Constants
     const TYPE_SAFETY_ALERT = 'Safety_Alert';
+
     const TYPE_BARRIER = 'Barrier';
+
     const TYPE_GENERAL = 'General';
 
     const SEVERITY_LOW = 'Low';
+
     const SEVERITY_MEDIUM = 'Medium';
+
     const SEVERITY_HIGH = 'High';
+
     const SEVERITY_CRITICAL = 'Critical';
 
     // Relationships
@@ -92,7 +97,7 @@ class CaseSafetyNote extends Model
     {
         $this->update([
             'acknowledged_by' => $userId,
-            'acknowledged_at' => now()
+            'acknowledged_at' => now(),
         ]);
     }
 
@@ -101,14 +106,14 @@ class CaseSafetyNote extends Model
         $severities = [
             self::SEVERITY_LOW => self::SEVERITY_MEDIUM,
             self::SEVERITY_MEDIUM => self::SEVERITY_HIGH,
-            self::SEVERITY_HIGH => self::SEVERITY_CRITICAL
+            self::SEVERITY_HIGH => self::SEVERITY_CRITICAL,
         ];
 
         if (isset($severities[$this->severity])) {
             $this->update([
                 'severity' => $severities[$this->severity],
                 'acknowledged_at' => null,
-                'acknowledged_by' => null
+                'acknowledged_by' => null,
             ]);
         }
     }
@@ -118,7 +123,7 @@ class CaseSafetyNote extends Model
         $severities = [
             self::SEVERITY_CRITICAL => self::SEVERITY_HIGH,
             self::SEVERITY_HIGH => self::SEVERITY_MEDIUM,
-            self::SEVERITY_MEDIUM => self::SEVERITY_LOW
+            self::SEVERITY_MEDIUM => self::SEVERITY_LOW,
         ];
 
         if (isset($severities[$this->severity])) {
@@ -129,7 +134,7 @@ class CaseSafetyNote extends Model
     // Status Checks
     public function isAcknowledged()
     {
-        return !is_null($this->acknowledged_at);
+        return ! is_null($this->acknowledged_at);
     }
 
     public function isCritical()
@@ -154,7 +159,7 @@ class CaseSafetyNote extends Model
 
     public function requiresImmediate()
     {
-        return $this->isCritical() || 
+        return $this->isCritical() ||
                ($this->isHighPriority() && $this->isSafetyAlert());
     }
 
@@ -164,6 +169,7 @@ class CaseSafetyNote extends Model
         if ($this->acknowledged_at) {
             return $this->created_at->diffInMinutes($this->acknowledged_at);
         }
+
         return null;
     }
 
@@ -182,7 +188,7 @@ class CaseSafetyNote extends Model
             self::SEVERITY_CRITICAL => 15,  // 15 minutes
             self::SEVERITY_HIGH => 30,      // 30 minutes
             self::SEVERITY_MEDIUM => 60,    // 1 hour
-            self::SEVERITY_LOW => 120       // 2 hours
+            self::SEVERITY_LOW => 120,       // 2 hours
         ];
 
         return $this->age > ($thresholds[$this->severity] ?? 60);

@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ORLog extends Model
 {
     public $timestamps = false;
+
     protected $table = 'prod.orlog';
+
     protected $primaryKey = 'log_id';
 
     protected $fillable = [
@@ -33,7 +35,7 @@ class ORLog extends Model
         'modified_by',
         'created_date',
         'modified_date',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
@@ -52,7 +54,7 @@ class ORLog extends Model
         'pacu_out_time' => 'datetime',
         'created_date' => 'datetime',
         'modified_date' => 'datetime',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function case(): BelongsTo
@@ -65,6 +67,7 @@ class ORLog extends Model
         if ($this->preop_in_time && $this->preop_out_time) {
             return $this->preop_in_time->diffInMinutes($this->preop_out_time);
         }
+
         return null;
     }
 
@@ -73,6 +76,7 @@ class ORLog extends Model
         if ($this->anesthesia_start_time && $this->anesthesia_end_time) {
             return $this->anesthesia_start_time->diffInMinutes($this->anesthesia_end_time);
         }
+
         return null;
     }
 
@@ -81,6 +85,7 @@ class ORLog extends Model
         if ($this->procedure_start_time && $this->procedure_end_time) {
             return $this->procedure_start_time->diffInMinutes($this->procedure_end_time);
         }
+
         return null;
     }
 
@@ -89,6 +94,7 @@ class ORLog extends Model
         if ($this->or_in_time && $this->or_out_time) {
             return $this->or_in_time->diffInMinutes($this->or_out_time);
         }
+
         return null;
     }
 
@@ -97,6 +103,7 @@ class ORLog extends Model
         if ($this->pacu_in_time && $this->pacu_out_time) {
             return $this->pacu_in_time->diffInMinutes($this->pacu_out_time);
         }
+
         return null;
     }
 

@@ -14,7 +14,7 @@ class Hl7LocationData
     public static function parse(?string $value): self
     {
         if (! $value) {
-            return new self();
+            return new self;
         }
 
         $parts = explode('^', $value);

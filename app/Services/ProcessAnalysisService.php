@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ProcessLayout;
-use Illuminate\Support\Facades\Log;
 
 class ProcessAnalysisService
 {

@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Reference\Service;
 use App\Models\Reference\CaseStatus;
+use App\Models\Reference\Service;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
 
 class ORCase extends Model
 {
     protected $table = 'prod.or_cases';
+
     protected $primaryKey = 'case_id';
 
     protected $fillable = [
@@ -35,7 +36,7 @@ class ORCase extends Model
         'pre_procedure_location',
         'post_procedure_location',
         'safety_status',
-        'journey_progress'
+        'journey_progress',
     ];
 
     protected $casts = [
@@ -43,7 +44,7 @@ class ORCase extends Model
         'scheduled_start_time' => 'datetime',
         'record_create_date' => 'datetime',
         'is_deleted' => 'boolean',
-        'journey_progress' => 'integer'
+        'journey_progress' => 'integer',
     ];
 
     protected $appends = ['statusCode'];
@@ -109,7 +110,7 @@ class ORCase extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->whereHas('status', function($q) {
+        return $query->whereHas('status', function ($q) {
             $q->whereIn('code', ['SCHED', 'INPROG', 'DELAY']);
         });
     }
@@ -121,21 +122,21 @@ class ORCase extends Model
 
     public function scopeInProgress($query)
     {
-        return $query->whereHas('status', function($q) {
+        return $query->whereHas('status', function ($q) {
             $q->where('code', 'INPROG');
         });
     }
 
     public function scopeDelayed($query)
     {
-        return $query->whereHas('status', function($q) {
+        return $query->whereHas('status', function ($q) {
             $q->where('code', 'DELAY');
         });
     }
 
     public function scopeCompleted($query)
     {
-        return $query->whereHas('status', function($q) {
+        return $query->whereHas('status', function ($q) {
             $q->where('code', 'COMP');
         });
     }
@@ -193,6 +194,7 @@ class ORCase extends Model
                 if ($value === null) {
                     return $this->calculateJourneyProgress();
                 }
+
                 return $value;
             }
         );
@@ -204,9 +206,9 @@ class ORCase extends Model
         $completedMilestones = $this->milestones()
             ->whereNotNull('completed_at')
             ->count();
-        
+
         $totalMilestones = $this->milestones()->count();
-        
+
         if ($totalMilestones === 0) {
             return 0;
         }

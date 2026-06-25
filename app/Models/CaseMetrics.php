@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CaseMetrics extends Model
 {
     protected $table = 'prod.case_metrics';
+
     protected $primaryKey = 'case_id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -23,12 +25,12 @@ class CaseMetrics extends Model
         'early_finish_minutes',
         'created_by',
         'modified_by',
-        'is_deleted'
+        'is_deleted',
     ];
 
     protected $casts = [
         'utilization_percentage' => 'decimal:2',
-        'is_deleted' => 'boolean'
+        'is_deleted' => 'boolean',
     ];
 
     public function case(): BelongsTo
@@ -38,12 +40,12 @@ class CaseMetrics extends Model
 
     public function getFormattedTurnoverTimeAttribute(): string
     {
-        return $this->turnover_time ? floor($this->turnover_time / 60) . ':' . str_pad($this->turnover_time % 60, 2, '0', STR_PAD_LEFT) : '0:00';
+        return $this->turnover_time ? floor($this->turnover_time / 60).':'.str_pad($this->turnover_time % 60, 2, '0', STR_PAD_LEFT) : '0:00';
     }
 
     public function getFormattedUtilizationAttribute(): string
     {
-        return number_format($this->utilization_percentage, 1) . '%';
+        return number_format($this->utilization_percentage, 1).'%';
     }
 
     public function getIsLateStartAttribute(): bool
@@ -69,6 +71,7 @@ class CaseMetrics extends Model
     public function getPrimeTimePercentageAttribute(): float
     {
         $total = $this->getTotalTimeAttribute();
+
         return $total > 0 ? ($this->prime_time_minutes / $total) * 100 : 0;
     }
 }

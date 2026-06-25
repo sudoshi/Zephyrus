@@ -17,13 +17,13 @@ class CaseTransport extends Model
         'assigned_to',
         'planned_time',
         'actual_start',
-        'actual_end'
+        'actual_end',
     ];
 
     protected $casts = [
         'planned_time' => 'datetime',
         'actual_start' => 'datetime',
-        'actual_end' => 'datetime'
+        'actual_end' => 'datetime',
     ];
 
     // Relationships
@@ -74,7 +74,7 @@ class CaseTransport extends Model
         $this->update([
             'status' => 'In_Progress',
             'actual_start' => now(),
-            'assigned_to' => $userId ?? $this->assigned_to
+            'assigned_to' => $userId ?? $this->assigned_to,
         ]);
     }
 
@@ -82,7 +82,7 @@ class CaseTransport extends Model
     {
         $this->update([
             'status' => 'Complete',
-            'actual_end' => now()
+            'actual_end' => now(),
         ]);
     }
 
@@ -90,7 +90,7 @@ class CaseTransport extends Model
     {
         $this->update([
             'assigned_to' => $userId,
-            'status' => 'Pending'
+            'status' => 'Pending',
         ]);
     }
 
@@ -99,7 +99,7 @@ class CaseTransport extends Model
         $this->update([
             'status' => 'Pending',
             'actual_start' => null,
-            'actual_end' => null
+            'actual_end' => null,
         ]);
     }
 
@@ -108,6 +108,7 @@ class CaseTransport extends Model
         if ($this->actual_start && $this->actual_end) {
             return $this->actual_end->diffInMinutes($this->actual_start);
         }
+
         return null;
     }
 
@@ -116,6 +117,7 @@ class CaseTransport extends Model
         if ($this->actual_start) {
             return $this->actual_start->diffInMinutes($this->planned_time);
         }
+
         return null;
     }
 

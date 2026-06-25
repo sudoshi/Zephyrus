@@ -1,10 +1,9 @@
 <?php
 
-use App\Models\ProcessLayout;
 use App\Services\ProcessAnalysisService;
 
 beforeEach(function () {
-    $this->service = new ProcessAnalysisService();
+    $this->service = new ProcessAnalysisService;
 });
 
 describe('getNursingOperations', function () {

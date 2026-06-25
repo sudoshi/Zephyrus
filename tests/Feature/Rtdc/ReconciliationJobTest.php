@@ -21,7 +21,7 @@ class ReconciliationJobTest extends TestCase
         RtdcPrediction::create(['unit_id' => $a->unit_id, 'service_date' => $yesterday, 'horizon' => 'by_midnight', 'discharges_weighted' => 2]);
         RtdcPrediction::create(['unit_id' => $b->unit_id, 'service_date' => $yesterday, 'horizon' => 'by_midnight', 'discharges_weighted' => 1]);
 
-        (new ReconcileRtdcPredictions())->handle(app(\App\Services\ReconciliationService::class));
+        (new ReconcileRtdcPredictions)->handle(app(\App\Services\ReconciliationService::class));
 
         $this->assertDatabaseCount('prod.rtdc_reconciliations', 2);
     }

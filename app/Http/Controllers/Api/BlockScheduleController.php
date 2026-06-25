@@ -24,7 +24,7 @@ class BlockScheduleController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $block = new BlockTemplate();
+        $block = new BlockTemplate;
         $block->service_id = $request->service_id;
         $block->room_id = $request->room_id;
         $block->block_date = $request->block_date;
@@ -75,8 +75,8 @@ class BlockScheduleController extends Controller
             'summary' => [
                 'avg_utilization' => $utilization->avg('utilization_percentage'),
                 'avg_prime_time' => $utilization->avg('prime_time_percentage'),
-                'total_blocks' => $utilization->count()
-            ]
+                'total_blocks' => $utilization->count(),
+            ],
         ]);
     }
 
