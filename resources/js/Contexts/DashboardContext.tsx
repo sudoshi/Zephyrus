@@ -79,6 +79,11 @@ const workflowNavigationConfig: WorkflowNavigationConfig = {
         description: 'Replay and monitor patient movement on the facility model',
       },
       {
+        name: 'Bed Placement',
+        href: '/rtdc/bed-placement',
+        description: 'Prescriptive bed-assignment recommendations',
+      },
+      {
         name: 'Ancillary Services',
         href: '/rtdc/ancillary-services',
         description: 'Track and coordinate support services',
@@ -87,6 +92,11 @@ const workflowNavigationConfig: WorkflowNavigationConfig = {
         name: 'Global Huddle',
         href: '/rtdc/global-huddle',
         description: 'Hospital-wide operations coordination',
+      },
+      {
+        name: 'Unit Huddle',
+        href: '/rtdc/unit-huddle',
+        description: 'Unit-level operations coordination',
       },
       {
         name: 'Service Huddle',

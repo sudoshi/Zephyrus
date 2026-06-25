@@ -80,10 +80,10 @@ export const NAVIGATION: readonly NavDomain[] = [
           { label: 'Bed Tracking', href: '/rtdc/bed-tracking', icon: Activity },
           { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
           { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
+          { label: 'Ancillary Services', href: '/rtdc/ancillary-services', icon: Boxes },
           { label: 'Global Huddle', href: '/rtdc/global-huddle', icon: Users },
           { label: 'Unit Huddle', href: '/rtdc/unit-huddle', icon: Users },
           { label: 'Service Huddle', href: '/rtdc/service-huddle', icon: Users },
-          { label: 'Ancillary Services', href: '/rtdc/ancillary-services', icon: Boxes },
         ],
       },
       {
