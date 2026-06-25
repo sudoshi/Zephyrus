@@ -235,11 +235,39 @@ export const NAVIGATION: readonly NavDomain[] = [
     label: 'Analytics',
     icon: BarChart3,
     dashboardHref: '/analytics',
-    dashboardLabel: 'Analytics Overview',
+    dashboardLabel: 'Operations Intelligence',
     matchPrefixes: ['/analytics'],
     groups: [
       {
-        title: '',
+        title: 'Control',
+        items: [
+          { label: 'Intelligence Hub', href: '/analytics', icon: BarChart3 },
+          { label: 'Live Signals', href: '/analytics/live', icon: Activity },
+          { label: 'Data Quality', href: '/analytics/data-quality', icon: Shield },
+        ],
+      },
+      {
+        title: 'Patterns',
+        items: [
+          { label: 'Retrospective Review', href: '/analytics/retrospective', icon: TrendingUp },
+          { label: 'Process Intelligence', href: '/analytics/process-intelligence', icon: Workflow },
+        ],
+      },
+      {
+        title: 'Forecast',
+        items: [
+          { label: 'Predictive Planning', href: '/analytics/predictive', icon: LineChart },
+          { label: 'Scenario Workbench', href: '/analytics/workbench', icon: Search },
+        ],
+      },
+      {
+        title: 'Improve',
+        items: [
+          { label: 'Opportunity Portfolio', href: '/analytics/opportunities', icon: AlertCircle },
+        ],
+      },
+      {
+        title: 'Surgical Deep Dives',
         items: [
           { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
           { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },

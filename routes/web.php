@@ -102,6 +102,13 @@ Route::middleware(['auth'])
 
         // Analytics Routes
         Route::get('/analytics', [Analytics\AnalyticsController::class, 'index'])->name('analytics');
+        Route::get('/analytics/live', [Analytics\AnalyticsController::class, 'live'])->name('analytics.live');
+        Route::get('/analytics/retrospective', [Analytics\AnalyticsController::class, 'retrospective'])->name('analytics.retrospective');
+        Route::get('/analytics/predictive', [Analytics\AnalyticsController::class, 'predictive'])->name('analytics.predictive');
+        Route::get('/analytics/process-intelligence', [Analytics\AnalyticsController::class, 'processIntelligence'])->name('analytics.process-intelligence');
+        Route::get('/analytics/opportunities', [Analytics\AnalyticsController::class, 'opportunities'])->name('analytics.opportunities');
+        Route::get('/analytics/workbench', [Analytics\AnalyticsController::class, 'workbench'])->name('analytics.workbench');
+        Route::get('/analytics/data-quality', [Analytics\AnalyticsController::class, 'dataQuality'])->name('analytics.data-quality');
         Route::get('/analytics/block-utilization', [Analytics\BlockUtilizationController::class, 'index'])->name('analytics.block-utilization');
         Route::get('/analytics/or-utilization', [Analytics\ORUtilizationController::class, 'index'])->name('analytics.or-utilization');
         Route::get('/analytics/primetime-utilization', [Analytics\PrimetimeUtilizationController::class, 'index'])->name('analytics.primetime-utilization');

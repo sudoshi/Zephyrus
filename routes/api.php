@@ -102,6 +102,17 @@ Route::prefix('blocks')->middleware('throttle:60,1')->group(function () {
 });
 
 // Analytics
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('analytics')->group(function () {
+    Route::get('/overview', [AnalyticsController::class, 'overview']);
+    Route::get('/live', [AnalyticsController::class, 'live']);
+    Route::get('/retrospective', [AnalyticsController::class, 'retrospective']);
+    Route::get('/predictive', [AnalyticsController::class, 'predictive']);
+    Route::get('/process-intelligence', [AnalyticsController::class, 'processIntelligence']);
+    Route::get('/opportunities', [AnalyticsController::class, 'opportunities']);
+    Route::get('/workbench', [AnalyticsController::class, 'workbench']);
+    Route::get('/data-quality', [AnalyticsController::class, 'dataQuality']);
+});
+
 Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
     Route::get('/service-performance', [AnalyticsController::class, 'servicePerformance']);
     Route::get('/provider-performance', [AnalyticsController::class, 'providerPerformance']);

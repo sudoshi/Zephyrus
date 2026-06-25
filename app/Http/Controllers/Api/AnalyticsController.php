@@ -3,12 +3,68 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Analytics\OperationsAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
+    public function overview(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->overview(),
+        ]);
+    }
+
+    public function live(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->live(),
+        ]);
+    }
+
+    public function retrospective(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->retrospective(),
+        ]);
+    }
+
+    public function predictive(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->predictive(),
+        ]);
+    }
+
+    public function processIntelligence(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->processIntelligence(),
+        ]);
+    }
+
+    public function opportunities(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->opportunities(),
+        ]);
+    }
+
+    public function workbench(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->workbench(),
+        ]);
+    }
+
+    public function dataQuality(OperationsAnalyticsService $analytics)
+    {
+        return response()->json([
+            'data' => $analytics->dataQuality(),
+        ]);
+    }
+
     public function servicePerformance(Request $request)
     {
         $startDate = $request->input('start_date', now()->subDays(30)->toDateString());
@@ -85,8 +141,8 @@ class AnalyticsController extends Controller
             'dayDistribution' => $dayDistribution,
             'dateRange' => [
                 'start' => $startDate,
-                'end' => $endDate
-            ]
+                'end' => $endDate,
+            ],
         ]);
     }
 
@@ -137,8 +193,8 @@ class AnalyticsController extends Controller
             'trends' => $trends,
             'dateRange' => [
                 'start' => $startDate,
-                'end' => $endDate
-            ]
+                'end' => $endDate,
+            ],
         ]);
     }
 
@@ -148,7 +204,7 @@ class AnalyticsController extends Controller
         $endDate = $request->input('end_date', now()->toDateString());
         $groupBy = $request->input('group_by', 'month'); // month, quarter, year
 
-        $grouping = match($groupBy) {
+        $grouping = match ($groupBy) {
             'month' => "DATE_TRUNC('month', c.surgery_date)",
             'quarter' => "DATE_TRUNC('quarter', c.surgery_date)",
             'year' => "DATE_TRUNC('year', c.surgery_date)",
@@ -191,8 +247,8 @@ class AnalyticsController extends Controller
             'serviceGrowth' => $serviceGrowth,
             'dateRange' => [
                 'start' => $startDate,
-                'end' => $endDate
-            ]
+                'end' => $endDate,
+            ],
         ]);
     }
 }
