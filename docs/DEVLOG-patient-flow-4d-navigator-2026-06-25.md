@@ -45,3 +45,13 @@ Integrated the `patient-flow-4d-navigator` demo into Zephyrus as an authenticate
 - The source demo directory `patient-flow-4d-navigator/` remains an input artifact and is not required at runtime after the Zephyrus import/assets are committed.
 - The pre-existing root `hospital-cad-model/` deletion state was unrelated to this implementation and intentionally excluded from this release slice.
 - `npm run build` reports a large `PatientFlowNavigator` chunk because Three.js is bundled into the viewer. This is acceptable for the initial integration; future optimization can split Three.js/manual chunks if needed.
+
+## Release
+
+- Committed and pushed as `d47949a feat: integrate patient flow 4d navigator`.
+- Deployed through `./deploy.sh`; production asset build and Apache smoke checks passed.
+- Applied production migration `2026_06_25_000040_create_patient_flow_navigator_tables`.
+- Imported production facility catalog for `ZEPHYRUS-500`: 1472 facility spaces, 23 operational units, 500 operational beds, and 523 operational maps.
+- Imported production synthetic flow feed: 918 flow events, 90 patients, 90 encounters, 918 mapped locations, and 0 unmapped locations.
+- Verified `https://zephyrus.acumenus.net/rtdc/patient-flow-navigator` routes to the authenticated navigator surface.
+- Verified `https://zephyrus.acumenus.net/vendor/zephyrus-facility-models/zep-500/hospital_model.glb` returns `200 OK` with `model/gltf-binary`.
