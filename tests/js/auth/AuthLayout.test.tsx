@@ -11,10 +11,13 @@ describe('AuthLayout', () => {
   });
 
   it('renders children and the brand hero', () => {
-    render(<AuthLayout><div>my form</div></AuthLayout>);
+    const { container } = render(<AuthLayout><div>my form</div></AuthLayout>);
+
     expect(screen.getByText('my form')).toBeInTheDocument();
     expect(screen.getAllByText('Zephyrus')).toHaveLength(2);
-    expect(screen.getByAltText('Zephyrus application icon')).toBeInTheDocument();
+    expect(screen.queryByAltText('Zephyrus application icon')).not.toBeInTheDocument();
+    expect(container.querySelector('.za-lockup-icon')).toHaveAttribute('alt', '');
+    expect(container.querySelector('.za-lockup-icon')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByText('Operations Command Center')).toBeInTheDocument();
     expect(screen.getByText('Emergency Department')).toBeInTheDocument();
     expect(screen.getByText('RTDC')).toBeInTheDocument();

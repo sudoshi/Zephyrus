@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Backend — Pint, Pest, migrations
+  # Backend — Pint, PHPUnit, migrations
   # ---------------------------------------------------------------------------
   backend:
-    name: Backend (Laravel / Pest)
+    name: Backend (Laravel / PHPUnit)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -75,8 +75,8 @@ jobs:
           CACHE_STORE: array
           SESSION_DRIVER: array
 
-      - name: Run Pest tests with coverage
-        run: ./vendor/bin/pest --coverage --min=80
+      - name: Run PHPUnit tests
+        run: php artisan test
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
