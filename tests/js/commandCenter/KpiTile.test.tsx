@@ -40,4 +40,28 @@ describe('KpiTile', () => {
     render(<KpiTile metric={base} />);
     expect(screen.queryByTestId('sparkline-occupancy')).not.toBeInTheDocument();
   });
+
+  it('renders detail visualization and sparkline for detailed percent metrics', () => {
+    render(<KpiTile metric={{
+      ...base,
+      key: 'surge_prob',
+      label: 'Surge Probability',
+      detail: {
+        caption: '24h surge model drivers',
+        segments: [
+          { label: 'Occupancy', value: 32, display: '+32 pp', status: 'warning' },
+          { label: 'Bed deficit', value: 10, display: '+10 pp', status: 'warning' },
+        ],
+        rows: [
+          { label: 'Occupancy now', value: '88%', status: 'warning' },
+          { label: 'Net beds now', value: '-2', status: 'critical' },
+        ],
+      },
+    }} />);
+
+    expect(screen.getByTestId('metric-detail-surge_prob')).toBeInTheDocument();
+    expect(screen.getByTestId('sparkline-surge_prob')).toBeInTheDocument();
+    expect(screen.getByText('24h surge model drivers')).toBeInTheDocument();
+    expect(screen.getByText('Net beds now')).toBeInTheDocument();
+  });
 });

@@ -11,6 +11,22 @@ export const trajectorySchema = z.object({
 });
 export type Trajectory = z.infer<typeof trajectorySchema>;
 
+export const kpiMetricDetailSchema = z.object({
+  caption: z.string(),
+  segments: z.array(z.object({
+    label: z.string(),
+    value: z.number(),
+    display: z.string(),
+    status: z.enum(statusLevels),
+  })),
+  rows: z.array(z.object({
+    label: z.string(),
+    value: z.string(),
+    status: z.enum(statusLevels),
+  })),
+});
+export type KpiMetricDetail = z.infer<typeof kpiMetricDetailSchema>;
+
 export const kpiMetricSchema = z.object({
   key: z.string(),
   label: z.string(),
@@ -23,6 +39,7 @@ export const kpiMetricSchema = z.object({
   trajectory: trajectorySchema.nullable(),
   drillHref: z.string().nullable(),
   definition: z.string(),
+  detail: kpiMetricDetailSchema.nullable().optional(),
 });
 export type KpiMetric = z.infer<typeof kpiMetricSchema>;
 

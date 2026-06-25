@@ -634,4 +634,103 @@ class CommandCenterLiveDataTest extends TestCase
                 'unitCensus must not expose internal _netBedUnit key');
         }
     }
+
+    // -----------------------------------------------------------------------
+    // 14. LWBS, Discharge by Noon, and Surge Probability expose detail payloads
+    //     and 90-day visualization series for the dashboard.
+    // -----------------------------------------------------------------------
+
+    public function test_requested_metrics_expose_detail_payloads_and_ninety_day_trends(): void
+    {
+        $unitId = $this->insertUnit('Detail Unit', 'med_surg');
+        $this->insertSnapshot($unitId, staffed: 20, occupied: 19, available: 1, blocked: 0);
+
+        foreach (range(1, 8) as $i) {
+            DB::table('prod.ed_visits')->insert([
+                'patient_ref' => "detail-ed-seen-{$i}",
+                'arrived_at' => now()->subHours(2),
+                'triaged_at' => now()->subMinutes(110),
+                'esi_level' => 3,
+                'provider_seen_at' => now()->subMinutes(90),
+                'disposition' => 'discharged',
+                'admit_decision_at' => null,
+                'bed_assigned_at' => null,
+                'departed_at' => now()->subMinutes(20),
+                'unit_id' => null,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        foreach ([1, 4] as $idx => $esi) {
+            DB::table('prod.ed_visits')->insert([
+                'patient_ref' => "detail-ed-lwbs-{$idx}",
+                'arrived_at' => now()->subHours(2),
+                'triaged_at' => now()->subMinutes(115),
+                'esi_level' => $esi,
+                'provider_seen_at' => null,
+                'disposition' => 'lwbs',
+                'admit_decision_at' => null,
+                'bed_assigned_at' => null,
+                'departed_at' => now()->subMinutes(50),
+                'unit_id' => null,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        foreach ([10, 13, 15, 18] as $idx => $hour) {
+            DB::table('prod.encounters')->insert([
+                'patient_ref' => "detail-dbn-{$idx}",
+                'unit_id' => $unitId,
+                'status' => 'discharged',
+                'admitted_at' => Carbon::today()->subDays(3)->setTime(8, 0)->toDateTimeString(),
+                'discharged_at' => Carbon::today()->setTime($hour, 0)->toDateTimeString(),
+                'expected_discharge_date' => Carbon::today()->toDateString(),
+                'acuity_tier' => 2,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->insertPrediction(
+            $unitId,
+            definite: 1,
+            probable: 1,
+            possible: 0,
+            demandEd: 4,
+            demandExpected: 6,
+            dischargesWeighted: 1.7
+        );
+
+        $data = app(CommandCenterDataService::class)->build();
+
+        $edGroup = collect($data['flow']['subgroups'])->firstWhere('key', 'ed');
+        $this->assertNotNull($edGroup);
+        $lwbs = collect($edGroup['metrics'])->firstWhere('key', 'ed_lwbs');
+        $this->assertNotNull($lwbs);
+        $this->assertSame(20.0, $lwbs['value']);
+        $this->assertArrayHasKey('detail', $lwbs);
+        $this->assertSame('Last 24h ED arrival cohort', $lwbs['detail']['caption']);
+        $this->assertCount(90, $lwbs['trajectory']['points']);
+
+        $ipGroup = collect($data['flow']['subgroups'])->firstWhere('key', 'ip');
+        $this->assertNotNull($ipGroup);
+        $dbn = collect($ipGroup['metrics'])->firstWhere('key', 'dbn');
+        $this->assertNotNull($dbn);
+        $this->assertSame(25, $dbn['value']);
+        $this->assertArrayHasKey('detail', $dbn);
+        $this->assertSame("Today's inpatient discharge cohort", $dbn['detail']['caption']);
+        $this->assertCount(90, $dbn['trajectory']['points']);
+
+        $surge = collect($data['forecast']['metrics'])->firstWhere('key', 'surge_prob');
+        $this->assertNotNull($surge);
+        $this->assertArrayHasKey('detail', $surge);
+        $this->assertSame('24h surge model drivers', $surge['detail']['caption']);
+        $this->assertGreaterThan(0, $surge['value']);
+        $this->assertCount(90, $surge['trajectory']['points']);
+    }
 }

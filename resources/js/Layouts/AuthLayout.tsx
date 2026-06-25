@@ -1,9 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
-import { ZephyrusMark } from '@/Components/Auth/ZephyrusMark';
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
+
+const ZEPHYRUS_ICON_SRC = '/images/zephyrus-icon.png';
 
 /**
  * Zephyrus guest/auth shell — "split-elegant" cinematic sign-in.
@@ -41,12 +42,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           <div className="za-brand-top">
             <div className="za-lockup">
-              <ZephyrusMark className="za-mark" gradId="za-mark-brand" />
+              <img className="za-lockup-icon" src={ZEPHYRUS_ICON_SRC} alt="" aria-hidden="true" />
               <span className="za-wordmark">Zephyrus</span>
             </div>
           </div>
 
           <div className="za-brand-mid">
+            <div className="za-hero-icon-wrap">
+              <img className="za-hero-icon" src={ZEPHYRUS_ICON_SRC} alt="Zephyrus application icon" />
+            </div>
             <span className="za-eyebrow">Operations Command Center</span>
             <h2 className="za-headline">
               Coordinate <span className="za-accent">ED, RTDC, perioperative &amp; improvement</span> decisions in one live view.
@@ -98,7 +102,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         <section className="za-form-side">
           <div className="za-card">
             <div className="za-mobile-lockup">
-              <ZephyrusMark className="za-mark" gradId="za-mark-mobile" />
+              <img className="za-mobile-icon" src={ZEPHYRUS_ICON_SRC} alt="" aria-hidden="true" />
               <span className="za-wordmark">Zephyrus</span>
               <span className="za-m-tag">ED, RTDC, perioperative, and improvement intelligence for hospital operations.</span>
             </div>

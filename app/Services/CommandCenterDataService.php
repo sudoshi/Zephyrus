@@ -135,13 +135,51 @@ class CommandCenterDataService
         string $key, string $label, float|int $value, string $unit, string $display,
         float|int|null $target, ?string $targetDisplay, string $status,
         ?array $points, string $direction, bool $goodWhenDown, ?string $drillHref, string $definition,
+        ?array $detail = null,
     ): array {
-        return [
+        $metric = [
             'key' => $key, 'label' => $label, 'value' => $value, 'unit' => $unit, 'display' => $display,
             'target' => $target, 'targetDisplay' => $targetDisplay, 'status' => $status,
             'trajectory' => $points === null ? null
                 : ['points' => $points, 'direction' => $direction, 'goodWhenDown' => $goodWhenDown],
             'drillHref' => $drillHref, 'definition' => $definition,
+        ];
+
+        if ($detail !== null) {
+            $metric['detail'] = $detail;
+        }
+
+        return $metric;
+    }
+
+    /** @return array{caption:string,segments:list<array<string,mixed>>,rows:list<array<string,mixed>>} */
+    private function detail(string $caption, array $segments, array $rows): array
+    {
+        return [
+            'caption' => $caption,
+            'segments' => $segments,
+            'rows' => $rows,
+        ];
+    }
+
+    /** @return array{label:string,value:float|int,display:string,status:string} */
+    private function detailSegment(string $label, float|int $value, string $display, string $status): array
+    {
+        return [
+            'label' => $label,
+            'value' => $value,
+            'display' => $display,
+            'status' => $status,
+        ];
+    }
+
+    /** @return array{label:string,value:string,status:string} */
+    private function detailRow(string $label, string $value, string $status = 'neutral'): array
+    {
+        return [
+            'label' => $label,
+            'value' => $value,
+            'status' => $status,
         ];
     }
 
@@ -199,6 +237,10 @@ class CommandCenterDataService
             $trends[$key] = $this->trendPoints($key, $value);
         }
 
+        $trends['ed_lwbs'] = $this->dailyLwbsTrend($flowMetrics['lwbs']);
+        $trends['dbn'] = $this->dailyDischargeByNoonTrend($flowMetrics['dbn']);
+        $trends['surge_prob'] = $this->dailySurgeProbabilityTrend($forecastMetrics['surge_pct']);
+
         return $trends;
     }
 
@@ -234,6 +276,130 @@ class CommandCenterDataService
         }
 
         return is_int($current) ? (int) round($value) : round($value, 1);
+    }
+
+    /** @return list<float|int> */
+    private function dailyLwbsTrend(int|float $current): array
+    {
+        $start = Carbon::today()->subDays(self::TREND_DAYS - 1);
+        $end = Carbon::tomorrow();
+
+        $rows = DB::select(
+            "SELECT CAST(arrived_at AS DATE) AS day,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN disposition = 'lwbs' THEN 1 ELSE 0 END) AS lwbs_cnt
+             FROM prod.ed_visits
+             WHERE arrived_at >= ?
+               AND arrived_at < ?
+               AND is_deleted = false
+             GROUP BY CAST(arrived_at AS DATE)",
+            [$start->toDateString(), $end->toDateString()]
+        );
+
+        $values = [];
+        foreach ($rows as $row) {
+            $total = (int) ($row->total ?? 0);
+            $values[(string) $row->day] = $total > 0
+                ? round(100.0 * (int) ($row->lwbs_cnt ?? 0) / $total, 1)
+                : 0.0;
+        }
+
+        return $this->dailyTrendFromValues($values, $current, 'ed_lwbs');
+    }
+
+    /** @return list<float|int> */
+    private function dailyDischargeByNoonTrend(int|float $current): array
+    {
+        $start = Carbon::today()->subDays(self::TREND_DAYS - 1);
+        $end = Carbon::tomorrow();
+
+        $rows = DB::select(
+            "SELECT CAST(discharged_at AS DATE) AS day,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN CAST(discharged_at AS TIME) < '12:00:00' THEN 1 ELSE 0 END) AS before_noon
+             FROM prod.encounters
+             WHERE discharged_at >= ?
+               AND discharged_at < ?
+               AND discharged_at IS NOT NULL
+               AND is_deleted = false
+             GROUP BY CAST(discharged_at AS DATE)",
+            [$start->toDateString(), $end->toDateString()]
+        );
+
+        $values = [];
+        foreach ($rows as $row) {
+            $total = (int) ($row->total ?? 0);
+            $values[(string) $row->day] = $total > 0
+                ? (int) round(100.0 * (int) ($row->before_noon ?? 0) / $total)
+                : 0;
+        }
+
+        return $this->dailyTrendFromValues($values, $current, 'dbn');
+    }
+
+    /** @return list<int> */
+    private function dailySurgeProbabilityTrend(int $current): array
+    {
+        $start = Carbon::today()->subDays(self::TREND_DAYS - 1);
+
+        $avgReliability = (float) (DB::table('prod.rtdc_reconciliations')
+            ->selectRaw('AVG(reliability_score) AS avg_rel')
+            ->first()?->avg_rel ?? 0.8);
+        $reliabilityPressure = max(0, (int) round((1 - $avgReliability) * 20));
+
+        $rows = DB::table('prod.rtdc_predictions')
+            ->whereBetween('service_date', [$start->toDateString(), Carbon::today()->toDateString()])
+            ->where('is_deleted', false)
+            ->selectRaw(
+                'service_date,
+                 SUM(bed_need) AS bed_need,
+                 SUM(demand_expected) AS demand_expected,
+                 SUM(discharges_weighted) AS discharges_weighted'
+            )
+            ->groupBy('service_date')
+            ->get();
+
+        $values = [];
+        foreach ($rows as $row) {
+            $bedNeedPressure = max(0, (int) ($row->bed_need ?? 0)) * 5;
+            $demandGap = max(0, (float) ($row->demand_expected ?? 0) - (float) ($row->discharges_weighted ?? 0));
+            $demandPressure = (int) round($demandGap * 2);
+            $values[(string) $row->service_date] = (int) max(0, min(95, $bedNeedPressure + $demandPressure + $reliabilityPressure));
+        }
+
+        /** @var list<int> $trend */
+        $trend = $this->dailyTrendFromValues($values, $current, 'surge_prob');
+
+        return $trend;
+    }
+
+    /** @param array<string,float|int> $valuesByDate
+     * @return list<float|int>
+     */
+    private function dailyTrendFromValues(array $valuesByDate, int|float $current, string $fallbackKey): array
+    {
+        $start = Carbon::today()->subDays(self::TREND_DAYS - 1);
+        $fallback = $this->trendPoints($fallbackKey, $current);
+        $points = [];
+        $lastKnown = null;
+
+        for ($i = 0; $i < self::TREND_DAYS; $i++) {
+            $day = $start->copy()->addDays($i)->toDateString();
+            if (array_key_exists($day, $valuesByDate)) {
+                $lastKnown = $valuesByDate[$day];
+                $points[] = $this->normalizeTrendValue((float) $lastKnown, $current);
+
+                continue;
+            }
+
+            $points[] = $lastKnown !== null
+                ? $this->normalizeTrendValue((float) $lastKnown, $current)
+                : $fallback[$i];
+        }
+
+        $points[self::TREND_DAYS - 1] = $this->normalizeTrendValue((float) $current, $current);
+
+        return $points;
     }
 
     // -----------------------------------------------------------------------
@@ -486,13 +652,32 @@ class CommandCenterDataService
         $edCountRow = DB::table('prod.ed_visits')
             ->where('arrived_at', '>=', $window)
             ->where('is_deleted', false)
-            ->selectRaw('COUNT(*) AS total, SUM(CASE WHEN disposition = ? THEN 1 ELSE 0 END) AS lwbs_cnt', ['lwbs'])
+            ->selectRaw(
+                'COUNT(*) AS total,
+                 SUM(CASE WHEN disposition = ? THEN 1 ELSE 0 END) AS lwbs_cnt,
+                 SUM(CASE WHEN disposition = ? AND esi_level <= 2 THEN 1 ELSE 0 END) AS high_acuity_lwbs',
+                ['lwbs', 'lwbs']
+            )
             ->first();
         $edTotal = (int) ($edCountRow->total ?? 0);
         $lwbsCnt = (int) ($edCountRow->lwbs_cnt ?? 0);
+        $highAcuityLwbs = (int) ($edCountRow->high_acuity_lwbs ?? 0);
+        $edCompletedOrActive = max(0, $edTotal - $lwbsCnt);
         $lwbs = $edTotal > 0
             ? round(100.0 * $lwbsCnt / $edTotal, 1)
             : 0.0;
+        $lwbsDetail = $this->detail(
+            'Last 24h ED arrival cohort',
+            [
+                $this->detailSegment('Seen / active', $edCompletedOrActive, (string) $edCompletedOrActive, 'success'),
+                $this->detailSegment('LWBS', $lwbsCnt, (string) $lwbsCnt, $this->bandHighBad($lwbs, 3, 2)),
+            ],
+            [
+                $this->detailRow('Total arrivals', (string) $edTotal),
+                $this->detailRow('LWBS patients', (string) $lwbsCnt, $lwbsCnt > 0 ? $this->bandHighBad($lwbs, 3, 2) : 'success'),
+                $this->detailRow('ESI 1-2 LWBS', (string) $highAcuityLwbs, $highAcuityLwbs > 0 ? 'critical' : 'success'),
+            ]
+        );
 
         $edLosRow = DB::selectOne(
             "SELECT CAST(
@@ -535,7 +720,22 @@ class CommandCenterDataService
             ->first();
         $dbnTotal = (int) ($dbnRow->total ?? 0);
         $dbnBeforeNoon = (int) ($dbnRow->before_noon ?? 0);
+        $dbnAfterNoon = max(0, $dbnTotal - $dbnBeforeNoon);
         $dbn = $dbnTotal > 0 ? (int) round(100.0 * $dbnBeforeNoon / $dbnTotal) : 0;
+        $dbnTargetCount = $dbnTotal > 0 ? (int) ceil($dbnTotal * 0.25) : 0;
+        $dbnGap = max(0, $dbnTargetCount - $dbnBeforeNoon);
+        $dbnDetail = $this->detail(
+            "Today's inpatient discharge cohort",
+            [
+                $this->detailSegment('Before noon', $dbnBeforeNoon, (string) $dbnBeforeNoon, $this->bandLowBad($dbn, 25, 15)),
+                $this->detailSegment('After noon', $dbnAfterNoon, (string) $dbnAfterNoon, $dbnAfterNoon > 0 ? 'warning' : 'success'),
+            ],
+            [
+                $this->detailRow('Total discharges', (string) $dbnTotal),
+                $this->detailRow('Before noon', (string) $dbnBeforeNoon, $this->bandLowBad($dbn, 25, 15)),
+                $this->detailRow('To 25% target', $dbnGap === 0 ? 'at target' : "{$dbnGap} more", $dbnGap === 0 ? 'success' : 'warning'),
+            ]
+        );
 
         // --- OR flow (most recent OR day) ----------------------------------
         $latestOrDay = DB::table('prod.or_cases')
@@ -607,9 +807,11 @@ class CommandCenterDataService
         return [
             'door_to_provider' => $doorToProvider,
             'lwbs' => $lwbs,
+            'lwbs_detail' => $lwbsDetail,
             'ed_los' => $edLos,
             'adm_to_bed' => $admToBed,
             'dbn' => $dbn,
+            'dbn_detail' => $dbnDetail,
             'fcots' => $fcots,
             'block_util' => $blockUtil,
             'turnover' => $turnover,
@@ -653,7 +855,8 @@ class CommandCenterDataService
                         'ed_lwbs', 'LWBS', $lwbs, '%', "{$lwbs}%",
                         2, '<2%', $this->bandHighBad($lwbs, 3, 2),
                         $trends['ed_lwbs'], 'down', true, '/dashboard/emergency',
-                        'Left without being seen.'
+                        'Left without being seen.',
+                        $fm['lwbs_detail']
                     ),
                     $this->metric(
                         'ed_los', 'ED LOS (disch)', $edLos, 'min', "{$edLos}m",
@@ -673,7 +876,8 @@ class CommandCenterDataService
                         'dbn', 'Discharge by Noon', $dbn, '%', "{$dbn}%",
                         25, '25%', $this->bandLowBad($dbn, 25, 15),
                         $trends['dbn'], 'up', false, '/rtdc/bed-placement',
-                        'Percent of discharges completed before noon.'
+                        'Percent of discharges completed before noon.',
+                        $fm['dbn_detail']
                     ),
                 ]],
                 ['key' => 'or', 'label' => 'Operating Room', 'metrics' => [
@@ -893,9 +1097,28 @@ class CommandCenterDataService
             ->first()?->avg_rel ?? 0.8);
 
         // Surge probability heuristic (documented, not a trained model).
+        $occupancyPressure = max(0, (int) round(($occupancyPct - 80) * 4));
+        $bedPressure = max(0, -$netBeds * 5);
+        $demandPressure = max(0, (int) round(max(0, $predAdmissions - $sumWtDc) * 2));
+        $reliabilityPressure = max(0, (int) round((1 - $avgReliability) * 20));
         $surgePct = (int) max(0, min(95,
-            round(($occupancyPct - 80) * 4 + max(0, -$netBeds) * 5 + (1 - $avgReliability) * 20)
+            $occupancyPressure + $bedPressure + $demandPressure + $reliabilityPressure
         ));
+        $surgeDetail = $this->detail(
+            '24h surge model drivers',
+            [
+                $this->detailSegment('Occupancy', $occupancyPressure, "+{$occupancyPressure} pp", $occupancyPressure >= 40 ? 'critical' : ($occupancyPressure > 0 ? 'warning' : 'success')),
+                $this->detailSegment('Bed deficit', $bedPressure, "+{$bedPressure} pp", $bedPressure >= 25 ? 'critical' : ($bedPressure > 0 ? 'warning' : 'success')),
+                $this->detailSegment('Demand gap', $demandPressure, "+{$demandPressure} pp", $demandPressure >= 20 ? 'critical' : ($demandPressure > 0 ? 'warning' : 'success')),
+                $this->detailSegment('Reliability', $reliabilityPressure, "+{$reliabilityPressure} pp", $reliabilityPressure >= 8 ? 'warning' : 'success'),
+            ],
+            [
+                $this->detailRow('Occupancy now', "{$occupancyPct}%", $this->bandHighBad($occupancyPct, 92, 85)),
+                $this->detailRow('Net beds now', (string) $netBeds, $netBeds < 0 ? 'critical' : ($netBeds === 0 ? 'warning' : 'success')),
+                $this->detailRow('Expected admits', (string) $predAdmissions),
+                $this->detailRow('Forecast reliability', (int) round($avgReliability * 100).'%', $avgReliability < 0.75 ? 'warning' : 'success'),
+            ]
+        );
 
         return [
             'pred_discharges_24h' => $predDischarges24h,
@@ -905,6 +1128,7 @@ class CommandCenterDataService
             'sum_wt_dc' => $sumWtDc,
             'net_beds_fc' => $netBedsFc,
             'surge_pct' => $surgePct,
+            'surge_detail' => $surgeDetail,
         ];
     }
 
@@ -949,7 +1173,8 @@ class CommandCenterDataService
                     'surge_prob', 'Surge Probability', $surgePct, '%', "{$surgePct}%",
                     null, null, $this->bandHighBad($surgePct, 60, 40),
                     $trends['surge_prob'], 'up', true, '/rtdc/predictions/demand',
-                    'Modeled probability of a surge event in 24h.'
+                    'Modeled probability of a surge event in 24h.',
+                    $fm['surge_detail']
                 ),
             ],
         ];

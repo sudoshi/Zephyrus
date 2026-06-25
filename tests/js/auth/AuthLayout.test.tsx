@@ -14,6 +14,7 @@ describe('AuthLayout', () => {
     render(<AuthLayout><div>my form</div></AuthLayout>);
     expect(screen.getByText('my form')).toBeInTheDocument();
     expect(screen.getAllByText('Zephyrus')).toHaveLength(2);
+    expect(screen.getByAltText('Zephyrus application icon')).toBeInTheDocument();
     expect(screen.getByText('Operations Command Center')).toBeInTheDocument();
     expect(screen.getByText('Emergency Department')).toBeInTheDocument();
     expect(screen.getByText('RTDC')).toBeInTheDocument();

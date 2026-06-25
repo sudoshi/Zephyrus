@@ -5,6 +5,14 @@ import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
 import { Gauge } from './Gauge';
 
+const detailStatusClass = {
+  critical: 'text-healthcare-critical dark:text-healthcare-critical-dark',
+  warning: 'text-healthcare-warning dark:text-healthcare-warning-dark',
+  success: 'text-healthcare-success dark:text-healthcare-success-dark',
+  info: 'text-healthcare-info dark:text-healthcare-info-dark',
+  neutral: 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark',
+} as const;
+
 function Sparkline({
   points, color, target, id,
 }: { points: number[]; color: string; target: number | null; id: string }) {
@@ -54,6 +62,60 @@ function Sparkline({
   );
 }
 
+function DetailVisualization({ metric }: { metric: KpiMetric }) {
+  if (!metric.detail) return null;
+
+  const positiveSegments = metric.detail.segments.map((segment) => ({
+    ...segment,
+    value: Math.max(0, segment.value),
+  }));
+  const total = positiveSegments.reduce((sum, segment) => sum + segment.value, 0);
+  const equalWidth = positiveSegments.length > 0 ? 100 / positiveSegments.length : 0;
+
+  return (
+    <div className="mt-1 flex flex-col gap-2" data-testid={`metric-detail-${metric.key}`}>
+      <span className="min-w-0 truncate text-[0.68rem] font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        {metric.detail.caption}
+      </span>
+
+      {positiveSegments.length > 0 && (
+        <div
+          className="h-2 overflow-hidden rounded-full bg-healthcare-border/70 dark:bg-healthcare-border-dark/70"
+          aria-label={`${metric.label} detail breakdown`}
+        >
+          <div className="flex h-full w-full">
+            {positiveSegments.map((segment) => {
+              const width = total > 0 ? (segment.value / total) * 100 : equalWidth;
+
+              return (
+                <span
+                  key={segment.label}
+                  className="h-full min-w-[3px]"
+                  title={`${segment.label}: ${segment.display}`}
+                  style={{ width: `${width}%`, backgroundColor: STATUS_VAR[segment.status] }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+        {metric.detail.rows.slice(0, 4).map((row) => (
+          <div key={row.label} className="min-w-0">
+            <div className="truncate text-[0.66rem] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              {row.label}
+            </div>
+            <div className={`truncate text-xs font-semibold tabular-nums ${detailStatusClass[row.status]}`}>
+              {row.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function KpiTile({ metric }: { metric: KpiMetric }) {
   const color = STATUS_VAR[metric.status];
   const arrow = metric.trajectory
@@ -81,16 +143,22 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
       </div>
 
       {isPct ? (
-        <div className="flex items-center justify-between gap-3">
-          <Gauge value={metric.value} max={100} target={metric.target} color={color}
-                 size={72} strokeWidth={8} centerLabel={metric.display} centerLabelClass="text-base" />
-          <div className="flex flex-col items-end gap-1 text-right">
-            {arrow && (
-              <span className="text-lg font-semibold leading-none" style={{ color }} aria-hidden="true">{arrow}</span>
-            )}
-            {targetRow}
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <Gauge value={metric.value} max={100} target={metric.target} color={color}
+                   size={72} strokeWidth={8} centerLabel={metric.display} centerLabelClass="text-base" />
+            <div className="flex flex-col items-end gap-1 text-right">
+              {arrow && (
+                <span className="text-lg font-semibold leading-none" style={{ color }} aria-hidden="true">{arrow}</span>
+              )}
+              {targetRow}
+            </div>
           </div>
-        </div>
+          {metric.detail && metric.trajectory && (
+            <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
+          )}
+          <DetailVisualization metric={metric} />
+        </>
       ) : (
         <>
           <div className="flex items-end justify-between gap-2">
@@ -107,6 +175,7 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
             <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
           )}
           {targetRow}
+          <DetailVisualization metric={metric} />
         </>
       )}
     </Panel>

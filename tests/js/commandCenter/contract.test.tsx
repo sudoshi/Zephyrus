@@ -47,4 +47,31 @@ describe('command center contract', () => {
     const { forecast, ...rest } = valid;
     expect(commandCenterDataSchema.safeParse(rest).success).toBe(false);
   });
+
+  it('accepts optional metric detail for explainable KPI visualizations', () => {
+    const detailedMetric = {
+      ...minimalMetric,
+      key: 'ed_lwbs',
+      label: 'LWBS',
+      detail: {
+        caption: 'Last 24h ED arrival cohort',
+        segments: [
+          { label: 'Seen / active', value: 96, display: '96', status: 'success' },
+          { label: 'LWBS', value: 4, display: '4', status: 'warning' },
+        ],
+        rows: [
+          { label: 'Total arrivals', value: '100', status: 'neutral' },
+          { label: 'LWBS patients', value: '4', status: 'warning' },
+        ],
+      },
+    };
+
+    expect(commandCenterDataSchema.safeParse({
+      ...valid,
+      flow: {
+        ...valid.flow,
+        subgroups: [{ key: 'ed', label: 'Emergency', metrics: [detailedMetric] }],
+      },
+    }).success).toBe(true);
+  });
 });
