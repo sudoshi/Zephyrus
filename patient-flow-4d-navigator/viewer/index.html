@@ -41,12 +41,13 @@
         <label for="searchInput">Find</label>
         <input id="searchInput" type="search" placeholder="PT, bed, service">
       </div>
-      <div class="layer-grid">
-        <label><input id="baseLayer" type="checkbox" checked> Model</label>
-        <label><input id="tokensLayer" type="checkbox" checked> Patients</label>
-        <label><input id="trailsLayer" type="checkbox" checked> Trails</label>
-        <label><input id="heatLayer" type="checkbox" checked> Census</label>
-      </div>
+      <fieldset class="layer-grid">
+        <legend>Layers</legend>
+        <div class="layer-checkbox"><input id="baseLayer" type="checkbox" checked><label for="baseLayer">Model</label></div>
+        <div class="layer-checkbox"><input id="tokensLayer" type="checkbox" checked><label for="tokensLayer">Patients</label></div>
+        <div class="layer-checkbox"><input id="trailsLayer" type="checkbox" checked><label for="trailsLayer">Trails</label></div>
+        <div class="layer-checkbox"><input id="heatLayer" type="checkbox" checked><label for="heatLayer">Census</label></div>
+      </fieldset>
       <div id="metrics">
         <div><span id="activeMetric">0</span><small>Active</small></div>
         <div><span id="eventMetric">0</span><small>Events</small></div>

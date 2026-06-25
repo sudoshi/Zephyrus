@@ -62,6 +62,13 @@ const defaultLayers: PatientLayerState = {
   heat: true,
 };
 
+const layerControls: Array<{ key: keyof PatientLayerState; label: string; id: string }> = [
+  { key: 'base', label: 'Model', id: 'flow-layer-model' },
+  { key: 'tokens', label: 'Patients', id: 'flow-layer-patients' },
+  { key: 'trails', label: 'Trails', id: 'flow-layer-trails' },
+  { key: 'heat', label: 'Census', id: 'flow-layer-census' },
+];
+
 function fmtTime(ms: number): string {
   if (!Number.isFinite(ms) || ms <= 0) return '--';
   return new Date(ms).toLocaleString([], {
@@ -651,23 +658,20 @@ export default function PatientFlowNavigator({
           />
         </div>
 
-        <div className="patient-flow-layer-grid">
-          {([
-            ['base', 'Model'],
-            ['tokens', 'Patients'],
-            ['trails', 'Trails'],
-            ['heat', 'Census'],
-          ] as Array<[keyof PatientLayerState, string]>).map(([key, label]) => (
-            <label key={key}>
+        <fieldset className="patient-flow-layer-grid">
+          <legend>Layers</legend>
+          {layerControls.map(({ key, label, id }) => (
+            <div className="patient-flow-checkbox-row" key={key}>
               <input
+                id={id}
                 type="checkbox"
                 checked={layers[key]}
                 onChange={(event) => setLayers((prev) => ({ ...prev, [key]: event.target.checked }))}
               />
-              {label}
-            </label>
+              <label htmlFor={id}>{label}</label>
+            </div>
           ))}
-        </div>
+        </fieldset>
 
         <div className="patient-flow-metrics">
           <div><span>{metrics.active}</span><small>Active</small></div>
