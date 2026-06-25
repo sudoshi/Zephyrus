@@ -31,4 +31,20 @@ class CommandCenterControllerTest extends TestCase
                 ->has('data.objectives')
                 ->has('data.generatedAtIso'));
     }
+
+    public function test_command_center_drilldown_api_returns_ninety_day_detail(): void
+    {
+        $user = User::factory()->make(['must_change_password' => false]);
+
+        $this->actingAs($user)
+            ->getJson('/api/command-center/drilldown?focus=panel:flow&days=30')
+            ->assertOk()
+            ->assertJsonPath('window.days', 90)
+            ->assertJsonPath('window.synthetic', true)
+            ->assertJsonPath('focus.type', 'panel')
+            ->assertJsonPath('focus.key', 'flow')
+            ->assertJsonCount(90, 'timeline')
+            ->assertJsonCount(4, 'panels')
+            ->assertJsonCount(90, 'panels.1.daily');
+    }
 }

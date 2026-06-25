@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
+use App\Http\Controllers\CommandCenterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,6 +38,11 @@ Route::get('/health', function () {
             'database' => 'disconnected',
         ], 503);
     }
+});
+
+// Command Center drill-downs (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->group(function () {
+    Route::get('/drilldown', [CommandCenterController::class, 'drilldown']);
 });
 
 // RTDC — Real-Time Demand Capacity (web session auth)

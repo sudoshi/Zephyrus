@@ -5,6 +5,7 @@
 namespace Tests\Feature;
 
 use App\Services\CommandCenterDataService;
+use App\Services\CommandCenterDrilldownService;
 use Tests\TestCase;
 
 class CommandCenterDataServiceTest extends TestCase
@@ -72,6 +73,33 @@ class CommandCenterDataServiceTest extends TestCase
             $this->assertIsArray($metric['trajectory'], "{$metric['key']} missing trajectory");
             $this->assertCount(90, $metric['trajectory']['points'], "{$metric['key']} must have 90 trend points");
         }
+    }
+
+    public function test_drilldown_payload_has_at_least_ninety_days_of_detail(): void
+    {
+        $data = app(CommandCenterDrilldownService::class)->build(requestedDays: 14);
+
+        $this->assertSame(90, $data['window']['days']);
+        $this->assertTrue($data['window']['synthetic']);
+        $this->assertCount(90, $data['timeline']);
+        $this->assertGreaterThanOrEqual(90, count($data['events']));
+
+        foreach ($data['panels'] as $panel) {
+            $this->assertCount(90, $panel['daily'], "{$panel['key']} panel must expose 90 daily rows");
+
+            foreach ($panel['metrics'] as $metric) {
+                $this->assertCount(90, $metric['history'], "{$metric['key']} metric must expose 90 daily rows");
+            }
+        }
+    }
+
+    public function test_drilldown_focus_resolves_metric_keys(): void
+    {
+        $data = app(CommandCenterDrilldownService::class)->build('metric:ed_lwbs');
+
+        $this->assertSame('metric', $data['focus']['type']);
+        $this->assertSame('ed_lwbs', $data['focus']['key']);
+        $this->assertTrue($data['focus']['matched']);
     }
 
     /** @return list<array<string,mixed>> */
