@@ -30,4 +30,14 @@ describe('KpiTile', () => {
     render(<KpiTile metric={{ ...base, key: 'x', drillHref: null }} />);
     expect(screen.getByTestId('kpi-x').closest('a')).toBeNull();
   });
+
+  it('renders a sparkline for non-circle metrics with trajectory data', () => {
+    render(<KpiTile metric={{ ...base, key: 'net_beds', unit: 'beds', display: '4', value: 4 }} />);
+    expect(screen.getByTestId('sparkline-net_beds')).toBeInTheDocument();
+  });
+
+  it('keeps percent metrics on the circle gauge treatment', () => {
+    render(<KpiTile metric={base} />);
+    expect(screen.queryByTestId('sparkline-occupancy')).not.toBeInTheDocument();
+  });
 });

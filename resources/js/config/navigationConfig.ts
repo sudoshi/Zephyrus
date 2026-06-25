@@ -105,6 +105,36 @@ export const NAVIGATION: readonly NavDomain[] = [
     ],
   },
   {
+    key: 'transport',
+    label: 'Transport',
+    icon: Truck,
+    dashboardHref: '/dashboard/transport',
+    dashboardLabel: 'Transport Command Center',
+    matchPrefixes: ['/transport', '/dashboard/transport'],
+    groups: [
+      {
+        title: 'Operations',
+        items: [
+          { label: 'Requests', href: '/transport/requests', icon: ClipboardList },
+          { label: 'Dispatch', href: '/transport/dispatch', icon: Route },
+          { label: 'Inpatient', href: '/transport/inpatient', icon: BedDouble },
+          { label: 'Transfers', href: '/transport/transfers', icon: Building2 },
+          { label: 'Discharge', href: '/transport/discharge', icon: Send },
+          { label: 'EMS', href: '/transport/ems', icon: Ambulance },
+          { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
+        ],
+      },
+      {
+        title: 'Control',
+        items: [
+          { label: 'Resources', href: '/transport/resources', icon: MapPinned },
+          { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
+          { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
+        ],
+      },
+    ],
+  },
+  {
     key: 'perioperative',
     label: 'Perioperative',
     icon: Stethoscope,
@@ -196,36 +226,6 @@ export const NAVIGATION: readonly NavDomain[] = [
           { label: 'Active Cycles', href: '/improvement/active', icon: RefreshCcw },
           { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: Repeat },
           { label: 'Library', href: '/improvement/library', icon: BookOpen },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'transport',
-    label: 'Transport',
-    icon: Truck,
-    dashboardHref: '/dashboard/transport',
-    dashboardLabel: 'Transport Command Center',
-    matchPrefixes: ['/transport', '/dashboard/transport'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Requests', href: '/transport/requests', icon: ClipboardList },
-          { label: 'Dispatch', href: '/transport/dispatch', icon: Route },
-          { label: 'Inpatient', href: '/transport/inpatient', icon: BedDouble },
-          { label: 'Transfers', href: '/transport/transfers', icon: Building2 },
-          { label: 'Discharge', href: '/transport/discharge', icon: Send },
-          { label: 'EMS', href: '/transport/ems', icon: Ambulance },
-          { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
-        ],
-      },
-      {
-        title: 'Control',
-        items: [
-          { label: 'Resources', href: '/transport/resources', icon: MapPinned },
-          { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
-          { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
         ],
       },
     ],

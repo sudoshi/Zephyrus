@@ -1,12 +1,12 @@
 export default function ApplicationLogo({ variant = 'full', ...props }) {
-    const logoSrc = variant === 'icon' 
-        ? '/images/IconOnly_Transparent.png'
+    const logoSrc = variant === 'icon'
+        ? '/images/zephyrus-icon.png'
         : '/images/FullLogo_Transparent.png';
 
     return (
         <img
             src={logoSrc}
-            alt="OR Analytics Platform Logo"
+            alt="Zephyrus"
             {...props}
         />
     );

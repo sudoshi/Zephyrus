@@ -4,7 +4,7 @@ import { useCommandCenterStore, type CommandRole } from '@/stores/commandCenterS
 const ROLES: { value: CommandRole; label: string }[] = [
   { value: 'command', label: 'Command' },
   { value: 'executive', label: 'Executive' },
-  { value: 'service-line', label: 'Service-line' },
+  { value: 'service-line', label: 'Service Line' },
 ];
 
 export function RoleSwitcher() {
@@ -23,7 +23,7 @@ export function RoleSwitcher() {
         return (
           <button key={r.value} type="button" role="tab" aria-selected={active}
                   onClick={() => setRole(r.value)}
-                  title={comingSoon ? 'Service-line scoping — coming soon' : undefined}
+                  title={comingSoon ? 'Service Line scoping — coming soon' : undefined}
                   className={[
                     'rounded px-3 py-1 text-xs transition-colors duration-300',
                     active

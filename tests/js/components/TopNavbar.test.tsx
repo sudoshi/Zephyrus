@@ -21,11 +21,12 @@ function mockPage(overrides: Record<string, unknown>) {
 describe('TopNavbar', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders the Dashboard link and the five non-admin domain triggers', () => {
+  it('renders the Zephyrus dashboard brand link and the six non-admin domain triggers', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
-    expect(screen.getByRole('link', { name: /^Dashboard$/ })).toBeInTheDocument();
-    for (const label of ['RTDC', 'Perioperative', 'Emergency', 'Improvement', 'Analytics']) {
+    expect(screen.getByRole('link', { name: /^Zephyrus$/ })).toHaveAttribute('href', '/dashboard');
+    expect(screen.queryByRole('link', { name: /^Dashboard$/ })).not.toBeInTheDocument();
+    for (const label of ['RTDC', 'Transport', 'Perioperative', 'Emergency', 'Improvement', 'Analytics']) {
       expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument();
     }
   });

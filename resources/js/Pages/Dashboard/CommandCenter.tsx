@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { parseCommandCenterData } from '@/types/commandCenter';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
+import { RoleSwitcher } from '@/Components/CommandCenter/RoleSwitcher';
 
 const REFRESH_MS = 45_000;
 
@@ -35,7 +36,7 @@ export default function CommandCenter({ data }: { data: unknown }) {
       <PageContentLayout
         title="Hospital Operations Command Center"
         subtitle="House-wide demand, capacity, flow & forecast"
-        headerContent={null}
+        headerContent={<RoleSwitcher />}
       >
         <CommandCenterView data={cc} onRefresh={handleRefresh} refreshedLabel={refreshedLabel} />
       </PageContentLayout>

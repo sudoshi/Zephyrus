@@ -5,7 +5,6 @@ import { HeroWall } from './HeroWall';
 import { Band } from './Band';
 import { UnitHeatStrip } from './UnitHeatStrip';
 import { ForecastCurve } from './ForecastCurve';
-import { RoleSwitcher } from './RoleSwitcher';
 
 interface CommandCenterViewProps {
   data: CommandCenterData;
@@ -18,8 +17,7 @@ export function CommandCenterView({ data, onRefresh, refreshedLabel }: CommandCe
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <RoleSwitcher />
+      <div className="flex justify-end">
         <div className="flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           <span>Updated {refreshedLabel}</span>
           <button type="button" onClick={onRefresh} aria-label="Refresh data"

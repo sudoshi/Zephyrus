@@ -30,9 +30,15 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
     <>
       <nav className="sticky top-0 z-[65] border-b border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <div className="mx-auto flex h-[var(--topbar-height)] max-w-full items-center gap-3 px-4">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex flex-shrink-0 items-center gap-2">
-            <img src="/images/IconOnly_Transparent.png" alt="Zephyrus" className="h-8 w-auto" />
+          {/* Logo / dashboard home */}
+          <Link
+            href={TOP_LEVEL_DASHBOARD.href}
+            aria-current={dashboardActive ? 'page' : undefined}
+            className={`flex flex-shrink-0 items-center gap-2 rounded-md px-2 py-1 transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
+              dashboardActive ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark' : ''
+            }`}
+          >
+            <img src="/images/zephyrus-icon.png" alt="" aria-hidden="true" className="h-8 w-8 rounded-lg object-contain" />
             <span className="text-[17px]/[24px] font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
@@ -49,17 +55,6 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
             {/* mx-auto centers the nav group when it fits; collapses to 0 (left-aligned,
                 scrollable) when the items overflow on narrow widths. */}
             <div className="mx-auto flex items-center gap-1">
-              <Link
-                href={TOP_LEVEL_DASHBOARD.href}
-                aria-current={dashboardActive ? 'page' : undefined}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[14px]/[18px] font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
-                  dashboardActive
-                    ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
-                    : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                }`}
-              >
-                {TOP_LEVEL_DASHBOARD.label}
-              </Link>
               {domains.map((domain) => (
                 <NavMegaMenu
                   key={domain.key}

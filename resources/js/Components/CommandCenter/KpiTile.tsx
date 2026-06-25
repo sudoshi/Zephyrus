@@ -9,9 +9,9 @@ function Sparkline({
   points, color, target, id,
 }: { points: number[]; color: string; target: number | null; id: string }) {
   if (points.length < 2) return null;
-  const w = 76;
-  const h = 30;
-  const pad = 3;
+  const w = 168;
+  const h = 42;
+  const pad = 4;
   const lo = Math.min(...points, ...(target != null ? [target] : []));
   const hi = Math.max(...points, ...(target != null ? [target] : []));
   const span = hi - lo || 1;
@@ -27,7 +27,13 @@ function Sparkline({
   const targetY = target != null ? pad + (1 - (target - lo) / span) * (h - 2 * pad) : null;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+    <svg
+      className="h-10 w-full overflow-visible"
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      data-testid={`sparkline-${id}`}
+    >
       <defs>
         <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.28} />
@@ -42,8 +48,8 @@ function Sparkline({
           stroke="currentColor" strokeWidth={1} strokeDasharray="3 2" opacity={0.5}
         />
       )}
-      <path d={line} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={lastX} cy={lastY} r={2.2} fill={color} />
+      <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r={2.8} fill={color} />
     </svg>
   );
 }
@@ -92,12 +98,14 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
               {metric.display}
             </span>
             {metric.trajectory && (
-              <span className="flex items-center gap-1 text-xs" style={{ color }} aria-hidden="true">
-                <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
+              <span className="text-lg font-semibold leading-none" style={{ color }} aria-hidden="true">
                 {arrow}
               </span>
             )}
           </div>
+          {metric.trajectory && (
+            <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
+          )}
           {targetRow}
         </>
       )}

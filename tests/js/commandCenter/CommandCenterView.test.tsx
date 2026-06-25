@@ -10,13 +10,12 @@ describe('CommandCenterView', () => {
     useCommandCenterStore.setState({ role: 'command', serviceLine: null });
   });
 
-  it('renders all four band titles and the role switcher', () => {
+  it('renders all four band titles', () => {
     render(<CommandCenterView data={commandCenterFixture} onRefresh={() => {}} refreshedLabel="just now" />);
     expect(screen.getByRole('heading', { name: 'Capacity' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Flow' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Outcomes' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Forecast' })).toBeInTheDocument();
-    expect(screen.getByRole('tablist', { name: 'Dashboard view' })).toBeInTheDocument();
   });
 
   it('calls onRefresh when the refresh button is clicked', () => {

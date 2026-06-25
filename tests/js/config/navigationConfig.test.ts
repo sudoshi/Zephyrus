@@ -11,10 +11,10 @@ describe('navigationConfig', () => {
   it('exposes the dropdown domains in order', () => {
     expect(NAVIGATION.map((d) => d.key)).toEqual([
       'rtdc',
+      'transport',
       'perioperative',
       'emergency',
       'improvement',
-      'transport',
       'analytics',
       'admin',
     ]);

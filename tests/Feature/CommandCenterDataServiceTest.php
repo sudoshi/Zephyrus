@@ -63,4 +63,31 @@ class CommandCenterDataServiceTest extends TestCase
             $this->assertContains($m['status'], ['critical', 'warning', 'success', 'info', 'neutral']);
         }
     }
+
+    public function test_every_kpi_metric_has_ninety_day_trajectory(): void
+    {
+        $data = (new CommandCenterDataService)->build();
+
+        foreach ($this->allMetrics($data) as $metric) {
+            $this->assertIsArray($metric['trajectory'], "{$metric['key']} missing trajectory");
+            $this->assertCount(90, $metric['trajectory']['points'], "{$metric['key']} must have 90 trend points");
+        }
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function allMetrics(array $data): array
+    {
+        $metrics = [
+            ...$data['heroMetrics'],
+            ...$data['capacity']['metrics'],
+            ...$data['outcomes']['metrics'],
+            ...$data['forecast']['metrics'],
+        ];
+
+        foreach ($data['flow']['subgroups'] as $group) {
+            array_push($metrics, ...$group['metrics']);
+        }
+
+        return $metrics;
+    }
 }
