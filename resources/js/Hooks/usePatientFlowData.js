@@ -166,4 +166,4 @@ export const usePatientFlowData = (filters) => {
   };
 };
 
-export default usePatientFlowData;
+// Default export removed to standardize on named exports only

@@ -68,4 +68,4 @@ export const useDarkMode = (): [boolean, Dispatch<SetStateAction<boolean>>] => {
   return [isDarkMode, setIsDarkMode];
 };
 
-export default useDarkMode;
+// Default export removed to standardize on named exports only

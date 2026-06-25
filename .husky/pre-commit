@@ -1,0 +1,6 @@
+# Run lint-staged to check staged files
+npx lint-staged
+
+# Run a quick build check to catch import/export issues
+echo "Running build check to catch import/export issues..."
+npm run build:check

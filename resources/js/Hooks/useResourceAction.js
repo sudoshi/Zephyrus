@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const useResourceAction = () => {
+const useResourceActionImpl = () => {
   const [pendingAction, setPendingAction] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
 
@@ -90,4 +90,4 @@ const useResourceAction = () => {
   };
 };
 
-export default useResourceAction;
+export const useResourceAction = useResourceActionImpl;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const useModalAnimation = (isOpen, onClose) => {
+const useModalAnimationImpl = (isOpen, onClose) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
 
@@ -34,4 +34,4 @@ const useModalAnimation = (isOpen, onClose) => {
   };
 };
 
-export default useModalAnimation;
+export const useModalAnimation = useModalAnimationImpl;
