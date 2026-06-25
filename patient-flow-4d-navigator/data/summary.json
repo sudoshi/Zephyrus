@@ -1,0 +1,10 @@
+{
+  "clinical_context_events": 366,
+  "locations": 716,
+  "max_occurred_at": "2026-06-25T02:40:00Z",
+  "messages": 918,
+  "min_occurred_at": "2026-06-23T21:23:00Z",
+  "movement_events": 552,
+  "normalized_events": 918,
+  "patients": 90
+}

@@ -48,9 +48,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           </div>
 
           <div className="za-brand-mid">
-            <div className="za-hero-icon-wrap">
-              <img className="za-hero-icon" src={ZEPHYRUS_ICON_SRC} alt="Zephyrus application icon" />
-            </div>
             <span className="za-eyebrow">Operations Command Center</span>
             <h2 className="za-headline">
               Coordinate <span className="za-accent">ED, RTDC, perioperative &amp; improvement</span> decisions in one live view.

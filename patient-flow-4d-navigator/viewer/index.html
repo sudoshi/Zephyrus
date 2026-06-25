@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patient Flow 4D Navigator</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <canvas id="viewport" aria-label="Patient flow 3D navigator"></canvas>
+    <section id="toolbar">
+      <div class="brand">
+        <strong>Patient Flow 4D</strong>
+        <span id="summaryText">Loading</span>
+      </div>
+      <div class="timebox">
+        <output id="timeLabel">--</output>
+        <input id="timeSlider" type="range" min="0" max="10000" value="10000">
+      </div>
+      <div class="tool-buttons">
+        <button id="playButton" title="Play or pause" type="button"><i data-lucide="play"></i></button>
+        <button id="liveButton" title="Live stream" type="button"><i data-lucide="radio"></i></button>
+        <button id="resetButton" title="Reset view" type="button"><i data-lucide="home"></i></button>
+        <button id="focusButton" title="Focus active patients" type="button"><i data-lucide="scan-search"></i></button>
+      </div>
+      <div class="control-grid">
+        <label for="floorSelect">Floor</label>
+        <select id="floorSelect"><option value="all">All</option></select>
+        <label for="serviceSelect">Service</label>
+        <select id="serviceSelect"><option value="all">All</option></select>
+        <label for="categorySelect">Event</label>
+        <select id="categorySelect"><option value="all">All</option></select>
+        <label for="speedSelect">Speed</label>
+        <select id="speedSelect">
+          <option value="15">15m/s</option>
+          <option value="60" selected>1h/s</option>
+          <option value="240">4h/s</option>
+          <option value="720">12h/s</option>
+        </select>
+        <label for="searchInput">Find</label>
+        <input id="searchInput" type="search" placeholder="PT, bed, service">
+      </div>
+      <div class="layer-grid">
+        <label><input id="baseLayer" type="checkbox" checked> Model</label>
+        <label><input id="tokensLayer" type="checkbox" checked> Patients</label>
+        <label><input id="trailsLayer" type="checkbox" checked> Trails</label>
+        <label><input id="heatLayer" type="checkbox" checked> Census</label>
+      </div>
+      <div id="metrics">
+        <div><span id="activeMetric">0</span><small>Active</small></div>
+        <div><span id="eventMetric">0</span><small>Events</small></div>
+        <div><span id="occupancyMetric">0</span><small>Locations</small></div>
+      </div>
+    </section>
+    <section id="inspector">
+      <strong id="inspectorTitle">Select a patient or location</strong>
+      <dl id="inspectorData"></dl>
+    </section>
+    <section id="eventFeed">
+      <strong>Stream</strong>
+      <ol id="feedList"></ol>
+    </section>
+    <section id="statusbar">
+      <span id="statusText">Starting</span>
+      <span id="cameraText"></span>
+    </section>
+  </main>
+  <script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/",
+        "lucide": "https://unpkg.com/lucide@0.475.0/dist/esm/lucide.js"
+      }
+    }
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

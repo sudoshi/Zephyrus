@@ -54,7 +54,7 @@ hosp_ingest → hosp_space → prod (Blueprint/CAD/BIM ingestion and operational
 Generated hospital CAD catalogs can be imported with:
 
 ```bash
-php artisan facility:import-catalog hospital-cad-model/data/model_catalog.json \
+php artisan facility:import-catalog patient-flow-4d-navigator/hospital-cad-model/data/model_catalog.json \
   --facility-code=ZEPHYRUS-500 \
   --facility-name="500-Bed Level I Trauma Academic Medical Center" \
   --source-name=local-500-bed-catalog \

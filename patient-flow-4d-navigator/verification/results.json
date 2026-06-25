@@ -1,0 +1,70 @@
+{
+  "url": "http://127.0.0.1:8776/viewer/",
+  "generatedAt": "2026-06-25T03:01:22.048Z",
+  "results": [
+    {
+      "name": "desktop-1440x900",
+      "screenshotPath": "/Users/sudoshi/Github/Parthenon/docs/research/patient-flow-4d-navigator/verification/desktop-1440x900.png",
+      "pixelStats": {
+        "width": 1440,
+        "height": 900,
+        "totalPixels": 1296000,
+        "nonBackground": 211218,
+        "colorRange": 234,
+        "nonBackgroundRatio": 0.16297685185185184,
+        "activeMetric": "74",
+        "eventMetric": "918",
+        "status": "Model loaded"
+      },
+      "apiSummary": {
+        "summary": {
+          "clinical_context_events": 366,
+          "live_events": 0,
+          "locations": 716,
+          "max_occurred_at": "2026-06-25T02:40:00Z",
+          "messages": 918,
+          "min_occurred_at": "2026-06-23T21:23:00Z",
+          "movement_events": 552,
+          "normalized_events": 918,
+          "patients": 90
+        },
+        "state": {
+          "activePatients": 74,
+          "occupiedLocations": 74
+        }
+      }
+    },
+    {
+      "name": "mobile-390x844",
+      "screenshotPath": "/Users/sudoshi/Github/Parthenon/docs/research/patient-flow-4d-navigator/verification/mobile-390x844.png",
+      "pixelStats": {
+        "width": 390,
+        "height": 844,
+        "totalPixels": 329160,
+        "nonBackground": 149114,
+        "colorRange": 234,
+        "nonBackgroundRatio": 0.45301373192368455,
+        "activeMetric": "74",
+        "eventMetric": "918",
+        "status": "Model loaded"
+      },
+      "apiSummary": {
+        "summary": {
+          "clinical_context_events": 366,
+          "live_events": 0,
+          "locations": 716,
+          "max_occurred_at": "2026-06-25T02:40:00Z",
+          "messages": 918,
+          "min_occurred_at": "2026-06-23T21:23:00Z",
+          "movement_events": 552,
+          "normalized_events": 918,
+          "patients": 90
+        },
+        "state": {
+          "activePatients": 74,
+          "occupiedLocations": 74
+        }
+      }
+    }
+  ]
+}
