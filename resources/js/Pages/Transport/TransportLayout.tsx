@@ -28,7 +28,7 @@ export default function TransportLayout({ title, subtitle, current, children }: 
   return (
     <DashboardLayout>
       <Head title={`${title} - Transport`} />
-      <PageContentLayout title={title} subtitle={subtitle}>
+      <PageContentLayout title={title} subtitle={subtitle} headerContent={null}>
         <div className="mb-4 flex min-w-0 gap-1 overflow-x-auto border-b border-healthcare-border pb-2 dark:border-healthcare-border-dark">
           {tabs.map((tab) => {
             const active = tab.href === current;
