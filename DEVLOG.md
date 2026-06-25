@@ -22,7 +22,7 @@
 10. [Authentication & Security](#authentication--security)
 11. [Development Workflow](#development-workflow)
 12. [Testing & Quality Assurance](#testing--quality-assurance)
-13. [Deployment & CI/CD](#deployment--cicd)
+13. [Deployment & CI](#deployment--ci)
 14. [Performance & Scalability](#performance--scalability)
 15. [Integration Capabilities](#integration-capabilities)
 16. [Analytics & Reporting](#analytics--reporting)
@@ -1275,7 +1275,7 @@ composer run dev
 - `./stop-dev.sh`: Stop both servers
 - `./clear-cache.sh`: Clear all Laravel caches
 - `./deploy.sh`: Manual production deployment
-- `./deploy-production.sh`: Production deployment script (called by CI/CD)
+- GitHub Actions is CI-only; production deployment is manual-only through `./deploy.sh`
 
 ### Cache Management
 
@@ -1377,9 +1377,9 @@ php artisan test --filter=TestClassName   # Single test class
 
 ---
 
-## Deployment & CI/CD
+## Deployment & CI
 
-### CI/CD Pipeline (GitHub Actions)
+### CI Pipeline (GitHub Actions)
 
 **Workflow File**: `.github/workflows/main.yml`
 
@@ -1405,22 +1405,7 @@ php artisan test --filter=TestClassName   # Single test class
   10. Build frontend assets
   11. Run tests (currently commented out)
 
-#### 2. Deploy Production Job
-- **Condition**: Only on `main` branch push, after test passes
-- **Environment**: production
-- **Concurrency**: production_environment (prevents concurrent deployments)
-- **Steps**:
-  1. Install SSH key
-  2. Add known hosts
-  3. SSH into production server
-  4. Execute `deploy-production.sh` script
-
-**Production Deployment Script**:
-- Backup `.env` file
-- Reset and clean git working directory
-- Pull latest code from `main` branch
-- Restore `.env`
-- Run deployment script with sudo
+GitHub Actions must not deploy to production. Production deployment is manual-only.
 
 ### Production Deployment
 
@@ -1438,10 +1423,9 @@ php artisan test --filter=TestClassName   # Single test class
 **Deployment Script Actions**:
 1. Build production assets (`npm run build`)
 2. Rsync to production server
-3. SSH into server
-4. Run migrations
-5. Clear caches
-6. Restart Apache
+3. Clear Laravel caches
+4. Restart Apache
+5. Verify the Zephyrus vhost
 
 **Environment Configuration**:
 - `HTTP_TYPE=http` (Traefik handled by Apache, not internally)
@@ -1961,7 +1945,7 @@ curl -sSI https://zephyrus.acumenus.net/login
 
 ##### Phase 4: Documentation
 
-Created comprehensive deployment documentation:
+Created deployment documentation. These documents have since been superseded by the manual-only deployment policy:
 
 1. **AUTHENTICATION.md** (185 lines):
    - Setup instructions
@@ -1970,17 +1954,13 @@ Created comprehensive deployment documentation:
    - Troubleshooting guide
    - Password change procedures
 
-2. **DEPLOYMENT_CHECKLIST.md** (418 lines):
+2. **DEPLOYMENT_CHECKLIST.md**:
+   - Manual-only deployment checklist for `./deploy.sh`
    - Pre-deployment tasks
-   - Step-by-step deployment procedures
    - Post-deployment verification
-   - Rollback procedures
-   - Security hardening steps
 
-3. **DEPLOY_NOW.md** (297 lines):
-   - Copy-paste ready deployment commands
-   - Quick reference guide
-   - Common issues and fixes
+3. **DEPLOY_NOW.md**:
+   - Manual-only deployment reference for `./deploy.sh`
 
 #### Technical Learnings
 
@@ -2016,10 +1996,10 @@ Created comprehensive deployment documentation:
 - Migrations need careful schema specification
 - Foreign key constraints across schemas require special handling
 
-**6. Git in Production**:
-- Set safe.directory exception for git operations
-- Use force checkout carefully (only after backup)
-- Consider using deployment keys for automated deploys
+**6. Production Release Control**:
+- Do not use production Git pulls as an application deployment mechanism
+- Do not use deployment keys or automated deploy jobs for production releases
+- Use the manual `./deploy.sh` release path from the development checkout
 - Tag production releases for easy rollback
 
 **7. Apache + Laravel Configuration**:
@@ -2072,8 +2052,8 @@ Created comprehensive deployment documentation:
 
 **Documentation**:
 - `AUTHENTICATION.md` - New authentication guide
-- `DEPLOYMENT_CHECKLIST.md` - New deployment procedures
-- `DEPLOY_NOW.md` - Quick deployment reference
+- `DEPLOYMENT_CHECKLIST.md` - Manual-only deployment checklist
+- `DEPLOY_NOW.md` - Manual-only deployment reference
 
 #### Testing Performed
 

@@ -127,9 +127,11 @@ The backend serves as a thin layer that passes data to React via Inertia.js — 
 
 ### Deployment
 
-Production deployment uses GitHub Actions CI/CD (`.github/workflows/main.yml`). On push to `main`, it builds assets and deploys via SSH to the production server at `/var/www/Zephyrus/`, using Apache2 as the web server.
+Production deployment is manual-only. GitHub Actions is for CI and must not deploy to production.
 
-Manual deployment: `./deploy.sh` (builds, rsyncs to production, clears caches, restarts Apache).
+Manual deployment: `./deploy.sh` (builds, rsyncs to `/var/www/Zephyrus/`, clears Laravel caches, restarts Apache, and verifies the Zephyrus vhost).
+
+Do not use automated GitHub Actions deploy jobs, ad hoc SSH command blocks, direct production `git pull`, or alternate deploy scripts as application deployment mechanisms.
 
 ## Key Patterns
 

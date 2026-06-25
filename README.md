@@ -128,17 +128,16 @@ npm run dev
 
 ## 🚀 Deployment
 
-Zephyrus uses GitHub Actions for automated CI/CD pipeline:
+Zephyrus uses GitHub Actions for CI only. Production deployment is manual-only:
 
-1. **Continuous Integration**:
-   - Automated testing
-   - Code quality checks
-   - Asset building
+```bash
+cd /home/smudoshi/Github/Zephyrus
+./deploy.sh
+```
 
-2. **Continuous Deployment**:
-   - Automatic deployment to production on main branch updates
-   - Zero-downtime deployments
-   - Automated cache management
+Do not use GitHub Actions, ad hoc SSH command blocks, direct production
+`git pull`, or alternate scripts for application deployment. `./deploy.sh` is
+the supported production release path.
 
 ## 📄 License
 This project is licensed under the MIT License.
