@@ -47,15 +47,15 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
     };
 
     return (
-        <div className={`bg-white h-full flex flex-col ${className}`}>
+        <div className={`bg-healthcare-surface dark:bg-healthcare-surface-dark h-full flex flex-col ${className}`}>
             <div className="flex items-center justify-between px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {value.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </h2>
                 <div className="flex space-x-2">
                     <button
                         onClick={() => handleMonthChange(-1)}
-                        className="p-2 hover:bg-gray-100 rounded-full"
+                        className="p-2 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-full"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -63,7 +63,7 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
                     </button>
                     <button
                         onClick={() => handleMonthChange(1)}
-                        className="p-2 hover:bg-gray-100 rounded-full"
+                        className="p-2 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-full"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -72,19 +72,19 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
                 </div>
             </div>
 
-            <div className="border-t border-gray-200 flex-1 flex flex-col">
-                <div className="grid grid-cols-7 gap-px bg-gray-200 text-center text-xs leading-6 text-gray-700">
+            <div className="border-t border-healthcare-border dark:border-healthcare-border-dark flex-1 flex flex-col">
+                <div className="grid grid-cols-7 gap-px bg-healthcare-border dark:bg-healthcare-border-dark text-center text-xs leading-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {weekDays.map(day => (
-                        <div key={day} className="bg-white py-2 font-semibold">
+                        <div key={day} className="bg-healthcare-surface dark:bg-healthcare-surface-dark py-2 font-semibold">
                             {day}
                         </div>
                     ))}
                 </div>
 
                 <div className="flex-1 overflow-y-auto min-h-0">
-                    <div className="grid grid-cols-7 gap-px bg-gray-200 min-h-full">
+                    <div className="grid grid-cols-7 gap-px bg-healthcare-border dark:bg-healthcare-border-dark min-h-full">
                         {Array(firstDayOfMonth).fill(null).map((_, index) => (
-                            <div key={`empty-${index}`} className="bg-white h-[120px]" />
+                            <div key={`empty-${index}`} className="bg-healthcare-surface dark:bg-healthcare-surface-dark h-[120px]" />
                         ))}
                         
                         {days.map(day => {
@@ -95,11 +95,11 @@ const Calendar = ({ value = new Date(), onChange, renderDayContent, className = 
                                 <div
                                     key={day}
                                     onClick={() => handleDateClick(day)}
-                                    className={`bg-white p-2 cursor-pointer hover:bg-gray-50 min-h-[120px] overflow-y-auto ${
-                                        isToday(day) ? 'bg-blue-50' : ''
+                                    className={`bg-healthcare-surface dark:bg-healthcare-surface-dark p-2 cursor-pointer hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark min-h-[120px] overflow-y-auto ${
+                                        isToday(day) ? 'bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20' : ''
                                     }`}
                                 >
-                                    <div className={`text-sm ${isToday(day) ? 'font-semibold text-blue-600' : ''}`}>
+                                    <div className={`text-sm ${isToday(day) ? 'font-semibold text-healthcare-primary dark:text-healthcare-primary-dark' : ''}`}>
                                         {day}
                                     </div>
                                     {dayContent}

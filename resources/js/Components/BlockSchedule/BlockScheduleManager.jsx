@@ -83,9 +83,9 @@ const BlockScheduleManager = () => {
     };
 
     const getUtilizationColor = (percentage) => {
-        if (percentage >= 80) return 'text-green-600';
-        if (percentage >= 60) return 'text-yellow-600';
-        return 'text-red-600';
+        if (percentage >= 80) return 'text-healthcare-success dark:text-healthcare-success-dark';
+        if (percentage >= 60) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+        return 'text-healthcare-critical dark:text-healthcare-critical-dark';
     };
 
     const [formData, setFormData] = useState({
@@ -143,7 +143,7 @@ const BlockScheduleManager = () => {
         return (
             <div className="p-2">
                 <div className="font-medium">{block.service_name}</div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {new Date(block.start_time).toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',
@@ -172,7 +172,7 @@ const BlockScheduleManager = () => {
                 {dayBlocks.map(block => (
                     <div 
                         key={block.block_id}
-                        className="text-xs bg-indigo-50 rounded-sm mb-1 overflow-hidden"
+                        className="text-xs bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded-sm mb-1 overflow-hidden"
                     >
                         {renderBlockContent(block)}
                     </div>
@@ -184,14 +184,14 @@ const BlockScheduleManager = () => {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-healthcare-primary dark:border-healthcare-primary-dark border-t-transparent"></div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="p-6 text-center text-red-600">
+            <div className="p-6 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
                 <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
                 <p>{error}</p>
             </div>
@@ -255,7 +255,7 @@ const BlockScheduleManager = () => {
 
             <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
                 <div className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Add Block Time</h3>
+                    <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">Add Block Time</h3>
                     <Form onSubmit={handleSubmit} className="space-y-4">
                         <Form.Field>
                             <Form.Label>Service</Form.Label>

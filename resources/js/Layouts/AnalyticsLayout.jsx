@@ -15,7 +15,7 @@ export default function AnalyticsLayout({ children, auth, title, headerButtons }
           <div className="w-1/3">
             {/* Left section - empty for balance */}
           </div>
-          <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight text-center w-1/3">
+          <h2 className="font-semibold text-xl text-healthcare-text-primary dark:text-healthcare-text-primary-dark leading-tight text-center w-1/3">
             {title}
           </h2>
           <div className="flex flex-wrap gap-2 ml-auto w-1/3 justify-end">
@@ -28,8 +28,8 @@ export default function AnalyticsLayout({ children, auth, title, headerButtons }
       
       <div className="py-4">
         <div className="max-w-full mx-auto px-4 sm:px-6">
-          <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-4 text-gray-900 dark:text-gray-100">
+          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark overflow-hidden shadow-sm sm:rounded-lg">
+            <div className="p-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               <ErrorBoundary>
                 <AnalyticsLayoutContent>
                   {children}

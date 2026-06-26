@@ -94,6 +94,13 @@ export default {
                         dark: '#1E293B',    // Rich dark blue for dark mode
                         secondary: '#F1F5F9', // Subtle gray for secondary surfaces
                         tertiary: '#F8FAFC', // Lightest surface for specific cases
+                        // hover restored here: this `surface` key shadows an
+                        // earlier one, so surface.hover must live in the winning
+                        // block or `bg-healthcare-surface-hover` resolves to nothing.
+                        hover: {
+                            DEFAULT: '#F8FAFC',
+                            dark: '#334155',
+                        },
                     },
                     text: {
                         primary: {

@@ -45,11 +45,11 @@ export default function UpdateProfileInformation({
             <header className="flex items-center gap-4">
                 <UserAvatar />
                 <div>
-                    <h2 className="text-lg font-medium text-gray-900">
+                    <h2 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         Profile Information
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Update your account's profile information and email address.
                     </p>
                 </div>
@@ -105,20 +105,20 @@ export default function UpdateProfileInformation({
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <p className="mt-2 text-sm text-gray-800">
+                        <p className="mt-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             Your email address is unverified.
                             <Link
                                 href="/email/verification-notification"
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                className="rounded-md text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark underline hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:ring-offset-2"
                             >
                                 Click here to re-send the verification email.
                             </Link>
                         </p>
 
                         {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
+                            <div className="mt-2 text-sm font-medium text-healthcare-success dark:text-healthcare-success-dark">
                                 A new verification link has been sent to your
                                 email address.
                             </div>
@@ -136,7 +136,7 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             Saved.
                         </p>
                     </Transition>

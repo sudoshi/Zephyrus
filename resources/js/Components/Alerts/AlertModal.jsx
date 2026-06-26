@@ -36,7 +36,7 @@ const VitalsReviewContent = ({ data }) => (
           </div>
           <div className="mt-4">
             <span className="text-sm font-medium">Trend</span>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               BP trending upward over last 2 hours. HR elevated but stable.
             </p>
           </div>

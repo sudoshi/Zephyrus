@@ -20,7 +20,7 @@ const Label = ({ children, htmlFor, className = '' }) => {
     return (
         <label
             htmlFor={htmlFor}
-            className={`block text-sm font-medium text-gray-700 ${className}`}
+            className={`block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ${className}`}
         >
             {children}
         </label>
@@ -30,7 +30,7 @@ const Label = ({ children, htmlFor, className = '' }) => {
 const Input = ({ className = '', ...props }) => {
     return (
         <input
-            className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${className}`}
+            className={`block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary sm:text-sm ${className}`}
             {...props}
         />
     );
