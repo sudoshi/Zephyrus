@@ -32,6 +32,7 @@ class OperationsRecommendationService
             $this->orPacuPressureRecommendation(),
             $this->transportRiskRecommendation(),
             $this->barrierRecommendation(),
+            $this->staffingGapRecommendation(),
             $this->staleSourceRecommendation(),
         ])
             ->filter()
@@ -482,6 +483,70 @@ class OperationsRecommendationService
                     'owner' => 'Unit huddles',
                     'route' => '/rtdc/unit-huddle',
                     'instruction' => 'Assign owners and due times for open patient-flow barriers.',
+                ],
+            ],
+        ];
+    }
+
+    /** @return array<string,mixed>|null */
+    private function staffingGapRecommendation(): ?array
+    {
+        if (! Schema::hasTable('prod.staffing_plans')) {
+            return null;
+        }
+
+        $plans = DB::table('prod.staffing_plans')
+            ->where('is_deleted', false)
+            ->whereDate('shift_date', now()->toDateString())
+            ->whereRaw('(required_count - GREATEST(scheduled_count, actual_count)) > 0')
+            ->orderByRaw('(required_count - GREATEST(scheduled_count, actual_count)) DESC')
+            ->limit(12)
+            ->get();
+
+        if ($plans->isEmpty()) {
+            return null;
+        }
+
+        $units = $plans
+            ->groupBy('unit_label')
+            ->map(fn ($rows): int => (int) $rows->sum(fn (object $row): int => max(0, (int) $row->required_count - max((int) $row->scheduled_count, (int) $row->actual_count))));
+        $totalGap = (int) $units->sum();
+        $belowSafe = $plans->filter(fn (object $row): bool => max((int) $row->scheduled_count, (int) $row->actual_count) < (int) $row->minimum_safe_count)->count();
+        $criticalUnits = $plans->where('status', 'critical_gap')->pluck('unit_label')->unique()->count();
+        $risk = $belowSafe > 0 || $criticalUnits > 0 ? 'critical' : ($units->count() >= 2 ? 'high' : 'medium');
+
+        return [
+            'type' => 'staffing_gap',
+            'scopeType' => 'hospital',
+            'scopeKey' => 'staffing',
+            'title' => "{$units->count()} units short {$totalGap} staff for the current shift",
+            'rationale' => 'Unmitigated staffing gaps cap usable staffed capacity, slow bed openings, and raise safety risk on affected units.',
+            'confidence' => 0.86,
+            'riskLevel' => $risk,
+            'expectedImpact' => [
+                'metric' => 'staffing_gap',
+                'direction' => 'down',
+                'units_short' => $units->count(),
+                'gap_headcount' => $totalGap,
+                'below_minimum_safe' => $belowSafe,
+            ],
+            'evidence' => $this->evidence(
+                facts: [
+                    'units_short' => $units->count(),
+                    'gap_headcount' => $totalGap,
+                    'below_minimum_safe_slots' => $belowSafe,
+                    'units' => $units->map(fn (int $gap, string $unit): array => ['unit' => $unit, 'gap' => $gap])->values()->all(),
+                ],
+                nodes: $this->activeUnitNodes(),
+                sourceTables: ['prod.staffing_plans', 'prod.units', 'ops.nodes', 'ops.edges'],
+                graphPath: 'staffing_plan -> covers_unit -> unit',
+            ),
+            'action' => [
+                'type' => 'mitigate_staffing_gap',
+                'payload' => [
+                    'owner' => 'Staffing office',
+                    'route' => '/staffing',
+                    'instruction' => 'Source float, overtime, agency, or on-call coverage for units below target and confirm safety constraints.',
                 ],
             ],
         ];

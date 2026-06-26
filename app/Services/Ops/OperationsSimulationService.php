@@ -245,6 +245,7 @@ class OperationsSimulationService
         $weightedDischarges = $this->weightedDischarges();
         $pacuHolds = $this->pacuHolds();
         $upcomingOrCases = $this->upcomingOrCases();
+        $staffingGap = $this->staffingGap();
         $currentNetBeds = $capacity['available'] - $pendingBeds;
 
         $baseline = [
@@ -262,6 +263,7 @@ class OperationsSimulationService
             'weighted_discharges' => $weightedDischarges,
             'pacu_holds' => $pacuHolds,
             'upcoming_or_cases_4h' => $upcomingOrCases,
+            'staffing_gap' => $staffingGap,
         ];
         $baseline['risk_score'] = $this->riskScore($baseline);
 
@@ -276,6 +278,7 @@ class OperationsSimulationService
         $transportReduction = min($baseline['transport_at_risk'], max(1, (int) ceil($baseline['transport_at_risk'] * 0.5)));
         $pacuReduction = min($baseline['pacu_holds'], 2);
         $flexBeds = min(4, max(2, $baseline['blocked_beds'] + 2));
+        $staffingRelief = min($baseline['staffing_gap'], max(1, (int) ceil($baseline['staffing_gap'] * 0.6)));
 
         return [
             $this->scenario('no_action', 'No action baseline', 'Continue current operations without additional intervention.', []),
@@ -300,14 +303,19 @@ class OperationsSimulationService
                 'pacu_holds' => -$pacuReduction,
                 'net_beds' => $pacuReduction > 0 ? 1 : 0,
             ], ['OR board runner reviews PACU holds and downstream bed readiness.']),
-            $this->scenario('combined_capacity_plan', 'Combined capacity plan', 'Bundle EVS acceleration, discharge pull-forward, transport reassignment, flex capacity, and OR/PACU protection.', [
-                'net_beds' => min(10, $evsRelease + $dischargePull + $flexBeds + ($transportReduction > 0 ? 1 : 0) + ($pacuReduction > 0 ? 1 : 0)),
+            $this->scenario('staffing_relief', 'Mitigate staffing gaps', 'Source float, overtime, agency, or on-call coverage so understaffed units can safely accept patients.', [
+                'staffing_gap' => -$staffingRelief,
+                'net_beds' => $staffingRelief > 0 ? 1 : 0,
+            ], ['Staffing office confirms float, overtime, agency, or on-call coverage and unit safety constraints.']),
+            $this->scenario('combined_capacity_plan', 'Combined capacity plan', 'Bundle EVS acceleration, discharge pull-forward, transport reassignment, flex capacity, OR/PACU protection, and staffing relief.', [
+                'net_beds' => min(10, $evsRelease + $dischargePull + $flexBeds + ($transportReduction > 0 ? 1 : 0) + ($pacuReduction > 0 ? 1 : 0) + ($staffingRelief > 0 ? 1 : 0)),
                 'dirty_or_blocked_beds' => -$evsRelease,
                 'ed_boarders' => -min($baseline['ed_boarders'], $dischargePull + 2),
                 'transport_at_risk' => -$transportReduction,
                 'evs_at_risk' => -min($baseline['evs_at_risk'], $evsRelease),
                 'pacu_holds' => -$pacuReduction,
                 'blocked_beds' => -min($baseline['blocked_beds'], $flexBeds),
+                'staffing_gap' => -$staffingRelief,
             ], ['Capacity huddle approves one bundled plan with named owners and due times.']),
         ];
     }
@@ -329,6 +337,7 @@ class OperationsSimulationService
             'evs_at_risk' => max(0, $baseline['evs_at_risk'] + ($effects['evs_at_risk'] ?? 0)),
             'pacu_holds' => max(0, $baseline['pacu_holds'] + ($effects['pacu_holds'] ?? 0)),
             'blocked_beds' => max(0, $baseline['blocked_beds'] + ($effects['blocked_beds'] ?? 0)),
+            'staffing_gap' => max(0, ($baseline['staffing_gap'] ?? 0) + ($effects['staffing_gap'] ?? 0)),
         ];
         $projected['risk_score'] = $this->riskScore(array_merge($baseline, [
             'current_net_beds' => $projected['net_beds'],
@@ -338,6 +347,7 @@ class OperationsSimulationService
             'evs_at_risk' => $projected['evs_at_risk'],
             'pacu_holds' => $projected['pacu_holds'],
             'blocked_beds' => $projected['blocked_beds'],
+            'staffing_gap' => $projected['staffing_gap'],
         ]));
 
         foreach ([
@@ -347,6 +357,7 @@ class OperationsSimulationService
             ['dirty_or_blocked_beds', $baseline['dirty_or_blocked_beds'], $projected['dirty_or_blocked_beds'], 'beds', $projected['dirty_or_blocked_beds'] > 0 ? 'warning' : 'success'],
             ['evs_at_risk', $baseline['evs_at_risk'], $projected['evs_at_risk'], 'requests', $projected['evs_at_risk'] > 0 ? 'warning' : 'success'],
             ['pacu_holds', $baseline['pacu_holds'], $projected['pacu_holds'], 'holds', $projected['pacu_holds'] > 0 ? 'warning' : 'success'],
+            ['staffing_gap', $baseline['staffing_gap'] ?? 0, $projected['staffing_gap'], 'staff', $projected['staffing_gap'] > 0 ? 'warning' : 'success'],
             ['risk_score', $baseline['risk_score'], $projected['risk_score'], 'score', $projected['risk_score'] >= 70 ? 'critical' : ($projected['risk_score'] >= 45 ? 'warning' : 'success')],
         ] as [$key, $base, $value, $unit, $status]) {
             SimulationResult::create([
@@ -500,7 +511,21 @@ class OperationsSimulationService
             + min(20, $payload['evs_at_risk'] ?? 0) * 2
             + min(10, $payload['pacu_holds'] ?? 0) * 3
             + min(10, $payload['blocked_beds'] ?? 0) * 1.5
+            + min(15, $payload['staffing_gap'] ?? 0) * 2
         )));
+    }
+
+    private function staffingGap(): int
+    {
+        if (! Schema::hasTable('prod.staffing_plans')) {
+            return 0;
+        }
+
+        return (int) DB::table('prod.staffing_plans')
+            ->where('is_deleted', false)
+            ->whereDate('shift_date', now()->toDateString())
+            ->selectRaw('COALESCE(SUM(GREATEST(required_count - GREATEST(scheduled_count, actual_count), 0)), 0) AS gap')
+            ->value('gap');
     }
 
     /** @return array<string,mixed> */

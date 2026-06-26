@@ -17,6 +17,7 @@ use App\Models\Unit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CommandCenterDemoSeeder extends Seeder
 {
@@ -90,6 +91,13 @@ class CommandCenterDemoSeeder extends Seeder
         // 4. Barriers (~6 open).
         // ----------------------------------------------------------------
         $this->seedBarriers($nonEdUnits);
+
+        // ----------------------------------------------------------------
+        // 4b. Staffing plans + gap-mitigation requests.
+        //     Deliberately leaves two units short for the current day shift
+        //     so the "staffing is tight on two units" demo signal is real.
+        // ----------------------------------------------------------------
+        $this->seedStaffingPlans($nonEdUnits);
 
         // ----------------------------------------------------------------
         // 5. ED Visits (~70 over last 24h).
@@ -574,6 +582,114 @@ class CommandCenterDemoSeeder extends Seeder
                 'is_deleted' => false,
             ]);
         }
+    }
+
+    /**
+     * Seed today's day-shift staffing posture for non-ED units, deliberately
+     * leaving two units (6E + ICU, the high-occupancy RED units) short on RN
+     * coverage so the operational graph, recommendations, and simulation carry
+     * a real "staffing is tight on two units" signal.
+     *
+     * Idempotent: clears today's demo staffing rows then reseeds. Staffing
+     * tables are demo-only, so deleting today's rows is safe and reversible.
+     */
+    private function seedStaffingPlans($nonEdUnits): void
+    {
+        $today = now()->toDateString();
+
+        // Cascade-deletes events; only removes seeder-owned demo requests.
+        DB::table('prod.staffing_requests')->where('requested_by', 'demo-seeder')->delete();
+        DB::table('prod.staffing_plans')->whereDate('shift_date', $today)->delete();
+
+        // Pick the two short units: prefer 6E + ICU, else the first two non-ED.
+        $preferred = $nonEdUnits->filter(fn ($u) => in_array($u->abbreviation, ['6E', 'ICU'], true))->values();
+        $shortUnits = ($preferred->count() >= 2 ? $preferred : $nonEdUnits->take(2))
+            ->pluck('abbreviation')
+            ->all();
+
+        foreach ($nonEdUnits as $unit) {
+            $isIcu = $unit->type === 'icu' || $unit->abbreviation === 'ICU';
+            $isShort = in_array($unit->abbreviation, $shortUnits, true);
+
+            $rnRequired = $isIcu ? 5 : 6;
+            $rnScheduled = $isShort ? ($isIcu ? 3 : 4) : $rnRequired;
+            $rnMinSafe = $isIcu ? 4 : 5;
+            $rnGap = max(0, $rnRequired - $rnScheduled);
+            $rnStatus = $rnGap === 0
+                ? 'balanced'
+                : (($isIcu || $rnScheduled < $rnMinSafe) ? 'critical_gap' : 'gap');
+
+            $this->insertStaffingPlan($unit, 'rn', $today, $rnRequired, $rnScheduled, $rnMinSafe, $isIcu ? 2.0 : 4.0, $rnStatus);
+            $this->insertStaffingPlan($unit, 'tech', $today, 2, 2, 1, 12.0, 'balanced');
+            $this->insertStaffingPlan($unit, 'charge', $today, 1, 1, 1, 12.0, 'balanced');
+
+            if ($isShort && $rnGap > 0) {
+                $this->insertStaffingRequest($unit, 'rn', $today, $rnGap, $isIcu ? 'stat' : 'urgent', $rnStatus);
+            }
+        }
+    }
+
+    private function insertStaffingPlan(Unit $unit, string $role, string $today, int $required, int $scheduled, int $minSafe, float $ratioTarget, string $status): void
+    {
+        DB::table('prod.staffing_plans')->insert([
+            'plan_uuid' => (string) Str::uuid(),
+            'unit_id' => $unit->unit_id,
+            'unit_label' => $unit->name,
+            'role' => $role,
+            'shift_date' => $today,
+            'shift' => 'day',
+            'required_count' => $required,
+            'scheduled_count' => $scheduled,
+            'actual_count' => $scheduled,
+            'minimum_safe_count' => $minSafe,
+            'census' => $unit->staffed_bed_count ?? 0,
+            'ratio_target' => $ratioTarget,
+            'status' => $status,
+            'notes' => null,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function insertStaffingRequest(Unit $unit, string $role, string $today, int $headcount, string $priority, string $status): void
+    {
+        $requestId = DB::table('prod.staffing_requests')->insertGetId([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_id' => $unit->unit_id,
+            'unit_label' => $unit->name,
+            'role' => $role,
+            'shift_date' => $today,
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => $priority,
+            'status' => 'open',
+            'headcount_needed' => $headcount,
+            'hours_needed' => 12,
+            'requested_by' => 'demo-seeder',
+            'needed_by' => now()->addHours(2),
+            'owner_name' => 'Staffing office',
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'staffing_request_id');
+
+        DB::table('prod.staffing_events')->insert([
+            'event_uuid' => (string) Str::uuid(),
+            'staffing_request_id' => $requestId,
+            'event_type' => 'staffing.requested',
+            'from_status' => null,
+            'to_status' => 'open',
+            'payload' => json_encode([
+                'unit_label' => $unit->name,
+                'role' => $role,
+                'headcount_needed' => $headcount,
+                'source' => 'command_center_demo',
+            ]),
+            'source' => 'demo-seeder',
+            'occurred_at' => now(),
+            'created_at' => now(),
+        ]);
     }
 
     private function seedEdVisits(?Unit $edUnit, $nonEdUnits): void
