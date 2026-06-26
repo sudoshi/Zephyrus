@@ -30,6 +30,7 @@ import {
   Timer,
   TrendingUp,
   Truck,
+  UserCog,
   Users,
   Workflow,
   Building2,
@@ -131,6 +132,20 @@ export const NAVIGATION: readonly NavDomain[] = [
           { label: 'Resources', href: '/transport/resources', icon: MapPinned },
           { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
           { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'staffing',
+    label: 'Staffing',
+    icon: UserCog,
+    matchPrefixes: ['/staffing'],
+    groups: [
+      {
+        title: 'Operations',
+        items: [
+          { label: 'Staffing Office', href: '/staffing', icon: UserCog },
         ],
       },
     ],

@@ -11,6 +11,7 @@ use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RTDCController;
 use App\Http\Controllers\RTDCDashboardController;
+use App\Http\Controllers\Staffing\StaffingDashboardController;
 use App\Http\Controllers\Transport\TransportDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -149,6 +150,9 @@ Route::middleware(['auth'])
                 Route::get('/resources', [EDDashboardController::class, 'resourcePlanning'])->name('resources');
             });
         });
+
+        // Staffing Office
+        Route::get('/staffing', [StaffingDashboardController::class, 'index'])->name('staffing');
 
         // Transport Routes
         Route::prefix('transport')->name('transport.')->group(function () {
