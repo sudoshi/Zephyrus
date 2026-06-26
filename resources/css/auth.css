@@ -34,7 +34,28 @@
 
 .zauth *, .zauth *::before, .zauth *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.za-shell { display: grid; grid-template-columns: 55fr 45fr; width: 100%; min-height: 100vh; }
+/* ============ FULL-BLEED CINEMATIC BACKGROUND ============ */
+.za-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+.za-bg-fallback {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 30%, #1e2a5a 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 70%, #0a2540 0%, transparent 55%),
+    linear-gradient(160deg, #0b1120 0%, #0a0f1f 100%);
+}
+.za-bg-slide {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 2.5s ease-in-out; will-change: opacity;
+}
+.za-bg-slide.is-active { opacity: 1; }
+.za-bg-scrim {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(1200px 820px at 28% 42%, rgba(6,8,15,0.42) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(6,8,15,0.52) 0%, rgba(6,8,15,0.78) 100%);
+}
+
+.za-shell { position: relative; z-index: 1; display: grid; grid-template-columns: 55fr 45fr; width: 100%; min-height: 100vh; }
 
 /* ============ LEFT BRAND PANEL ============ */
 .za-brand {
@@ -47,9 +68,9 @@
   text-align: center;
   padding: clamp(2.5rem, 4vw, 4.5rem);
   background:
-    radial-gradient(900px 600px at 20% 20%, rgba(99, 102, 241, 0.16), transparent 55%),
-    radial-gradient(800px 700px at 80% 90%, rgba(34, 211, 238, 0.12), transparent 55%),
-    linear-gradient(160deg, #0a0e1a 0%, #06080f 60%, #080b15 100%);
+    radial-gradient(900px 600px at 20% 20%, rgba(99, 102, 241, 0.22), transparent 55%),
+    radial-gradient(800px 700px at 80% 90%, rgba(34, 211, 238, 0.16), transparent 55%),
+    linear-gradient(160deg, rgba(10, 14, 26, 0.74) 0%, rgba(6, 8, 15, 0.80) 60%, rgba(8, 11, 21, 0.84) 100%);
   border-right: 1px solid var(--hair);
 }
 
@@ -78,17 +99,13 @@
 .za-brand-top, .za-brand-mid, .za-brand-bottom { position: relative; z-index: 2; }
 .za-brand-top { display: flex; justify-content: center; width: 100%; }
 
-.za-lockup { display: inline-flex; align-items: center; justify-content: center; gap: 0.85rem; }
-.za-lockup-icon {
-  display: block;
-  width: 66px;
-  height: 66px;
-  flex: none;
-  object-fit: contain;
-  border-radius: 12px;
-  filter: drop-shadow(0 0 14px rgba(34,211,238,0.28));
-}
+.za-lockup { display: inline-flex; align-items: center; justify-content: center; gap: 0.7rem; }
 .za-wordmark { font-size: 1.425rem; font-weight: 300; letter-spacing: 0.42em; text-transform: uppercase; color: var(--txt); padding-left: 0.1em; }
+.za-badge {
+  font-size: 0.64rem; font-weight: 600; letter-spacing: 0.08em; color: var(--cyan); text-transform: uppercase;
+  background: rgba(34, 211, 238, 0.10); border: 1px solid rgba(34, 211, 238, 0.28);
+  padding: 0.16rem 0.5rem; border-radius: 999px; position: relative; top: 1px;
+}
 
 .za-brand-mid {
   display: flex;
@@ -154,17 +171,16 @@
 .za-domain-or { --domain-color: #60a5fa; --domain-glow: rgba(96,165,250,0.5); }
 .za-domain-pi { --domain-color: #f0b85c; --domain-glow: rgba(240,184,92,0.5); }
 
-.za-sparkwrap { margin: 1.9rem auto 0; max-width: 360px; width: 100%; }
-.za-sparkline { width: 100%; height: 54px; display: block; }
-.za-spark-path {
-  stroke: url(#za-sparkgrad); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 600; stroke-dashoffset: 600;
-  animation: za-draw 4s ease-in-out forwards, za-pulse 4.5s ease-in-out 4s infinite;
-  filter: drop-shadow(0 0 6px rgba(34,211,238,0.4));
-}
-@keyframes za-draw { to { stroke-dashoffset: 0; } }
-@keyframes za-pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
-.za-spark-rule { margin-top: 1rem; height: 1px; width: 100%; background: linear-gradient(90deg, transparent, var(--hair-strong) 30%, transparent); }
+.za-spark-rule { margin: 1.6rem auto 0.2rem; height: 1px; width: 100%; max-width: 39rem; background: linear-gradient(90deg, transparent, var(--hair-strong) 25%, var(--hair-strong) 75%, transparent); }
+
+/* Capability pills — the product "spec sheet" descriptiveness */
+.za-pillstack { display: flex; flex-direction: column; gap: 0.8rem; width: 100%; max-width: 39rem; margin-top: 1.05rem; }
+.za-pills-label { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ghost); margin-bottom: 0.45rem; }
+.za-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+.za-pill { font-size: 0.66rem; font-weight: 500; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.za-pill-indigo { color: var(--indigo-l); background: rgba(99, 102, 241, 0.10); border-color: rgba(99, 102, 241, 0.22); }
+.za-pill-cyan { color: #67e8f9; background: rgba(34, 211, 238, 0.09); border-color: rgba(34, 211, 238, 0.22); }
+.za-pill-sky { color: #7dd3fc; background: rgba(56, 189, 248, 0.09); border-color: rgba(56, 189, 248, 0.22); }
 
 .za-brand-bottom { width: 100%; font-size: 0.7rem; letter-spacing: 0.26em; text-align: center; text-transform: uppercase; color: var(--ghost); display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
 .za-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(34,211,238,0.8); }
@@ -180,12 +196,23 @@
   box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 30px 80px -30px rgba(0,0,0,0.8), 0 8px 30px -12px rgba(34,211,238,0.08);
   position: relative;
 }
+@property --za-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 .za-card::before {
   content: ""; position: absolute; inset: 0; border-radius: var(--radius); padding: 1px;
-  background: linear-gradient(160deg, rgba(129,140,248,0.45), rgba(255,255,255,0.02) 40%, transparent 70%);
+  background: conic-gradient(from var(--za-angle),
+    rgba(129, 140, 248, 0) 0deg, rgba(129, 140, 248, 0) 55deg,
+    rgba(129, 140, 248, 0.85) 105deg, rgba(34, 211, 238, 0.6) 150deg,
+    rgba(34, 211, 238, 0) 200deg, rgba(34, 211, 238, 0) 250deg,
+    rgba(99, 102, 241, 0.6) 300deg, rgba(129, 140, 248, 0) 350deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  animation: za-card-spin 7s linear infinite;
 }
+@keyframes za-card-spin { to { --za-angle: 360deg; } }
 
 .za-mobile-lockup { display: none; }
 
@@ -283,19 +310,11 @@
   .za-form-side {
     min-height: 100vh; padding: 2.2rem 1.25rem 2.5rem;
     background:
-      radial-gradient(700px 400px at 50% -5%, rgba(99,102,241,0.16), transparent 60%),
-      radial-gradient(600px 500px at 80% 110%, rgba(34,211,238,0.1), transparent 60%),
-      var(--base-0);
+      radial-gradient(700px 400px at 50% -5%, rgba(99,102,241,0.18), transparent 60%),
+      radial-gradient(600px 500px at 80% 110%, rgba(34,211,238,0.12), transparent 60%),
+      linear-gradient(180deg, rgba(6,8,15,0.80), rgba(6,8,15,0.90));
   }
-  .za-mobile-lockup { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.85rem; margin-bottom: 2rem; }
-  .za-mobile-icon {
-    display: block;
-    width: 66px;
-    height: 66px;
-    object-fit: contain;
-    border-radius: 12px;
-    filter: drop-shadow(0 0 14px rgba(34,211,238,0.28));
-  }
+  .za-mobile-lockup { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; margin-bottom: 2rem; }
   .za-mobile-lockup .za-wordmark { font-size: 1.425rem; font-weight: 300; letter-spacing: 0.42em; text-transform: uppercase; }
   .za-mobile-lockup .za-m-tag { font-size: 0.82rem; color: var(--muted); max-width: 30ch; line-height: 1.5; }
   .za-card { max-width: 440px; margin: 0 auto; }
@@ -309,6 +328,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .za-orb, .za-spark-path { animation: none; }
-  .za-spark-path { stroke-dashoffset: 0; }
+  .za-orb { animation: none; }
+  .za-card::before { animation: none; }
+  .za-bg-slide { transition: none; }
 }

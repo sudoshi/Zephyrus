@@ -1,11 +1,8 @@
-export default function ApplicationLogo({ variant = 'full', ...props }) {
-    const logoSrc = variant === 'icon'
-        ? '/images/zephyrus-icon.png'
-        : '/images/FullLogo_Transparent.png';
-
+export default function ApplicationLogo({ variant: _variant = 'full', ...props }) {
+    // Square brand icon retired (2026-06-26) — always render the full wordmark logo.
     return (
         <img
-            src={logoSrc}
+            src="/images/FullLogo_Transparent.png"
             alt="Zephyrus"
             {...props}
         />

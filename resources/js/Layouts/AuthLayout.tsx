@@ -1,24 +1,70 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
-const ZEPHYRUS_ICON_SRC = '/images/zephyrus-icon.png';
+/** Atmospheric ridgeline slideshow — deep navy + cyan tonality (Zephyrus = the west wind). */
+const AUTH_BG_IMAGES = [
+  '/images/auth/wind-01.jpg',
+  '/images/auth/wind-02.jpg',
+  '/images/auth/wind-03.jpg',
+  '/images/auth/wind-04.jpg',
+  '/images/auth/wind-05.jpg',
+];
+const SLIDE_MS = 8000;
+
+/** Categorized capability pills — the product "spec sheet" descriptiveness. */
+const PILL_GROUPS: { label: string; tone: string; items: string[] }[] = [
+  { label: 'Modules', tone: 'za-pill-indigo',
+    items: ['Command Center', 'RTDC', 'Perioperative', 'Patient Flow', 'Care Progression'] },
+  { label: 'Capabilities', tone: 'za-pill-cyan',
+    items: ['Live Census', 'Bed Management', 'Surge Forecasting', 'Block Utilization'] },
+  { label: 'Standards & Security', tone: 'za-pill-sky',
+    items: ['HIPAA', 'RBAC', 'OIDC SSO', 'Audit Logging', 'PHI Isolation'] },
+];
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
+}
 
 /**
  * Zephyrus guest/auth shell — "split-elegant" cinematic sign-in.
- * Left = fixed brand panel (aurora + headline + sparkline); right = a glass
- * card whose contents are supplied per-page via `children`. Dark-only; all
- * visuals come from the scoped `.zauth` stylesheet in resources/css/auth.css.
+ * Full-bleed ridgeline slideshow → left brand panel (aurora + headline +
+ * domain map + capability pills) → right glass card (per-page `children`).
+ * Dark-only; visuals come from the scoped `.zauth` stylesheet in
+ * resources/css/auth.css.
  */
 export default function AuthLayout({ children }: AuthLayoutProps) {
+  const [slide, setSlide] = useState(0);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
 
+  useEffect(() => {
+    if (prefersReducedMotion() || AUTH_BG_IMAGES.length <= 1) return;
+    const t = setInterval(() => setSlide((i) => (i + 1) % AUTH_BG_IMAGES.length), SLIDE_MS);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <div className="zauth">
+      {/* ===== Full-bleed cinematic background slideshow ===== */}
+      <div className="za-bg" aria-hidden="true">
+        <div className="za-bg-fallback" />
+        {AUTH_BG_IMAGES.map((src, i) => (
+          <div
+            key={src}
+            className={`za-bg-slide${i === slide ? ' is-active' : ''}`}
+            style={{ backgroundImage: `url(${src})` }}
+          />
+        ))}
+        <div className="za-bg-scrim" />
+      </div>
+
       <main className="za-shell">
         {/* ===== Left brand panel (shared) ===== */}
         <section className="za-brand">
@@ -42,8 +88,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           <div className="za-brand-top">
             <div className="za-lockup">
-              <img className="za-lockup-icon" src={ZEPHYRUS_ICON_SRC} alt="" aria-hidden="true" />
               <span className="za-wordmark">Zephyrus</span>
+              <span className="za-badge">v1.0</span>
             </div>
           </div>
 
@@ -56,6 +102,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               Zephyrus connects hospital-wide strain to unit-level action: demand signals,
               capacity plans, operating room flow, and process improvement work.
             </p>
+
             <div className="za-domain-map" aria-label="Zephyrus workflow coverage">
               <div className="za-domain za-domain-ed">
                 <span>Emergency Department</span>
@@ -74,24 +121,26 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 <p>Process mining, bottlenecks, root cause work, PDSA cycles.</p>
               </div>
             </div>
-            <div className="za-sparkwrap" aria-hidden="true">
-              <svg className="za-sparkline" viewBox="0 0 360 54" fill="none">
-                <defs>
-                  <linearGradient id="za-sparkgrad" x1="0" y1="0" x2="360" y2="0">
-                    <stop stopColor="#818cf8" />
-                    <stop offset=".5" stopColor="#3b82f6" />
-                    <stop offset="1" stopColor="#22d3ee" />
-                  </linearGradient>
-                </defs>
-                <path className="za-spark-path" d="M0 38 L30 34 L60 40 L90 24 L120 30 L150 14 L180 26 L210 18 L240 32 L270 12 L300 22 L330 8 L360 20" />
-              </svg>
-              <div className="za-spark-rule" />
+
+            <div className="za-spark-rule" aria-hidden="true" />
+
+            <div className="za-pillstack" aria-label="Platform capabilities and standards">
+              {PILL_GROUPS.map((group) => (
+                <div key={group.label} className="za-pills-section">
+                  <p className="za-pills-label">{group.label}</p>
+                  <div className="za-pills">
+                    {group.items.map((item) => (
+                      <span key={item} className={`za-pill ${group.tone}`}>{item}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="za-brand-bottom">
             <span className="za-dot" />
-            <span>Healthcare Operations Platform</span>
+            <span>Acumenus Data Sciences &middot; Wellstack.ai</span>
           </div>
         </section>
 
@@ -99,7 +148,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         <section className="za-form-side">
           <div className="za-card">
             <div className="za-mobile-lockup">
-              <img className="za-mobile-icon" src={ZEPHYRUS_ICON_SRC} alt="" aria-hidden="true" />
               <span className="za-wordmark">Zephyrus</span>
               <span className="za-m-tag">ED, RTDC, perioperative, and improvement intelligence for hospital operations.</span>
             </div>

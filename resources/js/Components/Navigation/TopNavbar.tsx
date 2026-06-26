@@ -38,7 +38,6 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
               dashboardActive ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark' : ''
             }`}
           >
-            <img src="/images/zephyrus-icon.png" alt="" aria-hidden="true" className="h-8 w-8 rounded-lg object-contain" />
             <span className="text-lg/[24px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
