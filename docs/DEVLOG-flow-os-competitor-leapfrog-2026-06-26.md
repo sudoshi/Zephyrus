@@ -33,7 +33,19 @@ Converted the competitor research plan into a shipped Zephyrus Flow OS tranche: 
 
 ## Release
 
-- Pending commit, push, migration, and deployment verification.
+- Committed and pushed as `5f68688 feat: ship flow os execution fabric`.
+- Deployed through `./deploy.sh`; production asset build, rsync, Laravel cache clears, Apache restart, storage permission check, and Zephyrus vhost smoke check passed.
+- Applied production migrations:
+  - `2026_06_26_000010_create_ops_metric_trust_tables`
+  - `2026_06_26_000020_extend_ops_action_lifecycle_tables`
+  - `2026_06_26_000030_create_evs_workflow_tables`
+  - `2026_06_26_000040_create_ops_simulation_tables`
+  - `2026_06_26_000050_create_ops_intervention_attribution_tables`
+  - `2026_06_26_000060_create_ops_agent_control_plane_tables`
+  - `2026_06_26_000070_create_flow_ambient_signal_tables`
+  - `2026_06_26_000080_create_enterprise_connector_control_tables`
+- Verified `https://zephyrus.acumenus.net/api/health` returns `200`.
+- Verified production route registration for `/api/ops/*` and `/api/admin/integrations/*`.
 
 ## Follow-Up Slices
 
