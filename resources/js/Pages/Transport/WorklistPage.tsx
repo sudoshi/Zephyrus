@@ -2,15 +2,17 @@ import TransportLayout from './TransportLayout';
 import { EmptyTransportState, MetricTile, sampleRequest, TransportRequestRow, typeLabels } from './components';
 import { useAssignTransportRequest, useCreateTransportRequest, useTransportRequests, useUpdateTransportStatus } from '@/features/transport/hooks';
 import type { TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
+import type { ReactNode } from 'react';
 
 interface WorklistPageProps {
   title: string;
   subtitle: string;
   current: string;
   requestType?: TransportRequestType;
+  children?: ReactNode;
 }
 
-export default function WorklistPage({ title, subtitle, current, requestType }: WorklistPageProps) {
+export default function WorklistPage({ title, subtitle, current, requestType, children }: WorklistPageProps) {
   const { data: requests, isLoading } = useTransportRequests(requestType);
   const createRequest = useCreateTransportRequest();
   const assignRequest = useAssignTransportRequest();
@@ -45,6 +47,8 @@ export default function WorklistPage({ title, subtitle, current, requestType }: 
         <MetricTile label="At Risk" value={atRisk} tone={atRisk > 0 ? 'risk' : 'neutral'} />
         <MetricTile label="Completed" value={rows.filter((row) => row.status === 'completed').length} tone="good" />
       </div>
+
+      {children}
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <div>

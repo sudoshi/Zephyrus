@@ -591,6 +591,30 @@ Exit criteria:
 
 - Zephyrus can coexist with incumbent systems while still providing independent graph intelligence and governed action.
 
+### Phase 8: Regional Transfer And Multi-Hospital Operations
+
+Duration: 8 to 12 weeks.
+
+- [x] Add regional facility and capability tables for multi-hospital transfer operations.
+- [x] Seed an initial regional network catalog for demo and test mode.
+- [x] Score transfer destination options using capacity, ICU availability, clinical capabilities, transport time, and opportunity cost.
+- [x] Add regional transfer decision audit records linked to canonical transport requests.
+- [x] Surface regional transfer recommendations on the existing Transfers worklist.
+- [x] Add organization/campus/building scoping to facility imports, spaces, and operational maps.
+- [x] Support multiple current approved facility model versions.
+- [x] Add regional comparison dashboards across campuses and external facilities.
+- [x] Add health-system-wide capacity and route simulation.
+- [x] Add a transfer-center agent that can draft acceptance, redirect, or defer recommendations.
+
+Implementation progress:
+
+- 2026-06-26: Added `regional` transfer operations tables, seeded regional facility/capability catalog, deterministic candidate scoring, `/api/transport/regional-summary`, `/api/transport/requests/{transportRequestId}/regional-decision`, decision audit events, and the Transfers page regional optimization panel.
+- 2026-06-26: Completed the remaining Phase 8 slices with organization/campus/building/service-area scoped facilities, an external partner facility, approved regional model versions, regional comparison dashboard payloads, persisted route simulation runs, `/api/transport/regional-simulation`, `/api/transport/requests/{transportRequestId}/regional-agent-draft`, and draft-only transfer-center agent recommendations with audit events.
+
+Exit criteria:
+
+- Zephyrus can recommend, simulate, compare, draft, and audit regional transfer destination/acceptance decisions with capacity, clinical capability, interfacility transport, model-version, and opportunity-cost evidence.
+
 ## 8. First 10 Engineering Tickets
 
 1. Add metric lineage schema and service.

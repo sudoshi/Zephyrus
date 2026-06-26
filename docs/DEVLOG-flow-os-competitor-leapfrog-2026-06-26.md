@@ -61,8 +61,34 @@ Converted the competitor research plan into a shipped Zephyrus Flow OS tranche: 
   - `npx vitest run tests/js/transport/api.test.ts`
   - `npm run build`
 
+## Phase 8 Progress
+
+- Added the Regional Transfer and Multi-Hospital Operations tranche:
+  - `regional.facilities`,
+  - scoped facility fields for organization, campus, building, service area, and internal/external networks,
+  - `regional.network_model_versions`,
+  - `regional.facility_capabilities`,
+  - `regional.transfer_decisions`,
+  - `regional.route_simulation_runs`,
+  - deterministic destination scoring across capacity, ICU availability, clinical capability, transport time, and opportunity cost,
+  - approved model-version comparison fixtures,
+  - regional comparison dashboard payloads,
+  - persisted health-system route simulation runs,
+  - draft-only transfer-center agent recommendations,
+  - `/api/transport/regional-summary`,
+  - `/api/transport/regional-simulation`,
+  - `/api/transport/requests/{transportRequestId}/regional-decision`,
+  - `/api/transport/requests/{transportRequestId}/regional-agent-draft`,
+  - regional decision and agent-draft audit events on canonical transport requests,
+  - regional optimization, comparison, simulation, and agent panels on `/transport/transfers`.
+- Validated with:
+  - `php artisan test tests/Feature/Transport/RegionalTransferApiTest.php tests/Feature/Transport/TransportRequestApiTest.php`
+  - `npx vitest run tests/js/transport/api.test.ts`
+  - `npm run build`
+
 ## Follow-Up Slices
 
 - Promote enterprise connector controls into a dedicated Admin nav page with role-specific review queues.
 - Add a role-specific Agent Control Plane UI for definitions, runs, traces, evaluations, and safety events.
-- Continue toward staffing, transfer-center, and executive brief surfaces from the execution plan.
+- Harden Phase 8 regional transfer fixtures against live ADT/FHIR/transfer-center feeds and add role-specific transfer-center queues.
+- Continue toward staffing and executive brief surfaces from the execution plan.

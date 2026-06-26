@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Rtdc\HuddleController;
 use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
 use Illuminate\Support\Facades\Route;
@@ -106,9 +107,13 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(funct
 // Transport command center (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('transport')->group(function () {
     Route::get('/overview', [TransportRequestController::class, 'overview']);
+    Route::get('/regional-summary', [RegionalTransferController::class, 'summary']);
+    Route::post('/regional-simulation', [RegionalTransferController::class, 'simulate']);
     Route::get('/requests', [TransportRequestController::class, 'index']);
     Route::post('/requests', [TransportRequestController::class, 'store']);
     Route::get('/requests/{transportRequestId}', [TransportRequestController::class, 'show']);
+    Route::post('/requests/{transportRequestId}/regional-decision', [RegionalTransferController::class, 'decide']);
+    Route::post('/requests/{transportRequestId}/regional-agent-draft', [RegionalTransferController::class, 'agentDraft']);
     Route::post('/requests/{transportRequestId}/assign', [TransportRequestController::class, 'assign']);
     Route::post('/requests/{transportRequestId}/status', [TransportRequestController::class, 'status']);
     Route::post('/requests/{transportRequestId}/cancel', [TransportRequestController::class, 'cancel']);

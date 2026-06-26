@@ -2,17 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignTransportRequest,
   createEnterpriseWritebackDraft,
+  createRegionalTransferAgentDraft,
+  createRegionalTransferDecision,
   createTransportRequest,
   discoverEnterpriseFhirCapabilities,
   fetchEnterpriseConnectorSummary,
+  fetchRegionalTransferSummary,
   fetchTransportOverview,
   fetchTransportRequests,
   fetchTransportResources,
   fetchTransportVendors,
+  runRegionalRouteSimulation,
   updateTransportStatus,
 } from './api';
 import type {
   CreateEnterpriseWritebackDraftInput,
+  CreateRegionalTransferDecisionInput,
   CreateTransportRequestInput,
   DiscoverEnterpriseFhirInput,
   TransportRequestType,
@@ -40,6 +45,10 @@ export function useTransportVendors() {
 
 export function useEnterpriseConnectorSummary() {
   return useQuery({ queryKey: ['admin', 'integrations', 'enterprise'], queryFn: fetchEnterpriseConnectorSummary });
+}
+
+export function useRegionalTransferSummary() {
+  return useQuery({ queryKey: ['transport', 'regional-summary'], queryFn: fetchRegionalTransferSummary });
 }
 
 export function useCreateTransportRequest() {
@@ -95,6 +104,40 @@ export function useCreateEnterpriseWritebackDraft() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'integrations', 'enterprise'] });
       qc.invalidateQueries({ queryKey: ['ops'] });
+    },
+  });
+}
+
+export function useCreateRegionalTransferDecision() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ transportRequestId, input }: { transportRequestId: number; input: CreateRegionalTransferDecisionInput }) =>
+      createRegionalTransferDecision(transportRequestId, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transport'] });
+    },
+  });
+}
+
+export function useRunRegionalRouteSimulation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { model_version_key?: string } = {}) => runRegionalRouteSimulation(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transport'] });
+    },
+  });
+}
+
+export function useCreateRegionalTransferAgentDraft() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (transportRequestId: number) => createRegionalTransferAgentDraft(transportRequestId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transport'] });
     },
   });
 }
