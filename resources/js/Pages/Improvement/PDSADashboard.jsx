@@ -77,8 +77,8 @@ const PDSADashboard = ({ auth }) => {
     <AuthenticatedLayout user={auth.user}>
       <Head title="PDSA Management" />
       
-      <div className="py-12">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div className="p-4">
+        <div>
         <Card>
           <CardHeader className="border-b">
             <div className="flex justify-between items-center">

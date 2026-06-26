@@ -33,8 +33,8 @@ const Show = ({ auth, cycle }) => {
     <AuthenticatedLayout user={auth.user}>
       <Head title={`PDSA Cycle - ${cycle.title}`} />
       
-      <div className="py-12">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div className="p-4">
+        <div>
           <div className="mb-6 flex items-center justify-between">
             <Link href="/improvement/pdsa">
               <button className="healthcare-button-secondary flex items-center gap-2">

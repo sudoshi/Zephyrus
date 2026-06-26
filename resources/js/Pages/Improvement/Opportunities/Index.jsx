@@ -111,8 +111,8 @@ const Index = ({ auth }) => {
     <AuthenticatedLayout user={auth.user}>
       <Head title="Improvement Opportunities" />
       
-      <div className="py-12">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div className="p-4">
+        <div>
           <div className="healthcare-card">
             <div className="border-b p-6">
               <div className="flex justify-between items-center">

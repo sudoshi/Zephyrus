@@ -27,8 +27,8 @@ export default function Create({ auth }) {
         >
             <Head title="Create User" />
 
-            <div className="py-6">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="p-4">
+                <div>
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             Create New User
