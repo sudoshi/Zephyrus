@@ -135,7 +135,9 @@ Closed the gaps that blocked the Section-9 integrated demo so it is end-to-end r
 
 ### Release
 
-- Committed as `d293b66`, `f13549f`, `83423be`, `01355ae`, `609cd0c`.
-- Applied production migration `2026_06_27_000100_create_staffing_operations_tables` (additive) plus any pending Phase 8 regional migrations.
-- Re-seeded the Command Center demo (idempotent) and verified the staffing/EVS/transport demo signals on production.
-- Verified `https://zephyrus.acumenus.net/api/health` returns `200` and the new `/api/staffing/*` and `/api/ops/agents/executive-briefing/run` routes register.
+- Committed as `d293b66`, `f13549f`, `83423be`, `01355ae`, `609cd0c` and pushed to `origin/main`.
+- Deployed code through `./deploy.sh`: production asset build, rsync to `/var/www/Zephyrus`, Laravel cache clears, Apache restart, and Zephyrus vhost smoke check passed.
+- Pending production database steps (additive, gated on operator approval — `deploy.sh` intentionally does not run migrations):
+  - apply `2026_06_27_000100_create_staffing_operations_tables` (only pending migration on prod; creates three empty tables, no drops),
+  - re-seed the Command Center demo (`php artisan db:seed --class=CommandCenterDemoSeeder`, idempotent) to surface the staffing/EVS/transport demo signals.
+- Existing surfaces stay healthy pre-migration: the `staffing_gap` recommendation, simulation `staffingGap()`, and executive brief all guard with `Schema::hasTable('prod.staffing_plans')`.
