@@ -34,6 +34,9 @@ config.local.php
 *.local.php
 *.local.json
 
+# Claude Code local plugin/tooling state (per-developer, not project config)
+/.claude/settings.json
+
 # Deployment specific
 /public/mix-manifest.json
 /public/css
