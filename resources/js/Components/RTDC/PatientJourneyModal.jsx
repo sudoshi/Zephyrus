@@ -54,7 +54,7 @@ const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
           className="modal-content bg-healthcare-surface dark:bg-healthcare-surface-dark"
         >
           {/* Header */}
-          <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
+          <div className="border-b border-healthcare-border dark:border-healthcare-border-dark pb-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Icon 
@@ -104,7 +104,7 @@ const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
           </div>
 
           {/* Footer */}
-          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="mt-6 pt-4 border-t border-healthcare-border dark:border-healthcare-border-dark flex items-center justify-between">
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Last updated: {new Date().toLocaleTimeString()}
             </div>

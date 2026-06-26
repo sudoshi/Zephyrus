@@ -8,13 +8,13 @@ const CareGoalsSection = ({ goals }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Achieved':
-                return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+                return 'bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 text-healthcare-success dark:text-healthcare-success-dark';
             case 'In Progress':
-                return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+                return 'bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark';
             case 'Modified':
-                return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+                return 'bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 text-healthcare-warning dark:text-healthcare-warning-dark';
             default:
-                return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+                return 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark';
         }
     };
 
@@ -35,13 +35,13 @@ const CareGoalsSection = ({ goals }) => {
         const progress = getProgressPercentage(goal.status);
         
         return (
-            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="p-4 border border-healthcare-border dark:border-healthcare-border-dark rounded-lg">
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             {goal.description}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                             Target: {new Date(goal.target).toLocaleDateString()}
                         </p>
                     </div>
@@ -53,14 +53,14 @@ const CareGoalsSection = ({ goals }) => {
                 <div className="mt-4">
                     <div className="flex items-center">
                         <div className="flex-1">
-                            <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
                                 <div
                                     className="bg-indigo-600 dark:bg-indigo-400 rounded-full h-2 transition-all duration-300"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
                         </div>
-                        <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="ml-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             {progress}%
                         </span>
                     </div>

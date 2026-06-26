@@ -8,11 +8,11 @@ const InterventionsChecklist = ({ interventions }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Completed':
-                return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+                return 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark';
             case 'Scheduled':
-                return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+                return 'bg-healthcare-info/10 dark:bg-healthcare-info/20 text-healthcare-info dark:text-healthcare-info-dark';
             default:
-                return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+                return 'bg-healthcare-warning/10 dark:bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark';
         }
     };
 
@@ -30,17 +30,17 @@ const InterventionsChecklist = ({ interventions }) => {
     };
 
     const InterventionItem = ({ intervention }) => (
-        <div className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+        <div className="flex items-start gap-4 p-4 border border-healthcare-border dark:border-healthcare-border-dark rounded-lg">
             <div className={`p-2 rounded-full ${getStatusColor(intervention.status)} bg-opacity-20`}>
                 <Icon icon={getTypeIcon(intervention.type)} className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             {intervention.name}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             {intervention.type}
                         </p>
                     </div>
@@ -48,7 +48,7 @@ const InterventionsChecklist = ({ interventions }) => {
                         {intervention.status}
                     </span>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <div className="mt-2 flex items-center gap-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <Icon icon="heroicons:clock" className="w-4 h-4" />
                     {new Date(intervention.scheduledTime).toLocaleString()}
                 </div>
@@ -88,7 +88,7 @@ const InterventionsChecklist = ({ interventions }) => {
                     ))}
                 </div>
                 {interventions.length === 0 && (
-                    <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         No interventions scheduled
                     </div>
                 )}

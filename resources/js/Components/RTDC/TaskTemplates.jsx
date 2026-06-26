@@ -34,22 +34,22 @@ const TaskTemplates = ({ onApplyTemplate }) => {
     const getPriorityColor = (priority) => {
         switch (priority.toLowerCase()) {
             case 'high':
-                return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900';
+                return 'text-healthcare-critical dark:text-healthcare-critical-dark bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20';
             case 'medium':
-                return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900';
+                return 'text-healthcare-warning dark:text-healthcare-warning-dark bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20';
             default:
-                return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900';
+                return 'text-healthcare-success dark:text-healthcare-success-dark bg-healthcare-success/10 dark:bg-healthcare-success-dark/20';
         }
     };
 
     const TemplateItem = ({ template }) => (
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+        <div className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
                 <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                    <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {template.title}
                     </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Assigned to: {template.assignee}
                     </p>
                 </div>
@@ -83,7 +83,7 @@ const TaskTemplates = ({ onApplyTemplate }) => {
                 <div className="space-y-6">
                     {templates.map((category, idx) => (
                         <div key={idx}>
-                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                            <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-3">
                                 {category.category}
                             </h3>
                             <div className="space-y-2">

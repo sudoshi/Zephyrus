@@ -27,8 +27,8 @@ const CapacityDetailsModal = ({ bedTypes, isOpen, onClose }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white p-4 border rounded shadow">
-                    <p className="font-medium text-gray-900">{label}</p>
+                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 border rounded shadow">
+                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{label}</p>
                     <div className="space-y-1 mt-2">
                         <p className="text-healthcare-primary">Occupied: {data.occupied} beds</p>
                         <p className="text-healthcare-success">Available: {data.available} beds</p>

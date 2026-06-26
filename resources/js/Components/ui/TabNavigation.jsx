@@ -18,8 +18,8 @@ const TabNavigation = ({ menuGroups, activeTab, onTabChange, className = '' }) =
     <button
       className={`flex items-center gap-2 px-4 py-2 rounded-t-lg ${
         activeTab === id
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+          ? 'bg-healthcare-primary dark:bg-healthcare-primary-dark text-white'
+          : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-border dark:hover:bg-healthcare-border-dark'
       }`}
       onClick={() => onTabChange(id)}
     >
@@ -29,8 +29,8 @@ const TabNavigation = ({ menuGroups, activeTab, onTabChange, className = '' }) =
   );
 
   return (
-    <div className={`healthcare-card dark:bg-gray-800 mb-6 ${className}`}>
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
+    <div className={`healthcare-card dark:bg-healthcare-surface-dark mb-6 ${className}`}>
+      <div className="flex flex-wrap gap-2 border-b border-healthcare-border dark:border-healthcare-border-dark pb-2">
         {menuGroups.flatMap(group => 
           group.items.map(item => (
             <TabButton 

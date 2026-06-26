@@ -27,29 +27,29 @@ const TaskCompletionHistory = ({ tasks }) => {
     const getPriorityColor = (priority) => {
         switch (priority?.toLowerCase()) {
             case 'high':
-                return 'text-red-600 dark:text-red-400';
+                return 'text-healthcare-critical dark:text-healthcare-critical-dark';
             case 'medium':
-                return 'text-yellow-600 dark:text-yellow-400';
+                return 'text-healthcare-warning dark:text-healthcare-warning-dark';
             default:
-                return 'text-green-600 dark:text-green-400';
+                return 'text-healthcare-success dark:text-healthcare-success-dark';
         }
     };
 
     const TaskItem = ({ task }) => (
-        <div className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
-                <Icon 
-                    icon={getCategoryIcon(task.category)} 
-                    className="w-5 h-5 text-green-600 dark:text-green-400" 
+        <div className="flex items-start gap-4 p-4 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
+            <div className="p-2 bg-healthcare-success/10 dark:bg-healthcare-success/20 rounded-full">
+                <Icon
+                    icon={getCategoryIcon(task.category)}
+                    className="w-5 h-5 text-healthcare-success dark:text-healthcare-success-dark"
                 />
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between">
                     <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             {task.text}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             Completed by: {task.assignedTo}
                         </p>
                     </div>
@@ -58,11 +58,11 @@ const TaskCompletionHistory = ({ tasks }) => {
                     </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center text-xs text-gray-500 dark:text-gray-400">
+                    <span className="inline-flex items-center text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
                         Completed: {new Date(task.completedAt || task.dueDate).toLocaleString()}
                     </span>
-                    <span className="inline-flex items-center text-xs text-gray-500 dark:text-gray-400">
+                    <span className="inline-flex items-center text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <Icon icon="heroicons:tag" className="w-4 h-4 mr-1" />
                         {task.category}
                     </span>
@@ -78,21 +78,21 @@ const TaskCompletionHistory = ({ tasks }) => {
 
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Total Tasks</div>
-                    <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                <div className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm">
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Tasks</div>
+                    <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {totalTasks}
                     </div>
                 </div>
-                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Completed</div>
-                    <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                <div className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm">
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Completed</div>
+                    <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {completedCount}
                     </div>
                 </div>
-                <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Completion Rate</div>
-                    <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                <div className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm">
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Completion Rate</div>
+                    <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {completionRate.toFixed(1)}%
                     </div>
                 </div>
@@ -112,7 +112,7 @@ const TaskCompletionHistory = ({ tasks }) => {
                         <TaskItem key={task.id || index} task={task} />
                     ))}
                     {completedTasks.length === 0 && (
-                        <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                        <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             No completed tasks yet
                         </div>
                     )}

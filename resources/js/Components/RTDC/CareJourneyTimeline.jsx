@@ -51,7 +51,7 @@ const CareJourneyTimeline = ({ patient }) => {
                     />
                     <span className="text-sm font-medium">Care Journey Progress</span>
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {remainingDays} days until discharge
                 </span>
             </div>
@@ -70,13 +70,13 @@ const CareJourneyTimeline = ({ patient }) => {
                         </span>
                     </div>
                 </div>
-                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200 dark:bg-gray-700">
+                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-healthcare-border dark:bg-healthcare-border-dark">
                     <div
                         style={{ width: `${progress}%` }}
                         className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-healthcare-primary transition-all duration-500"
                     />
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>{new Date(patient?.admitDate).toLocaleDateString()}</span>
                     <span>{new Date(patient?.dischargePlan?.estimatedDischargeDate).toLocaleDateString()}</span>
                 </div>
@@ -98,12 +98,12 @@ const CareJourneyTimeline = ({ patient }) => {
                         >
                             <Icon 
                                 icon={milestone.completed ? 'heroicons:check-circle' : 'heroicons:clock'}
-                                className={`w-5 h-5 ${milestone.completed ? 'text-healthcare-success' : 'text-gray-400'}`}
+                                className={`w-5 h-5 ${milestone.completed ? 'text-healthcare-success' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}`}
                             />
-                            <span className={milestone.completed ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500'}>
+                            <span className={milestone.completed ? 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}>
                                 {milestone.label}
                             </span>
-                            <span className="text-xs text-gray-500 ml-auto">
+                            <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ml-auto">
                                 {new Date(milestone.date).toLocaleDateString()}
                             </span>
                         </div>

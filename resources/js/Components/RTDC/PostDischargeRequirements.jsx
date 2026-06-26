@@ -12,13 +12,13 @@ const PostDischargeRequirements = ({ requirements }) => {
                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
                         <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{title}</h3>
+                    <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h3>
                 </div>
                 {scheduled !== undefined && (
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        scheduled 
-                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                        scheduled
+                            ? 'bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 text-healthcare-success dark:text-healthcare-success-dark'
+                            : 'bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 text-healthcare-warning dark:text-healthcare-warning-dark'
                     }`}>
                         {scheduled ? 'Scheduled' : 'Pending'}
                     </span>
@@ -28,14 +28,14 @@ const PostDischargeRequirements = ({ requirements }) => {
                 {items.map((item, index) => (
                     <div 
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg"
                     >
                         <div className="flex-1">
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                            <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                 {item.specialty || item}
                             </div>
                             {item.timeframe && (
-                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Within {item.timeframe}
                                 </div>
                             )}
@@ -43,8 +43,8 @@ const PostDischargeRequirements = ({ requirements }) => {
                         {item.scheduled !== undefined && (
                             <div className={`flex items-center gap-2 text-sm ${
                                 item.scheduled
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : 'text-yellow-600 dark:text-yellow-400'
+                                    ? 'text-healthcare-success dark:text-healthcare-success-dark'
+                                    : 'text-healthcare-warning dark:text-healthcare-warning-dark'
                             }`}>
                                 <Icon 
                                     icon={item.scheduled ? 'heroicons:check-circle' : 'heroicons:clock'} 
@@ -56,7 +56,7 @@ const PostDischargeRequirements = ({ requirements }) => {
                     </div>
                 ))}
                 {items.length === 0 && (
-                    <div className="text-center py-3 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-3 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         No requirements specified
                     </div>
                 )}
@@ -104,42 +104,42 @@ const PostDischargeRequirements = ({ requirements }) => {
                                         className="w-5 h-5 text-indigo-600 dark:text-indigo-400" 
                                     />
                                 </div>
-                                <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                                <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     Caregiver Information
                                 </h3>
                             </div>
-                            <div className="ml-9 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+                            <div className="ml-9 p-4 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg space-y-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">Name</div>
-                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Name</div>
+                                        <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                             {requirements.caregiverInfo.name}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">Relationship</div>
-                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Relationship</div>
+                                        <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                             {requirements.caregiverInfo.relationship}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">Phone</div>
-                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Phone</div>
+                                        <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                             {requirements.caregiverInfo.phone}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">Education Status</div>
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Education Status</div>
                                         <div className="flex items-center gap-2">
                                             <Icon 
                                                 icon={requirements.caregiverInfo.educated ? 'heroicons:check-circle' : 'heroicons:x-circle'} 
                                                 className={`w-5 h-5 ${
-                                                    requirements.caregiverInfo.educated 
-                                                        ? 'text-green-600 dark:text-green-400' 
-                                                        : 'text-red-600 dark:text-red-400'
-                                                }`} 
+                                                    requirements.caregiverInfo.educated
+                                                        ? 'text-healthcare-success dark:text-healthcare-success-dark'
+                                                        : 'text-healthcare-critical dark:text-healthcare-critical-dark'
+                                                }`}
                                             />
-                                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                                            <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                 {requirements.caregiverInfo.educated ? 'Completed' : 'Pending'}
                                             </span>
                                         </div>

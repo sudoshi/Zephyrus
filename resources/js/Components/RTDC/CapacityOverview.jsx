@@ -18,8 +18,8 @@ const CapacityOverview = ({ bedTypes }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white p-4 border rounded shadow">
-                    <p className="font-medium text-gray-900">{label}</p>
+                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 border rounded shadow">
+                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{label}</p>
                     <div className="space-y-1 mt-2">
                         <p className="text-healthcare-primary">Occupied: {data.occupied} beds</p>
                         <p className="text-healthcare-success">Available: {data.available} beds</p>
@@ -97,7 +97,7 @@ const CapacityOverview = ({ bedTypes }) => {
                                     {type.pending}
                                 </span>
                             </div>
-                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div className="mt-2 pt-2 border-t border-healthcare-border dark:border-healthcare-border-dark">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         Total Beds

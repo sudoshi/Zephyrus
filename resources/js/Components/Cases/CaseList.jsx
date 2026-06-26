@@ -43,17 +43,17 @@ const CaseList = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Scheduled':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-healthcare-info/10 dark:bg-healthcare-info/20 text-healthcare-info dark:text-healthcare-info-dark';
             case 'In Progress':
-                return 'bg-green-100 text-green-800';
+                return 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark';
             case 'Completed':
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark';
             case 'Delayed':
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-healthcare-warning/10 dark:bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark';
             case 'Cancelled':
-                return 'bg-red-100 text-red-800';
+                return 'bg-healthcare-critical/10 dark:bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark';
         }
     };
 
@@ -74,7 +74,7 @@ const CaseList = () => {
 
     if (error) {
         return (
-            <div className="p-6 text-center text-red-600">
+            <div className="p-6 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
                 <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
                 <p>{error}</p>
             </div>
@@ -104,16 +104,16 @@ const CaseList = () => {
             <div className="p-4 border-b">
                 <div className="grid grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Date</label>
                         <input
                             type="date"
                             value={filters.date}
                             onChange={(e) => handleFilterChange('date', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Status</label>
                         <Select
                             value={filters.status}
                             onChange={(value) => handleFilterChange('status', value)}
@@ -124,7 +124,7 @@ const CaseList = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Service</label>
                         <Select
                             value={filters.service}
                             onChange={(value) => handleFilterChange('service', value)}
@@ -138,7 +138,7 @@ const CaseList = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Room</label>
                         <Select
                             value={filters.room}
                             onChange={(value) => handleFilterChange('room', value)}
@@ -155,19 +155,19 @@ const CaseList = () => {
             </div>
 
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                    <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Surgeon</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Time</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Patient</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Procedure</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Surgeon</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Room</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                         {cases.map(orCase => (
                             <tr key={orCase.case_id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -178,7 +178,7 @@ const CaseList = () => {
                                                 minute: '2-digit'
                                             })}
                                         </div>
-                                        <div className="text-gray-500">
+                                        <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                             {Math.round(orCase.estimated_duration / 60)} hrs
                                         </div>
                                     </div>
@@ -186,13 +186,13 @@ const CaseList = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm">
                                         <div className="font-medium">{orCase.patient_name}</div>
-                                        <div className="text-gray-500">{orCase.mrn}</div>
+                                        <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{orCase.mrn}</div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm">
                                         <div className="font-medium">{orCase.procedure_name}</div>
-                                        <div className="text-gray-500">{orCase.service_name}</div>
+                                        <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{orCase.service_name}</div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">

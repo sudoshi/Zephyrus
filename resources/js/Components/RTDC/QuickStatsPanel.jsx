@@ -17,13 +17,13 @@ const QuickStatsPanel = ({ patient }) => {
     const los = calculateLOS(patient.admitDate);
 
     const StatItem = ({ icon, label, value }) => (
-        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex items-center gap-3 p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
             <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
                 <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">{value}</div>
+                <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
+                <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{value}</div>
             </div>
         </div>
     );

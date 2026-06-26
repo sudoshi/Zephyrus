@@ -119,7 +119,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
             className={`flex items-center gap-2 px-4 py-2 rounded-t-lg ${
                 activeTab === id
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
             }`}
             onClick={() => setActiveTab(id)}
         >
@@ -140,9 +140,9 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                 type="checkbox"
                 checked={checked}
                 onChange={onChange}
-                className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500 h-4 w-4"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-200">{label}</span>
+            <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</span>
         </label>
     );
 
@@ -155,19 +155,19 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
 
             {/* Modal */}
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className={`relative w-full max-w-6xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl transform transition-all`}>
+                <div className={`relative w-full max-w-6xl ${isDarkMode ? 'bg-healthcare-surface-dark' : 'bg-healthcare-surface'} rounded-xl shadow-2xl transform transition-all`}>
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                                <Icon 
-                                    icon="heroicons:document-text" 
-                                    className="w-6 h-6 text-indigo-600 dark:text-indigo-400" 
+                                <Icon
+                                    icon="heroicons:document-text"
+                                    className="w-6 h-6 text-indigo-600 dark:text-indigo-400"
                                 />
-                                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     Status Update
                                     {patient && (
-                                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                                        <span className="text-sm font-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ml-2">
                                             {patient.name} - Room {patient.room}
                                         </span>
                                     )}
@@ -175,7 +175,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                             </div>
                             <button
                                 onClick={onClose}
-                                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors"
                             >
                                 <span className="sr-only">Close</span>
                                 <Icon icon="heroicons:x-mark" className="w-6 h-6" />
@@ -204,7 +204,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                     {/* Content */}
                     <div className="p-6">
                         {/* Tabs */}
-                        <div className="flex gap-2 mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex gap-2 mb-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                             <TabButton id="overview" label="Overview" icon="heroicons:chart-bar" />
                             <TabButton id="carePlan" label="Care Plan" icon="heroicons:clipboard-document-check" />
                             <TabButton id="tasks" label="Tasks & Services" icon="heroicons:clipboard-document-list" />
@@ -313,9 +313,9 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                         }
                                                     }}
                                                     placeholder="Describe the barrier..."
-                                                    className="flex-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="flex-1 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                 />
-                                                <select className="w-40 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <select className="w-40 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                                     <option value="Clinical">Clinical</option>
                                                     <option value="Social">Social</option>
                                                     <option value="Administrative">Administrative</option>
@@ -336,7 +336,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                         <CardHeader>
                                             <div className="flex justify-between items-center">
                                                 <CardTitle>Active Barriers</CardTitle>
-                                                <span className="text-sm text-gray-500">
+                                                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                     {barriers.length} identified
                                                 </span>
                                             </div>
@@ -344,28 +344,28 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                         <CardContent>
                                             <div className="space-y-4">
                                                 {barriers.map((barrier, index) => (
-                                                    <div key={index} className="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                    <div key={index} className="flex items-start justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                                                         <div className="flex-1">
                                                             <div className="font-medium">{barrier}</div>
                                                             <div className="mt-1 flex flex-wrap gap-2">
-                                                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                                                <span className="px-2 py-1 bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark rounded-full text-xs">
                                                                     Requires Action
                                                                 </span>
-                                                                <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                                                                <span className="px-2 py-1 bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark rounded-full text-xs">
                                                                     Added {new Date().toLocaleDateString()}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                         <button
                                                             onClick={() => handleRemoveBarrier(index)}
-                                                            className="ml-4 text-gray-400 hover:text-gray-500"
+                                                            className="ml-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark"
                                                         >
                                                             <Icon icon="heroicons:x-mark" className="w-5 h-5" />
                                                         </button>
                                                     </div>
                                                 ))}
                                                 {barriers.length === 0 && (
-                                                    <div className="text-center py-6 text-gray-500">
+                                                    <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                         No barriers identified
                                                     </div>
                                                 )}
@@ -394,21 +394,21 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                         resolution: "Authorization received for skilled nursing facility"
                                                     }
                                                 ].map((item, index) => (
-                                                    <div key={index} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                                    <div key={index} className="p-3 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 rounded-lg">
                                                         <div className="flex justify-between items-start">
                                                             <div>
-                                                                <div className="font-medium text-green-900 dark:text-green-100">
+                                                                <div className="font-medium text-healthcare-success dark:text-healthcare-success-dark">
                                                                     {item.barrier}
                                                                 </div>
-                                                                <div className="mt-1 text-sm text-green-800 dark:text-green-200">
+                                                                <div className="mt-1 text-sm text-healthcare-success dark:text-healthcare-success-dark">
                                                                     {item.resolution}
                                                                 </div>
                                                             </div>
-                                                            <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full text-xs">
+                                                            <span className="px-2 py-1 bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark rounded-full text-xs">
                                                                 Resolved
                                                             </span>
                                                         </div>
-                                                        <div className="mt-2 text-xs text-green-700 dark:text-green-300">
+                                                        <div className="mt-2 text-xs text-healthcare-success dark:text-healthcare-success-dark">
                                                             Resolved by {item.resolvedBy} • {new Date(item.resolvedAt).toLocaleString()}
                                                         </div>
                                                     </div>
@@ -427,16 +427,16 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                 <textarea
                                                     rows="4"
                                                     placeholder="Add notes about barrier resolution efforts..."
-                                                    className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                 />
                                                 <div className="space-y-3">
                                                     {patient?.teamCommunication
                                                         .filter(note => note.category === 'Barrier Resolution')
                                                         .map((note) => (
-                                                            <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                            <div key={note.id} className="p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                                                                 <div className="flex justify-between text-sm">
                                                                     <span className="font-medium">{note.author}</span>
-                                                                    <span className="text-gray-500">
+                                                                    <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                                         {new Date(note.timestamp).toLocaleString()}
                                                                     </span>
                                                                 </div>
@@ -453,14 +453,14 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="px-6 py-4 border-t border-healthcare-border dark:border-healthcare-border-dark flex items-center justify-between">
+                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             Last updated: {new Date().toLocaleTimeString()}
                         </div>
                         <div className="flex items-center space-x-3">
                             <button
                                 onClick={onClose}
-                                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="inline-flex items-center px-4 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             >
                                 Cancel
                             </button>

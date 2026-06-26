@@ -12,22 +12,22 @@ const RoomStatusBoard = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'In Progress':
-                return 'bg-green-100 text-green-800';
+                return 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark';
             case 'Turnover':
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark';
             case 'Available':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark';
             case 'Delayed':
-                return 'bg-red-100 text-red-800';
+                return 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-healthcare-background text-healthcare-text-secondary dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark';
         }
     };
 
     const getProgressColor = (progress) => {
-        if (progress >= 100) return 'bg-red-600';
-        if (progress >= 90) return 'bg-yellow-600';
-        return 'bg-green-600';
+        if (progress >= 100) return 'bg-healthcare-critical dark:bg-healthcare-critical-dark';
+        if (progress >= 90) return 'bg-healthcare-warning dark:bg-healthcare-warning-dark';
+        return 'bg-healthcare-success dark:bg-healthcare-success-dark';
     };
 
     const calculateProgress = (startTime, duration) => {
@@ -54,7 +54,7 @@ const RoomStatusBoard = () => {
 
     if (error) {
         return (
-            <div className="p-6 text-center text-red-600">
+            <div className="p-6 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
                 <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
                 <p>{error}</p>
             </div>
@@ -154,40 +154,40 @@ const RoomStatusBoard = () => {
                                     <div className="space-y-4">
                                         <div>
                                             <div className="font-medium">{room.current_case.procedure_name}</div>
-                                            <div className="text-sm text-gray-500">
+                                            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                 {room.current_case.surgeon_name} • {room.current_case.service_name}
                                             </div>
                                         </div>
                                         <div className="relative pt-1">
                                             <div className="flex mb-2 items-center justify-between">
                                                 <div>
-                                                    <span className="text-xs font-semibold inline-block text-gray-600">
+                                                    <span className="text-xs font-semibold inline-block text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                         Progress
                                                     </span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="text-xs font-semibold inline-block text-gray-600">
+                                                    <span className="text-xs font-semibold inline-block text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                         {progress}%
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                                            <div className="overflow-hidden h-2 text-xs flex rounded bg-healthcare-border dark:bg-healthcare-border-dark">
                                                 <div
                                                     style={{ width: `${progress}%` }}
                                                     className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${getProgressColor(progress)}`}
                                                 ></div>
                                             </div>
                                         </div>
-                                        <div className="text-sm text-gray-500">
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                             Estimated Duration: {formatDuration(room.current_case.estimated_duration)}
                                         </div>
                                     </div>
                                 ) : room.next_case ? (
                                     <div className="space-y-2">
-                                        <div className="text-sm text-gray-500">Next Case</div>
+                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Next Case</div>
                                         <div>
                                             <div className="font-medium">{room.next_case.procedure_name}</div>
-                                            <div className="text-sm text-gray-500">
+                                            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                 {new Date(room.next_case.scheduled_start_time).toLocaleTimeString('en-US', {
                                                     hour: 'numeric',
                                                     minute: '2-digit'
@@ -196,7 +196,7 @@ const RoomStatusBoard = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-sm text-gray-500">
+                                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         No cases scheduled
                                     </div>
                                 )}
@@ -204,15 +204,15 @@ const RoomStatusBoard = () => {
                                 {/* Room Stats */}
                                 <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4">
                                     <div>
-                                        <div className="text-sm font-medium text-gray-500">Today</div>
+                                        <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Today</div>
                                         <div className="mt-1 text-lg font-semibold">{room.utilization.today}%</div>
                                     </div>
                                     <div>
-                                        <div className="text-sm font-medium text-gray-500">Week</div>
+                                        <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Week</div>
                                         <div className="mt-1 text-lg font-semibold">{room.utilization.week}%</div>
                                     </div>
                                     <div>
-                                        <div className="text-sm font-medium text-gray-500">Month</div>
+                                        <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Month</div>
                                         <div className="mt-1 text-lg font-semibold">{room.utilization.month}%</div>
                                     </div>
                                 </div>

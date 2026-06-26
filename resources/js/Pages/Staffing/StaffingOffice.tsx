@@ -18,9 +18,9 @@ const SOURCE_LABELS: Record<StaffingAssignedSource, string> = {
 };
 
 const PRIORITY_TONE: Record<string, string> = {
-  stat: 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300',
-  urgent: 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
-  routine: 'bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300',
+  stat: 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark',
+  urgent: 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark',
+  routine: 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark',
 };
 
 const CHIP = 'rounded-md bg-slate-100 px-2 py-1 text-[11px]/[15px] font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300';
@@ -28,9 +28,9 @@ const CHIP = 'rounded-md bg-slate-100 px-2 py-1 text-[11px]/[15px] font-medium t
 function MetricTile({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'risk' | 'good' }) {
   const toneClass =
     tone === 'risk'
-      ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20'
+      ? 'border-healthcare-critical/30 bg-healthcare-critical/5 dark:border-healthcare-critical-dark/30 dark:bg-healthcare-critical-dark/10'
       : tone === 'good'
-        ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20'
+        ? 'border-healthcare-success/30 bg-healthcare-success/5 dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10'
         : 'border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark';
 
   return (
@@ -50,7 +50,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]/[15px] font-semibold ${
-        critical ? 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+        critical ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark' : 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
       }`}
     >
       {critical ? <ShieldAlert className="size-3" /> : <AlertTriangle className="size-3" />}
@@ -74,7 +74,7 @@ function UnitCard({ unit }: { unit: StaffingUnitAtRisk }) {
         <StatusBadge status={unit.status} />
       </div>
       {unit.below_minimum_safe && (
-        <div className="mt-2 flex items-center gap-1 text-[12px]/[16px] font-medium text-red-600 dark:text-red-400">
+        <div className="mt-2 flex items-center gap-1 text-[12px]/[16px] font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
           <ShieldAlert className="size-3.5" /> Below minimum safe staffing
         </div>
       )}
@@ -198,7 +198,7 @@ export default function StaffingOffice() {
                 </h2>
               </div>
               {data.units_at_risk.length === 0 ? (
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-healthcare-text-secondary-dark">
+                <div className="rounded-md border border-healthcare-success/30 bg-healthcare-success/5 p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10 dark:text-healthcare-text-secondary-dark">
                   All units are at or above target for the current shift.
                 </div>
               ) : (

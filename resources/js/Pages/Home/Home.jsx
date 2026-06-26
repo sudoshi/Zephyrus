@@ -53,28 +53,28 @@ const getTrendIcon = (trend) => {
 const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
         case 'plan':
-            return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+            return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
         case 'do':
-            return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
+            return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
         case 'study':
             return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
         case 'act':
-            return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+            return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
         default:
-            return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+            return 'text-healthcare-text-secondary bg-healthcare-background dark:text-healthcare-text-secondary-dark dark:bg-healthcare-background-dark';
     }
 };
 
 const getPriorityColor = (priority) => {
     switch (priority.toLowerCase()) {
         case 'critical':
-            return 'text-red-600 bg-red-100 dark:bg-red-900';
+            return 'text-healthcare-critical bg-healthcare-critical/10 dark:text-healthcare-critical-dark dark:bg-healthcare-critical-dark/20';
         case 'high':
-            return 'text-orange-600 bg-orange-100 dark:bg-orange-900';
+            return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
         case 'medium':
-            return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900';
+            return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
         default:
-            return 'text-green-600 bg-green-100 dark:bg-green-900';
+            return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
     }
 };
 
@@ -445,9 +445,9 @@ const Home = ({ workflow }) => {
                                                 <div className="flex items-center space-x-4 mt-1">
                                                     <span className="text-sm">Impact Score: {improvement.impact}</span>
                                                     <span className={`text-xs px-2 py-1 rounded-full ${
-                                                        improvement.status === 'On Track' ? 'text-green-600 bg-green-100 dark:bg-green-900' :
-                                                        improvement.status === 'At Risk' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900' :
-                                                        'text-blue-600 bg-blue-100 dark:bg-blue-900'
+                                                        improvement.status === 'On Track' ? 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20' :
+                                                        improvement.status === 'At Risk' ? 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20' :
+                                                        'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20'
                                                     }`}>{improvement.status}</span>
                                                 </div>
                                             </div>

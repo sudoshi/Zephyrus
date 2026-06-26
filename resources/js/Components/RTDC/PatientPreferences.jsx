@@ -6,18 +6,18 @@ const PatientPreferences = ({ preferences }) => {
     if (!preferences) return null;
 
     const PreferenceItem = ({ icon, label, value, editable = true }) => (
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
             <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
                     <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
+                    <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{value}</div>
                 </div>
             </div>
             {editable && (
-                <button className="p-1 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <button className="p-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark">
                     <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
                 </button>
             )}
@@ -25,7 +25,7 @@ const PatientPreferences = ({ preferences }) => {
     );
 
     const RestrictionItem = ({ restriction }) => (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2 bg-healthcare-critical/10 dark:bg-healthcare-critical/20 text-healthcare-critical dark:text-healthcare-critical-dark rounded-lg">
             <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5" />
             <span className="text-sm font-medium">{restriction}</span>
         </div>
@@ -97,10 +97,10 @@ const PatientPreferences = ({ preferences }) => {
                 <Card.Content>
                     <textarea
                         rows="4"
-                        className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Add any special instructions or notes..."
                     />
-                    <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="mt-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Last updated: {new Date().toLocaleString()}
                     </div>
                 </Card.Content>

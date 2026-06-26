@@ -21,23 +21,23 @@ const PathwayCard = ({
 
     return (
         <div className={`p-4 rounded-lg border ${
-            isDarkMode 
-                ? 'bg-gray-800 border-gray-700' 
-                : 'bg-white border-gray-200'
+            isDarkMode
+                ? 'bg-healthcare-surface-dark border-healthcare-border-dark'
+                : 'bg-healthcare-surface border-healthcare-border'
         }`}>
             <div className="flex items-start gap-4">
                 <div className={`p-2 rounded-lg ${
-                    isEligible 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    isEligible
+                        ? 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                 }`}>
                     <Icon icon={icon} className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {title}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         {description}
                     </p>
                 </div>
@@ -51,11 +51,11 @@ const PathwayCard = ({
                             id={`${title}-eligible`}
                             checked={isEligible}
                             onChange={(e) => onUpdateEligibility(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500"
                         />
                         <label 
                             htmlFor={`${title}-eligible`}
-                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                            className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                         >
                             Eligible
                         </label>
@@ -67,11 +67,11 @@ const PathwayCard = ({
                                 id={`${title}-consent`}
                                 checked={hasConsented}
                                 onChange={(e) => onUpdateConsent(e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500"
                             />
                             <label 
                                 htmlFor={`${title}-consent`}
-                                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                                className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                             >
                                 Patient Consented
                             </label>
@@ -84,7 +84,7 @@ const PathwayCard = ({
                 <div>
                     <label 
                         htmlFor={`${title}-notes`}
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1"
                     >
                         Assessment Notes
                     </label>
@@ -93,13 +93,13 @@ const PathwayCard = ({
                         value={eligibilityNotes}
                         onChange={(e) => onUpdateNotes(e.target.value)}
                         rows={3}
-                        className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
                         placeholder="Enter assessment details..."
                     />
                 </div>
 
                 {(assessedBy || assessedAt) && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Last assessed by {assessedBy} at {new Date(assessedAt).toLocaleString()}
                     </div>
                 )}
@@ -173,7 +173,7 @@ const DischargePathwaysSection = ({
                                 <div>
                                     <label 
                                         htmlFor="preferred-unit"
-                                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                                        className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1"
                                     >
                                         Preferred CAD Unit
                                     </label>
@@ -181,7 +181,7 @@ const DischargePathwaysSection = ({
                                         id="preferred-unit"
                                         value={alternativePathways.cadArena.preferredUnit || ''}
                                         onChange={(e) => handleUpdateCAD({ preferredUnit: e.target.value })}
-                                        className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
                                     >
                                         <option value="">Select a unit</option>
                                         {availableUnits.map((unit) => (

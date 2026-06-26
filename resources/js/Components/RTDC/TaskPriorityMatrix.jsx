@@ -37,8 +37,8 @@ const TaskPriorityMatrix = ({ tasks }) => {
         <div className={`${bgColor} p-4 rounded-lg`}>
             <div className="flex items-center gap-2 mb-3">
                 <Icon icon={icon} className="w-5 h-5" />
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">{title}</h3>
-                <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+                <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h3>
+                <span className="ml-auto text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {tasks.length} tasks
                 </span>
             </div>
@@ -46,14 +46,14 @@ const TaskPriorityMatrix = ({ tasks }) => {
                 {tasks.map((task, index) => (
                     <div 
                         key={task.id || index}
-                        className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                        className="p-3 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm"
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     {task.text}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                                     Assigned to: {task.assignedTo}
                                 </p>
                             </div>
@@ -61,10 +61,10 @@ const TaskPriorityMatrix = ({ tasks }) => {
                                 type="checkbox"
                                 checked={task.completed}
                                 onChange={() => {}}
-                                className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500 h-4 w-4"
                             />
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="mt-2 flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             <Icon icon="heroicons:clock" className="w-4 h-4" />
                             Due: {new Date(task.dueDate).toLocaleString()}
                         </div>
@@ -84,25 +84,25 @@ const TaskPriorityMatrix = ({ tasks }) => {
                     <QuadrantCard
                         title="Urgent & Important"
                         tasks={matrix.urgent_important}
-                        bgColor="bg-red-50 dark:bg-red-900/20"
+                        bgColor="bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20"
                         icon="heroicons:exclamation-circle"
                     />
                     <QuadrantCard
                         title="Important, Not Urgent"
                         tasks={matrix.not_urgent_important}
-                        bgColor="bg-yellow-50 dark:bg-yellow-900/20"
+                        bgColor="bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20"
                         icon="heroicons:clock"
                     />
                     <QuadrantCard
                         title="Urgent, Not Important"
                         tasks={matrix.urgent_not_important}
-                        bgColor="bg-blue-50 dark:bg-blue-900/20"
+                        bgColor="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20"
                         icon="heroicons:bell-alert"
                     />
                     <QuadrantCard
                         title="Not Urgent or Important"
                         tasks={matrix.not_urgent_not_important}
-                        bgColor="bg-green-50 dark:bg-green-900/20"
+                        bgColor="bg-healthcare-success/10 dark:bg-healthcare-success-dark/20"
                         icon="heroicons:calendar"
                     />
                 </div>

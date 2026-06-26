@@ -4,12 +4,12 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 export default function Resources() {
     return (
         <AuthenticatedLayout
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Resource Analytics</h2>}
+            header={<h2 className="font-semibold text-xl text-healthcare-text-primary dark:text-healthcare-text-primary-dark leading-tight">Resource Analytics</h2>}
         >
             <div className="p-4">
                 <div>
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900 dark:text-gray-100">
+                    <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className="p-6 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             <h1>Resource Analytics</h1>
                             <p>This page displays resource allocation and utilization metrics.</p>
                             {/* Add your components and content here */}

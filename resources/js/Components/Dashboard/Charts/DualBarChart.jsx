@@ -68,8 +68,8 @@ const DualBarChart = ({
                                 <span
                                     className={`ml-2 text-xs ${
                                         data.room <= roomTarget
-                                            ? 'text-green-600'
-                                            : 'text-red-600'
+                                            ? 'text-healthcare-success dark:text-healthcare-success-dark'
+                                            : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                                     }`}
                                     style={{
                                         color: data.room <= roomTarget
@@ -89,8 +89,8 @@ const DualBarChart = ({
                                 <span
                                     className={`ml-2 text-xs ${
                                         data.procedure <= procedureTarget
-                                            ? 'text-green-600'
-                                            : 'text-red-600'
+                                            ? 'text-healthcare-success dark:text-healthcare-success-dark'
+                                            : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                                     }`}
                                     style={{
                                         color: data.procedure <= procedureTarget

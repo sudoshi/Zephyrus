@@ -45,12 +45,12 @@ export default function ExecutiveBrief() {
             No brief available.
           </div>
         ) : data?.status === 'blocked' ? (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-[13px]/[18px] text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
+          <div className="rounded-md border border-healthcare-critical/20 bg-healthcare-critical/10 p-4 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical-dark/40 dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark">
             {output.blockedReason ?? 'The briefing request was blocked by agent guardrails.'}
           </div>
         ) : (
           <div className="space-y-4">
-            <div className={`rounded-md border p-4 ${normalizeTone(output.status) === 'critical' ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20' : normalizeTone(output.status) === 'warning' ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20' : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20'}`}>
+            <div className={`rounded-md border p-4 ${normalizeTone(output.status) === 'critical' ? 'border-healthcare-critical/20 bg-healthcare-critical/10 dark:border-healthcare-critical-dark/40 dark:bg-healthcare-critical-dark/20' : normalizeTone(output.status) === 'warning' ? 'border-healthcare-warning/20 bg-healthcare-warning/10 dark:border-healthcare-warning-dark/40 dark:bg-healthcare-warning-dark/20' : 'border-healthcare-success/20 bg-healthcare-success/10 dark:border-healthcare-success-dark/40 dark:bg-healthcare-success-dark/20'}`}>
               <div className="flex items-center gap-2">
                 <FileText className="size-5 text-healthcare-primary" />
                 <ToneBadge tone={normalizeTone(output.status)}>{output.status ?? 'unknown'}</ToneBadge>
@@ -130,7 +130,7 @@ export default function ExecutiveBrief() {
               <Panel title="Governance trace" icon={<BadgeCheck className="size-5 text-healthcare-primary" />}>
                 <div className="flex flex-wrap gap-2">
                   {data.toolCalls.map((call) => (
-                    <span key={call.agentToolCallId} className="rounded-md bg-slate-100 px-2 py-1 text-[11px]/[15px] font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                    <span key={call.agentToolCallId} className="rounded-md bg-healthcare-background px-2 py-1 text-[11px]/[15px] font-medium text-healthcare-text-secondary dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
                       {call.toolKey} · {call.status} {call.readOnly ? '· read-only' : ''}
                     </span>
                   ))}

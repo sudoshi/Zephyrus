@@ -131,12 +131,12 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <section className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+          <section className="rounded-md border border-healthcare-warning/30 bg-healthcare-warning/10 p-4 dark:border-healthcare-warning/30 dark:bg-healthcare-warning/20">
             <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-healthcare-warning dark:text-healthcare-warning-dark" />
               <div>
-                <h2 className="text-[15px]/[20px] font-semibold text-amber-900 dark:text-amber-100">Phase 1 boundary</h2>
-                <p className="mt-1 text-[13px]/[18px] text-amber-800 dark:text-amber-200">
+                <h2 className="text-[15px]/[20px] font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">Phase 1 boundary</h2>
+                <p className="mt-1 text-[13px]/[18px] text-healthcare-warning dark:text-healthcare-warning-dark">
                   This release establishes the command surface, canonical event stream, and connector-ready API. Vendor credentials and production interface engines remain future phases.
                 </p>
               </div>

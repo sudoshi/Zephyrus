@@ -14,9 +14,9 @@ const ModeToggle = () => {
                     value="dev"
                     checked={mode === 'dev'}
                     onChange={(e) => setMode(e.target.value)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-healthcare-border dark:border-healthcare-border-dark"
                 />
-                <label htmlFor="dev-mode" className="text-sm font-medium text-gray-700">
+                <label htmlFor="dev-mode" className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Dev Mode
                 </label>
             </div>
@@ -28,13 +28,13 @@ const ModeToggle = () => {
                     value="prod"
                     checked={mode === 'prod'}
                     onChange={(e) => setMode(e.target.value)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-healthcare-border dark:border-healthcare-border-dark"
                 />
-                <label htmlFor="prod-mode" className="text-sm font-medium text-gray-700">
+                <label htmlFor="prod-mode" className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Prod Mode
                 </label>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 {mode === 'dev' ? '(Using Mock Data)' : '(Using Real Data)'}
             </div>
         </div>

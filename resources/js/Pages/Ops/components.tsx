@@ -3,18 +3,18 @@ import type { ReactNode } from 'react';
 export type Tone = 'critical' | 'warning' | 'success' | 'info' | 'neutral';
 
 const TONE_PILL: Record<Tone, string> = {
-  critical: 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-300',
-  warning: 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300',
-  success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300',
-  info: 'bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300',
-  neutral: 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300',
+  critical: 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark',
+  warning: 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark',
+  success: 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark',
+  info: 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info/20 dark:text-healthcare-info-dark',
+  neutral: 'bg-healthcare-background text-healthcare-text-secondary dark:bg-white/5 dark:text-healthcare-text-secondary-dark',
 };
 
 const TONE_CARD: Record<Tone, string> = {
-  critical: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20',
-  warning: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20',
-  success: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20',
-  info: 'border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950/20',
+  critical: 'border-healthcare-critical/30 bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20',
+  warning: 'border-healthcare-warning/30 bg-healthcare-warning/10 dark:border-healthcare-warning/40 dark:bg-healthcare-warning/20',
+  success: 'border-healthcare-success/30 bg-healthcare-success/10 dark:border-healthcare-success/40 dark:bg-healthcare-success/20',
+  info: 'border-healthcare-info/30 bg-healthcare-info/10 dark:border-healthcare-info/40 dark:bg-healthcare-info/20',
   neutral: 'border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark',
 };
 

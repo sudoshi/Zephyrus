@@ -94,13 +94,13 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         <Modal show={isOpen} onClose={onClose} maxWidth="2xl">
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="flex justify-between items-center border-b pb-3">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {initialData ? 'Edit Case' : 'Add New Case'}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-500"
+                        className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark"
                     >
                         <Icon icon="heroicons:x-mark" className="w-6 h-6" />
                     </button>
@@ -108,33 +108,33 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Patient Name
                         </label>
                         <input
                             type="text"
                             value={formData.patient_name}
                             onChange={(e) => handleInputChange('patient_name', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             MRN
                         </label>
                         <input
                             type="text"
                             value={formData.mrn}
                             onChange={(e) => handleInputChange('mrn', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Service
                         </label>
                         <Select
@@ -148,20 +148,20 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Procedure
                         </label>
                         <input
                             type="text"
                             value={formData.procedure_name}
                             onChange={(e) => handleInputChange('procedure_name', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Primary Surgeon
                         </label>
                         <Select
@@ -175,7 +175,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Room
                         </label>
                         <Select
@@ -189,33 +189,33 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Surgery Date
                         </label>
                         <input
                             type="date"
                             value={formData.surgery_date}
                             onChange={(e) => handleInputChange('surgery_date', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Start Time
                         </label>
                         <input
                             type="time"
                             value={formData.scheduled_start_time}
                             onChange={(e) => handleInputChange('scheduled_start_time', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Estimated Duration (hours)
                         </label>
                         <input
@@ -224,13 +224,13 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                             step="0.5"
                             value={formData.estimated_duration}
                             onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Case Class
                         </label>
                         <Select
@@ -241,7 +241,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             ASA Rating
                         </label>
                         <Select
@@ -252,7 +252,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Case Type
                         </label>
                         <Select
@@ -263,7 +263,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Patient Class
                         </label>
                         <Select
@@ -274,14 +274,14 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     </div>
 
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                             Notes
                         </label>
                         <textarea
                             value={formData.notes}
                             onChange={(e) => handleInputChange('notes', e.target.value)}
                             rows={3}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         />
                     </div>
                 </div>
@@ -290,7 +290,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                     <Button
                         type="button"
                         onClick={onClose}
-                        className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        className="bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
                     >
                         Cancel
                     </Button>

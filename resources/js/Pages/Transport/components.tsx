@@ -30,23 +30,23 @@ export const statusLabels: Record<TransportStatus, string> = {
 };
 
 export function priorityClass(priority: TransportPriority): string {
-  if (priority === 'stat') return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
-  if (priority === 'urgent') return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200';
-  return 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200';
+  if (priority === 'stat') return 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark';
+  if (priority === 'urgent') return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
+  return 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info/20 dark:text-healthcare-info-dark';
 }
 
 export function statusClass(status: TransportStatus): string {
-  if (['completed', 'handoff_complete'].includes(status)) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200';
-  if (['canceled', 'failed', 'patient_not_ready'].includes(status)) return 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200';
+  if (['completed', 'handoff_complete'].includes(status)) return 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark';
+  if (['canceled', 'failed', 'patient_not_ready'].includes(status)) return 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark';
   if (['dispatched', 'picked_up', 'en_route'].includes(status)) return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200';
-  return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100';
+  return 'bg-healthcare-border text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark';
 }
 
 export function MetricTile({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'risk' | 'good' }) {
   const toneClass = tone === 'risk'
-    ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20'
+    ? 'border-healthcare-critical/30 bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20'
     : tone === 'good'
-      ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/20'
+      ? 'border-healthcare-success/30 bg-healthcare-success/10 dark:border-healthcare-success/40 dark:bg-healthcare-success/20'
       : 'border-healthcare-border bg-healthcare-surface dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark';
 
   return (
@@ -97,7 +97,7 @@ export function TransportRequestRow({
             <span>{request.destination}</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            <span className={request.sla.at_risk ? 'font-semibold text-red-700 dark:text-red-300' : ''}>{request.sla.label}</span>
+            <span className={request.sla.at_risk ? 'font-semibold text-healthcare-critical dark:text-healthcare-critical-dark' : ''}>{request.sla.label}</span>
             {request.assigned_team ? <span>Team: {request.assigned_team}</span> : null}
             {request.assigned_vendor ? <span>Vendor: {request.assigned_vendor}</span> : null}
             {request.clinical_service ? <span>Service: {request.clinical_service}</span> : null}
@@ -133,14 +133,14 @@ export function TransportRequestRow({
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'completed')}
-                  className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-[13px]/[18px] font-medium text-white hover:bg-emerald-700"
+                  className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-[13px]/[18px] font-medium text-white hover:bg-healthcare-success/90"
                 >
                   <CheckCircle2 className="h-4 w-4" /> Complete
                 </button>
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'canceled')}
-                  className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-[13px]/[18px] font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/20"
+                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-critical/30 px-3 py-1.5 text-[13px]/[18px] font-medium text-healthcare-critical hover:bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:text-healthcare-critical-dark dark:hover:bg-healthcare-critical/20"
                 >
                   <XCircle className="h-4 w-4" /> Cancel
                 </button>

@@ -124,7 +124,7 @@ const RedStretchPlanModal = ({
                                     Completion: {Math.round(progress)}%
                                     {progress === 100 && ' ✓'}
                                 </div>
-                                <div className="w-32 h-2 bg-gray-200 rounded-full mt-1">
+                                <div className="w-32 h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full mt-1">
                                     <div 
                                         className="h-full bg-healthcare-primary rounded-full transition-all duration-300"
                                         style={{ width: `${progress}%` }}

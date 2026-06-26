@@ -15,10 +15,10 @@ import TrendsModal from '@/Components/RTDC/TrendsModal';
 
 
 const getStatusClasses = (value) => {
-    if (value > 120) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-    if (value > 90) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-    if (value > 60) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    if (value > 120) return 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark';
+    if (value > 90) return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
+    if (value > 60) return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
+    return 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark';
 };
 
 // Helper function to simulate trend data
@@ -171,17 +171,17 @@ const AncillaryServices = () => {
             {demoData.map((unit) => (
                 <Card
                     key={unit.id}
-                    className="group hover:shadow-xl transition-all duration-300 cursor-pointer healthcare-card border border-gray-200 dark:border-gray-700"
+                    className="group hover:shadow-xl transition-all duration-300 cursor-pointer healthcare-card border border-healthcare-border dark:border-healthcare-border-dark"
                     onClick={() => setSelectedUnit(unit)}
                 >
-                    <Card.Header className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <Card.Header className="bg-healthcare-background dark:bg-healthcare-background-dark border-b border-healthcare-border dark:border-healthcare-border-dark">
                         <div className="flex items-center justify-between">
-                            <Card.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            <Card.Title className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                 {unit.name}
                             </Card.Title>
-                            <Icon 
-                                icon="heroicons:chevron-right" 
-                                className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-transform group-hover:translate-x-1"
+                            <Icon
+                                icon="heroicons:chevron-right"
+                                className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-transform group-hover:translate-x-1"
                             />
                         </div>
                     </Card.Header>
@@ -198,7 +198,7 @@ const AncillaryServices = () => {
 
                                 return (
                                     <div key={categoryKey} className="space-y-2">
-                                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                             {category.name}
                                         </h4>
                                         <div className="grid gap-2">
@@ -262,31 +262,31 @@ const AncillaryServices = () => {
     // Render Table View
     const renderTableView = () => (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 healthcare-card">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark healthcare-card">
+                <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                     <tr>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 w-32">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark w-32">
                             Unit
                         </th>
                         {Object.entries(serviceCategories).map(([catKey, category]) => (
                             <th
                                 key={catKey}
                                 colSpan={category.services.length}
-                                className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100 border-l border-gray-200 dark:border-gray-700"
+                                className="px-4 py-3 text-center text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-l border-healthcare-border dark:border-healthcare-border-dark"
                             >
                                 {category.name}
                             </th>
                         ))}
                     </tr>
                     <tr>
-                        <th className="px-4 py-3 bg-gray-50 dark:bg-gray-800"></th>
+                        <th className="px-4 py-3 bg-healthcare-background dark:bg-healthcare-background-dark"></th>
                         {Object.values(serviceCategories).flatMap((category) =>
                             category.services.map((serviceId) => {
                                 const serviceInfo = services.find((s) => s.id === serviceId);
                                 return (
                                     <th
                                         key={serviceId}
-                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700"
+                                        className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-background dark:bg-healthcare-background-dark border-l border-healthcare-border dark:border-healthcare-border-dark"
                                     >
                                         <div
                                             className="flex items-center cursor-pointer group"
@@ -310,14 +310,14 @@ const AncillaryServices = () => {
                         )}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
                     {demoData.map((unit) => (
 <tr
     key={unit.id}
-    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+    className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark cursor-pointer transition-colors"
     onClick={() => setSelectedUnit(unit)}
 >
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            <td className="px-4 py-3 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark whitespace-nowrap">
                                 {unit.name}
                             </td>
                             {Object.values(serviceCategories).flatMap((category) =>
@@ -329,7 +329,7 @@ const AncillaryServices = () => {
                                     return (
                                         <td
                                             key={serviceId}
-                                            className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-l border-gray-200 dark:border-gray-700"
+                                            className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-l border-healthcare-border dark:border-healthcare-border-dark"
                                         >
                                             {service ? (
                                                 <div className="relative group">
@@ -357,7 +357,7 @@ const AncillaryServices = () => {
                                                             <h4 className="text-md font-semibold mb-2">
                                                                 {serviceInfo?.name}
                                                             </h4>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                                                            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                                                                 {serviceInfo?.description}
                                                             </p>
                                                             <p className="text-sm mb-1">
@@ -431,7 +431,7 @@ const AncillaryServices = () => {
                                         <div className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                             {stat.value}
                                         </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                             {stat.description}
                                         </div>
                                     </div>
@@ -545,7 +545,7 @@ const AncillaryServices = () => {
     className="relative bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-xl w-full max-w-6xl"
     onClick={(e) => e.stopPropagation()}
 >
-                            <div className="px-6 py-4 border-b border-healthcare-border dark:border-gray-700 flex justify-between items-center">
+                            <div className="px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark flex justify-between items-center">
                                 <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     {selectedUnit.name} - Detailed View
                                 </h3>
@@ -600,9 +600,9 @@ const AncillaryServices = () => {
                                         })}
                                 </div>
                             </div>
-                            <div className="px-6 py-3 border-t border-healthcare-border dark:border-gray-700">
+                            <div className="px-6 py-3 border-t border-healthcare-border dark:border-healthcare-border-dark">
                                 <button
-                                    className="inline-flex items-center px-4 py-2 healthcare-button-primary text-sm font-medium rounded-md hover:bg-blue-700"
+                                    className="inline-flex items-center px-4 py-2 healthcare-button-primary text-sm font-medium rounded-md hover:bg-healthcare-primary-hover"
                                     onClick={() => setShowTrends(!showTrends)}
                                 >
                                     <Icon

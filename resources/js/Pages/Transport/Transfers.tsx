@@ -78,7 +78,7 @@ function RegionalTransferPanel() {
       </div>
 
       {summary.isError ? (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-[13px]/[18px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+        <div className="rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical-dark/50 dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark">
           Regional transfer recommendations are unavailable.
         </div>
       ) : null}
@@ -131,7 +131,7 @@ function RegionalTransferPanel() {
                     {recommendation.origin} to {recommendation.destination}
                   </div>
                 </div>
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-[12px]/[16px] font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                <span className="rounded bg-healthcare-warning/10 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark">
                   {recommendation.priority.toUpperCase()}
                 </span>
               </div>
@@ -150,10 +150,10 @@ function RegionalTransferPanel() {
                       </div>
                       <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${
                         candidate.recommendation === 'accept'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                          ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                           : candidate.recommendation === 'conditional'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
-                            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
+                            ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
+                            : 'bg-healthcare-background text-healthcare-text-primary dark:bg-healthcare-background-dark dark:text-healthcare-text-primary-dark'
                       }`}>
                         {candidate.score}
                       </span>
@@ -167,8 +167,8 @@ function RegionalTransferPanel() {
                       {candidate.rationale.required_capabilities.map((capability) => (
                         <span key={capability} className={`rounded px-2 py-0.5 text-[12px]/[16px] ${
                           candidate.constraints.missing_capabilities.includes(capability)
-                            ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200'
-                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                            ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
+                            : 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                         }`}>
                           {capability.replaceAll('_', ' ')}
                         </span>
@@ -179,7 +179,7 @@ function RegionalTransferPanel() {
                       <span>After acceptance: {candidate.opportunityCost.available_beds_after_acceptance} beds, {candidate.opportunityCost.icu_beds_after_acceptance} ICU</span>
                     </div>
                     {candidate.constraints.missing_capabilities.length > 0 ? (
-                      <div className="mt-2 flex items-center gap-2 text-[12px]/[16px] text-red-700 dark:text-red-300">
+                      <div className="mt-2 flex items-center gap-2 text-[12px]/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">
                         <ShieldAlert className="size-4" />
                         <span>Missing {candidate.constraints.missing_capabilities.join(', ')}</span>
                       </div>
@@ -189,7 +189,7 @@ function RegionalTransferPanel() {
                         type="button"
                         disabled={decision.isPending}
                         onClick={() => decide(recommendation.transportRequestId, candidate, 'accepted')}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-[12px]/[16px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-[12px]/[16px] font-semibold text-white hover:bg-healthcare-success/90 disabled:opacity-60"
                       >
                         <CheckCircle2 className="size-4" />
                         Accept
@@ -251,7 +251,7 @@ function RegionalComparisonDashboard({ rows }: { rows: RegionalComparisonRow[] }
                   <div className="mt-0.5 flex flex-wrap gap-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>{row.campusKey ?? 'regional'}</span>
                     <span>{row.buildingKey ?? 'facility'}</span>
-                    {row.isExternal ? <span className="font-semibold text-amber-700 dark:text-amber-300">external</span> : null}
+                    {row.isExternal ? <span className="font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">external</span> : null}
                   </div>
                 </td>
                 <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.availableBeds}/{row.staffedBeds}</td>
@@ -262,10 +262,10 @@ function RegionalComparisonDashboard({ rows }: { rows: RegionalComparisonRow[] }
                 <td className="py-2 pr-3">
                   <span className={`rounded px-2 py-0.5 font-semibold ${
                     row.status === 'open'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                      ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                       : row.status === 'constrained'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200'
+                        ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
+                        : 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                   }`}>
                     {row.pressureScore}
                   </span>
@@ -323,10 +323,10 @@ function RegionalRouteSimulationPanel({
 
 function ScenarioCard({ scenario }: { scenario: RegionalRouteScenario }) {
   const tone = scenario.routeRiskScore >= 70
-    ? 'border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/20'
+    ? 'border-healthcare-critical/30 bg-healthcare-critical/10 dark:border-healthcare-critical-dark/60 dark:bg-healthcare-critical-dark/20'
     : scenario.routeRiskScore >= 45
-      ? 'border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/20'
-      : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/20';
+      ? 'border-healthcare-warning/30 bg-healthcare-warning/10 dark:border-healthcare-warning-dark/60 dark:bg-healthcare-warning-dark/20'
+      : 'border-healthcare-success/30 bg-healthcare-success/10 dark:border-healthcare-success-dark/60 dark:bg-healthcare-success-dark/20';
 
   return (
     <div className={`rounded-md border p-3 ${tone}`}>
@@ -339,7 +339,7 @@ function ScenarioCard({ scenario }: { scenario: RegionalRouteScenario }) {
             {scenario.modelVersionKey}
           </div>
         </div>
-        <span className="rounded bg-white/70 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary dark:bg-black/20 dark:text-healthcare-text-primary-dark">
+        <span className="rounded bg-healthcare-surface/70 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary dark:bg-healthcare-surface-dark/20 dark:text-healthcare-text-primary-dark">
           Risk {scenario.routeRiskScore}
         </span>
       </div>
@@ -389,10 +389,10 @@ function TransferCenterAgentPanel({
                 </div>
                 <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${
                   draft.recommendedDecision === 'accepted'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                    ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                     : draft.recommendedDecision === 'redirected'
-                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
-                      : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
+                      ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
+                      : 'bg-healthcare-background text-healthcare-text-primary dark:bg-healthcare-background-dark dark:text-healthcare-text-primary-dark'
                 }`}>
                   {draft.recommendedDecision}
                 </span>

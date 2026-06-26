@@ -49,31 +49,31 @@ const DischargeReadinessScore = ({ requirements }) => {
     const score = calculateScore();
 
     const getScoreColor = (score) => {
-        if (score >= 80) return 'text-green-600 dark:text-green-400';
-        if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
-        return 'text-red-600 dark:text-red-400';
+        if (score >= 80) return 'text-healthcare-success dark:text-healthcare-success-dark';
+        if (score >= 50) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+        return 'text-healthcare-critical dark:text-healthcare-critical-dark';
     };
 
     const CriteriaGroup = ({ title, items, icon }) => (
         <div className="space-y-3">
             <div className="flex items-center gap-2">
-                <Icon icon={icon} className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">{title}</h3>
+                <Icon icon={icon} className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+                <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h3>
             </div>
             <div className="space-y-2 ml-7">
                 {Object.entries(items).map(([key, value]) => (
                     <div key={key} className="flex items-center gap-2">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                            value 
-                                ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                                : 'bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
+                            value
+                                ? 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                                : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                         }`}>
-                            <Icon 
-                                icon={value ? 'heroicons:check' : 'heroicons:minus-small'} 
-                                className="w-4 h-4" 
+                            <Icon
+                                icon={value ? 'heroicons:check' : 'heroicons:minus-small'}
+                                className="w-4 h-4"
                             />
                         </div>
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             {key.split(/(?=[A-Z])/).join(' ')}
                         </span>
                     </div>
@@ -86,24 +86,24 @@ const DischargeReadinessScore = ({ requirements }) => {
         if (!pathway?.isEligible) return null;
 
         return (
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${
                         pathway.hasConsented
-                            ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400'
+                            ? 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                            : 'bg-healthcare-warning/10 dark:bg-healthcare-warning/20 text-healthcare-warning dark:text-healthcare-warning-dark'
                     }`}>
                         <Icon icon={icon} className="w-5 h-5" />
                     </div>
                     <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{title}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</div>
+                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             {pathway.hasConsented ? 'Patient has consented' : 'Awaiting patient consent'}
                         </div>
                     </div>
                 </div>
                 {pathway.preferredUnit && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Unit: {pathway.preferredUnit}
                     </div>
                 )}
@@ -123,19 +123,19 @@ const DischargeReadinessScore = ({ requirements }) => {
             </Card.Header>
             <Card.Content>
                 <div className="mb-6">
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
+                    <div className="h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full overflow-hidden">
+                        <div
                             className={`h-full transition-all duration-500 ${
-                                score.score >= 80 
-                                    ? 'bg-green-500' 
-                                    : score.score >= 50 
-                                        ? 'bg-yellow-500' 
-                                        : 'bg-red-500'
+                                score.score >= 80
+                                    ? 'bg-healthcare-success dark:bg-healthcare-success-dark'
+                                    : score.score >= 50
+                                        ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark'
+                                        : 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
                             }`}
                             style={{ width: `${score.score}%` }}
                         />
                     </div>
-                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
+                    <div className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-center">
                         {score.completed} of {score.total} criteria met
                     </div>
                 </div>
@@ -143,7 +143,7 @@ const DischargeReadinessScore = ({ requirements }) => {
                 <div className="space-y-6">
                     {requirements.alternativePathways && (
                         <div className="space-y-3">
-                            <h3 className="font-medium text-gray-900 dark:text-gray-100">Alternative Pathways</h3>
+                            <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Alternative Pathways</h3>
                             <div className="space-y-2">
                                 <AlternativePathwayStatus 
                                     pathway={requirements.alternativePathways.hospitalAtHome}
@@ -171,28 +171,28 @@ const DischargeReadinessScore = ({ requirements }) => {
                     />
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <Icon icon="heroicons:truck" className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                            <h3 className="font-medium text-gray-900 dark:text-gray-100">Transportation</h3>
+                            <Icon icon="heroicons:truck" className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+                            <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Transportation</h3>
                         </div>
                         <div className="ml-7 space-y-2">
                             <div className="flex items-center gap-2">
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
                                     requirements.transportation.arranged
-                                        ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                                        : 'bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
+                                        ? 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
+                                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                                 }`}>
-                                    <Icon 
-                                        icon={requirements.transportation.arranged ? 'heroicons:check' : 'heroicons:minus-small'} 
-                                        className="w-4 h-4" 
+                                    <Icon
+                                        icon={requirements.transportation.arranged ? 'heroicons:check' : 'heroicons:minus-small'}
+                                        className="w-4 h-4"
                                     />
                                 </div>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     {requirements.transportation.arranged ? 'Arranged' : 'Not Arranged'}
                                     {requirements.transportation.type && ` (${requirements.transportation.type})`}
                                 </span>
                             </div>
                             {requirements.transportation.notes && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 ml-7">
+                                <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ml-7">
                                     {requirements.transportation.notes}
                                 </p>
                             )}

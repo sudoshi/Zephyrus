@@ -148,7 +148,7 @@ export default function AgentInbox() {
                 {(inbox.data?.actions ?? []).map((action) => (
                   <li key={action.actionId} className="flex items-center justify-between gap-2 rounded-md border border-healthcare-border p-2.5 dark:border-healthcare-border-dark">
                     <div className="flex items-center gap-2">
-                      {action.status === 'completed' && <CheckCircle2 className="size-4 text-emerald-500" />}
+                      {action.status === 'completed' && <CheckCircle2 className="size-4 text-healthcare-success dark:text-healthcare-success-dark" />}
                       <span className="text-[13px]/[18px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {action.recommendation?.title ?? action.type}
                       </span>

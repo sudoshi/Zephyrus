@@ -25,8 +25,8 @@ const BedOccupancyChart = ({ data, serviceLines }) => {
             const total = payload.reduce((sum, entry) => sum + entry.value, 0);
             
             return (
-                <div className="bg-white dark:bg-healthcare-background-dark p-4 border rounded shadow">
-                    <p className="font-medium text-gray-900 dark:text-white mb-2">
+                <div className="bg-healthcare-surface dark:bg-healthcare-background-dark p-4 border rounded shadow">
+                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
                         {new Date(label).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',

@@ -22,7 +22,7 @@ const CareTeamTimeline = ({ teamCommunication }) => {
         <div className="relative pb-8">
             <div className="relative flex items-start space-x-3">
                 <div className="relative">
-                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center ring-8 ring-white dark:ring-gray-800">
+                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center ring-8 ring-healthcare-surface dark:ring-healthcare-surface-dark">
                         <Icon 
                             icon={getActivityIcon(activity.category)} 
                             className="h-5 w-5 text-indigo-600 dark:text-indigo-400" 
@@ -32,15 +32,15 @@ const CareTeamTimeline = ({ teamCommunication }) => {
                 <div className="min-w-0 flex-1">
                     <div>
                         <div className="text-sm">
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                            <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                 {activity.author}
                             </span>
                         </div>
-                        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                        <p className="mt-0.5 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             {new Date(activity.timestamp).toLocaleString()}
                         </p>
                     </div>
-                    <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                    <div className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <p>{activity.message}</p>
                     </div>
                     <div className="mt-2">
