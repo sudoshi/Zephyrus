@@ -116,23 +116,23 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Total Events</h3>
-          <p className="text-2xl font-bold">{failures.length}</p>
+          <p className="text-2xl font-semibold">{failures.length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">High Impact Events</h3>
-          <p className="text-2xl font-bold text-red-500">
+          <p className="text-2xl font-semibold text-red-500">
             {failures.filter(f => f.impact === 'high').length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Most Common Type</h3>
-          <p className="text-2xl font-bold">
+          <p className="text-2xl font-semibold">
             {Object.entries(failuresByType).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <h3 className="text-sm font-medium text-gray-500">Last 7 Days</h3>
-          <p className="text-2xl font-bold">
+          <p className="text-2xl font-semibold">
             {failures.filter(f => {
               const sevenDaysAgo = new Date();
               sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

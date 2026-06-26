@@ -62,12 +62,12 @@ const BedDistributionChart = ({ distribution }) => {
         >
             <div className={`flex items-center space-x-2 mb-2`}>
                 <span 
-                    className={`text-3xl font-bold ${getStatusColor(type)}`}
+                    className={`text-3xl font-semibold ${getStatusColor(type)}`}
                     aria-hidden="true"
                 >
                     {getStatusPattern(type)}
                 </span>
-                <span className={`text-3xl font-bold ${getStatusColor(type)}`}>
+                <span className={`text-3xl font-semibold ${getStatusColor(type)}`}>
                     {value}
                 </span>
             </div>

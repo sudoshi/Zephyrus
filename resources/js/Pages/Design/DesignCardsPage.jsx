@@ -889,7 +889,7 @@ export const DashboardHeader = ({
     <div className={`healthcare-panel ${className}`}>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {title}
           </h1>
           <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

@@ -56,7 +56,7 @@ const DrillDownModal = ({ isOpen, onClose, metric, data }) => {
                 />
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                   {stat.value}%
                 </div>
                 <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">

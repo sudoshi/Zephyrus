@@ -52,7 +52,7 @@ export default function ComponentsDemo({ auth }) {
             <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
               <div className="bg-healthcare-surface-dark overflow-hidden shadow-sm sm:rounded-lg">
                 <div className="p-6 text-healthcare-text-primary-dark">
-                  <h1 className="text-2xl font-bold mb-6">UI Components Demo</h1>
+                  <h1 className="text-2xl font-semibold mb-6">UI Components Demo</h1>
                   
                   {/* Button Examples */}
                   <section className="mb-6">
@@ -105,7 +105,7 @@ export default function ComponentsDemo({ auth }) {
                   <section className="mb-6">
                     <h2 className="text-xl font-semibold mb-4">Tabs Example</h2>
                     <Card className="mb-6">
-                      <h5 className="text-xl font-bold mb-4">Tabs</h5>
+                      <h5 className="text-xl font-semibold mb-4">Tabs</h5>
                       <Tabs style={{ base: "underline" }}>
                         <Tabs.Item title="Tab 1">
                           <Card>
@@ -133,7 +133,7 @@ export default function ComponentsDemo({ auth }) {
                   <section>
                     <h2 className="text-xl font-semibold mb-4">Chart Examples</h2>
                     <Card>
-                      <h5 className="text-xl font-bold mb-4">Charts</h5>
+                      <h5 className="text-xl font-semibold mb-4">Charts</h5>
                       <Tabs style={{ base: "underline" }}>
                         <Tabs.Item title="Bar Chart">
                           <Card title="Bar Chart Example">

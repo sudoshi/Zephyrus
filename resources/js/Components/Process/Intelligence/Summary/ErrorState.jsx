@@ -8,7 +8,7 @@ const ErrorState = ({ message, onRetry }) => {
         <AlertOctagon className="h-8 w-8 text-healthcare-critical dark:text-healthcare-critical-dark" />
       </div>
       <div className="text-center">
-        <h4 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
+        <h4 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
           Unable to Load Data
         </h4>
         <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">

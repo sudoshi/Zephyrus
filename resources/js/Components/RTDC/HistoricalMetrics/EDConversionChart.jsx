@@ -23,7 +23,7 @@ const EDConversionChart = ({ data }) => {
                         {/* Conversion Rate */}
                         <div className="flex flex-col items-end">
                             <div className="flex items-center space-x-2">
-                                <span className="text-2xl font-bold">{currentRate.toFixed(1)}%</span>
+                                <span className="text-2xl font-semibold">{currentRate.toFixed(1)}%</span>
                                 <div className={`flex items-center space-x-1 text-sm ${
                                     trend < 0 
                                         ? 'text-healthcare-success dark:text-healthcare-success-dark' 
@@ -44,7 +44,7 @@ const EDConversionChart = ({ data }) => {
                         {/* Visit Volume */}
                         <div className="flex flex-col items-end">
                             <div className="flex items-center space-x-2">
-                                <span className="text-2xl font-bold">{currentVolume}</span>
+                                <span className="text-2xl font-semibold">{currentVolume}</span>
                                 <div className={`flex items-center space-x-1 text-sm ${
                                     volumeTrend > 0 
                                         ? 'text-healthcare-warning dark:text-healthcare-warning-dark'

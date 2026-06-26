@@ -113,7 +113,7 @@ const ServiceAnalysisView = ({ filters }) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
               {serviceData.map((row, index) => (
-                <tr key={index} className={row.service === 'Grand Total' ? 'font-bold bg-gray-50 dark:bg-gray-800' : ''}>
+                <tr key={index} className={row.service === 'Grand Total' ? 'font-semibold bg-gray-50 dark:bg-gray-800' : ''}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {row.service}
                   </td>

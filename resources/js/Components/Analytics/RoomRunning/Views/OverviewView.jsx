@@ -145,7 +145,7 @@ const OverviewView = ({ filters }) => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
         }}
       >
-        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px' }}>
           Time: {point.data.x}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -174,7 +174,7 @@ const OverviewView = ({ filters }) => {
     <div className="space-y-6">
       {/* Title and Subtitle */}
       <div className="text-center mb-4">
-        <h2 className="text-xl font-bold">{memhORData.title || "Rooms Running Charts"}</h2>
+        <h2 className="text-xl font-semibold">{memhORData.title || "Rooms Running Charts"}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">{memhORData.subtitle || ""}</p>
         <p className="text-sm font-medium mt-2">
           For: {memhORData.filters?.orGroup || "All OR Groups"}
@@ -268,7 +268,7 @@ const OverviewView = ({ filters }) => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
                     Time: {slice.points[0].data.x}
                   </div>
                   {slice.points.map(point => (
@@ -346,22 +346,22 @@ const OverviewView = ({ filters }) => {
         {/* Summary Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Panel title="Avg. Rooms Running" isSubpanel dropLightIntensity="medium">
-            <div className="text-2xl font-bold">{locationData.averageRoomsRunning}</div>
+            <div className="text-2xl font-semibold">{locationData.averageRoomsRunning}</div>
             <p className="text-xs text-muted-foreground">Out of {locationData.totalRooms} total rooms</p>
           </Panel>
           
           <Panel title="Utilization Rate" isSubpanel dropLightIntensity="medium">
-            <div className="text-2xl font-bold">{locationData.utilizationRate}%</div>
+            <div className="text-2xl font-semibold">{locationData.utilizationRate}%</div>
             <p className="text-xs text-muted-foreground">Overall room utilization</p>
           </Panel>
           
           <Panel title="Total Cases" isSubpanel dropLightIntensity="medium">
-            <div className="text-2xl font-bold">{locationData.totalCases}</div>
+            <div className="text-2xl font-semibold">{locationData.totalCases}</div>
             <p className="text-xs text-muted-foreground">Cases performed in selected period</p>
           </Panel>
           
           <Panel title="Avg. Case Duration" isSubpanel dropLightIntensity="medium">
-            <div className="text-2xl font-bold">{locationData.averageCaseDuration} min</div>
+            <div className="text-2xl font-semibold">{locationData.averageCaseDuration} min</div>
             <p className="text-xs text-muted-foreground">Average case duration</p>
           </Panel>
         </div>

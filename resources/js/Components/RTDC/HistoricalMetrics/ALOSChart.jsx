@@ -16,7 +16,7 @@ const ALOSChart = ({ data }) => {
                         <h3 className="font-medium">Average Length of Stay</h3>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold">{currentALOS.toFixed(1)}</span>
+                        <span className="text-2xl font-semibold">{currentALOS.toFixed(1)}</span>
                         <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">days</span>
                         <div className={`flex items-center space-x-1 text-sm ${
                             trend < 0 

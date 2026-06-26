@@ -68,7 +68,7 @@ const ComparisonTools = ({
   if (!data?.current || Object.keys(data.current).length === 0) {
     return (
       <div className={`healthcare-card ${className}`}>
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
           <ChartBar className="h-5 w-5 text-healthcare-primary" />
           Performance vs Benchmarks
         </h3>
@@ -118,7 +118,7 @@ const ComparisonTools = ({
 
       {/* Performance Overview */}
       <div className="healthcare-card">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
           <ChartBar className="h-5 w-5 text-healthcare-primary" />
           Performance vs Benchmarks
         </h3>
@@ -196,7 +196,7 @@ const ComparisonTools = ({
 
       {/* Target Tracking */}
       <div className="healthcare-card">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4 flex items-center gap-2">
           <Target className="h-5 w-5 text-healthcare-warning" />
           Target Progress
         </h3>

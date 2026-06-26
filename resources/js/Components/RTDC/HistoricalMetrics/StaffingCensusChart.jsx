@@ -30,7 +30,7 @@ const StaffingCensusChart = ({ data }) => {
                         {/* Current Census */}
                         <div className="flex flex-col items-end">
                             <div className="flex items-center space-x-2">
-                                <span className="text-2xl font-bold">{Math.round(currentData.census)}</span>
+                                <span className="text-2xl font-semibold">{Math.round(currentData.census)}</span>
                                 <div className={`flex items-center space-x-1 text-sm ${
                                     censusChange > 0 
                                         ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
@@ -51,7 +51,7 @@ const StaffingCensusChart = ({ data }) => {
                         {/* Nurse Ratio */}
                         <div className="flex flex-col items-end">
                             <div className="flex items-center space-x-2">
-                                <span className="text-2xl font-bold">{formatRatio(currentData.nurseRatio)}</span>
+                                <span className="text-2xl font-semibold">{formatRatio(currentData.nurseRatio)}</span>
                                 <div className={`flex items-center space-x-1 text-sm ${
                                     ratioChange > 0 
                                         ? 'text-healthcare-success dark:text-healthcare-success-dark'

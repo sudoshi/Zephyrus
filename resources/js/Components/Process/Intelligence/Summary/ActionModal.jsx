@@ -70,7 +70,7 @@ const ActionModal = ({ isOpen, onClose, action }) => {
       >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
-          <h2 id="modal-title" className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h2 id="modal-title" className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Action Details
           </h2>
           <button

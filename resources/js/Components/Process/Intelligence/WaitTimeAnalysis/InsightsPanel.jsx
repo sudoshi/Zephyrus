@@ -113,7 +113,7 @@ const InsightsPanel = ({
 
   return (
     <div className={`healthcare-card space-y-6 ${className}`}>
-      <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
+      <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-healthcare-warning" />
         Insights & Recommendations
       </h3>

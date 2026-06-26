@@ -63,7 +63,7 @@ const MetricsCard = ({
                 <div className="mt-4 space-y-1">
                     <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">{title}</h3>
                     <div className="flex items-baseline">
-                        <p className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">{formatter(value)}</p>
+                        <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">{formatter(value)}</p>
                         {comparison && (
                             <p className="ml-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">vs {comparison}</p>
                         )}

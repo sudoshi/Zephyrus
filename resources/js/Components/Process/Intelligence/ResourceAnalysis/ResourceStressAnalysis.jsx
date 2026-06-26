@@ -156,7 +156,7 @@ const ResourceStressAnalysis = ({ metrics }) => {
         <div className="bg-healthcare-critical/10 border border-healthcare-critical/20 rounded-lg p-4 mb-6" role="alert">
           <div className="flex items-center gap-3 mb-3">
             <AlertCircle className="h-5 w-5 text-healthcare-critical" />
-            <h2 className="font-bold text-healthcare-critical">
+            <h2 className="font-semibold text-healthcare-critical">
               Critical Resource Alerts
             </h2>
           </div>
@@ -176,7 +176,7 @@ const ResourceStressAnalysis = ({ metrics }) => {
                     {alert.message}
                   </span>
                 </div>
-                <span className="font-bold text-healthcare-critical">
+                <span className="font-semibold text-healthcare-critical">
                   {alert.value}
                 </span>
               </div>

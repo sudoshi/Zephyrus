@@ -125,7 +125,7 @@ const PredictiveAnalysis = ({
 
       {/* Impact Timeline */}
       <div className="healthcare-card">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
           Predicted Impact Timeline
         </h3>
         <div className="h-64">

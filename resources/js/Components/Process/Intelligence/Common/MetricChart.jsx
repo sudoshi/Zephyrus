@@ -26,7 +26,7 @@ const MetricChart = ({
   return (
     <div className={`healthcare-card ${className}`}>
       {(title || Icon) && (
-        <h3 className="font-bold mb-6 flex items-center gap-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+        <h3 className="font-semibold mb-6 flex items-center gap-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           {Icon && <Icon className="h-5 w-5" />}
           {title}
         </h3>

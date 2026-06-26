@@ -174,7 +174,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
               transform: 'translateY(-50%)'
             }}
           >
-            <div className="font-bold text-base border-b border-gray-600 pb-1 mb-2 break-words">{label}</div>
+            <div className="font-semibold text-base border-b border-gray-600 pb-1 mb-2 break-words">{label}</div>
             <div className="text-sm mb-2 break-words">{description}</div>
             {previousValue !== undefined && (
               <div className="text-sm">
@@ -216,7 +216,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
     <Panel title="Prime Time Capacity Review" className="mb-6">
       <div className="flex flex-col">
         <div className="mb-4 flex justify-between items-center">
-          <div className="text-lg font-bold">Site: {selectedSite}</div>
+          <div className="text-lg font-semibold">Site: {selectedSite}</div>
           <div>
             <select 
               className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-1 text-sm"
@@ -407,7 +407,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Average Prime Time Utilization Chart */}
               <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
-                <div className="text-lg font-bold mb-2 text-white">Average Prime Time Utilization</div>
+                <div className="text-lg font-semibold mb-2 text-white">Average Prime Time Utilization</div>
                 <ResponsiveLine
                   data={utilizationTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
@@ -466,7 +466,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
               
               {/* Average # of 8 Hour ORs per day Chart */}
               <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
-                <div className="text-lg font-bold mb-2 text-white">Average # of 8 Hour ORs per day trend</div>
+                <div className="text-lg font-semibold mb-2 text-white">Average # of 8 Hour ORs per day trend</div>
                 <ResponsiveLine
                   data={orsPerDayTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}

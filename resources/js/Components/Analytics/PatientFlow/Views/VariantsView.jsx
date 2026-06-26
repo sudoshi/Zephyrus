@@ -54,21 +54,21 @@ const VariantsView = ({ data }) => {
                 <h4 className="font-medium">Total Variants</h4>
                 <Icon icon="carbon:flow" className="h-5 w-5 text-blue-500" />
               </div>
-              <p className="text-2xl font-bold">{variants.length}</p>
+              <p className="text-2xl font-semibold">{variants.length}</p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium">Primary Variant %</h4>
                 <Icon icon="carbon:chart-line" className="h-5 w-5 text-green-500" />
               </div>
-              <p className="text-2xl font-bold">{variants[0].frequency}%</p>
+              <p className="text-2xl font-semibold">{variants[0].frequency}%</p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium">Variant Complexity</h4>
                 <Icon icon="carbon:chart-evaluation" className="h-5 w-5 text-orange-500" />
               </div>
-              <p className="text-2xl font-bold">Medium</p>
+              <p className="text-2xl font-semibold">Medium</p>
             </div>
           </div>
 

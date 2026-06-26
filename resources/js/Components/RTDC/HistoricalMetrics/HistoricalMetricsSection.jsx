@@ -38,7 +38,7 @@ const HistoricalMetricsSection = () => {
             {/* Section Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                    <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         Historical Trends
                     </h2>
                     <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">

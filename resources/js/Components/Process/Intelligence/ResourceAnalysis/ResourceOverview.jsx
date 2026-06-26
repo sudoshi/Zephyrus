@@ -153,7 +153,7 @@ const ResourceOverview = ({ resourceData, predictions, onAction }) => {
                   </StatusTooltip>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                      <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {resource.label}
                       </h3>
                       <StatusTooltip content={tooltips.utilization}>

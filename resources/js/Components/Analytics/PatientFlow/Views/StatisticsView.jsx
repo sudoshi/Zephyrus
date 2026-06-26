@@ -25,7 +25,7 @@ const StatisticsView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Cases</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.cases?.count || 0}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.cases?.count || 0}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {stats.cases?.completedCount || 0} completed / {stats.cases?.inProgressCount || 0} in progress
                 </div>
@@ -45,7 +45,7 @@ const StatisticsView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Completion Rate</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.cases?.completionRate || 0}%</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.cases?.completionRate || 0}%</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {stats.cases?.change > 0 ? '+' : ''}{stats.cases?.change || 0}% from previous period
                 </div>
@@ -65,7 +65,7 @@ const StatisticsView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. Process Time</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.time?.avgProcessTime || '0 hrs'}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.time?.avgProcessTime || '0 hrs'}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {stats.time?.avgProcessTimeChange > 0 ? '+' : ''}{stats.time?.avgProcessTimeChange || 0}% from previous
                 </div>
@@ -85,7 +85,7 @@ const StatisticsView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. Wait Time</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.time?.avgWaitTime || '0 hrs'}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.time?.avgWaitTime || '0 hrs'}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {stats.time?.avgWaitTimeChange > 0 ? '+' : ''}{stats.time?.avgWaitTimeChange || 0}% from previous
                 </div>

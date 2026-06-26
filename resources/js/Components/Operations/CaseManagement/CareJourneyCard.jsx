@@ -22,7 +22,7 @@ const StatusDot = ({ status, pulse = false }) => {
 const TimeDisplay = ({ time, isOverdue = false }) => (
   <span
     className={`tabular-nums ${
-      isOverdue ? "text-healthcare-error dark:text-healthcare-error-dark font-bold" : "text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
+      isOverdue ? "text-healthcare-error dark:text-healthcare-error-dark font-semibold" : "text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
     }`}
   >
     {time}
@@ -76,7 +76,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
           <div className="border-t-4 border-healthcare-success dark:border-healthcare-success-dark p-4">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="font-bold text-lg text-healthcare-success dark:text-healthcare-success-dark">
+                <h2 className="font-semibold text-lg text-healthcare-success dark:text-healthcare-success-dark">
                   Provider: {procedure.provider}
                 </h2>
                 <div className="flex items-center mt-1">
@@ -153,7 +153,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
             <div className="border-t-4 border-healthcare-info dark:border-healthcare-info-dark p-4">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center">
-                  <h2 className="font-bold text-lg text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Pre-Procedure</h2>
+                  <h2 className="font-semibold text-lg text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Pre-Procedure</h2>
                   <div className="ml-2 px-2 py-1 bg-healthcare-info-light dark:bg-healthcare-info-dark/20 rounded-full text-xs text-healthcare-info dark:text-healthcare-info-dark">
                     Time Critical
                   </div>
@@ -223,7 +223,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
 
           {/* Procedure Transport Panel */}
           <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
-            <h3 className="font-bold mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="font-semibold mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               <Icon icon="heroicons:clock-4" className="h-5 w-5 mr-2 text-healthcare-info dark:text-healthcare-info-dark" />
               Procedure Transport
             </h3>
@@ -250,7 +250,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
         {/* Right Panel */}
         <div className="md:col-span-3 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow">
           <div className="border-t-4 border-healthcare-purple dark:border-healthcare-purple-dark p-4">
-            <h2 className="font-bold text-lg mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h2 className="font-semibold text-lg mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Post-Procedure
               <span className="ml-2 px-2 py-1 bg-healthcare-purple-light dark:bg-healthcare-purple-dark/20 rounded-full text-xs text-healthcare-purple dark:text-healthcare-purple-dark">
                 Monitoring

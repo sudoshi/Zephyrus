@@ -212,11 +212,11 @@ const BottleneckSummary = ({ metrics }) => {
               <Brain className="h-8 w-8 text-healthcare-primary dark:text-healthcare-primary-dark" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              <h2 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 Process Health Score
               </h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-4xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+                <span className="text-4xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
                   {healthScore.totalScore}
                 </span>
                 <span className="text-xl text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -238,7 +238,7 @@ const BottleneckSummary = ({ metrics }) => {
                   <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                     {key.charAt(0).toUpperCase() + key.slice(1)}
                   </div>
-                  <div className={`text-lg font-bold ${
+                  <div className={`text-lg font-semibold ${
                     percentage >= 70
                       ? 'text-healthcare-success dark:text-healthcare-success-dark'
                       : percentage >= 50
@@ -257,7 +257,7 @@ const BottleneckSummary = ({ metrics }) => {
       {/* Critical Actions Section */}
       <div className="healthcare-card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
+          <h3 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
             <AlertCircle className="h-6 w-6 text-healthcare-critical dark:text-healthcare-critical-dark" />
             Critical Actions Required
           </h3>
@@ -369,7 +369,7 @@ const BottleneckSummary = ({ metrics }) => {
         </MetricChart>
 
         <div className="healthcare-card">
-          <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+          <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
             Resource Impact Analysis
           </h3>
           <div className="space-y-4">
@@ -387,7 +387,7 @@ const BottleneckSummary = ({ metrics }) => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className={`text-lg font-bold ${
+                      <div className={`text-lg font-semibold ${
                         utilization >= 90
                           ? 'text-healthcare-critical dark:text-healthcare-critical-dark'
                           : utilization >= 75
@@ -422,7 +422,7 @@ const BottleneckSummary = ({ metrics }) => {
 
       {/* Optimization Recommendations */}
       <div className="healthcare-card">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
           Optimization Recommendations
         </h3>
         <div className="grid grid-cols-3 gap-6">

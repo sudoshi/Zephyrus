@@ -18,7 +18,7 @@ const ScoreCard = ({
 
   return (
     <div className={`healthcare-card ${colorClasses[colorScheme]} ${className}`}>
-      <h3 className="font-bold flex items-center gap-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+      <h3 className="font-semibold flex items-center gap-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         {Icon && <Icon className="h-5 w-5" />}
         {title}
         {score !== undefined && maxScore !== undefined && (

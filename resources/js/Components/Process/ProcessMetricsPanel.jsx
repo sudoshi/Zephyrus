@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 const MetricItem = ({ label, value, subValue }) => (
   <div className="p-3 bg-gray-50 rounded-lg">
     <div className="text-sm text-gray-600">{label}</div>
-    <div className="text-xl font-bold mt-1">{value}</div>
+    <div className="text-xl font-semibold mt-1">{value}</div>
     {subValue && (
       <div className="text-sm text-gray-500 mt-1">{subValue}</div>
     )}

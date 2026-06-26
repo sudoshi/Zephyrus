@@ -214,7 +214,7 @@ const Bottlenecks = () => {
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold mt-1 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <h3 className="text-2xl font-semibold mt-1 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {stat.value}
                   </h3>
                   <div className="flex items-center mt-2">

@@ -53,7 +53,7 @@ const ProcessTimeline = ({
   const getPhaseTooltip = useCallback((phase, process) => {
     return (
       <div className="space-y-2">
-        <div className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+        <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           {phase.name}
         </div>
         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

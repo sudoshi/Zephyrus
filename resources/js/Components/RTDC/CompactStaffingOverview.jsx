@@ -84,7 +84,7 @@ const StaffingDetailsModal = ({ staffingData, isOpen, onClose }) => {
                             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                                 Staff Present
                             </div>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-semibold">
                                 {staffingData.currentShift.present}/{staffingData.currentShift.required}
                             </div>
                             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -109,7 +109,7 @@ const StaffingDetailsModal = ({ staffingData, isOpen, onClose }) => {
                             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                                 Staff Scheduled
                             </div>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-semibold">
                                 {staffingData.nextShift.scheduled}/{staffingData.nextShift.required}
                             </div>
                             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

@@ -176,7 +176,7 @@ const UtilizationTrendsCard = ({
             <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Avg Utilization
             </div>
-            <div className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <div className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               {averageUtilization.toFixed(1)}%
             </div>
           </div>
@@ -186,7 +186,7 @@ const UtilizationTrendsCard = ({
               <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 vs. Comparison
               </div>
-              <div className={`text-lg font-bold ${changeColor}`}>
+              <div className={`text-lg font-semibold ${changeColor}`}>
                 {utilizationChange > 0 ? '+' : ''}{utilizationChange.toFixed(1)}%
               </div>
             </div>

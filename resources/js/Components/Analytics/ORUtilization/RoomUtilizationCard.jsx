@@ -110,7 +110,7 @@ const RoomUtilizationCard = ({
             <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Avg Utilization
             </div>
-            <div className={`text-lg font-bold ${utilizationColor}`}>
+            <div className={`text-lg font-semibold ${utilizationColor}`}>
               {averageUtilization.toFixed(1)}%
             </div>
           </div>
@@ -119,7 +119,7 @@ const RoomUtilizationCard = ({
             <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Avg Prime Time
             </div>
-            <div className={`text-lg font-bold ${primeTimeUtilizationColor}`}>
+            <div className={`text-lg font-semibold ${primeTimeUtilizationColor}`}>
               {averagePrimeTimeUtilization.toFixed(1)}%
             </div>
           </div>

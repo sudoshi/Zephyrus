@@ -96,7 +96,7 @@ const PerformanceView = ({ data }) => {
                   <Icon icon={metric.icon} className="h-5 w-5 text-blue-500" />
                 </div>
                 <div className="flex items-end">
-                  <p className="text-2xl font-bold mr-2">{metric.value}</p>
+                  <p className="text-2xl font-semibold mr-2">{metric.value}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{metric.unit}</p>
                 </div>
                 <div className={`flex items-center mt-2 ${

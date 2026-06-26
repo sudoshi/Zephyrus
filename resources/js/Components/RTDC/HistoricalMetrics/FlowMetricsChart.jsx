@@ -58,7 +58,7 @@ const FlowMetricsChart = ({ data }) => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-1">
-                                    <span className="text-xl font-bold">{Math.round(metric.current)}</span>
+                                    <span className="text-xl font-semibold">{Math.round(metric.current)}</span>
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         {metric.unit}
                                     </span>

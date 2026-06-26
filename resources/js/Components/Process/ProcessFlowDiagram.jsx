@@ -27,7 +27,7 @@ const nodeTypes = {
       <Handle type="target" position="top" id="target-top" />
       
       {/* Header with input source name */}
-      <div className="font-bold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-b border-healthcare-border dark:border-healthcare-border-dark pb-2 mb-3">{data.label}</div>
+      <div className="font-semibold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-b border-healthcare-border dark:border-healthcare-border-dark pb-2 mb-3">{data.label}</div>
       
       {/* Metrics section */}
       {data.metrics && (
@@ -35,13 +35,13 @@ const nodeTypes = {
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Count</span>
-            <span className="text-sm font-bold text-healthcare-primary dark:text-healthcare-primary-dark">{data.metrics.count || '-'}</span>
+            <span className="text-sm font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">{data.metrics.count || '-'}</span>
           </div>
           
           {data.metrics.frequency && (
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Frequency</span>
-              <span className="text-sm font-bold text-healthcare-purple dark:text-healthcare-purple-dark">{data.metrics.frequency}</span>
+              <span className="text-sm font-semibold text-healthcare-purple dark:text-healthcare-purple-dark">{data.metrics.frequency}</span>
             </div>
           )}
         </div>
@@ -79,13 +79,13 @@ const nodeTypes = {
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-white opacity-70">Total:</span>
-            <span className="text-sm font-bold text-white">{data.count || '-'} patients</span>
+            <span className="text-sm font-semibold text-white">{data.count || '-'} patients</span>
           </div>
           
           {/* Average Duration */}
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-white opacity-70">Avg. Duration:</span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-semibold text-white">
               {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
             </span>
           </div>
@@ -94,7 +94,7 @@ const nodeTypes = {
           {((data.metrics && data.metrics.last24h) || data.last24h) && (
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs font-medium text-white opacity-70">Last 24h:</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-semibold text-white">
                 {(data.metrics && data.metrics.last24h) || data.last24h || '-'} patients
               </span>
             </div>
@@ -103,7 +103,7 @@ const nodeTypes = {
           {((data.metrics && data.metrics.last7d) || data.last7d) && (
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs font-medium text-white opacity-70">Last 7d:</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-semibold text-white">
                 {(data.metrics && data.metrics.last7d) || data.last7d || '-'} patients
               </span>
             </div>
@@ -142,13 +142,13 @@ const nodeTypes = {
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-white opacity-70">Cases:</span>
-            <span className="text-sm font-bold text-white">{data.count || '-'}</span>
+            <span className="text-sm font-semibold text-white">{data.count || '-'}</span>
           </div>
           
           {/* Avg Time row */}
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-white opacity-70">Avg. Time:</span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-semibold text-white">
               {data.avgDuration ? `${data.avgDuration} min` : ((data.metrics && data.metrics.avgTime) || data.avgTime || '10-30 min')}
             </span>
           </div>
@@ -156,7 +156,7 @@ const nodeTypes = {
           {/* Bottlenecks row */}
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-white opacity-70">Bottlenecks:</span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-semibold text-white">
               {(data.metrics && data.metrics.bottlenecks) ? 
                 (typeof data.metrics.bottlenecks === 'number' ? 
                   (data.metrics.bottlenecks * 100).toFixed(0) + '%' : 
@@ -198,13 +198,13 @@ const nodeTypes = {
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-white opacity-70">Total Cases:</span>
-            <span className="text-sm font-bold text-white">{data.count || '-'}</span>
+            <span className="text-sm font-semibold text-white">{data.count || '-'}</span>
           </div>
           
           {/* Average Duration */}
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-white opacity-70">Avg. Duration:</span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-semibold text-white">
               {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
             </span>
           </div>
@@ -213,7 +213,7 @@ const nodeTypes = {
           {((data.metrics && data.metrics.successRate) || data.successRate) && (
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs font-medium text-white opacity-70">Success Rate:</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-semibold text-white">
                 {(data.metrics && data.metrics.successRate) ? 
                   (typeof data.metrics.successRate === 'number' ? 
                     (data.metrics.successRate * 100).toFixed(0) + '%' : 
@@ -227,7 +227,7 @@ const nodeTypes = {
           {((data.metrics && data.metrics.avgTotalTime) || data.avgTotalTime || (data.metrics && data.metrics.avgTime) || data.avgTime) && (
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs font-medium text-white opacity-70">Avg. Total Time:</span>
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-semibold text-white">
                 {(data.metrics && data.metrics.avgTotalTime) || data.avgTotalTime || 
                 (data.metrics && data.metrics.avgTime) || data.avgTime}
               </span>
@@ -245,7 +245,7 @@ const nodeTypes = {
       <Handle type="target" position="top" id="target-top" />
       
       {/* Header with activity name */}
-      <div className="font-bold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-b border-healthcare-border dark:border-healthcare-border-dark pb-2 mb-3">
+      <div className="font-semibold text-base text-healthcare-text-primary dark:text-healthcare-text-primary-dark border-b border-healthcare-border dark:border-healthcare-border-dark pb-2 mb-3">
         {data.label}
       </div>
       
@@ -256,17 +256,17 @@ const nodeTypes = {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cases</span>
-              <span className="text-sm font-bold text-healthcare-primary dark:text-healthcare-primary-dark">{data.metrics.caseCount || data.metrics.count}</span>
+              <span className="text-sm font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">{data.metrics.caseCount || data.metrics.count}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Events</span>
-              <span className="text-sm font-bold text-healthcare-info dark:text-healthcare-info-dark">{data.metrics.eventCount || '-'}</span>
+              <span className="text-sm font-semibold text-healthcare-info dark:text-healthcare-info-dark">{data.metrics.eventCount || '-'}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Frequency</span>
-              <span className="text-sm font-bold text-healthcare-purple dark:text-healthcare-purple-dark">{data.metrics.frequency || '100%'}</span>
+              <span className="text-sm font-semibold text-healthcare-purple dark:text-healthcare-purple-dark">{data.metrics.frequency || '100%'}</span>
             </div>
           </div>
           
@@ -274,17 +274,17 @@ const nodeTypes = {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg Time</span>
-              <span className="text-sm font-bold text-healthcare-success dark:text-healthcare-success-dark">{data.metrics.avgTime}</span>
+              <span className="text-sm font-semibold text-healthcare-success dark:text-healthcare-success-dark">{data.metrics.avgTime}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Min Time</span>
-              <span className="text-sm font-bold text-healthcare-success-light dark:text-healthcare-success-light-dark">{data.metrics.minTime || '-'}</span>
+              <span className="text-sm font-semibold text-healthcare-success-light dark:text-healthcare-success-light-dark">{data.metrics.minTime || '-'}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Max Time</span>
-              <span className="text-sm font-bold text-healthcare-warning dark:text-healthcare-warning-dark">{data.metrics.maxTime || '-'}</span>
+              <span className="text-sm font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">{data.metrics.maxTime || '-'}</span>
             </div>
           </div>
           
@@ -313,7 +313,7 @@ const nodeTypes = {
       <Handle type="target" position="top" id="target-top" />
       
       {/* Header with decision point name */}
-      <div className="font-bold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
+      <div className="font-semibold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
       
       {/* Metrics section */}
       {data.metrics && (
@@ -322,14 +322,14 @@ const nodeTypes = {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Cases</span>
-              <span className="text-sm font-bold text-white">{data.metrics.caseCount || data.metrics.count}</span>
+              <span className="text-sm font-semibold text-white">{data.metrics.caseCount || data.metrics.count}</span>
             </div>
             
             {/* Show last 24h metrics if available */}
             {data.metrics.last24h && (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Last 24h</span>
-                <span className="text-sm font-bold text-white">{data.metrics.last24h}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.last24h}</span>
               </div>
             )}
             
@@ -337,7 +337,7 @@ const nodeTypes = {
             {data.metrics.last7d && (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Last 7d</span>
-                <span className="text-sm font-bold text-white">{data.metrics.last7d}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.last7d}</span>
               </div>
             )}
             
@@ -345,7 +345,7 @@ const nodeTypes = {
             {!data.metrics.last24h && !data.metrics.last7d && (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Paths</span>
-                <span className="text-sm font-bold text-white">{data.metrics.pathCount || '-'}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.pathCount || '-'}</span>
               </div>
             )}
           </div>
@@ -355,19 +355,19 @@ const nodeTypes = {
             {/* Show avg time if available */}
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Avg Time</span>
-              <span className="text-sm font-bold text-white">{data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
+              <span className="text-sm font-semibold text-white">{data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
             </div>
             
             {/* Show bottlenecks if available */}
             {data.metrics.bottlenecks ? (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Bottlenecks</span>
-                <span className="text-sm font-bold text-white">{data.metrics.bottlenecks}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.bottlenecks}</span>
               </div>
             ) : (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Complexity</span>
-                <span className="text-sm font-bold text-white">{data.metrics.complexity || 'Medium'}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.complexity || 'Medium'}</span>
               </div>
             )}
           </div>
@@ -383,7 +383,7 @@ const nodeTypes = {
       <Handle type="target" position="top" id="target-top" />
       
       {/* Header with result name */}
-      <div className="font-bold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
+      <div className="font-semibold text-base text-white border-b border-white/20 pb-2 mb-3">{data.label}</div>
       
       {/* Metrics section */}
       {data.metrics && (
@@ -392,19 +392,19 @@ const nodeTypes = {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Cases</span>
-              <span className="text-sm font-bold text-white">{data.metrics.caseCount || data.metrics.count}</span>
+              <span className="text-sm font-semibold text-white">{data.metrics.caseCount || data.metrics.count}</span>
             </div>
             
             {/* Show success rate if available */}
             {data.metrics.successRate ? (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Success Rate</span>
-                <span className="text-sm font-bold text-white">{data.metrics.successRate}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.successRate}</span>
               </div>
             ) : (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Frequency</span>
-                <span className="text-sm font-bold text-white">{data.metrics.frequency || '100%'}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.frequency || '100%'}</span>
               </div>
             )}
           </div>
@@ -414,21 +414,21 @@ const nodeTypes = {
             {/* Show avg total time if available */}
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Avg Time</span>
-              <span className="text-sm font-bold text-white">{data.metrics.avgTotalTime || data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
+              <span className="text-sm font-semibold text-white">{data.metrics.avgTotalTime || data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
             </div>
             
             {/* Show outcome or last30d if available */}
             {data.metrics.last30d ? (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Last 30d</span>
-                <span className="text-sm font-bold text-white">{data.metrics.last30d}</span>
+                <span className="text-sm font-semibold text-white">{data.metrics.last30d}</span>
               </div>
             ) : (
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-white/70">Outcome</span>
                 <div className="flex items-center">
                   <span className={`inline-block w-2 h-2 rounded-full mr-1 ${data.metrics.outcome === 'Positive' ? 'bg-healthcare-success' : data.metrics.outcome === 'Negative' ? 'bg-healthcare-danger' : 'bg-healthcare-warning'}`}></span>
-                  <span className="text-sm font-bold text-white">{data.metrics.outcome || 'Neutral'}</span>
+                  <span className="text-sm font-semibold text-white">{data.metrics.outcome || 'Neutral'}</span>
                 </div>
               </div>
             )}

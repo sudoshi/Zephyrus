@@ -33,7 +33,7 @@ const ImprovementCard = ({ title, description, icon: Icon, href, count, countLab
       <p className="text-sm text-gray-600 mb-4">{description}</p>
       {count !== undefined && (
         <div className="mb-4">
-          <span className="text-2xl font-bold">{count}</span>
+          <span className="text-2xl font-semibold">{count}</span>
           <span className="text-sm text-gray-500 ml-2">{countLabel}</span>
         </div>
       )}
@@ -100,21 +100,21 @@ const Index = ({ auth }) => {
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Success Rate</h3>
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold">{stats.successRate}%</span>
+                <span className="text-3xl font-semibold">{stats.successRate}%</span>
                 <span className="text-sm text-gray-500">of cycles</span>
               </div>
             </div>
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Completed Cycles</h3>
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold">{stats.completedCycles}</span>
+                <span className="text-3xl font-semibold">{stats.completedCycles}</span>
                 <span className="text-sm text-gray-500">total</span>
               </div>
             </div>
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Average Duration</h3>
               <div className="flex items-center gap-2">
-                <span className="text-3xl font-bold">{stats.avgCycleDuration}</span>
+                <span className="text-3xl font-semibold">{stats.avgCycleDuration}</span>
                 <span className="text-sm text-gray-500">days</span>
               </div>
             </div>

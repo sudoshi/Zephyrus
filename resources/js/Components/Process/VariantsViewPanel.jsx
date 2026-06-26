@@ -367,12 +367,12 @@ const VariantsViewPanel = () => {
                     <div className="text-base font-semibold text-gray-700 dark:text-gray-100 flex items-center">
                       {variant.traces.toLocaleString()} traces
                       {variant.isOutlier && (
-                        <span className="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-xs font-bold">
+                        <span className="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-xs font-semibold">
                           OUTLIER
                         </span>
                       )}
                       {variant.highlight && (
-                        <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-xs font-bold">
+                        <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-xs font-semibold">
                           CRITICAL
                         </span>
                       )}
@@ -380,7 +380,7 @@ const VariantsViewPanel = () => {
                     <div className="flex items-center mt-0.5">
                       <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">{variant.percentage.toFixed(1)}% of total</div>
                       {variant.timing && (
-                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400 ml-3">{variant.timing}</div>
+                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 ml-3">{variant.timing}</div>
                       )}
                     </div>
                   </div>
@@ -434,7 +434,7 @@ const VariantsViewPanel = () => {
                               <span className="text-white text-[10px] mt-1 opacity-90">{step.timing}</span>
                             )}
                             {stepIndex === variant.steps.length - 1 && (
-                              <span className="text-white text-xs mt-1 font-bold">{variant.percentage.toFixed(1)}%</span>
+                              <span className="text-white text-xs mt-1 font-semibold">{variant.percentage.toFixed(1)}%</span>
                             )}
                           </div>
                         </div>

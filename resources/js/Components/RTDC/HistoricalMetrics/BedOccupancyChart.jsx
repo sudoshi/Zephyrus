@@ -70,7 +70,7 @@ const BedOccupancyChart = ({ data, serviceLines }) => {
                         <h3 className="font-medium">Bed Occupancy by Service</h3>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold">{Math.round(totalOccupancy)}</span>
+                        <span className="text-2xl font-semibold">{Math.round(totalOccupancy)}</span>
                         <div className="flex flex-col">
                             <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                 occupied beds

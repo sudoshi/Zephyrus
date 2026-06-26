@@ -49,7 +49,7 @@ const CaseDetailView = ({ caseData, measurements = [], onClose }) => {
       {/* Header Section */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h2 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {procedure}
           </h2>
           <div className="flex items-center mt-2 space-x-2">

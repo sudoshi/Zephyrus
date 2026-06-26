@@ -134,7 +134,7 @@ const Discharge = () => {
                                     <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         Predicted Discharges
                                     </div>
-                                    <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mt-1">
+                                    <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mt-1">
                                         {dept.count}
                                     </div>
                                     <div className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark mt-1">

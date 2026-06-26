@@ -44,7 +44,7 @@ const StaffAllocation = ({ resourceData, predictions }) => {
           <div className="rounded-full bg-healthcare-primary/10 p-3">
             <Clock className="h-6 w-6 text-healthcare-primary" />
           </div>
-          <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Shift Coverage Analysis
           </h3>
         </div>
@@ -79,7 +79,7 @@ const StaffAllocation = ({ resourceData, predictions }) => {
             <div className="rounded-full bg-healthcare-success/10 p-3">
               <Brain className="h-6 w-6 text-healthcare-success" />
             </div>
-            <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Skill Distribution
             </h3>
           </div>
@@ -115,7 +115,7 @@ const StaffAllocation = ({ resourceData, predictions }) => {
             <div className="rounded-full bg-healthcare-warning/10 p-3">
               <Shield className="h-6 w-6 text-healthcare-warning" />
             </div>
-            <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Workload Balance
             </h3>
           </div>

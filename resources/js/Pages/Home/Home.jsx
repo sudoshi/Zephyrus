@@ -123,25 +123,25 @@ const Home = ({ workflow }) => {
                             <Panel title="Total Facilities" isSubpanel={true} dropLightIntensity="strong" className="p-4">
                                 <div className="flex items-center justify-between">
                                     <Icon icon="heroicons:building-office-2" className="w-10 h-10 text-healthcare-primary" />
-                                    <span className="text-3xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">5</span>
+                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">5</span>
                                 </div>
                             </Panel>
                             <Panel title="Active Users" isSubpanel={true} dropLightIntensity="strong" className="p-4">
                                 <div className="flex items-center justify-between">
                                     <Icon icon="heroicons:users" className="w-10 h-10 text-healthcare-success" />
-                                    <span className="text-3xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">128</span>
+                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">128</span>
                                 </div>
                             </Panel>
                             <Panel title="System Alerts" isSubpanel={true} dropLightIntensity="strong" className="p-4">
                                 <div className="flex items-center justify-between">
                                     <Icon icon="heroicons:bell-alert" className="w-10 h-10 text-healthcare-warning" />
-                                    <span className="text-3xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">3</span>
+                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">3</span>
                                 </div>
                             </Panel>
                             <Panel title="System Health" isSubpanel={true} dropLightIntensity="strong" className="p-4">
                                 <div className="flex items-center justify-between">
                                     <Icon icon="heroicons:check-circle" className="w-10 h-10 text-healthcare-success" />
-                                    <span className="text-3xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">98%</span>
+                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">98%</span>
                                 </div>
                             </Panel>
                         </div>

@@ -37,7 +37,7 @@ const MetricCard = ({ title, value, trend, trendDirection, icon, iconColor, isSu
           </div>
         )}
       </div>
-      <div className="text-2xl font-bold dark:text-white">{value}</div>
+      <div className="text-2xl font-semibold dark:text-white">{value}</div>
     </div>
   );
 };

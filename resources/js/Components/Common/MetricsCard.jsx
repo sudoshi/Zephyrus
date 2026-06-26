@@ -77,7 +77,7 @@ const MetricsCard = ({
                                 icon={getTrendIcon()} 
                                 className="w-5 h-5 transition-transform duration-300 transform group-hover:scale-110" 
                             />
-                            <span className="text-sm font-bold">
+                            <span className="text-sm font-semibold">
                                 {trendFormatter(trendValue)}
                             </span>
                         </div>
@@ -88,7 +88,7 @@ const MetricsCard = ({
                         {title}
                     </h3>
                     <div className="flex items-baseline">
-                        <p className="text-2xl font-extrabold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                        <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                             {formatter(value)}
                         </p>
                         {comparison && (

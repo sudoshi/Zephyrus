@@ -84,7 +84,7 @@ const LiveMonitor = ({
     if (!step || !value) return null;
     return (
       <div className="space-y-2">
-        <div className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">
+        <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">
           {step.replace(/([A-Z])/g, ' $1').toLowerCase()}
         </div>
         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -114,7 +114,7 @@ const LiveMonitor = ({
     return (
       <div className={`healthcare-card ${className}`}>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Live Wait Times
           </h3>
           <div className="flex items-center gap-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -129,7 +129,7 @@ const LiveMonitor = ({
   return (
     <div className={`healthcare-card ${className}`}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           Live Wait Times
         </h3>
         <div className="flex items-center gap-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -168,7 +168,7 @@ const LiveMonitor = ({
                 </div>
                 
                 <div className="flex items-end justify-between">
-                  <div className={`text-2xl font-bold ${getStatusColor(value, step)}`}>
+                  <div className={`text-2xl font-semibold ${getStatusColor(value, step)}`}>
                     {value}
                     <span className="text-sm font-normal ml-1">min</span>
                   </div>

@@ -125,7 +125,7 @@ const DischargePrediction = () => {
                                     </h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                            <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                 {data.predicted}
                                             </div>
                                             <div className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
@@ -133,7 +133,7 @@ const DischargePrediction = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                            <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                 {data.completed}
                                             </div>
                                             <div className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">

@@ -78,7 +78,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                 Current Utilization
               </h3>
               <div className="flex items-center justify-center h-24">
-                <span className="text-4xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+                <span className="text-4xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
                   {Math.round((opportunityMetrics?.currentUtilization || locationData?.utilization || 0.75) * 100)}%
                 </span>
               </div>
@@ -89,7 +89,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                 Target Utilization
               </h3>
               <div className="flex items-center justify-center h-24">
-                <span className="text-4xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+                <span className="text-4xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
                   {Math.round((opportunityMetrics?.targetUtilization || 0.85) * 100)}%
                 </span>
               </div>
@@ -100,7 +100,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                 Potential Additional Cases
               </h3>
               <div className="flex items-center justify-center h-24">
-                <span className="text-4xl font-bold text-healthcare-secondary dark:text-healthcare-secondary-dark">
+                <span className="text-4xl font-semibold text-healthcare-secondary dark:text-healthcare-secondary-dark">
                   {opportunityMetrics?.potentialAdditionalCases || 120}
                 </span>
               </div>
@@ -265,7 +265,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                       <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {item.label}
                       </h4>
-                      <p className="text-2xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+                      <p className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
                         ${(item.value / 1000000).toFixed(1)}M
                       </p>
                     </div>
@@ -274,7 +274,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                   <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     Potential ROI
                   </h4>
-                  <p className="text-2xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+                  <p className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
                     81%
                   </p>
                 </div>

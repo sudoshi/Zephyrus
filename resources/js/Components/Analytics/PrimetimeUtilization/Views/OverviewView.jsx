@@ -89,23 +89,23 @@ const OverviewView = ({ filters }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Panel isSubpanel dropLightIntensity="medium">
-          <h5 className="text-xl font-bold tracking-tight">Prime Time Utilization</h5>
-          <div className="text-2xl font-bold">{filteredData.locationData?.primeTimeUtilization || 0}%</div>
+          <h5 className="text-xl font-semibold tracking-tight">Prime Time Utilization</h5>
+          <div className="text-2xl font-semibold">{filteredData.locationData?.primeTimeUtilization || 0}%</div>
           <p className="text-xs text-muted-foreground">Utilization during prime hours</p>
         </Panel>
         <Panel isSubpanel dropLightIntensity="medium">
-          <h5 className="text-xl font-bold tracking-tight">Non-Prime Time %</h5>
-          <div className="text-2xl font-bold">{filteredData.locationData?.nonPrimeTimePercentage || 0}%</div>
+          <h5 className="text-xl font-semibold tracking-tight">Non-Prime Time %</h5>
+          <div className="text-2xl font-semibold">{filteredData.locationData?.nonPrimeTimePercentage || 0}%</div>
           <p className="text-xs text-muted-foreground">Percentage of cases in non-prime time</p>
         </Panel>
         <Panel isSubpanel dropLightIntensity="medium">
-          <h5 className="text-xl font-bold tracking-tight">Total Cases</h5>
-          <div className="text-2xl font-bold">{filteredData.locationData?.totalCases || 0}</div>
+          <h5 className="text-xl font-semibold tracking-tight">Total Cases</h5>
+          <div className="text-2xl font-semibold">{filteredData.locationData?.totalCases || 0}</div>
           <p className="text-xs text-muted-foreground">Cases performed in selected period</p>
         </Panel>
         <Panel isSubpanel dropLightIntensity="medium">
-          <h5 className="text-xl font-bold tracking-tight">Non-Prime Time Cases</h5>
-          <div className="text-2xl font-bold">{filteredData.locationData?.casesInNonPrimeTime || 0}</div>
+          <h5 className="text-xl font-semibold tracking-tight">Non-Prime Time Cases</h5>
+          <div className="text-2xl font-semibold">{filteredData.locationData?.casesInNonPrimeTime || 0}</div>
           <p className="text-xs text-muted-foreground">Cases performed in non-prime hours</p>
         </Panel>
       </div>

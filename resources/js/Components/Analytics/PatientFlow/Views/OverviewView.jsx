@@ -87,7 +87,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{metric.title}</h3>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{metric.value}</div>
+                  <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{metric.value}</div>
                   {metric.change !== 0 && (
                     <div className={`flex items-center text-xs ${metric.change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                       <Icon 
@@ -122,7 +122,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{metric.title}</h3>
-                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{metric.value}</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{metric.value}</div>
                   </div>
                 </motion.div>
               ))}

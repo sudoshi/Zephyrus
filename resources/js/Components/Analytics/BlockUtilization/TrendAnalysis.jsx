@@ -52,11 +52,11 @@ const TrendAnalysis = ({ siteData }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">Non-Prime Time</p>
-              <p className="text-2xl font-bold text-gray-900">{comparative.nonPrimeTime?.toFixed(1)}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{comparative.nonPrimeTime?.toFixed(1)}%</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Prime Time Utilization</p>
-              <p className="text-2xl font-bold text-gray-900">{comparative.primeTimeUtil?.toFixed(1)}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{comparative.primeTimeUtil?.toFixed(1)}%</p>
             </div>
           </div>
         </div>
@@ -65,11 +65,11 @@ const TrendAnalysis = ({ siteData }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">Non-Prime Time</p>
-              <p className="text-2xl font-bold text-gray-900">{previous.nonPrimeTime?.toFixed(1)}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{previous.nonPrimeTime?.toFixed(1)}%</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Prime Time Utilization</p>
-              <p className="text-2xl font-bold text-gray-900">{previous.primeTimeUtil?.toFixed(1)}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{previous.primeTimeUtil?.toFixed(1)}%</p>
             </div>
           </div>
         </div>

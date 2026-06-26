@@ -146,7 +146,7 @@ const Active = ({ cycles = [] }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{card.title}</p>
-                  <h3 className="text-2xl font-bold mt-1">{card.value}</h3>
+                  <h3 className="text-2xl font-semibold mt-1">{card.value}</h3>
                   <div className="flex items-center mt-1">
                     {card.changeType === 'positive' ? (
                       <TrendingUp className="h-4 w-4 text-green-500 mr-1" />

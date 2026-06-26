@@ -11,7 +11,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Total Patients</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{statistics.totalPatients}</p>
+          <p className="text-2xl font-semibold">{statistics.totalPatients}</p>
         </CardContent>
       </Card>
       
@@ -20,7 +20,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Avg Duration</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{statistics.averageDuration} mins</p>
+          <p className="text-2xl font-semibold">{statistics.averageDuration} mins</p>
         </CardContent>
       </Card>
       
@@ -29,7 +29,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Urgent Cases</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold text-red-500">{statistics.urgentCases}</p>
+          <p className="text-2xl font-semibold text-red-500">{statistics.urgentCases}</p>
         </CardContent>
       </Card>
       
@@ -38,7 +38,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Delayed Cases</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold text-yellow-500">{statistics.delayedCases}</p>
+          <p className="text-2xl font-semibold text-yellow-500">{statistics.delayedCases}</p>
         </CardContent>
       </Card>
     </div>

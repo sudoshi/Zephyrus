@@ -4,7 +4,7 @@ import { Button } from '@/Components/ui/button';
 export default function Components() {
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Design Components</h1>
+      <h1 className="text-2xl font-semibold">Design Components</h1>
       
       <div className="space-y-4">
         <section>

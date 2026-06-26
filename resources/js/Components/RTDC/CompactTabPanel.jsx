@@ -78,7 +78,7 @@ const CompactTabPanel = ({ alerts, alertStats, bedTypes, staffingData }) => {
     return (
         <div className="healthcare-card">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     System Status
                 </h2>
             </div>

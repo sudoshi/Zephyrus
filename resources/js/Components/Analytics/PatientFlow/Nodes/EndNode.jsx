@@ -10,7 +10,7 @@ const EndNode = ({ data }) => {
         className="w-2 h-2 !bg-green-500 dark:!bg-green-400"
       />
       <div className="flex flex-col">
-        <div className="font-bold text-sm text-center text-green-800 dark:text-green-200">
+        <div className="font-semibold text-sm text-center text-green-800 dark:text-green-200">
           {data.label}
         </div>
         <div className="flex justify-center items-center mt-2">

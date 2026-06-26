@@ -11,25 +11,25 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
       <div className="grid grid-cols-2 gap-4">
         <div className="healthcare-card p-4">
           <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Total Patients</div>
-          <div className="text-2xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+          <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
             {overallMetrics?.totalPatients || 0}
           </div>
         </div>
         <div className="healthcare-card p-4">
           <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
-          <div className="text-2xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+          <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
             {overallMetrics?.avgTotalTime || '0m'}
           </div>
         </div>
         <div className="healthcare-card p-4">
           <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Active Cases</div>
-          <div className="text-2xl font-bold text-healthcare-warning dark:text-healthcare-warning-dark">
+          <div className="text-2xl font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">
             {overallMetrics?.activeCases || 0}
           </div>
         </div>
         <div className="healthcare-card p-4">
           <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Completed Today</div>
-          <div className="text-2xl font-bold text-healthcare-info dark:text-healthcare-info-dark">
+          <div className="text-2xl font-semibold text-healthcare-info dark:text-healthcare-info-dark">
             {overallMetrics?.completedToday || 0}
           </div>
         </div>
@@ -46,13 +46,13 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Total Cases</div>
-            <div className="text-2xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+            <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
               {selectedNode.data.metrics?.count || 0}
             </div>
           </div>
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
-            <div className="text-2xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+            <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
               {selectedNode.data.metrics?.avgTime || '0m'}
             </div>
           </div>
@@ -86,13 +86,13 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Patient Count</div>
-            <div className="text-2xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+            <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
               {selectedEdge.data?.patientCount || 0}
             </div>
           </div>
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
-            <div className="text-2xl font-bold text-healthcare-success dark:text-healthcare-success-dark">
+            <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
               {selectedEdge.data?.avgTime || '0m'}
             </div>
           </div>
@@ -106,7 +106,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
       <div className="bg-white dark:bg-healthcare-background-dark rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
         <div className="p-6 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Process Analytics
             </h2>
             <button

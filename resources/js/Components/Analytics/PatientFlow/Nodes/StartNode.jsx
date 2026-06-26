@@ -5,7 +5,7 @@ const StartNode = ({ data }) => {
   return (
     <div className="px-4 py-2 shadow-md rounded-md bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700">
       <div className="flex flex-col">
-        <div className="font-bold text-sm text-center text-blue-800 dark:text-blue-200">
+        <div className="font-semibold text-sm text-center text-blue-800 dark:text-blue-200">
           {data.label}
         </div>
         <div className="flex justify-center items-center mt-2">

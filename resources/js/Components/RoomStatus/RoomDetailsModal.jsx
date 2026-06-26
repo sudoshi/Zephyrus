@@ -17,7 +17,7 @@ const RoomDetailsModal = ({ room, onClose }) => {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h2 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Room {room.number}
           </h2>
           <div className="flex items-center mt-2">

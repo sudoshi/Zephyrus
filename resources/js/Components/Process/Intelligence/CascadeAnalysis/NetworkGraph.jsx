@@ -149,7 +149,7 @@ const NetworkGraph = ({
         <StatusTooltip
           content={
             <div className="space-y-2">
-              <div className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 {selectedNode.data.label}
               </div>
               {selectedNode.data.type !== 'primary' && (

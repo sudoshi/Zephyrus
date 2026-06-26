@@ -51,7 +51,7 @@ const BottlenecksView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Bottlenecks</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bottlenecks?.length || 0}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{bottlenecks?.length || 0}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Identified in the process
                 </div>
@@ -71,7 +71,7 @@ const BottlenecksView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. Wait Time</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.avgWaitTime || '0 hrs'}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.avgWaitTime || '0 hrs'}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   At bottleneck points
                 </div>
@@ -91,7 +91,7 @@ const BottlenecksView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Max Impact</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.maxImpact || 0}%</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.maxImpact || 0}%</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Highest bottleneck impact
                 </div>
@@ -111,7 +111,7 @@ const BottlenecksView = ({ data }) => {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Potential Improvement</h3>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.potentialImprovement || '0 hrs'}</div>
+                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.potentialImprovement || '0 hrs'}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   If all bottlenecks resolved
                 </div>

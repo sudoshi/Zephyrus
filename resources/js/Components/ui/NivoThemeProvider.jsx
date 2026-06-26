@@ -110,7 +110,7 @@ const nivoLightTheme = {
       padding: '3px 5px'
     },
     tableCellValue: {
-      fontWeight: 'bold'
+      fontWeight: 600
     }
   }
 };

@@ -27,7 +27,7 @@ export const getChartTheme = (isDarkMode = true) => {
         text: {
           fill: '#ffffff',
           fontSize: 12,
-          fontWeight: 'bold'
+          fontWeight: 600
         },
         line: {
           stroke: 'rgba(255, 255, 255, 0.7)',
@@ -38,7 +38,7 @@ export const getChartTheme = (isDarkMode = true) => {
         text: {
           fill: '#ffffff',
           fontSize: 13,
-          fontWeight: 'bold'
+          fontWeight: 600
         }
       },
       domain: {
@@ -58,7 +58,7 @@ export const getChartTheme = (isDarkMode = true) => {
       text: {
         fill: '#ffffff',
         fontSize: 12,
-        fontWeight: 'bold'
+        fontWeight: 600
       }
     },
     tooltip: {
@@ -74,7 +74,7 @@ export const getChartTheme = (isDarkMode = true) => {
       text: {
         fill: '#ffffff',
         fontSize: 12,
-        fontWeight: 'bold'
+        fontWeight: 600
       }
     },
     dots: {

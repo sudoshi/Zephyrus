@@ -127,7 +127,7 @@ const DischargePriorities = () => {
     <RTDCPageLayout>
       <div className="flex justify-between items-center mb-3">
         <div>
-          <h1 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h1 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Discharge Priorities
           </h1>
           <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

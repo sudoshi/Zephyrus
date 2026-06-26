@@ -301,25 +301,25 @@ const ProcessMapView = ({ data }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cases</h3>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data?.stats?.cases?.count || 0}</div>
+              <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{data?.stats?.cases?.count || 0}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Total patient cases</div>
             </div>
             
             <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Completion Rate</h3>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{data?.stats?.cases?.completionRate || 0}%</div>
+              <div className="text-2xl font-semibold text-green-600 dark:text-green-400">{data?.stats?.cases?.completionRate || 0}%</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Cases completed</div>
             </div>
             
             <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avg. Process Time</h3>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{data?.stats?.time?.avgProcessTime || '0 hrs'}</div>
+              <div className="text-2xl font-semibold text-purple-600 dark:text-purple-400">{data?.stats?.time?.avgProcessTime || '0 hrs'}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Per patient case</div>
             </div>
             
             <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avg. Wait Time</h3>
-              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{data?.stats?.time?.avgWaitTime || '0 hrs'}</div>
+              <div className="text-2xl font-semibold text-yellow-600 dark:text-yellow-400">{data?.stats?.time?.avgWaitTime || '0 hrs'}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">Between activities</div>
             </div>
           </div>

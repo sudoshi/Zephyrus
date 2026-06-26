@@ -48,7 +48,7 @@ const EfficiencyMetricsCard = ({
               Efficiency Ratio
             </span>
           </div>
-          <div className={`text-2xl font-bold ${efficiencyColor}`}>
+          <div className={`text-2xl font-semibold ${efficiencyColor}`}>
             {formattedEfficiencyRatio}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -64,7 +64,7 @@ const EfficiencyMetricsCard = ({
               Cases Per Day
             </span>
           </div>
-          <div className="text-2xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+          <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
             {formattedCasesPerDay}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -80,7 +80,7 @@ const EfficiencyMetricsCard = ({
               Avg Turnover Time
             </span>
           </div>
-          <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {formattedTurnoverTime}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -96,7 +96,7 @@ const EfficiencyMetricsCard = ({
               Avg Case Duration
             </span>
           </div>
-          <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {formattedCaseDuration}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">

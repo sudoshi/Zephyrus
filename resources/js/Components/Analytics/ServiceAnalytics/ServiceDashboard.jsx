@@ -80,7 +80,7 @@ const ServiceDashboard = () => {
           {/* Header */}
           <div className="flex justify-between items-center">
             <h1
-              className={`text-2xl font-bold ${
+              className={`text-2xl font-semibold ${
                 isDarkMode ? 'text-gray-100' : 'text-gray-900'
               }`}
             >

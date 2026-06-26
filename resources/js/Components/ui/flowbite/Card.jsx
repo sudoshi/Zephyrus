@@ -37,7 +37,7 @@ export function Card({
       {header ? (
         header
       ) : title ? (
-        <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h5 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
           {title}
         </h5>
       ) : null}

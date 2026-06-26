@@ -111,7 +111,7 @@ return isDarkMode
                                     color={getSparklineColor()}
                                 />
                             ) : (
-                                <span className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                <span className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                     {value}
                                 </span>
                             )}

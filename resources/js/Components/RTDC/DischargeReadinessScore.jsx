@@ -116,7 +116,7 @@ const DischargeReadinessScore = ({ requirements }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Discharge Readiness</Card.Title>
-                    <div className={`text-2xl font-bold ${getScoreColor(score.score)}`}>
+                    <div className={`text-2xl font-semibold ${getScoreColor(score.score)}`}>
                         {score.score}%
                     </div>
                 </div>

@@ -27,7 +27,7 @@ const WeeklyHeatmap = ({
     const time = format(new Date().setHours(hour, 0, 0, 0), 'h:mm a');
     return (
       <div className="space-y-2">
-        <div className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+        <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           {day} at {time}
         </div>
         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

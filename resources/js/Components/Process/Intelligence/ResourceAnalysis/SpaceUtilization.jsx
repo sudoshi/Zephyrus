@@ -78,7 +78,7 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
             <div className="rounded-full bg-healthcare-primary/10 p-3">
               <Clock className="h-6 w-6 text-healthcare-primary" />
             </div>
-            <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Daily Occupancy Pattern
             </h3>
           </div>
@@ -129,7 +129,7 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
               <span className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark capitalize">
                 {status}
               </span>
-              <span className={`text-lg font-bold ${getStatusColor(status)}`}>
+              <span className={`text-lg font-semibold ${getStatusColor(status)}`}>
                 {count}
               </span>
             </div>
@@ -150,7 +150,7 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
             <div className="rounded-full bg-healthcare-warning/10 p-3">
               <DoorOpen className="h-6 w-6 text-healthcare-warning" />
             </div>
-            <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Room Status
             </h3>
           </div>
@@ -188,7 +188,7 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
             <div className="rounded-full bg-healthcare-success/10 p-3">
               <RotateCcw className="h-6 w-6 text-healthcare-success" />
             </div>
-            <h3 className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Turnover Performance
             </h3>
           </div>

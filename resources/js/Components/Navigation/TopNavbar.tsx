@@ -39,7 +39,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
             }`}
           >
             <img src="/images/zephyrus-icon.png" alt="" aria-hidden="true" className="h-8 w-8 rounded-lg object-contain" />
-            <span className="text-[17px]/[24px] font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <span className="text-[17px]/[24px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
           </Link>

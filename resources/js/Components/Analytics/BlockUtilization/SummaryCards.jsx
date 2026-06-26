@@ -10,7 +10,7 @@ const SummaryCard = ({ title, value, trend, icon, color, isDarkMode }) => (
     <div>
       <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{title}</h3>
       <div className="flex items-center mt-1">
-        <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{value}</p>
+        <p className={`text-2xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{value}</p>
         {trend && (
           <span className={`ml-2 flex items-center text-sm ${
             trend > 0 ? 'text-green-600' : 'text-red-600'

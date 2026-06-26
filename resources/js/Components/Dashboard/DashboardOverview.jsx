@@ -139,7 +139,7 @@ const DashboardOverview = () => {
                                         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
                                             {stat.label}
                                         </div>
-                                        <div className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                                        <div className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                             {stat.value}
                                         </div>
                                     </div>

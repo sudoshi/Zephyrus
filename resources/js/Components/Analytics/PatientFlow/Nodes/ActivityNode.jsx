@@ -10,7 +10,7 @@ const ActivityNode = ({ data }) => {
         className="w-2 h-2 !bg-blue-500 dark:!bg-blue-400"
       />
       <div className="flex flex-col">
-        <div className="font-bold text-sm text-center text-gray-800 dark:text-gray-200">
+        <div className="font-semibold text-sm text-center text-gray-800 dark:text-gray-200">
           {data.label}
         </div>
         <div className="flex justify-center items-center mt-2 space-x-4">

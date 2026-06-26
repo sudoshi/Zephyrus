@@ -98,7 +98,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg">
                                 <h4 className="text-sm font-medium mb-2">Current Occupancy</h4>
-                                <div className="text-2xl font-bold">{department.occupancy}%</div>
+                                <div className="text-2xl font-semibold">{department.occupancy}%</div>
                                 <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     {department.occupiedBeds} of {department.totalBeds} beds
                                 </div>
@@ -125,7 +125,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg">
                                 <h4 className="text-sm font-medium mb-2">Current Coverage</h4>
-                                <div className="text-2xl font-bold">{department.staffingLevel}%</div>
+                                <div className="text-2xl font-semibold">{department.staffingLevel}%</div>
                                 <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     {department.staffing.current} of {department.staffing.required} required
                                 </div>
@@ -160,7 +160,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                                     {[1, 2, 3, 4, 5].map((level) => (
                                         <div key={level} className="text-center">
                                             <div className="text-sm font-medium mb-1">Level {level}</div>
-                                            <div className="text-lg font-bold">{department.acuity[`level${level}`]}</div>
+                                            <div className="text-lg font-semibold">{department.acuity[`level${level}`]}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -171,7 +171,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                                             <div className="text-sm font-medium mb-1">
                                                 {level.charAt(0).toUpperCase() + level.slice(1)}
                                             </div>
-                                            <div className="text-lg font-bold">{count}</div>
+                                            <div className="text-lg font-semibold">{count}</div>
                                         </div>
                                     ))}
                                 </div>

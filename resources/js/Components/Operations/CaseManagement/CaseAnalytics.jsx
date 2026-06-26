@@ -50,7 +50,7 @@ const MetricCard = ({ title, icon, value, trend, trendValue }) => (
           <Icon icon={icon} className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
         </div>
         <div className="flex items-baseline justify-between">
-          <span className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <span className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {value}
           </span>
           <span className={`text-sm ${trend === 'up' ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-error dark:text-healthcare-error-dark'}`}>

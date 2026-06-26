@@ -229,7 +229,7 @@ export default function Component() {
                       {title}
                     </span>
                     <div className="flex items-center gap-x-3">
-                      <span className="text-3xl font-bold text-foreground">
+                      <span className="text-3xl font-semibold text-foreground">
                         {formatValue(value, type)}
                       </span>
                       <Chip

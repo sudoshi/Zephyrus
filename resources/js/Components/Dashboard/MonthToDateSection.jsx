@@ -89,7 +89,7 @@ const MonthToDateSection = () => {
     return (
         <section className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
+                <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                     Month to Date
                 </h2>
                 <div className="flex items-center space-x-4">

@@ -58,7 +58,7 @@ const OpportunityMetricsCard = ({
               Utilization Gap
             </span>
           </div>
-          <div className={`text-2xl font-bold ${gapColor}`}>
+          <div className={`text-2xl font-semibold ${gapColor}`}>
             {formattedUtilizationGap}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -74,7 +74,7 @@ const OpportunityMetricsCard = ({
               Potential Cases
             </span>
           </div>
-          <div className="text-2xl font-bold text-healthcare-primary dark:text-healthcare-primary-dark">
+          <div className="text-2xl font-semibold text-healthcare-primary dark:text-healthcare-primary-dark">
             {potentialAdditionalCases || 0}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -90,7 +90,7 @@ const OpportunityMetricsCard = ({
               Potential Revenue
             </span>
           </div>
-          <div className="text-2xl font-bold text-green-500">
+          <div className="text-2xl font-semibold text-green-500">
             {formattedPotentialRevenue}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -107,7 +107,7 @@ const OpportunityMetricsCard = ({
             </span>
           </div>
           <div className="flex items-center">
-            <div className="text-lg font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mr-2">
+            <div className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mr-2">
               {formattedCurrentUtilization} / {formattedTargetUtilization}
             </div>
           </div>

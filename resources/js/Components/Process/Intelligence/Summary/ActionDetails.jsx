@@ -124,7 +124,7 @@ const ActionDetails = ({ action }) => {
             {action.type === 'risk' ? <AlertTriangle className="h-6 w-6" /> : <Activity className="h-6 w-6" />}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h3 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               {action.title}
             </h3>
             <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -143,7 +143,7 @@ const ActionDetails = ({ action }) => {
       {/* Impact Analysis */}
       <div className="grid grid-cols-2 gap-6 animate-fadeIn">
         <div className="healthcare-card animate-slideIn">
-          <h4 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+          <h4 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
             Impact Analysis
           </h4>
           <div className="space-y-4">
@@ -181,7 +181,7 @@ const ActionDetails = ({ action }) => {
         </div>
 
         <div className="healthcare-card animate-slideIn" style={{ animationDelay: '100ms' }}>
-          <h4 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+          <h4 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
             Action Timeline
           </h4>
           <div className="space-y-4">
@@ -212,7 +212,7 @@ const ActionDetails = ({ action }) => {
 
       {/* Related Actions */}
       <div className="healthcare-card">
-        <h4 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+        <h4 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
           Related Actions
         </h4>
         <div className="grid grid-cols-3 gap-4">

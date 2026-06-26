@@ -12,7 +12,7 @@ const MetricCard = ({ title, value, trend, description, icon }) => (
             <Icon icon={icon} className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
         </div>
         <div className="flex items-end justify-between">
-            <div className="text-2xl font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 {value}
             </div>
             {trend && (

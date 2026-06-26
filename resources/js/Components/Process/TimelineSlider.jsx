@@ -168,7 +168,7 @@ const TimelineSlider = ({
           style={{ 
             left: `${getPositionPercentage(selectedRange[0])}%`, 
             transform: 'translateX(-50%)',
-            fontWeight: 'bold'
+            fontWeight: 600
           }}
         >
           {formatTime(selectedRange[0])}
@@ -178,7 +178,7 @@ const TimelineSlider = ({
           style={{ 
             left: `${getPositionPercentage(selectedRange[1])}%`, 
             transform: 'translateX(-50%)',
-            fontWeight: 'bold'
+            fontWeight: 600
           }}
         >
           {formatTime(selectedRange[1])}

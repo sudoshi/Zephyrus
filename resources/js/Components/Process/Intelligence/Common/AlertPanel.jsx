@@ -34,7 +34,7 @@ const AlertPanel = ({
 
   return (
     <div className={`healthcare-card ${styles.wrapper} ${className}`}>
-      <h3 className={`font-bold ${styles.title} flex items-center gap-2`}>
+      <h3 className={`font-semibold ${styles.title} flex items-center gap-2`}>
         <Icon className="h-5 w-5" />
         {title}
       </h3>

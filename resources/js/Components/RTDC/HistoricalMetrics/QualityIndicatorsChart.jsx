@@ -62,7 +62,7 @@ const QualityIndicatorsChart = ({ data }) => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-1">
-                                    <span className="text-xl font-bold">{metric.current.toFixed(1)}</span>
+                                    <span className="text-xl font-semibold">{metric.current.toFixed(1)}</span>
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         {metric.unit}
                                     </span>

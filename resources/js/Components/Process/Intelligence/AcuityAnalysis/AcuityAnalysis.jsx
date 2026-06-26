@@ -155,7 +155,7 @@ const AcuityAnalysis = ({ metrics }) => {
       </MetricChart>
 
       <div className="healthcare-card">
-        <h3 className="font-bold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
+        <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
           Distribution Analysis
         </h3>
         <div className="grid grid-cols-3 gap-6">

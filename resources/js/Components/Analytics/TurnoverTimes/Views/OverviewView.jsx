@@ -82,22 +82,22 @@ const OverviewView = ({ filters }) => {
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Panel title="Median Turnover Time" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-bold">{locationData.medianTurnoverTime} min</div>
+          <div className="text-3xl font-semibold">{locationData.medianTurnoverTime} min</div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Median time between cases</p>
         </Panel>
         
         <Panel title="Average Turnover Time" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-bold">{locationData.averageTurnoverTime} min</div>
+          <div className="text-3xl font-semibold">{locationData.averageTurnoverTime} min</div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Average time between cases</p>
         </Panel>
         
         <Panel title="Total Cases" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-bold">{locationData.totalCases}</div>
+          <div className="text-3xl font-semibold">{locationData.totalCases}</div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Cases in selected period</p>
         </Panel>
         
         <Panel title="Total Turnovers" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-bold">{locationData.totalTurnovers}</div>
+          <div className="text-3xl font-semibold">{locationData.totalTurnovers}</div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Turnovers in selected period</p>
         </Panel>
       </div>
