@@ -47,7 +47,7 @@ const LocationComparisonView = ({ filters }) => {
   return (
     <div className="space-y-6">
       <Panel title="Prime Time Utilization by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={locationData}
             keys={['primeTimeUtilization']}
@@ -90,7 +90,7 @@ const LocationComparisonView = ({ filters }) => {
       </Panel>
 
       <Panel title="Non-Prime Time Percentage by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={locationData}
             keys={['nonPrimeTimePercentage']}
@@ -134,7 +134,7 @@ const LocationComparisonView = ({ filters }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Total Cases by Location" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsivePie
               data={pieChartData}
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -183,7 +183,7 @@ const LocationComparisonView = ({ filters }) => {
         </Panel>
 
         <Panel title="Cases in Non-Prime Time by Location" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveBar
               data={locationData}
               keys={['casesInNonPrimeTime']}
@@ -228,8 +228,8 @@ const LocationComparisonView = ({ filters }) => {
 
       <Panel title="Location Comparison Table" isSubpanel dropLightIntensity="medium">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          <table className="w-full text-sm text-left text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <thead className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase bg-healthcare-background dark:bg-healthcare-background-dark">
               <tr>
                 <th className="p-2 border">Location</th>
                 <th className="p-2 border text-center">Prime Time Utilization</th>
@@ -241,7 +241,7 @@ const LocationComparisonView = ({ filters }) => {
             </thead>
             <tbody>
               {locationData.map(location => (
-                <tr key={location.name} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <tr key={location.name} className="bg-healthcare-surface dark:bg-healthcare-surface-dark border-b border-healthcare-border dark:border-healthcare-border-dark">
                   <td className="p-2 border">{location.name}</td>
                   <td className="p-2 border text-center">{location.primeTimeUtilization.toFixed(1)}%</td>
                   <td className="p-2 border text-center">{location.nonPrimeTimePercentage.toFixed(1)}%</td>

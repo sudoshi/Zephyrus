@@ -86,10 +86,10 @@ const OverviewView = ({ data, derivedMetrics }) => {
                   <Icon icon={metric.icon} className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{metric.title}</h3>
-                  <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{metric.value}</div>
+                  <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{metric.title}</h3>
+                  <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{metric.value}</div>
                   {metric.change !== 0 && (
-                    <div className={`flex items-center text-xs ${metric.change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    <div className={`flex items-center text-xs ${metric.change > 0 ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'}`}>
                       <Icon 
                         icon={metric.change > 0 ? 'carbon:arrow-up' : 'carbon:arrow-down'} 
                         className="w-3 h-3 mr-1" 
@@ -115,23 +115,23 @@ const OverviewView = ({ data, derivedMetrics }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 + 0.4 }}
-                  className="flex items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  className="flex items-center p-4 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg"
                 >
                   <div className={`p-2 rounded-full bg-${metric.color}-100 dark:bg-${metric.color}-800 text-${metric.color}-600 dark:text-${metric.color}-300 mr-3`}>
                     <Icon icon={metric.icon} className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{metric.title}</h3>
-                    <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{metric.value}</div>
+                    <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{metric.title}</h3>
+                    <div className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{metric.value}</div>
                   </div>
                 </motion.div>
               ))}
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Process Timeline</h3>
+              <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-3">Process Timeline</h3>
               <div className="relative pt-6">
-                <div className="absolute top-0 left-6 h-full w-0.5 bg-blue-200 dark:bg-blue-800"></div>
+                <div className="absolute top-0 left-6 h-full w-0.5 bg-healthcare-info/20 dark:bg-healthcare-info-dark/30"></div>
                 
                 {(data?.processTimeline || []).map((step, index) => (
                   <motion.div 
@@ -143,18 +143,18 @@ const OverviewView = ({ data, derivedMetrics }) => {
                   >
                     <div className="absolute left-0 top-0 w-12 flex items-center justify-center">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        index === 0 
-                          ? 'bg-blue-500 text-white' 
+                        index === 0
+                          ? 'bg-healthcare-info dark:bg-healthcare-info-dark text-white'
                           : index === (data.processTimeline.length - 1)
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-healthcare-success dark:bg-healthcare-success-dark text-white'
+                            : 'bg-healthcare-border dark:bg-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                       }`}>
                         {index + 1}
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{step.activity}</h4>
-                      <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                    <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
+                      <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{step.activity}</h4>
+                      <div className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark flex items-center">
                         <Icon icon="carbon:time" className="w-4 h-4 mr-1" />
                         <span>Avg: {step.avgDuration}</span>
                         {step.waitTime && (
@@ -170,7 +170,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                 ))}
                 
                 {(!data?.processTimeline || data.processTimeline.length === 0) && (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     No timeline data available
                   </div>
                 )}
@@ -188,15 +188,15 @@ const OverviewView = ({ data, derivedMetrics }) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 + 0.4 }}
-                  className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  className="p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg"
                 >
                   <div className="flex items-start">
                     <div className={`flex-shrink-0 p-2 rounded-full mr-3 ${
-                      insight.type === 'positive' 
-                        ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300' 
+                      insight.type === 'positive'
+                        ? 'bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 text-healthcare-success dark:text-healthcare-success-dark'
                         : insight.type === 'negative'
-                          ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' 
-                          : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                          ? 'bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 text-healthcare-critical dark:text-healthcare-critical-dark'
+                          : 'bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark'
                     }`}>
                       <Icon 
                         icon={
@@ -210,11 +210,11 @@ const OverviewView = ({ data, derivedMetrics }) => {
                       />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{insight.title}</h4>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{insight.description}</p>
+                      <h4 className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{insight.title}</h4>
+                      <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{insight.description}</p>
                       {insight.value && (
-                        <div className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                          {insight.label}: <span className="text-gray-900 dark:text-gray-100">{insight.value}</span>
+                        <div className="mt-2 text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          {insight.label}: <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{insight.value}</span>
                         </div>
                       )}
                     </div>
@@ -223,7 +223,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
               ))}
               
               {(!insights || insights.length === 0) && (
-                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   No insights available
                 </div>
               )}

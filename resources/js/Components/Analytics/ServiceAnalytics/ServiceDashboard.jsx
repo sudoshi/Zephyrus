@@ -72,7 +72,7 @@ const ServiceDashboard = () => {
   return (
     <div
       className={`flex min-h-screen ${
-        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+        isDarkMode ? 'bg-healthcare-background-dark' : 'bg-healthcare-background'
       }`}
     >
       <main className="flex-1">
@@ -81,7 +81,7 @@ const ServiceDashboard = () => {
           <div className="flex justify-between items-center">
             <h1
               className={`text-2xl font-semibold ${
-                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                isDarkMode ? 'text-healthcare-text-primary-dark' : 'text-healthcare-text-primary'
               }`}
             >
               Service Analytics Overview
@@ -110,8 +110,8 @@ const ServiceDashboard = () => {
                           ? 'bg-indigo-600 text-white'
                           : 'bg-indigo-100 text-indigo-700'
                         : isDarkMode
-                        ? 'text-gray-300 hover:bg-gray-700'
-                        : 'text-gray-700 hover:bg-gray-200'
+                        ? 'text-healthcare-text-secondary-dark hover:bg-healthcare-surface-dark'
+                        : 'text-healthcare-text-secondary hover:bg-healthcare-border'
                     }`}
                   >
                     {`${days}D`}
@@ -140,8 +140,8 @@ const ServiceDashboard = () => {
                 type="button"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                   isDarkMode
-                    ? 'text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                    ? 'text-healthcare-text-secondary-dark bg-healthcare-surface-dark border-healthcare-border-dark hover:bg-healthcare-hover-dark'
+                    : 'text-healthcare-text-secondary bg-healthcare-surface border-healthcare-border hover:bg-healthcare-background'
                 } border`}
               >
                 <Icon

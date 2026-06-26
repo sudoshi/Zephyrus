@@ -37,21 +37,21 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange, onQuickSelect }) 
     };
 
     return (
-        <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow">
+        <div className="flex items-center space-x-4 p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow">
             <div className="flex items-center space-x-2">
-                <Icon icon="heroicons:calendar" className="w-5 h-5 text-gray-500" />
+                <Icon icon="heroicons:calendar" className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
                 <input
                     type="date"
                     value={startDate}
                     onChange={(e) => onDateChange('start', e.target.value)}
-                    className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
-                <span className="text-gray-500">to</span>
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">to</span>
                 <input
                     type="date"
                     value={endDate}
                     onChange={(e) => onDateChange('end', e.target.value)}
-                    className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
             </div>
 

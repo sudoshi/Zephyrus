@@ -21,11 +21,11 @@ const EfficiencyMetricsCard = ({
   
   // Determine color based on efficiency ratio
   const getEfficiencyColor = (ratio) => {
-    if (!ratio) return 'text-gray-500';
-    if (ratio >= 85) return 'text-green-500';
-    if (ratio >= 75) return 'text-blue-500';
-    if (ratio >= 65) return 'text-yellow-500';
-    return 'text-red-500';
+    if (!ratio) return 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark';
+    if (ratio >= 85) return 'text-healthcare-success dark:text-healthcare-success-dark';
+    if (ratio >= 75) return 'text-healthcare-info dark:text-healthcare-info-dark';
+    if (ratio >= 65) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+    return 'text-healthcare-critical dark:text-healthcare-critical-dark';
   };
   
   const efficiencyColor = getEfficiencyColor(efficiencyRatio);

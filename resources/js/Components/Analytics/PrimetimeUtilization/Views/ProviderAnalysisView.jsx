@@ -57,7 +57,7 @@ const ProviderAnalysisView = ({ filters }) => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Prime Time Utilization by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['primeTimeUtilization']}
@@ -100,7 +100,7 @@ const ProviderAnalysisView = ({ filters }) => {
         </Panel>
 
         <Panel title="Non-Prime Time Percentage by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['nonPrimeTimePercentage']}
@@ -145,7 +145,7 @@ const ProviderAnalysisView = ({ filters }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Specialty Distribution" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsivePie
               data={specialtyDistribution}
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -194,7 +194,7 @@ const ProviderAnalysisView = ({ filters }) => {
         </Panel>
 
         <Panel title="Cases in Non-Prime Time by Provider" isSubpanel dropLightIntensity="medium">
-          <div className="h-96 bg-gray-900 rounded-lg p-4">
+          <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveBar
               data={providerData.slice(0, 10)} // Limit to top 10 for readability
               keys={['casesInNonPrimeTime']}
@@ -239,8 +239,8 @@ const ProviderAnalysisView = ({ filters }) => {
 
       <Panel title="Provider Analysis Table" isSubpanel dropLightIntensity="medium">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          <table className="w-full text-sm text-left text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <thead className="text-xs text-healthcare-text-secondary uppercase bg-healthcare-background dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
               <tr>
                 <th className="p-2 border">Provider</th>
                 <th className="p-2 border">Specialty</th>
@@ -252,7 +252,7 @@ const ProviderAnalysisView = ({ filters }) => {
             </thead>
             <tbody>
               {providerData.map(provider => (
-                <tr key={provider.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <tr key={provider.id} className="bg-healthcare-surface border-b border-healthcare-border dark:bg-healthcare-surface-dark dark:border-healthcare-border-dark">
                   <td className="p-2 border">{provider.id}</td>
                   <td className="p-2 border">{provider.service}</td>
                   <td className="p-2 border text-center">{provider.primeTimeUtilization.toFixed(1)}%</td>

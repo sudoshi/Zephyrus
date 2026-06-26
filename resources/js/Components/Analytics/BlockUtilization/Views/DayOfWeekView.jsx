@@ -127,14 +127,14 @@ const DayOfWeekView = ({ filters }) => {
               <div key={index} className="border-b pb-3 last:border-0">
                 <div className="flex justify-between mb-2">
                   <h3 className="font-medium dark:text-white">{day.name}</h3>
-                  <span className="text-blue-600 dark:text-blue-300">{formatPercentage(day.utilization)}</span>
+                  <span className="text-healthcare-info dark:text-healthcare-info-dark">{formatPercentage(day.utilization)}</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5">
                   <div 
                     className={`h-2.5 rounded-full ${
-                      day.utilization > 75 ? 'bg-emerald-500' : 
-                      day.utilization > 70 ? 'bg-blue-600' : 
-                      day.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
+                      day.utilization > 75 ? 'bg-healthcare-success dark:bg-healthcare-success-dark' :
+                      day.utilization > 70 ? 'bg-healthcare-info dark:bg-healthcare-info-dark' :
+                      day.utilization > 65 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
                     }`}
                     style={{ width: `${day.utilization}%` }}
                   ></div>
@@ -151,33 +151,33 @@ const DayOfWeekView = ({ filters }) => {
             <Panel title="Time Distribution" isSubpanel={true} dropLightIntensity="medium">
               <div className="space-y-3">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Morning (8am-12pm)</h4>
+                  <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Morning (8am-12pm)</h4>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="dark:text-white">Utilization</span>
-                    <span className="text-blue-600 dark:text-blue-300">74.2%</span>
+                    <span className="text-healthcare-info dark:text-healthcare-info-dark">74.2%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '74.2%' }}></div>
+                  <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
+                    <div className="bg-healthcare-info dark:bg-healthcare-info-dark h-2 rounded-full" style={{ width: '74.2%' }}></div>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Afternoon (12pm-4pm)</h4>
+                  <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Afternoon (12pm-4pm)</h4>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="dark:text-white">Utilization</span>
-                    <span className="text-blue-600 dark:text-blue-300">76.8%</span>
+                    <span className="text-healthcare-info dark:text-healthcare-info-dark">76.8%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '76.8%' }}></div>
+                  <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
+                    <div className="bg-healthcare-info dark:bg-healthcare-info-dark h-2 rounded-full" style={{ width: '76.8%' }}></div>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Evening (4pm-8pm)</h4>
+                  <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Evening (4pm-8pm)</h4>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="dark:text-white">Utilization</span>
-                    <span className="text-blue-600 dark:text-blue-300">68.5%</span>
+                    <span className="text-healthcare-info dark:text-healthcare-info-dark">68.5%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div className="bg-amber-500 h-2 rounded-full" style={{ width: '68.5%' }}></div>
+                  <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
+                    <div className="bg-healthcare-warning dark:bg-healthcare-warning-dark h-2 rounded-full" style={{ width: '68.5%' }}></div>
                   </div>
                 </div>
               </div>
@@ -185,21 +185,21 @@ const DayOfWeekView = ({ filters }) => {
             
             <Panel title="Recommendations" isSubpanel={true} dropLightIntensity="medium">
               <ul className="space-y-2">
-                <li className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">Optimize Friday Scheduling</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-info dark:text-healthcare-info-dark mb-1">Optimize Friday Scheduling</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Friday has the lowest utilization. Consider rescheduling high-demand procedures to this day.
                   </p>
                 </li>
-                <li className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
-                  <h4 className="font-medium text-emerald-800 dark:text-emerald-300 mb-1">Leverage Tuesday Efficiency</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-success dark:text-healthcare-success-dark mb-1">Leverage Tuesday Efficiency</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Tuesday shows highest utilization. Analyze workflows to replicate this efficiency on other days.
                   </p>
                 </li>
-                <li className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">Evening Slot Utilization</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-warning dark:text-healthcare-warning-dark mb-1">Evening Slot Utilization</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Evening slots are underutilized. Consider incentives for scheduling during these hours.
                   </p>
                 </li>

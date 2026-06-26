@@ -27,10 +27,10 @@ const OpportunityMetricsCard = ({
   
   // Determine color based on utilization gap
   const getGapColor = (gap) => {
-    if (!gap || gap <= 0) return 'text-green-500';
-    if (gap <= 5) return 'text-blue-500';
-    if (gap <= 10) return 'text-yellow-500';
-    return 'text-red-500';
+    if (!gap || gap <= 0) return 'text-healthcare-success dark:text-healthcare-success-dark';
+    if (gap <= 5) return 'text-healthcare-info dark:text-healthcare-info-dark';
+    if (gap <= 10) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+    return 'text-healthcare-critical dark:text-healthcare-critical-dark';
   };
   
   const gapColor = getGapColor(utilizationGap);
@@ -90,7 +90,7 @@ const OpportunityMetricsCard = ({
               Potential Revenue
             </span>
           </div>
-          <div className="text-2xl font-semibold text-green-500">
+          <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
             {formattedPotentialRevenue}
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
@@ -111,7 +111,7 @@ const OpportunityMetricsCard = ({
               {formattedCurrentUtilization} / {formattedTargetUtilization}
             </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+          <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5 mt-2">
             <div 
               className="bg-healthcare-primary dark:bg-healthcare-primary-dark h-2.5 rounded-full" 
               style={{ width: `${progressPercentage}%` }}

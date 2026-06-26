@@ -61,7 +61,7 @@ const TrendsOverview = () => {
 
     if (error) {
         return (
-            <div className="p-6 text-center text-red-600">
+            <div className="p-6 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
                 <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
                 <p>{error}</p>
             </div>

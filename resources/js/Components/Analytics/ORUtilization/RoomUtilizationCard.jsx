@@ -65,10 +65,10 @@ const RoomUtilizationCard = ({
   
   // Determine color based on utilization
   const getUtilizationColor = (utilization) => {
-    if (utilization >= 80) return 'text-green-500';
-    if (utilization >= 70) return 'text-blue-500';
-    if (utilization >= 60) return 'text-yellow-500';
-    return 'text-red-500';
+    if (utilization >= 80) return 'text-healthcare-success dark:text-healthcare-success-dark';
+    if (utilization >= 70) return 'text-healthcare-info dark:text-healthcare-info-dark';
+    if (utilization >= 60) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+    return 'text-healthcare-critical dark:text-healthcare-critical-dark';
   };
   
   const utilizationColor = getUtilizationColor(averageUtilization);

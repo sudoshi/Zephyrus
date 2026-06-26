@@ -324,7 +324,7 @@ const NonPrimeView = ({ filters }) => {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Review Orthopedics case scheduling to identify opportunities for shifting cases to prime time.
                   </p>
                 </li>
@@ -334,7 +334,7 @@ const NonPrimeView = ({ filters }) => {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Implement Neurosurgery's scheduling practices across other services, particularly Cardiology.
                   </p>
                 </li>
@@ -344,7 +344,7 @@ const NonPrimeView = ({ filters }) => {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Conduct a detailed analysis of non-prime time usage patterns by day of week for each service.
                   </p>
                 </li>
@@ -354,7 +354,7 @@ const NonPrimeView = ({ filters }) => {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Set service-specific targets for non-prime time reduction in the next quarter.
                   </p>
                 </li>
@@ -367,40 +367,40 @@ const NonPrimeView = ({ filters }) => {
       <div className="mt-6">
         <Panel title="Service Non-Prime Time Details" isSubpanel={true} dropLightIntensity="medium">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+              <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Service
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Non-Prime %
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Prime %
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Trend
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 {mockBlockUtilization.serviceNonPrime && Object.entries(mockBlockUtilization.serviceNonPrime).map(([service, data], index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {service}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {data.nonPrime}%
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {data.prime}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center ${data.trend.includes('+') ? 'text-red-500' : 'text-green-500'}`}>
+                      <span className={`inline-flex items-center ${data.trend.includes('+') ? 'text-healthcare-critical dark:text-healthcare-critical-dark' : 'text-healthcare-success dark:text-healthcare-success-dark'}`}>
                         {data.trend.includes('+') ? (
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path>
@@ -415,7 +415,7 @@ const NonPrimeView = ({ filters }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        data.status === 'Improving' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                        data.status === 'Improving' ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' : 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                       }`}>
                         {data.status}
                       </span>

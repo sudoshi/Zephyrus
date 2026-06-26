@@ -113,7 +113,7 @@ const OverviewView = ({ filters }) => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Prime Time Utilization Trend" isSubpanel dropLightIntensity="medium">
-          <div className="h-80 bg-gray-900 rounded-lg p-4">
+          <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveLine
               data={utilizationChartData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -158,7 +158,7 @@ const OverviewView = ({ filters }) => {
         </Panel>
         
         <Panel title="Non-Prime Time Percentage Trend" isSubpanel dropLightIntensity="medium">
-          <div className="h-80 bg-gray-900 rounded-lg p-4">
+          <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveLine
               data={nonPrimeChartData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -204,7 +204,7 @@ const OverviewView = ({ filters }) => {
       </div>
 
       <Panel title="Prime Time Utilization by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-80 bg-gray-900 rounded-lg p-4">
+        <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['utilization']}
@@ -246,7 +246,7 @@ const OverviewView = ({ filters }) => {
       </Panel>
 
       <Panel title="Non-Prime Time Percentage by Location" isSubpanel dropLightIntensity="medium">
-        <div className="h-80 bg-gray-900 rounded-lg p-4">
+        <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={locationComparisonData}
             keys={['nonPrimeTimePercentage']}

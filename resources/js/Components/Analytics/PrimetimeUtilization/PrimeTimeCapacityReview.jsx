@@ -90,7 +90,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
     return (
       <Icon 
         icon={hasImproved ? 'carbon:arrow-up' : 'carbon:arrow-down'} 
-        className={`ml-1 h-4 w-4 ${hasImproved ? 'text-green-500' : 'text-red-500'}`} 
+        className={`ml-1 h-4 w-4 ${hasImproved ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'}`}
       />
     );
   };
@@ -130,7 +130,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
       const isImproved = isHigherBetter ? currentValue > prevValue : currentValue < prevValue;
       
       return (
-        <span className={`ml-2 ${isImproved ? 'text-green-500' : 'text-red-500'}`}>
+        <span className={`ml-2 ${isImproved ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'}`}>
           {isImproved ? <Icon icon="carbon:arrow-up" className="inline h-4 w-4" /> : <Icon icon="carbon:arrow-down" className="inline h-4 w-4" />}
         </span>
       );
@@ -161,20 +161,20 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
         >
           <span className="font-medium">{value}</span>
           {previousValue !== undefined && getChangeIndicator()}
-          <Icon icon="carbon:information" className="ml-1 text-gray-400 h-8 w-8" />
+          <Icon icon="carbon:information" className="ml-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark h-8 w-8" />
         </div>
         
         {showTooltip && (
           <div 
             ref={tooltipRef}
-            className="fixed z-[9999] bg-gray-800 text-white dark:bg-gray-700 p-3 rounded shadow-lg w-72"
+            className="fixed z-[9999] bg-healthcare-surface dark:bg-healthcare-surface-dark text-white p-3 rounded shadow-lg w-72"
             style={{
               top: `${tooltipPosition.top}px`,
               left: `${tooltipPosition.left}px`,
               transform: 'translateY(-50%)'
             }}
           >
-            <div className="font-semibold text-base border-b border-gray-600 pb-1 mb-2 break-words">{label}</div>
+            <div className="font-semibold text-base border-b border-healthcare-border dark:border-healthcare-border-dark pb-1 mb-2 break-words">{label}</div>
             <div className="text-sm mb-2 break-words">{description}</div>
             {previousValue !== undefined && (
               <div className="text-sm">
@@ -189,20 +189,20 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                 <div className="flex justify-between mt-1">
                   <span>Change:</span>
                   <span className={`font-semibold ${
-                    isHigherBetter 
-                      ? parseFloat(value) > parseFloat(previousValue) ? 'text-green-400' : 'text-red-400'
-                      : parseFloat(value) < parseFloat(previousValue) ? 'text-green-400' : 'text-red-400'
+                    isHigherBetter
+                      ? parseFloat(value) > parseFloat(previousValue) ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'
+                      : parseFloat(value) < parseFloat(previousValue) ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                   }`}>
                     {getPercentChange(value, previousValue)}
                   </span>
                 </div>
               </div>
             )}
-            <div className="text-xs mt-2 bg-gray-700 dark:bg-gray-600 p-2 rounded">
+            <div className="text-xs mt-2 bg-healthcare-surface dark:bg-healthcare-surface-dark p-2 rounded">
               <div className="grid grid-cols-2 gap-1">
-                <div className="text-gray-300">Current Period:</div>
+                <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Current Period:</div>
                 <div>{siteData.metricStartDate} - {siteData.metricEndDate}</div>
-                <div className="text-gray-300">Previous Period:</div>
+                <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Previous Period:</div>
                 <div>{siteData.metricPreviousStartDate} - {siteData.metricPreviousEndDate}</div>
               </div>
             </div>
@@ -219,7 +219,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
           <div className="text-lg font-semibold">Site: {selectedSite}</div>
           <div>
             <select 
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-1 text-sm"
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md px-3 py-1 text-sm"
               value={selectedSite}
               onChange={(e) => handleSiteChange(e.target.value)}
               disabled={isLoading}
@@ -233,62 +233,62 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
         
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-healthcare-info dark:border-healthcare-info-dark"></div>
           </div>
         ) : (
           <>
             {/* Main Table */}
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700">
-                <thead className="bg-gray-100 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark border border-healthcare-border dark:border-healthcare-border-dark">
+                <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                   <tr>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Prime Time<br/>Util<br/>CURRENT
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Prime Time<br/>Util<br/>PREVIOUS
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       % Work<br/>During Non<br/>Prime Time<br/>CURRENT
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       % Work<br/>During Non<br/>Prime Time<br/>PREVIOUS
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Num of<br/>Cases<br/>CURRENT
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Potential<br/>Cases
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Additional<br/>Case<br/>Potential
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       # of ORs<br/>per<br/>week
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       # of ORs<br/>per week<br/>needed
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       # of OR<br/>Difference
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       Num of<br/>Weekend<br/>Cases
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       # of ORs<br/>available<br/>per<br/>Weekend
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider border-r border-healthcare-border dark:border-healthcare-border-dark">
                       # of ORs<br/>needed per<br/>Weekend
                     </th>
-                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                       % Weekend<br/>Work During<br/>Non Prime<br/>Time
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                   <tr>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Prime Time Util - CURRENT" 
                         value={`${siteData.primeTimeCurrent}%`} 
@@ -297,14 +297,14 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                         isHigherBetter={true}
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Prime Time Util - PREVIOUS" 
                         value={`${siteData.primeTimePrevious}%`} 
                         description="Previous prime time utilization percentage"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="% Work During Non Prime Time - CURRENT" 
                         value={`${siteData.workDuringNonPrimeTimeCurrent}%`} 
@@ -313,14 +313,14 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                         isHigherBetter={false}
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="% Work During Non Prime Time - PREVIOUS" 
                         value={`${siteData.workDuringNonPrimeTimePrevious}%`} 
                         description="Previous percentage of work during non-prime time"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Num of Cases - CURRENT" 
                         value={siteData.numOfCasesCurrent.toLocaleString()} 
@@ -329,21 +329,21 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                         isHigherBetter={true}
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Potential Cases" 
                         value={siteData.potentialCases.toLocaleString()} 
                         description="Potential cases possible with current block"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Additional Case Potential" 
                         value={siteData.additionalCasePotential.toLocaleString()} 
                         description="Additional case potential"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="# of ORs per week" 
                         value={siteData.numOfORsPerWeek.toFixed(2)} 
@@ -352,21 +352,21 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                         isHigherBetter={true}
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="# of ORs per week needed" 
                         value={siteData.numOfORsPerWeekNeeded.toFixed(2)} 
                         description="Number of ORs per week needed"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="# of OR Difference" 
                         value={siteData.numOfORDifference.toFixed(2)} 
                         description="Difference between available and needed ORs"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="Num of Weekend Cases" 
                         value={siteData.numOfWeekendCases.toLocaleString()} 
@@ -375,14 +375,14 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
                         isHigherBetter={true}
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="# of ORs available per Weekend" 
                         value={siteData.numOfORsAvailablePerWeekend.toFixed(2)} 
                         description="Number of ORs available per weekend"
                       />
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+                    <td className="px-3 py-4 whitespace-nowrap border-r border-healthcare-border dark:border-healthcare-border-dark">
                       <CellTooltip 
                         label="# of ORs needed per Weekend" 
                         value={siteData.numOfORsNeededPerWeekend.toFixed(2)} 
@@ -406,7 +406,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
             {/* Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Average Prime Time Utilization Chart */}
-              <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
+              <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
                 <div className="text-lg font-semibold mb-2 text-white">Average Prime Time Utilization</div>
                 <ResponsiveLine
                   data={utilizationTrendData}
@@ -465,7 +465,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
               </div>
               
               {/* Average # of 8 Hour ORs per day Chart */}
-              <div className="h-80 bg-gray-900 p-4 rounded-lg border border-gray-700">
+              <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
                 <div className="text-lg font-semibold mb-2 text-white">Average # of 8 Hour ORs per day trend</div>
                 <ResponsiveLine
                   data={orsPerDayTrendData}

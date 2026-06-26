@@ -175,38 +175,38 @@ const ServiceView = ({ filters }) => {
 
         <Panel title="Service Details" dropLightIntensity="medium">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+              <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Service
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     In-Block
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Total Block
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Non-Prime
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 {filteredData.map((service, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-white">
                       {service.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span className="font-semibold">In-Block Utilization:</span> 
                       {formatPercentage(service.metrics.inBlockUtilization)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span className="font-semibold">Total Block Utilization:</span> 
                       {formatPercentage(service.metrics.totalBlockUtilization)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span className="font-semibold">Non-Prime Time:</span> 
                       {formatPercentage(service.metrics.nonPrimePercentage)}
                     </td>
@@ -224,34 +224,34 @@ const ServiceView = ({ filters }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Panel title="Top Performing Services" isSubpanel={true} dropLightIntensity="medium">
               <ul className="space-y-2">
-                <li className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded">
                   <span className="font-medium dark:text-white">Orthopedics</span>
-                  <span className="text-blue-600 dark:text-blue-400">82.3%</span>
+                  <span className="text-healthcare-info dark:text-healthcare-info-dark">82.3%</span>
                 </li>
-                <li className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded">
                   <span className="font-medium dark:text-white">Neurosurgery</span>
-                  <span className="text-blue-600 dark:text-blue-400">78.9%</span>
+                  <span className="text-healthcare-info dark:text-healthcare-info-dark">78.9%</span>
                 </li>
-                <li className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded">
                   <span className="font-medium dark:text-white">Cardiology</span>
-                  <span className="text-blue-600 dark:text-blue-400">76.4%</span>
+                  <span className="text-healthcare-info dark:text-healthcare-info-dark">76.4%</span>
                 </li>
               </ul>
             </Panel>
             
             <Panel title="Improvement Opportunities" isSubpanel={true} dropLightIntensity="medium">
               <ul className="space-y-2">
-                <li className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 rounded">
                   <span className="font-medium dark:text-white">General Surgery</span>
-                  <span className="text-red-600 dark:text-red-400">62.1%</span>
+                  <span className="text-healthcare-critical dark:text-healthcare-critical-dark">62.1%</span>
                 </li>
-                <li className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 rounded">
                   <span className="font-medium dark:text-white">Urology</span>
-                  <span className="text-red-600 dark:text-red-400">64.5%</span>
+                  <span className="text-healthcare-critical dark:text-healthcare-critical-dark">64.5%</span>
                 </li>
-                <li className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                <li className="flex justify-between items-center p-2 bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 rounded">
                   <span className="font-medium dark:text-white">Gynecology</span>
-                  <span className="text-red-600 dark:text-red-400">65.8%</span>
+                  <span className="text-healthcare-critical dark:text-healthcare-critical-dark">65.8%</span>
                 </li>
               </ul>
             </Panel>

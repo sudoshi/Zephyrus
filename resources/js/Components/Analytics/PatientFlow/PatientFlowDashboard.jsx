@@ -109,25 +109,25 @@ const PatientFlowDashboard = ({ activeView: initialActiveView, filters: initialF
 
     if (error) {
       return (
-        <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded relative" role="alert">
+        <div className="bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 border border-healthcare-critical dark:border-healthcare-critical-dark text-healthcare-critical dark:text-healthcare-critical-dark px-4 py-3 rounded relative" role="alert">
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-healthcare-critical dark:text-healthcare-critical-dark" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
+              <h3 className="text-sm font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
                 Error Loading Patient Flow Data
               </h3>
-              <div className="mt-2 text-sm text-red-700">
+              <div className="mt-2 text-sm text-healthcare-critical dark:text-healthcare-critical-dark">
                 {error.message || 'Failed to load patient flow data. Please try again later.'}
               </div>
               <div className="mt-4">
                 <button
                   type="button"
                   onClick={() => refresh(true)}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-healthcare-critical dark:text-healthcare-critical-dark bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 hover:bg-healthcare-critical/20 dark:hover:bg-healthcare-critical-dark/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-critical dark:focus:ring-healthcare-critical-dark"
                 >
                   Retry
                 </button>
@@ -140,25 +140,25 @@ const PatientFlowDashboard = ({ activeView: initialActiveView, filters: initialF
 
     if (!hasData) {
       return (
-        <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 text-yellow-700 dark:text-yellow-200 px-4 py-3 rounded relative" role="alert">
+        <div className="bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 border border-healthcare-warning dark:border-healthcare-warning-dark text-healthcare-warning dark:text-healthcare-warning-dark px-4 py-3 rounded relative" role="alert">
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-healthcare-warning dark:text-healthcare-warning-dark" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+              <h3 className="text-sm font-medium text-healthcare-warning dark:text-healthcare-warning-dark">
                 No Data Available
               </h3>
-              <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-200">
+              <div className="mt-2 text-sm text-healthcare-warning dark:text-healthcare-warning-dark">
                 There is no patient flow data available for the selected filters. Please try different filters or contact support if you believe this is an error.
               </div>
               <div className="mt-4">
                 <button
                   type="button"
                   onClick={() => refresh(true)}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 dark:bg-yellow-800 dark:text-yellow-100 dark:hover:bg-yellow-700"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-healthcare-warning dark:text-healthcare-warning-dark bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 hover:bg-healthcare-warning/20 dark:hover:bg-healthcare-warning-dark/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-warning dark:focus:ring-healthcare-warning-dark"
                 >
                   Refresh Data
                 </button>
@@ -203,11 +203,11 @@ const PatientFlowDashboard = ({ activeView: initialActiveView, filters: initialF
   // Create a vertical navigation component
   const VerticalNavigation = () => {
     return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full">
+      <div className="bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg p-4 h-full">
         <div className="space-y-1">
           {menuGroups.map(group => (
             <div key={group.title} className="mb-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <h3 className="text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider mb-2">
                 {group.title}
               </h3>
               <div className="space-y-1">
@@ -215,9 +215,9 @@ const PatientFlowDashboard = ({ activeView: initialActiveView, filters: initialF
                   <button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
-                    className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${activeView === item.id 
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' 
-                      : 'text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+                    className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${activeView === item.id
+                      ? 'bg-healthcare-primary/10 text-healthcare-primary dark:bg-healthcare-primary-dark/20 dark:text-healthcare-primary-dark'
+                      : 'text-healthcare-text-secondary hover:bg-healthcare-border dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-border-dark'}`}
                   >
                     {item.icon && (
                       <span className="mr-3">

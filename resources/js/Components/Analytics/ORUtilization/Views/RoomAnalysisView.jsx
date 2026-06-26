@@ -217,36 +217,36 @@ const RoomAnalysisView = ({ data }) => {
           </p>
           <div className="h-80 overflow-x-auto">
             <div className="min-w-full">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                       Room
                     </th>
                     {Object.keys(mockRoomHeatmapData[0]).filter(key => key !== 'room').map(hour => (
-                      <th key={hour} scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      <th key={hour} scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                         {hour}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                   {mockRoomHeatmapData.map((room, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark' : 'bg-healthcare-background dark:bg-healthcare-background-dark'}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {room.room}
                       </td>
                       {Object.keys(room).filter(key => key !== 'room').map(hour => {
                         const utilization = room[hour] !== undefined && !isNaN(room[hour]) ? room[hour] : 0;
-                        let bgColor = 'bg-green-100 dark:bg-green-900';
-                        let textColor = 'text-green-800 dark:text-green-200';
-                        
+                        let bgColor = 'bg-healthcare-success/10 dark:bg-healthcare-success-dark/20';
+                        let textColor = 'text-healthcare-success dark:text-healthcare-success-dark';
+
                         if (utilization < 0.5) {
-                          bgColor = 'bg-red-100 dark:bg-red-900';
-                          textColor = 'text-red-800 dark:text-red-200';
+                          bgColor = 'bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20';
+                          textColor = 'text-healthcare-critical dark:text-healthcare-critical-dark';
                         } else if (utilization < 0.7) {
-                          bgColor = 'bg-yellow-100 dark:bg-yellow-900';
-                          textColor = 'text-yellow-800 dark:text-yellow-200';
+                          bgColor = 'bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20';
+                          textColor = 'text-healthcare-warning dark:text-healthcare-warning-dark';
                         }
                         
                         return (

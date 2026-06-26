@@ -53,7 +53,7 @@ const TrendChart = ({
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white dark:bg-healthcare-background-dark p-3 border rounded shadow-lg">
+                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-3 border rounded shadow-lg">
                     <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
                         {xAxisConfig.formatter(label)}
                     </p>

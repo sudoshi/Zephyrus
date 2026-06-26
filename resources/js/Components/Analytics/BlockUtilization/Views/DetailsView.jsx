@@ -100,76 +100,76 @@ const DetailsView = ({ filters }) => {
     <div className="animate-fadeIn">
       <Panel title="Block Details" dropLightIntensity="medium">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+          <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+            <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
               <tr>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('name')}
                 >
                   Block Name {renderSortIcon('name')}
                 </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('specialty')}
                 >
                   Specialty {renderSortIcon('specialty')}
                 </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('location')}
                 >
                   Location {renderSortIcon('location')}
                 </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('utilization')}
                 >
                   Utilization {renderSortIcon('utilization')}
                 </th>
-                <th 
-                  scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('released')}
                 >
                   Status {renderSortIcon('released')}
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
               {sortedData.map((block, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-white">
                     {block.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {block.specialty}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {block.location}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <div className="flex items-center">
                       <div className="w-16 mr-2">{formatPercentage(block.utilization)}</div>
-                      <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
-                        <div 
+                      <div className="w-24 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5">
+                        <div
                           className={`h-2.5 rounded-full ${
-                            block.utilization > 75 ? 'bg-emerald-500' : 
-                            block.utilization > 70 ? 'bg-blue-600' : 
-                            block.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
-                          }`} 
+                            block.utilization > 75 ? 'bg-healthcare-success dark:bg-healthcare-success-dark' :
+                            block.utilization > 70 ? 'bg-healthcare-info dark:bg-healthcare-info-dark' :
+                            block.utilization > 65 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
+                          }`}
                           style={{ width: `${block.utilization}%` }}
                         />
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      block.released ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      block.released ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark' : 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                     }`}>
                       {block.released ? 'Released' : 'Active'}
                     </span>

@@ -43,16 +43,16 @@ const BottlenecksView = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg"
+            className="bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 p-4 rounded-lg"
           >
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 mr-3">
+              <div className="p-2 rounded-full bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark mr-3">
                 <Icon icon="carbon:warning-alt" className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Bottlenecks</h3>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{bottlenecks?.length || 0}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Bottlenecks</h3>
+                <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{bottlenecks?.length || 0}</div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   Identified in the process
                 </div>
               </div>
@@ -63,16 +63,16 @@ const BottlenecksView = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg"
+            className="bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 p-4 rounded-lg"
           >
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-800 text-orange-600 dark:text-orange-300 mr-3">
+              <div className="p-2 rounded-full bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark mr-3">
                 <Icon icon="carbon:time" className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. Wait Time</h3>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.avgWaitTime || '0 hrs'}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Wait Time</h3>
+                <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{stats.bottlenecks?.avgWaitTime || '0 hrs'}</div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   At bottleneck points
                 </div>
               </div>
@@ -83,16 +83,16 @@ const BottlenecksView = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}
-            className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg"
+            className="bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 p-4 rounded-lg"
           >
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-yellow-100 dark:bg-yellow-800 text-yellow-600 dark:text-yellow-300 mr-3">
+              <div className="p-2 rounded-full bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark mr-3">
                 <Icon icon="carbon:chart-maximum" className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Max Impact</h3>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.maxImpact || 0}%</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Max Impact</h3>
+                <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{stats.bottlenecks?.maxImpact || 0}%</div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   Highest bottleneck impact
                 </div>
               </div>
@@ -103,16 +103,16 @@ const BottlenecksView = ({ data }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
-            className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg"
+            className="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 p-4 rounded-lg"
           >
             <div className="flex items-center">
-              <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 mr-3">
+              <div className="p-2 rounded-full bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark mr-3">
                 <Icon icon="carbon:optimize" className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Potential Improvement</h3>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bottlenecks?.potentialImprovement || '0 hrs'}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Potential Improvement</h3>
+                <div className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{stats.bottlenecks?.potentialImprovement || '0 hrs'}</div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   If all bottlenecks resolved
                 </div>
               </div>
@@ -126,14 +126,14 @@ const BottlenecksView = ({ data }) => {
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center space-x-4">
             <div>
-              <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="sortBy" className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                 Sort By
               </label>
               <select
                 id="sortBy"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-200 sm:text-sm"
+                className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark sm:text-sm"
               >
                 <option value="impact">Impact</option>
                 <option value="waitTime">Wait Time</option>
@@ -142,7 +142,7 @@ const BottlenecksView = ({ data }) => {
             </div>
             
             <div>
-              <label htmlFor="filterThreshold" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="filterThreshold" className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                 Min Impact: {filterThreshold}%
               </label>
               <input
@@ -157,36 +157,36 @@ const BottlenecksView = ({ data }) => {
             </div>
           </div>
           
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             Showing {sortedBottlenecks.length} of {bottlenecks.length} bottlenecks
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+          <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+            <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Activity
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Wait Time
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Frequency
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Impact
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Severity
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Root Cause
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
               {sortedBottlenecks.map((bottleneck, index) => {
                 const severity = getSeverityLevel(bottleneck.impact);
                 return (
@@ -205,11 +205,11 @@ const BottlenecksView = ({ data }) => {
                           />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                             {bottleneck.activity}
                           </div>
                           {bottleneck.nextActivity && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                               Before: {bottleneck.nextActivity}
                             </div>
                           )}
@@ -217,29 +217,29 @@ const BottlenecksView = ({ data }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">{bottleneck.waitTime}</div>
+                      <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{bottleneck.waitTime}</div>
                       {bottleneck.avgWaitTime && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                           Avg: {bottleneck.avgWaitTime}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">{bottleneck.frequency || 0}</div>
+                      <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{bottleneck.frequency || 0}</div>
                       {bottleneck.frequencyPercentage && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                           {bottleneck.frequencyPercentage}% of cases
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-1">
+                      <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5 mb-1">
                         <div 
                           className={`h-2.5 rounded-full bg-${severity.color}-500`}
                           style={{ width: `${bottleneck.impact}%` }}
                         ></div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         {bottleneck.impact}% impact
                       </div>
                     </td>
@@ -248,7 +248,7 @@ const BottlenecksView = ({ data }) => {
                         {severity.level}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {bottleneck.rootCause || 'Unknown'}
                     </td>
                   </motion.tr>
@@ -257,7 +257,7 @@ const BottlenecksView = ({ data }) => {
               
               {sortedBottlenecks.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     No bottlenecks match the current filter criteria
                   </td>
                 </tr>
@@ -276,7 +276,7 @@ const BottlenecksView = ({ data }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark shadow-sm"
             >
               <div className="flex items-start">
                 <div className={`flex-shrink-0 p-2 rounded-full mr-3 bg-${
@@ -309,7 +309,7 @@ const BottlenecksView = ({ data }) => {
                 </div>
                 <div>
                   <div className="flex items-center">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{recommendation.title}</h4>
+                    <h4 className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{recommendation.title}</h4>
                     <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-${
                       recommendation.priority === 'high' ? 'red' : 
                       recommendation.priority === 'medium' ? 'yellow' : 
@@ -330,16 +330,16 @@ const BottlenecksView = ({ data }) => {
                       {recommendation.priority.charAt(0).toUpperCase() + recommendation.priority.slice(1)}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{recommendation.description}</p>
+                  <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{recommendation.description}</p>
                   
                   {recommendation.impact && (
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span className="font-medium">Potential Impact:</span> {recommendation.impact}
                     </div>
                   )}
                   
                   {recommendation.effort && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span className="font-medium">Implementation Effort:</span> {recommendation.effort}
                     </div>
                   )}
@@ -349,7 +349,7 @@ const BottlenecksView = ({ data }) => {
           ))}
           
           {(!data?.recommendations || data.recommendations.length === 0) && (
-            <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               No recommendations available
             </div>
           )}

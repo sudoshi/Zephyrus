@@ -85,7 +85,7 @@ const OptimizationView = ({ data }) => {
         <div className="p-4">
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">Process Optimization Recommendations</h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Based on analysis of your patient flow data, the following optimization scenarios 
               could improve efficiency and patient experience.
             </p>
@@ -93,17 +93,17 @@ const OptimizationView = ({ data }) => {
 
           <div className="space-y-4">
             {optimizationScenarios.map((scenario) => (
-              <div key={scenario.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+              <div key={scenario.id} className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium text-lg">{scenario.name}</h4>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1">{scenario.description}</p>
+                    <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">{scenario.description}</p>
                   </div>
                   <div className="flex space-x-2">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs">
+                    <span className="px-2 py-1 bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark rounded text-xs">
                       {scenario.difficulty}
                     </span>
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded text-xs">
+                    <span className="px-2 py-1 bg-healthcare-purple/10 text-healthcare-purple dark:bg-healthcare-purple-dark/20 dark:text-healthcare-purple-dark rounded text-xs">
                       {scenario.timeframe}
                     </span>
                   </div>
@@ -111,31 +111,31 @@ const OptimizationView = ({ data }) => {
                 
                 <div className="grid grid-cols-4 gap-4 mt-4">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Throughput</p>
-                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">{scenario.impact.throughput}</p>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Throughput</p>
+                    <p className="text-lg font-semibold text-healthcare-success dark:text-healthcare-success-dark">{scenario.impact.throughput}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Wait Time</p>
-                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">{scenario.impact.waitTime}</p>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Wait Time</p>
+                    <p className="text-lg font-semibold text-healthcare-success dark:text-healthcare-success-dark">{scenario.impact.waitTime}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cycle Time</p>
-                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">{scenario.impact.cycleTime}</p>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cycle Time</p>
+                    <p className="text-lg font-semibold text-healthcare-success dark:text-healthcare-success-dark">{scenario.impact.cycleTime}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cost</p>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cost</p>
                     <p className={`text-lg font-semibold ${
-                      scenario.impact.cost.startsWith('-') 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
+                      scenario.impact.cost.startsWith('-')
+                        ? 'text-healthcare-success dark:text-healthcare-success-dark'
+                        : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                     }`}>
                       {scenario.impact.cost}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 flex justify-end">
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">
+                  <button className="px-3 py-1 bg-healthcare-primary dark:bg-healthcare-primary-dark text-white rounded-md text-sm hover:bg-healthcare-primary-hover dark:hover:bg-healthcare-primary-hover-dark transition-colors">
                     Run Simulation
                   </button>
                 </div>
@@ -148,36 +148,36 @@ const OptimizationView = ({ data }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Panel title="Current vs. Optimized Metrics" isSubpanel={false}>
           <div className="p-4">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+              <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Metric
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Current
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Optimized
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Improvement
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 {comparisonMetrics.map((metric, index) => (
                   <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {metric.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {metric.current}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {metric.optimized}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-success dark:text-healthcare-success-dark">
                       {metric.improvement}
                     </td>
                   </tr>
@@ -188,10 +188,10 @@ const OptimizationView = ({ data }) => {
         </Panel>
 
         <Panel title="Optimization Simulation" isSubpanel={false}>
-          <div className="p-4 flex justify-center items-center h-64 bg-gray-50 dark:bg-gray-700 rounded">
+          <div className="p-4 flex justify-center items-center h-64 bg-healthcare-background dark:bg-healthcare-background-dark rounded">
             <div className="text-center">
-              <Icon icon="carbon:chart-custom" className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">
+              <Icon icon="carbon:chart-custom" className="h-12 w-12 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mx-auto mb-4" />
+              <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 Select a scenario to run a simulation and visualize the optimized process
               </p>
             </div>
@@ -202,64 +202,64 @@ const OptimizationView = ({ data }) => {
       <Panel title="Implementation Roadmap" isSubpanel={false}>
         <div className="p-4">
           <div className="relative">
-            <div className="absolute h-full w-0.5 bg-blue-200 dark:bg-blue-800 left-6 top-0"></div>
+            <div className="absolute h-full w-0.5 bg-healthcare-info/20 dark:bg-healthcare-info-dark/30 left-6 top-0"></div>
             
             <div className="relative z-10 mb-6">
               <div className="flex items-start">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:analytics" className="h-6 w-6" />
                 </div>
                 <div className="ml-4">
                   <h4 className="text-lg font-medium">Phase 1: Analysis & Planning</h4>
-                  <p className="mt-1 text-gray-600 dark:text-gray-300">
+                  <p className="mt-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Detailed analysis of current process, stakeholder alignment, and resource planning.
                   </p>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Timeframe: 2-4 weeks</p>
+                  <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Timeframe: 2-4 weeks</p>
                 </div>
               </div>
             </div>
             
             <div className="relative z-10 mb-6">
               <div className="flex items-start">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:development" className="h-6 w-6" />
                 </div>
                 <div className="ml-4">
                   <h4 className="text-lg font-medium">Phase 2: Pilot Implementation</h4>
-                  <p className="mt-1 text-gray-600 dark:text-gray-300">
+                  <p className="mt-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Implement changes in a controlled environment, gather feedback, and refine approach.
                   </p>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Timeframe: 4-6 weeks</p>
+                  <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Timeframe: 4-6 weeks</p>
                 </div>
               </div>
             </div>
             
             <div className="relative z-10 mb-6">
               <div className="flex items-start">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:deployment-policy" className="h-6 w-6" />
                 </div>
                 <div className="ml-4">
                   <h4 className="text-lg font-medium">Phase 3: Full Deployment</h4>
-                  <p className="mt-1 text-gray-600 dark:text-gray-300">
+                  <p className="mt-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Organization-wide implementation with training and change management support.
                   </p>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Timeframe: 2-3 months</p>
+                  <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Timeframe: 2-3 months</p>
                 </div>
               </div>
             </div>
             
             <div className="relative z-10">
               <div className="flex items-start">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:chart-evaluation" className="h-6 w-6" />
                 </div>
                 <div className="ml-4">
                   <h4 className="text-lg font-medium">Phase 4: Monitoring & Refinement</h4>
-                  <p className="mt-1 text-gray-600 dark:text-gray-300">
+                  <p className="mt-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Continuous monitoring of KPIs, gathering feedback, and iterative improvements.
                   </p>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Timeframe: Ongoing</p>
+                  <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Timeframe: Ongoing</p>
                 </div>
               </div>
             </div>

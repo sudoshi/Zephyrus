@@ -569,21 +569,21 @@ const DayOfWeekView = ({ filters }) => {
               onClick={handleCellClick}
             />
           </div>
-          <div className="flex flex-col items-center mt-4 text-sm text-gray-500 dark:text-gray-400 space-y-2">
+          <div className="flex flex-col items-center mt-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark space-y-2">
             <div>
               Click Time Block for Details
             </div>
             <div className="flex space-x-4 mt-2">
               <div className="flex items-center">
-                <div className="w-4 h-4 mr-1 rounded bg-red-500"></div>
+                <div className="w-4 h-4 mr-1 rounded bg-healthcare-critical dark:bg-healthcare-critical-dark"></div>
                 <span>Low (&lt;60%)</span>
               </div>
               <div className="flex items-center">
-                <div className="w-4 h-4 mr-1 rounded bg-yellow-500"></div>
+                <div className="w-4 h-4 mr-1 rounded bg-healthcare-warning dark:bg-healthcare-warning-dark"></div>
                 <span>Medium (60-75%)</span>
               </div>
               <div className="flex items-center">
-                <div className="w-4 h-4 mr-1 rounded bg-green-500"></div>
+                <div className="w-4 h-4 mr-1 rounded bg-healthcare-success dark:bg-healthcare-success-dark"></div>
                 <span>High (&gt;75%)</span>
               </div>
             </div>
@@ -592,7 +592,7 @@ const DayOfWeekView = ({ filters }) => {
       </Panel>
 
       <Panel title="Prime Time Utilization by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['utilization']}
@@ -634,7 +634,7 @@ const DayOfWeekView = ({ filters }) => {
       </Panel>
 
       <Panel title="Cases by Day of Week" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveBar
             data={dayOfWeekData}
             keys={['cases']}
@@ -683,22 +683,22 @@ const DayOfWeekView = ({ filters }) => {
           
           {/* Modal */}
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className={`relative w-full max-w-6xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl transform transition-all`}>
+            <div className={`relative w-full max-w-6xl ${isDarkMode ? 'bg-healthcare-surface-dark' : 'bg-healthcare-surface'} rounded-xl shadow-2xl transform transition-all`}>
               {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Icon 
-                      icon="heroicons:chart-bar" 
-                      className="w-6 h-6 text-healthcare-primary dark:text-healthcare-primary-dark" 
+                    <Icon
+                      icon="heroicons:chart-bar"
+                      className="w-6 h-6 text-healthcare-primary dark:text-healthcare-primary-dark"
                     />
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {selectedTimeBlock.day} at {selectedTimeBlock.time} - {selectedTimeBlock.utilization}% Utilization
                     </h2>
                   </div>
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                    className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors"
                   >
                     <span className="sr-only">Close</span>
                     <Icon icon="heroicons:x-mark" className="w-6 h-6" />
@@ -713,8 +713,8 @@ const DayOfWeekView = ({ filters }) => {
                     <div>
                       <h4 className="text-lg font-medium mb-2">Service Utilization</h4>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <table className="w-full text-sm text-left text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          <thead className="text-xs text-healthcare-text-secondary uppercase bg-healthcare-background dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
                             <tr>
                               <th scope="col" className="px-6 py-3">Service</th>
                               <th scope="col" className="px-6 py-3">Utilization</th>
@@ -725,19 +725,19 @@ const DayOfWeekView = ({ filters }) => {
                             {selectedTimeBlock.services.map((service, index) => (
                               <tr 
                                 key={index} 
-                                className={`border-b dark:border-gray-700 ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}`}
+                                className={`border-b border-healthcare-border dark:border-healthcare-border-dark ${index % 2 === 0 ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark' : 'bg-healthcare-background dark:bg-healthcare-background-dark'}`}
                               >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                <td className="px-6 py-4 font-medium text-healthcare-text-primary dark:text-white whitespace-nowrap">
                                   {service.service}
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="flex items-center">
                                     <span className="mr-2">{service.utilization}%</span>
-                                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                    <div className="w-full bg-healthcare-border rounded-full h-2.5 dark:bg-healthcare-border-dark">
                                       <div 
                                         className={`h-2.5 rounded-full ${
-                                          service.utilization < 60 ? 'bg-red-500' : 
-                                          service.utilization < 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                          service.utilization < 60 ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark' :
+                                          service.utilization < 75 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-success dark:bg-healthcare-success-dark'
                                         }`}
                                         style={{ width: `${service.utilization}%` }}
                                       ></div>
@@ -755,8 +755,8 @@ const DayOfWeekView = ({ filters }) => {
                     <div>
                       <h4 className="text-lg font-medium mb-2">Location Utilization</h4>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <table className="w-full text-sm text-left text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          <thead className="text-xs text-healthcare-text-secondary uppercase bg-healthcare-background dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
                             <tr>
                               <th scope="col" className="px-6 py-3">Location</th>
                               <th scope="col" className="px-6 py-3">Utilization</th>
@@ -766,19 +766,19 @@ const DayOfWeekView = ({ filters }) => {
                             {selectedTimeBlock.services[0]?.locations.map((location, index) => (
                               <tr 
                                 key={index} 
-                                className={`border-b dark:border-gray-700 ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}`}
+                                className={`border-b border-healthcare-border dark:border-healthcare-border-dark ${index % 2 === 0 ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark' : 'bg-healthcare-background dark:bg-healthcare-background-dark'}`}
                               >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                <td className="px-6 py-4 font-medium text-healthcare-text-primary dark:text-white whitespace-nowrap">
                                   {location.name}
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="flex items-center">
                                     <span className="mr-2">{location.utilization}%</span>
-                                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                    <div className="w-full bg-healthcare-border rounded-full h-2.5 dark:bg-healthcare-border-dark">
                                       <div 
                                         className={`h-2.5 rounded-full ${
-                                          location.utilization < 60 ? 'bg-red-500' : 
-                                          location.utilization < 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                          location.utilization < 60 ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark' :
+                                          location.utilization < 75 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-success dark:bg-healthcare-success-dark'
                                         }`}
                                         style={{ width: `${location.utilization}%` }}
                                       ></div>
@@ -797,8 +797,8 @@ const DayOfWeekView = ({ filters }) => {
                   <div>
                     <h4 className="text-lg font-medium mb-2">Procedure Details</h4>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                      <table className="w-full text-sm text-left text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        <thead className="text-xs text-healthcare-text-secondary uppercase bg-healthcare-background dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
                           <tr>
                             <th scope="col" className="px-6 py-3">Service</th>
                             <th scope="col" className="px-6 py-3">Procedure</th>
@@ -811,9 +811,9 @@ const DayOfWeekView = ({ filters }) => {
                             service.procedures.map((procedure, procedureIndex) => (
                               <tr 
                                 key={`${serviceIndex}-${procedureIndex}`} 
-                                className={`border-b dark:border-gray-700 ${(serviceIndex + procedureIndex) % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700'}`}
+                                className={`border-b border-healthcare-border dark:border-healthcare-border-dark ${(serviceIndex + procedureIndex) % 2 === 0 ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark' : 'bg-healthcare-background dark:bg-healthcare-background-dark'}`}
                               >
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                <td className="px-6 py-4 font-medium text-healthcare-text-primary dark:text-white whitespace-nowrap">
                                   {service.service}
                                 </td>
                                 <td className="px-6 py-4">
@@ -838,24 +838,24 @@ const DayOfWeekView = ({ filters }) => {
                     <h4 className="text-lg font-medium mb-2">Room Utilization</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {selectedTimeBlock.services[0]?.locations.map((location, locationIndex) => (
-                        <div key={locationIndex} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                          <h5 className="font-medium text-gray-900 dark:text-white mb-2">{location.name}</h5>
+                        <div key={locationIndex} className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
+                          <h5 className="font-medium text-healthcare-text-primary dark:text-white mb-2">{location.name}</h5>
                           <div className="space-y-3">
                             {location.rooms?.map((room, roomIndex) => (
                               <div key={roomIndex} className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500 dark:text-gray-400">Room {room.number}</span>
+                                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Room {room.number}</span>
                                 <div className="flex items-center">
-                                  <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">{room.utilization}%</span>
-                                  <div className="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                                  <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mr-2">{room.utilization}%</span>
+                                  <div className="w-24 bg-healthcare-border rounded-full h-2 dark:bg-healthcare-border-dark">
                                     <div 
                                       className={`h-2 rounded-full ${
-                                        room.utilization < 60 ? 'bg-red-500' : 
-                                        room.utilization < 75 ? 'bg-yellow-500' : 'bg-green-500'
+                                        room.utilization < 60 ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark' :
+                                        room.utilization < 75 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-success dark:bg-healthcare-success-dark'
                                       }`}
                                       style={{ width: `${room.utilization}%` }}
                                     ></div>
                                   </div>
-                                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">{room.cases} cases</span>
+                                  <span className="ml-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{room.cases} cases</span>
                                 </div>
                               </div>
                             ))}
@@ -883,8 +883,8 @@ const DayOfWeekView = ({ filters }) => {
               </div>
               
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="px-6 py-4 border-t border-healthcare-border dark:border-healthcare-border-dark flex items-center justify-between">
+                <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   Data updated: {new Date().toLocaleDateString()}
                 </div>
                 <div className="flex items-center space-x-3">

@@ -55,7 +55,7 @@ const TrendsView = ({ filters }) => {
   return (
     <div className="space-y-6">
       <Panel title="Prime Time Utilization Trend (6 Months)" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveLine
             data={primeTimeChartData}
             margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -103,7 +103,7 @@ const TrendsView = ({ filters }) => {
       </Panel>
       
       <Panel title="Non-Prime Time Percentage Trend (6 Months)" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveLine
             data={nonPrimeChartData}
             margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
@@ -151,7 +151,7 @@ const TrendsView = ({ filters }) => {
       </Panel>
       
       <Panel title="Yearly Comparison" isSubpanel dropLightIntensity="medium">
-        <div className="h-96 bg-gray-900 rounded-lg p-4">
+        <div className="h-96 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
           <ResponsiveLine
             data={[
               {

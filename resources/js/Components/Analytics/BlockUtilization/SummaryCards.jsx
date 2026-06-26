@@ -3,17 +3,17 @@ import PropTypes from 'prop-types';
 import { Icon } from '@iconify/react';
 
 const SummaryCard = ({ title, value, trend, icon, color, isDarkMode }) => (
-  <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm p-4 flex items-center space-x-4`}>
+  <div className={`bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4 flex items-center space-x-4`}>
     <div className={`p-3 rounded-lg ${color}`}>
       <Icon icon={icon} className="w-6 h-6 text-white" />
     </div>
     <div>
-      <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{title}</h3>
+      <h3 className={`text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark`}>{title}</h3>
       <div className="flex items-center mt-1">
-        <p className={`text-2xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{value}</p>
+        <p className={`text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark`}>{value}</p>
         {trend && (
           <span className={`ml-2 flex items-center text-sm ${
-            trend > 0 ? 'text-green-600' : 'text-red-600'
+            trend > 0 ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'
           }`}>
             <Icon 
               icon={trend > 0 ? 'heroicons:arrow-up' : 'heroicons:arrow-down'} 
@@ -34,28 +34,28 @@ const SummaryCards = ({ metrics, isDarkMode = false }) => {
       value: `${metrics.overallUtilization.toFixed(1)}%`,
       trend: metrics.utilizationTrend,
       icon: 'heroicons:clock',
-      color: isDarkMode ? 'bg-blue-500' : 'bg-blue-600'
+      color: 'bg-healthcare-info dark:bg-healthcare-info-dark'
     },
     {
       title: 'Prime Time Usage',
       value: `${metrics.primeTimeUsage.toFixed(1)}%`,
       trend: metrics.primeTimeTrend,
       icon: 'heroicons:sun',
-      color: isDarkMode ? 'bg-amber-500' : 'bg-amber-600'
+      color: 'bg-healthcare-warning dark:bg-healthcare-warning-dark'
     },
     {
       title: 'Total Cases',
       value: metrics.totalCases,
       trend: metrics.casesTrend,
       icon: 'heroicons:user-group',
-      color: isDarkMode ? 'bg-green-500' : 'bg-green-600'
+      color: 'bg-healthcare-success dark:bg-healthcare-success-dark'
     },
     {
       title: 'Out of Block Cases',
       value: metrics.outOfBlockCases,
       trend: metrics.outOfBlockTrend,
       icon: 'heroicons:exclamation-triangle',
-      color: isDarkMode ? 'bg-red-500' : 'bg-red-600'
+      color: 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
     }
   ];
 

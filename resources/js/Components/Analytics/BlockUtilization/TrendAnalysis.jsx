@@ -47,35 +47,35 @@ const TrendAnalysis = ({ siteData }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Period</h3>
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">Current Period</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Non-Prime Time</p>
-              <p className="text-2xl font-semibold text-gray-900">{comparative.nonPrimeTime?.toFixed(1)}%</p>
+              <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Non-Prime Time</p>
+              <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{comparative.nonPrimeTime?.toFixed(1)}%</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Prime Time Utilization</p>
-              <p className="text-2xl font-semibold text-gray-900">{comparative.primeTimeUtil?.toFixed(1)}%</p>
+              <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Prime Time Utilization</p>
+              <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{comparative.primeTimeUtil?.toFixed(1)}%</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Previous Period</h3>
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">Previous Period</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Non-Prime Time</p>
-              <p className="text-2xl font-semibold text-gray-900">{previous.nonPrimeTime?.toFixed(1)}%</p>
+              <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Non-Prime Time</p>
+              <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{previous.nonPrimeTime?.toFixed(1)}%</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Prime Time Utilization</p>
-              <p className="text-2xl font-semibold text-gray-900">{previous.primeTimeUtil?.toFixed(1)}%</p>
+              <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Prime Time Utilization</p>
+              <p className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{previous.primeTimeUtil?.toFixed(1)}%</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-6">
         <div className="h-96">
           <LineChart data={formatChartData()} />
         </div>

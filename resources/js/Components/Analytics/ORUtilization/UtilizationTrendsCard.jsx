@@ -116,10 +116,10 @@ const UtilizationTrendsCard = ({
   
   // Determine color based on utilization change
   const getChangeColor = (change) => {
-    if (change > 5) return 'text-green-500';
-    if (change > 0) return 'text-blue-500';
-    if (change > -5) return 'text-yellow-500';
-    return 'text-red-500';
+    if (change > 5) return 'text-healthcare-success dark:text-healthcare-success-dark';
+    if (change > 0) return 'text-healthcare-info dark:text-healthcare-info-dark';
+    if (change > -5) return 'text-healthcare-warning dark:text-healthcare-warning-dark';
+    return 'text-healthcare-critical dark:text-healthcare-critical-dark';
   };
   
   const changeColor = getChangeColor(utilizationChange);
@@ -197,10 +197,10 @@ const UtilizationTrendsCard = ({
       {/* Line Chart */}
       <div className="h-80">
         {!isValidData ? (
-          <div className="flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No Trend Data Available</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center max-w-md">
+          <div className="flex flex-col items-center justify-center h-full bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
+            <AlertTriangle className="h-12 w-12 text-healthcare-warning dark:text-healthcare-warning-dark mb-4" />
+            <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">No Trend Data Available</h3>
+            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-2 text-center max-w-md">
               There is no utilization trend data available for the selected filters.
               Try selecting a different time period or location.
             </p>

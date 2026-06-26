@@ -175,7 +175,7 @@ const OverviewView = ({ filters }) => {
       {/* Title and Subtitle */}
       <div className="text-center mb-4">
         <h2 className="text-xl font-semibold">{memhORData.title || "Rooms Running Charts"}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{memhORData.subtitle || ""}</p>
+        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{memhORData.subtitle || ""}</p>
         <p className="text-sm font-medium mt-2">
           For: {memhORData.filters?.orGroup || "All OR Groups"}
           <br />
@@ -187,15 +187,15 @@ const OverviewView = ({ filters }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium mb-1">Start Date</label>
-          <input type="date" className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800" defaultValue="2024-09-01" />
+          <input type="date" className="w-full rounded border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark" defaultValue="2024-09-01" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">End Date</label>
-          <input type="date" className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800" defaultValue="2024-12-31" />
+          <input type="date" className="w-full rounded border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark" defaultValue="2024-12-31" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">OR Group</label>
-          <select className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+          <select className="w-full rounded border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
             <option>MEMH OR</option>
             <option>VORH Main OR</option>
             <option>VORH JRI OR</option>
@@ -203,7 +203,7 @@ const OverviewView = ({ filters }) => {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">WEEKDAY</label>
-          <select className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+          <select className="w-full rounded border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
             <option>(Multiple values)</option>
             <option>Monday</option>
             <option>Tuesday</option>
@@ -368,7 +368,7 @@ const OverviewView = ({ filters }) => {
         
         {/* Rooms Running by Hour */}
         <Panel title="Rooms Running by Hour - Weekdays" isSubpanel dropLightIntensity="medium">
-          <div className="h-80 bg-gray-900 rounded-lg p-4">
+          <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveLine
               data={roomsRunningByHourData}
               margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
@@ -438,7 +438,7 @@ const OverviewView = ({ filters }) => {
         
         {/* Room Utilization by Hour */}
         <Panel title={`Room Utilization by Hour - ${selectedLocation || Object.keys(mockRoomRunning.sites)[0]}`} isSubpanel dropLightIntensity="medium">
-          <div className="h-80 bg-gray-900 rounded-lg p-4">
+          <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4">
             <ResponsiveLine
               data={roomUtilizationByHourData}
               margin={{ top: 20, right: 110, bottom: 50, left: 60 }}

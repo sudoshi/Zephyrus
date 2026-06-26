@@ -192,7 +192,7 @@ const TrendView = ({ filters }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4 dark:text-white">Utilization by Location</h2>
           <div className="space-y-4">
             {Object.keys(mockBlockUtilization.sites).map((siteName, index) => {
@@ -201,11 +201,11 @@ const TrendView = ({ filters }) => {
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="flex justify-between mb-2">
                     <h3 className="font-medium">{siteName}</h3>
-                    <span className="text-blue-600">{site.metrics.inBlockUtilization}</span>
+                    <span className="text-healthcare-info dark:text-healthcare-info-dark">{site.metrics.inBlockUtilization}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
+                  <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5">
+                    <div
+                      className="bg-healthcare-info dark:bg-healthcare-info-dark h-2.5 rounded-full"
                       style={{ width: site.metrics.inBlockUtilization }}
                     />
                   </div>
@@ -215,7 +215,7 @@ const TrendView = ({ filters }) => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4 dark:text-white">Non-Prime Time Trend</h2>
           <div className="h-64">
             <ResponsiveLine
@@ -275,21 +275,21 @@ const TrendView = ({ filters }) => {
           <div className="space-y-4">
             <Panel title="Performance Insights" isSubpanel={true} dropLightIntensity="medium">
               <div className="space-y-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">Steady Improvement</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="p-3 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded-lg">
+                  <h4 className="font-medium text-healthcare-info dark:text-healthcare-info-dark mb-1">Steady Improvement</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     In-block utilization has shown a consistent upward trend over the past 8 weeks, indicating successful optimization efforts.
                   </p>
                 </div>
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <h4 className="font-medium text-emerald-800 dark:text-emerald-300 mb-1">Peak Performance</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="p-3 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 rounded-lg">
+                  <h4 className="font-medium text-healthcare-success dark:text-healthcare-success-dark mb-1">Peak Performance</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Week 10 showed the highest total block utilization at 72.8%, which coincided with the implementation of new scheduling protocols.
                   </p>
                 </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">Seasonal Patterns</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="p-3 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 rounded-lg">
+                  <h4 className="font-medium text-healthcare-warning dark:text-healthcare-warning-dark mb-1">Seasonal Patterns</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     A slight dip in weeks 5-6 corresponds with the holiday season, suggesting a need for adjusted block allocation during these periods.
                   </p>
                 </div>
@@ -303,42 +303,42 @@ const TrendView = ({ filters }) => {
             <Panel title="Action Items" isSubpanel={true} dropLightIntensity="medium">
               <ul className="space-y-3">
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Continue with the current block allocation strategy that has led to the recent improvement trend.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Develop a holiday season block adjustment plan to address the seasonal dip observed in weeks 5-6.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Analyze the factors that contributed to the peak performance in week 10 and document best practices.
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <p className="ml-2 text-gray-700 dark:text-gray-300">
+                  <p className="ml-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Set a target of 75% in-block utilization for the next quarter based on the current improvement trajectory.
                   </p>
                 </li>

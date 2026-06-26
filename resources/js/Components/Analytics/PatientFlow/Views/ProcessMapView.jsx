@@ -168,17 +168,17 @@ const ProcessMapView = ({ data }) => {
     <div className="space-y-6">
       <Panel className="h-[calc(100vh-300px)] min-h-[600px]">
         <div className="flex h-full">
-          <div className="w-64 p-4 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className="w-64 p-4 border-r border-healthcare-border dark:border-healthcare-border-dark overflow-y-auto">
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Layout Direction</h3>
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Layout Direction</h3>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleDirectionChange('LR')}
                     className={`p-2 rounded ${
                       layoutSettings.direction === 'LR'
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        ? 'bg-healthcare-primary/10 text-healthcare-primary dark:bg-healthcare-primary-dark/20 dark:text-healthcare-primary-dark'
+                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                     }`}
                     title="Left to Right"
                   >
@@ -188,8 +188,8 @@ const ProcessMapView = ({ data }) => {
                     onClick={() => handleDirectionChange('TB')}
                     className={`p-2 rounded ${
                       layoutSettings.direction === 'TB'
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        ? 'bg-healthcare-primary/10 text-healthcare-primary dark:bg-healthcare-primary-dark/20 dark:text-healthcare-primary-dark'
+                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                     }`}
                     title="Top to Bottom"
                   >
@@ -199,8 +199,8 @@ const ProcessMapView = ({ data }) => {
                     onClick={() => handleDirectionChange('RL')}
                     className={`p-2 rounded ${
                       layoutSettings.direction === 'RL'
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        ? 'bg-healthcare-primary/10 text-healthcare-primary dark:bg-healthcare-primary-dark/20 dark:text-healthcare-primary-dark'
+                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                     }`}
                     title="Right to Left"
                   >
@@ -210,8 +210,8 @@ const ProcessMapView = ({ data }) => {
                     onClick={() => handleDirectionChange('BT')}
                     className={`p-2 rounded ${
                       layoutSettings.direction === 'BT'
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        ? 'bg-healthcare-primary/10 text-healthcare-primary dark:bg-healthcare-primary-dark/20 dark:text-healthcare-primary-dark'
+                        : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                     }`}
                     title="Bottom to Top"
                   >
@@ -221,9 +221,9 @@ const ProcessMapView = ({ data }) => {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Abstraction Level</h3>
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Abstraction Level</h3>
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>Detailed</span>
                     <span>Abstract</span>
                   </div>
@@ -239,7 +239,7 @@ const ProcessMapView = ({ data }) => {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Node Spacing</h3>
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Node Spacing</h3>
                 <input
                   type="range"
                   min="20"
@@ -251,7 +251,7 @@ const ProcessMapView = ({ data }) => {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rank Spacing</h3>
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Rank Spacing</h3>
                 <input
                   type="range"
                   min="100"
@@ -299,28 +299,28 @@ const ProcessMapView = ({ data }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Panel title="Process Statistics" isSubpanel={true} dropLightIntensity="medium">
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cases</h3>
-              <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{data?.stats?.cases?.count || 0}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Total patient cases</div>
+            <div className="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Cases</h3>
+              <div className="text-2xl font-semibold text-healthcare-info dark:text-healthcare-info-dark">{data?.stats?.cases?.count || 0}</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total patient cases</div>
             </div>
-            
-            <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Completion Rate</h3>
-              <div className="text-2xl font-semibold text-green-600 dark:text-green-400">{data?.stats?.cases?.completionRate || 0}%</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Cases completed</div>
+
+            <div className="bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Completion Rate</h3>
+              <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">{data?.stats?.cases?.completionRate || 0}%</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cases completed</div>
             </div>
-            
+
             <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avg. Process Time</h3>
+              <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Avg. Process Time</h3>
               <div className="text-2xl font-semibold text-purple-600 dark:text-purple-400">{data?.stats?.time?.avgProcessTime || '0 hrs'}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Per patient case</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Per patient case</div>
             </div>
-            
-            <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Avg. Wait Time</h3>
-              <div className="text-2xl font-semibold text-yellow-600 dark:text-yellow-400">{data?.stats?.time?.avgWaitTime || '0 hrs'}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Between activities</div>
+
+            <div className="bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Avg. Wait Time</h3>
+              <div className="text-2xl font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">{data?.stats?.time?.avgWaitTime || '0 hrs'}</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Between activities</div>
             </div>
           </div>
         </Panel>
@@ -328,19 +328,19 @@ const ProcessMapView = ({ data }) => {
         <Panel title="Top Bottlenecks" isSubpanel={true} dropLightIntensity="medium">
           <div className="space-y-4">
             {(data?.bottlenecks || []).slice(0, 3).map((bottleneck, index) => (
-              <div key={index} className="flex items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div key={index} className="flex items-start p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                 <div className={`flex-shrink-0 p-2 rounded-full mr-3 ${
-                  index === 0 
-                    ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300' 
-                    : index === 1 
-                      ? 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300' 
-                      : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300'
+                  index === 0
+                    ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
+                    : index === 1
+                      ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
+                      : 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
                 }`}>
                   <Icon icon="carbon:warning-alt" className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{bottleneck.activity}</h4>
-                  <div className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                  <h4 className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{bottleneck.activity}</h4>
+                  <div className="mt-1 flex items-center text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span className="mr-2">Wait: {bottleneck.waitTime}</span>
                     <span>Impact: {bottleneck.impact}%</span>
                   </div>
@@ -348,7 +348,7 @@ const ProcessMapView = ({ data }) => {
               </div>
             ))}
             {(!data?.bottlenecks || data.bottlenecks.length === 0) && (
-              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 No bottleneck data available
               </div>
             )}

@@ -187,14 +187,14 @@ const LocationView = ({ filters }) => {
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="flex justify-between mb-2">
                     <h3 className="font-medium dark:text-white">{location.name}</h3>
-                    <span className="text-blue-600 dark:text-blue-400">{formatPercentage(location.utilization)}</span>
+                    <span className="text-healthcare-info dark:text-healthcare-info-dark">{formatPercentage(location.utilization)}</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div 
+                  <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5">
+                    <div
                       className={`h-2.5 rounded-full ${
-                        location.utilization > 75 ? 'bg-emerald-500' : 
-                        location.utilization > 70 ? 'bg-blue-500' : 
-                        location.utilization > 65 ? 'bg-amber-500' : 'bg-red-500'
+                        location.utilization > 75 ? 'bg-healthcare-success dark:bg-healthcare-success-dark' :
+                        location.utilization > 70 ? 'bg-healthcare-info dark:bg-healthcare-info-dark' :
+                        location.utilization > 65 ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' : 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
                       }`}
                       style={{ width: `${location.utilization}%` }}
                     ></div>
@@ -216,8 +216,8 @@ const LocationView = ({ filters }) => {
                     <div className="space-y-2">
                       {location.services.slice(0, 3).map((service, sIndex) => (
                         <div key={sIndex} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-300">{service.service_name}</span>
-                          <span className="text-blue-600 dark:text-blue-400">{formatPercentage(service.in_block_utilization)}</span>
+                          <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{service.service_name}</span>
+                          <span className="text-healthcare-info dark:text-healthcare-info-dark">{formatPercentage(service.in_block_utilization)}</span>
                         </div>
                       ))}
                     </div>
@@ -228,21 +228,21 @@ const LocationView = ({ filters }) => {
             
             <Panel title="Location Recommendations" isSubpanel={true} dropLightIntensity="subtle">
               <ul className="space-y-2">
-                <li className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">Cross-Location Standardization</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-info dark:text-healthcare-info-dark mb-1">Cross-Location Standardization</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Implement standardized scheduling practices across all locations to reduce variability in utilization rates.
                   </p>
                 </li>
-                <li className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
-                  <h4 className="font-medium text-emerald-800 dark:text-emerald-300 mb-1">Resource Allocation</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-success dark:text-healthcare-success-dark mb-1">Resource Allocation</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Analyze staffing models at VORH JRI OR to identify best practices that can be applied to other locations.
                   </p>
                 </li>
-                <li className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-1">MARH OR Improvement</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                <li className="p-2 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 rounded">
+                  <h4 className="font-medium text-healthcare-warning dark:text-healthcare-warning-dark mb-1">MARH OR Improvement</h4>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Focus on improving block allocation at MARH OR, which shows the lowest utilization among all locations.
                   </p>
                 </li>
@@ -255,42 +255,42 @@ const LocationView = ({ filters }) => {
       <div className="mt-6">
         <Panel title="Detailed Location Data" isSubpanel={true} dropLightIntensity="medium">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+              <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Location
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     In-Block
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Total Block
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Non-Prime
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                     Trend
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 {filteredData.map((location, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {location.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {formatPercentage(location.utilization)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {formatPercentage(location.totalBlockUtilization)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {formatPercentage(location.nonPrimePercentage)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       {location.utilizationTrend}
                     </td>
                   </tr>
