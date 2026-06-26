@@ -46,17 +46,17 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
 
   return (
     <RTDCPageLayout title={unit ? `Unit Huddle — ${unit.name}` : 'Unit Huddle'} subtitle="Real-Time Demand Capacity — Step 1–3">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-6)]">
-        <section className="lg:col-span-2 flex flex-col gap-[var(--space-5)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="lg:col-span-2 flex flex-col gap-5">
           <div>
             <h3 className="text-lg font-semibold">Step 1 — Predict discharges</h3>
             <DischargeTierEntry {...tiers} onChange={setTiers} />
-            <button onClick={saveCapacity} className="mt-[var(--space-2)] text-caption underline">Save capacity</button>
+            <button onClick={saveCapacity} className="mt-2 text-caption underline">Save capacity</button>
           </div>
           <div>
             <h3 className="text-lg font-semibold">Step 2 — Predict demand</h3>
             <DemandBySourceEntry {...demand} onChange={setDemand} />
-            <button onClick={saveDemand} className="mt-[var(--space-2)] text-caption underline">Save demand</button>
+            <button onClick={saveDemand} className="mt-2 text-caption underline">Save demand</button>
           </div>
           <div>
             <h3 className="text-lg font-semibold">Barriers</h3>
@@ -64,9 +64,9 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
           </div>
         </section>
 
-        <aside className="flex flex-col gap-[var(--space-5)]">
+        <aside className="flex flex-col gap-5">
           {unit && (
-            <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-[var(--space-5)]">
+            <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-5">
               <div className="text-label">Live Census</div>
               <div className="text-2xl font-semibold tabular-nums">{unit.census.occupied}/{unit.staffed_bed_count}</div>
               <div className="text-caption">
@@ -74,7 +74,7 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
               </div>
             </div>
           )}
-          <button onClick={computePlan} className="rounded-[var(--radius-md)] bg-[var(--primary)] p-[var(--space-3)] text-white">
+          <button onClick={computePlan} className="rounded-md bg-healthcare-primary dark:bg-healthcare-primary-dark p-3 text-white">
             Step 3 — Compute bed-need
           </button>
           {prediction && (

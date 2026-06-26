@@ -7,14 +7,14 @@ export function DemandBySourceEntry({ ed, or, transfer, direct, onChange }: Dema
   const labels: Record<keyof DemandSources, string> = { ed: 'ED', or: 'OR', transfer: 'Transfer', direct: 'Direct' };
 
   return (
-    <div className="grid grid-cols-4 gap-[var(--space-3)]">
+    <div className="grid grid-cols-4 gap-3">
       {(Object.keys(labels) as (keyof DemandSources)[]).map((k) => (
-        <label key={k} className="flex flex-col gap-[var(--space-1)]">
+        <label key={k} className="flex flex-col gap-1">
           <span className="text-label">{labels[k]}</span>
           <input
             type="number" min={0} aria-label={labels[k]} value={current[k]}
             onChange={(e) => field(k, Number(e.target.value))}
-            className="rounded-[var(--radius-sm)] bg-[var(--surface-overlay)] p-[var(--space-2)] text-[var(--text-primary)]"
+            className="rounded-md bg-healthcare-background dark:bg-healthcare-background-dark p-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
           />
         </label>
       ))}
