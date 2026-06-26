@@ -1,53 +1,27 @@
 import React from 'react';
+import { Surface } from '@/Components/ui/Surface';
 
-const Panel = ({ 
-  children, 
-  title, 
-  isSubpanel = false, 
-  dropLightIntensity = 'medium', // 'subtle', 'medium', 'strong'
-  className = "", 
+// Title/header convenience wrapper over the single canonical surface (Surface).
+// Previously rolled its own bg-white/bg-gray-800 + drop-light gradient surface;
+// it now renders the canon treatment so all 40+ importers are consistent with
+// every other card/panel in the app. `isSubpanel` / `dropLightIntensity` are
+// retained as accepted (no-op) props for backward compatibility — there is now
+// one surface treatment, not three intensity variants.
+const Panel = ({
+  children,
+  title,
+  isSubpanel = false,
+  dropLightIntensity = 'medium',
+  className = "",
   titleClassName = "",
   headerRight = null,
-  headerContent = null
+  headerContent = null,
 }) => {
-  // Define gradient and shadow styles based on intensity
-  const getDropLightStyles = () => {
-    if (!isSubpanel) return '';
-    
-    const intensityStyles = {
-      subtle: {
-        light: 'from-white to-gray-50 shadow-sm',
-        dark: 'dark:from-gray-800 dark:to-gray-850 dark:shadow-gray-900/10'
-      },
-      medium: {
-        light: 'from-white to-gray-100 shadow-md',
-        dark: 'dark:from-gray-800 dark:to-gray-850 dark:shadow-gray-900/20'
-      },
-      strong: {
-        light: 'from-white to-gray-150 shadow-lg',
-        dark: 'dark:from-gray-800 dark:to-gray-750 dark:shadow-gray-900/30'
-      }
-    };
-
-    const style = intensityStyles[dropLightIntensity] || intensityStyles.medium;
-    return `bg-gradient-to-b ${style.light} ${style.dark} border border-gray-100 dark:border-gray-700`;
-  };
-
   return (
-    <div 
-      className={`
-        bg-white dark:bg-gray-800 rounded-lg 
-        ${isSubpanel 
-          ? getDropLightStyles()
-          : 'shadow'
-        } 
-        p-4 
-        ${className}
-      `}
-    >
+    <Surface className={`p-4 ${className}`}>
       {title && (
         <div className="flex justify-between items-center mb-3">
-          <h2 className={`text-base font-semibold dark:text-white ${titleClassName}`}>
+          <h2 className={`text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark ${titleClassName}`}>
             {title}
           </h2>
           {headerRight && (
@@ -57,15 +31,14 @@ const Panel = ({
           )}
         </div>
       )}
-      
-      {/* Render headerContent if provided */}
+
       {headerContent && (
         <div className="mb-4">
           {headerContent}
         </div>
       )}
       {children}
-    </div>
+    </Surface>
   );
 };
 

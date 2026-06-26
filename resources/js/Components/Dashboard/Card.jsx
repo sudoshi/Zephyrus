@@ -1,29 +1,14 @@
 import React from 'react';
-import  { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { Surface } from '@/Components/ui/Surface';
 
+// Card root delegates to the single canonical surface primitive (Surface) so
+// the gold-standard treatment is defined in exactly one place. The Header /
+// Title / Description / Content / Item sub-components below are layout helpers.
 const Card = ({ children, className = '' }) => {
-    const [isDarkMode] = useDarkMode();
-    const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
-
     return (
-        <div
-            className={`
-                rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark
-                border border-healthcare-border dark:border-healthcare-border-dark
-                shadow-sm hover:shadow-md dark:shadow-none
-                dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.25)]
-                transition-all duration-300
-                overflow-hidden
-                ${className}
-            `}
-        style={{
-            backgroundImage: isDarkMode 
-                ? 'linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent)'
-                : 'linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0))'
-        }}
-        >
+        <Surface className={className}>
             {children}
-        </div>
+        </Surface>
     );
 };
 

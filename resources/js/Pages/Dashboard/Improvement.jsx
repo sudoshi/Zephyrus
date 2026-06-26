@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import ImprovementCard from '@/Components/Dashboard/ImprovementCard';
-import AnalyticsPanel from '@/Components/Design/panels/AnalyticsPanel';
+import Card from '@/Components/Dashboard/Card';
 import TrendCard from '@/Components/Design/stats/TrendCard';
 import ChronicCarePanel from '@/Components/Process/ChronicCarePanel';
 import ProcessIntelligenceCard from '@/Components/Process/ProcessIntelligenceCard';
@@ -157,10 +157,11 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
           {/* Left Column */}
           <div className="space-y-6">
             {/* Process Intelligence Panel */}
-            <AnalyticsPanel
-              title="Process Intelligence"
-              subtitle="ECLC Workflow Performance Analysis"
-            >
+            <Card className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Process Intelligence</h2>
+                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">ECLC Workflow Performance Analysis</p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Staffing Intelligence */}
                 <ProcessIntelligenceCard
@@ -277,24 +278,26 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                 onOpenChange={() => setSelectedProcess(null)}
                 type={selectedProcess}
               />
-            </AnalyticsPanel>
+            </Card>
 
             {/* Discharge Process Failures */}
-            <AnalyticsPanel
-              title="Discharge Process Failures"
-              subtitle="Analysis of discharge-related process failures and improvement opportunities"
-            >
+            <Card className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Discharge Process Failures</h2>
+                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Analysis of discharge-related process failures and improvement opportunities</p>
+              </div>
               <DischargeProcessFailures />
-            </AnalyticsPanel>
+            </Card>
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
             {/* Resource Utilization */}
-            <AnalyticsPanel
-              title="Resource Utilization"
-              subtitle="Current resource allocation and capacity"
-            >
+            <Card className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Resource Utilization</h2>
+                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Current resource allocation and capacity</p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {resourceMetrics.map((metric, index) => (
                   <div 
@@ -342,13 +345,14 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                   </div>
                 ))}
               </div>
-            </AnalyticsPanel>
+            </Card>
 
             {/* Care Transition Performance */}
-            <AnalyticsPanel
-              title="Care Transition Performance"
-              subtitle="Key performance indicators for patient care transitions"
-            >
+            <Card className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Care Transition Performance</h2>
+                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Key performance indicators for patient care transitions</p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {performanceMetrics.map((metric, index) => (
                   <TrendCard
@@ -362,15 +366,16 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                   />
                 ))}
               </div>
-            </AnalyticsPanel>
+            </Card>
 
             {/* Care Coordination Overview */}
-            <AnalyticsPanel
-              title="Care Coordination Overview"
-              subtitle="Current status of care coordination efforts"
-            >
+            <Card className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Care Coordination Overview</h2>
+                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Current status of care coordination efforts</p>
+              </div>
               <ChronicCarePanel />
-            </AnalyticsPanel>
+            </Card>
           </div>
         </div>
       </PageContentLayout>
