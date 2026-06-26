@@ -446,10 +446,14 @@ Keep dense, role-specific operational surfaces:
 
 Duration: 1 week.
 
-- [ ] Create a capability scorecard for Epic, TeleTracking, Qventus, LeanTaaS, GE, Oracle, ABOUT, Care Logistics, Palantir, Artisight, and care.ai.
-- [ ] Define claims Zephyrus can prove in 90 days without external PHI feeds.
-- [ ] Create a demo script that starts with ED boarding and ends with approved actions plus measured impact.
-- [ ] Add a public/internal positioning statement: "evidence-grade operations execution."
+- [x] Create a capability scorecard for Epic, TeleTracking, Qventus, LeanTaaS, GE, Oracle, ABOUT, Care Logistics, Palantir, Artisight, and care.ai.
+- [x] Define claims Zephyrus can prove in 90 days without external PHI feeds.
+- [x] Create a demo script that starts with ED boarding and ends with approved actions plus measured impact.
+- [x] Add a public/internal positioning statement: "evidence-grade operations execution."
+
+Implementation progress:
+
+- 2026-06-26: Added the competitor capability scorecard (`docs/superpowers/specs/2026-06-26-competitor-capability-scorecard.md`) with an 11-vendor capability matrix, per-vendor wedge summary, 90-day provable claims, and explicit "will not overclaim" guardrails. Added the end-to-end demo walkthrough (`docs/superpowers/specs/2026-06-26-90day-demo-walkthrough.md`) mapping the ten Section-9 steps to shipped surfaces, seeded signals, and talking points. The positioning statement is carried in Section 1.
 
 Exit criteria:
 
@@ -614,6 +618,30 @@ Implementation progress:
 Exit criteria:
 
 - Zephyrus can recommend, simulate, compare, draft, and audit regional transfer destination/acceptance decisions with capacity, clinical capability, interfacility transport, model-version, and opportunity-cost evidence.
+
+### Phase 9: Staffing Operations And Demo Closure
+
+Duration: 2 to 4 weeks.
+
+This phase closes the gaps that blocked the Section-9 integrated demo: staffing as a real operational domain, the Executive Briefing Agent and its surface, the Agent Inbox experience surface, and full demo-seed reproducibility.
+
+- [x] Add a first-class staffing operations domain: `prod.staffing_plans`, `prod.staffing_requests`, `prod.staffing_events`, service, controller, `/api/staffing/*` routes, and feature tests.
+- [x] Add a graph-backed `staffing_gap` recommendation rule with unit/role evidence and an approval-gated mitigation action.
+- [x] Add a `staffing_gap` baseline metric, a `staffing_relief` simulation scenario, and staffing relief in the combined capacity plan.
+- [x] Add the Staffing Office page (coverage posture, units at risk, gap-by-role, governed float/overtime/agency/on-call mitigation queue) and a navigation domain.
+- [x] Add the Executive Briefing Agent (read-only `executive_brief.compose` tool, definition, runner, `/api/ops/agents/executive-briefing/run`) with golden-case evals, prompt-injection blocking, and PHI minimization.
+- [x] Add the Agent Inbox and Executive Brief experience surfaces with governance traces, and wire them into navigation.
+- [x] Complete the demo seed: staffing-tight-on-two-units, an EVS turnover backlog with overdue turns, and a naturally stale source feed.
+- [x] Add Phase 0 artifacts: competitor capability scorecard and the end-to-end 90-day demo walkthrough.
+
+Implementation progress:
+
+- 2026-06-26: Shipped the staffing operations domain (migration, models, service, form requests, controller, routes, feature tests), wired `staffing_gap` into ops recommendations and the capacity simulation (`staffing_relief` scenario + combined plan), and seeded two understaffed units in the Command Center demo.
+- 2026-06-26: Shipped the Staffing Office page and navigation domain; the Executive Briefing Agent (governed read-only brief synthesizing situation, plan, measured impact, and source lineage with passing evals); the Agent Inbox and Executive Brief surfaces; the EVS turnover backlog seed; and the Phase 0 scorecard and demo walkthrough.
+
+Exit criteria:
+
+- The Section-9 demo is end-to-end reproducible from a single deterministic seed: live graph and 4D context, source freshness, root causes across ED/inpatient/OR/EVS/transport/staffing/discharge, scenario comparison, a promoted combined plan, approval, owner assignment, completion, measured impact, and a governed executive brief.
 
 ## 8. First 10 Engineering Tickets
 

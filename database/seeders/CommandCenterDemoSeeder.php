@@ -17,6 +17,7 @@ use App\Models\Unit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CommandCenterDemoSeeder extends Seeder
@@ -98,6 +99,19 @@ class CommandCenterDemoSeeder extends Seeder
         //     so the "staffing is tight on two units" demo signal is real.
         // ----------------------------------------------------------------
         $this->seedStaffingPlans($nonEdUnits);
+
+        // ----------------------------------------------------------------
+        // 4c. EVS backlog — several pending/in-progress turns with a couple
+        //     overdue so the "EVS turnaround is behind" demo signal is real.
+        // ----------------------------------------------------------------
+        $this->seedEvsBacklog($nonEdUnits);
+
+        // ----------------------------------------------------------------
+        // 4d. Transport backlog — several active moves with stat/overdue
+        //     requests so the "transport queue is overloaded" demo signal,
+        //     transport SLA-risk recommendation, and dispatch board are real.
+        // ----------------------------------------------------------------
+        $this->seedTransportBacklog($nonEdUnits);
 
         // ----------------------------------------------------------------
         // 5. ED Visits (~70 over last 24h).
@@ -690,6 +704,124 @@ class CommandCenterDemoSeeder extends Seeder
             'occurred_at' => now(),
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Seed an EVS turnover backlog with a couple of overdue turns so the
+     * "EVS turnaround is behind" demo signal, blocked-bed recommendations,
+     * and capacity simulation all carry a real environmental-services load.
+     *
+     * Idempotent: clears seeder-owned EVS demo requests (cascades events),
+     * then reseeds.
+     */
+    private function seedEvsBacklog($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.evs_requests') || $nonEdUnits->isEmpty()) {
+            return;
+        }
+
+        DB::table('prod.evs_requests')->where('requested_by', 'demo-seeder')->delete();
+
+        // [type, turn_type, priority, isolation, minutes_until_due] — negatives are overdue.
+        $specs = [
+            ['discharge_turnover', 'standard', 'urgent', false, -35],
+            ['bed_clean', 'standard', 'routine', false, 25],
+            ['isolation_clean', 'isolation', 'urgent', true, -10],
+            ['terminal_clean', 'terminal', 'stat', false, 15],
+            ['bed_clean', 'standard', 'routine', false, 60],
+            ['discharge_turnover', 'standard', 'urgent', false, -50],
+        ];
+
+        foreach ($specs as $i => [$type, $turnType, $priority, $isolation, $minutesUntilDue]) {
+            $unit = $nonEdUnits->get($i % $nonEdUnits->count());
+            $status = $i % 3 === 0 ? 'in_progress' : 'requested';
+            $requestId = DB::table('prod.evs_requests')->insertGetId([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => $type,
+                'priority' => $priority,
+                'status' => $status,
+                'unit_id' => $unit->unit_id,
+                'location_label' => $unit->abbreviation.'-'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT),
+                'turn_type' => $turnType,
+                'isolation_required' => $isolation,
+                'requested_by' => 'demo-seeder',
+                'requested_at' => now()->subMinutes(90 - $i * 5),
+                'needed_at' => now()->addMinutes($minutesUntilDue),
+                'started_at' => $status === 'in_progress' ? now()->subMinutes(15) : null,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'evs_request_id');
+
+            DB::table('prod.evs_events')->insert([
+                'event_uuid' => (string) Str::uuid(),
+                'evs_request_id' => $requestId,
+                'event_type' => 'evs.requested',
+                'from_status' => null,
+                'to_status' => 'requested',
+                'payload' => json_encode([
+                    'location_label' => $unit->abbreviation.'-'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT),
+                    'priority' => $priority,
+                    'request_type' => $type,
+                    'source' => 'command_center_demo',
+                ]),
+                'source' => 'demo-seeder',
+                'occurred_at' => now()->subMinutes(90 - $i * 5),
+                'created_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Seed an internal/transfer transport backlog with a couple of stat or
+     * overdue moves so the "transport queue is overloaded" demo signal and the
+     * transport SLA-risk recommendation are real.
+     *
+     * Idempotent: clears seeder-owned transport demo requests, then reseeds.
+     */
+    private function seedTransportBacklog($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.transport_requests') || $nonEdUnits->isEmpty()) {
+            return;
+        }
+
+        DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->delete();
+
+        // [request_type, priority, mode, minutes_until_due] — negatives are overdue.
+        $specs = [
+            ['inpatient', 'stat', 'stretcher', -20],
+            ['inpatient', 'urgent', 'wheelchair', -5],
+            ['discharge', 'routine', 'wheelchair', 30],
+            ['transfer', 'urgent', 'stretcher', -15],
+            ['inpatient', 'routine', 'bed', 45],
+            ['ems', 'stat', 'als', 10],
+        ];
+
+        foreach ($specs as $i => [$type, $priority, $mode, $minutesUntilDue]) {
+            $origin = $nonEdUnits->get($i % $nonEdUnits->count());
+            $destination = $nonEdUnits->get(($i + 1) % $nonEdUnits->count());
+            $status = ['requested', 'assigned', 'escalated'][$i % 3];
+
+            DB::table('prod.transport_requests')->insert([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => $type,
+                'priority' => $priority,
+                'status' => $status,
+                'patient_ref' => 'sim-transport-'.($i + 1),
+                'origin' => $origin->name,
+                'destination' => $type === 'discharge' ? 'Main Lobby Discharge' : $destination->name,
+                'transport_mode' => $mode,
+                'clinical_service' => 'Medicine',
+                'requested_by' => 'demo-seeder',
+                'requested_at' => now()->subMinutes(75 - $i * 5),
+                'needed_at' => now()->addMinutes($minutesUntilDue),
+                'assigned_at' => $status === 'assigned' ? now()->subMinutes(10) : null,
+                'assigned_team' => $status === 'assigned' ? 'Porter Pool' : null,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function seedEdVisits(?Unit $edUnit, $nonEdUnits): void
