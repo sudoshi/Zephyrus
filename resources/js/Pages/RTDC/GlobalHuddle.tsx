@@ -13,11 +13,11 @@ export default function GlobalHuddle() {
         <div className="grid grid-cols-2 gap-[var(--space-4)]">
           <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-[var(--space-5)]">
             <div className="text-label">Net Bed Need</div>
-            <div className="text-value">{rollup ? rollup.net_bed_need : '—'}</div>
+            <div className="text-2xl font-semibold tabular-nums">{rollup ? rollup.net_bed_need : '—'}</div>
           </div>
           <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-[var(--space-5)]">
             <div className="text-label">Total Deficit (units short)</div>
-            <div className="text-value text-[var(--critical)]">{rollup ? rollup.total_positive_bed_need : '—'}</div>
+            <div className="text-2xl font-semibold tabular-nums text-[var(--critical)]">{rollup ? rollup.total_positive_bed_need : '—'}</div>
           </div>
         </div>
 

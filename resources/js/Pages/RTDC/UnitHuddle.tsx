@@ -49,17 +49,17 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-6)]">
         <section className="lg:col-span-2 flex flex-col gap-[var(--space-5)]">
           <div>
-            <h3 className="text-panel-title">Step 1 — Predict discharges</h3>
+            <h3 className="text-lg font-semibold">Step 1 — Predict discharges</h3>
             <DischargeTierEntry {...tiers} onChange={setTiers} />
             <button onClick={saveCapacity} className="mt-[var(--space-2)] text-caption underline">Save capacity</button>
           </div>
           <div>
-            <h3 className="text-panel-title">Step 2 — Predict demand</h3>
+            <h3 className="text-lg font-semibold">Step 2 — Predict demand</h3>
             <DemandBySourceEntry {...demand} onChange={setDemand} />
             <button onClick={saveDemand} className="mt-[var(--space-2)] text-caption underline">Save demand</button>
           </div>
           <div>
-            <h3 className="text-panel-title">Barriers</h3>
+            <h3 className="text-lg font-semibold">Barriers</h3>
             <BarrierBoard barriers={barriers ?? []} onResolve={resolveBarrier} />
           </div>
         </section>
@@ -68,7 +68,7 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
           {unit && (
             <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-[var(--space-5)]">
               <div className="text-label">Live Census</div>
-              <div className="text-value">{unit.census.occupied}/{unit.staffed_bed_count}</div>
+              <div className="text-2xl font-semibold tabular-nums">{unit.census.occupied}/{unit.staffed_bed_count}</div>
               <div className="text-caption">
                 {unit.census.available} available · safe additional capacity {unit.census.acuity_adjusted_capacity}
               </div>

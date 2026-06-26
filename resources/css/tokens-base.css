@@ -5,11 +5,9 @@
    ============================================================ */
 
 :root {
-  /* 3.1 Font Stack */
-  --font-display:  'Crimson Pro', Georgia, serif;
-  --font-heading:  'Source Serif 4', Georgia, serif;
-  --font-body:     'Source Sans 3', 'Helvetica Neue', sans-serif;
-  --font-mono:     'IBM Plex Mono', Consolas, monospace;
+  /* 3.1 Font Stack — single canonical family lives in tailwind.config.js
+     (fontFamily.sans = Figtree). No serif/mono/display tokens: those rendered
+     as un-loaded system fallbacks. Use `font-sans` / `tabular-nums`. */
 
   /* 3.2 Type Scale */
   --text-xs:   0.6875rem;
@@ -114,26 +112,6 @@
 .text-caption {
   font-size: var(--text-xs);
   color: var(--text-muted);
-}
-.text-mono {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-.text-value {
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  color: var(--text-primary);
-}
-.text-panel-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-xl);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.text-section {
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  color: var(--text-primary);
 }
 .text-truncate {
   overflow: hidden;

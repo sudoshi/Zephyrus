@@ -4,7 +4,7 @@ import { StatusDot, ProgressBar, CaseStatusBadge } from './StatusIndicator';
 import Modal from '@/Components/Common/Modal';
 
 const TimeDisplay = ({ time, isOverdue = false }) => (
-  <span className={`font-mono ${
+  <span className={`tabular-nums ${
     isOverdue 
       ? "text-healthcare-error dark:text-healthcare-error-dark" 
       : "text-healthcare-text-primary dark:text-healthcare-text-primary-dark"

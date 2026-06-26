@@ -21,7 +21,7 @@ const StatusDot = ({ status, pulse = false }) => {
 
 const TimeDisplay = ({ time, isOverdue = false }) => (
   <span
-    className={`font-mono ${
+    className={`tabular-nums ${
       isOverdue ? "text-healthcare-error dark:text-healthcare-error-dark font-bold" : "text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
     }`}
   >
@@ -94,11 +94,11 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
             <div className="bg-healthcare-info-light dark:bg-healthcare-info-dark/20 p-3 rounded-lg mb-4 border-l-4 border-healthcare-info dark:border-healthcare-info-dark">
               <div className="grid grid-cols-2 gap-1 text-sm">
                 <span className="font-medium text-healthcare-info dark:text-healthcare-info-dark">Patient:</span>
-                <span className="font-mono text-healthcare-info-dark dark:text-healthcare-info-light">
+                <span className="tabular-nums text-healthcare-info-dark dark:text-healthcare-info-light">
                   {procedure.patient}
                 </span>
                 <span className="font-medium text-healthcare-info dark:text-healthcare-info-dark">Specialty:</span>
-                <span className="font-mono text-healthcare-info-dark dark:text-healthcare-info-light">
+                <span className="tabular-nums text-healthcare-info-dark dark:text-healthcare-info-light">
                   {procedure.specialty}
                 </span>
               </div>
@@ -128,11 +128,11 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 </div>
                 <div className="grid grid-cols-2 gap-1">
                   <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Start Time:</span>
-                  <span className="font-mono text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{procedure.startTime}</span>
+                  <span className="tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{procedure.startTime}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1">
                   <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Expected Duration:</span>
-                  <span className="font-mono text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <span className="tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {procedure.expectedDuration} mins
                   </span>
                 </div>
@@ -171,7 +171,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 </div>
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Journey so far</span>
-                  <span className="font-mono block text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <span className="tabular-nums block text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {procedure.journey} mins
                   </span>
                 </div>
@@ -264,11 +264,11 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Transport Time</span>
-                  <p className="font-mono font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">12 mins</p>
+                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">12 mins</p>
                 </div>
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Duration</span>
-                  <p className="font-mono font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">55 mins</p>
+                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">55 mins</p>
                 </div>
               </div>
 
@@ -278,7 +278,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 </h3>
                 <div className="flex justify-between text-sm">
                   <span className="text-healthcare-info dark:text-healthcare-info-dark">Duration:</span>
-                  <span className="font-mono text-healthcare-info-dark dark:text-healthcare-info-light">8 mins</span>
+                  <span className="tabular-nums text-healthcare-info-dark dark:text-healthcare-info-light">8 mins</span>
                 </div>
               </div>
 

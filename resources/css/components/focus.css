@@ -10,7 +10,7 @@
   left: var(--space-4);
   z-index: var(--z-tooltip);
   padding: var(--space-2) var(--space-4);
-  font-family: var(--font-body);
+  font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--surface-base);

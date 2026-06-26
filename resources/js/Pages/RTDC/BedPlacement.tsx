@@ -28,7 +28,7 @@ export default function BedPlacement() {
     <RTDCPageLayout title="Bed Placement" subtitle="Prescriptive bed-assignment recommendations">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-[var(--space-6)]">
         <section>
-          <h3 className="text-panel-title">Pending requests</h3>
+          <h3 className="text-lg font-semibold">Pending requests</h3>
           <ul className="flex flex-col gap-[var(--space-2)]">
             {(requests ?? []).map((r) => (
               <li key={r.bed_request_id}>
@@ -46,7 +46,7 @@ export default function BedPlacement() {
         </section>
 
         <section className="lg:col-span-2 flex flex-col gap-[var(--space-4)]">
-          <h3 className="text-panel-title">Recommendations</h3>
+          <h3 className="text-lg font-semibold">Recommendations</h3>
           {selected === null && <div className="text-caption">Select a pending request to see recommendations.</div>}
           {recs && recs.recommendations.length === 0 && (
             <div className="rounded-[var(--radius-lg)] bg-[var(--critical-bg)] p-[var(--space-5)] text-[var(--critical)]">

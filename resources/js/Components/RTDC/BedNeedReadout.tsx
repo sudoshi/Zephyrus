@@ -12,7 +12,7 @@ export function BedNeedReadout({ bedNeed, capacityNow, demandExpected }: BedNeed
   return (
     <div className="rounded-[var(--radius-lg)] bg-[var(--surface-raised)] p-[var(--space-5)]">
       <div className="text-label">Bed Need</div>
-      <div className={`text-value ${tone}`}>{bedNeed > 0 ? `+${bedNeed}` : bedNeed}</div>
+      <div className={`text-2xl font-semibold tabular-nums ${tone}`}>{bedNeed > 0 ? `+${bedNeed}` : bedNeed}</div>
       <div className="text-caption">
         {deficit && `Short ${bedNeed} beds`}
         {surplus && `${Math.abs(bedNeed)} beds surplus`}

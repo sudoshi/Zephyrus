@@ -69,7 +69,7 @@ export default function AuthenticatedLayout({ header, children }: AuthenticatedL
                     minHeight: '100vh',
                     background: 'var(--surface-base)',
                     color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-body)',
+                    fontFamily: "'Figtree', ui-sans-serif, system-ui, sans-serif",
                     display: 'flex',
                     flexDirection: 'column',
                 }}

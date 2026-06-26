@@ -14,7 +14,7 @@ export function RecommendationCard({ rec, isTop, runnerUpDelta, onAccept }: Reco
     <div className={`rounded-[var(--radius-lg)] p-[var(--space-5)] ${isTop ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--accent)]' : 'bg-[var(--surface-overlay)]'}`}>
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-value">{rec.bed_label}</span>
+          <span className="text-2xl font-semibold tabular-nums">{rec.bed_label}</span>
           <span className="text-caption ml-[var(--space-2)]">{rec.unit_name}</span>
         </div>
         <span className="text-label">Score {rec.score}{isTop && runnerUpDelta !== null ? ` · +${runnerUpDelta} vs next` : ''}</span>
