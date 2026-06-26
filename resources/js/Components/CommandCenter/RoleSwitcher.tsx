@@ -73,7 +73,7 @@ export function RoleSwitcher() {
                     r.disabled ? 'cursor-not-allowed opacity-50' : '',
                   ].join(' ')}>
             {r.label}
-            {r.disabled ? <span className="ml-1 text-[0.625rem] uppercase tracking-wide opacity-70">soon</span> : null}
+            {r.disabled ? <span className="ml-1 text-xs uppercase tracking-wide opacity-70">soon</span> : null}
           </button>
         );
       })}

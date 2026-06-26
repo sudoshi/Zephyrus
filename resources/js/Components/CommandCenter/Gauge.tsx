@@ -91,7 +91,7 @@ export function Gauge({
             </span>
           )}
           {centerSubLabel && (
-            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <span className="mt-0.5 text-xs font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {centerSubLabel}
             </span>
           )}

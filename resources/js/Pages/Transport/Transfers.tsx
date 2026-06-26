@@ -59,18 +59,18 @@ function RegionalTransferPanel() {
         <div>
           <div className="flex items-center gap-2">
             <GitBranch className="size-5 text-healthcare-primary" />
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Regional Transfer Optimization
             </h2>
           </div>
-          <p className="mt-1 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <p className="mt-1 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             Candidate destinations are scored with capability, capacity, transport, and opportunity-cost evidence.
           </p>
         </div>
         <button
           type="button"
           onClick={() => summary.refetch()}
-          className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-3 py-2 text-[13px]/[18px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+          className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-3 py-2 text-sm/[18px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
         >
           <RefreshCcw className="size-4" />
           Refresh
@@ -78,7 +78,7 @@ function RegionalTransferPanel() {
       </div>
 
       {summary.isError ? (
-        <div className="rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical-dark/50 dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark">
+        <div className="rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-sm/[18px] text-healthcare-critical dark:border-healthcare-critical-dark/50 dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark">
           Regional transfer recommendations are unavailable.
         </div>
       ) : null}
@@ -115,7 +115,7 @@ function RegionalTransferPanel() {
       ) : null}
 
       {(data?.recommendations ?? []).length === 0 ? (
-        <div className="rounded-md border border-dashed border-healthcare-border p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+        <div className="rounded-md border border-dashed border-healthcare-border p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
           No active transfer requests need regional scoring.
         </div>
       ) : (
@@ -124,14 +124,14 @@ function RegionalTransferPanel() {
             <div key={recommendation.transportRequestId} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-[14px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <div className="text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {recommendation.patientRef}
                   </div>
-                  <div className="mt-1 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                  <div className="mt-1 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {recommendation.origin} to {recommendation.destination}
                   </div>
                 </div>
-                <span className="rounded bg-healthcare-warning/10 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark">
+                <span className="rounded bg-healthcare-warning/10 px-2 py-0.5 text-xs/[16px] font-semibold text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark">
                   {recommendation.priority.toUpperCase()}
                 </span>
               </div>
@@ -144,11 +144,11 @@ function RegionalTransferPanel() {
                           <Building2 className="size-4 shrink-0 text-healthcare-primary" />
                           <span className="truncate">{candidate.facilityName}</span>
                         </div>
-                        <div className="mt-1 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        <div className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                           {candidate.facilityType.replaceAll('_', ' ')}
                         </div>
                       </div>
-                      <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${
+                      <span className={`rounded px-2 py-0.5 text-xs/[16px] font-semibold ${
                         candidate.recommendation === 'accept'
                           ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                           : candidate.recommendation === 'conditional'
@@ -158,14 +158,14 @@ function RegionalTransferPanel() {
                         {candidate.score}
                       </span>
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span>{candidate.availableBeds} beds</span>
                       <span>{candidate.icuAvailableBeds} ICU</span>
                       <span>{candidate.transportMinutes} min</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1">
                       {candidate.rationale.required_capabilities.map((capability) => (
-                        <span key={capability} className={`rounded px-2 py-0.5 text-[12px]/[16px] ${
+                        <span key={capability} className={`rounded px-2 py-0.5 text-xs/[16px] ${
                           candidate.constraints.missing_capabilities.includes(capability)
                             ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                             : 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
@@ -174,12 +174,12 @@ function RegionalTransferPanel() {
                         </span>
                       ))}
                     </div>
-                    <div className="mt-3 flex items-center gap-2 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    <div className="mt-3 flex items-center gap-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <Clock3 className="size-4" />
                       <span>After acceptance: {candidate.opportunityCost.available_beds_after_acceptance} beds, {candidate.opportunityCost.icu_beds_after_acceptance} ICU</span>
                     </div>
                     {candidate.constraints.missing_capabilities.length > 0 ? (
-                      <div className="mt-2 flex items-center gap-2 text-[12px]/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">
+                      <div className="mt-2 flex items-center gap-2 text-xs/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">
                         <ShieldAlert className="size-4" />
                         <span>Missing {candidate.constraints.missing_capabilities.join(', ')}</span>
                       </div>
@@ -189,7 +189,7 @@ function RegionalTransferPanel() {
                         type="button"
                         disabled={decision.isPending}
                         onClick={() => decide(recommendation.transportRequestId, candidate, 'accepted')}
-                        className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-[12px]/[16px] font-semibold text-white hover:bg-healthcare-success/90 disabled:opacity-60"
+                        className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-xs/[16px] font-semibold text-white hover:bg-healthcare-success/90 disabled:opacity-60"
                       >
                         <CheckCircle2 className="size-4" />
                         Accept
@@ -198,7 +198,7 @@ function RegionalTransferPanel() {
                         type="button"
                         disabled={decision.isPending}
                         onClick={() => decide(recommendation.transportRequestId, candidate, 'deferred')}
-                        className="rounded-md border border-healthcare-border px-3 py-1.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+                        className="rounded-md border border-healthcare-border px-3 py-1.5 text-xs/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
                       >
                         Defer
                       </button>
@@ -220,16 +220,16 @@ function RegionalComparisonDashboard({ rows }: { rows: RegionalComparisonRow[] }
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Layers className="size-4 text-healthcare-primary" />
-          <h3 className="text-[14px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h3 className="text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Regional Comparison
           </h3>
         </div>
-        <span className="text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        <span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           {rows.length} scopes
         </span>
       </div>
       <div className="mt-3 overflow-x-auto">
-        <table className="min-w-[720px] w-full text-left text-[12px]/[16px]">
+        <table className="min-w-[720px] w-full text-left text-xs/[16px]">
           <thead className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark">
               <th className="py-2 pr-3 font-semibold">Scope</th>
@@ -295,7 +295,7 @@ function RegionalRouteSimulationPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Route className="size-4 text-healthcare-primary" />
-          <h3 className="text-[14px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <h3 className="text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             Route Simulation
           </h3>
         </div>
@@ -303,13 +303,13 @@ function RegionalRouteSimulationPanel({
           type="button"
           onClick={onRecord}
           disabled={isRecording}
-          className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+          className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-xs/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
         >
           <PlayCircle className="size-4" />
           Record
         </button>
       </div>
-      <div className="mt-1 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {modelVersionKey}
       </div>
       <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -332,18 +332,18 @@ function ScenarioCard({ scenario }: { scenario: RegionalRouteScenario }) {
     <div className={`rounded-md border p-3 ${tone}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[13px]/[18px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <div className="text-sm/[18px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {scenario.label}
           </div>
-          <div className="mt-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <div className="mt-0.5 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             {scenario.modelVersionKey}
           </div>
         </div>
-        <span className="rounded bg-healthcare-surface/70 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary dark:bg-healthcare-surface-dark/20 dark:text-healthcare-text-primary-dark">
+        <span className="rounded bg-healthcare-surface/70 px-2 py-0.5 text-xs/[16px] font-semibold text-healthcare-text-primary dark:bg-healthcare-surface-dark/20 dark:text-healthcare-text-primary-dark">
           Risk {scenario.routeRiskScore}
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-2 text-[12px]/[16px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+      <div className="mt-3 grid grid-cols-4 gap-2 text-xs/[16px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         <span>{scenario.acceptedTransfers} accept</span>
         <span>{scenario.deferredTransfers} defer</span>
         <span>{scenario.netAvailableBeds} beds</span>
@@ -366,12 +366,12 @@ function TransferCenterAgentPanel({
     <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
       <div className="flex items-center gap-2">
         <Bot className="size-4 text-healthcare-primary" />
-        <h3 className="text-[14px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+        <h3 className="text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           Transfer Center Agent
         </h3>
       </div>
       {drafts.length === 0 ? (
-        <div className="mt-3 rounded-md border border-dashed border-healthcare-border p-3 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+        <div className="mt-3 rounded-md border border-dashed border-healthcare-border p-3 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
           No transfer-center drafts are pending.
         </div>
       ) : (
@@ -380,14 +380,14 @@ function TransferCenterAgentPanel({
             <div key={draft.transportRequestId} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-[13px]/[18px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <div className="text-sm/[18px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {draft.patientRef}
                   </div>
-                  <div className="mt-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                  <div className="mt-0.5 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {draft.selectedFacilityName ?? 'No candidate'} · confidence {Math.round(draft.confidence * 100)}%
                   </div>
                 </div>
-                <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${
+                <span className={`rounded px-2 py-0.5 text-xs/[16px] font-semibold ${
                   draft.recommendedDecision === 'accepted'
                     ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark'
                     : draft.recommendedDecision === 'redirected'
@@ -401,7 +401,7 @@ function TransferCenterAgentPanel({
                 type="button"
                 disabled={isDrafting}
                 onClick={() => onDraft(draft.transportRequestId)}
-                className="mt-3 inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-[12px]/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+                className="mt-3 inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-xs/[16px] font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
               >
                 <Bot className="size-4" />
                 Draft

@@ -59,7 +59,7 @@ const CircularProgress = ({ value, size = 60, strokeWidth = 5, color }) => {
                 </span>
                 {value >= 80 && (
                     <span 
-                        className="text-[8px] transition-colors duration-300"
+                        className="text-xs transition-colors duration-300"
                         style={{ color: getCheckColor() }}
                     >
                         ✓

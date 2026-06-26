@@ -15,7 +15,7 @@ export function NavMegaMenu({ domain, isAdmin, active }: NavMegaMenuProps) {
     <Popover>
       <Popover.Button
         aria-current={active ? 'page' : undefined}
-        className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 py-1.5 text-[14px]/[18px] font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
+        className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 py-1.5 text-base/[18px] font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
           active
             ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
             : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'

@@ -70,7 +70,7 @@ function DetailVisualization({ metric }: { metric: KpiMetric }) {
 
   return (
     <div className="mt-1 flex flex-col gap-2" data-testid={`metric-detail-${metric.key}`}>
-      <span className="min-w-0 truncate text-[0.68rem] font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <span className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {metric.detail.caption}
       </span>
 
@@ -99,7 +99,7 @@ function DetailVisualization({ metric }: { metric: KpiMetric }) {
       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         {metric.detail.rows.slice(0, 4).map((row) => (
           <div key={row.label} className="min-w-0">
-            <div className="truncate text-[0.66rem] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <div className="truncate text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {row.label}
             </div>
             <div className="truncate text-xs font-semibold tabular-nums" style={{ color: STATUS_VAR[row.status] }}>
@@ -130,7 +130,7 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
       title={metric.lineageSummary ?? `Source trust ${metric.sourceTrust.score}%`}
       aria-label={`Source trust: ${metric.sourceTrust.score}%`}
       style={{ color: STATUS_VAR[metric.sourceTrust.status] }}
-      className="shrink-0 rounded-full border border-healthcare-border/70 bg-healthcare-surface/70 px-1.5 py-0.5 text-[0.62rem] font-semibold tabular-nums dark:border-healthcare-border-dark/70 dark:bg-healthcare-surface-dark/70"
+      className="shrink-0 rounded-full border border-healthcare-border/70 bg-healthcare-surface/70 px-1.5 py-0.5 text-xs font-semibold tabular-nums dark:border-healthcare-border-dark/70 dark:bg-healthcare-surface-dark/70"
     >
       Trust {metric.sourceTrust.score}%
     </span>

@@ -23,7 +23,7 @@ const PRIORITY_TONE: Record<string, string> = {
   routine: 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark',
 };
 
-const CHIP = 'rounded-md bg-slate-100 px-2 py-1 text-[11px]/[15px] font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300';
+const CHIP = 'rounded-md bg-slate-100 px-2 py-1 text-xs/[15px] font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300';
 
 function MetricTile({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'risk' | 'good' }) {
   const toneClass =
@@ -35,10 +35,10 @@ function MetricTile({ label, value, tone = 'neutral' }: { label: string; value: 
 
   return (
     <div className={`rounded-md border p-4 ${toneClass}`}>
-      <div className="text-[12px]/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="text-xs/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {label}
       </div>
-      <div className="mt-1 text-[24px]/[28px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+      <div className="mt-1 text-2xl/[28px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         {value}
       </div>
     </div>
@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: string }) {
   const critical = status === 'critical_gap';
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]/[15px] font-semibold ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs/[15px] font-semibold ${
         critical ? 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark' : 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
       }`}
     >
@@ -64,17 +64,17 @@ function UnitCard({ unit }: { unit: StaffingUnitAtRisk }) {
     <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[15px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <div className="text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {unit.unit_label}
           </div>
-          <div className="text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             Short {unit.gap_headcount} · worst {unit.worst_role_label}
           </div>
         </div>
         <StatusBadge status={unit.status} />
       </div>
       {unit.below_minimum_safe && (
-        <div className="mt-2 flex items-center gap-1 text-[12px]/[16px] font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
+        <div className="mt-2 flex items-center gap-1 text-xs/[16px] font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
           <ShieldAlert className="size-3.5" /> Below minimum safe staffing
         </div>
       )}
@@ -82,7 +82,7 @@ function UnitCard({ unit }: { unit: StaffingUnitAtRisk }) {
         {unit.roles.map((role) => (
           <li
             key={role.staffing_plan_id}
-            className="flex items-center justify-between text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
+            className="flex items-center justify-between text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
           >
             <span>{role.role_label}</span>
             <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -99,7 +99,7 @@ function RoleGapBar({ row }: { row: StaffingRoleGap }) {
   const pct = row.required_count > 0 ? Math.round((row.available_count / row.required_count) * 100) : 100;
   return (
     <div>
-      <div className="flex items-center justify-between text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="flex items-center justify-between text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         <span>{row.role_label}</span>
         <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           short {row.gap_headcount}
@@ -123,14 +123,14 @@ function RequestRow({ request }: { request: StaffingRequest }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[14px]/[19px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <span className="text-base/[19px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               {request.unit_label} · {request.role_label}
             </span>
-            <span className={`rounded-full px-2 py-0.5 text-[11px]/[15px] font-semibold ${PRIORITY_TONE[request.priority] ?? ''}`}>
+            <span className={`rounded-full px-2 py-0.5 text-xs/[15px] font-semibold ${PRIORITY_TONE[request.priority] ?? ''}`}>
               {request.priority.toUpperCase()}
             </span>
           </div>
-          <div className="mt-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <div className="mt-0.5 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             Need {request.headcount_needed} · {request.shift} shift · {request.sla.label}
             {request.assigned_source ? ` · ${SOURCE_LABELS[request.assigned_source]}` : ''}
           </div>
@@ -147,7 +147,7 @@ function RequestRow({ request }: { request: StaffingRequest }) {
                 type="button"
                 disabled={assign.isPending}
                 onClick={() => assign.mutate({ id: request.staffing_request_id, input: { assigned_source: source, owner_name: 'Staffing office' } })}
-                className="rounded-md border border-healthcare-border px-2.5 py-1 text-[12px]/[16px] font-medium text-healthcare-text-secondary hover:bg-slate-50 disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5"
+                className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs/[16px] font-medium text-healthcare-text-secondary hover:bg-slate-50 disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5"
               >
                 {SOURCE_LABELS[source]}
               </button>
@@ -156,7 +156,7 @@ function RequestRow({ request }: { request: StaffingRequest }) {
             type="button"
             disabled={updateStatus.isPending}
             onClick={() => updateStatus.mutate({ id: request.staffing_request_id, status: 'filled' })}
-            className="ml-auto inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-3 py-1 text-[12px]/[16px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            className="ml-auto inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-3 py-1 text-xs/[16px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             <CheckCircle2 className="size-3.5" /> Mark filled
           </button>
@@ -178,7 +178,7 @@ export default function StaffingOffice() {
         headerContent={null}
       >
         {isLoading || !data ? (
-          <div className="rounded-md border border-healthcare-border p-6 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+          <div className="rounded-md border border-healthcare-border p-6 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
             Loading staffing posture...
           </div>
         ) : (
@@ -193,12 +193,12 @@ export default function StaffingOffice() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Users className="size-5 text-healthcare-primary" />
-                <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                   Units at risk
                 </h2>
               </div>
               {data.units_at_risk.length === 0 ? (
-                <div className="rounded-md border border-healthcare-success/30 bg-healthcare-success/5 p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10 dark:text-healthcare-text-secondary-dark">
+                <div className="rounded-md border border-healthcare-success/30 bg-healthcare-success/5 p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10 dark:text-healthcare-text-secondary-dark">
                   All units are at or above target for the current shift.
                 </div>
               ) : (
@@ -214,7 +214,7 @@ export default function StaffingOffice() {
               <section className="space-y-3 rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
                 <div className="flex items-center gap-2">
                   <UserCog className="size-5 text-healthcare-primary" />
-                  <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     Gap by role
                   </h2>
                 </div>
@@ -228,7 +228,7 @@ export default function StaffingOffice() {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                   Gap-mitigation queue
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -240,7 +240,7 @@ export default function StaffingOffice() {
                 </div>
               </div>
               {data.queue.length === 0 ? (
-                <div className="rounded-md border border-healthcare-border p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+                <div className="rounded-md border border-healthcare-border p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
                   No open staffing requests.
                 </div>
               ) : (

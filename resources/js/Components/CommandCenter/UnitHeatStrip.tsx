@@ -32,7 +32,7 @@ export function UnitHeatStrip({ units }: { units: UnitCensus[] }) {
               <div className="h-full rounded-full transition-[width] duration-500 ease-out"
                    style={{ width: `${pct}%`, background: color }} />
             </div>
-            <span className="text-[10px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {u.available} open {'·'} {u.blocked} blk
             </span>
           </Panel>

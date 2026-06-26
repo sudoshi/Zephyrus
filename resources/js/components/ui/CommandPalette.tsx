@@ -69,13 +69,13 @@ export function CommandPalette() {
           </Command.List>
           <div className="border-t border-gray-700 px-4 py-2 text-xs text-gray-500">
             <span className="mr-3">
-              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">↑↓</kbd> Navigate
+              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-xs font-medium text-gray-400">↑↓</kbd> Navigate
             </span>
             <span className="mr-3">
-              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">↵</kbd> Select
+              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-xs font-medium text-gray-400">↵</kbd> Select
             </span>
             <span>
-              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">Esc</kbd> Close
+              <kbd className="rounded bg-gray-800 px-1.5 py-0.5 text-xs font-medium text-gray-400">Esc</kbd> Close
             </span>
           </div>
         </Command>

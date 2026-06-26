@@ -36,7 +36,7 @@ export default function TransportLayout({ title, subtitle, current, children }: 
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[13px]/[18px] font-medium transition ${
+                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm/[18px] font-medium transition ${
                   active
                     ? 'bg-healthcare-primary text-white'
                     : 'text-healthcare-text-secondary hover:bg-healthcare-hover dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark'

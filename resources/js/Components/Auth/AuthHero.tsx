@@ -70,7 +70,7 @@ export function AuthHero() {
           <div key={f.label} className="flex items-start gap-2.5">
             <Icon icon={f.icon} className="mt-0.5 w-4 h-4 shrink-0 text-cyan-400/80" />
             <div>
-              <span className="block text-[0.8125rem] font-semibold text-slate-200 leading-tight">{f.label}</span>
+              <span className="block text-sm font-semibold text-slate-200 leading-tight">{f.label}</span>
               <span className="block text-xs text-slate-500 leading-snug">{f.desc}</span>
             </div>
           </div>
@@ -81,12 +81,12 @@ export function AuthHero() {
       <div className="mt-6 hidden lg:block space-y-3">
         {PILLS.map((group) => (
           <div key={group.label}>
-            <p className="mb-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
               {group.label}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {group.items.map((p) => (
-                <span key={p} className={`rounded-full border px-2.5 py-0.5 text-[0.6875rem] font-medium ${group.tone}`}>
+                <span key={p} className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${group.tone}`}>
                   {p}
                 </span>
               ))}
@@ -96,7 +96,7 @@ export function AuthHero() {
       </div>
 
       <div className="mt-7 hidden lg:block border-t border-white/[0.06] pt-3">
-        <span className="text-[0.6875rem] tracking-wide text-slate-500">
+        <span className="text-xs tracking-wide text-slate-500">
           Acumenus Data Sciences &middot; Wellstack.ai
         </span>
       </div>

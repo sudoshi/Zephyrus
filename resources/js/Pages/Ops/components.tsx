@@ -38,7 +38,7 @@ export function normalizeTone(value: string | null | undefined): Tone {
 
 export function ToneBadge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]/[15px] font-semibold ${TONE_PILL[tone]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs/[15px] font-semibold ${TONE_PILL[tone]}`}>
       {children}
     </span>
   );
@@ -47,10 +47,10 @@ export function ToneBadge({ tone, children }: { tone: Tone; children: ReactNode 
 export function MetricTile({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: Tone }) {
   return (
     <div className={`rounded-md border p-4 ${TONE_CARD[tone]}`}>
-      <div className="text-[12px]/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="text-xs/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {label}
       </div>
-      <div className="mt-1 text-[24px]/[28px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+      <div className="mt-1 text-2xl/[28px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         {value}
       </div>
     </div>
@@ -62,7 +62,7 @@ export function Panel({ title, icon, children }: { title: string; icon?: ReactNo
     <section className="space-y-3 rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h2>
+        <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h2>
       </div>
       {children}
     </section>

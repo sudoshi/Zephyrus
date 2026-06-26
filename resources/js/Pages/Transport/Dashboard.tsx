@@ -51,10 +51,10 @@ export default function Dashboard() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-[17px]/[24px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              <h2 className="text-lg/[24px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 Priority Queue
               </h2>
-              <p className="text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              <p className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 Ordered by clinical priority and SLA target.
               </p>
             </div>
@@ -64,7 +64,7 @@ export default function Dashboard() {
                   key={type}
                   type="button"
                   onClick={() => createRequest.mutate(sampleRequest(type))}
-                  className="rounded-md border border-healthcare-border px-3 py-1.5 text-[12px]/[16px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
+                  className="rounded-md border border-healthcare-border px-3 py-1.5 text-xs/[16px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
                 >
                   Add {type.replace('_', ' ')}
                 </button>
@@ -72,7 +72,7 @@ export default function Dashboard() {
             </div>
           </div>
           {isLoading ? (
-            <div className="rounded-md border border-healthcare-border p-4 text-[13px]/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+            <div className="rounded-md border border-healthcare-border p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
               Loading command queue...
             </div>
           ) : data?.queue.length ? (
@@ -84,8 +84,8 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <Truck className="h-8 w-8 text-healthcare-primary" />
                 <div>
-                  <h3 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">No active movement yet</h3>
-                  <p className="text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                  <h3 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">No active movement yet</h3>
+                  <p className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Use the quick-add controls above to create a request and run the dispatch workflow.
                   </p>
                 </div>
@@ -96,10 +96,10 @@ export default function Dashboard() {
 
         <aside className="space-y-4">
           <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Integration Posture
             </h2>
-            <div className="mt-3 space-y-3 text-[13px]/[18px]">
+            <div className="mt-3 space-y-3 text-sm/[18px]">
               {integrationSignals.map(({ label, detail, Icon }) => (
                 <div key={label} className="flex gap-3">
                   <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-healthcare-primary" />
@@ -113,18 +113,18 @@ export default function Dashboard() {
           </section>
 
           <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Active Status Mix
             </h2>
             <div className="mt-3 space-y-2">
               {Object.entries(data?.by_status ?? {}).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between text-[13px]/[18px]">
+                <div key={status} className="flex items-center justify-between text-sm/[18px]">
                   <span className="capitalize text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{status.replaceAll('_', ' ')}</span>
                   <span className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{count}</span>
                 </div>
               ))}
               {Object.keys(data?.by_status ?? {}).length === 0 && (
-                <div className="flex items-center gap-2 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                <div className="flex items-center gap-2 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   <Clock3 className="h-4 w-4" /> No active statuses.
                 </div>
               )}
@@ -135,8 +135,8 @@ export default function Dashboard() {
             <div className="flex gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-healthcare-warning dark:text-healthcare-warning-dark" />
               <div>
-                <h2 className="text-[15px]/[20px] font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">Phase 1 boundary</h2>
-                <p className="mt-1 text-[13px]/[18px] text-healthcare-warning dark:text-healthcare-warning-dark">
+                <h2 className="text-base/[20px] font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">Phase 1 boundary</h2>
+                <p className="mt-1 text-sm/[18px] text-healthcare-warning dark:text-healthcare-warning-dark">
                   This release establishes the command surface, canonical event stream, and connector-ready API. Vendor credentials and production interface engines remain future phases.
                 </p>
               </div>

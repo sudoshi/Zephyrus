@@ -431,7 +431,7 @@ const VariantsViewPanel = () => {
                           >
                             <span className="text-white text-xs font-medium">{step.name}</span>
                             {step.timing && (
-                              <span className="text-white text-[10px] mt-1 opacity-90">{step.timing}</span>
+                              <span className="text-white text-xs mt-1 opacity-90">{step.timing}</span>
                             )}
                             {stepIndex === variant.steps.length - 1 && (
                               <span className="text-white text-xs mt-1 font-semibold">{variant.percentage.toFixed(1)}%</span>

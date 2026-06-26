@@ -96,30 +96,30 @@ export default function IntegrationSettings() {
       <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Enterprise Connector Control</h2>
-            <div className="mt-1 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Enterprise Connector Control</h2>
+            <div className="mt-1 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Last refreshed {summary.data?.generatedAtIso ? new Date(summary.data.generatedAtIso).toLocaleString() : 'after connector catalog load'}
             </div>
           </div>
           <button
             type="button"
             onClick={() => summary.refetch()}
-            className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-3 py-2 text-[13px]/[18px] font-semibold text-healthcare-text-primary transition hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+            className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-3 py-2 text-sm/[18px] font-semibold text-healthcare-text-primary transition hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
           >
             <RefreshCcw className="size-4" />
             Refresh
           </button>
         </div>
         {summary.isError ? (
-          <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
+          <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-sm/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
             Enterprise connector summary is unavailable.
           </div>
         ) : null}
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           {topMetrics.map(([label, value]) => (
             <div key={label} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
-              <div className="text-[12px]/[16px] font-semibold uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
-              <div className="mt-2 text-[24px]/[30px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{value}</div>
+              <div className="text-xs/[16px] font-semibold uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
+              <div className="mt-2 text-2xl/[30px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{value}</div>
             </div>
           ))}
         </div>
@@ -127,19 +127,19 @@ export default function IntegrationSettings() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-          <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Vendor Targets</h2>
+          <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Vendor Targets</h2>
           <div className="mt-3 space-y-3">
             {(vendors ?? []).map((vendor) => (
               <div key={vendor.key} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
                 <div className="flex items-center justify-between gap-3">
                   <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{vendor.name}</div>
-                  <span className="rounded bg-healthcare-warning/10 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark">
+                  <span className="rounded bg-healthcare-warning/10 px-2 py-0.5 text-xs/[16px] font-semibold text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark">
                     Planned
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {(vendor.capabilities ?? []).map((capability) => (
-                    <span key={capability} className="rounded bg-healthcare-border px-2 py-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+                    <span key={capability} className="rounded bg-healthcare-border px-2 py-0.5 text-xs/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
                       {capability.replaceAll('_', ' ')}
                     </span>
                   ))}
@@ -150,25 +150,25 @@ export default function IntegrationSettings() {
         </section>
 
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-          <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Connector Playbooks</h2>
+          <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Connector Playbooks</h2>
           <div className="mt-3 space-y-3">
             {(summary.data?.playbooks ?? []).map((playbook) => (
               <div key={playbook.vendorKey} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{playbook.label}</div>
-                    <div className="mt-1 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{playbook.systemClass}</div>
+                    <div className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{playbook.systemClass}</div>
                   </div>
-                  <span className="rounded bg-healthcare-success/10 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
+                  <span className="rounded bg-healthcare-success/10 px-2 py-0.5 text-xs/[16px] font-semibold text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
                     {playbook.status}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {payloadEntries(playbook.capabilities).map((entry) => (
-                    <span key={entry} className="rounded bg-healthcare-border px-2 py-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">{entry}</span>
+                    <span key={entry} className="rounded bg-healthcare-border px-2 py-0.5 text-xs/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">{entry}</span>
                   ))}
                 </div>
-                <ol className="mt-3 space-y-1 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                <ol className="mt-3 space-y-1 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   {playbook.implementationSteps.map((step) => (
                     <li key={step} className="flex gap-2">
                       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-healthcare-success dark:text-healthcare-success-dark" />
@@ -184,22 +184,22 @@ export default function IntegrationSettings() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-          <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Coexistence Adapters</h2>
+          <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Coexistence Adapters</h2>
           <div className="mt-3 space-y-3">
             {(summary.data?.coexistenceAdapters ?? []).map((adapter) => (
               <div key={adapter.adapterKey} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{adapter.label}</div>
-                    <div className="mt-1 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{adapter.vendorKey}</div>
+                    <div className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{adapter.vendorKey}</div>
                   </div>
-                  <span className="rounded bg-healthcare-info/10 px-2 py-0.5 text-[12px]/[16px] font-semibold text-healthcare-info dark:bg-healthcare-info/20 dark:text-healthcare-info-dark">
+                  <span className="rounded bg-healthcare-info/10 px-2 py-0.5 text-xs/[16px] font-semibold text-healthcare-info dark:bg-healthcare-info/20 dark:text-healthcare-info-dark">
                     {adapter.status}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {payloadEntries(adapter.coexistence).map((entry) => (
-                    <span key={entry} className="rounded bg-healthcare-border px-2 py-0.5 text-[12px]/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">{entry}</span>
+                    <span key={entry} className="rounded bg-healthcare-border px-2 py-0.5 text-xs/[16px] text-healthcare-text-secondary dark:bg-healthcare-border-dark dark:text-healthcare-text-secondary-dark">{entry}</span>
                   ))}
                 </div>
               </div>
@@ -208,12 +208,12 @@ export default function IntegrationSettings() {
         </section>
 
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-          <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Standards Backbone</h2>
+          <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Standards Backbone</h2>
           <div className="mt-3 divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
             {standards.map(([name, description]) => (
               <div key={name} className="py-3">
                 <div className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{name}</div>
-                <div className="mt-1 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{description}</div>
+                <div className="mt-1 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{description}</div>
               </div>
             ))}
           </div>
@@ -224,39 +224,39 @@ export default function IntegrationSettings() {
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
           <div className="flex items-center gap-2">
             <DatabaseZap className="size-5 text-healthcare-primary" />
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">FHIR Capability Discovery</h2>
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">FHIR Capability Discovery</h2>
           </div>
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={submitDiscovery}>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Source key
-              <input value={discoveryForm.sourceKey} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, sourceKey: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={discoveryForm.sourceKey} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, sourceKey: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Vendor
-              <input value={discoveryForm.vendor} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, vendor: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={discoveryForm.vendor} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, vendor: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               FHIR version
-              <input value={discoveryForm.fhirVersion} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, fhirVersion: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={discoveryForm.fhirVersion} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, fhirVersion: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Client ID
-              <input value={discoveryForm.clientId} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, clientId: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={discoveryForm.clientId} onChange={(event) => setDiscoveryForm((prev) => ({ ...prev, clientId: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
             <div className="md:col-span-2">
-              <button type="submit" disabled={discovery.isPending} className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-[13px]/[18px] font-semibold text-white transition hover:bg-healthcare-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" disabled={discovery.isPending} className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm/[18px] font-semibold text-white transition hover:bg-healthcare-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
                 <ShieldCheck className="size-4" />
                 {discovery.isPending ? 'Discovering' : 'Discover'}
               </button>
             </div>
           </form>
           {discovery.data ? (
-            <div className="mt-4 rounded-md border border-healthcare-success/30 bg-healthcare-success/10 p-3 text-[13px]/[18px] text-healthcare-success dark:border-healthcare-success/40 dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
+            <div className="mt-4 rounded-md border border-healthcare-success/30 bg-healthcare-success/10 p-3 text-sm/[18px] text-healthcare-success dark:border-healthcare-success/40 dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
               {discovery.data.sourceKey} recorded as {discovery.data.connectionStatus} on FHIR {discovery.data.fhirVersion}; SMART credential is {discovery.data.smartCredentialStatus}.
             </div>
           ) : null}
           {discovery.isError ? (
-            <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
+            <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-sm/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
               Capability discovery failed validation or the API rejected the request.
             </div>
           ) : null}
@@ -265,45 +265,45 @@ export default function IntegrationSettings() {
         <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
           <div className="flex items-center gap-2">
             <FileCheck2 className="size-5 text-healthcare-primary" />
-            <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Writeback Draft</h2>
+            <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Writeback Draft</h2>
           </div>
           <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={submitWriteback}>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Source key
-              <input value={writebackForm.sourceKey} onChange={(event) => setWritebackForm((prev) => ({ ...prev, sourceKey: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={writebackForm.sourceKey} onChange={(event) => setWritebackForm((prev) => ({ ...prev, sourceKey: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Target system
-              <input value={writebackForm.targetSystem} onChange={(event) => setWritebackForm((prev) => ({ ...prev, targetSystem: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={writebackForm.targetSystem} onChange={(event) => setWritebackForm((prev) => ({ ...prev, targetSystem: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Resource type
-              <select value={writebackForm.resourceType} onChange={(event) => setWritebackForm((prev) => ({ ...prev, resourceType: event.target.value as CreateEnterpriseWritebackDraftInput['resource_type'] }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+              <select value={writebackForm.resourceType} onChange={(event) => setWritebackForm((prev) => ({ ...prev, resourceType: event.target.value as CreateEnterpriseWritebackDraftInput['resource_type'] }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
                 {resourceTypes.map((resourceType) => <option key={resourceType} value={resourceType}>{resourceType}</option>)}
               </select>
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Vendor
-              <input value={writebackForm.vendor} onChange={(event) => setWritebackForm((prev) => ({ ...prev, vendor: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={writebackForm.vendor} onChange={(event) => setWritebackForm((prev) => ({ ...prev, vendor: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
-            <label className="space-y-1 text-[12px]/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark md:col-span-2">
+            <label className="space-y-1 text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark md:col-span-2">
               Description
-              <input value={writebackForm.description} onChange={(event) => setWritebackForm((prev) => ({ ...prev, description: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-[14px]/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+              <input value={writebackForm.description} onChange={(event) => setWritebackForm((prev) => ({ ...prev, description: event.target.value }))} className="w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-base/[20px] font-normal text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
             </label>
             <div className="md:col-span-2">
-              <button type="submit" disabled={writeback.isPending} className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-[13px]/[18px] font-semibold text-white transition hover:bg-healthcare-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" disabled={writeback.isPending} className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm/[18px] font-semibold text-white transition hover:bg-healthcare-primary/90 disabled:cursor-not-allowed disabled:opacity-60">
                 <FileCheck2 className="size-4" />
                 {writeback.isPending ? 'Creating' : 'Create draft'}
               </button>
             </div>
           </form>
           {writeback.data ? (
-            <div className="mt-4 rounded-md border border-healthcare-success/30 bg-healthcare-success/10 p-3 text-[13px]/[18px] text-healthcare-success dark:border-healthcare-success/40 dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
+            <div className="mt-4 rounded-md border border-healthcare-success/30 bg-healthcare-success/10 p-3 text-sm/[18px] text-healthcare-success dark:border-healthcare-success/40 dark:bg-healthcare-success/20 dark:text-healthcare-success-dark">
               Draft {writeback.data.writebackDraftId} is {writeback.data.status}; approval {writeback.data.approvalId} is {writeback.data.approvalStatus}.
             </div>
           ) : null}
           {writeback.isError ? (
-            <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-[13px]/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
+            <div className="mt-4 rounded-md border border-healthcare-critical/30 bg-healthcare-critical/10 p-3 text-sm/[18px] text-healthcare-critical dark:border-healthcare-critical/40 dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark">
               Writeback draft creation failed validation or the API rejected the request.
             </div>
           ) : null}

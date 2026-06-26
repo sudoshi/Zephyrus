@@ -51,7 +51,7 @@ export function MetricTile({ label, value, tone = 'neutral' }: { label: string; 
 
   return (
     <div className={`rounded-md border p-4 ${toneClass}`}>
-      <div className="text-[12px]/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="text-xs/[16px] font-medium uppercase tracking-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {label}
       </div>
       <div className="mt-2 text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -77,26 +77,26 @@ export function TransportRequestRow({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${priorityClass(request.priority)}`}>
+            <span className={`rounded px-2 py-0.5 text-xs/[16px] font-semibold ${priorityClass(request.priority)}`}>
               {request.priority.toUpperCase()}
             </span>
-            <span className={`rounded px-2 py-0.5 text-[12px]/[16px] font-semibold ${statusClass(request.status)}`}>
+            <span className={`rounded px-2 py-0.5 text-xs/[16px] font-semibold ${statusClass(request.status)}`}>
               {statusLabels[request.status]}
             </span>
-            <span className="text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <span className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {typeLabels[request.request_type]} · {request.transport_mode}
             </span>
           </div>
-          <div className="mt-2 text-[15px]/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          <div className="mt-2 text-base/[20px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {request.patient_ref}
             {request.encounter_ref ? <span className="font-normal text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"> · {request.encounter_ref}</span> : null}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             <span>{request.origin}</span>
             <Route className="h-4 w-4" />
             <span>{request.destination}</span>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-[12px]/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <div className="mt-2 flex flex-wrap gap-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             <span className={request.sla.at_risk ? 'font-semibold text-healthcare-critical dark:text-healthcare-critical-dark' : ''}>{request.sla.label}</span>
             {request.assigned_team ? <span>Team: {request.assigned_team}</span> : null}
             {request.assigned_vendor ? <span>Vendor: {request.assigned_vendor}</span> : null}
@@ -109,7 +109,7 @@ export function TransportRequestRow({
               <button
                 type="button"
                 onClick={() => onAssign(request)}
-                className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-[13px]/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
+                className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
               >
                 <UserPlus className="h-4 w-4" /> Assign
               </button>
@@ -119,28 +119,28 @@ export function TransportRequestRow({
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'dispatched')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-[13px]/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
+                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
                 >
                   <Send className="h-4 w-4" /> Dispatch
                 </button>
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'en_route')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-[13px]/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
+                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
                 >
                   <Play className="h-4 w-4" /> En Route
                 </button>
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'completed')}
-                  className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-[13px]/[18px] font-medium text-white hover:bg-healthcare-success/90"
+                  className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-sm/[18px] font-medium text-white hover:bg-healthcare-success/90"
                 >
                   <CheckCircle2 className="h-4 w-4" /> Complete
                 </button>
                 <button
                   type="button"
                   onClick={() => onStatus(request, 'canceled')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-critical/30 px-3 py-1.5 text-[13px]/[18px] font-medium text-healthcare-critical hover:bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:text-healthcare-critical-dark dark:hover:bg-healthcare-critical/20"
+                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-critical/30 px-3 py-1.5 text-sm/[18px] font-medium text-healthcare-critical hover:bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:text-healthcare-critical-dark dark:hover:bg-healthcare-critical/20"
                 >
                   <XCircle className="h-4 w-4" /> Cancel
                 </button>
@@ -157,16 +157,16 @@ export function EmptyTransportState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="rounded-md border border-dashed border-healthcare-border p-6 text-center dark:border-healthcare-border-dark">
       <Clock3 className="mx-auto h-8 w-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
-      <h3 className="mt-3 text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+      <h3 className="mt-3 text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         No active transport requests
       </h3>
-      <p className="mx-auto mt-1 max-w-xl text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <p className="mx-auto mt-1 max-w-xl text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         Create a request to exercise the command workflow: assign, dispatch, track movement, and complete the transport.
       </p>
       <button
         type="button"
         onClick={onCreate}
-        className="mt-4 rounded-md bg-healthcare-primary px-4 py-2 text-[13px]/[18px] font-semibold text-white hover:opacity-90"
+        className="mt-4 rounded-md bg-healthcare-primary px-4 py-2 text-sm/[18px] font-semibold text-white hover:opacity-90"
       >
         Create sample request
       </button>

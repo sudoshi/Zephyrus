@@ -20,14 +20,14 @@ export default function Analytics() {
       </div>
 
       <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Active Request Mix</h2>
+        <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Active Request Mix</h2>
         <div className="mt-4 space-y-3">
           {Object.entries(byType).map(([type, count]) => {
             const total = Math.max(data?.metrics.active ?? 0, 1);
             const width = `${Math.round((count / total) * 100)}%`;
             return (
               <div key={type}>
-                <div className="mb-1 flex items-center justify-between text-[13px]/[18px]">
+                <div className="mb-1 flex items-center justify-between text-sm/[18px]">
                   <span className="capitalize text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{type.replaceAll('_', ' ')}</span>
                   <span className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{count}</span>
                 </div>
@@ -38,7 +38,7 @@ export default function Analytics() {
             );
           })}
           {Object.keys(byType).length === 0 && (
-            <p className="text-[13px]/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <p className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               No active requests yet. Analytics populate from the canonical request and event tables.
             </p>
           )}
@@ -46,7 +46,7 @@ export default function Analytics() {
       </section>
 
       <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <h2 className="text-[16px]/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Planned Measures</h2>
+        <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Planned Measures</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {[
             'Request-to-assign minutes',
@@ -56,7 +56,7 @@ export default function Analytics() {
             'Avoidable bed-hours attributed to transport',
             'Vendor acceptance and cancellation rate',
           ].map((measure) => (
-            <div key={measure} className="rounded-md border border-healthcare-border p-3 text-[13px]/[18px] dark:border-healthcare-border-dark">
+            <div key={measure} className="rounded-md border border-healthcare-border p-3 text-sm/[18px] dark:border-healthcare-border-dark">
               {measure}
             </div>
           ))}
