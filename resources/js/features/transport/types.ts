@@ -95,3 +95,73 @@ export interface CreateTransportRequestInput {
   risk_flags?: string[] | Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
+
+export interface EnterpriseConnectorPlaybook {
+  vendorKey: string;
+  label: string;
+  systemClass: string;
+  status: string;
+  capabilities: Record<string, unknown>;
+  implementationSteps: string[];
+}
+
+export interface EnterpriseCoexistenceAdapter {
+  adapterKey: string;
+  label: string;
+  vendorKey: string;
+  status: string;
+  coexistence: Record<string, unknown>;
+}
+
+export interface EnterpriseConnectorSummary {
+  generatedAtIso: string;
+  counts: {
+    interfaceEngines: number;
+    fhirConnections: number;
+    smartCredentials: number;
+    connectorPlaybooks: number;
+    coexistenceAdapters: number;
+    writebackDrafts: number;
+  };
+  playbooks: EnterpriseConnectorPlaybook[];
+  coexistenceAdapters: EnterpriseCoexistenceAdapter[];
+}
+
+export interface DiscoverEnterpriseFhirInput {
+  source_key?: string;
+  vendor?: string;
+  base_url?: string;
+  fhir_version?: string;
+  client_id?: string;
+  jwks_secret_ref?: string;
+  token_url?: string;
+}
+
+export interface EnterpriseFhirDiscovery {
+  sourceId: number;
+  sourceKey: string;
+  connectionId: number | null;
+  connectionStatus: string | null;
+  fhirVersion: string | null;
+  capabilityStatement: Record<string, unknown>;
+  smartCredentialStatus: string;
+}
+
+export interface CreateEnterpriseWritebackDraftInput {
+  source_key?: string;
+  vendor?: string;
+  target_system?: string;
+  resource_type: 'Task' | 'ServiceRequest' | 'TransportRequest' | 'EvsRequest' | 'SecureMessage';
+  draft_type?: string;
+  resource_payload?: Record<string, unknown>;
+}
+
+export interface EnterpriseWritebackDraft {
+  writebackDraftId: number;
+  resourceType: string;
+  targetSystem: string;
+  status: string;
+  actionId: number;
+  approvalId: number;
+  approvalStatus: string;
+}

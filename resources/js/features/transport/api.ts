@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { z } from 'zod';
 import type {
+  CreateEnterpriseWritebackDraftInput,
   CreateTransportRequestInput,
+  DiscoverEnterpriseFhirInput,
+  EnterpriseConnectorSummary,
+  EnterpriseFhirDiscovery,
+  EnterpriseWritebackDraft,
   TransportOverview,
   TransportRequest,
   TransportStatus,
@@ -83,6 +88,53 @@ const overviewSchema = z.object({
   resource_options: z.array(optionSchema),
 });
 
+const enterpriseConnectorSummarySchema = z.object({
+  generatedAtIso: z.string(),
+  counts: z.object({
+    interfaceEngines: z.number(),
+    fhirConnections: z.number(),
+    smartCredentials: z.number(),
+    connectorPlaybooks: z.number(),
+    coexistenceAdapters: z.number(),
+    writebackDrafts: z.number(),
+  }),
+  playbooks: z.array(z.object({
+    vendorKey: z.string(),
+    label: z.string(),
+    systemClass: z.string(),
+    status: z.string(),
+    capabilities: z.record(z.string(), z.unknown()),
+    implementationSteps: z.array(z.string()),
+  })),
+  coexistenceAdapters: z.array(z.object({
+    adapterKey: z.string(),
+    label: z.string(),
+    vendorKey: z.string(),
+    status: z.string(),
+    coexistence: z.record(z.string(), z.unknown()),
+  })),
+});
+
+const enterpriseFhirDiscoverySchema = z.object({
+  sourceId: z.number(),
+  sourceKey: z.string(),
+  connectionId: z.number().nullable(),
+  connectionStatus: z.string().nullable(),
+  fhirVersion: z.string().nullable(),
+  capabilityStatement: z.record(z.string(), z.unknown()),
+  smartCredentialStatus: z.string(),
+});
+
+const enterpriseWritebackDraftSchema = z.object({
+  writebackDraftId: z.number(),
+  resourceType: z.string(),
+  targetSystem: z.string(),
+  status: z.string(),
+  actionId: z.number(),
+  approvalId: z.number(),
+  approvalStatus: z.string(),
+});
+
 const envelope = <T>(schema: z.ZodType<T>) => z.object({ data: schema });
 
 export async function fetchTransportOverview(): Promise<TransportOverview> {
@@ -118,4 +170,19 @@ export async function fetchTransportResources() {
 export async function fetchTransportVendors() {
   const res = await axios.get('/api/transport/vendors');
   return envelope(z.array(optionSchema)).parse(res.data).data;
+}
+
+export async function fetchEnterpriseConnectorSummary(): Promise<EnterpriseConnectorSummary> {
+  const res = await axios.get('/api/admin/integrations/enterprise');
+  return envelope(enterpriseConnectorSummarySchema).parse(res.data).data;
+}
+
+export async function discoverEnterpriseFhirCapabilities(input: DiscoverEnterpriseFhirInput): Promise<EnterpriseFhirDiscovery> {
+  const res = await axios.post('/api/admin/integrations/enterprise/fhir/capability-discovery', input);
+  return envelope(enterpriseFhirDiscoverySchema).parse(res.data).data;
+}
+
+export async function createEnterpriseWritebackDraft(input: CreateEnterpriseWritebackDraftInput): Promise<EnterpriseWritebackDraft> {
+  const res = await axios.post('/api/admin/integrations/enterprise/writeback-drafts', input);
+  return envelope(enterpriseWritebackDraftSchema).parse(res.data).data;
 }

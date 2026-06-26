@@ -1,14 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignTransportRequest,
+  createEnterpriseWritebackDraft,
   createTransportRequest,
+  discoverEnterpriseFhirCapabilities,
+  fetchEnterpriseConnectorSummary,
   fetchTransportOverview,
   fetchTransportRequests,
   fetchTransportResources,
   fetchTransportVendors,
   updateTransportStatus,
 } from './api';
-import type { CreateTransportRequestInput, TransportRequestType, TransportStatus } from './types';
+import type {
+  CreateEnterpriseWritebackDraftInput,
+  CreateTransportRequestInput,
+  DiscoverEnterpriseFhirInput,
+  TransportRequestType,
+  TransportStatus,
+} from './types';
 
 export function useTransportOverview() {
   return useQuery({ queryKey: ['transport', 'overview'], queryFn: fetchTransportOverview });
@@ -27,6 +36,10 @@ export function useTransportResources() {
 
 export function useTransportVendors() {
   return useQuery({ queryKey: ['transport', 'vendors'], queryFn: fetchTransportVendors });
+}
+
+export function useEnterpriseConnectorSummary() {
+  return useQuery({ queryKey: ['admin', 'integrations', 'enterprise'], queryFn: fetchEnterpriseConnectorSummary });
 }
 
 export function useCreateTransportRequest() {
@@ -59,6 +72,29 @@ export function useUpdateTransportStatus() {
     mutationFn: ({ id, status }: { id: number; status: TransportStatus }) => updateTransportStatus(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transport'] });
+    },
+  });
+}
+
+export function useDiscoverEnterpriseFhirCapabilities() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: DiscoverEnterpriseFhirInput) => discoverEnterpriseFhirCapabilities(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'integrations', 'enterprise'] });
+    },
+  });
+}
+
+export function useCreateEnterpriseWritebackDraft() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateEnterpriseWritebackDraftInput) => createEnterpriseWritebackDraft(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'integrations', 'enterprise'] });
+      qc.invalidateQueries({ queryKey: ['ops'] });
     },
   });
 }

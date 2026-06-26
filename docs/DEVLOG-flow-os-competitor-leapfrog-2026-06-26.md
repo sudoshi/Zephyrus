@@ -47,9 +47,22 @@ Converted the competitor research plan into a shipped Zephyrus Flow OS tranche: 
 - Verified `https://zephyrus.acumenus.net/api/health` returns `200`.
 - Verified production route registration for `/api/ops/*` and `/api/admin/integrations/*`.
 
+## Next Slice Progress
+
+- Added live enterprise connector controls to the Transport Integrations surface:
+  - connector catalog counts,
+  - Epic/Oracle/MEDITECH playbook visibility,
+  - TeleTracking/Qventus/LeanTaaS coexistence visibility,
+  - FHIR capability discovery form,
+  - approval-gated writeback draft form.
+- Added zod-validated frontend API contracts for enterprise connector summary, FHIR discovery, and writeback draft creation.
+- Added focused Vitest coverage in `tests/js/transport/api.test.ts`.
+- Validated with:
+  - `npx vitest run tests/js/transport/api.test.ts`
+  - `npm run build`
+
 ## Follow-Up Slices
 
-- Add production runtime visibility for the new connector and agent-control-plane tables after migrations are live.
-- Add a role-specific Admin Integration UI for enterprise connector summary, capability discovery, and writeback draft review.
+- Promote enterprise connector controls into a dedicated Admin nav page with role-specific review queues.
 - Add a role-specific Agent Control Plane UI for definitions, runs, traces, evaluations, and safety events.
 - Continue toward staffing, transfer-center, and executive brief surfaces from the execution plan.
