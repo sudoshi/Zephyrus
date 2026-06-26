@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-26T00:00:00.000Z",
+  "title": "Design System: Zephyrus",
+  "extensions": {
+    "colorMeta": {
+      "primary-blue": { "role": "primary", "displayName": "Interactive Blue", "canonical": "#2563EB", "tonalRamp": ["#0B1A3F", "#13275C", "#1B3A86", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE"] },
+      "brand-crimson": { "role": "secondary", "displayName": "Acumenus Crimson", "canonical": "#9B1B30", "tonalRamp": ["#2E0810", "#4A0E1A", "#6A1220", "#9B1B30", "#B82D42", "#D04058", "#E8869A", "#F8D2DA"] },
+      "accent-gold": { "role": "secondary", "displayName": "Research Gold", "canonical": "#C9A227", "tonalRamp": ["#2E2607", "#4A3D10", "#6E5A18", "#A6791A", "#C9A227", "#D4B340", "#E0C45A", "#F2E3A8"] },
+      "status-success-teal": { "role": "tertiary", "displayName": "Success Teal", "canonical": "#2DD4BF", "tonalRamp": ["#06302B", "#0A4A42", "#0E6B5F", "#127F71", "#20B8A5", "#2DD4BF", "#5FE3D3", "#C2F5EE"] },
+      "status-warning-amber": { "role": "tertiary", "displayName": "Warning Amber", "canonical": "#E5A84B", "tonalRamp": ["#3A2705", "#5C3E08", "#8A5E0E", "#B45309", "#D97706", "#E5A84B", "#F0C77E", "#FBE6C2"] },
+      "status-critical-coral": { "role": "tertiary", "displayName": "Critical Coral", "canonical": "#E85A6B", "tonalRamp": ["#3A0A11", "#5C0F1A", "#8A1722", "#B91C1C", "#DC2626", "#E85A6B", "#F28A97", "#FBD0D6"] },
+      "status-info-blue": { "role": "tertiary", "displayName": "Info Sky", "canonical": "#60A5FA", "tonalRamp": ["#06243A", "#0A3A5C", "#0369A1", "#0284C7", "#0EA5E9", "#60A5FA", "#93C5FD", "#DBEAFE"] },
+      "slate-neutral": { "role": "neutral", "displayName": "Slate", "canonical": "#475569", "tonalRamp": ["#0F172A", "#1E293B", "#334155", "#475569", "#64748B", "#94A3B8", "#CBD5E1", "#F1F5F9"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero metrics and page-level values — the number read from across the room. Always tabular-nums." },
+      "headline": { "displayName": "Headline", "purpose": "Section headers and large KPI values." },
+      "title": { "displayName": "Title", "purpose": "Panel and card titles." },
+      "body": { "displayName": "Body", "purpose": "Default text; cap prose at 65–75ch." },
+      "label": { "displayName": "Label", "purpose": "Uppercase functional data labels on tiles, columns, and axes only — never decorative eyebrows." }
+    },
+    "shadows": [
+      { "name": "resting-light", "value": "0 1px 3px rgba(15,23,42,0.10)", "purpose": "Default panel lift in light mode." },
+      { "name": "hover-light", "value": "0 4px 12px rgba(15,23,42,0.10)", "purpose": "Interactive lift on hover in light mode." },
+      { "name": "hover-dark", "value": "0 4px 12px rgba(0,0,0,0.25)", "purpose": "The only dark-mode shadow; surfaces are otherwise flat, separated by tone." },
+      { "name": "sheen-dark", "value": "linear-gradient(to bottom, rgba(255,255,255,0.10), transparent)", "purpose": "Faint top-down 3D sheen on dark panels." },
+      { "name": "sheen-light", "value": "linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0))", "purpose": "Brighter top-down 3D sheen on light panels." }
+    ],
+    "motion": [
+      { "name": "duration-fast", "value": "100ms", "purpose": "Micro-feedback (hover tint, toggles)." },
+      { "name": "duration-normal", "value": "200ms", "purpose": "Default state transitions." },
+      { "name": "duration-slow", "value": "300ms", "purpose": "Panel lift and surface transitions." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default exponential ease-out for entrances and lifts." },
+      { "name": "ease-smooth", "value": "cubic-bezier(0.40, 0, 0.20, 1)", "purpose": "Symmetric easing for reversible state changes." },
+      { "name": "ease-spring", "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "purpose": "Restrained spring for emphasis only — used sparingly." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "900px" },
+      { "name": "two-col", "value": "1200px" },
+      { "name": "split-narrow", "value": "1400px" },
+      { "name": "content-max", "value": "1600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single interactive-blue primary action. Gold focus ring.",
+      "html": "<button class=\"ds-btn-primary\">Acknowledge alert</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 8px 16px; font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: #fff; background: #2563EB; border: none; border-radius: 8px; cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #1D4ED8; } .ds-btn-primary:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis action: hover-tint only, no fill at rest.",
+      "html": "<button class=\"ds-btn-ghost\">Dismiss</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 8px 12px; font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: #CBD5E1; background: transparent; border: none; border-radius: 8px; cursor: pointer; transition: background 200ms ease, color 200ms ease; } .ds-btn-ghost:hover { background: rgba(148,163,184,0.14); color: #F8FAFC; } .ds-btn-ghost:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Signature surface wrapper: rounded-lg, hairline border, 3D sheen, quiet hover lift. Dark-default.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel-title\">Bed Capacity</div><div class=\"ds-panel-body\">4 West · 28 of 32 occupied</div></div>",
+      "css": ".ds-panel { position: relative; overflow: hidden; padding: 16px; background-color: #1E293B; background-image: linear-gradient(to bottom, rgba(255,255,255,0.10), transparent); border: 1px solid #334155; border-radius: 12px; box-shadow: none; transition: box-shadow 300ms cubic-bezier(0.16,1,0.3,1); } .ds-panel:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.25); } .ds-panel-title { font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; color: #F8FAFC; } .ds-panel-body { margin-top: 4px; font-size: 0.875rem; color: #94A3B8; }"
+    },
+    {
+      "name": "KPI Tile",
+      "kind": "card",
+      "refersTo": "kpi-tile",
+      "description": "Panel + 3px status stripe (the one sanctioned colored side-accent), uppercase label, large tabular value, trajectory arrow. Status always redundantly encoded.",
+      "html": "<div class=\"ds-kpi-tile\"><div class=\"ds-kpi-head\"><span class=\"ds-kpi-label\">ED Boarding</span><span class=\"ds-kpi-info\" title=\"Patients admitted but awaiting an inpatient bed\">&#9432;</span></div><div class=\"ds-kpi-value-row\"><span class=\"ds-kpi-value\">12</span><span class=\"ds-kpi-arrow\" aria-label=\"trending up\">&#9650;</span></div><span class=\"ds-kpi-target\">Target &le; 6</span></div>",
+      "css": ".ds-kpi-tile { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 16px; background-color: #1E293B; background-image: linear-gradient(to bottom, rgba(255,255,255,0.10), transparent); border: 1px solid #334155; border-left: 3px solid #E85A6B; border-radius: 12px; transition: box-shadow 300ms cubic-bezier(0.16,1,0.3,1); } .ds-kpi-tile:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.25); } .ds-kpi-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ds-kpi-label { font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #94A3B8; } .ds-kpi-info { font-size: 0.75rem; color: rgba(148,163,184,0.5); } .ds-kpi-value-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; } .ds-kpi-value { font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 1.75rem; font-weight: 600; font-variant-numeric: tabular-nums; color: #E85A6B; line-height: 1; } .ds-kpi-arrow { font-size: 1rem; font-weight: 600; color: #E85A6B; } .ds-kpi-target { font-size: 0.75rem; color: #94A3B8; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Status communicated by a dot + worded label, never color alone. Teal example.",
+      "html": "<span class=\"ds-status-chip\"><span class=\"ds-status-dot\"></span>On Time</span>",
+      "css": ".ds-status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; color: #5FE3D3; background: rgba(45,212,191,0.15); border: 1px solid rgba(45,212,191,0.30); border-radius: 9999px; } .ds-status-dot { width: 6px; height: 6px; border-radius: 9999px; background: #2DD4BF; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Hairline-bordered field on a surface; gold focus outline.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search units, beds, patients\" />",
+      "css": ".ds-input { width: 100%; height: 36px; padding: 8px 12px; font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: #F8FAFC; background: #1E293B; border: 1px solid #334155; border-radius: 8px; transition: border-color 200ms ease, box-shadow 200ms ease; } .ds-input::placeholder { color: #94A3B8; } .ds-input:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; border-color: #C9A227; }"
+    },
+    {
+      "name": "Top Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav-top",
+      "description": "Sticky 56px bar: wordmark, domain items, search/⌘K, dark toggle, user. Active item gets a hover-tint.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-brand\"><span class=\"ds-nav-logo\">Z</span>Zephyrus</span><a class=\"ds-nav-item ds-nav-item--active\">Command Center</a><a class=\"ds-nav-item\">Emergency</a><a class=\"ds-nav-item\">RTDC</a><a class=\"ds-nav-item\">Perioperative</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 16px; background: #1E293B; border-bottom: 1px solid #334155; font-family: Figtree, ui-sans-serif, system-ui, sans-serif; } .ds-nav-brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 16px; font-size: 17px; font-weight: 700; color: #F8FAFC; } .ds-nav-logo { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: #9B1B30; color: #F0EDE8; font-weight: 700; } .ds-nav-item { padding: 6px 12px; font-size: 0.875rem; font-weight: 500; color: #94A3B8; border-radius: 8px; cursor: pointer; transition: background 300ms ease, color 300ms ease; } .ds-nav-item:hover { background: rgba(148,163,184,0.12); color: #F8FAFC; } .ds-nav-item--active { background: rgba(148,163,184,0.16); color: #F8FAFC; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operations Bridge",
+    "overview": "Zephyrus is the bridge of a ship the size of a hospital — a calm, instrument-dense surface where a charge nurse, a bed manager, and a CMO all read the same truth at different altitudes. It is dark by default because that is where it lives: on wall displays and shared workstations, glanced at during a surge and studied in a Monday review. The design serves the workflow, never performs over it. The working surface is a cool blue/slate operational system; over it sits the Acumenus brand layer — a heritage crimson + gold identity that appears in the wordmark, the focus ring, and a few brand moments, but is never the dashboard's working primary. Status lives in a deliberately small vocabulary — teal, amber, coral, info-blue — rationed so that when something turns coral, it means it.",
+    "keyCharacteristics": [
+      "Dark-default, dual-theme; light mode mirrors the same structure on white/slate.",
+      "Density with clarity — 13–14px body, 4px spacing grid, tabular metrics.",
+      "One interactive color (blue); status as scarce, redundant signal.",
+      "Calm at rest; emphasis is earned by the moment, not applied ambiently.",
+      "Crimson + gold is identity and focus, not chrome."
+    ],
+    "rules": [
+      { "name": "The Two-System Rule", "body": "The blue/slate operational palette governs every working surface and interaction. Crimson + gold is the Acumenus brand/heritage layer — identity, focus, night-shift status — and nothing more. Never promote crimson to a dashboard primary, and never let a new screen drift between the two systems.", "section": "colors" },
+      { "name": "The Earned-Red Rule", "body": "Coral-red is the most expensive ink in the system. It appears only for a genuine breach or critical acuity — never as a default border, never to add energy. If everything is red, nothing is.", "section": "colors" },
+      { "name": "The Status-Never-Alone Rule", "body": "No state is communicated by color alone. Teal, amber, coral, and sky always travel with an arrow, an icon, or a worded label, so meaning survives color-blindness and a grayscale wall display.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Every metric, count, time, and percentage uses tabular-nums. Digits must not reflow or jitter as live values update.", "section": "typography" },
+      { "name": "The Functional-Label Rule", "body": "Uppercase tracked labels are permitted only as data labels on tiles, columns, and chart axes. They are forbidden as decorative eyebrows above sections.", "section": "typography" },
+      { "name": "The Quiet-Lift Rule", "body": "Surfaces are calm at rest and lift only in response to state. In dark mode, prefer a tonal step over a shadow. Depth is a whisper, not a drop-shadow contest.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the blue/slate operational palette as the working surface and use one interactive blue for clickable primary actions (#2563EB / #3B82F6).",
+      "Do ration status color — teal/amber/coral/sky — and always pair it with an arrow, icon, or label.",
+      "Do reserve coral-red for genuine threshold breaches and critical acuity only.",
+      "Do use tabular-nums on every metric, count, time, and percentage.",
+      "Do use the gold :focus-visible outline on every interactive element and honor prefers-reduced-motion with a crossfade or instant alternative.",
+      "Do keep panels calm at rest and lift them only on hover; in dark mode lean on the #0F172A → #1E293B tonal step for depth.",
+      "Do surface provenance/trust inline on metrics — defensible at a glance."
+    ],
+    "donts": [
+      "Don't look like a legacy hospital EHR: no dense gray grids, tiny inscrutable toolbars, or 1998 enterprise chrome.",
+      "Don't look like consumer SaaS / a startup: no playful gradients, blobby illustrations, emoji, or marketing-style hero-metric cards.",
+      "Don't build an alarm-fatigue dashboard: never make everything red, blinking, or urgent at once.",
+      "Don't ship a generic admin template: no Bootstrap/Material defaults, no endless identical card grids, no AI-slop sameness.",
+      "Don't add colored border-left / border-right side-stripes as decoration. The only sanctioned colored side-accent is the KPI status stripe, and even there it must be backed by an arrow, label, and matching data-color.",
+      "Don't use gradient text — emphasis comes from weight and size, in a single solid color.",
+      "Don't use glassmorphism on dashboards. Blur/glass tokens exist only for the auth atmosphere and true overlays; working surfaces stay solid.",
+      "Don't promote crimson to an operational primary or let new screens drift between the two color systems.",
+      "Don't put uppercase tracked labels above sections as decorative eyebrows — they are data labels on tiles and columns only."
+    ]
+  }
+}
