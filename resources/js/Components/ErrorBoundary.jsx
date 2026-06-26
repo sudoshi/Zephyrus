@@ -18,6 +18,14 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      // Optional custom fallback: a render function (receives the error) or a
+      // node. Falls back to the default inline message when not provided, so
+      // existing call sites are unaffected.
+      if (this.props.fallback) {
+        return typeof this.props.fallback === 'function'
+          ? this.props.fallback(this.state.error)
+          : this.props.fallback;
+      }
       return (
         <div className="p-4 rounded-md bg-red-50 border border-red-200">
           <div className="flex">
@@ -49,6 +57,7 @@ ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
   fallbackText: PropTypes.string,
   showError: PropTypes.bool,
+  fallback: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 };
 
 ErrorBoundary.defaultProps = {

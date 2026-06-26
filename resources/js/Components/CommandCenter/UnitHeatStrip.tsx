@@ -2,8 +2,16 @@
 import type { UnitCensus } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
+import { EmptyState } from './states';
 
 export function UnitHeatStrip({ units }: { units: UnitCensus[] }) {
+  if (units.length === 0) {
+    return (
+      <div aria-label="Unit census heat map">
+        <EmptyState message="No units reporting census" />
+      </div>
+    );
+  }
   return (
     <div aria-label="Unit census heat map" className="grid gap-1.5"
          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))' }}>

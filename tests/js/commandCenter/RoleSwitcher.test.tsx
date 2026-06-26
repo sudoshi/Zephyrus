@@ -21,4 +21,29 @@ describe('RoleSwitcher', () => {
     expect(useCommandCenterStore.getState().role).toBe('executive');
     expect(screen.getByRole('tab', { name: 'Executive' })).toHaveAttribute('aria-selected', 'true');
   });
+
+  it('disables the not-yet-functional service-line tab', () => {
+    render(<RoleSwitcher />);
+    const serviceLine = screen.getByRole('tab', { name: /Service Line/ });
+    expect(serviceLine).toBeDisabled();
+    expect(serviceLine).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(serviceLine);
+    expect(useCommandCenterStore.getState().role).toBe('command'); // click is a no-op
+  });
+
+  it('applies a roving tabindex (only the active tab is tabbable)', () => {
+    render(<RoleSwitcher />);
+    expect(screen.getByRole('tab', { name: 'Command' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('tab', { name: 'Executive' })).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('moves selection with arrow keys, wrapping past the disabled tab', () => {
+    render(<RoleSwitcher />);
+    const tablist = screen.getByRole('tablist');
+    fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+    expect(useCommandCenterStore.getState().role).toBe('executive');
+    // ArrowRight again wraps back to command, skipping the disabled service-line
+    fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+    expect(useCommandCenterStore.getState().role).toBe('command');
+  });
 });

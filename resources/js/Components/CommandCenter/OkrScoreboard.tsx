@@ -2,8 +2,12 @@
 import type { Objective } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
+import { EmptyState } from './states';
 
 export function OkrScoreboard({ objectives }: { objectives: Objective[] }) {
+  if (objectives.length === 0) {
+    return <EmptyState message="No objectives configured for this period" icon="heroicons:flag" />;
+  }
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
       {objectives.map((o) => (

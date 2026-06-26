@@ -41,4 +41,18 @@ describe('Band', () => {
     expect(screen.getByText('Door-to-Provider')).toBeInTheDocument();
     expect(screen.getByText('First-Case On-Time')).toBeInTheDocument();
   });
+
+  it('shows an empty state instead of a blank grid when a flat band has no metrics', () => {
+    render(<Band band={{ ...flat, metrics: [] }} />);
+    expect(screen.getByText('No capacity metrics reporting')).toBeInTheDocument();
+  });
+
+  it('shows a per-subgroup empty state when a subgroup has no metrics', () => {
+    const emptySub: BandData = {
+      ...grouped,
+      subgroups: [{ key: 'ed', label: 'Emergency', metrics: [] }],
+    };
+    render(<Band band={emptySub} />);
+    expect(screen.getByText('No Emergency metrics reporting')).toBeInTheDocument();
+  });
 });

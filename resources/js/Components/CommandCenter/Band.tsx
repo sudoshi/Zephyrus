@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import type { BandData, KpiMetric } from '@/types/commandCenter';
 import { KpiTile } from './KpiTile';
+import { EmptyState } from './states';
 
 const GRID = 'repeat(auto-fit, minmax(168px, 1fr))';
 
@@ -13,15 +14,16 @@ const BAND_ICON: Record<BandData['key'], string> = {
   forecast: 'heroicons:presentation-chart-line',
 };
 
-function TileGrid({ metrics }: { metrics: KpiMetric[] }) {
+function TileGrid({ metrics, emptyLabel, detailed }: { metrics: KpiMetric[]; emptyLabel: string; detailed: boolean }) {
+  if (metrics.length === 0) return <EmptyState message={emptyLabel} />;
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: GRID }}>
-      {metrics.map((m) => <KpiTile key={m.key} metric={m} />)}
+      {metrics.map((m) => <KpiTile key={m.key} metric={m} detailed={detailed} />)}
     </div>
   );
 }
 
-export function Band({ band }: { band: BandData }) {
+export function Band({ band, detailed = false }: { band: BandData; detailed?: boolean }) {
   return (
     <section aria-label={band.title} className="flex flex-col gap-2">
       <header className="flex items-center justify-between gap-3 border-b border-healthcare-border dark:border-healthcare-border-dark pb-1 transition-colors duration-300">
@@ -41,17 +43,17 @@ export function Band({ band }: { band: BandData }) {
         </Link>
       </header>
 
-      {band.subgroups ? (
+      {band.subgroups && band.subgroups.length > 0 ? (
         <div className="flex flex-col gap-2">
           {band.subgroups.map((g) => (
             <div key={g.key} className="flex flex-col gap-1">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{g.label}</span>
-              <TileGrid metrics={g.metrics} />
+              <TileGrid metrics={g.metrics} emptyLabel={`No ${g.label} metrics reporting`} detailed={detailed} />
             </div>
           ))}
         </div>
       ) : (
-        <TileGrid metrics={band.metrics} />
+        <TileGrid metrics={band.metrics} emptyLabel={`No ${band.title.toLowerCase()} metrics reporting`} detailed={detailed} />
       )}
     </section>
   );

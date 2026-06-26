@@ -5,13 +5,9 @@ import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
 import { Gauge } from './Gauge';
 
-const detailStatusClass = {
-  critical: 'text-healthcare-critical dark:text-healthcare-critical-dark',
-  warning: 'text-healthcare-warning dark:text-healthcare-warning-dark',
-  success: 'text-healthcare-success dark:text-healthcare-success-dark',
-  info: 'text-healthcare-info dark:text-healthcare-info-dark',
-  neutral: 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark',
-} as const;
+// All status color flows through STATUS_VAR (the canonical CSS-var palette) so a
+// tile shows exactly one coral, one amber, one teal — never a second near-match
+// from the Tailwind healthcare-* tokens.
 
 function Sparkline({
   points, color, target, id,
@@ -106,7 +102,7 @@ function DetailVisualization({ metric }: { metric: KpiMetric }) {
             <div className="truncate text-[0.66rem] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {row.label}
             </div>
-            <div className={`truncate text-xs font-semibold tabular-nums ${detailStatusClass[row.status]}`}>
+            <div className="truncate text-xs font-semibold tabular-nums" style={{ color: STATUS_VAR[row.status] }}>
               {row.value}
             </div>
           </div>
@@ -116,7 +112,7 @@ function DetailVisualization({ metric }: { metric: KpiMetric }) {
   );
 }
 
-export function KpiTile({ metric }: { metric: KpiMetric }) {
+export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detailed?: boolean }) {
   const color = STATUS_VAR[metric.status];
   const arrow = metric.trajectory
     ? metric.trajectory.direction === 'up' ? '▲'
@@ -133,7 +129,8 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
     <span
       title={metric.lineageSummary ?? `Source trust ${metric.sourceTrust.score}%`}
       aria-label={`Source trust: ${metric.sourceTrust.score}%`}
-      className={`shrink-0 rounded-full border border-healthcare-border/70 bg-healthcare-surface/70 px-1.5 py-0.5 text-[0.62rem] font-semibold tabular-nums dark:border-healthcare-border-dark/70 dark:bg-healthcare-surface-dark/70 ${detailStatusClass[metric.sourceTrust.status]}`}
+      style={{ color: STATUS_VAR[metric.sourceTrust.status] }}
+      className="shrink-0 rounded-full border border-healthcare-border/70 bg-healthcare-surface/70 px-1.5 py-0.5 text-[0.62rem] font-semibold tabular-nums dark:border-healthcare-border-dark/70 dark:bg-healthcare-surface-dark/70"
     >
       Trust {metric.sourceTrust.score}%
     </span>
@@ -166,10 +163,10 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
               {targetRow}
             </div>
           </div>
-          {metric.detail && metric.trajectory && (
+          {detailed && metric.detail && metric.trajectory && (
             <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
           )}
-          <DetailVisualization metric={metric} />
+          {detailed && <DetailVisualization metric={metric} />}
         </>
       ) : (
         <>
@@ -183,11 +180,11 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
               </span>
             )}
           </div>
-          {metric.trajectory && (
+          {detailed && metric.trajectory && (
             <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
           )}
           {targetRow}
-          <DetailVisualization metric={metric} />
+          {detailed && <DetailVisualization metric={metric} />}
         </>
       )}
     </Panel>

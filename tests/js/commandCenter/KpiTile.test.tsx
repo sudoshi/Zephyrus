@@ -49,9 +49,26 @@ describe('KpiTile', () => {
     expect(screen.getByText('Trust 92%')).toBeInTheDocument();
   });
 
-  it('renders a sparkline for non-circle metrics with trajectory data', () => {
-    render(<KpiTile metric={{ ...base, key: 'net_beds', unit: 'beds', display: '4', value: 4 }} />);
+  it('colors source trust from the unified STATUS_VAR palette (single status source)', () => {
+    render(<KpiTile metric={{
+      ...base,
+      sourceTrust: { score: 92, status: 'success', freshSourceCount: 2, staleSourceCount: 0, missingSourceCount: 0 },
+    }} />);
+    expect(screen.getByText('Trust 92%').getAttribute('style')).toContain('var(--success)');
+  });
+
+  it('renders a sparkline for non-circle metrics in detailed (review) mode', () => {
+    render(<KpiTile detailed metric={{ ...base, key: 'net_beds', unit: 'beds', display: '4', value: 4 }} />);
     expect(screen.getByTestId('sparkline-net_beds')).toBeInTheDocument();
+  });
+
+  it('collapses sparkline and detail breakdown in glance mode (the default)', () => {
+    render(<KpiTile metric={{
+      ...base, key: 'net_beds', unit: 'beds', display: '4', value: 4,
+      detail: { caption: 'drivers', segments: [], rows: [{ label: 'r', value: '1', status: 'info' }] },
+    }} />);
+    expect(screen.queryByTestId('sparkline-net_beds')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('metric-detail-net_beds')).not.toBeInTheDocument();
   });
 
   it('keeps percent metrics on the circle gauge treatment', () => {
@@ -60,7 +77,7 @@ describe('KpiTile', () => {
   });
 
   it('renders detail visualization and sparkline for detailed percent metrics', () => {
-    render(<KpiTile metric={{
+    render(<KpiTile detailed metric={{
       ...base,
       key: 'surge_prob',
       label: 'Surge Probability',

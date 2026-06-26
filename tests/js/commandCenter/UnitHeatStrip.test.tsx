@@ -24,4 +24,10 @@ describe('UnitHeatStrip', () => {
     render(<UnitHeatStrip units={units} />);
     expect(screen.getByLabelText('Unit census heat map')).toBeInTheDocument();
   });
+
+  it('shows an empty state (still labelled) when no units report', () => {
+    render(<UnitHeatStrip units={[]} />);
+    expect(screen.getByLabelText('Unit census heat map')).toBeInTheDocument();
+    expect(screen.getByText('No units reporting census')).toBeInTheDocument();
+  });
 });

@@ -135,6 +135,23 @@ export function parseCommandCenterData(input: unknown): CommandCenterData {
   return commandCenterDataSchema.parse(input);
 }
 
+export type SafeParseResult =
+  | { ok: true; data: CommandCenterData }
+  | { ok: false; error: string };
+
+/**
+ * Non-throwing payload parse for the command center. A malformed payload must
+ * degrade to a defensible "data unavailable" surface, never a white-screen — on
+ * an ops floor, a missing dashboard is recoverable, a crashed one is not.
+ */
+export function safeParseCommandCenterData(input: unknown): SafeParseResult {
+  const result = commandCenterDataSchema.safeParse(input);
+  if (result.success) return { ok: true, data: result.data };
+  const first = result.error.issues[0];
+  const where = first?.path?.length ? ` (at ${first.path.join('.')})` : '';
+  return { ok: false, error: `${first?.message ?? 'Invalid command center payload'}${where}` };
+}
+
 export const commandCenterDailyMetricSchema = z.object({
   metricKey: z.string(),
   label: z.string(),

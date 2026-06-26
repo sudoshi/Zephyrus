@@ -23,4 +23,9 @@ describe('OkrScoreboard', () => {
     render(<OkrScoreboard objectives={objectives} />);
     expect(screen.getByTestId('kr-progress-ED boarding')).toHaveStyle({ width: '33%' });
   });
+
+  it('shows an empty state when no objectives are configured', () => {
+    render(<OkrScoreboard objectives={[]} />);
+    expect(screen.getByText('No objectives configured for this period')).toBeInTheDocument();
+  });
 });
