@@ -92,3 +92,50 @@ Converted the competitor research plan into a shipped Zephyrus Flow OS tranche: 
 - Add a role-specific Agent Control Plane UI for definitions, runs, traces, evaluations, and safety events.
 - Harden Phase 8 regional transfer fixtures against live ADT/FHIR/transfer-center feeds and add role-specific transfer-center queues.
 - Continue toward staffing and executive brief surfaces from the execution plan.
+
+## Phase 9 Progress — Staffing Operations And Demo Closure
+
+Closed the gaps that blocked the Section-9 integrated demo so it is end-to-end reproducible from a single deterministic seed.
+
+- Added a first-class staffing operations domain:
+  - `prod.staffing_plans`, `prod.staffing_requests`, `prod.staffing_events` (migration `2026_06_27_000100`),
+  - `StaffingPlan`/`StaffingRequest`/`StaffingEvent` models, `StaffingOperationsService`, form requests, `StaffingController`,
+  - `/api/staffing/{overview,plans,requests,...}` routes,
+  - `tests/Feature/Staffing/StaffingApiTest.php` (5 tests).
+- Wired staffing into the operational intelligence layer:
+  - graph-backed `staffing_gap` recommendation with unit/role evidence and an approval-gated `mitigate_staffing_gap` action,
+  - `staffing_gap` simulation baseline metric, a `staffing_relief` scenario, and staffing relief inside the combined capacity plan,
+  - `tests/Feature/Ops/StaffingIntelligenceTest.php` (2 tests).
+- Added the Staffing Office surface:
+  - `resources/js/Pages/Staffing/StaffingOffice.tsx` (coverage posture, units at risk, gap-by-role, governed float/overtime/agency/on-call mitigation queue),
+  - `resources/js/features/staffing/{api,hooks,types}.ts` with zod contracts,
+  - a `Staffing` navigation domain and `/staffing` web route.
+- Added the Executive Briefing Agent and execution surfaces:
+  - read-only `executive_brief.compose` tool synthesizing capacity, root causes, governed plan, measured impact, and source lineage,
+  - `executive_briefing_agent` definition + runner, `/api/ops/agents/executive-briefing/run`, with golden-case evals, prompt-injection blocking, and PHI minimization,
+  - `resources/js/Pages/Ops/{AgentInbox,ExecutiveBrief}.tsx` + `resources/js/features/ops/{api,hooks,types}.ts`,
+  - `/ops/agent-inbox` and `/ops/executive-brief` web routes and an Operations Console nav group,
+  - executive-briefing coverage in `tests/Feature/Ops/AgentControlPlaneTest.php`.
+- Completed the Section-9 demo seed in `CommandCenterDemoSeeder`:
+  - two understaffed units (6 East + ICU, RN gap 4, critical),
+  - an EVS turnover backlog (6 active, 4 at-risk, 1 stat),
+  - a transport backlog with stat/overdue moves,
+  - a naturally stale source feed (`process_events`) from the materializer.
+- Added Phase 0 artifacts:
+  - `docs/superpowers/specs/2026-06-26-competitor-capability-scorecard.md`,
+  - `docs/superpowers/specs/2026-06-26-90day-demo-walkthrough.md`.
+
+### Validation
+
+- `php artisan test` — 228 passed, 2115 assertions.
+- `./vendor/bin/pint --test app database/seeders routes` — clean (303 files).
+- `npx tsc --noEmit` — clean.
+- `npx vite build` — passed (existing large-chunk warnings only).
+- Seeded scenario produces all eight root-cause recommendations (`ed_boarding, bed_pressure, blocked_beds, or_pacu_pressure, transport_sla_risk, flow_barrier, staffing_gap, stale_source_feed`), eight simulation scenarios including `staffing_relief`, and a governed executive brief with passing evals.
+
+### Release
+
+- Committed as `d293b66`, `f13549f`, `83423be`, `01355ae`, `609cd0c`.
+- Applied production migration `2026_06_27_000100_create_staffing_operations_tables` (additive) plus any pending Phase 8 regional migrations.
+- Re-seeded the Command Center demo (idempotent) and verified the staffing/EVS/transport demo signals on production.
+- Verified `https://zephyrus.acumenus.net/api/health` returns `200` and the new `/api/staffing/*` and `/api/ops/agents/executive-briefing/run` routes register.
