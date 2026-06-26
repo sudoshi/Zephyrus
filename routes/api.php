@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Rtdc\HuddleController;
 use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\Staffing\StaffingController;
 use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
@@ -132,6 +133,19 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('evs')->group(functi
     Route::post('/requests/{evsRequestId}/status', [EvsRequestController::class, 'status']);
     Route::post('/requests/{evsRequestId}/cancel', [EvsRequestController::class, 'cancel']);
     Route::get('/resources', [EvsRequestController::class, 'resources']);
+});
+
+// Staffing operations / staffing office (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('staffing')->group(function () {
+    Route::get('/overview', [StaffingController::class, 'overview']);
+    Route::get('/plans', [StaffingController::class, 'plans']);
+    Route::get('/requests', [StaffingController::class, 'index']);
+    Route::post('/requests', [StaffingController::class, 'store']);
+    Route::get('/requests/{staffingRequestId}', [StaffingController::class, 'show']);
+    Route::post('/requests/{staffingRequestId}/assign', [StaffingController::class, 'assign']);
+    Route::post('/requests/{staffingRequestId}/status', [StaffingController::class, 'status']);
+    Route::post('/requests/{staffingRequestId}/cancel', [StaffingController::class, 'cancel']);
+    Route::get('/resources', [StaffingController::class, 'resources']);
 });
 
 // Operations graph foundation (web session auth)
