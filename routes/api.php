@@ -157,6 +157,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(functi
     Route::get('/agents/definitions', [AgentController::class, 'definitions']);
     Route::post('/agents/capacity-commander/run', [AgentController::class, 'runCapacityCommander']);
     Route::post('/agents/data-quality/run', [AgentController::class, 'runDataQuality']);
+    Route::post('/agents/executive-briefing/run', [AgentController::class, 'runExecutiveBriefing']);
     Route::get('/agents/runs/{run}', [AgentController::class, 'show']);
     Route::post('/approvals/{approval}/decision', [OperationalActionController::class, 'decideApproval']);
     Route::post('/actions/{action}/assign', [OperationalActionController::class, 'assign']);

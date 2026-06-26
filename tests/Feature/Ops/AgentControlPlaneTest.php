@@ -105,6 +105,45 @@ class AgentControlPlaneTest extends TestCase
         ]);
     }
 
+    public function test_executive_briefing_agent_composes_read_only_brief(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $this->seedCapacityFixture();
+        $actionsBefore = DB::table('ops.actions')->count();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/ops/agents/executive-briefing/run', [
+                'objective' => 'Compose the morning executive brief.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.agentKey', 'executive_briefing_agent')
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.output.readOnly', true)
+            ->assertJsonPath('data.toolCalls.0.toolKey', 'executive_brief.compose')
+            ->assertJsonPath('data.toolCalls.0.readOnly', true);
+
+        $output = $response->json('data.output');
+        $this->assertNotEmpty($output['headline']);
+        $this->assertArrayHasKey('situation', $output);
+        $this->assertArrayHasKey('recommendedPlan', $output);
+        $this->assertArrayHasKey('measuredImpact', $output);
+        $this->assertArrayHasKey('confidenceStatement', $output);
+        $this->assertContains('ops.recommendations', $output['sourceTables']);
+
+        // Read-only: the brief never mutates the action ledger.
+        $this->assertSame($actionsBefore, DB::table('ops.actions')->count());
+
+        $this->assertDatabaseHas('ops.agent_definitions', [
+            'agent_key' => 'executive_briefing_agent',
+            'read_only' => true,
+        ]);
+        $this->assertDatabaseHas('ops.agent_evaluations', [
+            'agent_run_id' => $response->json('data.agentRunId'),
+            'evaluation_key' => 'phi_minimized',
+            'status' => 'pass',
+        ]);
+    }
+
     public function test_prompt_injection_is_blocked_before_tool_execution(): void
     {
         $user = User::factory()->create(['role' => 'user']);

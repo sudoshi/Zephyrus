@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Operations;
+use App\Http\Controllers\Ops\OpsConsoleController;
 use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
@@ -153,6 +154,10 @@ Route::middleware(['auth'])
 
         // Staffing Office
         Route::get('/staffing', [StaffingDashboardController::class, 'index'])->name('staffing');
+
+        // Operations Console — agent governance + executive brief
+        Route::get('/ops/agent-inbox', [OpsConsoleController::class, 'agentInbox'])->name('ops.agent-inbox');
+        Route::get('/ops/executive-brief', [OpsConsoleController::class, 'executiveBrief'])->name('ops.executive-brief');
 
         // Transport Routes
         Route::prefix('transport')->name('transport.')->group(function () {

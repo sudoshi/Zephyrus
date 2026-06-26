@@ -104,6 +104,47 @@ class AgentControlPlaneService
         });
     }
 
+    public function runExecutiveBriefingAgent(?User $actor, string $objective = 'Compose the current executive operations brief with source lineage and confidence.'): AgentRun
+    {
+        $definition = $this->materializeDefinition($this->definitionCatalog()['executive_briefing_agent']);
+
+        return $this->runner->run($definition, $actor, $objective, [
+            'agent' => 'executive_briefing_agent',
+            'tool_allowlist' => $definition->tool_allowlist,
+        ], function (AgentRun $run) use ($actor, $objective): array {
+            if ($blocked = $this->blockedObjective($run, $objective)) {
+                return $blocked;
+            }
+
+            $brief = $this->executeTool($run, 'executive_brief.compose', [], $actor);
+            $output = [
+                'key' => 'executive_briefing_agent',
+                'label' => 'Executive Briefing Agent',
+                'mode' => 'rules_only',
+                'llmEnabled' => false,
+                'readOnly' => true,
+                'status' => (string) $brief['status'],
+                'headline' => $brief['headline'],
+                'summary' => [
+                    'situationCount' => count($brief['situation']),
+                    'pendingApprovals' => $brief['recommendedPlan']['pendingApprovals'],
+                    'openRecommendations' => $brief['recommendedPlan']['openRecommendations'],
+                    'confidenceLevel' => $brief['measuredImpact']['confidenceLevel'],
+                ],
+                'situation' => $brief['situation'],
+                'recommendedPlan' => $brief['recommendedPlan'],
+                'measuredImpact' => $brief['measuredImpact'],
+                'sourceLineage' => $brief['sourceLineage'],
+                'confidenceStatement' => $brief['confidenceStatement'],
+                'sourceTables' => $brief['sourceTables'],
+            ];
+
+            $this->writeGoldenEvaluations($run, $output, expectedTool: 'executive_brief.compose');
+
+            return $output;
+        });
+    }
+
     /** @return array<string,mixed>|null */
     private function blockedObjective(AgentRun $run, string $objective): ?array
     {
@@ -250,6 +291,22 @@ class AgentControlPlaneService
                 'read_only' => true,
                 'minimum_role' => 'user',
                 'tool_allowlist' => ['data_quality.summary'],
+                'safety_policy' => [
+                    'approval_required_for_writes' => true,
+                    'phi_minimization' => true,
+                    'prompt_injection_blocking' => true,
+                    'stale_data_guardrails' => true,
+                ],
+            ],
+            'executive_briefing_agent' => [
+                'agent_key' => 'executive_briefing_agent',
+                'label' => 'Executive Briefing Agent',
+                'description' => 'Read-only rules agent that composes an executive operations brief with situation, governed plan, measured impact, and source lineage.',
+                'mode' => 'rules_only',
+                'status' => 'active',
+                'read_only' => true,
+                'minimum_role' => 'user',
+                'tool_allowlist' => ['executive_brief.compose'],
                 'safety_policy' => [
                     'approval_required_for_writes' => true,
                     'phi_minimization' => true,

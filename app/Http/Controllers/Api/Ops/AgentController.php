@@ -62,6 +62,20 @@ class AgentController extends Controller
         return response()->json(['data' => $this->serializeRun($run)]);
     }
 
+    public function runExecutiveBriefing(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'objective' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $run = $this->agents->runExecutiveBriefingAgent(
+            $request->user(),
+            $validated['objective'] ?? 'Compose the current executive operations brief with source lineage and confidence.',
+        );
+
+        return response()->json(['data' => $this->serializeRun($run)]);
+    }
+
     public function show(AgentRun $run): JsonResponse
     {
         return response()->json(['data' => $this->serializeRun($run)]);

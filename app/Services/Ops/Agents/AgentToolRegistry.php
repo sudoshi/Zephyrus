@@ -4,6 +4,7 @@ namespace App\Services\Ops\Agents;
 
 use App\Models\User;
 use App\Services\Analytics\OperationsAnalyticsService;
+use App\Services\Ops\InterventionAttributionService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,10 @@ use RuntimeException;
 
 class AgentToolRegistry
 {
-    public function __construct(private readonly OperationsAnalyticsService $analytics) {}
+    public function __construct(
+        private readonly OperationsAnalyticsService $analytics,
+        private readonly InterventionAttributionService $interventions,
+    ) {}
 
     /** @return array<string,array<string,mixed>> */
     public function tools(): array
@@ -27,6 +31,12 @@ class AgentToolRegistry
             'data_quality.summary' => [
                 'label' => 'Data quality summary',
                 'description' => 'Rules-only analytics governance and source freshness summary.',
+                'read_only' => true,
+                'minimum_role' => 'user',
+            ],
+            'executive_brief.compose' => [
+                'label' => 'Executive brief composer',
+                'description' => 'Read-only synthesis of capacity, root causes, governed plan, measured impact, and source lineage.',
                 'read_only' => true,
                 'minimum_role' => 'user',
             ],
@@ -50,6 +60,7 @@ class AgentToolRegistry
         return match ($toolKey) {
             'capacity.snapshot' => $this->capacitySnapshot(),
             'data_quality.summary' => $this->analytics->dataQuality(),
+            'executive_brief.compose' => $this->executiveBrief(),
             default => throw new RuntimeException("Unhandled agent tool [{$toolKey}]."),
         };
     }
@@ -196,6 +207,148 @@ class AgentToolRegistry
         ])
             ->reject(fn (array $finding): bool => $finding['status'] === 'success')
             ->values()
+            ->all();
+    }
+
+    /** @return array<string,mixed> */
+    private function executiveBrief(): array
+    {
+        $capacity = $this->capacitySnapshot();
+        $dataQuality = $this->analytics->dataQuality();
+        $impact = $this->interventions->dashboard();
+        $staffingGap = $this->staffingGap();
+        $capacitySummary = $capacity['summary'];
+
+        $openRecommendations = $this->openRecommendations();
+        $pendingApprovals = (int) $this->countRows('ops.approvals', fn (Builder $query) => $query->where('status', 'pending'));
+        $draftActions = (int) $this->countRows('ops.actions', fn (Builder $query) => $query->where('status', 'draft'));
+
+        $dqSummary = $dataQuality['summary'] ?? [];
+        $criticalSources = (int) ($dqSummary['critical'] ?? 0);
+        $warningSources = (int) ($dqSummary['warning'] ?? 0);
+        $sourceTrustStatus = $criticalSources > 0 ? 'critical' : ($warningSources > 0 ? 'warning' : 'success');
+
+        $situation = collect([
+            [
+                'domain' => 'Capacity',
+                'status' => $capacitySummary['netBeds'] < 0 ? 'critical' : ($capacitySummary['netBeds'] <= 3 ? 'warning' : 'success'),
+                'detail' => "{$capacitySummary['netBeds']} net beds after pending admits; risk score {$capacitySummary['riskScore']}.",
+            ],
+            [
+                'domain' => 'Emergency',
+                'status' => $capacitySummary['edBoarders'] > 0 ? 'warning' : 'success',
+                'detail' => "{$capacitySummary['edBoarders']} admitted ED patients awaiting beds.",
+            ],
+            [
+                'domain' => 'Transport',
+                'status' => $capacitySummary['transportAtRisk'] > 0 ? 'warning' : 'success',
+                'detail' => "{$capacitySummary['transportAtRisk']} transport requests at SLA risk.",
+            ],
+            [
+                'domain' => 'Staffing',
+                'status' => $staffingGap['gap'] > 0 ? ($staffingGap['critical'] ? 'critical' : 'warning') : 'success',
+                'detail' => $staffingGap['gap'] > 0
+                    ? "{$staffingGap['units']} units short {$staffingGap['gap']} staff for the current shift."
+                    : 'No active staffing gaps for the current shift.',
+            ],
+            [
+                'domain' => 'Data quality',
+                'status' => $sourceTrustStatus,
+                'detail' => "{$criticalSources} critical and {$warningSources} warning governance checks across source feeds.",
+            ],
+        ])->reject(fn (array $row): bool => $row['status'] === 'success')->values()->all();
+
+        $statusRank = ['critical' => 3, 'warning' => 2, 'success' => 1];
+        $overall = collect($situation)->pluck('status')->push($capacity['status'])->push($sourceTrustStatus)
+            ->sortByDesc(fn (string $status): int => $statusRank[$status] ?? 0)->first() ?? 'success';
+
+        $impactSummary = $impact['summary'] ?? [];
+
+        return [
+            'tool' => 'executive_brief.compose',
+            'generatedAtIso' => now()->toIso8601String(),
+            'status' => $overall,
+            'headline' => $overall === 'critical'
+                ? 'Operations are under critical capacity and flow pressure with governed mitigation pending approval.'
+                : ($overall === 'warning'
+                    ? 'Operations are tight with active risks; governed mitigation is staged for approval.'
+                    : 'Operations are stable with no critical flow or data-trust risks.'),
+            'situation' => $situation,
+            'recommendedPlan' => [
+                'pendingApprovals' => $pendingApprovals,
+                'draftActions' => $draftActions,
+                'openRecommendations' => count($openRecommendations),
+                'topRecommendations' => $openRecommendations,
+            ],
+            'measuredImpact' => [
+                'totalInterventions' => $impactSummary['totalInterventions'] ?? 0,
+                'estimatedNetBedGain' => $impactSummary['estimatedNetBedGain'] ?? 0,
+                'primaryOutcomesImproved' => $impactSummary['primaryOutcomesImproved'] ?? 0,
+                'primaryOutcomeCount' => $impactSummary['primaryOutcomeCount'] ?? 0,
+                'confidenceLevel' => $impactSummary['confidenceLevel'] ?? 'insufficient',
+                'confidenceLanguage' => $impactSummary['confidenceLanguage'] ?? 'No measured intervention outcomes are available yet.',
+            ],
+            'sourceLineage' => collect($dataQuality['sourceMap'] ?? [])
+                ->map(fn ($source): array => [
+                    'domain' => $source['label'] ?? ($source['key'] ?? 'source'),
+                    'status' => $source['status'] ?? 'info',
+                    'detail' => $source['detail'] ?? ($source['summary'] ?? ''),
+                ])
+                ->take(8)
+                ->values()
+                ->all(),
+            'confidenceStatement' => $overall === 'critical'
+                ? 'High-confidence operational risk based on current census, ED, transport, and staffing signals; impact estimates remain directional pending balancing-measure review.'
+                : 'Brief reflects current governed state; outcome attribution uses before/after windows with balancing-measure caveats and should not be read as causal proof.',
+            'sourceTables' => [
+                'prod.census_snapshots', 'prod.bed_requests', 'prod.ed_visits', 'prod.transport_requests',
+                'prod.staffing_plans', 'ops.recommendations', 'ops.approvals', 'ops.interventions', 'ops.source_freshness',
+            ],
+        ];
+    }
+
+    /** @return array{gap:int,units:int,critical:bool} */
+    private function staffingGap(): array
+    {
+        if (! Schema::hasTable('prod.staffing_plans')) {
+            return ['gap' => 0, 'units' => 0, 'critical' => false];
+        }
+
+        $row = DB::selectOne(<<<'SQL'
+            SELECT
+                COALESCE(SUM(GREATEST(required_count - GREATEST(scheduled_count, actual_count), 0)), 0) AS gap,
+                COUNT(DISTINCT CASE WHEN (required_count - GREATEST(scheduled_count, actual_count)) > 0 THEN unit_id END) AS units,
+                COUNT(CASE WHEN status = 'critical_gap' THEN 1 END) AS critical
+            FROM prod.staffing_plans
+            WHERE is_deleted = false AND shift_date = CURRENT_DATE
+        SQL);
+
+        return [
+            'gap' => (int) ($row->gap ?? 0),
+            'units' => (int) ($row->units ?? 0),
+            'critical' => (int) ($row->critical ?? 0) > 0,
+        ];
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function openRecommendations(): array
+    {
+        if (! Schema::hasTable('ops.recommendations')) {
+            return [];
+        }
+
+        return DB::table('ops.recommendations')
+            ->whereNotIn('status', ['completed', 'rejected', 'overridden', 'expired'])
+            ->orderByRaw("CASE risk_level WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END")
+            ->orderByDesc('updated_at')
+            ->limit(6)
+            ->get(['recommendation_type', 'title', 'risk_level', 'status'])
+            ->map(fn (object $row): array => [
+                'type' => $row->recommendation_type,
+                'title' => $row->title,
+                'riskLevel' => $row->risk_level,
+                'status' => $row->status,
+            ])
             ->all();
     }
 

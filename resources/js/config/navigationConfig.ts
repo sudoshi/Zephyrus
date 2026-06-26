@@ -7,12 +7,14 @@ import {
   BarChart3,
   BedDouble,
   BookOpen,
+  Bot,
   Boxes,
   CalendarClock,
   ClipboardList,
   ClipboardCheck,
   Clock,
   DoorOpen,
+  FileText,
   Gauge,
   GitBranch,
   HeartPulse,
@@ -252,7 +254,7 @@ export const NAVIGATION: readonly NavDomain[] = [
     icon: BarChart3,
     dashboardHref: '/analytics',
     dashboardLabel: 'Operations Intelligence',
-    matchPrefixes: ['/analytics'],
+    matchPrefixes: ['/analytics', '/ops'],
     groups: [
       {
         title: 'Control',
@@ -260,6 +262,13 @@ export const NAVIGATION: readonly NavDomain[] = [
           { label: 'Intelligence Hub', href: '/analytics', icon: BarChart3 },
           { label: 'Live Signals', href: '/analytics/live', icon: Activity },
           { label: 'Data Quality', href: '/analytics/data-quality', icon: Shield },
+        ],
+      },
+      {
+        title: 'Operations Console',
+        items: [
+          { label: 'Agent Inbox', href: '/ops/agent-inbox', icon: Bot },
+          { label: 'Executive Brief', href: '/ops/executive-brief', icon: FileText },
         ],
       },
       {
