@@ -411,12 +411,12 @@ const Process = ({ auth, savedLayout }) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded relative max-w-xl"
+            className="bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 border border-healthcare-critical dark:border-healthcare-critical-dark text-healthcare-critical dark:text-healthcare-critical-dark px-4 py-3 rounded relative max-w-xl"
             role="alert"
           >
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <Icon icon="lucide:alert-triangle" className="h-5 w-5 text-red-400" />
+                <Icon icon="lucide:alert-triangle" className="h-5 w-5 text-healthcare-critical dark:text-healthcare-critical-dark" />
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium mb-2">Error loading {selectedMap} process map</p>
@@ -428,7 +428,7 @@ const Process = ({ auth, savedLayout }) => {
                   Retry
                 </button>
                 <button 
-                  className="mt-2 px-3 py-1 text-sm bg-red-200 dark:bg-red-800 rounded"
+                  className="mt-2 px-3 py-1 text-sm bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 rounded"
                   onClick={() => window.location.reload()}
                 >
                   Retry

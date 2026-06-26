@@ -199,17 +199,17 @@ const Bottlenecks = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {bottleneckStats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 relative group"
+            <div
+              key={index}
+              className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4 relative group"
               title={stat.tooltip}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{stat.title}</p>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{stat.title}</p>
                     <div className="relative">
-                      <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 -top-12 -left-1/2 whitespace-nowrap">
+                      <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm -top-12 -left-1/2 whitespace-nowrap">
                         {stat.tooltip}
                       </div>
                     </div>
@@ -219,20 +219,20 @@ const Bottlenecks = () => {
                   </h3>
                   <div className="flex items-center mt-2">
                     {stat.changeType === 'positive' ? (
-                      <div className="flex items-center px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900">
-                        <TrendingDown className="h-3.5 w-3.5 text-green-600 dark:text-green-400 mr-1" />
-                        <span className="text-sm font-medium text-green-600 dark:text-green-400">{stat.change}</span>
+                      <div className="flex items-center px-2 py-0.5 rounded-full bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
+                        <TrendingDown className="h-3.5 w-3.5 text-healthcare-success dark:text-healthcare-success-dark mr-1" />
+                        <span className="text-sm font-medium text-healthcare-success dark:text-healthcare-success-dark">{stat.change}</span>
                       </div>
                     ) : (
-                      <div className="flex items-center px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900">
-                        <TrendingUp className="h-3.5 w-3.5 text-red-600 dark:text-red-400 mr-1" />
-                        <span className="text-sm font-medium text-red-600 dark:text-red-400">{stat.change}</span>
+                      <div className="flex items-center px-2 py-0.5 rounded-full bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20">
+                        <TrendingUp className="h-3.5 w-3.5 text-healthcare-critical dark:text-healthcare-critical-dark mr-1" />
+                        <span className="text-sm font-medium text-healthcare-critical dark:text-healthcare-critical-dark">{stat.change}</span>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className={`rounded-full p-2 ${stat.changeType === 'positive' ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                  <stat.icon className={`h-8 w-8 ${stat.changeType === 'positive' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+                <div className={`rounded-full p-2 ${stat.changeType === 'positive' ? 'bg-healthcare-success/10 dark:bg-healthcare-success-dark/20' : 'bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20'}`}>
+                  <stat.icon className={`h-8 w-8 ${stat.changeType === 'positive' ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'}`} />
                 </div>
               </div>
             </div>
@@ -242,58 +242,58 @@ const Bottlenecks = () => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Bottlenecks Panel */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-4">Top Bottlenecks (24h)</h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 <thead>
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rank</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Type</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Location</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Impact</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trend</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Rank</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Type</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Location</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Impact</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Trend</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                   {bottleneckData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
+                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         #{item.rank}
                       </td>
                       <td className="px-3 py-2">
-                        <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">{item.type}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium">{item.type}</div>
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           {item.keyFactors.map((factor, idx) => (
                             <span key={idx} className="inline-flex items-center mr-2">
-                              <span className="w-1 h-1 bg-gray-400 rounded-full mr-1"></span>
+                              <span className="w-1 h-1 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full mr-1"></span>
                               {factor}
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">{item.location}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{item.location}</div>
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           {item.patientsAffected} patients affected
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           {item.cascadingImpact}
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                        <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                           Score: {item.impactScore.toFixed(1)}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           Avg Delay: {item.avgDelay}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           Stress Level: {Array(item.stressScore).fill('●').join('')}
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <div className={`text-sm font-medium ${item.trend.includes('+') ? 'text-red-500' : 'text-green-500'}`}>
+                        <div className={`text-sm font-medium ${item.trend.includes('+') ? 'text-healthcare-critical dark:text-healthcare-critical-dark' : 'text-healthcare-success dark:text-healthcare-success-dark'}`}>
                           {item.trend}
                         </div>
                       </td>
@@ -305,42 +305,42 @@ const Bottlenecks = () => {
           </div>
 
           {/* Resource Utilization Panel */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-4">Resource Utilization & Stress</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Resource</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Peak Time</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Utilization</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Insights</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Resource</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Peak Time</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Utilization</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase">Insights</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                   {resourceData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
                       <td className="px-3 py-2">
-                        <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{item.resource}</div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700">
+                        <div className="font-medium text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{item.resource}</div>
+                        <div className="flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-healthcare-background dark:bg-healthcare-background-dark">
                             {item.responseTime}
                           </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-healthcare-background dark:bg-healthcare-background-dark">
                             {item.completionRate}
                           </span>
                         </div>
-                        <div className="text-xs text-red-500 mt-1 font-medium">
+                        <div className="text-xs text-healthcare-critical dark:text-healthcare-critical-dark mt-1 font-medium">
                           {item.staffingGap}
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">{item.peakTime}</div>
+                        <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{item.peakTime}</div>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {item.criticalAreas.map((area, idx) => (
-                            <span 
+                            <span
                               key={idx}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
                             >
                               {area}
                             </span>
@@ -349,24 +349,24 @@ const Bottlenecks = () => {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center mb-2">
-                          <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mr-2 overflow-hidden">
-                            <div 
-                              className={`h-2.5 rounded-full transition-all duration-300 ${item.utilization > item.target ? 'bg-red-500' : 'bg-green-500'}`}
+                          <div className="w-24 bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5 mr-2 overflow-hidden">
+                            <div
+                              className={`h-2.5 rounded-full transition-all duration-300 ${item.utilization > item.target ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark' : 'bg-healthcare-success dark:bg-healthcare-success-dark'}`}
                               style={{ width: `${item.utilization}%` }}
                             />
                           </div>
                           <span className="text-sm font-medium">{item.utilization}%</span>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark flex items-center gap-1">
                           <span>Target:</span>
                           <span className="font-medium">{item.target}%</span>
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.insight}</div>
+                        <div className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{item.insight}</div>
                         <ul className="mt-2 space-y-1.5">
                           {item.recommendations.map((rec, idx) => (
-                            <li key={idx} className="text-xs text-gray-600 dark:text-gray-300 flex items-start">
+                            <li key={idx} className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark flex items-start">
                               <span className="w-1 h-1 bg-healthcare-primary dark:bg-healthcare-primary-dark rounded-full mr-2 mt-1.5"></span>
                               <span className="flex-1">{rec}</span>
                             </li>

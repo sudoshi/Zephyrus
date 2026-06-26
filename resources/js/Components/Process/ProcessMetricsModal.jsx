@@ -103,7 +103,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-healthcare-background-dark rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
+      <div className="bg-healthcare-surface dark:bg-healthcare-background-dark rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
         <div className="p-6 space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">

@@ -32,9 +32,9 @@ const failureTypes = [
 ];
 
 const impactLevels = [
-  { value: 'high', label: 'High Impact', color: 'text-red-500' },
-  { value: 'medium', label: 'Medium Impact', color: 'text-yellow-500' },
-  { value: 'low', label: 'Low Impact', color: 'text-green-500' },
+  { value: 'high', label: 'High Impact', color: 'text-healthcare-critical dark:text-healthcare-critical-dark' },
+  { value: 'medium', label: 'Medium Impact', color: 'text-healthcare-warning dark:text-healthcare-warning-dark' },
+  { value: 'low', label: 'Low Impact', color: 'text-healthcare-success dark:text-healthcare-success-dark' },
 ];
 
 export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) {
@@ -114,24 +114,24 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Total Events</h3>
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border shadow-sm">
+          <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Events</h3>
           <p className="text-2xl font-semibold">{failures.length}</p>
         </div>
-        <div className="bg-white p-4 rounded-lg border shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">High Impact Events</h3>
-          <p className="text-2xl font-semibold text-red-500">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border shadow-sm">
+          <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">High Impact Events</h3>
+          <p className="text-2xl font-semibold text-healthcare-critical dark:text-healthcare-critical-dark">
             {failures.filter(f => f.impact === 'high').length}
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg border shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Most Common Type</h3>
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border shadow-sm">
+          <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Most Common Type</h3>
           <p className="text-2xl font-semibold">
             {Object.entries(failuresByType).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'}
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg border shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Last 7 Days</h3>
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border shadow-sm">
+          <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Last 7 Days</h3>
           <p className="text-2xl font-semibold">
             {failures.filter(f => {
               const sevenDaysAgo = new Date();
@@ -143,7 +143,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border space-y-4">
+        <form onSubmit={handleSubmit} className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Add New Failure Event</h3>
             <Button
@@ -166,7 +166,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
                 onChange={e => setData({ ...data, date: e.target.value })}
               />
               {errors.date && (
-                <p className="text-sm text-red-500">{errors.date}</p>
+                <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.date}</p>
               )}
             </div>
 
@@ -188,7 +188,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
                 </SelectContent>
               </Select>
               {errors.type && (
-                <p className="text-sm text-red-500">{errors.type}</p>
+                <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.type}</p>
               )}
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
               rows={2}
             />
             {errors.description && (
-              <p className="text-sm text-red-500">{errors.description}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.description}</p>
             )}
           </div>
 
@@ -230,7 +230,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
                 </SelectContent>
               </Select>
               {errors.impact && (
-                <p className="text-sm text-red-500">{errors.impact}</p>
+                <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.impact}</p>
               )}
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
               rows={2}
             />
             {errors.rootCause && (
-              <p className="text-sm text-red-500">{errors.rootCause}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.rootCause}</p>
             )}
           </div>
 
@@ -259,7 +259,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
               rows={2}
             />
             {errors.actionTaken && (
-              <p className="text-sm text-red-500">{errors.actionTaken}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.actionTaken}</p>
             )}
           </div>
 
@@ -274,7 +274,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
             <Button
               type="submit"
               disabled={processing}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-healthcare-primary dark:bg-healthcare-primary-dark text-white hover:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary"
             >
               Add Event
             </Button>
@@ -284,7 +284,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
 
       {/* Filter Controls */}
       <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-gray-500" />
+        <Filter className="w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by type" />
@@ -333,7 +333,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-500 hover:text-red-700"
+                  className="text-healthcare-critical dark:text-healthcare-critical-dark hover:text-healthcare-critical-dark dark:hover:text-healthcare-critical"
                   onClick={() => handleDelete(failure.id)}
                 >
                   <X className="w-4 h-4" />
@@ -343,7 +343,7 @@ export default function DischargeFailuresTab({ cycleId, initialFailures = [] }) 
           ))}
           {filteredFailures.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-gray-500">
+              <TableCell colSpan={7} className="text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 No discharge failures recorded
               </TableCell>
             </TableRow>

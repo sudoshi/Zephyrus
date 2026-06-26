@@ -300,7 +300,7 @@ const ProcessSelector = ({
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Process Map</span>
                                     <div className="flex items-center space-x-2">
-                                        <div className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${viewMode === 'process-map' ? 'bg-healthcare-primary' : 'bg-gray-300 dark:bg-gray-600'}`} onClick={() => onViewModeChange('process-map')}>
+                                        <div className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${viewMode === 'process-map' ? 'bg-healthcare-primary' : 'bg-healthcare-border dark:bg-healthcare-border-dark'}`} onClick={() => onViewModeChange('process-map')}>
                                             <div className={`bg-white dark:bg-gray-200 h-3 w-3 rounded-full shadow-md transform transition-transform ${viewMode === 'process-map' ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                         </div>
                                         <span className="text-sm font-medium">BPMN Model</span>
@@ -381,7 +381,7 @@ const ProcessSelector = ({
                                         max="200"
                                         value={nodeCount}
                                         onChange={(e) => onNodeCountChange(parseInt(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        className="w-full h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-lg appearance-none cursor-pointer"
                                     />
                                 </div>
                         
@@ -396,7 +396,7 @@ const ProcessSelector = ({
                                         max="50"
                                         value={arcCount}
                                         onChange={(e) => onArcCountChange(parseInt(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        className="w-full h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-lg appearance-none cursor-pointer"
                                     />
                                 </div>
                         
@@ -411,7 +411,7 @@ const ProcessSelector = ({
                                         max="100"
                                         value={parallelismFactor}
                                         onChange={(e) => onParallelismChange(parseInt(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        className="w-full h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded-lg appearance-none cursor-pointer"
                                     />
                                 </div>
                             </div>

@@ -7,37 +7,37 @@ import { opportunities as improvementOpportunities } from '@/mock-data/improveme
 const getTrendIcon = (trend) => {
   switch (trend.toLowerCase()) {
     case 'increasing':
-      return <TrendingUp className="h-4 w-4 text-red-500" />;
+      return <TrendingUp className="h-4 w-4 text-healthcare-critical dark:text-healthcare-critical-dark" />;
     case 'decreasing':
-      return <TrendingDown className="h-4 w-4 text-green-500" />;
+      return <TrendingDown className="h-4 w-4 text-healthcare-success dark:text-healthcare-success-dark" />;
     default:
-      return <Minus className="h-4 w-4 text-gray-500" />;
+      return <Minus className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />;
   }
 };
 
 const getImpactColor = (impact) => {
   switch (impact.toLowerCase()) {
     case 'high':
-      return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900';
+      return 'text-healthcare-critical bg-healthcare-critical/10 dark:text-healthcare-critical-dark dark:bg-healthcare-critical-dark/20';
     case 'medium':
-      return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+      return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
     case 'low':
-      return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+      return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
     default:
-      return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+      return 'text-healthcare-text-secondary bg-healthcare-background dark:text-healthcare-text-secondary-dark dark:bg-healthcare-background-dark';
   }
 };
 
 const getStatusColor = (status) => {
   switch (status.toLowerCase()) {
     case 'new':
-      return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
+      return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
     case 'in progress':
-      return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+      return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
     case 'completed':
-      return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+      return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
     default:
-      return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+      return 'text-healthcare-text-secondary bg-healthcare-background dark:text-healthcare-text-secondary-dark dark:bg-healthcare-background-dark';
   }
 };
 
@@ -47,7 +47,7 @@ const OpportunityCard = ({ title, description, impact, source, department, statu
       <div className="flex justify-between items-start">
         <div className="space-y-2">
           <h3 className="text-lg font-medium">{title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+          <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{description}</p>
           <div className="flex items-center gap-3">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getImpactColor(impact)}`}>
               {impact} Impact
@@ -55,7 +55,7 @@ const OpportunityCard = ({ title, description, impact, source, department, statu
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
               {status}
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {department}
             </span>
           </div>
@@ -125,7 +125,7 @@ const Index = ({ auth }) => {
 
               <div className="mt-4 flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
                   <input
                     type="text"
                     placeholder="Search opportunities..."

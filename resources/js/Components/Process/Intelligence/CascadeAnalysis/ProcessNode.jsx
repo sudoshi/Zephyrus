@@ -22,7 +22,7 @@ const ProcessNode = ({ data, isConnectable }) => {
         className="w-2 h-2 !bg-healthcare-border dark:!bg-healthcare-border-dark"
       />
       <div className={`px-4 py-2 rounded-lg shadow-sm border border-healthcare-border dark:border-healthcare-border-dark ${
-        data.type === 'primary' ? 'bg-white dark:bg-healthcare-background-dark' : 'bg-white dark:bg-healthcare-background-dark'
+        data.type === 'primary' ? 'bg-healthcare-surface dark:bg-healthcare-background-dark' : 'bg-healthcare-surface dark:bg-healthcare-background-dark'
       }`}>
         <div className="flex items-center gap-2">
           <div className={`rounded-full p-1.5 ${getStatusColor()}`}>

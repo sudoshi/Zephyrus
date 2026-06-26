@@ -68,7 +68,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
               error={errors.title}
             />
             {errors.title && (
-              <p className="text-sm text-red-500">{errors.title}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.title}</p>
             )}
           </div>
 
@@ -83,7 +83,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
               error={errors.objective}
             />
             {errors.objective && (
-              <p className="text-sm text-red-500">{errors.objective}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.objective}</p>
             )}
           </div>
 
@@ -97,7 +97,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
               error={errors.dueDate}
             />
             {errors.dueDate && (
-              <p className="text-sm text-red-500">{errors.dueDate}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.dueDate}</p>
             )}
           </div>
 
@@ -112,7 +112,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
               error={errors.metrics}
             />
             {errors.metrics && (
-              <p className="text-sm text-red-500">{errors.metrics}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.metrics}</p>
             )}
           </div>
 
@@ -127,7 +127,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
               error={errors.expectedOutcome}
             />
             {errors.expectedOutcome && (
-              <p className="text-sm text-red-500">{errors.expectedOutcome}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.expectedOutcome}</p>
             )}
           </div>
 
@@ -143,7 +143,7 @@ export default function CreatePDSACycleModal({ isOpen, onClose }) {
             <Button
               type="submit"
               disabled={processing}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-healthcare-primary dark:bg-healthcare-primary-dark text-white hover:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary"
             >
               Create PDSA Cycle
             </Button>

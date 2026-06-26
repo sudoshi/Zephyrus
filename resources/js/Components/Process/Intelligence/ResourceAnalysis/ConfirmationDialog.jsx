@@ -68,7 +68,7 @@ const ConfirmationDialog = ({
         if (e.target === dialogRef.current) onClose();
       }}
     >
-      <div className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-healthcare-background-dark p-6 text-left align-middle shadow-xl transition-all">
+      <div className="w-full max-w-md transform overflow-hidden rounded-2xl bg-healthcare-surface dark:bg-healthcare-background-dark p-6 text-left align-middle shadow-xl transition-all">
         <div className="flex items-start gap-4">
           <div className={`rounded-full p-2 ${type === 'danger' ? 'bg-healthcare-critical/10' : 'bg-healthcare-warning/10'}`}>
             <Icon className={`h-6 w-6 ${styles.iconClass}`} />

@@ -38,7 +38,7 @@ const ProcessIntelligenceModal = ({ isOpen, onClose, metrics }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-healthcare-background-dark rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-healthcare-surface dark:bg-healthcare-background-dark rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark">
           <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">

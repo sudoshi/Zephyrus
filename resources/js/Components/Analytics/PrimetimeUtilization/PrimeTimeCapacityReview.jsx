@@ -167,7 +167,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
         {showTooltip && (
           <div 
             ref={tooltipRef}
-            className="fixed z-[9999] bg-healthcare-surface dark:bg-healthcare-surface-dark text-white p-3 rounded shadow-lg w-72"
+            className="fixed z-[9999] bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark p-3 rounded shadow-lg w-72"
             style={{
               top: `${tooltipPosition.top}px`,
               left: `${tooltipPosition.left}px`,
@@ -407,7 +407,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Average Prime Time Utilization Chart */}
               <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
-                <div className="text-lg font-semibold mb-2 text-white">Average Prime Time Utilization</div>
+                <div className="text-lg font-semibold mb-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Prime Time Utilization</div>
                 <ResponsiveLine
                   data={utilizationTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
@@ -466,7 +466,7 @@ const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
               
               {/* Average # of 8 Hour ORs per day Chart */}
               <div className="h-80 bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
-                <div className="text-lg font-semibold mb-2 text-white">Average # of 8 Hour ORs per day trend</div>
+                <div className="text-lg font-semibold mb-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average # of 8 Hour ORs per day trend</div>
                 <ResponsiveLine
                   data={orsPerDayTrendData}
                   margin={{ top: 20, right: 20, bottom: 50, left: 60 }}

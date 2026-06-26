@@ -40,28 +40,28 @@ const PDSADashboard = ({ auth }) => {
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'plan':
-        return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+        return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
       case 'do':
-        return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
+        return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
       case 'study':
         return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
       case 'act':
-        return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+        return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
       default:
-        return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+        return 'text-healthcare-text-secondary bg-healthcare-background dark:text-healthcare-text-secondary-dark dark:bg-healthcare-background-dark';
     }
   };
 
   const getPriorityColor = (priority) => {
     switch (priority.toLowerCase()) {
       case 'high':
-        return 'text-red-600';
+        return 'text-healthcare-critical dark:text-healthcare-critical-dark';
       case 'medium':
-        return 'text-yellow-600';
+        return 'text-healthcare-warning dark:text-healthcare-warning-dark';
       case 'low':
-        return 'text-green-600';
+        return 'text-healthcare-success dark:text-healthcare-success-dark';
       default:
-        return 'text-gray-600';
+        return 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark';
     }
   };
 
@@ -113,7 +113,7 @@ const PDSADashboard = ({ auth }) => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-white dark:bg-gray-800 border rounded-md"
+                className="px-3 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border rounded-md"
               >
                 <option value="all">All Statuses</option>
                 <option value="plan">Plan</option>
@@ -124,7 +124,7 @@ const PDSADashboard = ({ auth }) => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 bg-white dark:bg-gray-800 border rounded-md"
+                className="px-3 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border rounded-md"
               >
                 <option value="dueDate">Sort by Due Date</option>
                 <option value="progress">Sort by Progress</option>
@@ -136,18 +136,18 @@ const PDSADashboard = ({ auth }) => {
           <CardContent className="p-6">
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Cycles</h3>
+              <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Cycles</h3>
                 <p className="text-2xl font-semibold mt-1">{cycles.length}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">In Progress</h3>
+              <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">In Progress</h3>
                 <p className="text-2xl font-semibold mt-1">
                   {cycles.filter(c => c.status !== 'completed').length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Due This Week</h3>
+              <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Due This Week</h3>
                 <p className="text-2xl font-semibold mt-1">
                   {cycles.filter(c => {
                     const dueDate = new Date(c.dueDate);
@@ -158,8 +158,8 @@ const PDSADashboard = ({ auth }) => {
                   }).length}
                 </p>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</h3>
+              <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Completed</h3>
                 <p className="text-2xl font-semibold mt-1">
                   {cycles.filter(c => c.status === 'completed').length}
                 </p>
@@ -171,12 +171,12 @@ const PDSADashboard = ({ auth }) => {
               {filteredCycles.map((cycle, index) => (
                 <div
                   key={index}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
+                  className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start">
                     <div className="space-y-2">
                       <h3 className="text-lg font-medium">{cycle.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-400">{cycle.plan.objective}</p>
+                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
                       <div className="flex items-center gap-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cycle.status)}`}>
                           {cycle.status}
@@ -184,18 +184,18 @@ const PDSADashboard = ({ auth }) => {
                         <span className={`text-sm ${getPriorityColor(cycle.priority)}`}>
                           {cycle.priority} Priority
                         </span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                           Due: {formatDate(cycle.dueDate)}
                         </span>
                       </div>
                     </div>
-                    <Button variant="ghost" className="text-gray-400 hover:text-gray-500">
+                    <Button variant="ghost" className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark">
                       <Icon icon="heroicons:ellipsis-vertical" className="w-5 h-5" />
                     </Button>
                   </div>
 
                   <div className="mt-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center justify-between text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span>Progress</span>
                       <span>{cycle.progress}%</span>
                     </div>
@@ -204,11 +204,11 @@ const PDSADashboard = ({ auth }) => {
 
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <Icon icon="heroicons:user" className="w-4 h-4 inline mr-1" />
                         {cycle.owner}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <Icon icon="heroicons:users" className="w-4 h-4 inline mr-1" />
                         {cycle.team?.length || 0} team members
                       </span>

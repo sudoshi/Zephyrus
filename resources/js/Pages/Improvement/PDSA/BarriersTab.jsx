@@ -23,9 +23,9 @@ import {
 import { Plus, X } from 'lucide-react';
 
 const priorityLevels = [
-  { value: 'high', label: 'High', color: 'text-red-500' },
-  { value: 'medium', label: 'Medium', color: 'text-yellow-500' },
-  { value: 'low', label: 'Low', color: 'text-green-500' },
+  { value: 'high', label: 'High', color: 'text-healthcare-critical dark:text-healthcare-critical-dark' },
+  { value: 'medium', label: 'Medium', color: 'text-healthcare-warning dark:text-healthcare-warning-dark' },
+  { value: 'low', label: 'Low', color: 'text-healthcare-success dark:text-healthcare-success-dark' },
 ];
 
 const statusOptions = [
@@ -107,7 +107,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
       </div>
 
       {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border space-y-4">
+        <form onSubmit={handleSubmit} className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Add New Barrier</h3>
             <Button
@@ -130,7 +130,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
               rows={2}
             />
             {errors.description && (
-              <p className="text-sm text-red-500">{errors.description}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.description}</p>
             )}
           </div>
 
@@ -188,7 +188,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
               rows={2}
             />
             {errors.mitigation && (
-              <p className="text-sm text-red-500">{errors.mitigation}</p>
+              <p className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{errors.mitigation}</p>
             )}
           </div>
 
@@ -203,7 +203,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
             <Button
               type="submit"
               disabled={processing}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-healthcare-primary dark:bg-healthcare-primary-dark text-white hover:bg-healthcare-primary-dark"
             >
               Add Barrier
             </Button>
@@ -254,7 +254,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-500 hover:text-red-700"
+                  className="text-healthcare-critical dark:text-healthcare-critical-dark hover:text-healthcare-critical-dark"
                   onClick={() => handleDelete(barrier.id)}
                 >
                   <X className="w-4 h-4" />
@@ -264,7 +264,7 @@ export default function BarriersTab({ cycleId, initialBarriers = mockBarriers })
           ))}
           {barriers.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-gray-500">
+              <TableCell colSpan={5} className="text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 No barriers identified yet
               </TableCell>
             </TableRow>

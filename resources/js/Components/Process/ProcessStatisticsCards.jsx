@@ -29,7 +29,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Urgent Cases</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-semibold text-red-500">{statistics.urgentCases}</p>
+          <p className="text-2xl font-semibold text-healthcare-critical dark:text-healthcare-critical-dark">{statistics.urgentCases}</p>
         </CardContent>
       </Card>
       
@@ -38,7 +38,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Delayed Cases</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-semibold text-yellow-500">{statistics.delayedCases}</p>
+          <p className="text-2xl font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">{statistics.delayedCases}</p>
         </CardContent>
       </Card>
     </div>

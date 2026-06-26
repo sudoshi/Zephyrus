@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 
 const MetricItem = ({ label, value, subValue }) => (
-  <div className="p-3 bg-gray-50 rounded-lg">
-    <div className="text-sm text-gray-600">{label}</div>
+  <div className="p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
+    <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
     <div className="text-xl font-semibold mt-1">{value}</div>
     {subValue && (
-      <div className="text-sm text-gray-500 mt-1">{subValue}</div>
+      <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">{subValue}</div>
     )}
   </div>
 );
@@ -42,10 +42,10 @@ const ProcessMetricsPanel = ({
                   {Object.entries(selectedNode.data.metrics.cohorts).map(([cohort, data]) => (
                     <div 
                       key={cohort}
-                      className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                      className="flex justify-between items-center p-2 bg-healthcare-background dark:bg-healthcare-background-dark rounded"
                     >
                       <span className="font-medium capitalize">{cohort}</span>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <span className="mr-4">{data.count} patients</span>
                         <span>{data.avgTime}</span>
                       </div>
@@ -88,10 +88,10 @@ const ProcessMetricsPanel = ({
                   {Object.entries(selectedEdge.data.cohortMetrics).map(([cohort, metrics]) => (
                     <div 
                       key={cohort}
-                      className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                      className="flex justify-between items-center p-2 bg-healthcare-background dark:bg-healthcare-background-dark rounded"
                     >
                       <span className="font-medium capitalize">{cohort}</span>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <span className="mr-4">{metrics.count} patients</span>
                         <span>{metrics.avgTime}</span>
                       </div>

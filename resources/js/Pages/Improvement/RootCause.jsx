@@ -162,8 +162,8 @@ const ProcessItem = ({ item, onClick, isSelected }) => {
     <div 
       className={`p-4 mb-3 rounded-lg cursor-pointer transition-all shadow-sm ${
         isSelected 
-          ? `${processTypeObj.color} ${processTypeObj.darkColor} text-white shadow-md` 
-          : `bg-white dark:bg-gray-800 border-2 ${processTypeObj.borderColor} ${processTypeObj.darkBorderColor} hover:bg-gray-50 dark:hover:bg-gray-700`
+          ? `${processTypeObj.color} ${processTypeObj.darkColor} text-white shadow-md`
+          : `bg-healthcare-surface dark:bg-healthcare-surface-dark border-2 ${processTypeObj.borderColor} ${processTypeObj.darkBorderColor} hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark`
       }`}
       onClick={() => onClick(item)}
     >
@@ -173,29 +173,29 @@ const ProcessItem = ({ item, onClick, isSelected }) => {
         </h3>
         <span className={`text-xs px-2 py-1 rounded-full font-medium ${
           isSelected 
-            ? 'bg-white bg-opacity-30 text-white' 
-            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            ? 'bg-white bg-opacity-30 text-white'
+            : 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
         }`}>
           {item.status}
         </span>
       </div>
-      <p className={`text-sm mb-2 ${isSelected ? 'text-white text-opacity-90' : 'text-gray-600 dark:text-gray-400'}`}>
+      <p className={`text-sm mb-2 ${isSelected ? 'text-white text-opacity-90' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}`}>
         <span className="font-medium">Location:</span> {item.location}
       </p>
-      <p className={`text-xs ${isSelected ? 'text-white text-opacity-80' : 'text-gray-500 dark:text-gray-500'}`}>
+      <p className={`text-xs ${isSelected ? 'text-white text-opacity-80' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}`}>
         <span className="font-medium">Date:</span> {new Date(item.date).toLocaleDateString()}
       </p>
       
       {/* OCEL Related Objects */}
       {item.relatedObjects && item.relatedObjects.length > 0 && (
-        <div className={`flex flex-wrap gap-1 mt-2 pt-2 ${isSelected ? 'border-t border-white border-opacity-20' : 'border-t border-gray-200 dark:border-gray-700'}`}>
+        <div className={`flex flex-wrap gap-1 mt-2 pt-2 ${isSelected ? 'border-t border-white border-opacity-20' : 'border-t border-healthcare-border dark:border-healthcare-border-dark'}`}>
           {item.relatedObjects.map((obj, idx) => (
             <div 
               key={idx} 
               className={`flex items-center rounded-full px-2 py-1 text-xs ${
-                isSelected 
-                  ? 'bg-white bg-opacity-20' 
-                  : 'bg-gray-100 dark:bg-gray-700'
+                isSelected
+                  ? 'bg-white bg-opacity-20'
+                  : 'bg-healthcare-background dark:bg-healthcare-background-dark'
               }`}
             >
               <Icon 
@@ -233,7 +233,7 @@ const ChatMessage = ({ message, isUser }) => {
         className={`max-w-3/4 rounded-lg p-3 ${
           isUser
             ? 'bg-healthcare-primary text-white dark:bg-healthcare-primary-dark'
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+            : 'bg-healthcare-background text-healthcare-text-primary dark:bg-healthcare-background-dark dark:text-healthcare-text-primary-dark'
         }`}
       >
         <p className="text-sm whitespace-pre-line">{formatMessage(message)}</p>
@@ -647,14 +647,14 @@ const RootCause = ({ rootCauses = [] }) => {
           <div className="grid grid-cols-3 gap-6 mb-6">
             {/* Location filter */}
             <div>
-              <label htmlFor="location-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="location-filter" className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                 Location
               </label>
               <select
                 id="location-filter"
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-healthcare-primary focus:ring focus:ring-healthcare-primary focus:ring-opacity-50"
+                className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark dark:text-white shadow-sm focus:border-healthcare-primary focus:ring focus:ring-healthcare-primary focus:ring-opacity-50"
               >
                 <option value="">All Locations</option>
                 {HOSPITAL_LOCATIONS.map((location) => (
@@ -667,14 +667,14 @@ const RootCause = ({ rootCauses = [] }) => {
             
             {/* Process type filter */}
             <div>
-              <label htmlFor="type-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="type-filter" className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                 Process Type
               </label>
               <select
                 id="type-filter"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-healthcare-primary focus:ring focus:ring-healthcare-primary focus:ring-opacity-50"
+                className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark dark:text-white shadow-sm focus:border-healthcare-primary focus:ring focus:ring-healthcare-primary focus:ring-opacity-50"
               >
                 <option value="">All Types</option>
                 {Object.keys(PROCESS_TYPES).map((type) => (
@@ -687,7 +687,7 @@ const RootCause = ({ rootCauses = [] }) => {
             
             {/* Date range */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Range</label>
+              <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Date Range</label>
               <div className="flex space-x-2">
                 <div className="flex-1">
                   <DatePicker
@@ -696,7 +696,7 @@ const RootCause = ({ rootCauses = [] }) => {
                     selectsStart
                     startDate={startDate}
                     endDate={endDate}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-healthcare-primary focus:border-healthcare-primary dark:bg-gray-700 dark:text-white text-sm"
+                    className="w-full px-3 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:outline-none focus:ring-healthcare-primary focus:border-healthcare-primary bg-healthcare-surface dark:bg-healthcare-surface-dark dark:text-white text-sm"
                     dateFormat="MMM d, yyyy"
                     placeholderText="Start Date"
                   />
@@ -709,13 +709,13 @@ const RootCause = ({ rootCauses = [] }) => {
                     startDate={startDate}
                     endDate={endDate}
                     minDate={startDate}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-healthcare-primary focus:border-healthcare-primary dark:bg-gray-700 dark:text-white text-sm"
+                    className="w-full px-3 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:outline-none focus:ring-healthcare-primary focus:border-healthcare-primary bg-healthcare-surface dark:bg-healthcare-surface-dark dark:text-white text-sm"
                     dateFormat="MMM d, yyyy"
                     placeholderText="End Date"
                   />
                 </div>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                 Showing items from {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}
               </p>
             </div>
@@ -726,12 +726,12 @@ const RootCause = ({ rootCauses = [] }) => {
             {/* Process items column with tabs */}
             <div className="col-span-1 flex flex-col">
               {/* Tabs */}
-              <div className="flex mb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex mb-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                 <button
                   className={`py-2 px-4 font-medium border-b-2 transition-colors ${
                     activeTab === 'New'
                       ? 'border-healthcare-primary dark:border-healthcare-primary-dark text-healthcare-primary dark:text-healthcare-primary-dark'
-                      : 'text-gray-500 dark:text-gray-400'
+                      : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                   }`}
                   onClick={() => setActiveTab('New')}
                 >
@@ -741,7 +741,7 @@ const RootCause = ({ rootCauses = [] }) => {
                   className={`py-2 px-4 font-medium border-b-2 transition-colors ${
                     activeTab === 'In-Progress'
                       ? 'border-healthcare-primary dark:border-healthcare-primary-dark text-healthcare-primary dark:text-healthcare-primary-dark'
-                      : 'text-gray-500 dark:text-gray-400'
+                      : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                   }`}
                   onClick={() => setActiveTab('In-Progress')}
                 >
@@ -751,7 +751,7 @@ const RootCause = ({ rootCauses = [] }) => {
                   className={`py-2 px-4 font-medium border-b-2 transition-colors ${
                     activeTab === 'Completed'
                       ? 'border-healthcare-primary dark:border-healthcare-primary-dark text-healthcare-primary dark:text-healthcare-primary-dark'
-                      : 'text-gray-500 dark:text-gray-400'
+                      : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
                   }`}
                   onClick={() => setActiveTab('Completed')}
                 >
@@ -760,8 +760,8 @@ const RootCause = ({ rootCauses = [] }) => {
               </div>
               
               {/* Process Items Container */}
-              <div className="overflow-y-auto bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 h-[950px]">
-                <h3 className="font-medium text-gray-900 dark:text-white mb-3">{activeTab} Processes</h3>
+              <div className="overflow-y-auto bg-healthcare-surface dark:bg-healthcare-surface-dark border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 mb-4 h-[950px]">
+                <h3 className="font-medium text-healthcare-text-primary dark:text-white mb-3">{activeTab} Processes</h3>
                 {activeTab === 'New' && (
                   <div className="space-y-4">
                     {filteredNewItems.length > 0 ? (
@@ -774,7 +774,7 @@ const RootCause = ({ rootCauses = [] }) => {
                         />
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <div className="text-center py-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         No new items found matching your filters.
                       </div>
                     )}
@@ -793,7 +793,7 @@ const RootCause = ({ rootCauses = [] }) => {
                         />
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <div className="text-center py-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         No in-progress items found matching your filters.
                       </div>
                     )}
@@ -812,7 +812,7 @@ const RootCause = ({ rootCauses = [] }) => {
                         />
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <div className="text-center py-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         No completed items found matching your filters.
                       </div>
                     )}
@@ -825,9 +825,9 @@ const RootCause = ({ rootCauses = [] }) => {
             <div className="col-span-3 flex flex-col">
               {/* Chat interface */}
               <div className="flex flex-col mb-4">
-                <h2 className="font-medium text-gray-900 dark:text-white mb-3">How Can I Help?</h2>
-                <div className="flex flex-col border-2 border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden h-[500px]">
-                  <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800">
+                <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">How Can I Help?</h2>
+                <div className="flex flex-col border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg overflow-hidden h-[500px]">
+                  <div className="flex-1 overflow-y-auto p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark">
                     {messages.map((message, index) => (
                       <ChatMessage
                         key={index}
@@ -838,7 +838,7 @@ const RootCause = ({ rootCauses = [] }) => {
                     <div ref={messagesEndRef} />
                   </div>
                   
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700 flex">
+                  <div className="border-t border-healthcare-border dark:border-healthcare-border-dark p-4 bg-healthcare-background dark:bg-healthcare-background-dark flex">
                     <Input
                       type="text"
                       value={inputValue}
@@ -860,45 +860,45 @@ const RootCause = ({ rootCauses = [] }) => {
               {/* OCEL Process Details */}
               {selectedItem && (
                 <div className="mb-4">
-                  <h2 className="font-medium text-gray-900 dark:text-white mb-3">Process Analysis</h2>
-                  <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                  <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">Process Analysis</h2>
+                  <div className="border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark">
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Process Type</h4>
-                        <p className="text-sm text-gray-900 dark:text-white">{selectedItem.type}</p>
+                        <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Process Type</h4>
+                        <p className="text-sm text-healthcare-text-primary dark:text-white">{selectedItem.type}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</h4>
-                        <p className="text-sm text-gray-900 dark:text-white">{selectedItem.location}</p>
+                        <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Location</h4>
+                        <p className="text-sm text-healthcare-text-primary dark:text-white">{selectedItem.location}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</h4>
-                        <p className="text-sm text-gray-900 dark:text-white">{selectedItem.status}</p>
+                        <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Status</h4>
+                        <p className="text-sm text-healthcare-text-primary dark:text-white">{selectedItem.status}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</h4>
-                        <p className="text-sm text-gray-900 dark:text-white">{new Date(selectedItem.date).toLocaleDateString()}</p>
+                        <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Date</h4>
+                        <p className="text-sm text-healthcare-text-primary dark:text-white">{new Date(selectedItem.date).toLocaleDateString()}</p>
                       </div>
                     </div>
                     
                     {selectedItem.ocelData && (
-                      <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">OCEL Insights</h4>
+                      <div className="mb-4 border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 bg-healthcare-background dark:bg-healthcare-background-dark">
+                        <h4 className="text-sm font-medium text-healthcare-text-primary dark:text-white mb-3">OCEL Insights</h4>
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Count</h4>
-                            <p className="text-sm text-gray-900 dark:text-white">{selectedItem.ocelData.eventCount}</p>
+                            <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Event Count</h4>
+                            <p className="text-sm text-healthcare-text-primary dark:text-white">{selectedItem.ocelData.eventCount}</p>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Average Path Length</h4>
-                            <p className="text-sm text-gray-900 dark:text-white">{selectedItem.ocelData.averagePathLength}</p>
+                            <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Average Path Length</h4>
+                            <p className="text-sm text-healthcare-text-primary dark:text-white">{selectedItem.ocelData.averagePathLength}</p>
                           </div>
                         </div>
                         
                         {selectedItem.ocelData.bottleneckActivities && selectedItem.ocelData.bottleneckActivities.length > 0 && (
                           <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bottleneck Activities</h4>
-                            <ul className="list-disc pl-5 text-sm text-gray-900 dark:text-white">
+                            <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Bottleneck Activities</h4>
+                            <ul className="list-disc pl-5 text-sm text-healthcare-text-primary dark:text-white">
                               {selectedItem.ocelData.bottleneckActivities.map((activity, index) => (
                                 <li key={index}>{activity}</li>
                               ))}
@@ -908,8 +908,8 @@ const RootCause = ({ rootCauses = [] }) => {
                         
                         {selectedItem.ocelData.commonPathways && selectedItem.ocelData.commonPathways.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Common Pathways</h4>
-                            <ul className="list-disc pl-5 text-sm text-gray-900 dark:text-white">
+                            <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">Common Pathways</h4>
+                            <ul className="list-disc pl-5 text-sm text-healthcare-text-primary dark:text-white">
                               {selectedItem.ocelData.commonPathways.map((pathway, index) => (
                                 <li key={index}>{pathway}</li>
                               ))}
@@ -920,18 +920,18 @@ const RootCause = ({ rootCauses = [] }) => {
                     )}
                     
                     {selectedItem.relatedObjects && selectedItem.relatedObjects.length > 0 && (
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Related Objects</h4>
+                      <div className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 bg-healthcare-background dark:bg-healthcare-background-dark">
+                        <h4 className="text-sm font-medium text-healthcare-text-primary dark:text-white mb-3">Related Objects</h4>
                         <div className="grid grid-cols-2 gap-2">
                           {selectedItem.relatedObjects.map((obj, index) => (
-                            <div key={index} className="flex items-center p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <div key={index} className="flex items-center p-2 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded border border-healthcare-border dark:border-healthcare-border-dark">
                               <Icon 
                                 icon={getObjectTypeIcon(obj.type)} 
                                 className="w-4 h-4 mr-2 text-healthcare-primary dark:text-healthcare-primary-dark" 
                               />
                               <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{obj.type}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{obj.id}</p>
+                                <p className="text-sm font-medium text-healthcare-text-primary dark:text-white">{obj.type}</p>
+                                <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{obj.id}</p>
                               </div>
                             </div>
                           ))}
@@ -944,8 +944,8 @@ const RootCause = ({ rootCauses = [] }) => {
               
               {/* Analysis section */}
               <div className="flex-1">
-                <h2 className="font-medium text-gray-900 dark:text-white mb-3">Analysis</h2>
-                <div className="border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 h-[350px]">
+                <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">Analysis</h2>
+                <div className="border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark h-[350px]">
                   <Textarea 
                     value={analysis}
                     onChange={(e) => setAnalysis(e.target.value)}

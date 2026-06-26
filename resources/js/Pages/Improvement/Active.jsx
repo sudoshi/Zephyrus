@@ -13,11 +13,11 @@ const Active = ({ cycles = [] }) => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-healthcare-success dark:text-healthcare-success-dark" />;
       case 'in-progress':
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <Clock className="h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark" />;
       case 'at-risk':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-healthcare-critical dark:text-healthcare-critical-dark" />;
       default:
         return null;
     }
@@ -142,19 +142,19 @@ const Active = ({ cycles = [] }) => {
         {/* PDSA Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {pdsaSummaryCards.map((card, index) => (
-            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <div key={index} className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{card.title}</p>
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{card.title}</p>
                   <h3 className="text-2xl font-semibold mt-1">{card.value}</h3>
                   <div className="flex items-center mt-1">
                     {card.changeType === 'positive' ? (
-                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                      <TrendingUp className="h-4 w-4 text-healthcare-success dark:text-healthcare-success-dark mr-1" />
                     ) : (
-                      <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                      <TrendingDown className="h-4 w-4 text-healthcare-critical dark:text-healthcare-critical-dark mr-1" />
                     )}
                     <span className={`text-sm ${
-                      card.changeType === 'positive' ? 'text-green-500' : 'text-red-500'
+                      card.changeType === 'positive' ? 'text-healthcare-success dark:text-healthcare-success-dark' : 'text-healthcare-critical dark:text-healthcare-critical-dark'
                     }`}>
                       {card.change}
                     </span>
@@ -167,12 +167,12 @@ const Active = ({ cycles = [] }) => {
         </div>
 
         {/* Reported Barriers & Opportunities Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Reported Barriers & Opportunities</h2>
             <div className="flex gap-2">
-              <select 
-                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm"
+              <select
+                className="bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md px-3 py-1 text-sm"
                 defaultValue="all"
               >
                 <option value="all">All Sources</option>
@@ -182,7 +182,7 @@ const Active = ({ cycles = [] }) => {
                 <option value="staff">Staff Reports</option>
               </select>
               <select
-                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm"
+                className="bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md px-3 py-1 text-sm"
                 defaultValue="recent"
               >
                 <option value="recent">Most Recent</option>
@@ -194,17 +194,17 @@ const Active = ({ cycles = [] }) => {
           
           {/* Sample Opportunities */}
           <div className="grid grid-cols-1 gap-4 mb-4">
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100 mb-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark mb-2">
                     High Impact
                   </span>
                   <h3 className="text-base font-medium mb-1">Delayed Discharge Due to Transportation</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                     Recurring issue with coordinating patient transportation leading to discharge delays
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>Source: Discharge Barriers</span>
                     <span>Frequency: 24 reports this month</span>
                     <span>Avg Delay: 2.5 hours</span>
@@ -216,17 +216,17 @@ const Active = ({ cycles = [] }) => {
               </div>
             </div>
             
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100 mb-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark mb-2">
                     Medium Impact
                   </span>
                   <h3 className="text-base font-medium mb-1">Medication Reconciliation Process Delays</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                     Staff reporting consistent delays in medication reconciliation during shift changes
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>Source: Staff Reports</span>
                     <span>Frequency: 15 reports this month</span>
                     <span>Avg Delay: 45 minutes</span>
@@ -241,7 +241,7 @@ const Active = ({ cycles = [] }) => {
         </div>
 
         {/* Active PDSA Cycles */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Active PDSA Cycles</h2>
           <div className="grid grid-cols-1 gap-4">
             {mockCycles.filter(cycle => cycle.status === 'in-progress').map((cycle, index) => (
@@ -258,7 +258,7 @@ const Active = ({ cycles = [] }) => {
                           {cycle.title}
                         </h3>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
                         Domain: {cycle.domain}
                       </div>
                       <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-sm">
@@ -267,16 +267,16 @@ const Active = ({ cycles = [] }) => {
                       
                       {/* Metrics Section */}
                       <div className="mt-4 grid grid-cols-3 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Baseline</div>
+                        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-2 rounded">
+                          <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Baseline</div>
                           <div className="text-sm font-medium">{cycle.metrics.baseline}</div>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Current</div>
+                        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-2 rounded">
+                          <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Current</div>
                           <div className="text-sm font-medium">{cycle.metrics.current}</div>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Target</div>
+                        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-2 rounded">
+                          <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Target</div>
                           <div className="text-sm font-medium">{cycle.metrics.target}</div>
                         </div>
                       </div>
@@ -299,11 +299,11 @@ const Active = ({ cycles = [] }) => {
                     </div>
                     {/* Progress Bar */}
                     <div className="mt-3">
-                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                         <span>Progress</span>
                         <span>{cycle.progress}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
                         <div
                           className="bg-healthcare-primary dark:bg-healthcare-primary-dark h-2 rounded-full transition-all duration-300"
                           style={{ width: `${cycle.progress}%` }}

@@ -24,7 +24,7 @@ export default function PDSACycleManagementPage({ id }) {
         </Button>
         <div className="mt-4">
           <h1 className="text-xl font-semibold">PDSA Cycle Not Found</h1>
-          <p className="text-gray-600">The requested PDSA cycle does not exist.</p>
+          <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">The requested PDSA cycle does not exist.</p>
         </div>
       </div>
     );
@@ -66,20 +66,20 @@ export default function PDSACycleManagementPage({ id }) {
               {cycleData.title}
             </CardTitle>
           </div>
-          <p className="text-gray-600 mt-2">
+          <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-2">
             Objective: {cycleData.plan.objective}
           </p>
           <div className="flex items-center gap-4 mt-3">
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Status: <strong>{cycleData.status}</strong>
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Due: <strong>{formatDate(cycleData.dueDate)}</strong>
             </span>
           </div>
           <div className="mt-2">
             <Progress value={cycleData.progress} />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
               {cycleData.progress}% Complete
             </p>
           </div>
@@ -100,7 +100,7 @@ export default function PDSACycleManagementPage({ id }) {
             <TabsContent value="overview" className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold mb-2">Objective</h2>
-                <p className="text-gray-700">
+                <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                   {cycleData.plan.objective}
                 </p>
               </div>
@@ -110,13 +110,13 @@ export default function PDSACycleManagementPage({ id }) {
             <TabsContent value="plan" className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold mb-2">Plan Details</h2>
-                <p className="text-gray-700 mb-4">{cycleData.plan.details}</p>
+                <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">{cycleData.plan.details}</p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg border">
+              <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                 <h3 className="text-md font-medium mb-2">Actions</h3>
                 <ul className="list-disc ml-5 space-y-1">
                   {cycleData.do?.actions?.map((action, idx) => (
-                    <li key={idx} className="text-gray-700">{action}</li>
+                    <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{action}</li>
                   ))}
                 </ul>
               </div>
@@ -127,26 +127,26 @@ export default function PDSACycleManagementPage({ id }) {
               <div>
                 <h2 className="text-lg font-semibold mb-2">Implementation (Do)</h2>
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Timeline</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600">Start Date</p>
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Start Date</p>
                         <p className="font-medium">{formatDate(cycleData.do?.startDate)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Completion Date</p>
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Completion Date</p>
                         <p className="font-medium">
                           {cycleData.do?.completionDate ? formatDate(cycleData.do.completionDate) : 'In Progress'}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Actions Taken</h3>
                     <ul className="list-disc ml-5 space-y-1">
                       {cycleData.do?.actions?.map((action, idx) => (
-                        <li key={idx} className="text-gray-700">{action}</li>
+                        <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{action}</li>
                       ))}
                     </ul>
                   </div>
@@ -159,19 +159,19 @@ export default function PDSACycleManagementPage({ id }) {
               <div>
                 <h2 className="text-lg font-semibold mb-2">Study Phase</h2>
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Data Collection Period</h3>
-                    <p className="text-gray-700">{cycleData.study?.dataCollectionPeriod}</p>
+                    <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycleData.study?.dataCollectionPeriod}</p>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Key Findings</h3>
-                    <p className="text-gray-700">{cycleData.study?.findings}</p>
+                    <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycleData.study?.findings}</p>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Metrics Tracked</h3>
                     <ul className="list-disc ml-5 space-y-1">
                       {cycleData.study?.metrics?.map((metric, idx) => (
-                        <li key={idx} className="text-gray-700">{metric}</li>
+                        <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{metric}</li>
                       ))}
                     </ul>
                   </div>
@@ -184,17 +184,17 @@ export default function PDSACycleManagementPage({ id }) {
               <div>
                 <h2 className="text-lg font-semibold mb-2">Act Phase</h2>
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Identified Improvements</h3>
                     <ul className="list-disc ml-5 space-y-1">
                       {cycleData.act?.improvements?.map((improvement, idx) => (
-                        <li key={idx} className="text-gray-700">{improvement}</li>
+                        <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{improvement}</li>
                       ))}
                     </ul>
                   </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
                     <h3 className="text-md font-medium mb-2">Next Steps</h3>
-                    <p className="text-gray-700">{cycleData.act?.nextSteps}</p>
+                    <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycleData.act?.nextSteps}</p>
                   </div>
                 </div>
               </div>
@@ -206,16 +206,16 @@ export default function PDSACycleManagementPage({ id }) {
                 <h2 className="text-lg font-semibold mb-2">Key Metrics</h2>
                 <ul className="list-disc ml-5 space-y-1">
                   {cycleData.study.metrics.map((metric, idx) => (
-                    <li key={idx} className="text-gray-700 flex items-center gap-2">
-                      <ChevronRight className="h-3 w-3 text-gray-400" />
+                    <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark flex items-center gap-2">
+                      <ChevronRight className="h-3 w-3 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
                       {metric}
                     </li>
                   ))}
                 </ul>
               </div>
               {/* Placeholder for future metric charts */}
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <p className="text-gray-600 text-sm">Future placeholder for metric charts</p>
+              <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg border">
+                <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-sm">Future placeholder for metric charts</p>
               </div>
             </TabsContent>
           </Tabs>
@@ -230,7 +230,7 @@ export default function PDSACycleManagementPage({ id }) {
             </Button>
             <Button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              className="flex items-center gap-2 bg-healthcare-primary text-white hover:bg-healthcare-primary-dark"
             >
               <Edit3 className="w-4 h-4" />
               Save Changes

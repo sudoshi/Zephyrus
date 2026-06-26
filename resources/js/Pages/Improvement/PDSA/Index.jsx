@@ -16,17 +16,17 @@ const formatDate = (dateString) => {
 const getStatusColor = (status) => {
   switch (status.toLowerCase()) {
     case 'plan':
-      return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900';
+      return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
     case 'do':
-      return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
+      return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
     case 'study':
       return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
     case 'act':
-      return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900';
+      return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
     case 'in progress':
-      return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900';
+      return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
     default:
-      return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900';
+      return 'text-healthcare-text-secondary bg-healthcare-background dark:text-healthcare-text-secondary-dark dark:bg-healthcare-background-dark';
   }
 };
 
@@ -74,7 +74,7 @@ const Index = ({ auth }) => {
 
               <div className="mt-4 flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
                   <input
                     type="text"
                     placeholder="Search cycles..."
@@ -115,12 +115,12 @@ const Index = ({ auth }) => {
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">{cycle.title}</h3>
-                        <p className="text-gray-600 dark:text-gray-400">{cycle.plan.objective}</p>
+                        <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cycle.status)}`}>
                             {cycle.status}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                             Due: {formatDate(cycle.dueDate)}
                           </span>
                         </div>
@@ -134,7 +134,7 @@ const Index = ({ auth }) => {
                     </div>
 
                     <div className="mt-4">
-                      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center justify-between text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <span>Progress</span>
                         <span>{cycle.progress}%</span>
                       </div>
@@ -147,7 +147,7 @@ const Index = ({ auth }) => {
                         <div className="space-y-2">
                           {cycle.barriers.map((barrier) => (
                             <div key={barrier.id} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">{barrier.description}</span>
+                              <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{barrier.description}</span>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(barrier.status)}`}>
                                 {barrier.priority}
                               </span>

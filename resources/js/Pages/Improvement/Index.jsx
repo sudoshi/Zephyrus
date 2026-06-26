@@ -24,17 +24,17 @@ const formatDate = (dateString) => {
 };
 
 const ImprovementCard = ({ title, description, icon: Icon, href, count, countLabel }) => (
-  <div className="healthcare-card hover:border-blue-500 transition-colors">
+  <div className="healthcare-card hover:border-healthcare-primary dark:hover:border-healthcare-primary-dark transition-colors">
     <CardHeader className="flex flex-row items-center justify-between pb-2">
       <CardTitle className="text-lg font-medium">{title}</CardTitle>
-      <Icon className="h-5 w-5 text-gray-500" />
+      <Icon className="h-5 w-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
     </CardHeader>
     <CardContent>
-      <p className="text-sm text-gray-600 mb-4">{description}</p>
+      <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">{description}</p>
       {count !== undefined && (
         <div className="mb-4">
           <span className="text-2xl font-semibold">{count}</span>
-          <span className="text-sm text-gray-500 ml-2">{countLabel}</span>
+          <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ml-2">{countLabel}</span>
         </div>
       )}
       <Link href={href}>
@@ -55,7 +55,7 @@ const Index = ({ auth }) => {
       <div className="p-4">
         <div>
           <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Improvement Dashboard
             </h1>
             <Link href="/improvement/pdsa/create">
@@ -101,21 +101,21 @@ const Index = ({ auth }) => {
               <h3 className="text-lg font-medium mb-2">Success Rate</h3>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-semibold">{stats.successRate}%</span>
-                <span className="text-sm text-gray-500">of cycles</span>
+                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">of cycles</span>
               </div>
             </div>
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Completed Cycles</h3>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-semibold">{stats.completedCycles}</span>
-                <span className="text-sm text-gray-500">total</span>
+                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">total</span>
               </div>
             </div>
             <div className="healthcare-card p-6">
               <h3 className="text-lg font-medium mb-2">Average Duration</h3>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-semibold">{stats.avgCycleDuration}</span>
-                <span className="text-sm text-gray-500">days</span>
+                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">days</span>
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ const Index = ({ auth }) => {
           {/* Recent PDSA Activity */}
           <div className="mt-6 healthcare-card">
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
                 Recent PDSA Activity
               </h2>
               <div className="space-y-4">
@@ -132,7 +132,7 @@ const Index = ({ auth }) => {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <h3 className="font-medium">{cycle.title}</h3>
-                        <p className="text-sm text-gray-600">{cycle.plan.objective}</p>
+                        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
                       </div>
                       <Link href={`/improvement/pdsa/${cycle.id}`}>
                         <button className="healthcare-button-secondary">
@@ -142,13 +142,13 @@ const Index = ({ auth }) => {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+                        <div className="flex items-center justify-between text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
                           <span>Progress</span>
                           <span>{cycle.progress}%</span>
                         </div>
                         <Progress value={cycle.progress} />
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         Due: {formatDate(cycle.dueDate)}
                       </span>
                     </div>

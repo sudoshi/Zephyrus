@@ -164,7 +164,7 @@ const ResourceStressAnalysis = ({ metrics }) => {
             {criticalAlerts.map((alert, index) => (
               <div 
                 key={index}
-                className="flex items-center justify-between bg-white dark:bg-healthcare-background-dark p-3 rounded-md"
+                className="flex items-center justify-between bg-healthcare-surface dark:bg-healthcare-background-dark p-3 rounded-md"
               >
                 <div className="flex items-center gap-3">
                   {alert.type === 'staffing' ? (
@@ -205,7 +205,7 @@ const ResourceStressAnalysis = ({ metrics }) => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:ring-offset-2 dark:focus:ring-offset-healthcare-background-dark ${
                 isActive
-                  ? 'bg-white dark:bg-healthcare-background-dark text-healthcare-primary dark:text-healthcare-primary-dark shadow-sm'
+                  ? 'bg-healthcare-surface dark:bg-healthcare-background-dark text-healthcare-primary dark:text-healthcare-primary-dark shadow-sm'
                   : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark'
               }`}
             >
@@ -219,7 +219,7 @@ const ResourceStressAnalysis = ({ metrics }) => {
       {/* Tab Content */}
       <div className="relative min-h-[400px]">
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-healthcare-background-dark bg-opacity-75 dark:bg-opacity-75 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-healthcare-surface dark:bg-healthcare-background-dark bg-opacity-75 dark:bg-opacity-75 backdrop-blur-sm">
             <LoadingSpinner size="lg" />
           </div>
         ) : (

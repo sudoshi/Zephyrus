@@ -310,7 +310,7 @@ const ProcessFilters = ({
           <div className="mb-4 flex items-center justify-between">
             <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Comparative Period</span>
             <div 
-              className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${showComparison ? 'bg-healthcare-primary dark:bg-healthcare-primary-dark' : 'bg-gray-600 dark:bg-gray-700'}`}
+              className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${showComparison ? 'bg-healthcare-primary dark:bg-healthcare-primary-dark' : 'bg-healthcare-border dark:bg-healthcare-border-dark'}`}
               onClick={() => {
                 setShowComparison(!showComparison);
               }}

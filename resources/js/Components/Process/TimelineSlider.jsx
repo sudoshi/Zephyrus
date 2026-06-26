@@ -162,7 +162,7 @@ const TimelineSlider = ({
   return (
     <div className={`relative ${className} py-0 px-3 flex items-center`} style={{ width: '800px', height: '42px' }}>
       {/* Time labels above slider */}
-      <div className="text-xs font-medium absolute top-1 w-full text-gray-700 dark:text-white z-10">
+      <div className="text-xs font-medium absolute top-1 w-full text-healthcare-text-secondary dark:text-white z-10">
         <div 
           className="absolute" 
           style={{ 
@@ -191,7 +191,7 @@ const TimelineSlider = ({
         onMouseUp={handleMouseUp}
       >
         {/* Timeline bar */}
-        <div className="absolute top-4 w-full h-2 bg-gray-400 dark:bg-gray-700 rounded" style={{ opacity: 0.4 }}>
+        <div className="absolute top-4 w-full h-2 bg-healthcare-border dark:bg-healthcare-border-dark rounded" style={{ opacity: 0.4 }}>
           {/* Selected range */}
           <div 
             className="absolute h-full rounded"
@@ -208,7 +208,7 @@ const TimelineSlider = ({
         
         {/* Start thumb */}
         <div 
-          className={`absolute top-2.5 w-4 h-4 bg-white dark:bg-gray-800 rounded-full shadow-lg transform -translate-x-1/2 ${isDragging && activeDragger === 0 ? 'scale-110' : ''}`}
+          className={`absolute top-2.5 w-4 h-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-full shadow-lg transform -translate-x-1/2 ${isDragging && activeDragger === 0 ? 'scale-110' : ''}`}
           style={{ 
             left: `${getPositionPercentage(selectedRange[0])}%`,
             borderWidth: '2px',
@@ -219,7 +219,7 @@ const TimelineSlider = ({
         
         {/* End thumb */}
         <div 
-          className={`absolute top-2.5 w-4 h-4 bg-white dark:bg-gray-800 rounded-full shadow-lg transform -translate-x-1/2 ${isDragging && activeDragger === 1 ? 'scale-110' : ''}`}
+          className={`absolute top-2.5 w-4 h-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-full shadow-lg transform -translate-x-1/2 ${isDragging && activeDragger === 1 ? 'scale-110' : ''}`}
           style={{ 
             left: `${getPositionPercentage(selectedRange[1])}%`,
             borderWidth: '2px',

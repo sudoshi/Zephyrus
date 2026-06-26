@@ -63,7 +63,7 @@ const ActionModal = ({ isOpen, onClose, action }) => {
     <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay ${isAnimating ? 'enter' : ''}`}>
       <div 
         ref={modalRef}
-        className={`bg-white dark:bg-healthcare-background-dark rounded-lg shadow-xl w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden flex flex-col modal-content ${isAnimating ? 'enter' : ''}`}
+        className={`bg-healthcare-surface dark:bg-healthcare-background-dark rounded-lg shadow-xl w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden flex flex-col modal-content ${isAnimating ? 'enter' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

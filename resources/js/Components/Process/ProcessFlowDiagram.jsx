@@ -294,7 +294,7 @@ const nodeTypes = {
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Performance</span>
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{data.metrics.performance || '100%'}</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+            <div className="w-full bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2.5">
               <div 
                 className="bg-healthcare-primary dark:bg-healthcare-primary-dark h-2.5 rounded-full" 
                 style={{ width: data.metrics.performance || '100%' }}

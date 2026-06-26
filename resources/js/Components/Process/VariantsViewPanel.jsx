@@ -310,52 +310,52 @@ const VariantsViewPanel = () => {
   const renderSummaryTab = () => (
     <div className="p-4">
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <Panel isSubpanel={true} dropLightIntensity="medium" title="Process Overview" className="bg-blue-50 dark:bg-blue-900/20">
+        <Panel isSubpanel={true} dropLightIntensity="medium" title="Process Overview" className="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
           <div className="grid grid-cols-2 gap-y-2">
-            <div className="text-sm text-gray-600 dark:text-gray-300">Total Cases (24h):</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Cases (24h):</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.totalCases}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Process Variants:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Process Variants:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.totalVariants}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Success Rate:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Success Rate:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.successRate}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Most Common Pathway:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Most Common Pathway:</div>
             <div className="text-sm font-semibold dark:text-white">ED → Bed (38%)</div>
           </div>
         </Panel>
         
-        <Panel isSubpanel={true} dropLightIntensity="medium" title="Time Statistics" className="bg-green-50 dark:bg-green-900/20">
+        <Panel isSubpanel={true} dropLightIntensity="medium" title="Time Statistics" className="bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
           <div className="grid grid-cols-2 gap-y-2">
-            <div className="text-sm text-gray-600 dark:text-gray-300">Mean Duration:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Mean Duration:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.meanTime}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Median Duration:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Median Duration:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.medianTime}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Mode Duration:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Mode Duration:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.modeTime}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-300">Standard Deviation:</div>
+            <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Standard Deviation:</div>
             <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.stdDev}</div>
           </div>
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-6 bg-gray-50 dark:bg-gray-800/30">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-6 bg-healthcare-background dark:bg-healthcare-background-dark/30">
         <div className="p-4">
-          <div className="text-sm text-gray-600 dark:text-gray-300 mb-4 text-center">Common bed assignment pathways by frequency</div>
+          <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4 text-center">Common bed assignment pathways by frequency</div>
           <div className="overflow-x-auto">
             <div className="min-w-max">
               <div className="flex justify-between mb-4 ml-2 mr-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Total cases: 287</div>
+                <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark font-medium">Total cases: 287</div>
                 <div className="flex space-x-3">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">Normal</span>
+                    <div className="w-3 h-3 bg-healthcare-success dark:bg-healthcare-success-dark rounded-full mr-1"></div>
+                    <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Normal</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-amber-500 rounded-full mr-1"></div>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">Outlier</span>
+                    <div className="w-3 h-3 bg-healthcare-warning dark:bg-healthcare-warning-dark rounded-full mr-1"></div>
+                    <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Outlier</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">Critical</span>
+                    <div className="w-3 h-3 bg-healthcare-critical dark:bg-healthcare-critical-dark rounded-full mr-1"></div>
+                    <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Critical</span>
                   </div>
                 </div>
               </div>
@@ -364,23 +364,23 @@ const VariantsViewPanel = () => {
                 <div key={index} className="mb-14">
                   {/* Trace information above the arrows - now larger */}
                   <div className="ml-2 mb-2">
-                    <div className="text-base font-semibold text-gray-700 dark:text-gray-100 flex items-center">
+                    <div className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center">
                       {variant.traces.toLocaleString()} traces
                       {variant.isOutlier && (
-                        <span className="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded text-xs font-semibold">
+                        <span className="ml-2 px-2 py-0.5 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20 text-healthcare-warning dark:text-healthcare-warning-dark rounded text-xs font-semibold">
                           OUTLIER
                         </span>
                       )}
                       {variant.highlight && (
-                        <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-xs font-semibold">
+                        <span className="ml-2 px-2 py-0.5 bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20 text-healthcare-critical dark:text-healthcare-critical-dark rounded text-xs font-semibold">
                           CRITICAL
                         </span>
                       )}
                     </div>
                     <div className="flex items-center mt-0.5">
-                      <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">{variant.percentage.toFixed(1)}% of total</div>
+                      <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark font-medium">{variant.percentage.toFixed(1)}% of total</div>
                       {variant.timing && (
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 ml-3">{variant.timing}</div>
+                        <div className="text-sm font-semibold text-healthcare-info dark:text-healthcare-info-dark ml-3">{variant.timing}</div>
                       )}
                     </div>
                   </div>
@@ -445,13 +445,13 @@ const VariantsViewPanel = () => {
               ))}
             </div>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+          <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-4 text-center">
             Figure: Visualization of common bed assignment pathways across Virtua Health System. 
             The most common pathway is direct ED to Bed assignment (38%), followed by Direct Admit pathways (26.1%).
           </div>
           
           <div className="flex justify-end mt-4 mr-2">
-            <a href="#" className="text-xs flex items-center text-blue-600 dark:text-blue-400 hover:underline">
+            <a href="#" className="text-xs flex items-center text-healthcare-primary dark:text-healthcare-primary-dark hover:underline">
               <span>View detailed timing metrics</span>
               <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
@@ -491,14 +491,14 @@ const VariantsViewPanel = () => {
         <div className="flex space-x-2">
           <button 
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-md"
+            className="flex items-center px-3 py-1 text-sm bg-healthcare-background dark:bg-healthcare-background-dark hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark dark:text-white rounded-md"
           >
             <Icon icon="carbon:filter" className="mr-1" />
             Filter
           </button>
           <div className="relative">
             <button 
-              className="flex items-center px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-md"
+              className="flex items-center px-3 py-1 text-sm bg-healthcare-background dark:bg-healthcare-background-dark hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark dark:text-white rounded-md"
               onClick={() => {
                 const nextSort = sortBy === 'frequency' ? 'duration' : 
                                  sortBy === 'duration' ? 'source' : 'frequency';
@@ -516,9 +516,9 @@ const VariantsViewPanel = () => {
         <Panel isSubpanel={true} dropLightIntensity="subtle" className="mb-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hospital</label>
+              <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Hospital</label>
               <select 
-                className="w-full p-1 border rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="w-full p-1 border rounded text-sm dark:bg-healthcare-surface-dark dark:border-healthcare-border-dark dark:text-white"
                 value={hospitalFilter}
                 onChange={(e) => setHospitalFilter(e.target.value)}
               >
@@ -531,8 +531,8 @@ const VariantsViewPanel = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source</label>
-              <select className="w-full p-1 border rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Source</label>
+              <select className="w-full p-1 border rounded text-sm dark:bg-healthcare-surface-dark dark:border-healthcare-border-dark dark:text-white">
                 <option>All Sources</option>
                 <option>Emergency Department</option>
                 <option>Operating Room</option>
@@ -541,8 +541,8 @@ const VariantsViewPanel = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration</label>
-              <select className="w-full p-1 border rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Duration</label>
+              <select className="w-full p-1 border rounded text-sm dark:bg-healthcare-surface-dark dark:border-healthcare-border-dark dark:text-white">
                 <option>Any Duration</option>
                 <option>{'<'} 2 hours</option>
                 <option>2-4 hours</option>
@@ -553,7 +553,7 @@ const VariantsViewPanel = () => {
           </div>
           <div className="flex justify-end mt-2">
             <button 
-              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+              className="px-3 py-1 bg-healthcare-primary dark:bg-healthcare-primary-dark text-white text-sm rounded-md hover:bg-healthcare-primary-hover dark:hover:bg-healthcare-primary-hover-dark"
               onClick={handleApplyFilters}
             >
               Apply Filters
@@ -564,33 +564,33 @@ const VariantsViewPanel = () => {
       
       <Panel isSubpanel={true} dropLightIntensity="medium">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+          <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+            <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source & Pathway</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cases (24h)</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">% of Source</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Avg. Duration</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Median</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">% Outliers</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Source & Pathway</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Cases (24h)</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">% of Source</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Avg. Duration</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Median</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">% Outliers</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
               {sourcePathways.map((pathway) => (
-                <tr key={pathway.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                <tr key={pathway.id} className="hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark">
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     <div className="font-medium">{pathway.source}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{pathway.pathway}</div>
+                    <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{pathway.pathway}</div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.cases24h}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.percentage}%</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.avgDuration}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.medianDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.cases24h}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.percentage}%</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.avgDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.medianDuration}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      pathway.outlierPercentage < 10 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                      pathway.outlierPercentage < 20 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      pathway.outlierPercentage < 10 ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
+                      pathway.outlierPercentage < 20 ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark' :
+                      'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                     }`}>
                       {pathway.outlierPercentage}%
                     </span>
@@ -606,36 +606,36 @@ const VariantsViewPanel = () => {
   
   const renderOutliersTab = () => (
     <div className="p-4">
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-6 bg-amber-50 dark:bg-amber-900/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-6 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
         <p className="text-sm mb-3 dark:text-white">Outliers are defined as bed assignments taking {'>'}6 hours (approximately 2 standard deviations above mean). These cases represent 12% of total bed assignments.</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Source Distribution</h4>
+            <h4 className="text-sm font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Source Distribution</h4>
             <ul className="text-sm space-y-1">
               <li className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">ED Admissions:</span>
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">ED Admissions:</span>
                 <span className="dark:text-white">18% are outliers</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">OR Admissions:</span>
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">OR Admissions:</span>
                 <span className="dark:text-white">6% are outliers</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Direct Admissions:</span>
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Direct Admissions:</span>
                 <span className="dark:text-white">4% are outliers</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Transfers:</span>
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Transfers:</span>
                 <span className="dark:text-white">22% are outliers</span>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Contributing Factors</h4>
+            <h4 className="text-sm font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Contributing Factors</h4>
             <ul className="text-sm space-y-1">
               {outlierCharacteristics.slice(0, 4).map((factor, index) => (
                 <li key={index} className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">{factor.factor}:</span>
+                  <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{factor.factor}:</span>
                   <span className="dark:text-white">{factor.percentage}% of outliers</span>
                 </li>
               ))}
@@ -644,18 +644,18 @@ const VariantsViewPanel = () => {
         </div>
       </Panel>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-6 bg-blue-50 dark:bg-blue-900/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-6 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-blue-200 dark:divide-blue-800">
+          <table className="min-w-full divide-y divide-healthcare-info/20 dark:divide-healthcare-info-dark/30">
             <thead>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-blue-800 dark:text-blue-300 uppercase tracking-wider">Hospital</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-blue-800 dark:text-blue-300 uppercase tracking-wider">Overall Outlier %</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-blue-800 dark:text-blue-300 uppercase tracking-wider">Top Source</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-blue-800 dark:text-blue-300 uppercase tracking-wider">Avg. Outlier Time</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-info dark:text-healthcare-info-dark uppercase tracking-wider">Hospital</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-info dark:text-healthcare-info-dark uppercase tracking-wider">Overall Outlier %</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-info dark:text-healthcare-info-dark uppercase tracking-wider">Top Source</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-info dark:text-healthcare-info-dark uppercase tracking-wider">Avg. Outlier Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-blue-100 dark:divide-blue-800">
+            <tbody className="divide-y divide-healthcare-info/20 dark:divide-healthcare-info-dark/30">
               <tr>
                 <td className="px-3 py-2 text-sm dark:text-white">Virtua Memorial</td>
                 <td className="px-3 py-2 text-sm dark:text-white">14%</td>
@@ -696,7 +696,7 @@ const VariantsViewPanel = () => {
         <div className="flex space-x-2">
           <button 
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-md"
+            className="flex items-center px-3 py-1 text-sm bg-healthcare-background dark:bg-healthcare-background-dark hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark dark:text-white rounded-md"
           >
             <Icon icon="carbon:filter" className="mr-1" />
             Filter
@@ -706,33 +706,33 @@ const VariantsViewPanel = () => {
       
       <Panel isSubpanel={true} dropLightIntensity="medium">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+          <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+            <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source & Complex Pathway</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cases (24h)</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">% of Source</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Avg. Duration</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Median</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">% Outliers</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Source & Complex Pathway</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Cases (24h)</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">% of Source</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Avg. Duration</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">Median</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">% Outliers</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
               {otherPathways.map((pathway) => (
-                <tr key={pathway.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                <tr key={pathway.id} className="hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark">
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     <div className="font-medium">{pathway.source}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{pathway.pathway}</div>
+                    <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{pathway.pathway}</div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.cases24h}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.percentage}%</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.avgDuration}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{pathway.medianDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.cases24h}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.percentage}%</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.avgDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.medianDuration}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      pathway.outlierPercentage < 10 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                      pathway.outlierPercentage < 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      pathway.outlierPercentage < 10 ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
+                      pathway.outlierPercentage < 50 ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark' :
+                      'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                     }`}>
                       {pathway.outlierPercentage}%
                     </span>
@@ -768,15 +768,15 @@ const VariantsViewPanel = () => {
               </thead>
               <tbody className="divide-y divide-indigo-100 dark:divide-indigo-800">
                 {timePatterns.timeOfDay.map((period, index) => (
-                  <tr key={index} className={period.volume === 'Very High' ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                  <tr key={index} className={period.volume === 'Very High' ? 'bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20' : ''}>
                     <td className="px-3 py-2 text-sm dark:text-white">{period.period}</td>
                     <td className="px-3 py-2 text-sm dark:text-white">{period.avgTime}</td>
                     <td className="px-3 py-2 text-sm">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        period.volume === 'Low' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        period.volume === 'Medium' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        period.volume === 'High' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        period.volume === 'Low' ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
+                        period.volume === 'Medium' ? 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark' :
+                        period.volume === 'High' ? 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark' :
+                        'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical-dark/20 dark:text-healthcare-critical-dark'
                       }`}>
                         {period.volume}
                       </span>
@@ -812,9 +812,9 @@ const VariantsViewPanel = () => {
                     <td className="px-3 py-2 text-sm dark:text-white">{day.avgTime}</td>
                     <td className="px-3 py-2 text-sm">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        day.volume === 'Low' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        day.volume === 'Medium' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        day.volume === 'Low' ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
+                        day.volume === 'Medium' ? 'bg-healthcare-info/10 text-healthcare-info dark:bg-healthcare-info-dark/20 dark:text-healthcare-info-dark' :
+                        'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark'
                       }`}>
                         {day.volume}
                       </span>
@@ -827,7 +827,7 @@ const VariantsViewPanel = () => {
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-6 bg-emerald-50 dark:bg-emerald-900/20">
+      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-6 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
         {/* Chart container with proper styling according to standards */}
         <div className="mt-2 p-4 bg-gray-900 rounded-lg mb-3">
           {/* This is where a hospital comparison chart would be rendered using the chart theme */}
@@ -836,17 +836,17 @@ const VariantsViewPanel = () => {
           {/* Chart would be rendered here with chartTheme applied */}
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-emerald-200 dark:divide-emerald-800">
+          <table className="min-w-full divide-y divide-healthcare-success/20 dark:divide-healthcare-success-dark/30">
             <thead>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Hospital</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Bed Count</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Avg. Time</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Cases (24h)</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Top Source</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-success dark:text-healthcare-success-dark uppercase tracking-wider">Hospital</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-success dark:text-healthcare-success-dark uppercase tracking-wider">Bed Count</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-success dark:text-healthcare-success-dark uppercase tracking-wider">Avg. Time</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-success dark:text-healthcare-success-dark uppercase tracking-wider">Cases (24h)</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-healthcare-success dark:text-healthcare-success-dark uppercase tracking-wider">Top Source</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-emerald-100 dark:divide-emerald-800">
+            <tbody className="divide-y divide-healthcare-success/20 dark:divide-healthcare-success-dark/30">
               {hospitals.map((hospital, index) => (
                 <tr key={index}>
                   <td className="px-3 py-2 text-sm font-medium dark:text-white">{hospital.name}</td>
@@ -888,7 +888,7 @@ const VariantsViewPanel = () => {
                   <td className="px-3 py-2 text-sm font-medium dark:text-white">{source.source}</td>
                   <td className="px-3 py-2 text-sm font-semibold text-teal-600 dark:text-teal-400">{source.improvement}</td>
                   <td className="px-3 py-2 text-sm dark:text-white">{source.current}</td>
-                  <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{source.previous}</td>
+                  <td className="px-3 py-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{source.previous}</td>
                 </tr>
               ))}
             </tbody>
@@ -901,9 +901,9 @@ const VariantsViewPanel = () => {
   // Create the Map dropdown for the header right section
   const mapDropdown = (
     <div className="flex items-center">
-      <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">Map:</span>
+      <span className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mr-2">Map:</span>
       <select
-        className="text-sm border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white py-1 px-2"
+        className="text-sm border border-healthcare-border dark:border-healthcare-border-dark rounded-md dark:bg-healthcare-surface-dark dark:text-white py-1 px-2"
         value={selectedMap}
         onChange={(e) => setSelectedMap(e.target.value)}
       >
