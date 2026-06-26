@@ -65,10 +65,15 @@ Route::middleware(['auth'])
             Route::post('/process/viewport', [ProcessAnalysisController::class, 'saveViewport'])->name('process.saveViewport');
             Route::get('/library', [DashboardController::class, 'library'])->name('library');
             Route::get('/active', [DashboardController::class, 'active'])->name('active');
+            Route::get('/opportunities', [DashboardController::class, 'opportunities'])->name('opportunities');
 
             // PDSA Routes
             Route::prefix('pdsa')->name('pdsa.')->group(function () {
                 Route::get('/', [DashboardController::class, 'pdsaIndex'])->name('index');
+                // /create must precede /{id} so it isn't captured as a show param.
+                Route::get('/create', function () {
+                    return Inertia::render('Improvement/PDSA/Create');
+                })->name('create');
                 Route::get('/{id}', [DashboardController::class, 'pdsaShow'])->name('show');
             });
         });
