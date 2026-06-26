@@ -65,8 +65,8 @@ export default {
                         dark: '#FB923C',
                     },
                     success: {
-                        DEFAULT: '#059669', // Green for Active Care
-                        dark: '#10B981',
+                        DEFAULT: '#059669', // light: saturated green reads on white
+                        dark: '#2DD4BF',    // dark: DESIGN.md teal (rationed-urgency vocabulary)
                     },
                     teal: {
                         DEFAULT: '#0D9488', // Teal for Monitoring
@@ -74,15 +74,15 @@ export default {
                     },
                     critical: {
                         DEFAULT: '#DC2626',
-                        dark: '#EF4444',
+                        dark: '#E85A6B',    // DESIGN.md coral (reserved for real breaches)
                     },
                     warning: {
                         DEFAULT: '#D97706',
-                        dark: '#F59E0B',
+                        dark: '#E5A84B',    // DESIGN.md amber
                     },
                     info: {
                         DEFAULT: '#0284C7',
-                        dark: '#0EA5E9',
+                        dark: '#60A5FA',    // DESIGN.md sky
                     },
                     background: {
                         DEFAULT: '#F8FAFC', // Lighter background for better contrast

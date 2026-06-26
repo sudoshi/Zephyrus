@@ -26,19 +26,19 @@
   --healthcare-orange: #F97316;       /* Orange for Home Setup */
   --healthcare-orange-dark: #FB923C;
   
-  --healthcare-success: #059669;      /* Green for Active Care */
-  --healthcare-success-dark: #10B981;
+  --healthcare-success: #059669;      /* light: saturated green reads on white */
+  --healthcare-success-dark: #2DD4BF; /* dark: DESIGN.md teal */
   
   --healthcare-teal: #0D9488;         /* Teal for Monitoring */
   --healthcare-teal-dark: #14B8A6;
 
   /* Supporting colors */
   --healthcare-warning: #D97706;
-  --healthcare-warning-dark: #F59E0B;
+  --healthcare-warning-dark: #E5A84B;  /* dark: DESIGN.md amber */
   --healthcare-critical: #DC2626;
-  --healthcare-critical-dark: #EF4444;
+  --healthcare-critical-dark: #E85A6B; /* dark: DESIGN.md coral */
   --healthcare-info: #0284C7;
-  --healthcare-info-dark: #0EA5E9;
+  --healthcare-info-dark: #60A5FA;     /* dark: DESIGN.md sky */
   --healthcare-accent: #2563EB;
   --healthcare-accent-dark: #3B82F6;
   
@@ -56,6 +56,14 @@
 
 /* Dark mode color variables */
 .dark {
+  /* §7: in dark mode the status vars track the DESIGN.md rationed-urgency
+     vocabulary so chart/SVG fills (var(--healthcare-*)) match the Tailwind
+     healthcare-*-dark classes and the --critical/--success CSS vars. */
+  --healthcare-success: #2DD4BF;
+  --healthcare-warning: #E5A84B;
+  --healthcare-critical: #E85A6B;
+  --healthcare-info: #60A5FA;
+
   --color-gray-100: #1f2937;
   --color-gray-200: #374151;
   --color-gray-300: #4b5563;
