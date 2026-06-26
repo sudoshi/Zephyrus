@@ -137,7 +137,7 @@ Closed the gaps that blocked the Section-9 integrated demo so it is end-to-end r
 
 - Committed as `d293b66`, `f13549f`, `83423be`, `01355ae`, `609cd0c` and pushed to `origin/main`.
 - Deployed code through `./deploy.sh`: production asset build, rsync to `/var/www/Zephyrus`, Laravel cache clears, Apache restart, and Zephyrus vhost smoke check passed.
-- Pending production database steps (additive, gated on operator approval — `deploy.sh` intentionally does not run migrations):
-  - apply `2026_06_27_000100_create_staffing_operations_tables` (only pending migration on prod; creates three empty tables, no drops),
-  - re-seed the Command Center demo (`php artisan db:seed --class=CommandCenterDemoSeeder`, idempotent) to surface the staffing/EVS/transport demo signals.
-- Existing surfaces stay healthy pre-migration: the `staffing_gap` recommendation, simulation `staffingGap()`, and executive brief all guard with `Schema::hasTable('prod.staffing_plans')`.
+- Applied production migration `2026_06_27_000100_create_staffing_operations_tables` (the only pending migration on prod; additive, three new tables, no drops) via `sudo -u www-data php artisan migrate --force`.
+- Re-seeded the Command Center demo (`db:seed --class=CommandCenterDemoSeeder`, idempotent). Verified on the prod `zephyrus` DB: 84 staffing plans, two critical-gap units (6 East + ICU), 6 EVS turnover-backlog rows, 6 transport-backlog rows.
+- Verified `https://zephyrus.acumenus.net/api/health` returns `200` and the new `/api/staffing/*`, `/api/ops/agents/executive-briefing/run`, `/ops/agent-inbox`, and `/ops/executive-brief` routes register on production.
+- The `staffing_gap` recommendation, simulation `staffingGap()`, and executive brief all guard with `Schema::hasTable('prod.staffing_plans')`, so existing surfaces stayed healthy during the brief code-live-before-migration window.
