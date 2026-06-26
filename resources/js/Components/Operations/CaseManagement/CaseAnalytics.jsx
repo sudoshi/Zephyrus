@@ -20,7 +20,7 @@ import {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow-lg border border-healthcare-border dark:border-healthcare-border-dark">
+      <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 rounded-lg shadow-sm border border-healthcare-border dark:border-healthcare-border-dark">
         <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center space-x-2">

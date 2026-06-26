@@ -73,7 +73,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
         
         <Panel isSubpanel={true} dropLightIntensity="strong" title="Utilization Improvement Opportunities" className="mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-md p-4">
+            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4">
               <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
                 Current Utilization
               </h3>
@@ -84,7 +84,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
               </div>
             </div>
             
-            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-md p-4">
+            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4">
               <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
                 Target Utilization
               </h3>
@@ -95,7 +95,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
               </div>
             </div>
             
-            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-md p-4">
+            <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4">
               <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
                 Potential Additional Cases
               </h3>
@@ -261,7 +261,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                 {formatFinancialImpactData()
                   .filter(item => item.id.includes('Potential'))
                   .map((item, index) => (
-                    <div key={index} className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-md p-4">
+                    <div key={index} className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4">
                       <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {item.label}
                       </h4>
@@ -270,7 +270,7 @@ const OpportunityAnalysisView = ({ data, derivedMetrics }) => {
                       </p>
                     </div>
                   ))}
-                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-md p-4">
+                <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm p-4">
                   <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     Potential ROI
                   </h4>
