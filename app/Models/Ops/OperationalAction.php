@@ -16,8 +16,15 @@ class OperationalAction extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'completion_payload' => 'array',
         'approved_at' => 'datetime',
+        'assigned_at' => 'datetime',
+        'due_at' => 'datetime',
+        'expires_at' => 'datetime',
         'executed_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'expired_at' => 'datetime',
+        'overridden_at' => 'datetime',
     ];
 
     public function recommendation(): BelongsTo
@@ -38,5 +45,10 @@ class OperationalAction extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(Approval::class, 'action_id', 'action_id');
+    }
+
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(Intervention::class, 'action_id', 'action_id');
     }
 }

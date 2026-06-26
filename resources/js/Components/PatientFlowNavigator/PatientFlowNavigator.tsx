@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import {
   createPatientFlowEventSource,
+  fetchPatientFlowAmbient,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
   fetchPatientFlowSummary,
@@ -17,6 +18,7 @@ import {
 } from '@/features/patientFlowNavigator/stateProjection';
 import type {
   PatientFlowEvent,
+  PatientFlowAmbient,
   PatientFlowFilters,
   PatientFlowLocations,
   PatientFlowSummary,
@@ -138,6 +140,7 @@ export default function PatientFlowNavigator({
   const lastVisibleStatesRef = useRef<PatientVisibleState[]>([]);
 
   const [summary, setSummary] = useState<PatientFlowSummary | null>(null);
+  const [ambient, setAmbient] = useState<PatientFlowAmbient | null>(null);
   const [locations, setLocations] = useState<PatientFlowLocations>({});
   const [events, setEvents] = useState<PatientFlowEvent[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
@@ -326,10 +329,11 @@ export default function PatientFlowNavigator({
     async function bootstrap(): Promise<void> {
       try {
         setStatus('Loading data');
-        const [summaryData, locationData, eventData] = await Promise.all([
+        const [summaryData, locationData, eventData, ambientData] = await Promise.all([
           fetchPatientFlowSummary(),
           fetchPatientFlowLocations(),
           fetchPatientFlowEvents({ limit: 20000 }),
+          fetchPatientFlowAmbient(),
         ]);
         if (cancelled) return;
 
@@ -337,6 +341,7 @@ export default function PatientFlowNavigator({
         const nextMin = sortedEvents.length ? parseTime(sortedEvents[0].occurred_at) : 0;
         const nextMax = sortedEvents.length ? parseTime(sortedEvents[sortedEvents.length - 1].occurred_at) : 0;
         setSummary(summaryData);
+        setAmbient(ambientData);
         setLocations(locationData);
         setEvents(sortedEvents);
         setMinTime(nextMin);
@@ -677,6 +682,7 @@ export default function PatientFlowNavigator({
           <div><span>{metrics.active}</span><small>Active</small></div>
           <div><span>{metrics.events}</span><small>Events</small></div>
           <div><span>{metrics.occupiedLocations}</span><small>Locations</small></div>
+          <div><span>{ambient?.summary.eventCount ?? summary?.ambient_signals ?? 0}</span><small>Ambient</small></div>
         </div>
       </aside>
 
@@ -706,6 +712,7 @@ export default function PatientFlowNavigator({
 
       <div className="patient-flow-statusbar">
         <span>{status}</span>
+        <span>{ambient ? `Ambient ${Math.round(ambient.summary.averageConfidence * 100)}% ${ambient.summary.confidenceLevel}` : 'Ambient pending'}</span>
         <span className="patient-flow-camera">{cameraText}</span>
       </div>
     </section>

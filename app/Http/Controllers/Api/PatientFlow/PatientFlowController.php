@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\PatientFlow;
 
 use App\Http\Controllers\Controller;
 use App\Models\PatientFlow\FlowEvent;
+use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
 use App\Services\PatientFlow\FlowEventRepository;
@@ -11,6 +12,7 @@ use App\Services\PatientFlow\PatientStateProjector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PatientFlowController extends Controller
 {
@@ -19,11 +21,13 @@ class PatientFlowController extends Controller
         private readonly FacilitySpaceLocationResolver $locations,
         private readonly PatientStateProjector $stateProjector,
         private readonly FhirBundleFactory $fhir,
+        private readonly AmbientSignalService $ambientSignals,
     ) {}
 
     public function summary(): JsonResponse
     {
         $eventCount = (int) DB::table('flow_core.flow_events')->count();
+        $ambient = $this->ambientSignals->summary($this->facilityCode());
 
         return response()->json([
             'messages' => (int) DB::table('raw.inbound_messages as messages')
@@ -38,6 +42,9 @@ class PatientFlowController extends Controller
             'min_occurred_at' => DB::table('flow_core.flow_events')->min('occurred_at'),
             'max_occurred_at' => DB::table('flow_core.flow_events')->max('occurred_at'),
             'live_events' => 0,
+            'ambient_signals' => $ambient['summary']['eventCount'],
+            'ambient_confidence' => $ambient['summary']['averageConfidence'],
+            'ambient_confidence_level' => $ambient['summary']['confidenceLevel'],
             'facility_code' => $this->facilityCode(),
             'model_url' => (string) config('facility_models.zep_500.model_url'),
             'tileset_url' => (string) config('facility_models.zep_500.tileset_url'),
@@ -47,7 +54,9 @@ class PatientFlowController extends Controller
 
     public function locations(): JsonResponse
     {
-        return response()->json($this->locations->allNavigatorLocations($this->facilityCode()));
+        return response()->json($this->attachOpsGraphNodes(
+            $this->locations->allNavigatorLocations($this->facilityCode()),
+        ));
     }
 
     public function events(Request $request): JsonResponse
@@ -84,6 +93,11 @@ class PatientFlowController extends Controller
             'patients' => array_values($state),
             'occupancy' => $this->stateProjector->occupancyByLocation($events, $request->query('asOf')),
         ]);
+    }
+
+    public function ambient(): JsonResponse
+    {
+        return response()->json($this->ambientSignals->summary($this->facilityCode()));
     }
 
     public function fhirBundle(Request $request): JsonResponse
@@ -124,5 +138,54 @@ class PatientFlowController extends Controller
     private function facilityCode(): string
     {
         return (string) config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500');
+    }
+
+    /** @param array<string,array<string,mixed>> $locations */
+    private function attachOpsGraphNodes(array $locations): array
+    {
+        if (! Schema::hasTable('ops.nodes') || $locations === []) {
+            return $locations;
+        }
+
+        $keyByLocation = [];
+        foreach ($locations as $locationCode => $location) {
+            $keys = [
+                "facility_space:{$location['facility_space_id']}",
+                "location:{$locationCode}",
+            ];
+
+            if (! empty($location['unit_code'])) {
+                $keys[] = "unit:{$location['unit_code']}";
+            }
+
+            foreach ($keys as $key) {
+                $keyByLocation[$key][] = $locationCode;
+            }
+        }
+
+        $nodes = DB::table('ops.nodes')
+            ->whereIn('canonical_key', array_keys($keyByLocation))
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($locations as $locationCode => $location) {
+            $locations[$locationCode]['ops_graph_nodes'] = [];
+        }
+
+        foreach ($nodes as $node) {
+            foreach ($keyByLocation[$node->canonical_key] ?? [] as $locationCode) {
+                $locations[$locationCode]['ops_graph_nodes'][] = [
+                    'graphNodeId' => (int) $node->graph_node_id,
+                    'nodeUuid' => $node->node_uuid,
+                    'nodeType' => $node->node_type,
+                    'canonicalKey' => $node->canonical_key,
+                    'displayName' => $node->display_name,
+                    'status' => $node->status,
+                    'currentState' => json_decode($node->current_state ?? '{}', true) ?: [],
+                ];
+            }
+        }
+
+        return $locations;
     }
 }

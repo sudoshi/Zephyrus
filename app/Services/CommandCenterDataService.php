@@ -4,6 +4,7 @@
 
 namespace App\Services;
 
+use App\Services\Analytics\MetricLineageService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -11,9 +12,9 @@ use Illuminate\Support\Facades\DB;
  * Builds the Hospital Operations Command Center payload from the live DB.
  *
  * All queries target the `prod` schema (DB_SCHEMA=prod).
- * The returned array shape is byte-for-byte identical to the frozen Zod
- * contract in resources/js/types/commandCenter.ts — do NOT alter keys,
- * types, or nullability.
+ * The required payload keys match the Zod contract in
+ * resources/js/types/commandCenter.ts. Optional lineage fields may be added
+ * to metrics when the analytics trust catalog is available.
  */
 class CommandCenterDataService
 {
@@ -41,6 +42,8 @@ class CommandCenterDataService
     private const OBJ_LOS_GMLOS_TARGET = 100;  // ratio×100 (1.00)
 
     private const TREND_DAYS = 90;
+
+    public function __construct(private ?MetricLineageService $lineage = null) {}
 
     /** @return array<string,mixed> */
     public function build(): array
@@ -149,7 +152,12 @@ class CommandCenterDataService
             $metric['detail'] = $detail;
         }
 
-        return $metric;
+        return $this->lineage()->enrichMetric($metric);
+    }
+
+    private function lineage(): MetricLineageService
+    {
+        return $this->lineage ??= app(MetricLineageService::class);
     }
 
     /** @return array{caption:string,segments:list<array<string,mixed>>,rows:list<array<string,mixed>>} */

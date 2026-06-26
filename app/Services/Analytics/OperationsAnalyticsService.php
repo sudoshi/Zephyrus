@@ -2,12 +2,24 @@
 
 namespace App\Services\Analytics;
 
+use App\Services\Ops\InterventionAttributionService;
+use App\Services\Ops\OperationsRecommendationService;
+use App\Services\Ops\OperationsSimulationService;
 use App\Services\Transport\TransportOperationsService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OperationsAnalyticsService
 {
+    public function __construct(
+        private readonly MetricLineageService $lineage,
+        private readonly DataQualityAgentService $dataQualityAgent,
+        private readonly OperationsRecommendationService $recommendations,
+        private readonly OperationsSimulationService $simulations,
+        private readonly InterventionAttributionService $attribution,
+    ) {}
+
     public function overview(): array
     {
         $live = $this->liveSummary();
@@ -225,24 +237,38 @@ class OperationsAnalyticsService
         $live = $this->liveSummary();
         $forecast = $this->predictionSummary();
         $queue = $this->actionQueue($live, $forecast);
-        $opportunities = collect($queue)
-            ->map(function (array $item): array {
-                $score = match ($item['status']) {
-                    'critical' => 90,
-                    'warning' => 70,
-                    'success' => 30,
-                    default => 50,
-                };
+        $recommendationPayload = $this->recommendations->generate();
+        $graphRecommendations = $recommendationPayload['recommendations'];
+        $opportunities = collect($graphRecommendations)
+            ->map(fn (array $recommendation): array => [
+                'title' => $recommendation['title'],
+                'owner' => $recommendation['actions'][0]['payload']['owner'] ?? 'Operations command team',
+                'impact' => $this->recommendationImpact($recommendation['riskLevel']),
+                'confidence' => $recommendation['confidence'] >= 0.85 ? 'high' : 'medium',
+                'score' => $recommendation['score'],
+                'route' => $recommendation['actions'][0]['payload']['route'] ?? '/analytics/opportunities',
+                'recommendationUuid' => $recommendation['recommendationUuid'],
+                'evidence' => $recommendation['evidence'],
+                'approvalStatus' => $recommendation['actions'][0]['approvals'][0]['status'] ?? null,
+            ])
+            ->merge(collect($queue)
+                ->map(function (array $item): array {
+                    $score = match ($item['status']) {
+                        'critical' => 90,
+                        'warning' => 70,
+                        'success' => 30,
+                        default => 50,
+                    };
 
-                return [
-                    'title' => $item['title'],
-                    'owner' => $item['owner'],
-                    'impact' => $item['impact'],
-                    'confidence' => $item['status'] === 'success' ? 'medium' : 'high',
-                    'score' => $score,
-                    'route' => $item['route'],
-                ];
-            })
+                    return [
+                        'title' => $item['title'],
+                        'owner' => $item['owner'],
+                        'impact' => $item['impact'],
+                        'confidence' => $item['status'] === 'success' ? 'medium' : 'high',
+                        'score' => $score,
+                        'route' => $item['route'],
+                    ];
+                }))
             ->sortByDesc('score')
             ->values()
             ->all();
@@ -263,6 +289,8 @@ class OperationsAnalyticsService
                 $this->metricTile('Unowned Barriers', $unownedBarriers, 'items', $unownedBarriers > 0 ? 'warning' : 'success', 'Open barriers missing accountable owner assignment'),
             ],
             'opportunities' => $opportunities,
+            'recommendations' => $graphRecommendations,
+            'recommendationSummary' => $recommendationPayload['summary'],
             'actionQueue' => $queue,
             'sourceMap' => $this->sourceMap(),
         ];
@@ -270,46 +298,22 @@ class OperationsAnalyticsService
 
     public function workbench(): array
     {
-        $live = $this->liveSummary();
-        $forecast = $this->predictionSummary();
-        $currentNet = $forecast['netBedForecast'];
-        $weightedDischarges = (int) round($forecast['weightedDischarges']);
-        $transportAtRisk = $live['transportAtRisk'];
-        $scenarios = [
-            [
-                'title' => 'Open four staffed beds',
-                'assumption' => 'Temporary staffing and environmental readiness can safely return four beds to service.',
-                'netBedForecast' => $currentNet + 4,
-                'status' => $currentNet + 4 < 0 ? 'warning' : 'success',
-                'route' => '/rtdc/bed-tracking',
-            ],
-            [
-                'title' => 'Pull two discharges before noon',
-                'assumption' => 'Two weighted discharges can be converted to early physical departure.',
-                'netBedForecast' => $currentNet + min(2, $weightedDischarges),
-                'status' => $currentNet + min(2, $weightedDischarges) < 0 ? 'warning' : 'success',
-                'route' => '/rtdc/unit-huddle',
-            ],
-            [
-                'title' => 'Transport escalation pool',
-                'assumption' => 'At-risk moves can be reduced by 40 percent with dispatch escalation.',
-                'netBedForecast' => $currentNet,
-                'status' => $transportAtRisk > 0 ? 'warning' : 'success',
-                'route' => '/transport/dispatch',
-            ],
-        ];
-        $bestNetForecast = max(array_column($scenarios, 'netBedForecast'));
+        $simulation = $this->simulations->runCapacityWorkbench();
+        $impact = $this->attribution->dashboard();
+        $summary = $simulation['summary'];
 
         return [
             'generatedAtIso' => now()->toIso8601String(),
             'section' => 'workbench',
             'metrics' => [
-                $this->metricTile('Scenario Count', count($scenarios), 'plans', 'info', 'Bounded what-if actions calculated from live demand and capacity'),
-                $this->metricTile('Current Net Forecast', $currentNet, 'beds', $currentNet < 0 ? 'critical' : ($currentNet <= 3 ? 'warning' : 'success'), 'Baseline before scenario intervention'),
-                $this->metricTile('Best Net Forecast', $bestNetForecast, 'beds', $bestNetForecast < 0 ? 'warning' : 'success', 'Highest resulting bed position among modeled options'),
-                $this->metricTile('At-Risk Transports', $transportAtRisk, 'moves', $transportAtRisk > 0 ? 'warning' : 'success', 'Active transport workload that can affect downstream throughput'),
+                $this->metricTile('Scenario Count', $summary['scenarioCount'], 'plans', 'info', 'Persisted deterministic scenarios calculated from live demand and capacity'),
+                $this->metricTile('Current Net Forecast', $summary['currentNetBeds'], 'beds', $summary['currentNetBeds'] < 0 ? 'critical' : ($summary['currentNetBeds'] <= 3 ? 'warning' : 'success'), 'Baseline before scenario intervention'),
+                $this->metricTile('Best Net Forecast', $summary['bestNetBeds'], 'beds', $summary['bestNetBeds'] < 0 ? 'warning' : 'success', 'Highest resulting bed position among modeled options'),
+                $this->metricTile('Measured Interventions', $impact['summary']['totalInterventions'], 'records', $impact['summary']['totalInterventions'] > 0 ? 'success' : 'info', 'Completed actions and PDSA cycles with attribution windows'),
             ],
-            'scenarios' => $scenarios,
+            'simulation' => $simulation,
+            'scenarios' => $simulation['scenarios'],
+            'impact' => $impact,
             'sourceMap' => $this->sourceMap(),
         ];
     }
@@ -318,6 +322,7 @@ class OperationsAnalyticsService
     {
         $payload = $this->dataQualityPayload();
         $sources = $this->sourceMap();
+        $agent = $this->dataQualityAgent->run($payload['checks']);
 
         return [
             'generatedAtIso' => now()->toIso8601String(),
@@ -330,6 +335,7 @@ class OperationsAnalyticsService
             ],
             'checks' => $payload['checks'],
             'summary' => $payload['summary'],
+            'agent' => $agent,
             'sourceMap' => $sources,
         ];
     }
@@ -588,13 +594,13 @@ class OperationsAnalyticsService
         $latestEvent = $this->latestTimestamp('prod.operational_events', 'occurred_at');
 
         $checks = [
-            $this->qualityCheck('Census freshness', $this->freshnessStatus($latestCensus, 120, 360), $this->freshnessLabel($latestCensus), 'prod.census_snapshots captured_at'),
-            $this->qualityCheck('RTDC prediction presence', $predictionCount > 0 ? 'success' : 'warning', "{$predictionCount} predictions today", 'prod.rtdc_predictions service_date'),
-            $this->qualityCheck('ED timestamp completeness', $this->completenessStatus($edCompleteness), "{$edCompleteness}% provider-seen coverage", 'prod.ed_visits provider_seen_at'),
-            $this->qualityCheck('Transport target completeness', $this->completenessStatus($transportCompleteness), "{$transportCompleteness}% active requests have needed_at", 'prod.transport_requests needed_at'),
-            $this->qualityCheck('OR utilization recency', $this->freshnessStatus($latestBlock, 60 * 24 * 30, 60 * 24 * 60), $this->freshnessLabel($latestBlock), 'prod.block_utilization date'),
-            $this->qualityCheck('PDSA ownership', $this->completenessStatus($pdsaOwnership), "{$pdsaOwnership}% active cycles have owners", 'prod.pdsa_cycles owner'),
-            $this->qualityCheck('Event spine freshness', $this->freshnessStatus($latestEvent, 60 * 24, 60 * 24 * 7), $this->freshnessLabel($latestEvent), 'prod.operational_events occurred_at'),
+            $this->qualityCheck('Census freshness', $this->freshnessStatus($latestCensus, 120, 360), $this->freshnessLabel($latestCensus), 'prod.census_snapshots captured_at', 'capacity_census'),
+            $this->qualityCheck('RTDC prediction presence', $predictionCount > 0 ? 'success' : 'warning', "{$predictionCount} predictions today", 'prod.rtdc_predictions service_date', 'rtdc_predictions'),
+            $this->qualityCheck('ED timestamp completeness', $this->completenessStatus($edCompleteness), "{$edCompleteness}% provider-seen coverage", 'prod.ed_visits provider_seen_at', 'ed_flow'),
+            $this->qualityCheck('Transport target completeness', $this->completenessStatus($transportCompleteness), "{$transportCompleteness}% active requests have needed_at", 'prod.transport_requests needed_at', 'transport_operations'),
+            $this->qualityCheck('OR utilization recency', $this->freshnessStatus($latestBlock, 60 * 24 * 30, 60 * 24 * 60), $this->freshnessLabel($latestBlock), 'prod.block_utilization date', 'surgical_throughput'),
+            $this->qualityCheck('PDSA ownership', $this->completenessStatus($pdsaOwnership), "{$pdsaOwnership}% active cycles have owners", 'prod.pdsa_cycles owner', 'improvement_work'),
+            $this->qualityCheck('Event spine freshness', $this->freshnessStatus($latestEvent, 60 * 24, 60 * 24 * 7), $this->freshnessLabel($latestEvent), 'prod.operational_events occurred_at', 'process_events'),
         ];
         $summary = [
             'total' => count($checks),
@@ -602,6 +608,8 @@ class OperationsAnalyticsService
             'warning' => collect($checks)->where('status', 'warning')->count(),
             'critical' => collect($checks)->where('status', 'critical')->count(),
         ];
+
+        $this->lineage->recordDataQualityFindings($checks);
 
         return [
             'summary' => $summary,
@@ -611,52 +619,41 @@ class OperationsAnalyticsService
 
     private function sourceMap(): array
     {
-        return [
-            $this->sourceEntry('Capacity census', 'prod.census_snapshots', 'staffed capacity, occupancy, blocked beds', '/rtdc/bed-tracking', 'captured_at'),
-            $this->sourceEntry('RTDC predictions', 'prod.rtdc_predictions', 'discharges, demand, capacity now, bed need', '/rtdc/predictions/demand', 'updated_at'),
-            $this->sourceEntry('ED flow', 'prod.ed_visits', 'arrival, provider, boarding, disposition, departure', '/dashboard/emergency', 'updated_at'),
-            $this->sourceEntry('Bed placement', 'prod.bed_requests', 'pending admissions and placement demand', '/rtdc/bed-placement', 'updated_at'),
-            $this->sourceEntry('Surgical throughput', 'prod.or_cases', 'daily OR demand and surgical deep dives', '/analytics/or-utilization', 'updated_at'),
-            $this->sourceEntry('Transport operations', 'prod.transport_requests', 'active moves, SLA risk, handoffs, vendors', '/transport/analytics', 'updated_at'),
-            $this->sourceEntry('Process events', 'prod.operational_events', 'canonical event log for process mining', '/analytics/process-intelligence', 'occurred_at'),
-            $this->sourceEntry('Improvement work', 'prod.pdsa_cycles', 'experiments, owners, sustainment', '/improvement/pdsa', 'updated_at'),
-        ];
-    }
-
-    private function sourceEntry(string $label, string $table, string $scope, string $route, string $freshnessColumn): array
-    {
-        $latest = $this->latestTimestamp($table, $freshnessColumn);
-        $recordCount = (int) DB::table($table)->count();
-
-        return [
-            'label' => $label,
-            'source' => $table,
-            'scope' => $scope,
-            'route' => $route,
-            'freshnessLabel' => $this->freshnessLabel($latest),
-            'status' => $recordCount > 0 ? $this->freshnessStatus($latest, 60 * 24, 60 * 24 * 7) : 'warning',
-            'recordCount' => $recordCount,
-        ];
+        return collect(array_keys($this->lineage->sourceCatalog()))
+            ->map(fn (string $sourceKey): array => $this->lineage->freshnessForSource($sourceKey))
+            ->values()
+            ->all();
     }
 
     private function metricTile(string $label, int|float|string $value, string $unit, string $status, string $detail): array
     {
-        return [
+        return $this->lineage->enrichMetric([
             'label' => $label,
             'value' => is_float($value) ? rtrim(rtrim(number_format($value, 1), '0'), '.') : (string) $value,
             'unit' => $unit,
             'status' => $status,
             'detail' => $detail,
-        ];
+        ]);
     }
 
-    private function qualityCheck(string $label, string $status, string $detail, string $lineage): array
+    private function recommendationImpact(string $riskLevel): string
+    {
+        return match ($riskLevel) {
+            'critical', 'high' => 'High',
+            'medium' => 'Medium',
+            default => 'Low',
+        };
+    }
+
+    private function qualityCheck(string $label, string $status, string $detail, string $lineage, ?string $sourceKey = null): array
     {
         return [
+            'key' => Str::snake($label),
             'label' => $label,
             'status' => $status,
             'detail' => $detail,
             'lineage' => $lineage,
+            'sourceKey' => $sourceKey,
         ];
     }
 

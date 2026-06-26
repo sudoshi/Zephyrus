@@ -23,4 +23,9 @@ class Recommendation extends Model
     {
         return $this->hasMany(OperationalAction::class, 'recommendation_id', 'recommendation_id');
     }
+
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(Intervention::class, 'recommendation_id', 'recommendation_id');
+    }
 }

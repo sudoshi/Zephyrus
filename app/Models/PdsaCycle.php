@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PdsaCycle extends Model
 {
@@ -22,5 +23,10 @@ class PdsaCycle extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unit_id', 'unit_id');
+    }
+
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(\App\Models\Ops\Intervention::class, 'pdsa_cycle_id', 'pdsa_cycle_id');
     }
 }

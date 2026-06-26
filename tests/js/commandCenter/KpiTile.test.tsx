@@ -31,6 +31,24 @@ describe('KpiTile', () => {
     expect(screen.getByTestId('kpi-x').closest('a')).toBeNull();
   });
 
+  it('renders source trust when lineage metadata is available', () => {
+    render(<KpiTile metric={{
+      ...base,
+      sourceTrust: {
+        score: 92,
+        status: 'success',
+        freshSourceCount: 2,
+        staleSourceCount: 0,
+        missingSourceCount: 0,
+      },
+      lineageHref: '/api/analytics/metrics/occupancy/lineage',
+      lineageSummary: '92% trust from 2 source(s): Capacity census, ED flow.',
+    }} />);
+
+    expect(screen.getByLabelText('Source trust: 92%')).toBeInTheDocument();
+    expect(screen.getByText('Trust 92%')).toBeInTheDocument();
+  });
+
   it('renders a sparkline for non-circle metrics with trajectory data', () => {
     render(<KpiTile metric={{ ...base, key: 'net_beds', unit: 'beds', display: '4', value: 4 }} />);
     expect(screen.getByTestId('sparkline-net_beds')).toBeInTheDocument();

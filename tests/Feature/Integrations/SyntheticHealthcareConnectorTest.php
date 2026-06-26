@@ -36,6 +36,12 @@ class SyntheticHealthcareConnectorTest extends TestCase
             'integration.identity_links',
             'integration.patient_merge_events',
             'integration.terminology_maps',
+            'integration.interface_engines',
+            'integration.fhir_client_connections',
+            'integration.smart_backend_credentials',
+            'integration.connector_playbooks',
+            'integration.coexistence_adapters',
+            'ops.writeback_drafts',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "{$table} should exist");
         }
@@ -189,6 +195,103 @@ class SyntheticHealthcareConnectorTest extends TestCase
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.counts.sources', 1)
             ->assertJsonPath('data.sources.0.source_key', 'synthetic.command_center');
+    }
+
+    public function test_enterprise_connector_summary_seeds_playbooks_and_coexistence_adapters(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/admin/integrations/enterprise')
+            ->assertOk()
+            ->assertJsonPath('data.counts.connectorPlaybooks', 3)
+            ->assertJsonPath('data.counts.coexistenceAdapters', 3)
+            ->assertJsonPath('data.counts.interfaceEngines', 1);
+
+        $this->assertContains('epic', array_column($response->json('data.playbooks'), 'vendorKey'));
+        $this->assertContains('teletracking_coexistence', array_column($response->json('data.coexistenceAdapters'), 'adapterKey'));
+        $this->assertDatabaseHas('integration.interface_engines', [
+            'engine_key' => 'interface-engine-boundary',
+            'engine_type' => 'hl7v2_mllp_gateway',
+        ]);
+    }
+
+    public function test_fhir_capability_discovery_records_connection_capabilities_and_smart_lifecycle(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
+                'source_key' => 'epic.fhir.sandbox',
+                'vendor' => 'Epic',
+                'fhir_version' => '4.0.1',
+                'client_id' => 'zephyrus-system-client',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.sourceKey', 'epic.fhir.sandbox')
+            ->assertJsonPath('data.fhirVersion', '4.0.1')
+            ->assertJsonPath('data.smartCredentialStatus', 'planned');
+
+        $sourceId = $response->json('data.sourceId');
+        $this->assertDatabaseHas('integration.fhir_client_connections', [
+            'source_id' => $sourceId,
+            'connection_key' => 'default-r4',
+            'status' => 'discovered',
+        ]);
+        $this->assertDatabaseHas('integration.source_capabilities', [
+            'source_id' => $sourceId,
+            'resource_type' => 'Task',
+            'capability_type' => 'fhir_resource',
+            'operation' => 'search',
+            'supported' => true,
+        ]);
+        $this->assertDatabaseHas('integration.smart_backend_credentials', [
+            'source_id' => $sourceId,
+            'credential_key' => 'backend-services-default',
+            'status' => 'planned',
+            'client_id' => 'zephyrus-system-client',
+        ]);
+    }
+
+    public function test_writeback_draft_creates_pending_ops_approval_gate(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/admin/integrations/enterprise/writeback-drafts', [
+                'source_key' => 'epic.fhir.sandbox',
+                'vendor' => 'Epic',
+                'target_system' => 'epic',
+                'resource_type' => 'Task',
+                'draft_type' => 'fhir_task',
+                'resource_payload' => [
+                    'resourceType' => 'Task',
+                    'status' => 'requested',
+                    'intent' => 'order',
+                    'description' => 'Draft bed placement task',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.resourceType', 'Task')
+            ->assertJsonPath('data.targetSystem', 'epic')
+            ->assertJsonPath('data.status', 'pending_approval')
+            ->assertJsonPath('data.approvalStatus', 'pending');
+
+        $this->assertDatabaseHas('ops.writeback_drafts', [
+            'writeback_draft_id' => $response->json('data.writebackDraftId'),
+            'resource_type' => 'Task',
+            'target_system' => 'epic',
+            'status' => 'pending_approval',
+        ]);
+        $this->assertDatabaseHas('ops.actions', [
+            'action_id' => $response->json('data.actionId'),
+            'action_type' => 'approve_writeback_draft',
+            'status' => 'draft',
+        ]);
+        $this->assertDatabaseHas('ops.approvals', [
+            'approval_id' => $response->json('data.approvalId'),
+            'status' => 'pending',
+        ]);
     }
 
     private function seedCapacityFixture(): array

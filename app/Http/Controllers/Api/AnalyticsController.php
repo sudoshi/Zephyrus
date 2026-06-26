@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Analytics\MetricLineageService;
 use App\Services\Analytics\OperationsAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +63,13 @@ class AnalyticsController extends Controller
     {
         return response()->json([
             'data' => $analytics->dataQuality(),
+        ]);
+    }
+
+    public function metricLineage(string $metricKey, MetricLineageService $lineage)
+    {
+        return response()->json([
+            'data' => $lineage->lineageForMetric($metricKey),
         ]);
     }
 

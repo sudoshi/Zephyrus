@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Api\Ops;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ops\OperationsNode;
+use App\Services\Ops\OperationalActionLifecycleService;
 use App\Services\Ops\OperationsGraphProjector;
+use App\Services\Ops\OperationsRecommendationService;
 use Illuminate\Http\JsonResponse;
 
 class OperationsGraphController extends Controller
 {
-    public function __construct(private readonly OperationsGraphProjector $projector) {}
+    public function __construct(
+        private readonly OperationsGraphProjector $projector,
+        private readonly OperationsRecommendationService $recommendations,
+        private readonly OperationalActionLifecycleService $lifecycle,
+    ) {}
 
     public function snapshot(): JsonResponse
     {
@@ -29,6 +35,22 @@ class OperationsGraphController extends Controller
 
         return response()->json([
             'data' => $this->projector->serializeNodeTimeline($graphNode),
+        ]);
+    }
+
+    public function recommendations(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->recommendations->generate(),
+        ]);
+    }
+
+    public function agentInbox(): JsonResponse
+    {
+        $this->recommendations->generate();
+
+        return response()->json([
+            'data' => $this->lifecycle->inbox(),
         ]);
     }
 }

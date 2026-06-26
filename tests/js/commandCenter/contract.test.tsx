@@ -80,6 +80,29 @@ describe('command center contract', () => {
     }).success).toBe(true);
   });
 
+  it('accepts optional metric lineage and source trust fields', () => {
+    const lineageMetric = {
+      ...minimalMetric,
+      lineageHref: '/api/analytics/metrics/occupancy/lineage',
+      lineageSummary: '100% trust from 1 source: Capacity census.',
+      sourceTrust: {
+        score: 100,
+        status: 'success',
+        freshSourceCount: 1,
+        staleSourceCount: 0,
+        missingSourceCount: 0,
+      },
+    };
+
+    const parsed = parseCommandCenterData({
+      ...valid,
+      heroMetrics: [lineageMetric],
+    });
+
+    expect(parsed.heroMetrics[0].sourceTrust?.score).toBe(100);
+    expect(parsed.heroMetrics[0].lineageHref).toBe('/api/analytics/metrics/occupancy/lineage');
+  });
+
   it('parses a valid 90-day drilldown payload', () => {
     const dailyMetric = {
       metricKey: 'occupancy',

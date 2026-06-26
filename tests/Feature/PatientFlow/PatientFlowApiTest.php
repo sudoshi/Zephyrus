@@ -7,6 +7,8 @@ use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PatientFlowApiTest extends TestCase
@@ -35,6 +37,25 @@ class PatientFlowApiTest extends TestCase
 
         $event = app(FlowEventNormalizer::class)->normalize($raw);
         app(FlowEventRepository::class)->upsertNormalizedEvent($event, null, null, null, $facilityCode);
+        $spaceId = (int) DB::table('hosp_space.facility_spaces')
+            ->where('space_code', "{$facilityCode}:TICU-B001")
+            ->value('facility_space_id');
+        DB::table('ops.nodes')->insert([
+            'node_uuid' => (string) Str::uuid(),
+            'node_type' => 'facility_space',
+            'canonical_key' => "facility_space:{$spaceId}",
+            'display_name' => 'TICU bed graph node',
+            'source_schema' => 'hosp_space',
+            'source_table' => 'facility_spaces',
+            'source_pk' => (string) $spaceId,
+            'status' => 'active',
+            'current_state' => json_encode(['overlay' => 'capacity']),
+            'metadata' => json_encode([]),
+            'last_observed_at' => now(),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $user = User::factory()->create();
 
@@ -43,12 +64,15 @@ class PatientFlowApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('normalized_events', 1)
             ->assertJsonPath('patients', 1)
+            ->assertJsonPath('ambient_signals', 4)
+            ->assertJsonPath('ambient_confidence_level', 'medium')
             ->assertJsonPath('facility_code', 'ZEPHYRUS-500');
 
         $this->actingAs($user)
             ->getJson('/api/patient-flow/locations')
             ->assertOk()
-            ->assertJsonStructure(['TICU-B001' => ['facility_space_id', 'position_m', 'name']]);
+            ->assertJsonStructure(['TICU-B001' => ['facility_space_id', 'position_m', 'name', 'ops_graph_nodes']])
+            ->assertJsonPath('TICU-B001.ops_graph_nodes.0.canonicalKey', "facility_space:{$spaceId}");
 
         $this->actingAs($user)
             ->getJson('/api/patient-flow/events')
@@ -62,6 +86,28 @@ class PatientFlowApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('activePatients', 1)
             ->assertJsonPath('patients.0.location', 'TICU-B001');
+
+        $ambient = $this->actingAs($user)
+            ->getJson('/api/patient-flow/ambient')
+            ->assertOk()
+            ->assertJsonPath('summary.adapterCount', 4)
+            ->assertJsonPath('summary.eventCount', 4)
+            ->assertJsonPath('adapters.0.enabled', true)
+            ->json();
+
+        $this->assertContains('fixture_rtls', array_column($ambient['adapters'], 'key'));
+        $this->assertContains('fixture_nurse_call', array_column($ambient['adapters'], 'key'));
+        $this->assertContains('zone_presence', array_column($ambient['events'], 'signalType'));
+        $this->assertGreaterThanOrEqual(0.70, $ambient['summary']['averageConfidence']);
+
+        $this->assertDatabaseHas('flow_realtime.ambient_signal_adapters', [
+            'adapter_key' => 'fixture_rtls',
+            'source_type' => 'rtls',
+        ]);
+        $this->assertDatabaseHas('flow_realtime.ambient_signal_events', [
+            'signal_type' => 'zone_presence',
+            'confidence_level' => 'high',
+        ]);
 
         $this->actingAs($user)
             ->getJson('/api/patient-flow/fhir/bundle?event_id='.$event['event_id'])

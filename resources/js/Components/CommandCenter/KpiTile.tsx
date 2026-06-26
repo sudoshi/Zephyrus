@@ -129,16 +129,28 @@ export function KpiTile({ metric }: { metric: KpiMetric }) {
       Target {metric.targetDisplay}
     </span>
   ) : null;
+  const trustBadge = metric.sourceTrust ? (
+    <span
+      title={metric.lineageSummary ?? `Source trust ${metric.sourceTrust.score}%`}
+      aria-label={`Source trust: ${metric.sourceTrust.score}%`}
+      className={`shrink-0 rounded-full border border-healthcare-border/70 bg-healthcare-surface/70 px-1.5 py-0.5 text-[0.62rem] font-semibold tabular-nums dark:border-healthcare-border-dark/70 dark:bg-healthcare-surface-dark/70 ${detailStatusClass[metric.sourceTrust.status]}`}
+    >
+      Trust {metric.sourceTrust.score}%
+    </span>
+  ) : null;
 
   const body = (
     <Panel className="flex h-full flex-col gap-2 p-4" style={{ borderLeft: `3px solid ${color}` }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        <span className="min-w-0 truncate text-xs uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           {metric.label}
         </span>
-        <span title={metric.definition} aria-label={`Definition: ${metric.definition}`}
-              className="text-xs leading-none text-healthcare-text-secondary/50 dark:text-healthcare-text-secondary-dark/50">
-          {'ⓘ'}
+        <span className="flex shrink-0 items-center gap-1">
+          {trustBadge}
+          <span title={metric.definition} aria-label={`Definition: ${metric.definition}`}
+                className="text-xs leading-none text-healthcare-text-secondary/50 dark:text-healthcare-text-secondary-dark/50">
+            {'ⓘ'}
+          </span>
         </span>
       </div>
 

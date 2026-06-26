@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type {
+  PatientFlowAmbient,
   PatientFlowEvent,
   PatientFlowLocations,
   PatientFlowState,
@@ -41,6 +42,11 @@ export async function fetchPatientFlowState(asOf?: string): Promise<PatientFlowS
   const response = await axios.get<PatientFlowState>('/api/patient-flow/state', {
     params: asOf ? { asOf } : {},
   });
+  return response.data;
+}
+
+export async function fetchPatientFlowAmbient(): Promise<PatientFlowAmbient> {
+  const response = await axios.get<PatientFlowAmbient>('/api/patient-flow/ambient');
   return response.data;
 }
 

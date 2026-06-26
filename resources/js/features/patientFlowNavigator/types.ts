@@ -15,6 +15,9 @@ export interface PatientFlowSummary {
   min_occurred_at: string | null;
   max_occurred_at: string | null;
   live_events: number;
+  ambient_signals?: number;
+  ambient_confidence?: number;
+  ambient_confidence_level?: string;
   facility_code: string;
   model_url: string;
   tileset_url?: string;
@@ -33,6 +36,15 @@ export interface PatientFlowLocation {
   acuity?: string | null;
   position_ft?: Vector3Payload | null;
   position_m?: Vector3Payload | null;
+  ops_graph_nodes?: Array<{
+    graphNodeId: number;
+    nodeUuid: string;
+    nodeType: string;
+    canonicalKey: string;
+    displayName: string;
+    status?: string | null;
+    currentState?: Record<string, unknown>;
+  }>;
   metadata?: Record<string, unknown>;
 }
 
@@ -74,6 +86,50 @@ export interface PatientFlowEvent {
 
 export type PatientFlowLocations = Record<string, PatientFlowLocation>;
 export type PatientFlowTracks = Record<string, PatientFlowEvent[]>;
+
+export interface AmbientSignalAdapterSummary {
+  adapterId: number;
+  adapterUuid: string;
+  key: string;
+  label: string;
+  sourceType: string;
+  enabled: boolean;
+  baseConfidence: number;
+  minimumRole?: string | null;
+  capabilities: Record<string, unknown> | string[];
+  eventCount: number;
+}
+
+export interface AmbientSignalEvent {
+  ambientSignalEventId: number;
+  eventUuid: string;
+  adapterKey: string;
+  adapterLabel: string;
+  sourceType: string;
+  signalType: string;
+  occurredAtIso: string;
+  locationCode?: string | null;
+  facilitySpaceId?: number | null;
+  confidenceScore: number;
+  confidenceLevel: string;
+  payload: Record<string, unknown>;
+  linkedFlowEventId?: string | null;
+}
+
+export interface PatientFlowAmbientSummary {
+  adapterCount: number;
+  enabledAdapterCount: number;
+  eventCount: number;
+  averageConfidence: number;
+  confidenceLevel: string;
+}
+
+export interface PatientFlowAmbient {
+  generated_at: string;
+  summary: PatientFlowAmbientSummary;
+  adapters: AmbientSignalAdapterSummary[];
+  events: AmbientSignalEvent[];
+}
 
 export interface PatientFlowStatePatient {
   patient_id: string;

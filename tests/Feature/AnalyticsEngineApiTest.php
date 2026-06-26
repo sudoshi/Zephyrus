@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Analytics\MetricLineageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -105,6 +106,146 @@ class AnalyticsEngineApiTest extends TestCase
         $this->assertTrue(collect($data['sourceMap'])->contains(
             fn (array $source): bool => $source['label'] === 'Capacity census' && $source['recordCount'] > 0
         ));
+        $this->assertTrue(collect($data['metrics'])->contains(
+            fn (array $metric): bool => $metric['key'] === 'system_strain'
+                && isset($metric['sourceTrust']['score'])
+                && $metric['lineageHref'] === '/api/analytics/metrics/system_strain/lineage'
+        ));
+    }
+
+    public function test_metric_lineage_endpoint_returns_trust_and_materializes_catalog(): void
+    {
+        $user = User::factory()->create();
+        $unitId = $this->insertUnit('8 East');
+        $this->insertSnapshot($unitId, staffed: 24, occupied: 20, available: 4, blocked: 1);
+
+        DB::table('prod.ed_visits')->insert([
+            'patient_ref' => 'lineage-ed-boarder-1',
+            'arrived_at' => now()->subHours(4),
+            'provider_seen_at' => now()->subHours(3),
+            'disposition' => 'admitted',
+            'admit_decision_at' => now()->subHours(2),
+            'bed_assigned_at' => null,
+            'unit_id' => $unitId,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('prod.bed_requests')->insert([
+            'patient_ref' => 'lineage-bed-request-1',
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 3,
+            'required_unit_type' => 'med_surg',
+            'status' => 'pending',
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('prod.transport_requests')->insert([
+            'request_uuid' => (string) Str::uuid(),
+            'request_type' => 'inpatient',
+            'priority' => 'routine',
+            'status' => 'requested',
+            'patient_ref' => 'lineage-transport-1',
+            'origin' => 'ED',
+            'destination' => '8 East',
+            'transport_mode' => 'wheelchair',
+            'requested_at' => now(),
+            'needed_at' => now()->addMinutes(20),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/analytics/metrics/system-strain/lineage')
+            ->assertOk()
+            ->assertJsonPath('data.metric.key', 'system_strain')
+            ->assertJsonPath('data.metric.label', 'System Strain');
+
+        $data = $response->json('data');
+        $this->assertSame('success', $data['sourceTrust']['status']);
+        $this->assertContains('capacity_census', array_column($data['sources'], 'sourceKey'));
+        $this->assertContains('ed_flow', array_column($data['sources'], 'sourceKey'));
+        $this->assertContains('operations_analytics.system_strain', array_column($data['lineage'], 'transformName'));
+
+        $this->assertDatabaseHas('ops.metric_definitions', [
+            'metric_key' => 'system_strain',
+            'label' => 'System Strain',
+        ]);
+        $this->assertDatabaseHas('ops.metric_lineage', [
+            'metric_key' => 'system_strain',
+            'source_key' => 'capacity_census',
+        ]);
+        $this->assertDatabaseHas('ops.source_freshness', [
+            'source_key' => 'capacity_census',
+            'status' => 'success',
+        ]);
+    }
+
+    public function test_metric_lineage_empty_source_behavior_is_explicit(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/analytics/metrics/occupancy/lineage')
+            ->assertOk()
+            ->assertJsonPath('data.metric.key', 'occupancy')
+            ->assertJsonPath('data.sourceTrust.status', 'warning')
+            ->assertJsonPath('data.sourceTrust.score', 70)
+            ->assertJsonPath('data.sourceTrust.missingSourceCount', 1)
+            ->assertJsonPath('data.sources.0.sourceKey', 'capacity_census')
+            ->assertJsonPath('data.sources.0.recordCount', 0)
+            ->assertJsonPath('data.sources.0.status', 'warning');
+
+        $this->assertSame('70% trust from 1 source(s): Capacity census.', $response->json('data.lineageSummary'));
+        $this->assertDatabaseHas('ops.source_freshness', [
+            'source_key' => 'capacity_census',
+            'status' => 'warning',
+        ]);
+    }
+
+    public function test_ad_hoc_metric_without_sources_returns_zero_trust(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson('/api/analytics/metrics/unmapped-metric/lineage')
+            ->assertOk()
+            ->assertJsonPath('data.metric.key', 'unmapped_metric')
+            ->assertJsonPath('data.sourceTrust.score', 0)
+            ->assertJsonPath('data.sourceTrust.status', 'warning')
+            ->assertJsonPath('data.sources', [])
+            ->assertJsonPath('data.lineage', [])
+            ->assertJsonPath('data.lineageSummary', 'No curated source lineage is registered yet.');
+
+        $this->assertDatabaseHas('ops.metric_definitions', [
+            'metric_key' => 'unmapped_metric',
+            'domain' => 'analytics',
+        ]);
+        $this->assertDatabaseMissing('ops.metric_lineage', [
+            'metric_key' => 'unmapped_metric',
+        ]);
+    }
+
+    public function test_metric_catalog_definitions_are_complete_and_reference_known_sources(): void
+    {
+        $lineage = app(MetricLineageService::class);
+        $sourceKeys = array_keys($lineage->sourceCatalog());
+
+        foreach ($lineage->metricCatalog() as $metricKey => $metric) {
+            $this->assertNotEmpty($metric['label'], "{$metricKey} missing label");
+            $this->assertNotEmpty($metric['domain'], "{$metricKey} missing domain");
+            $this->assertNotEmpty($metric['definition'], "{$metricKey} missing definition");
+            $this->assertNotEmpty($metric['owner'], "{$metricKey} missing owner");
+            $this->assertArrayHasKey('source_keys', $metric, "{$metricKey} missing source keys");
+            $this->assertContains($metric['direction'], ['up', 'down', 'neutral'], "{$metricKey} has invalid direction");
+
+            foreach ($metric['source_keys'] as $sourceKey) {
+                $this->assertContains($sourceKey, $sourceKeys, "{$metricKey} references unknown source {$sourceKey}");
+            }
+        }
     }
 
     public function test_predictive_endpoint_uses_rtdc_prediction_totals(): void
@@ -123,6 +264,47 @@ class AnalyticsEngineApiTest extends TestCase
         $this->assertContains('Bed Need', array_column($response->json('data.metrics'), 'label'));
     }
 
+    public function test_opportunities_endpoint_includes_graph_backed_recommendations(): void
+    {
+        $user = User::factory()->create();
+        $unitId = $this->insertUnit('6 South');
+        $this->insertSnapshot($unitId, staffed: 20, occupied: 19, available: 1, blocked: 0);
+        DB::table('prod.bed_requests')->insert([
+            'patient_ref' => 'opportunity-bed-request-1',
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 3,
+            'required_unit_type' => 'med_surg',
+            'status' => 'pending',
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/analytics/opportunities')
+            ->assertOk()
+            ->assertJsonPath('data.section', 'opportunities');
+
+        $recommendations = collect($response->json('data.recommendations'));
+        $recommendation = $recommendations->firstWhere('type', 'bed_pressure');
+
+        $this->assertNotNull($recommendation);
+        $this->assertGreaterThanOrEqual(1, $response->json('data.recommendationSummary.total'));
+        $this->assertSame('pending', $recommendation['actions'][0]['approvals'][0]['status']);
+        $this->assertContains('prod.bed_requests', $recommendation['evidence']['source_tables']);
+        $this->assertContains('bed_request', array_column($recommendation['evidence']['graph_nodes'], 'nodeType'));
+
+        $this->assertDatabaseHas('ops.recommendations', [
+            'recommendation_type' => 'bed_pressure',
+            'status' => 'draft',
+        ]);
+        $this->assertDatabaseHas('ops.actions', [
+            'action_type' => 'review_bed_placement_gap',
+            'status' => 'draft',
+        ]);
+    }
+
     public function test_data_quality_endpoint_returns_governance_checks(): void
     {
         $user = User::factory()->create();
@@ -136,6 +318,29 @@ class AnalyticsEngineApiTest extends TestCase
 
         $this->assertSame(7, $response->json('data.summary.total'));
         $this->assertContains('Census freshness', array_column($response->json('data.checks'), 'label'));
+        $this->assertContains('capacity_census', array_column($response->json('data.checks'), 'sourceKey'));
+        $this->assertSame('rules_only', $response->json('data.agent.mode'));
+        $this->assertFalse($response->json('data.agent.llmEnabled'));
+        $this->assertContains('source_freshness', array_column($response->json('data.agent.rules'), 'key'));
+    }
+
+    public function test_data_quality_agent_creates_rules_based_source_findings(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/analytics/data-quality')
+            ->assertOk()
+            ->assertJsonPath('data.agent.key', 'data_quality_agent')
+            ->assertJsonPath('data.agent.llmEnabled', false);
+
+        $this->assertGreaterThan(0, $response->json('data.agent.summary.issuesOpen'));
+        $this->assertContains('ED flow source freshness', array_column($response->json('data.agent.findings'), 'label'));
+        $this->assertDatabaseHas('ops.data_quality_findings', [
+            'check_key' => 'source_ed_flow_freshness',
+            'status' => 'open',
+            'source_key' => 'ed_flow',
+        ]);
     }
 
     private function insertUnit(string $name): int

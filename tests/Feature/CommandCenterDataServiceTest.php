@@ -49,6 +49,11 @@ class CommandCenterDataServiceTest extends TestCase
 
         $this->assertContains('occupancy', $keys);
         $this->assertContains('net_beds', $keys);
+
+        $occupancy = collect($data['heroMetrics'])->firstWhere('key', 'occupancy');
+        $this->assertArrayHasKey('sourceTrust', $occupancy);
+        $this->assertArrayHasKey('score', $occupancy['sourceTrust']);
+        $this->assertSame('/api/analytics/metrics/occupancy/lineage', $occupancy['lineageHref']);
     }
 
     public function test_every_kpi_metric_has_required_shape(): void

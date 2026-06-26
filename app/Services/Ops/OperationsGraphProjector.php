@@ -37,6 +37,7 @@ class OperationsGraphProjector
             $this->projectOrCases();
             $this->projectBedRequests();
             $this->projectTransportRequests();
+            $this->projectEvsRequests();
             $this->projectBarriers();
 
             return $this->captureSnapshot();
@@ -446,6 +447,54 @@ class OperationsGraphProjector
                 );
 
                 $this->addEdgeToEncounterByPatient($requestNode, $request->patient_ref, 'moves_patient_for');
+            });
+    }
+
+    private function projectEvsRequests(): void
+    {
+        if (! Schema::hasTable('prod.evs_requests')) {
+            return;
+        }
+
+        DB::table('prod.evs_requests')
+            ->where('is_deleted', false)
+            ->orderBy('evs_request_id')
+            ->get()
+            ->each(function (object $request): void {
+                $requestNode = $this->upsertNode(
+                    type: 'evs_request',
+                    id: (string) $request->evs_request_id,
+                    displayName: "{$request->location_label} {$request->request_type}",
+                    sourceTable: 'evs_requests',
+                    status: $request->status,
+                    state: [
+                        'request_uuid' => $request->request_uuid,
+                        'request_type' => $request->request_type,
+                        'priority' => $request->priority,
+                        'room_id' => $request->room_id ? (int) $request->room_id : null,
+                        'bed_id' => $request->bed_id ? (int) $request->bed_id : null,
+                        'unit_id' => $request->unit_id ? (int) $request->unit_id : null,
+                        'patient_ref' => $request->patient_ref,
+                        'encounter_ref' => $request->encounter_ref,
+                        'location_label' => $request->location_label,
+                        'turn_type' => $request->turn_type,
+                        'isolation_required' => (bool) $request->isolation_required,
+                        'needed_at' => $request->needed_at,
+                    ],
+                    observedAt: $request->updated_at,
+                );
+
+                if (! empty($request->bed_id)) {
+                    $this->addEdge($requestNode, "bed:{$request->bed_id}", 'cleans_bed');
+                }
+                if (! empty($request->room_id)) {
+                    $this->addEdge($requestNode, "room:{$request->room_id}", 'cleans_room');
+                }
+                if (! empty($request->unit_id)) {
+                    $this->addEdge($requestNode, "unit:{$request->unit_id}", 'supports_unit');
+                }
+
+                $this->addEdgeToEncounterByPatient($requestNode, $request->patient_ref, 'cleans_for_encounter');
             });
     }
 

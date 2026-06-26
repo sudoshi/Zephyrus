@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Ops\AgentController;
+use App\Http\Controllers\Api\Ops\OperationalActionController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
+use App\Http\Controllers\Api\Ops\SimulationController;
 use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
@@ -63,6 +68,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     Route::get('/events', [PatientFlowController::class, 'events']);
     Route::get('/tracks', [PatientFlowController::class, 'tracks']);
     Route::get('/state', [PatientFlowController::class, 'state']);
+    Route::get('/ambient', [PatientFlowController::class, 'ambient']);
     Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
     Route::get('/stream/adt', PatientFlowStreamController::class);
     Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
@@ -111,15 +117,43 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('transport')->group(
     Route::get('/vendors', [TransportRequestController::class, 'vendors']);
 });
 
+// EVS / environmental services workflow (web session auth)
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('evs')->group(function () {
+    Route::get('/overview', [EvsRequestController::class, 'overview']);
+    Route::get('/requests', [EvsRequestController::class, 'index']);
+    Route::post('/requests', [EvsRequestController::class, 'store']);
+    Route::get('/requests/{evsRequestId}', [EvsRequestController::class, 'show']);
+    Route::post('/requests/{evsRequestId}/assign', [EvsRequestController::class, 'assign']);
+    Route::post('/requests/{evsRequestId}/status', [EvsRequestController::class, 'status']);
+    Route::post('/requests/{evsRequestId}/cancel', [EvsRequestController::class, 'cancel']);
+    Route::get('/resources', [EvsRequestController::class, 'resources']);
+});
+
 // Operations graph foundation (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(function () {
     Route::get('/graph/snapshot', [OperationsGraphController::class, 'snapshot']);
     Route::get('/graph/nodes/{node}', [OperationsGraphController::class, 'node']);
+    Route::get('/recommendations', [OperationsGraphController::class, 'recommendations']);
+    Route::get('/agent-inbox', [OperationsGraphController::class, 'agentInbox']);
+    Route::get('/agents/definitions', [AgentController::class, 'definitions']);
+    Route::post('/agents/capacity-commander/run', [AgentController::class, 'runCapacityCommander']);
+    Route::post('/agents/data-quality/run', [AgentController::class, 'runDataQuality']);
+    Route::get('/agents/runs/{run}', [AgentController::class, 'show']);
+    Route::post('/approvals/{approval}/decision', [OperationalActionController::class, 'decideApproval']);
+    Route::post('/actions/{action}/assign', [OperationalActionController::class, 'assign']);
+    Route::post('/actions/{action}/start', [OperationalActionController::class, 'start']);
+    Route::post('/actions/{action}/complete', [OperationalActionController::class, 'complete']);
+    Route::post('/actions/{action}/override', [OperationalActionController::class, 'override']);
+    Route::post('/actions/{action}/expire', [OperationalActionController::class, 'expire']);
+    Route::post('/simulation-scenarios/{scenario}/promote', [SimulationController::class, 'promote']);
 });
 
 // Admin integration health (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('admin/integrations')->group(function () {
     Route::get('/health', IntegrationHealthController::class);
+    Route::get('/enterprise', [EnterpriseConnectorController::class, 'summary']);
+    Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
+    Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
 });
 
 // OR Cases
@@ -151,6 +185,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('analytics')->group(
     Route::get('/opportunities', [AnalyticsController::class, 'opportunities']);
     Route::get('/workbench', [AnalyticsController::class, 'workbench']);
     Route::get('/data-quality', [AnalyticsController::class, 'dataQuality']);
+    Route::get('/metrics/{metricKey}/lineage', [AnalyticsController::class, 'metricLineage'])
+        ->where('metricKey', '[A-Za-z0-9_\-]+');
 });
 
 Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {

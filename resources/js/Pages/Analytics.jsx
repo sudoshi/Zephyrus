@@ -7,19 +7,24 @@ import {
     AlertCircle,
     ArrowRightCircle,
     BarChart3,
+    CheckCircle2,
+    ClipboardCheck,
     Clock,
     Database,
     Gauge,
     GitBranch,
     LineChart,
     ListChecks,
+    PlayCircle,
     RefreshCcw,
     Search,
     Shield,
     Target,
     Timer,
     TrendingUp,
+    UserCheck,
     Workflow,
+    XCircle,
 } from 'lucide-react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
@@ -389,6 +394,11 @@ function MetricTile({ metric }) {
             <p className="mt-3 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 {metric.detail}
             </p>
+            {metric.sourceTrust && (
+                <p className="mt-2 text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    Source trust {metric.sourceTrust.score}% · {metric.lineageSummary}
+                </p>
+            )}
         </div>
     );
 }
@@ -571,6 +581,440 @@ function ActionQueue({ items }) {
     );
 }
 
+function DataQualityAgentPanel({ agent }) {
+    if (!agent) {
+        return null;
+    }
+
+    const findings = agent.findings?.length ? agent.findings : [];
+
+    return (
+        <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="flex items-center gap-2 text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                        <Shield className="h-4 w-4 text-healthcare-primary dark:text-healthcare-primary-dark" />
+                        {agent.label}
+                    </h2>
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        {agent.mode} · LLM {agent.llmEnabled ? 'on' : 'off'} · {agent.summary?.checksEvaluated ?? 0} checks
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={agent.status}>{agent.status}</StatusPill>
+                    <StatusPill status={agent.summary?.critical > 0 ? 'critical' : agent.summary?.warning > 0 ? 'warning' : 'success'}>
+                        {agent.summary?.issuesOpen ?? 0} open
+                    </StatusPill>
+                </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-2">
+                    {findings.slice(0, 5).map((finding) => (
+                        <div key={finding.key} className="rounded-lg border border-healthcare-border px-3 py-2 dark:border-healthcare-border-dark">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        {finding.label}
+                                    </p>
+                                    <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        {finding.detail}
+                                    </p>
+                                </div>
+                                <StatusPill status={finding.status}>{finding.status}</StatusPill>
+                            </div>
+                            <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                {finding.recommendedAction}
+                            </p>
+                        </div>
+                    ))}
+                    {findings.length === 0 && (
+                        <div className="rounded-lg border border-healthcare-border px-3 py-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+                            No open findings.
+                        </div>
+                    )}
+                </div>
+                <div className="space-y-2">
+                    {(agent.rules ?? []).map((rule) => (
+                        <div key={rule.key} className="rounded-lg bg-healthcare-background px-3 py-2 dark:bg-healthcare-background-dark">
+                            <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                {rule.label}
+                            </p>
+                            <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                {rule.scope}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SimulationWorkbenchPanel({ simulation }) {
+    const [pendingScenario, setPendingScenario] = useState(null);
+    const [promotedScenarioIds, setPromotedScenarioIds] = useState(() => new Set());
+
+    if (!simulation?.scenarios?.length) {
+        return null;
+    }
+
+    const baseline = simulation.baseline ?? {};
+    const summary = simulation.summary ?? {};
+
+    const promoteScenario = async (scenario) => {
+        setPendingScenario(scenario.scenarioId);
+        try {
+            await axios.post(`/api/ops/simulation-scenarios/${scenario.scenarioId}/promote`);
+            setPromotedScenarioIds((current) => new Set([...current, scenario.scenarioId]));
+        } finally {
+            setPendingScenario(null);
+        }
+    };
+
+    return (
+        <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="flex items-center gap-2 text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                        <Gauge className="h-4 w-4 text-healthcare-info dark:text-healthcare-info-dark" />
+                        Simulation Workbench
+                    </h2>
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        Run {simulation.run?.simulationRunUuid} · snapshot {simulation.run?.baselineSnapshotId}
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status="info">{summary.scenarioCount ?? simulation.scenarios.length} scenarios</StatusPill>
+                    <StatusPill status={(summary.bestRiskScore ?? 100) >= 70 ? 'critical' : (summary.bestRiskScore ?? 100) >= 45 ? 'warning' : 'success'}>
+                        best risk {summary.bestRiskScore ?? baseline.risk_score ?? 0}
+                    </StatusPill>
+                </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+                {[
+                    ['Current net beds', baseline.current_net_beds, 'beds'],
+                    ['ED boarders', baseline.ed_boarders, 'patients'],
+                    ['Dirty/blocked beds', baseline.dirty_or_blocked_beds, 'beds'],
+                    ['PACU holds', baseline.pacu_holds, 'holds'],
+                ].map(([label, value, unit]) => (
+                    <div key={label} className="rounded-lg bg-healthcare-background px-3 py-2 dark:bg-healthcare-background-dark">
+                        <div className="text-xs font-medium uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            {label}
+                        </div>
+                        <div className="mt-1 text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            {value ?? 0} <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{unit}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
+                <div className="min-w-[860px]">
+                    <div className="grid grid-cols-[1.4fr_120px_120px_1fr_130px] bg-healthcare-background px-3 py-2 text-xs font-semibold uppercase text-healthcare-text-secondary dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
+                        <span>Scenario</span>
+                        <span>Net Beds</span>
+                        <span>Risk</span>
+                        <span>Interventions</span>
+                        <span className="text-right">Action</span>
+                    </div>
+                    {simulation.scenarios.map((scenario) => {
+                        const isPromotable = scenario.key !== 'no_action' && !scenario.promotedAtIso;
+                        const isPending = pendingScenario === scenario.scenarioId;
+
+                        return (
+                            <div key={scenario.scenarioUuid} className="grid grid-cols-[1.4fr_120px_120px_1fr_130px] items-center gap-3 border-t border-healthcare-border px-3 py-3 text-sm dark:border-healthcare-border-dark">
+                                <div>
+                                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        {scenario.title}
+                                    </p>
+                                    <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        {scenario.assumption}
+                                    </p>
+                                </div>
+                                <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    {scenario.netBedForecast}
+                                </span>
+                                <span>
+                                    <StatusPill status={scenario.riskScore >= 70 ? 'critical' : scenario.riskScore >= 45 ? 'warning' : 'success'}>
+                                        {scenario.riskScore}
+                                    </StatusPill>
+                                </span>
+                                <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    {scenario.interventions?.length ? scenario.interventions.join(', ') : 'Baseline comparison'}
+                                </span>
+                                <div className="flex justify-end">
+                                    {scenario.promotedAtIso || promotedScenarioIds.has(scenario.scenarioId) ? (
+                                        <StatusPill status="success">promoted</StatusPill>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled={!isPromotable || isPending}
+                                            onClick={() => promoteScenario(scenario)}
+                                            className="inline-flex min-h-[34px] items-center gap-2 rounded-lg border border-healthcare-border px-3 py-2 text-xs font-medium text-healthcare-text-primary transition-colors hover:bg-healthcare-hover disabled:cursor-not-allowed disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+                                        >
+                                            <ClipboardCheck className="h-4 w-4" />
+                                            Promote
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function GraphRecommendationsPanel({ recommendations, summary, onLifecycleChange }) {
+    const [pendingOperation, setPendingOperation] = useState(null);
+
+    if (!recommendations?.length) {
+        return null;
+    }
+
+    const runLifecycleRequest = async (operationKey, request) => {
+        setPendingOperation(operationKey);
+        try {
+            await request();
+            onLifecycleChange?.();
+        } finally {
+            setPendingOperation(null);
+        }
+    };
+
+    return (
+        <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="flex items-center gap-2 text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                        <Workflow className="h-4 w-4 text-healthcare-primary dark:text-healthcare-primary-dark" />
+                        Graph-Backed Recommendations
+                    </h2>
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        {summary?.total ?? recommendations.length} draft recommendations · {summary?.pendingApprovals ?? 0} pending approvals
+                    </p>
+                </div>
+                <StatusPill status={(summary?.critical ?? 0) > 0 ? 'critical' : (summary?.high ?? 0) > 0 ? 'warning' : 'info'}>
+                    approval gated
+                </StatusPill>
+            </div>
+
+            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                {recommendations.slice(0, 6).map((recommendation) => {
+                    const action = recommendation.actions?.[0] ?? null;
+                    const pendingApproval = action?.approvals?.find((approval) => approval.status === 'pending') ?? null;
+                    const owner = action?.ownerName ?? action?.payload?.owner ?? 'Operations command team';
+                    const isBusy = pendingOperation?.startsWith(`${recommendation.recommendationUuid}:`);
+
+                    return (
+                        <div key={recommendation.recommendationUuid} className="rounded-lg border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                    <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        {recommendation.title}
+                                    </p>
+                                    <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        {recommendation.rationale}
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <StatusPill status={recommendation.riskLevel === 'critical' ? 'critical' : 'warning'}>
+                                        {recommendation.riskLevel}
+                                    </StatusPill>
+                                    <StatusPill status={recommendation.status === 'completed' ? 'success' : recommendation.status === 'draft' ? 'info' : 'warning'}>
+                                        {recommendation.status}
+                                    </StatusPill>
+                                </div>
+                            </div>
+                            <div className="mt-3 grid gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark sm:grid-cols-2">
+                                <span>Confidence {Math.round((recommendation.confidence ?? 0) * 100)}%</span>
+                                <span>{recommendation.evidence?.graph_nodes?.length ?? 0} graph nodes</span>
+                                <span>{owner}</span>
+                                <span>{pendingApproval?.status ?? action?.status ?? 'queued'} approval</span>
+                            </div>
+
+                            {action && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {pendingApproval && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                disabled={isBusy}
+                                                onClick={() => runLifecycleRequest(
+                                                    `${recommendation.recommendationUuid}:approve`,
+                                                    () => axios.post(`/api/ops/approvals/${pendingApproval.approvalId}/decision`, { decision: 'approved' }),
+                                                )}
+                                                className="inline-flex min-h-[34px] items-center gap-2 rounded-lg bg-healthcare-success px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-healthcare-success/90 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                Approve
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isBusy}
+                                                onClick={() => runLifecycleRequest(
+                                                    `${recommendation.recommendationUuid}:reject`,
+                                                    () => axios.post(`/api/ops/approvals/${pendingApproval.approvalId}/decision`, { decision: 'rejected', reason: 'Rejected from Operations Intelligence review.' }),
+                                                )}
+                                                className="inline-flex min-h-[34px] items-center gap-2 rounded-lg border border-healthcare-critical px-3 py-2 text-xs font-medium text-healthcare-critical transition-colors hover:bg-healthcare-critical/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-healthcare-critical-dark dark:text-healthcare-critical-dark"
+                                            >
+                                                <XCircle className="h-4 w-4" />
+                                                Reject
+                                            </button>
+                                        </>
+                                    )}
+                                    {action.status === 'approved' && (
+                                        <button
+                                            type="button"
+                                            disabled={isBusy}
+                                            onClick={() => runLifecycleRequest(
+                                                `${recommendation.recommendationUuid}:assign`,
+                                                () => axios.post(`/api/ops/actions/${action.actionId}/assign`, { owner_name: owner }),
+                                            )}
+                                            className="inline-flex min-h-[34px] items-center gap-2 rounded-lg border border-healthcare-border px-3 py-2 text-xs font-medium text-healthcare-text-primary transition-colors hover:bg-healthcare-hover disabled:cursor-not-allowed disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+                                        >
+                                            <UserCheck className="h-4 w-4" />
+                                            Assign
+                                        </button>
+                                    )}
+                                    {action.status === 'assigned' && (
+                                        <button
+                                            type="button"
+                                            disabled={isBusy}
+                                            onClick={() => runLifecycleRequest(
+                                                `${recommendation.recommendationUuid}:start`,
+                                                () => axios.post(`/api/ops/actions/${action.actionId}/start`),
+                                            )}
+                                            className="inline-flex min-h-[34px] items-center gap-2 rounded-lg border border-healthcare-border px-3 py-2 text-xs font-medium text-healthcare-text-primary transition-colors hover:bg-healthcare-hover disabled:cursor-not-allowed disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+                                        >
+                                            <PlayCircle className="h-4 w-4" />
+                                            Start
+                                        </button>
+                                    )}
+                                    {action.status === 'executing' && (
+                                        <button
+                                            type="button"
+                                            disabled={isBusy}
+                                            onClick={() => runLifecycleRequest(
+                                                `${recommendation.recommendationUuid}:complete`,
+                                                () => axios.post(`/api/ops/actions/${action.actionId}/complete`, { note: 'Completed from Operations Intelligence review.' }),
+                                            )}
+                                            className="inline-flex min-h-[34px] items-center gap-2 rounded-lg bg-healthcare-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-healthcare-primary-hover disabled:cursor-not-allowed disabled:opacity-60 dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary"
+                                        >
+                                            <ClipboardCheck className="h-4 w-4" />
+                                            Complete
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function ImpactAttributionPanel({ impact }) {
+    if (!impact) {
+        return null;
+    }
+
+    const cards = impact.cards ?? [];
+    const interventions = impact.interventions ?? [];
+
+    return (
+        <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="flex items-center gap-2 text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                        <TrendingUp className="h-4 w-4 text-healthcare-success dark:text-healthcare-success-dark" />
+                        Intervention Impact
+                    </h2>
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        {impact.summary?.confidenceLanguage ?? 'Before/after attribution will appear when completed actions are available.'}
+                    </p>
+                </div>
+                <StatusPill status={impact.summary?.confidenceLevel === 'high' ? 'success' : impact.summary?.confidenceLevel === 'medium' ? 'warning' : 'neutral'}>
+                    {impact.summary?.confidenceLevel ?? 'insufficient'}
+                </StatusPill>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-4">
+                {cards.map((card) => (
+                    <div key={card.label} className="rounded-lg bg-healthcare-background px-3 py-2 dark:bg-healthcare-background-dark">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-xs font-medium uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    {card.label}
+                                </div>
+                                <div className="mt-1 text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    {card.value} <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{card.unit}</span>
+                                </div>
+                            </div>
+                            <StatusPill status={card.status}>{card.status}</StatusPill>
+                        </div>
+                        <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            {card.detail}
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-lg border border-healthcare-border dark:border-healthcare-border-dark">
+                <div className="min-w-[920px]">
+                    <div className="grid grid-cols-[1.4fr_130px_130px_150px_1fr] bg-healthcare-background px-3 py-2 text-xs font-semibold uppercase text-healthcare-text-secondary dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
+                        <span>Intervention</span>
+                        <span>Outcome</span>
+                        <span>Delta</span>
+                        <span>Confidence</span>
+                        <span>Window</span>
+                    </div>
+                    {interventions.map((intervention) => {
+                        const primaryMetric = intervention.metrics?.find((metric) => metric.isPrimary) ?? intervention.metrics?.[0];
+                        const delta = primaryMetric?.deltaValue ?? 0;
+
+                        return (
+                            <div key={intervention.interventionUuid} className="grid grid-cols-[1.4fr_130px_130px_150px_1fr] items-center gap-3 border-t border-healthcare-border px-3 py-3 text-sm dark:border-healthcare-border-dark">
+                                <div>
+                                    <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        {intervention.title}
+                                    </p>
+                                    <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        {intervention.ownerName ?? 'Operations'} · {intervention.pdsaTitle ?? intervention.type}
+                                    </p>
+                                </div>
+                                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    {primaryMetric?.label ?? 'Outcome'}
+                                </span>
+                                <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    {delta > 0 ? '+' : ''}{delta} {primaryMetric?.unit ?? ''}
+                                </span>
+                                <span>
+                                    <StatusPill status={intervention.confidenceLevel === 'high' ? 'success' : intervention.confidenceLevel === 'medium' ? 'warning' : 'neutral'}>
+                                        {intervention.confidenceLevel}
+                                    </StatusPill>
+                                </span>
+                                <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    {intervention.attribution?.executiveSummary ?? intervention.confidenceLanguage}
+                                </span>
+                            </div>
+                        );
+                    })}
+                    {interventions.length === 0 && (
+                        <div className="border-t border-healthcare-border px-3 py-4 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+                            No intervention attribution records yet.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function PhasePlan() {
     return (
         <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -685,6 +1129,7 @@ export default function Analytics({ section = 'hub' }) {
     const [engineData, setEngineData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
+    const [refreshNonce, setRefreshNonce] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
@@ -712,7 +1157,7 @@ export default function Analytics({ section = 'hub' }) {
         return () => {
             cancelled = true;
         };
-    }, [activeKey]);
+    }, [activeKey, refreshNonce]);
 
     const metrics = useMemo(
         () => (engineData?.metrics?.length ? engineData.metrics : fallbackIntelligenceMetrics),
@@ -726,6 +1171,11 @@ export default function Analytics({ section = 'hub' }) {
         () => (engineData?.sourceMap?.length ? engineData.sourceMap : fallbackSourceMap),
         [engineData],
     );
+    const agent = engineData?.agent ?? null;
+    const recommendations = engineData?.recommendations ?? [];
+    const recommendationSummary = engineData?.recommendationSummary ?? null;
+    const simulation = engineData?.simulation ?? null;
+    const impact = engineData?.impact ?? null;
 
     return (
         <DashboardLayout>
@@ -765,6 +1215,27 @@ export default function Analytics({ section = 'hub' }) {
                             <MetricTile key={metric.label} metric={metric} />
                         ))}
                     </div>
+
+                    {activeKey === 'data-quality' && (
+                        <DataQualityAgentPanel agent={agent} />
+                    )}
+
+                    {activeKey === 'opportunities' && (
+                        <GraphRecommendationsPanel
+                            recommendations={recommendations}
+                            summary={recommendationSummary}
+                            onLifecycleChange={() => setRefreshNonce((value) => value + 1)}
+                        />
+                    )}
+
+                    {activeKey === 'workbench' && (
+                        <div className="space-y-5">
+                            <ImpactAttributionPanel impact={impact} />
+                            <SimulationWorkbenchPanel
+                                simulation={simulation}
+                            />
+                        </div>
+                    )}
 
                     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
                         <DetailPanel section={activeSection} sources={sources} />
@@ -860,6 +1331,94 @@ SourceMapPanel.propTypes = {
         freshnessLabel: PropTypes.string,
         status: PropTypes.string,
     })).isRequired,
+};
+
+GraphRecommendationsPanel.propTypes = {
+    recommendations: PropTypes.arrayOf(PropTypes.shape({
+        recommendationUuid: PropTypes.string.isRequired,
+        title: PropTypes.string.isRequired,
+        rationale: PropTypes.string,
+        confidence: PropTypes.number,
+        riskLevel: PropTypes.string.isRequired,
+        status: PropTypes.string.isRequired,
+        evidence: PropTypes.object,
+        actions: PropTypes.arrayOf(PropTypes.shape({
+            actionId: PropTypes.number.isRequired,
+            status: PropTypes.string.isRequired,
+            ownerName: PropTypes.string,
+            payload: PropTypes.object,
+            approvals: PropTypes.arrayOf(PropTypes.shape({
+                approvalId: PropTypes.number.isRequired,
+                status: PropTypes.string.isRequired,
+            })),
+        })),
+    })).isRequired,
+    summary: PropTypes.shape({
+        total: PropTypes.number,
+        pendingApprovals: PropTypes.number,
+        critical: PropTypes.number,
+        high: PropTypes.number,
+    }),
+    onLifecycleChange: PropTypes.func,
+};
+
+SimulationWorkbenchPanel.propTypes = {
+    simulation: PropTypes.shape({
+        run: PropTypes.shape({
+            simulationRunUuid: PropTypes.string,
+            baselineSnapshotId: PropTypes.number,
+        }),
+        baseline: PropTypes.object,
+        summary: PropTypes.shape({
+            scenarioCount: PropTypes.number,
+            bestRiskScore: PropTypes.number,
+        }),
+        scenarios: PropTypes.arrayOf(PropTypes.shape({
+            scenarioId: PropTypes.number.isRequired,
+            scenarioUuid: PropTypes.string.isRequired,
+            key: PropTypes.string.isRequired,
+            title: PropTypes.string.isRequired,
+            assumption: PropTypes.string.isRequired,
+            netBedForecast: PropTypes.number.isRequired,
+            riskScore: PropTypes.number.isRequired,
+            interventions: PropTypes.arrayOf(PropTypes.string),
+            promotedAtIso: PropTypes.string,
+        })),
+    }),
+};
+
+ImpactAttributionPanel.propTypes = {
+    impact: PropTypes.shape({
+        summary: PropTypes.shape({
+            confidenceLevel: PropTypes.string,
+            confidenceLanguage: PropTypes.string,
+        }),
+        cards: PropTypes.arrayOf(PropTypes.shape({
+            label: PropTypes.string.isRequired,
+            value: PropTypes.string.isRequired,
+            unit: PropTypes.string.isRequired,
+            status: PropTypes.string.isRequired,
+            detail: PropTypes.string.isRequired,
+        })),
+        interventions: PropTypes.arrayOf(PropTypes.shape({
+            interventionUuid: PropTypes.string.isRequired,
+            title: PropTypes.string.isRequired,
+            type: PropTypes.string.isRequired,
+            ownerName: PropTypes.string,
+            pdsaTitle: PropTypes.string,
+            confidenceLevel: PropTypes.string,
+            confidenceLanguage: PropTypes.string,
+            metrics: PropTypes.arrayOf(PropTypes.shape({
+                label: PropTypes.string.isRequired,
+                unit: PropTypes.string.isRequired,
+                deltaValue: PropTypes.number,
+                isPrimary: PropTypes.bool,
+            })),
+            attribution: PropTypes.shape({
+                executiveSummary: PropTypes.string,
+            }),
+        })),
+    }),
 };
 
 Analytics.propTypes = {

@@ -27,6 +27,15 @@ export const kpiMetricDetailSchema = z.object({
 });
 export type KpiMetricDetail = z.infer<typeof kpiMetricDetailSchema>;
 
+export const sourceTrustSchema = z.object({
+  score: z.number(),
+  status: z.enum(['critical', 'warning', 'success']),
+  freshSourceCount: z.number(),
+  staleSourceCount: z.number(),
+  missingSourceCount: z.number(),
+});
+export type SourceTrust = z.infer<typeof sourceTrustSchema>;
+
 export const kpiMetricSchema = z.object({
   key: z.string(),
   label: z.string(),
@@ -40,6 +49,9 @@ export const kpiMetricSchema = z.object({
   drillHref: z.string().nullable(),
   definition: z.string(),
   detail: kpiMetricDetailSchema.nullable().optional(),
+  lineageHref: z.string().optional(),
+  lineageSummary: z.string().optional(),
+  sourceTrust: sourceTrustSchema.optional(),
 });
 export type KpiMetric = z.infer<typeof kpiMetricSchema>;
 
