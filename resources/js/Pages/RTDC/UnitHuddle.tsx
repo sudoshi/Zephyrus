@@ -5,6 +5,7 @@ import { DischargeTierEntry } from '@/Components/RTDC/DischargeTierEntry';
 import { DemandBySourceEntry } from '@/Components/RTDC/DemandBySourceEntry';
 import { BarrierBoard } from '@/Components/RTDC/BarrierBoard';
 import { ReliabilityTile } from '@/Components/RTDC/ReliabilityTile';
+import { Section, Panel, KpiTile, metric } from '@/Components/system';
 import {
   useUnits, usePrediction, useBarriers, useUpsertCapacity, useUpsertDemand,
   useDevelopPlan, useLiveCensus, useReliability,
@@ -44,37 +45,41 @@ export default function UnitHuddle({ unitId = 1 }: UnitHuddleProps) {
     qc.setQueryData(['rtdc', 'barriers', unitId], await fetchBarriers(unitId));
   };
 
+  const occ = unit ? unit.census.occupied / Math.max(1, unit.staffed_bed_count) : 0;
+  const censusMetric = unit
+    ? metric({
+        key: 'live-census',
+        label: 'Live Census',
+        value: unit.census.occupied,
+        display: `${unit.census.occupied}/${unit.staffed_bed_count}`,
+        status: occ >= 0.95 ? 'critical' : occ >= 0.85 ? 'warning' : 'success',
+        caption: `${unit.census.available} available · safe additional ${unit.census.acuity_adjusted_capacity}`,
+        definition: 'Occupied beds over staffed beds for this unit, from the live census feed.',
+      })
+    : null;
+
+  const linkBtn = 'text-sm font-medium text-healthcare-primary dark:text-healthcare-primary-dark hover:underline';
+
   return (
     <RTDCPageLayout title={unit ? `Unit Huddle — ${unit.name}` : 'Unit Huddle'} subtitle="Real-Time Demand Capacity — Step 1–3">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 flex flex-col gap-5">
-          <div>
-            <h3 className="text-lg font-semibold">Step 1 — Predict discharges</h3>
-            <DischargeTierEntry {...tiers} onChange={setTiers} />
-            <button onClick={saveCapacity} className="mt-2 text-caption underline">Save capacity</button>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">Step 2 — Predict demand</h3>
-            <DemandBySourceEntry {...demand} onChange={setDemand} />
-            <button onClick={saveDemand} className="mt-2 text-caption underline">Save demand</button>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">Barriers</h3>
-            <BarrierBoard barriers={barriers ?? []} onResolve={resolveBarrier} />
-          </div>
-        </section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          <Section title="Step 1 — Predict discharges" icon="heroicons:arrow-up-tray"
+                   actions={<button onClick={saveCapacity} className={linkBtn}>Save capacity</button>}>
+            <Panel className="p-4"><DischargeTierEntry {...tiers} onChange={setTiers} /></Panel>
+          </Section>
+          <Section title="Step 2 — Predict demand" icon="heroicons:arrow-down-tray"
+                   actions={<button onClick={saveDemand} className={linkBtn}>Save demand</button>}>
+            <Panel className="p-4"><DemandBySourceEntry {...demand} onChange={setDemand} /></Panel>
+          </Section>
+          <Section title="Barriers" icon="heroicons:exclamation-triangle">
+            <Panel className="p-4"><BarrierBoard barriers={barriers ?? []} onResolve={resolveBarrier} /></Panel>
+          </Section>
+        </div>
 
         <aside className="flex flex-col gap-5">
-          {unit && (
-            <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-5">
-              <div className="text-label">Live Census</div>
-              <div className="text-2xl font-semibold tabular-nums">{unit.census.occupied}/{unit.staffed_bed_count}</div>
-              <div className="text-caption">
-                {unit.census.available} available · safe additional capacity {unit.census.acuity_adjusted_capacity}
-              </div>
-            </div>
-          )}
-          <button onClick={computePlan} className="rounded-md bg-healthcare-primary dark:bg-healthcare-primary-dark p-3 text-white">
+          {censusMetric && <KpiTile metric={censusMetric} detailed />}
+          <button onClick={computePlan} className="rounded-md bg-healthcare-primary dark:bg-healthcare-primary-dark p-3 text-white font-medium">
             Step 3 — Compute bed-need
           </button>
           {prediction && (
