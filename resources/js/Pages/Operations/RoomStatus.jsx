@@ -3,8 +3,7 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import RoomStatusCard from '@/Components/RoomStatus/RoomStatusCard';
 import RoomDetailsModal from '@/Components/RoomStatus/RoomDetailsModal';
 
@@ -56,6 +55,33 @@ const RoomStatus = ({ roomStatus = null }) => {
         turnover: rooms.filter(r => r.status === 'turnover').length
     };
 
+    const occupancyPct = stats.total > 0 ? Math.round((stats.inUse / stats.total) * 100) : 0;
+    const availabilityPct = stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0;
+
+    // Board summary KPIs — counts derived live from the room list. No underlying
+    // time series exists, so no sparkline is fabricated; occupancy/availability
+    // shares carry as captions, mirroring the old MetricsCard trend labels.
+    const roomMetrics = [
+        metric({
+            key: 'total-rooms', label: 'Total Rooms', value: stats.total, display: String(stats.total),
+            status: 'neutral', definition: 'Operating rooms on the board.',
+        }),
+        metric({
+            key: 'in-use', label: 'In Use', value: stats.inUse, display: String(stats.inUse),
+            status: 'info', caption: `${occupancyPct}% occupancy`,
+            definition: 'Rooms with a case in progress (or delayed).',
+        }),
+        metric({
+            key: 'available', label: 'Available', value: stats.available, display: String(stats.available),
+            status: 'success', caption: `${availabilityPct}% availability`,
+            definition: 'Rooms clean and ready for the next case.',
+        }),
+        metric({
+            key: 'turnovers', label: 'Turnovers', value: stats.turnover, display: String(stats.turnover),
+            status: 'warning', definition: 'Rooms being cleaned/reset between cases.',
+        }),
+    ];
+
     return (
         <DashboardLayout>
             <Head title="Room Status - ZephyrusOR" />
@@ -63,14 +89,14 @@ const RoomStatus = ({ roomStatus = null }) => {
                 title="Room Status"
                 subtitle="Monitor real-time operating room status and activities"
             >
-                <div className="space-y-6">
+                <div className="flex flex-col gap-5">
                     {/* Filter Panel */}
-                    <Card>
-                        <Card.Content>
+                    <Panel>
+                        <div className="p-4">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div className="flex items-center space-x-4">
                                     <div className="relative">
-                                        <select 
+                                        <select
                                             value={selectedLocation}
                                             onChange={(e) => setSelectedLocation(e.target.value)}
                                             className="text-sm border-healthcare-border dark:border-healthcare-border-dark rounded-md pl-8 pr-4 py-2 appearance-none bg-healthcare-surface dark:bg-healthcare-surface-dark hover:border-healthcare-info dark:hover:border-healthcare-info-dark transition-colors duration-300"
@@ -80,8 +106,8 @@ const RoomStatus = ({ roomStatus = null }) => {
                                             <option value="endo">Endoscopy</option>
                                             <option value="cardiac">Cardiac OR</option>
                                         </select>
-                                        <Icon 
-                                            icon="heroicons:building-office" 
+                                        <Icon
+                                            icon="heroicons:building-office"
                                             className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300"
                                         />
                                     </div>
@@ -93,42 +119,20 @@ const RoomStatus = ({ roomStatus = null }) => {
                                     </button>
                                 </div>
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </div>
+                    </Panel>
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <MetricsCard
-                            title="Total Rooms"
-                            value={stats.total.toString()}
-                            icon="heroicons:building-office-2"
-                        />
-                        <MetricsCard
-                            title="In Use"
-                            value={stats.inUse.toString()}
-                            trend={Math.round((stats.inUse / stats.total) * 100)}
-                            trendLabel="occupancy"
-                            icon="heroicons:check-circle"
-                        />
-                        <MetricsCard
-                            title="Available"
-                            value={stats.available.toString()}
-                            trend={Math.round((stats.available / stats.total) * 100)}
-                            trendLabel="availability"
-                            icon="heroicons:clock"
-                        />
-                        <MetricsCard
-                            title="Turnovers"
-                            value={stats.turnover.toString()}
-                            icon="heroicons:arrow-path"
-                        />
-                    </div>
+                    <Section title="Board summary" icon="heroicons:building-office-2"
+                             summary={`${stats.inUse} in use · ${stats.available} available across ${stats.total} rooms`}>
+                        <MetricGrid metrics={roomMetrics} />
+                    </Section>
 
                     {/* Room Status Grid */}
-                    <Card>
-                        <Card.Content>
-                            <div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                <h3 className="text-lg font-semibold mb-4">Room Status Board</h3>
+                    <Section title="Room Status Board" icon="heroicons:squares-2x2"
+                             summary="Live status per operating room — click for detail">
+                        <Panel>
+                            <div className="p-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {rooms.map((room) => (
                                         <RoomStatusCard
@@ -139,8 +143,8 @@ const RoomStatus = ({ roomStatus = null }) => {
                                     ))}
                                 </div>
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
                 </div>
 
                 {/* Room Details Modal */}
