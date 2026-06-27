@@ -35,7 +35,9 @@ describe('GlobalHuddle (live bed meeting)', () => {
     renderWithClient(<GlobalHuddle />);
 
     await waitFor(() => expect(screen.getByText('5 East')).toBeInTheDocument());
-    expect(screen.getByText(/net bed need/i)).toBeInTheDocument();
+    // The Net Bed Need KpiTile label (exact — the Section summary also contains
+    // the phrase "net bed need", so a loose regex would match both).
+    expect(screen.getByText('Net Bed Need')).toBeInTheDocument();
     expect(screen.getByText('ICU')).toBeInTheDocument();
   });
 });
