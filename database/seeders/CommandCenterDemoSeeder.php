@@ -1413,6 +1413,108 @@ class CommandCenterDemoSeeder extends Seeder
         }
 
         // ----------------------------------------------------------------
+        // Historical backfill: ~6 months of COMPLETED OR cases before the
+        // 5-weekday operational window, so the surgical-analytics trend charts,
+        // retrospective review, and historical-trends views have real
+        // multi-month variation. All past-dated + Completed, so they never
+        // affect the "today" FCOTS/turnover logic above. Marked created_by
+        // 'seeder' so the idempotent delete at the top of this method clears
+        // them on every re-seed. Sampled every 3rd day to keep volume modest.
+        // ----------------------------------------------------------------
+        for ($daysAgo = 8; $daysAgo <= 183; $daysAgo += 3) {
+            $day = now()->startOfDay()->subDays($daysAgo);
+            if (! $day->isWeekday()) {
+                continue;
+            }
+            // Mild seasonality: slightly higher volume mid-week.
+            $monthSeed = (int) $day->format('Ymd');
+
+            foreach ($roomIds as $roomIdx => $roomId) {
+                $numCases = $this->seededRand($monthSeed + $roomIdx, 3, 5);
+                $slotStart = $day->copy()->setTime(7, 30);
+
+                for ($cIdx = 0; $cIdx < $numCases; $cIdx++) {
+                    $seed = $monthSeed * 100 + $roomIdx * 10 + $cIdx;
+                    $duration = $this->seededRand($seed, 60, 240);
+                    $surgeonId = $providerIds[$this->seededRand($seed + 1, 0, count($providerIds) - 1)];
+                    $serviceId = $serviceIds[$this->seededRand($seed + 2, 0, count($serviceIds) - 1)];
+                    $procedure = $procedures[$this->seededRand($seed + 3, 0, count($procedures) - 1)];
+                    $scheduledStart = $slotStart->copy();
+
+                    $caseId = DB::table('prod.or_cases')->insertGetId([
+                        'patient_id' => sprintf('HSIM%05d', $seed % 100000),
+                        'surgery_date' => $day->toDateString(),
+                        'room_id' => $roomId,
+                        'location_id' => $locationId,
+                        'primary_surgeon_id' => $surgeonId,
+                        'case_service_id' => $serviceId,
+                        'scheduled_start_time' => $scheduledStart,
+                        'scheduled_duration' => $duration,
+                        'record_create_date' => $day->copy()->subDays(3),
+                        'status_id' => $statusCompleted,
+                        'cancellation_reason_id' => null,
+                        'asa_rating_id' => $asaRatingId,
+                        'case_type_id' => $caseTypeId,
+                        'case_class_id' => $caseClassId,
+                        'patient_class_id' => $patientClassId,
+                        'safety_status' => 'Normal',
+                        'journey_progress' => 100,
+                        'created_by' => 'seeder',
+                        'modified_by' => 'seeder',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'is_deleted' => false,
+                    ], 'case_id');
+
+                    // First case of the day measured for FCOTS: ~80% on time.
+                    $isFirst = $cIdx === 0;
+                    $procStartOffset = $isFirst
+                        ? ($this->seededRand($seed + 4, 0, 9) === 0 ? $this->seededRand($seed + 5, 16, 40) : $this->seededRand($seed + 5, -2, 13))
+                        : $this->seededRand($seed + 4, -5, 20);
+                    $procStart = $scheduledStart->copy()->addMinutes(max(0, $procStartOffset));
+                    $orInTime = $procStart->copy()->subMinutes($this->seededRand($seed + 6, 10, 20));
+                    $procEnd = $procStart->copy()->addMinutes($duration);
+                    $orOutTime = $procEnd->copy()->addMinutes($this->seededRand($seed + 7, 10, 25));
+
+                    DB::table('prod.or_logs')->insert([
+                        'case_id' => $caseId,
+                        'tracking_date' => $day->toDateString(),
+                        'or_in_time' => $orInTime,
+                        'procedure_start_time' => $procStart,
+                        'procedure_end_time' => $procEnd,
+                        'or_out_time' => $orOutTime,
+                        'primary_procedure' => $procedure,
+                        'created_by' => 'seeder',
+                        'modified_by' => 'seeder',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'is_deleted' => false,
+                    ]);
+
+                    $primeMin = (int) ($duration * 0.85);
+                    DB::table('prod.case_metrics')->insert([
+                        'case_id' => $caseId,
+                        'turnover_time' => $this->seededRand($seed + 8, 24, 36),
+                        'utilization_percentage' => round(min(100, ($duration / 480.0) * 100 + $this->seededRandFloat($seed + 9, -10, 10)), 2),
+                        'in_block_time' => $duration,
+                        'out_of_block_time' => 0,
+                        'prime_time_minutes' => $primeMin,
+                        'non_prime_time_minutes' => $duration - $primeMin,
+                        'late_start_minutes' => max(0, $procStartOffset),
+                        'early_finish_minutes' => 0,
+                        'created_by' => 'seeder',
+                        'modified_by' => 'seeder',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'is_deleted' => false,
+                    ]);
+
+                    $slotStart = $slotStart->addMinutes($duration + $this->seededRand($seed + 10, 24, 34));
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
         // Block Templates + Block Utilization (per room × per weekday).
         // ----------------------------------------------------------------
         // Delete seeder's own block data.
