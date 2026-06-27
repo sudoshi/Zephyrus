@@ -17,6 +17,7 @@ class PdsaCycle extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'target_date' => 'date',
         'is_deleted' => 'boolean',
     ];
 

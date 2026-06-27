@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ChangeWorkflowRequest;
+use App\Http\Requests\Improvement\StorePdsaCycleRequest;
+use App\Models\PdsaCycle;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -115,6 +118,33 @@ class DashboardController extends Controller
         return Inertia::render('Improvement/PDSA/Show', [
             'cycle' => $this->dashboardService->getPdsaCycle($id),
         ]);
+    }
+
+    /**
+     * Persist a new PDSA cycle from the New PDSA Cycle form. Captures the full
+     * Plan phase (objective, rationale, prediction) and the target completion;
+     * the cycle starts active. Redirects to the new cycle's detail page.
+     */
+    public function pdsaStore(StorePdsaCycleRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $cycle = PdsaCycle::create([
+            'title' => $data['title'],
+            'objective' => $data['objective'] ?? null,
+            'rationale' => $data['rationale'] ?? null,
+            'prediction' => $data['prediction'] ?? null,
+            'owner' => $data['owner'] ?? null,
+            'unit_id' => $data['unit_id'] ?? null,
+            'status' => 'active',
+            'started_at' => now(),
+            'target_date' => ! empty($data['dueDate']) ? Carbon::parse($data['dueDate']) : null,
+            'is_deleted' => false,
+        ]);
+
+        return redirect()
+            ->route('improvement.pdsa.show', $cycle->pdsa_cycle_id)
+            ->with('success', 'PDSA cycle created.');
     }
 
     /**

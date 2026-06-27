@@ -70,6 +70,7 @@ Route::middleware(['auth'])
             // PDSA Routes
             Route::prefix('pdsa')->name('pdsa.')->group(function () {
                 Route::get('/', [DashboardController::class, 'pdsaIndex'])->name('index');
+                Route::post('/', [DashboardController::class, 'pdsaStore'])->name('store');
                 // /create must precede /{id} so it isn't captured as a show param.
                 Route::get('/create', function () {
                     return Inertia::render('Improvement/PDSA/Create');
