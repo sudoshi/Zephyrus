@@ -13,28 +13,31 @@ by a synthesis pass. Findings below were cross-checked against direct inspection
 
 ## 0. Execution Progress (live)
 
-**Landed & verified (commits `e5b4283`, `cc5487a`, `9023135`, `a684fe3`):**
-- **P0 foundation** — `db:seed` was *entirely broken* (stale `TestDataSeeder`: missing
-  `providers.npi`, phantom `or_cases.procedure_name`, missing `asa_rating_id`). Fixed +
-  made idempotent; **registered `RtdcSeeder`** (sole creator of units/beds) in the chain;
-  seeded `transport_events` + `care_transition` requests. `db:seed` now runs clean and
-  idempotent (verified 2× — no errors, no row growth).
-- **P0 orchestrator** — new `php artisan zephyrus:demo-seed` chains `db:seed` +
-  `facility:import-catalog` + `patient-flow:import-synthetic` (all fixture data git-tracked),
-  so a fresh DB lights up Patient Flow Navigator, Facility Model, ED Flow, and an Integration
-  source from one idempotent command (replaces the fragile manual runbook).
-- **P1 crashes** — fixed the two PDSA white-screens (Index/Show now consume the 7 seeded
-  `pdsa_cycles` with guards + empty states); `getImprovementStats` now real (fixes the
-  Improvement Dashboard zeroed cards); fixed the broken `/improvement/active/{id}` link.
-- Verified: `db:seed` idempotent, `zephyrus:demo-seed` idempotent (flow_events=918,
-  facility_spaces=1472 stable), all improvement controllers return Inertia responses without
-  throwing, `npx tsc --noEmit` + `npx vite build` clean.
+**STATUS: P0–P4 complete + P5 substantially done. Goal achieved — `RouteSmokeTest` confirms
+82/82 GET pages render with no 5xx.** See [DEVLOG-application-completeness-2026-06-27](./DEVLOG-application-completeness-2026-06-27.md).
 
-**Remaining:** P0 tail (OpsMetricTrust/OpsIntelligence seeders, 6–12mo OR expansion, gate
-Analytics fallback) · P1 orphan deletions (**awaiting sign-off — §7**) · P2–P5 (role
-dashboards, surgical analytics, Periop, RTDC analytics/predictions, ED domain + 8 pages,
-Improvement backend). Note: the audit's `/resources` route-collision finding was a
-false positive (disproven by direct verification — see §3).
+- **P0 — demo-data foundation ✅** Repaired a *completely broken* `db:seed`; removed the
+  redundant `TestDataSeeder` (fixed pristine-DB FK ordering); registered `RtdcSeeder`;
+  new `php artisan zephyrus:demo-seed` orchestrator (db:seed + facility + patient-flow
+  imports); seeded `transport_events`/`care_transition`; backfilled ~6mo OR history (802
+  cases). **`migrate:fresh --seed` verified pristine.**
+- **P1 — un-break ✅** PDSA crashes fixed; real improvement stats; broken link fixed; 5
+  orphan pages + dead controllers deleted (approved).
+- **P2 — role dashboards + RTDC ops ✅** Periop/RTDC/ED dashboards + RTDC Bed Tracking/
+  Service Huddle/Discharge Priorities/Ancillary Services wired to live services.
+- **P3 — Periop ✅** 5 surgical-analytics + 3 ops pages live; 3 Periop Predictions stubs →
+  real forecast services + charts.
+- **P4 — RTDC + ED ✅** 6 RTDC analytics/predictions + Risk Assessment (added to nav); all
+  8 ED pages built from seeded `ed_visits`.
+- **P5 — quality (partial) ✅/◻** Improvement Opportunities + Library DB-backed (new tables
+  + seeder) ✅; route smoke test ✅. **Remaining optional polish:** Transport Analytics
+  "Planned Measures", Transport Dispatch/EMS differentiation, Improvement Active/Bottlenecks/
+  RootCause DB-backing, Admin role/status + Profile token nits.
+
+Each wave: parallel design agents → serial exact-match integration on `main` → per-wave
+verification (Pint, tinker service-builds + controller-renders, tsc, vite). Note: the
+audit's `/resources` route-collision finding was a verified false positive (§3).
+**Not yet deployed — prod `./deploy.sh` + `zephyrus:demo-seed --migrate` pending go-ahead.**
 
 ---
 
