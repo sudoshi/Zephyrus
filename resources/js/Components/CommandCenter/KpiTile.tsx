@@ -192,6 +192,11 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
           {detailed && <DetailVisualization metric={metric} />}
         </>
       )}
+      {metric.caption && (
+        <span className="mt-auto text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          {metric.caption}
+        </span>
+      )}
     </Panel>
   );
 

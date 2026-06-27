@@ -27,6 +27,8 @@ export interface MetricInput {
   goodWhenDown?: boolean;
   /** One-line "what is this number" — shown on the ⓘ tooltip; defensible at depth. */
   definition?: string;
+  /** Always-visible context line under the value (e.g. "385 discharges · +0.5d"). */
+  caption?: string;
   drillHref?: string | null;
 }
 
@@ -59,5 +61,6 @@ export function metric(input: MetricInput): KpiMetric {
     trajectory: toTrajectory(input.trajectory, input.goodWhenDown ?? false),
     drillHref: input.drillHref ?? null,
     definition: input.definition ?? input.label,
+    caption: input.caption,
   };
 }

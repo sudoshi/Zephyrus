@@ -48,6 +48,9 @@ export const kpiMetricSchema = z.object({
   trajectory: trajectorySchema.nullable(),
   drillHref: z.string().nullable(),
   definition: z.string(),
+  // One-line always-visible context under the value (e.g. "385 discharges ·
+  // +0.5d vs reference"). Carries the density that bespoke metric cards showed.
+  caption: z.string().optional(),
   detail: kpiMetricDetailSchema.nullable().optional(),
   lineageHref: z.string().optional(),
   lineageSummary: z.string().optional(),
