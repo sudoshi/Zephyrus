@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             // RTDC spine empty.) RtdcSeeder is now idempotent (firstOrCreate).
             RtdcSeeder::class,
             CommandCenterDemoSeeder::class,
+            ImprovementDemoSeeder::class,
         ]);
     }
 }

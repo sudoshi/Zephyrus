@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\PdsaCycle;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardService
 {
@@ -150,15 +152,17 @@ class DashboardService
      */
     public function getOpportunities(): array
     {
-        return [
-            [
-                'title' => 'Example Opportunity',
-                'description' => 'This is an example improvement opportunity',
-                'department' => 'Surgery',
-                'priority' => 'High',
-                'status' => 'Open',
-            ],
-        ];
+        if (! Schema::hasTable('prod.improvement_opportunities')) {
+            return [];
+        }
+
+        return DB::table('prod.improvement_opportunities')
+            ->where('is_deleted', false)
+            ->orderByRaw("CASE priority WHEN 'High' THEN 0 WHEN 'Medium' THEN 1 ELSE 2 END")
+            ->orderByDesc('estimated_impact')
+            ->get(['title', 'description', 'department', 'priority', 'status'])
+            ->map(fn ($o) => (array) $o)
+            ->all();
     }
 
     /**
@@ -166,15 +170,23 @@ class DashboardService
      */
     public function getLibraryResources(): array
     {
-        return [
-            [
-                'title' => 'PDSA Template',
-                'description' => 'Standard template for PDSA cycle documentation',
-                'category' => 'Templates',
-                'type' => 'Document',
-                'dateAdded' => '2024-02-10',
-            ],
-        ];
+        if (! Schema::hasTable('prod.improvement_resources')) {
+            return [];
+        }
+
+        return DB::table('prod.improvement_resources')
+            ->where('is_deleted', false)
+            ->orderBy('category')
+            ->orderByDesc('date_added')
+            ->get(['title', 'description', 'category', 'type', 'date_added'])
+            ->map(fn ($r) => [
+                'title' => $r->title,
+                'description' => $r->description,
+                'category' => $r->category,
+                'type' => $r->type,
+                'dateAdded' => $r->date_added,
+            ])
+            ->all();
     }
 
     /**
