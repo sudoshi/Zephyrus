@@ -18,25 +18,20 @@ interface WorkflowNavigationConfig {
 const workflowNavigationConfig: WorkflowNavigationConfig = {
   superuser: {
     name: 'SUPERUSER',
+    // Only routes that actually resolve are listed; the prior superuser block
+    // carried 7 dead hrefs (procedure-analysis, capacity-management, staffing,
+    // scheduling, volume-forecasting, capacity-planning, resource-optimization).
     analytics: [
       { name: 'Primetime Utilization', href: '/analytics/primetime-utilization' },
       { name: 'OR Utilization', href: '/analytics/or-utilization' },
       { name: 'Block Utilization', href: '/analytics/block-utilization' },
       { name: 'Room Running', href: '/analytics/room-running' },
       { name: 'Turnover Times', href: '/analytics/turnover-times' },
-      { name: 'Procedure Analysis', href: '/analytics/procedure-analysis' },
     ],
     operations: [
-      { name: 'Capacity Management', href: '/operations/capacity-management' },
-      { name: 'Staffing', href: '/operations/staffing' },
-      { name: 'Scheduling', href: '/operations/scheduling' },
       { name: 'Patient Flow', href: '/rtdc/patient-flow-navigator' },
     ],
-    predictions: [
-      { name: 'Volume Forecasting', href: '/predictions/volume-forecasting' },
-      { name: 'Capacity Planning', href: '/predictions/capacity-planning' },
-      { name: 'Resource Optimization', href: '/predictions/resource-optimization' },
-    ],
+    predictions: [],
   },
   home: {
     name: 'Home',
