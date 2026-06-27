@@ -1,0 +1,33 @@
+name: Hummingbird
+options:
+  bundleIdPrefix: net.acumenus
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGNING_REQUIRED: "NO"
+targets:
+  Hummingbird:
+    type: application
+    platform: iOS
+    sources:
+      - Hummingbird
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird
+        GENERATE_INFOPLIST_FILE: "NO"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    info:
+      path: Hummingbird/Info.plist
+      properties:
+        CFBundleDisplayName: Hummingbird
+        UIUserInterfaceStyle: Dark
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true

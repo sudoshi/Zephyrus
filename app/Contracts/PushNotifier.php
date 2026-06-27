@@ -17,8 +17,8 @@ interface PushNotifier
      * Deliver a PHI-free push to all of a user's active (non-revoked) devices.
      *
      * @param  array<string, mixed>  $data  PHI-free data payload — ids, deep-link,
-     *                                       action category, tier. No patient/clinical detail.
-     * @return int  the number of devices the push was dispatched to
+     *                                      action category, tier. No patient/clinical detail.
+     * @return int the number of devices the push was dispatched to
      */
     public function sendToUser(User $user, string $title, string $body, array $data = []): int;
 }

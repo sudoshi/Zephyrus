@@ -1,0 +1,123 @@
+import SwiftUI
+
+struct HomeView: View {
+    @EnvironmentObject var auth: AuthStore
+    @StateObject private var vm: HomeViewModel
+    @State private var didInitialLoad = false
+
+    init() {
+        // The APIClient is value-type and cheap; mirror the app config.
+        _vm = StateObject(wrappedValue: HomeViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!)))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Z.s4) {
+                    greeting
+                    houseRollup
+                    censusHeader
+                    if vm.units.isEmpty && vm.isLoading {
+                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                    } else {
+                        ForEach(vm.units) { unit in KpiTile(unit: unit) }
+                    }
+                }
+                .padding(Z.s4)
+            }
+            .background(Z.bg)
+            .navigationTitle("House Status")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button(role: .destructive) { Task { await auth.logout() } } label: {
+                            Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } label: {
+                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                    }
+                }
+            }
+            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+            .task {
+                guard !didInitialLoad else { return }
+                didInitialLoad = true
+                await vm.load(bearer: auth.accessToken ?? "")
+            }
+            .onChange(of: vm.needsReauth) { _, needs in
+                if needs { Task { await auth.logout() } }
+            }
+        }
+        .tint(Z.primary)
+    }
+
+    // MARK: Sections
+
+    private var greeting: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Good shift, \(firstName)")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Z.ink)
+            if let wf = auth.me?.workflowPreference {
+                Text("\(wf.capitalized) workflow")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Z.inkMuted)
+            }
+        }
+    }
+
+    private var houseRollup: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                HStack {
+                    Text("HOUSE CAPACITY")
+                        .font(.system(size: 11, weight: .semibold)).tracking(0.5)
+                        .foregroundStyle(Z.inkMuted)
+                    Spacer()
+                    StatusChip(status: vm.worstStatus)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: Z.s2) {
+                    Text("\(vm.totalOccupied)")
+                        .font(.system(size: 40, weight: .semibold)).monospacedDigit()
+                        .foregroundStyle(Z.ink)
+                    Text("/ \(vm.totalSafe) safe beds")
+                        .font(.system(size: 15)).foregroundStyle(Z.inkMuted)
+                    Spacer()
+                    Text("\(vm.occupancyPercent)%")
+                        .font(.system(size: 22, weight: .semibold)).monospacedDigit()
+                        .foregroundStyle(Z.status(vm.worstStatus))
+                }
+                Divider().overlay(Z.border)
+                HStack(spacing: Z.s2) {
+                    Image(systemName: vm.pressuredUnitCount > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                        .foregroundStyle(vm.pressuredUnitCount > 0 ? Z.status(.warning) : Z.status(.success))
+                    Text(vm.pressuredUnitCount > 0
+                         ? "\(vm.pressuredUnitCount) of \(vm.units.count) units near or at capacity"
+                         : "All units within safe capacity")
+                        .font(.system(size: 13)).foregroundStyle(Z.ink)
+                }
+            }
+        }
+    }
+
+    private var censusHeader: some View {
+        HStack {
+            Text("Unit census")
+                .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)
+            Spacer()
+            if vm.stale {
+                Label("Stale", systemImage: "wifi.exclamationmark")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Z.status(.warning))
+            }
+            Text("as of \(vm.asOfDisplay)")
+                .font(.system(size: 11)).foregroundStyle(Z.inkMuted)
+        }
+        .padding(.top, Z.s2)
+    }
+
+    private var firstName: String {
+        (auth.me?.name.split(separator: " ").first).map(String.init) ?? "there"
+    }
+}
