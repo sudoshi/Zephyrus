@@ -4,6 +4,7 @@ import Foundation
 final class HomeViewModel: ObservableObject {
     @Published var units: [CensusUnit] = []
     @Published var asOf: String?
+    @Published var webLink: String?
     @Published var stale = false
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -19,6 +20,7 @@ final class HomeViewModel: ObservableObject {
             let env = try await api.census(bearer: bearer)
             units = env.data
             asOf = env.meta?.asOf
+            webLink = env.links?["web"]
             stale = env.meta?.stale ?? false
             errorMessage = nil
         } catch let error as APIError {

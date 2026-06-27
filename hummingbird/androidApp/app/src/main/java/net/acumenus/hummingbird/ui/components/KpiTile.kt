@@ -1,6 +1,7 @@
 package net.acumenus.hummingbird.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,13 +27,14 @@ import net.acumenus.hummingbird.ui.theme.Z
 
 /** Per-unit census tile: status stripe + name + chip + occupied/safe metric + occupancy bar. */
 @Composable
-fun KpiTile(unit: CensusUnit) {
+fun KpiTile(unit: CensusUnit, onClick: (() -> Unit)? = null) {
     val status = unit.capacity
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .panel(),
+            .panel()
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
     ) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(status.color))
         Column(

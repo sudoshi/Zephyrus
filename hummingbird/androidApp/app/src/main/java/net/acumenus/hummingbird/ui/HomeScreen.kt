@@ -31,9 +31,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +58,7 @@ import net.acumenus.hummingbird.ui.theme.Z
 fun HomeScreen(auth: AuthViewModel) {
     val home: HomeViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    var selectedUnitId by remember { mutableStateOf<Int?>(null) }
 
     // Live foreground refresh loop; auto-cancels when the composable leaves.
     LaunchedEffect(Unit) {
@@ -63,6 +68,14 @@ fun HomeScreen(auth: AuthViewModel) {
         }
     }
     LaunchedEffect(home.needsReauth) { if (home.needsReauth) auth.logout() }
+
+    // Detail drill-down — resolved from the live list so it refreshes in place.
+    val selected = selectedUnitId?.let { id -> home.units.find { it.unitId == id } }
+    if (selected != null) {
+        BackHandler { selectedUnitId = null }
+        UnitDetailScreen(selected, home.webLink, onBack = { selectedUnitId = null })
+        return
+    }
 
     Scaffold(
         containerColor = Z.bg,
@@ -98,7 +111,9 @@ fun HomeScreen(auth: AuthViewModel) {
                     }
                 }
             }
-            items(home.units, key = { it.unitId }) { unit -> KpiTile(unit) }
+            items(home.units, key = { it.unitId }) { unit ->
+                KpiTile(unit, onClick = { selectedUnitId = unit.unitId })
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm: HomeViewModel
     @State private var pulse = false
+    @State private var path = NavigationPath()
 
     /// Foreground live-refresh cadence. (Reverb websockets replace polling in a later phase;
     /// the architecture is push-first / WS-when-foregrounded / poll-fallback.)
@@ -15,7 +16,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     greeting
@@ -24,7 +25,10 @@ struct HomeView: View {
                     if vm.units.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else {
-                        ForEach(vm.units) { unit in KpiTile(unit: unit) }
+                        ForEach(vm.units) { unit in
+                            NavigationLink(value: unit.unitId) { KpiTile(unit: unit) }
+                                .buttonStyle(.plain)
+                        }
                     }
                 }
                 .padding(Z.s4)
@@ -47,13 +51,28 @@ struct HomeView: View {
             .task {
                 // Live foreground refresh loop; auto-cancels when the view goes away.
                 let token = auth.accessToken ?? ""
+                var first = true
                 while !Task.isCancelled {
                     await vm.load(bearer: token)
+                    if first {
+                        first = false
+                        // Deep-link test affordance: SIMCTL_CHILD_HB_OPEN_UNIT=<id> opens a unit.
+                        if let s = ProcessInfo.processInfo.environment["HB_OPEN_UNIT"], let id = Int(s) {
+                            path.append(id)
+                        }
+                    }
                     try? await Task.sleep(for: refreshInterval)
                 }
             }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
+            }
+            .navigationDestination(for: Int.self) { unitId in
+                // Look the unit up from the live list so the detail stays fresh as the
+                // census auto-refreshes underneath it.
+                if let unit = vm.units.first(where: { $0.unitId == unitId }) {
+                    UnitDetailView(unit: unit, webLink: vm.webLink)
+                }
             }
         }
         .tint(Z.primary)

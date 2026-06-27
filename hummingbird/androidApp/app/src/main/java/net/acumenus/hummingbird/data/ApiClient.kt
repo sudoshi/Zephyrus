@@ -65,7 +65,8 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             )
         }
         val meta = root.optJSONObject("meta")
-        CensusResult(units, meta?.optStringOrNull("as_of"), meta?.optBoolean("stale", false) ?: false)
+        val web = root.optJSONObject("links")?.optStringOrNull("web")
+        CensusResult(units, meta?.optStringOrNull("as_of"), meta?.optBoolean("stale", false) ?: false, web)
     }
 
     suspend fun revoke(bearer: String) = withContext(Dispatchers.IO) {

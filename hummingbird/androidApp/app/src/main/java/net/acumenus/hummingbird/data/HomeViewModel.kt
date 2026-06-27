@@ -18,6 +18,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     var units by mutableStateOf<List<CensusUnit>>(emptyList()); private set
     var asOf by mutableStateOf<String?>(null); private set
+    var webLink by mutableStateOf<String?>(null); private set
     var stale by mutableStateOf(false); private set
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
@@ -28,7 +29,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val r = api.census(bearer)
-                units = r.units; asOf = r.asOf; stale = r.stale; error = null
+                units = r.units; asOf = r.asOf; stale = r.stale; webLink = r.webLink; error = null
             } catch (e: ApiException) {
                 if (e.statusCode == 401) needsReauth = true
                 error = e.message; stale = true

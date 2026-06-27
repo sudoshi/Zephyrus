@@ -37,6 +37,7 @@ data class CensusResult(
     val units: List<CensusUnit>,
     val asOf: String?,
     val stale: Boolean,
+    val webLink: String?,
 )
 
 /** Carries an HTTP status so the UI can react to 401 (re-auth). */
