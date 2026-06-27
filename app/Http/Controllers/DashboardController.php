@@ -105,7 +105,7 @@ class DashboardController extends Controller
     public function pdsaIndex(Request $request): InertiaResponse
     {
         return Inertia::render('Improvement/PDSA/Index', [
-            'cycles' => [],
+            'cycles' => $this->dashboardService->getPdsaCycles(),
         ]);
     }
 

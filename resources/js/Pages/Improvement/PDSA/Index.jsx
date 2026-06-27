@@ -3,9 +3,9 @@ import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Progress from '@/Components/ui/progress';
 import { Plus, Search, ArrowRight } from 'lucide-react';
-import { activePDSACycles } from '@/mock-data/improvement/index.js';
 
 const formatDate = (dateString) => {
+  if (!dateString) return '—';
   return new Date(dateString).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -14,7 +14,7 @@ const formatDate = (dateString) => {
 };
 
 const getStatusColor = (status) => {
-  switch (status.toLowerCase()) {
+  switch ((status ?? '').toLowerCase()) {
     case 'plan':
       return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
     case 'do':
@@ -30,17 +30,18 @@ const getStatusColor = (status) => {
   }
 };
 
-const Index = ({ auth }) => {
+const Index = ({ auth, cycles = [] }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('dueDate');
 
-  // Filter and sort cycles
-  const filteredCycles = activePDSACycles
+  // Filter and sort cycles (server-provided; guard against partial shapes)
+  const filteredCycles = cycles
     .filter(cycle => {
-      const matchesSearch = cycle.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cycle.plan.objective.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || cycle.status.toLowerCase() === statusFilter.toLowerCase();
+      const objective = cycle.plan?.objective ?? '';
+      const matchesSearch = (cycle.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        objective.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || (cycle.status ?? '').toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -106,6 +107,11 @@ const Index = ({ auth }) => {
             </div>
 
             <div className="p-6">
+              {filteredCycles.length === 0 && (
+                <div className="text-center py-12 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                  No PDSA cycles match your filters yet. Start one with “New PDSA Cycle”.
+                </div>
+              )}
               <div className="space-y-4">
                 {filteredCycles.map((cycle) => (
                   <div
@@ -115,7 +121,7 @@ const Index = ({ auth }) => {
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">{cycle.title}</h3>
-                        <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
+                        <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.objective}</p>
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cycle.status)}`}>
                             {cycle.status}

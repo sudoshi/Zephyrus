@@ -283,7 +283,7 @@ const Active = ({ cycles = [] }) => {
                     </div>
                     
                     <Link
-                      href={`/improvement/active/${cycle.id}`}
+                      href={`/improvement/pdsa/${cycle.id}`}
                       className="text-healthcare-primary dark:text-healthcare-primary-dark hover:text-healthcare-primary/80 dark:hover:text-healthcare-primary-dark/80 flex items-center gap-1 text-sm ml-4"
                     >
                       View Details

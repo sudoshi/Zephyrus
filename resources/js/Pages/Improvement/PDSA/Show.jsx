@@ -7,7 +7,7 @@ import { ArrowLeft, Pencil } from 'lucide-react';
 
 const Show = ({ auth, cycle }) => {
   const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+    switch ((status ?? '').toLowerCase()) {
       case 'plan':
         return 'text-healthcare-warning bg-healthcare-warning/10 dark:text-healthcare-warning-dark dark:bg-healthcare-warning-dark/20';
       case 'do':
@@ -52,7 +52,7 @@ const Show = ({ auth, cycle }) => {
             <div className="border-b p-6">
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold">{cycle.title}</h2>
-                <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
+                <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.objective}</p>
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cycle.status)}`}>
                     {cycle.status}
@@ -87,18 +87,21 @@ const Show = ({ auth, cycle }) => {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Objective</h3>
-                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.objective}</p>
+                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.objective}</p>
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Details</h3>
-                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan.details}</p>
+                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.details}</p>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="barriers" className="mt-6">
                   <div className="space-y-4">
-                    {cycle.barriers.map((barrier) => (
+                    {(cycle.barriers ?? []).length === 0 && (
+                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No active barriers recorded for this cycle.</p>
+                    )}
+                    {(cycle.barriers ?? []).map((barrier) => (
                       <div key={barrier.id} className="healthcare-card">
                         <div className="flex justify-between items-start">
                           <div>
@@ -118,7 +121,10 @@ const Show = ({ auth, cycle }) => {
 
                 <TabsContent value="failures" className="mt-6">
                   <div className="space-y-4">
-                    {cycle.dischargeFailures.map((failure) => (
+                    {(cycle.dischargeFailures ?? []).length === 0 && (
+                      <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No discharge failures linked to this cycle.</p>
+                    )}
+                    {(cycle.dischargeFailures ?? []).map((failure) => (
                       <div key={failure.id} className="healthcare-card">
                         <div className="flex justify-between items-start">
                           <div>
@@ -148,7 +154,7 @@ const Show = ({ auth, cycle }) => {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {cycle.study.metrics.map((metric, idx) => (
+                        {(cycle.study?.metrics ?? []).map((metric, idx) => (
                           <li key={idx} className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{metric}</li>
                         ))}
                       </ul>
