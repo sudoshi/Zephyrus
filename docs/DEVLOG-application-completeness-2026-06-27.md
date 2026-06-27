@@ -61,12 +61,22 @@ overlapping files during this work; the data-wiring waves integrated coherently 
 the design agents read current working-tree state and the integration applier rejects
 stale (non-matching) edits.
 
-## Remaining optional polish (not blocking — pages render plausible data today)
-- Transport Analytics "Planned Measures" section (compute from `transport_events`).
-- Transport Dispatch/EMS differentiation (Dispatch currently mirrors Requests).
-- Improvement Active / Bottlenecks / Root Cause → DB-backed (currently rich mock).
-- Admin role/status columns + Profile `shadow`→`shadow-sm` token nits.
+## Optional polish — COMPLETE (P5)
+- ✅ Transport Analytics "Planned Measures" now computes 6 real measures from
+  `transport_events` lifecycle (seeded 14 completed/canceled requests with full
+  requested→assigned→en_route→arrived→completed timelines); exposed via overview() + Zod.
+- ✅ Transport Dispatch differentiated (`WorklistPage mode='dispatch'` filters to the
+  actionable dispatch queue); EMS subtitle.
+- ✅ Improvement DB-backed: `getBottleneckStats` derives from real signals (long-LOS vs
+  GMLOS, blocked beds, at-risk transports, OR turnover, ED boarding); `getActiveCycles`
+  from `pdsa_cycles`; Bottlenecks/Active consume props; RootCause deterministic; Process.jsx
+  honors the selected workflow across 4 OCEL maps. PDSA Create persists (`pdsaStore`).
+- ✅ Admin Users role + is_active columns + Create/Edit role select & active toggle
+  (protected auth flow untouched); Profile `shadow`→`shadow-sm`.
 
-## Not yet deployed
-All changes committed to `main`; **production deploy (`./deploy.sh`) + prod re-seed
-(`php artisan zephyrus:demo-seed --migrate`) pending user go-ahead.**
+## Deployed
+**Live on zephyrus.acumenus.net** — pushed to `main`, `./deploy.sh` succeeded, prod DB
+migrated (additive improvement tables) + re-seeded via `zephyrus:demo-seed`
+(`--migrate --skip-imports` for tables, `--skip-imports` for the polish refresh; prod
+already had flow/facility imports). Verified: `/api/health` database connected,
+`RouteSmokeTest` 82/82, prod transport_events=87 / improvement=6.
