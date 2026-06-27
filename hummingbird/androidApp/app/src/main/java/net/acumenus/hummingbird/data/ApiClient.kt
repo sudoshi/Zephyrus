@@ -72,6 +72,24 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         CensusResult(units, meta?.optStringOrNull("as_of"), meta?.optBoolean("stale", false) ?: false, web)
     }
 
+    suspend fun forYou(bearer: String): List<ForYouItem> = withContext(Dispatchers.IO) {
+        val (code, text) = send("GET", "/api/mobile/v1/for-you", null, bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        val arr = JSONObject(text).getJSONArray("data")
+        List(arr.length()) { i ->
+            val o = arr.getJSONObject(i)
+            ForYouItem(
+                id = o.optString("id"),
+                type = o.optString("type"),
+                tier = o.optString("tier", "info"),
+                title = o.optString("title"),
+                subtitle = o.optString("subtitle"),
+                unit = o.optStringOrNull("unit"),
+                at = o.optStringOrNull("at"),
+            )
+        }
+    }
+
     suspend fun revoke(bearer: String) = withContext(Dispatchers.IO) {
         runCatching { send("POST", "/api/auth/token/revoke", "{}", bearer) }
         Unit

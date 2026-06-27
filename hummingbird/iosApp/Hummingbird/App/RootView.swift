@@ -15,7 +15,7 @@ struct RootView: View {
             case .needsPasswordChange:
                 PasswordChangeNoticeView()
             case .loggedIn:
-                HomeView()
+                MainTabView()
             }
         }
         .task {

@@ -39,6 +39,10 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/rtdc/census", bearer: bearer, as: [CensusUnit].self)
     }
 
+    func forYou(bearer: String) async throws -> [ForYouItem] {
+        try await getEnvelope(path: "/api/mobile/v1/for-you", bearer: bearer, as: [ForYouItem].self).data
+    }
+
     func revoke(bearer: String) async {
         _ = try? await send(path: "/api/auth/token/revoke", method: "POST", body: [:], bearer: bearer)
     }

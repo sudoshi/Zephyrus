@@ -40,5 +40,18 @@ data class CensusResult(
     val webLink: String?,
 )
 
+/** GET /api/mobile/v1/for-you — one prioritized, PHI-minimized action item. */
+data class ForYouItem(
+    val id: String,
+    val type: String,
+    val tier: String,
+    val title: String,
+    val subtitle: String,
+    val unit: String?,
+    val at: String?,
+) {
+    val capacity: CapacityStatus get() = CapacityStatus.from(tier)
+}
+
 /** Carries an HTTP status so the UI can react to 401 (re-auth). */
 class ApiException(message: String, val statusCode: Int? = null) : Exception(message)

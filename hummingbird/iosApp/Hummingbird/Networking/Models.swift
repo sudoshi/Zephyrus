@@ -65,6 +65,19 @@ struct CensusUnit: Decodable, Identifiable {
     var capacity: CapacityStatus { CapacityStatus(apiValue: status) }
 }
 
+/// GET /api/mobile/v1/for-you — one prioritized, PHI-minimized action item.
+struct ForYouItem: Decodable, Identifiable {
+    let id: String
+    let type: String
+    let tier: String
+    let title: String
+    let subtitle: String
+    let unit: String?
+    let at: String?
+
+    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+}
+
 /// An error surfaced from the API (either a Laravel `{message}` or a BFF `{error:{message}}`).
 struct APIError: Error {
     let message: String

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
 use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
+use App\Http\Controllers\Api\Mobile\ForYouController as MobileForYouController;
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
@@ -347,4 +348,6 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
 
     Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
+
+    Route::get('/for-you', [MobileForYouController::class, 'index']);
 });

@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthPhase
 import net.acumenus.hummingbird.data.AuthViewModel
-import net.acumenus.hummingbird.ui.HomeScreen
 import net.acumenus.hummingbird.ui.LoginScreen
+import net.acumenus.hummingbird.ui.MainScreen
 import net.acumenus.hummingbird.ui.theme.Z
 
 class MainActivity : ComponentActivity() {
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
                     }
                     AuthPhase.LOGGED_OUT -> LoginScreen(auth)
                     AuthPhase.NEEDS_PASSWORD_CHANGE -> PasswordChangeNotice(auth)
-                    AuthPhase.LOGGED_IN -> HomeScreen(auth)
+                    AuthPhase.LOGGED_IN -> MainScreen(auth)
                 }
             }
         }
