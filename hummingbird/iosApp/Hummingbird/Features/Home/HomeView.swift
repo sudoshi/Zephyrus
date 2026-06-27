@@ -3,7 +3,11 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm: HomeViewModel
-    @State private var didInitialLoad = false
+    @State private var pulse = false
+
+    /// Foreground live-refresh cadence. (Reverb websockets replace polling in a later phase;
+    /// the architecture is push-first / WS-when-foregrounded / poll-fallback.)
+    private let refreshInterval: Duration = .seconds(8)
 
     init() {
         // The APIClient is value-type and cheap; mirror the app config.
@@ -41,9 +45,12 @@ struct HomeView: View {
             }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
             .task {
-                guard !didInitialLoad else { return }
-                didInitialLoad = true
-                await vm.load(bearer: auth.accessToken ?? "")
+                // Live foreground refresh loop; auto-cancels when the view goes away.
+                let token = auth.accessToken ?? ""
+                while !Task.isCancelled {
+                    await vm.load(bearer: token)
+                    try? await Task.sleep(for: refreshInterval)
+                }
             }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
@@ -102,19 +109,31 @@ struct HomeView: View {
     }
 
     private var censusHeader: some View {
-        HStack {
+        HStack(spacing: Z.s2) {
             Text("Unit census")
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)
-            Spacer()
             if vm.stale {
                 Label("Stale", systemImage: "wifi.exclamationmark")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Z.status(.warning))
+            } else {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Z.status(.success))
+                        .frame(width: 7, height: 7)
+                        .opacity(pulse ? 0.25 : 1)
+                        .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: pulse)
+                    Text("LIVE")
+                        .font(.system(size: 10, weight: .semibold)).tracking(0.5)
+                        .foregroundStyle(Z.status(.success))
+                }
             }
+            Spacer()
             Text("as of \(vm.asOfDisplay)")
                 .font(.system(size: 11)).foregroundStyle(Z.inkMuted)
         }
         .padding(.top, Z.s2)
+        .onAppear { pulse = true }
     }
 
     private var firstName: String {

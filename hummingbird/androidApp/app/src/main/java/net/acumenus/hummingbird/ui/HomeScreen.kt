@@ -1,6 +1,13 @@
 package net.acumenus.hummingbird.ui
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +36,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,7 +55,13 @@ fun HomeScreen(auth: AuthViewModel) {
     val home: HomeViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
 
-    LaunchedEffect(Unit) { home.load(bearer) }
+    // Live foreground refresh loop; auto-cancels when the composable leaves.
+    LaunchedEffect(Unit) {
+        while (true) {
+            home.load(bearer)
+            kotlinx.coroutines.delay(8000)
+        }
+    }
     LaunchedEffect(home.needsReauth) { if (home.needsReauth) auth.logout() }
 
     Scaffold(
@@ -133,13 +148,20 @@ private fun houseRollup(home: HomeViewModel) {
 
 @Composable
 private fun censusHeader(home: HomeViewModel) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Unit census", color = Z.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.weight(1f))
         if (home.stale) {
             Icon(Icons.Filled.WifiOff, contentDescription = null, tint = Z.statusWarning, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.size(4.dp))
+        } else {
+            val infinite = rememberInfiniteTransition(label = "live")
+            val a by infinite.animateFloat(
+                initialValue = 1f, targetValue = 0.25f,
+                animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "liveAlpha",
+            )
+            Box(Modifier.size(7.dp).clip(CircleShape).background(Z.statusSuccess.copy(alpha = a)))
+            Text("LIVE", color = Z.statusSuccess, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
         }
+        Spacer(Modifier.weight(1f))
         Text("as of ${home.asOfDisplay}", color = Z.inkMuted, fontSize = 11.sp)
     }
 }
