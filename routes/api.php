@@ -6,6 +6,11 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
+use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
+use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
+use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
+use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
 use App\Http\Controllers\Api\Ops\AgentController;
 use App\Http\Controllers\Api\Ops\OperationalActionController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
@@ -28,6 +33,7 @@ use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 /*
 |--------------------------------------------------------------------------
@@ -304,4 +310,41 @@ Route::prefix('improvement')->middleware('throttle:60,1')->group(function () {
 
         return response()->json($fallbackData);
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Hummingbird mobile companion — token auth (ADDITIVE)
+|--------------------------------------------------------------------------
+| Bearer-token (Sanctum) API for the native mobile apps. This is a NEW,
+| parallel surface: it uses the `sanctum` guard (not the web session), does
+| not apply CSRF, and does NOT alter the locked web auth flow. See
+| docs/hummingbird/ for the full plan and api-contract.
+*/
+
+// Public token exchange (tightly rate-limited). Issuance honors must_change_password.
+Route::prefix('auth')->group(function () {
+    Route::post('/token', [MobileAuthController::class, 'token'])->middleware('throttle:10,1');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/token/refresh', [MobileAuthController::class, 'refresh']);
+        Route::post('/token/revoke', [MobileAuthController::class, 'revoke']);
+        Route::post('/change-password', [MobileAuthController::class, 'changePassword']);
+    });
+});
+
+// The mobile BFF — one token-gated, role-scoped, PHI-minimized surface.
+// `CheckForAnyAbility:mobile:read` rejects narrowly-scoped tokens (e.g. the
+// must_change_password challenge token) while admin `*` tokens pass. Write-vs-read
+// ability splitting (mobile:act) + per-resource Policies land with the P1 writes.
+Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'throttle:120,1'])->prefix('mobile/v1')->group(function () {
+    Route::get('/me', [MobileMeController::class, 'show']);
+    Route::put('/me/preferences', [MobileMeController::class, 'updatePreferences']);
+
+    Route::post('/devices', [MobileDeviceController::class, 'store']);
+    Route::delete('/devices/{device}', [MobileDeviceController::class, 'destroy']);
+
+    Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
+
+    Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
 });

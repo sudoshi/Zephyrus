@@ -10,7 +10,7 @@ class RoomController extends Controller
     public function index()
     {
         $rooms = DB::table('prod.rooms')
-            ->where('is_active', true)
+            ->where('active_status', true)
             ->orderBy('name')
             ->get();
 

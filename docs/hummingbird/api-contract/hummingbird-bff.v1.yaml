@@ -1,0 +1,400 @@
+openapi: 3.1.0
+info:
+  title: Hummingbird Mobile BFF
+  version: 1.0.0-draft
+  description: >
+    The mobile Backend-for-Frontend for Hummingbird — the ONLY surface the native
+    apps consume. Aggregates and reshapes the existing Zephyrus services for mobile:
+    one screen → one call, uniform envelope, role-scoped, PHI-minimized, token-authed.
+    Mutations DELEGATE to existing lifecycle services (no business logic re-implemented).
+    This is a v1 DRAFT sketch covering the highest-value endpoints; it generates the
+    Ktor client (shared KMP) and serves as the contract for the conformance test spec.
+servers:
+  - url: https://{host}/api/mobile/v1
+    variables: { host: { default: zephyrus.example.org } }
+
+security:
+  - bearerAuth: []
+
+tags:
+  - { name: auth }
+  - { name: me }
+  - { name: home }
+  - { name: foryou }
+  - { name: rtdc }
+  - { name: ops }
+  - { name: or }
+  - { name: command }
+  - { name: transport }
+  - { name: evs }
+  - { name: realtime }
+
+paths:
+  /auth/token:
+    post:
+      tags: [auth]
+      security: []
+      summary: Exchange credentials (or OIDC code) for tokens. Honors must_change_password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - { $ref: '#/components/schemas/PasswordGrant' }
+                - { $ref: '#/components/schemas/OidcCodeGrant' }
+      responses:
+        '200':
+          description: Tokens issued (or a password-change challenge).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/TokenResponse' }
+                  - { $ref: '#/components/schemas/PasswordChangeChallenge' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/token/refresh:
+    post: { tags: [auth], security: [], summary: Rotate refresh → new access token., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } } } }
+  /auth/token/revoke:
+    post: { tags: [auth], summary: Revoke this device's tokens (logout / remote-wipe support)., responses: { '204': { description: Revoked } } }
+  /auth/change-password:
+    post:
+      tags: [auth]
+      summary: Forced/normal password change (mirrors the locked web flow; does not replace it).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePassword' } } } }
+      responses: { '200': { description: Changed; tokens issued, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } } }
+
+  /me:
+    get:
+      tags: [me]
+      summary: Profile, role, workflow_preference, prefs.
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MeEnvelope' } } } } }
+  /me/preferences:
+    put:
+      tags: [me]
+      summary: Notification tiers, quiet hours, theme, default workflow.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+      responses: { '200': { description: Updated } }
+  /devices:
+    post:
+      tags: [me]
+      summary: Register an APNs/FCM push token for this device.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceRegistration' } } } }
+      responses: { '201': { description: Registered } }
+
+  /home:
+    get:
+      tags: [home]
+      summary: Role-aware home composition (one call). Tiles + For-You head + status glance.
+      parameters: [{ name: workflow, in: query, schema: { $ref: '#/components/schemas/Workflow' }, description: Override the user's default workflow view. }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/HomeEnvelope' } } } } }
+
+  /foryou:
+    get:
+      tags: [foryou]
+      summary: The unified, ranked, cross-domain action queue for this worker.
+      parameters:
+        - { name: updated_since, in: query, schema: { type: string, format: date-time }, description: Delta sync. }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ForYouEnvelope' } } } } }
+  /foryou/{itemId}/ack:
+    post:
+      tags: [foryou]
+      summary: Acknowledge/dismiss a For-You item.
+      parameters: [{ name: itemId, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: Acknowledged } }
+
+  /rtdc/census:
+    get:
+      tags: [rtdc]
+      summary: Live unit census + acuity-adjusted safe capacity (mirrors Reverb CensusUpdated).
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CensusEnvelope' } } } } }
+  /rtdc/house:
+    get: { tags: [rtdc], summary: Hospital bed-need roll-up (net/deficit per unit + total)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /rtdc/bed-requests:
+    get: { tags: [rtdc], summary: Pending bed requests (role-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BedRequestListEnvelope' } } } } } }
+  /rtdc/bed-requests/{id}/decision:
+    post:
+      tags: [rtdc]
+      summary: Accept / edit / reject a placement decision. Delegates to the placement service.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PlacementDecision' } } } }
+      responses: { '200': { description: Decided }, '409': { $ref: '#/components/responses/Conflict' } }
+  /rtdc/barriers:
+    get: { tags: [rtdc], summary: Discharge barriers (role/unit-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /rtdc/barriers/{id}/resolve:
+    post:
+      tags: [rtdc]
+      summary: Resolve a discharge barrier.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Resolved } }
+
+  /ops/inbox:
+    get: { tags: [ops], summary: Approvals/actions summary (pending/active/assigned/overdue)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /ops/approvals/{id}/decision:
+    post:
+      tags: [ops]
+      summary: Approve / reject a recommendation's action. Delegates to OperationalActionLifecycleService.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalDecision' } } } }
+      responses: { '200': { description: Decided }, '409': { $ref: '#/components/responses/Conflict' } }
+  /ops/actions/{id}/{transition}:
+    post:
+      tags: [ops]
+      summary: Action lifecycle transition (assign|start|complete|override|expire).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: transition, in: path, required: true, schema: { type: string, enum: [assign, start, complete, override, expire] } }
+      responses: { '200': { description: Transitioned }, '409': { $ref: '#/components/responses/Conflict' } }
+
+  /or/board:
+    get: { tags: [or], summary: Live OR room-status board (Available/In-Progress/Turnover from the wheels clock)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /or/cases/{id}/status:
+    post:
+      tags: [or]
+      summary: Advance case status (Scheduled→In-Progress→Delayed→Completed).
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { status_id: { type: integer } }, required: [status_id] } } } }
+      responses: { '200': { description: Advanced } }
+
+  /command/house:
+    get: { tags: [command], summary: House strain/surge index (0–4) + hero KPIs + 24h forecast., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /command/brief:
+    get: { tags: [command], summary: Server-composed Executive Brief (situation/plan/impact/confidence)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+
+  /transport/queue:
+    get: { tags: [transport], summary: My queue + available transport jobs (role-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /transport/requests/{id}/status:
+    post:
+      tags: [transport]
+      summary: Progress a transport request through its 17-status lifecycle. Delegates to TransportOperationsService.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusTransition' } } } }
+      responses: { '200': { description: Progressed }, '409': { $ref: '#/components/responses/Conflict' } }
+  /transport/requests/{id}/handoff:
+    post:
+      tags: [transport]
+      summary: Structured handoff (handoff_to, summary, documents[], outstanding_risks[]).
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Handoff' } } } }
+      responses: { '200': { description: Handed off } }
+
+  /evs/queue:
+    get: { tags: [evs], summary: "Next dirty bed + my bed-turns (turn_type, isolation badged).", responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+  /evs/requests/{id}/status:
+    post:
+      tags: [evs]
+      summary: Progress a bed-turn (claim→start→complete). Delegates to EvsOperationsService.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusTransition' } } } }
+      responses: { '200': { description: Progressed } }
+
+  /realtime/config:
+    get:
+      tags: [realtime]
+      summary: Reverb host/key + the PHI-free channels this user should subscribe to.
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RealtimeConfig' } } } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: Sanctum-PAT }
+
+  responses:
+    Unauthorized: { description: Missing/invalid token., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict:
+      description: State changed since load (optimistic-concurrency / illegal transition). Client should re-fetch and surface "changed since you loaded".
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    # ---- Uniform envelope ----
+    Meta:
+      type: object
+      properties:
+        as_of: { type: string, format: date-time, description: When this data was current. }
+        stale: { type: boolean, description: True if served from a degraded/cached path. }
+        version: { type: string, description: ETag/version for optimistic concurrency. }
+      required: [as_of]
+    Links:
+      type: object
+      properties: { web: { type: string, format: uri, description: Deep link to the equivalent web surface. } }
+    Envelope:
+      type: object
+      properties:
+        data: {}
+        meta: { $ref: '#/components/schemas/Meta' }
+        links: { $ref: '#/components/schemas/Links' }
+      required: [data, meta]
+    Error:
+      type: object
+      properties:
+        error: { type: object, properties: { code: { type: string }, message: { type: string }, retryable: { type: boolean } }, required: [code, message] }
+
+    # ---- Auth ----
+    PasswordGrant: { type: object, properties: { grant_type: { type: string, const: password }, username: { type: string }, password: { type: string }, device: { $ref: '#/components/schemas/DeviceRegistration' } }, required: [grant_type, username, password] }
+    OidcCodeGrant: { type: object, properties: { grant_type: { type: string, const: oidc_code }, code: { type: string }, code_verifier: { type: string }, redirect_uri: { type: string } }, required: [grant_type, code, code_verifier] }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, const: Bearer }
+        expires_in: { type: integer, description: Access-token lifetime (seconds). }
+        abilities: { type: array, items: { type: string }, description: Token scopes matching the user's role. }
+      required: [access_token, refresh_token, token_type, expires_in]
+    PasswordChangeChallenge:
+      type: object
+      description: Returned when must_change_password is true. Scoped token is valid ONLY for /auth/change-password.
+      properties: { password_change_required: { type: boolean, const: true }, change_token: { type: string } }
+      required: [password_change_required, change_token]
+    ChangePassword: { type: object, properties: { current_password: { type: string }, new_password: { type: string, minLength: 8 } }, required: [new_password] }
+
+    # ---- Me / prefs / devices ----
+    Workflow: { type: string, enum: [superuser, rtdc, perioperative, emergency, improvement, transport] }
+    MeEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                roles: { type: array, items: { type: string } }
+                is_admin: { type: boolean }
+                workflow_preference: { $ref: '#/components/schemas/Workflow' }
+                must_change_password: { type: boolean }
+                units: { type: array, items: { type: string }, description: Units this user is associated with (from user_unit). }
+    Preferences:
+      type: object
+      properties:
+        default_workflow: { $ref: '#/components/schemas/Workflow' }
+        theme: { type: string, enum: [dark, light, system], default: dark }
+        notification_tiers: { type: object, additionalProperties: { type: boolean }, description: Per-tier opt-in (T1 discouraged off). }
+        quiet_hours: { type: object, properties: { start: { type: string }, end: { type: string }, tz: { type: string } } }
+    DeviceRegistration:
+      type: object
+      properties:
+        platform: { type: string, enum: [ios, android] }
+        push_token: { type: string }
+        app_version: { type: string }
+        locale: { type: string }
+      required: [platform, push_token]
+
+    # ---- Home / For-You ----
+    HomeEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                workflow: { $ref: '#/components/schemas/Workflow' }
+                tiles: { type: array, items: { $ref: '#/components/schemas/KpiTile' } }
+                foryou_head: { type: array, items: { $ref: '#/components/schemas/ForYouItem' }, description: Top N For-You items inline. }
+    KpiTile:
+      type: object
+      description: A glanceable metric. status is ALWAYS paired with a trend/label (never color alone).
+      properties:
+        key: { type: string }
+        label: { type: string, description: UPPERCASE functional label. }
+        value: { type: string, description: "Pre-formatted, tabular." }
+        status: { type: string, enum: [success, warning, critical, info, neutral] }
+        trend: { type: string, enum: [up, down, flat] }
+        target: { type: string }
+        trust: { type: string, description: Provenance/source-trust badge text. }
+        deep_link: { type: string, format: uri }
+      required: [key, label, value, status]
+    ForYouItem:
+      type: object
+      description: One actionable/awareness item, PHI-minimized. The inline primary action is the common response.
+      properties:
+        id: { type: string }
+        domain: { type: string, enum: [rtdc, ops, or, transport, evs, staffing, ed, pi, command] }
+        tier: { type: string, enum: [T1, T2, T3, T4] }
+        title: { type: string, description: PHI-free. }
+        subtitle: { type: string }
+        status: { type: string, enum: [success, warning, critical, info, neutral] }
+        primary_action: { $ref: '#/components/schemas/Action' }
+        created_at: { type: string, format: date-time }
+        deep_link: { type: string, format: uri }
+      required: [id, domain, tier, title]
+    Action:
+      type: object
+      properties:
+        kind: { type: string, enum: [approve, reject, claim, start, complete, resolve, acknowledge, place, view] }
+        endpoint: { type: string, description: BFF path to POST when invoked (also usable from a notification action). }
+        method: { type: string, default: POST }
+      required: [kind, endpoint]
+    ForYouEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: '#/components/schemas/ForYouItem' } }
+            next_cursor: { type: string }
+
+    # ---- RTDC ----
+    CensusEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  unit: { type: string }
+                  occupied: { type: integer }
+                  total: { type: integer }
+                  available: { type: integer }
+                  safe_capacity: { type: integer, description: Acuity-adjusted. }
+                  pending_admits: { type: integer }
+                  pending_discharges: { type: integer }
+                  bed_need: { type: integer, description: ">0 = deficit." }
+                  status: { type: string, enum: [success, warning, critical, info] }
+    BedRequestListEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  patient_ref: { type: string, description: Tokenized/initials — NOT full PHI. }
+                  to_unit: { type: string }
+                  priority: { type: string, enum: [routine, urgent, stat] }
+                  status: { type: string }
+                  requested_at: { type: string, format: date-time }
+                  placement_score: { type: number, description: Transparent score for the recommended bed. }
+    PlacementDecision: { type: object, properties: { decision: { type: string, enum: [accept, edit, reject] }, bed_id: { type: string }, reason: { type: string } }, required: [decision] }
+
+    # ---- Ops ----
+    ApprovalDecision: { type: object, properties: { decision: { type: string, enum: [approve, reject] }, reason: { type: string } }, required: [decision] }
+
+    # ---- Transport / EVS ----
+    StatusTransition: { type: object, properties: { to_status: { type: string }, note: { type: string }, version: { type: string, description: Optimistic-concurrency token. } }, required: [to_status] }
+    Handoff:
+      type: object
+      properties:
+        handoff_to: { type: string }
+        summary: { type: string }
+        documents: { type: array, items: { type: string } }
+        outstanding_risks: { type: array, items: { type: string } }
+      required: [handoff_to]
+
+    # ---- Realtime ----
+    RealtimeConfig:
+      type: object
+      properties:
+        scheme: { type: string, enum: [reverb-pusher] }
+        host: { type: string }
+        port: { type: integer }
+        key: { type: string }
+        channels: { type: array, items: { type: string }, description: "PHI-free public channels (e.g. unit.{id}, hospital.beds)." }
+        note: { type: string, description: Reverb does not replay — re-snapshot tracked queries on every (re)connect. }

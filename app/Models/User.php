@@ -4,13 +4,18 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable;
+    // HasApiTokens added for the Hummingbird mobile companion (token-based API auth).
+    // This is an ADDITIVE change: the web session-cookie auth flow is unchanged.
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The table associated with the model.
@@ -65,5 +70,46 @@ class User extends Authenticatable
     public function username()
     {
         return 'username';
+    }
+
+    /**
+     * Units this user is associated with (the assignment model that powers the
+     * mobile "For You" queue and notification routing — "assigned to me / my unit").
+     */
+    public function units(): BelongsToMany
+    {
+        return $this->belongsToMany(Unit::class, 'prod.user_unit', 'user_id', 'unit_id')
+            ->withPivot(['role', 'is_primary'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Registered mobile devices (APNs/FCM push-token registry) for this user.
+     */
+    public function mobileDevices(): HasMany
+    {
+        return $this->hasMany(MobileDevice::class, 'user_id');
+    }
+
+    /**
+     * Sanctum token abilities granted to this user, derived from role + workflow.
+     * Admins get full access; everyone else gets the read/act baseline plus their
+     * workflow scope. Used when issuing mobile access tokens.
+     *
+     * @return array<int, string>
+     */
+    public function mobileTokenAbilities(): array
+    {
+        if ($this->hasRole(['super-admin', 'admin'])) {
+            return ['*'];
+        }
+
+        $abilities = ['mobile:read', 'mobile:act'];
+
+        if ($this->workflow_preference) {
+            $abilities[] = 'workflow:'.$this->workflow_preference;
+        }
+
+        return $abilities;
     }
 }

@@ -10,7 +10,7 @@ class ProviderController extends Controller
     public function index()
     {
         $providers = DB::table('prod.providers')
-            ->where('is_active', true)
+            ->where('active_status', true)
             ->orderBy('name')
             ->get();
 

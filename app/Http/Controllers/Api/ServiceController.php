@@ -10,7 +10,7 @@ class ServiceController extends Controller
     public function index()
     {
         $services = DB::table('prod.services')
-            ->where('is_active', true)
+            ->where('active_status', true)
             ->orderBy('name')
             ->get();
 

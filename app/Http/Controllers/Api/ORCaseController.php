@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ORCase;
+use App\Models\Reference\CaseStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -38,7 +39,10 @@ class ORCaseController extends Controller
 
         $case = new ORCase;
         $case->fill($request->all());
-        $case->status = 'Scheduled';
+        // prod.or_cases has a `status_id` FK to prod.case_statuses (NOT NULL) and
+        // NO string `status` column — writing `status` here previously broke inserts.
+        // Persist the Scheduled status id (code SCHED).
+        $case->status_id = CaseStatus::where('code', 'SCHED')->value('status_id') ?? 1;
         $case->is_deleted = false;
         $case->save();
 
