@@ -34,9 +34,9 @@ class RTDCDashboardController extends Controller
     /**
      * Display the bed tracking page.
      */
-    public function bedTracking(): InertiaResponse
+    public function bedTracking(\App\Services\Rtdc\BedTrackingService $bedTracking): InertiaResponse
     {
-        return Inertia::render('RTDC/BedTracking');
+        return Inertia::render('RTDC/BedTracking', $bedTracking->build());
     }
 
     /**
@@ -61,6 +61,14 @@ class RTDCDashboardController extends Controller
     }
 
     /**
+     * Display the discharge priorities page (live, computed from prod.*).
+     */
+    public function dischargePriorities(\App\Services\Rtdc\DischargePrioritiesService $service): InertiaResponse
+    {
+        return Inertia::render('RTDC/DischargePriorities', $service->build());
+    }
+
+    /**
      * Display the global huddle page.
      */
     public function globalHuddle(): InertiaResponse
@@ -81,11 +89,11 @@ class RTDCDashboardController extends Controller
     /**
      * Display the service huddle page.
      */
-    public function serviceHuddle(Request $request): InertiaResponse
+    public function serviceHuddle(Request $request, \App\Services\Rtdc\ServiceHuddleService $serviceHuddle): InertiaResponse
     {
         $this->rtdcService->activateWorkflow($request);
 
-        return Inertia::render('RTDC/ServiceHuddle');
+        return Inertia::render('RTDC/ServiceHuddle', $serviceHuddle->build());
     }
 
     /**

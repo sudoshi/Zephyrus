@@ -1,6 +1,6 @@
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, UnitHeatStrip, metric } from '@/Components/system';
-import type { UnitCensus } from '@/Components/system';
+import type { KpiMetric, UnitCensus } from '@/Components/system';
 
 // Gold-standard rebuild of Bed Tracking on the shared design system: a dense
 // instrument wall (KpiTiles with status + target + sparkline) grouped into
@@ -63,19 +63,50 @@ const UNITS: UnitCensus[] = [
   { unitId: 10, name: 'CVICU', type: 'Critical', staffed: 14, occupied: 11, blocked: 0, available: 3, occupancyPct: 79, acuityAdjustedPct: 86, status: 'warning' },
 ];
 
-export default function BedTracking() {
-  const openBeds = UNITS.reduce((n, u) => n + u.available, 0);
+interface BedTrackingProps {
+  /** Live metric values keyed by metric key (from BedTrackingService). */
+  bedMetrics?: Record<string, number>;
+  /** Live per-unit census (from BedTrackingService). */
+  unitCensus?: UnitCensus[];
+}
+
+// Swap the authored demo value for the live value (when present), keeping every
+// authored presentation detail — status, target, sparkline trajectory,
+// definition, drill link — so the page looks identical while reading real data.
+function withLive(metrics: KpiMetric[], live?: Record<string, number>): KpiMetric[] {
+  if (!live) return metrics;
+  return metrics.map((m) => {
+    const v = live[m.key];
+    if (v == null) return m;
+    const isPct = m.unit === '%';
+    const display = isPct
+      ? `${v}%`
+      : m.key === 'net-position'
+        ? `${v > 0 ? '+' : ''}${v.toLocaleString('en-US')}`
+        : v.toLocaleString('en-US');
+    return { ...m, value: v, display };
+  });
+}
+
+export default function BedTracking({ bedMetrics, unitCensus }: BedTrackingProps) {
+  const liveCapacity = withLive(capacity, bedMetrics);
+  const liveFlow = withLive(flow, bedMetrics);
+  const units = unitCensus && unitCensus.length > 0 ? unitCensus : UNITS;
+
+  const totalBeds = bedMetrics?.['total-beds'] ?? TOTAL;
+  const occupiedBeds = bedMetrics?.['occupied'] ?? OCCUPIED;
+  const openBeds = units.reduce((n, u) => n + u.available, 0);
   return (
     <RTDCPageLayout title="Bed Tracking" subtitle="Real-time bed status and capacity management">
       <div className="flex flex-col gap-5">
         <Section
           title="Capacity"
           icon="heroicons:building-office-2"
-          summary={`${OCCUPIED}/${TOTAL} occupied · ${openBeds} open across ${UNITS.length} units`}
+          summary={`${occupiedBeds}/${totalBeds} occupied · ${openBeds} open across ${units.length} units`}
           drillHref="/rtdc/analytics/utilization"
           drillLabel="Utilization"
         >
-          <MetricGrid metrics={capacity} />
+          <MetricGrid metrics={liveCapacity} />
         </Section>
 
         <Section
@@ -85,7 +116,7 @@ export default function BedTracking() {
           drillHref="/rtdc/bed-placement"
           drillLabel="Bed placement"
         >
-          <MetricGrid metrics={flow} />
+          <MetricGrid metrics={liveFlow} />
         </Section>
 
         <Section
@@ -95,7 +126,7 @@ export default function BedTracking() {
           drillHref="/rtdc/analytics/resources"
           drillLabel="Resources"
         >
-          <UnitHeatStrip units={UNITS} />
+          <UnitHeatStrip units={units} />
         </Section>
       </div>
     </RTDCPageLayout>

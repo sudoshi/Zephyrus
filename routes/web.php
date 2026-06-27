@@ -101,9 +101,7 @@ Route::middleware(['auth'])
             Route::prefix('predictions')->name('predictions.')->group(function () {
                 Route::get('/demand', [RTDCDashboardController::class, 'demandForecast'])->name('demand');
                 Route::get('/resources', [RTDCDashboardController::class, 'resourcePlanning'])->name('resources');
-                Route::get('/discharge', function () {
-                    return Inertia::render('RTDC/DischargePriorities');
-                })->name('discharge');
+                Route::get('/discharge', [RTDCDashboardController::class, 'dischargePriorities'])->name('discharge');
                 Route::get('/risk', [RTDCDashboardController::class, 'riskAssessment'])->name('risk');
             });
         });

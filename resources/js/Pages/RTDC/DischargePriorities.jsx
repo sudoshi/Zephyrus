@@ -3,8 +3,17 @@ import { Icon } from '@iconify/react';
 import RTDCPageLayout from './RTDCPageLayout';
 import generateMockDischargeData from '@/utils/generateMockDischargeData';
 
-const DischargePriorities = () => {
-  const mockData = generateMockDischargeData();
+const DischargePriorities = (props) => {
+  const mockData = {
+    priority1: props?.priority1 ?? [],
+    priority2: props?.priority2 ?? [],
+    priority3: props?.priority3 ?? [],
+    priority4: props?.priority4 ?? [],
+    hospitals: props?.hospitals ?? [],
+    services: props?.services ?? [],
+    units: props?.units ?? [],
+    ...(props && Object.keys(props).length ? {} : generateMockDischargeData()),
+  };
   const [selectedHospital, setSelectedHospital] = useState('all');
   const [selectedService, setSelectedService] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('all');

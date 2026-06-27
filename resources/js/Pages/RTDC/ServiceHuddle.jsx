@@ -15,9 +15,12 @@ const ANCILLARY_SERVICES = [
     'Respiratory Therapy',
 ];
 
-const ServiceHuddle = () => {
+const ServiceHuddle = ({
+    patients: initialPatients = serviceHuddleData.patients,
+    metrics = serviceHuddleData.metrics,
+}) => {
     // State management
-    const [patients, setPatients] = useState(serviceHuddleData.patients);
+    const [patients, setPatients] = useState(initialPatients);
     const [selectedUnit, setSelectedUnit] = useState('All');
     const [selectedService, setSelectedService] = useState('All');
     const [selectedServices, setSelectedServices] = useState({});
@@ -354,19 +357,19 @@ const ServiceHuddle = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Occupancy</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.unitMetrics.occupancy}%</span>
+                                    <span className="font-semibold">{metrics.unitMetrics.occupancy}%</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Available Beds</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.unitMetrics.availableBeds}</span>
+                                    <span className="font-semibold">{metrics.unitMetrics.availableBeds}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Pending Admissions</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.unitMetrics.pendingAdmissions}</span>
+                                    <span className="font-semibold">{metrics.unitMetrics.pendingAdmissions}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Expected Discharges</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.unitMetrics.expectedDischarges}</span>
+                                    <span className="font-semibold">{metrics.unitMetrics.expectedDischarges}</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -386,19 +389,19 @@ const ServiceHuddle = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Critical Care</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.careRequirements.criticalCare}</span>
+                                    <span className="font-semibold">{metrics.careRequirements.criticalCare}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Telemetry</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.careRequirements.telemetry}</span>
+                                    <span className="font-semibold">{metrics.careRequirements.telemetry}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Isolation</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.careRequirements.isolation}</span>
+                                    <span className="font-semibold">{metrics.careRequirements.isolation}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Special Equipment</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.careRequirements.specialEquipment}</span>
+                                    <span className="font-semibold">{metrics.careRequirements.specialEquipment}</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -418,19 +421,19 @@ const ServiceHuddle = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Critical</span>
-                                    <span className="font-semibold text-healthcare-critical">{serviceHuddleData.metrics.acuityStatus.critical}</span>
+                                    <span className="font-semibold text-healthcare-critical">{metrics.acuityStatus.critical}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Guarded</span>
-                                    <span className="font-semibold text-healthcare-warning">{serviceHuddleData.metrics.acuityStatus.guarded}</span>
+                                    <span className="font-semibold text-healthcare-warning">{metrics.acuityStatus.guarded}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Stable</span>
-                                    <span className="font-semibold text-healthcare-success">{serviceHuddleData.metrics.acuityStatus.stable}</span>
+                                    <span className="font-semibold text-healthcare-success">{metrics.acuityStatus.stable}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Patients</span>
-                                    <span className="font-semibold">{serviceHuddleData.metrics.acuityStatus.total}</span>
+                                    <span className="font-semibold">{metrics.acuityStatus.total}</span>
                                 </div>
                             </div>
                         </CardContent>
