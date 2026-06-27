@@ -1,56 +1,32 @@
 import React, { useMemo } from 'react';
 import { usePage } from '@inertiajs/react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 
-const STATUS_STYLES = {
-    critical: 'bg-healthcare-critical/15 text-healthcare-critical dark:text-healthcare-critical-dark',
-    warning: 'bg-healthcare-warning/15 text-healthcare-warning dark:text-healthcare-warning-dark',
-    success: 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark',
+// Resource Analytics rebuilt on the gold-standard design system: the KPI wall is
+// one MetricGrid of KpiTiles; the staffing chart and the gaps/requests tables
+// live in Panels under Section headers, with status cells coloured via
+// STATUS_VAR. All values are server-computed live props (ResourceAnalyticsService);
+// the page renders empty states rather than fabricating data.
+
+// Gap status → the four-color status vocabulary. The payload uses
+// critical/warning/success; default balanced units to success.
+const GAP_STATUS = {
+    critical: { level: 'critical', label: 'Critical' },
+    warning: { level: 'warning', label: 'At risk' },
+    success: { level: 'success', label: 'Balanced' },
 };
 
-const STATUS_LABELS = {
-    critical: 'Critical',
-    warning: 'At risk',
-    success: 'Balanced',
+// Request priority → status level. STAT/critical escalate to critical, urgent/
+// high to warning, routine to info.
+const PRIORITY_STATUS = {
+    stat: 'critical',
+    critical: 'critical',
+    urgent: 'warning',
+    high: 'warning',
+    routine: 'info',
 };
-
-const PRIORITY_STYLES = {
-    stat: 'bg-healthcare-critical/15 text-healthcare-critical dark:text-healthcare-critical-dark',
-    critical: 'bg-healthcare-critical/15 text-healthcare-critical dark:text-healthcare-critical-dark',
-    urgent: 'bg-healthcare-warning/15 text-healthcare-warning dark:text-healthcare-warning-dark',
-    high: 'bg-healthcare-warning/15 text-healthcare-warning dark:text-healthcare-warning-dark',
-    routine: 'bg-healthcare-info/15 text-healthcare-info dark:text-healthcare-info-dark',
-};
-
-function StatusBadge({ status }) {
-    const style = STATUS_STYLES[status] || STATUS_STYLES.success;
-    return (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style}`}>
-            {STATUS_LABELS[status] || 'Balanced'}
-        </span>
-    );
-}
-
-function PriorityBadge({ priority }) {
-    const key = (priority || 'routine').toLowerCase();
-    const style = PRIORITY_STYLES[key] || PRIORITY_STYLES.routine;
-    return (
-        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${style}`}>
-            {key}
-        </span>
-    );
-}
-
-function EmptyState({ message }) {
-    return (
-        <div className="flex items-center justify-center py-12 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            {message}
-        </div>
-    );
-}
 
 export default function Resources() {
     const { props } = usePage();
@@ -95,98 +71,106 @@ export default function Resources() {
         []
     );
 
-    const coverage = kpis ? kpis.staffCoverage : 0;
-    const coverageTrend = coverage >= 95 ? 'up' : coverage >= 85 ? 'neutral' : 'down';
+    if (!kpis) {
+        return (
+            <RTDCPageLayout
+                title="Resource Analytics"
+                subtitle="Staffing ratios, coverage gaps, and bed allocation across the house"
+            >
+                <Panel className="p-4">
+                    <EmptyState message="No resource data available." icon="heroicons:user-group" />
+                </Panel>
+            </RTDCPageLayout>
+        );
+    }
+
+    const coverage = kpis.staffCoverage ?? 0;
+    const coverageStatus = coverage >= 95 ? 'success' : coverage >= 85 ? 'warning' : 'critical';
+    const unitsShortStatus = kpis.unitsShort > 0 ? 'warning' : 'success';
+    const ratioStatus = kpis.ratioBreaches > 0 ? 'critical' : 'success';
+
+    const kpiMetrics = [
+        metric({
+            key: 'staff-coverage', label: 'Staff Coverage', value: Number(coverage), unit: '%',
+            status: coverageStatus, target: 95,
+            caption: `${kpis.staffPresent} present of ${kpis.staffRequired} required`,
+            definition: 'Present staff as a share of required headcount across tracked units.',
+        }),
+        metric({
+            key: 'units-short', label: 'Units Short-Staffed', value: Number(kpis.unitsShort ?? 0),
+            status: unitsShortStatus, goodWhenDown: true, target: 0,
+            caption: `of ${kpis.unitsTracked} units tracked`,
+            definition: 'Units below their required headcount for the current shift.',
+        }),
+        metric({
+            key: 'ratio-breaches', label: 'RN Ratio Breaches', value: Number(kpis.ratioBreaches ?? 0),
+            status: ratioStatus, goodWhenDown: true, target: 0,
+            caption: 'Units over their patient-per-RN target',
+            definition: 'Units exceeding their target patient-to-RN ratio.',
+        }),
+        metric({
+            key: 'beds-available', label: 'Beds Available', value: Number(kpis.bedsAvailable ?? 0),
+            status: 'info', caption: `${kpis.bedOccupancy}% house occupancy`,
+            definition: 'Clean, staffed beds immediately assignable house-wide.',
+        }),
+    ];
 
     return (
         <RTDCPageLayout
             title="Resource Analytics"
             subtitle="Staffing ratios, coverage gaps, and bed allocation across the house"
         >
-            {!kpis ? (
-                <EmptyState message="No resource data available." />
-            ) : (
-                <>
-                    <MetricsCardGroup cols={4}>
-                        <MetricsCard
-                            title="Staff Coverage"
-                            value={coverage}
-                            formatter={(v) => `${v}%`}
-                            trend={coverageTrend}
-                            icon="heroicons:user-group"
-                            description={`${kpis.staffPresent} present of ${kpis.staffRequired} required`}
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="Units Short-Staffed"
-                            value={kpis.unitsShort}
-                            trend={kpis.unitsShort > 0 ? 'down' : 'neutral'}
-                            icon="heroicons:exclamation-triangle"
-                            description={`of ${kpis.unitsTracked} units tracked`}
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="RN Ratio Breaches"
-                            value={kpis.ratioBreaches}
-                            trend={kpis.ratioBreaches > 0 ? 'down' : 'neutral'}
-                            icon="heroicons:scale"
-                            description="Units over their patient-per-RN target"
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="Beds Available"
-                            value={kpis.bedsAvailable}
-                            trend="neutral"
-                            icon="heroicons:home-modern"
-                            description={`${kpis.bedOccupancy}% house occupancy`}
-                            comparison={null}
-                        />
-                    </MetricsCardGroup>
+            <div className="flex flex-col gap-5">
+                <Section
+                    title="Staffing & capacity"
+                    icon="heroicons:user-group"
+                    summary={`${coverage}% coverage · ${kpis.unitsShort} of ${kpis.unitsTracked} units short`}
+                >
+                    <MetricGrid metrics={kpiMetrics} />
+                </Section>
 
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>Staffing by Unit — Required vs Present</Card.Title>
-                            <Card.Description>
-                                Day-shift headcount for the {chartUnits.length} most stretched units
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {chartUnits.length === 0 ? (
-                                <EmptyState message="No staffing plans for the current shift." />
-                            ) : (
-                                <div className="h-80">
-                                    <BarChart data={staffingChartData} options={chartOptions} />
-                                </div>
-                            )}
-                        </Card.Content>
-                    </Card>
+                <Section
+                    title="Staffing by Unit — Required vs Present"
+                    icon="heroicons:chart-bar"
+                    summary={`Day-shift headcount for the ${chartUnits.length} most stretched units`}
+                >
+                    <Panel className="p-4">
+                        {chartUnits.length === 0 ? (
+                            <EmptyState message="No staffing plans for the current shift." icon="heroicons:chart-bar" />
+                        ) : (
+                            <div className="h-80">
+                                <BarChart data={staffingChartData} options={chartOptions} />
+                            </div>
+                        )}
+                    </Panel>
+                </Section>
 
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>Resource Gaps</Card.Title>
-                            <Card.Description>
-                                Units with a staffing shortfall, RN-ratio breach, or no open beds
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {gaps.length === 0 ? (
-                                <EmptyState message="No resource gaps — every unit is within target." />
-                            ) : (
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            <th className="px-3 py-2">Unit</th>
-                                            <th className="px-3 py-2">Type</th>
-                                            <th className="px-3 py-2 text-right tabular-nums">Present / Req</th>
-                                            <th className="px-3 py-2 text-right tabular-nums">Coverage</th>
-                                            <th className="px-3 py-2 text-right tabular-nums">RN Ratio</th>
-                                            <th className="px-3 py-2 text-right tabular-nums">Beds Open</th>
-                                            <th className="px-3 py-2">Driver</th>
-                                            <th className="px-3 py-2">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {gaps.map((g) => (
+                <Section
+                    title="Resource Gaps"
+                    icon="heroicons:exclamation-triangle"
+                    summary="Units with a staffing shortfall, RN-ratio breach, or no open beds"
+                >
+                    <Panel className="p-4">
+                        {gaps.length === 0 ? (
+                            <EmptyState message="No resource gaps — every unit is within target." icon="heroicons:check-circle" />
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        <th className="px-3 py-2">Unit</th>
+                                        <th className="px-3 py-2">Type</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Present / Req</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Coverage</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">RN Ratio</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Beds Open</th>
+                                        <th className="px-3 py-2">Driver</th>
+                                        <th className="px-3 py-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {gaps.map((g) => {
+                                        const gap = GAP_STATUS[g.status] || GAP_STATUS.success;
+                                        return (
                                             <tr
                                                 key={g.unitId}
                                                 className="border-t border-healthcare-border dark:border-healthcare-border-dark"
@@ -206,22 +190,21 @@ export default function Resources() {
                                                     {g.present} / {g.required}
                                                 </td>
                                                 <td
-                                                    className={`px-3 py-2 text-right tabular-nums font-medium ${
-                                                        g.coverage < 85
-                                                            ? 'text-healthcare-critical dark:text-healthcare-critical-dark'
-                                                            : g.coverage < 95
-                                                              ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
-                                                              : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                                    }`}
+                                                    className="px-3 py-2 text-right tabular-nums font-medium"
+                                                    style={{
+                                                        color:
+                                                            g.coverage < 85
+                                                                ? STATUS_VAR.critical
+                                                                : g.coverage < 95
+                                                                  ? STATUS_VAR.warning
+                                                                  : undefined,
+                                                    }}
                                                 >
                                                     {g.coverage}%
                                                 </td>
                                                 <td
-                                                    className={`px-3 py-2 text-right tabular-nums ${
-                                                        g.ratioBreach
-                                                            ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
-                                                            : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
-                                                    }`}
+                                                    className="px-3 py-2 text-right tabular-nums"
+                                                    style={{ color: g.ratioBreach ? STATUS_VAR.warning : undefined }}
                                                 >
                                                     {g.actualRatio > 0 ? `${g.actualRatio} / ${g.ratioTarget}` : '—'}
                                                 </td>
@@ -231,42 +214,47 @@ export default function Resources() {
                                                 <td className="px-3 py-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                     {g.driver}
                                                 </td>
-                                                <td className="px-3 py-2">
-                                                    <StatusBadge status={g.status} />
+                                                <td
+                                                    className="px-3 py-2 text-xs font-semibold"
+                                                    style={{ color: STATUS_VAR[gap.level] }}
+                                                >
+                                                    {gap.label}
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </Card.Content>
-                    </Card>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </Panel>
+                </Section>
 
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>Open Staffing Requests</Card.Title>
-                            <Card.Description>
-                                Outstanding fill-gap requests awaiting sourcing
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {openRequests.length === 0 ? (
-                                <EmptyState message="No open staffing requests." />
-                            ) : (
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            <th className="px-3 py-2">Unit</th>
-                                            <th className="px-3 py-2">Role</th>
-                                            <th className="px-3 py-2 text-right tabular-nums">Headcount</th>
-                                            <th className="px-3 py-2">Shift</th>
-                                            <th className="px-3 py-2">Needed By</th>
-                                            <th className="px-3 py-2">Owner</th>
-                                            <th className="px-3 py-2">Priority</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {openRequests.map((r) => (
+                <Section
+                    title="Open Staffing Requests"
+                    icon="heroicons:clipboard-document-list"
+                    summary="Outstanding fill-gap requests awaiting sourcing"
+                >
+                    <Panel className="p-4">
+                        {openRequests.length === 0 ? (
+                            <EmptyState message="No open staffing requests." icon="heroicons:clipboard-document-list" />
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                        <th className="px-3 py-2">Unit</th>
+                                        <th className="px-3 py-2">Role</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Headcount</th>
+                                        <th className="px-3 py-2">Shift</th>
+                                        <th className="px-3 py-2">Needed By</th>
+                                        <th className="px-3 py-2">Owner</th>
+                                        <th className="px-3 py-2">Priority</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {openRequests.map((r) => {
+                                        const priorityKey = (r.priority || 'routine').toLowerCase();
+                                        const priorityLevel = PRIORITY_STATUS[priorityKey] || 'info';
+                                        return (
                                             <tr
                                                 key={r.id}
                                                 className="border-t border-healthcare-border dark:border-healthcare-border-dark"
@@ -290,18 +278,21 @@ export default function Resources() {
                                                 <td className="px-3 py-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                     {r.owner}
                                                 </td>
-                                                <td className="px-3 py-2">
-                                                    <PriorityBadge priority={r.priority} />
+                                                <td
+                                                    className="px-3 py-2 text-xs font-semibold capitalize"
+                                                    style={{ color: STATUS_VAR[priorityLevel] }}
+                                                >
+                                                    {priorityKey}
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </Card.Content>
-                    </Card>
-                </>
-            )}
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </Panel>
+                </Section>
+            </div>
         </RTDCPageLayout>
     );
 }

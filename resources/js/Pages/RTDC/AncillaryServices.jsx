@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
-import Card from '@/Components/Dashboard/Card';
+import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import {
-    unitServicesData,
     serviceCategories,
     services,
     generateDemoData,
@@ -12,7 +11,12 @@ import { Icon } from '@iconify/react';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import TrendsModal from '@/Components/RTDC/TrendsModal';
 
-
+// Ancillary Services rebuilt on the gold-standard design system: the summary
+// KPIs are a single MetricGrid of KpiTiles (status dot + value + caption); the
+// service matrix/table and drill-down detail live in Panels under Section
+// headers. Per-unit ancillary data is server-computed and deterministic
+// (`unitServices` prop), falling back to the local generator only when absent —
+// no fabricated trends or sparklines are introduced.
 
 const getStatusClasses = (value) => {
     if (value > 120) return 'bg-healthcare-critical/10 text-healthcare-critical dark:bg-healthcare-critical/20 dark:text-healthcare-critical-dark';
@@ -20,10 +24,6 @@ const getStatusClasses = (value) => {
     if (value > 60) return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
     return 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark';
 };
-
-// Helper function to simulate trend data
-const getRandomTrend = () => (Math.random() > 0.5 ? 'up' : 'down');
-const getRandomDelta = () => `${Math.floor(Math.random() * 10) + 1}%`;
 
 const AncillaryServices = ({ unitServices = null }) => {
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'matrix'
@@ -37,25 +37,24 @@ const AncillaryServices = ({ unitServices = null }) => {
     const [demoData] = useState(() =>
         unitServices && unitServices.length > 0 ? unitServices : generateDemoData()
     );
-    const [lastUpdated] = useState(new Date());
 
     // Calculate summary metrics
     const calculateMetrics = () => {
         let totalRequests = 0;
         let criticalDelays = 0;
-        let resourceUtilization = 0;
         let crossDepartmentImpact = 0;
-
-        const resourceUsageCounts = {};
+        let totalWait = 0;
 
         if (!demoData || !Array.isArray(demoData)) {
             return {
                 totalRequests: 0,
                 criticalDelays: 0,
                 resourceUtilization: 0,
-                crossDepartmentImpact: 0
+                crossDepartmentImpact: 0,
             };
         }
+
+        const unitsWithDelay = new Set();
 
         // Safely iterate through units and their services
         demoData.forEach((unit) => {
@@ -63,83 +62,76 @@ const AncillaryServices = ({ unitServices = null }) => {
             Object.entries(unit.services || {}).forEach(([serviceId, service]) => {
                 if (service) {
                     totalRequests++;
+                    totalWait += service.value ?? 0;
                     const serviceInfo = services.find((s) => s.id === serviceId);
                     if (serviceInfo) {
                         const delayThreshold = serviceInfo.category === 'imaging' ? 120 : 90;
                         if (service.value > delayThreshold) {
                             criticalDelays++;
+                            unitsWithDelay.add(unit.id);
                         }
                     }
-
-                    // Simulate resource utilization
-                    if (!resourceUsageCounts[serviceId]) {
-                        resourceUsageCounts[serviceId] = 0;
-                    }
-                    resourceUsageCounts[serviceId] += Math.floor(Math.random() * 10) + 1;
-
-                    // Simulate cross-department impact
-                    crossDepartmentImpact += Math.floor(Math.random() * 2);
                 }
             });
         });
 
-        // Calculate average resource utilization
-        if (totalRequests > 0) {
-            const totalResourceUsage = Object.values(resourceUsageCounts).reduce(
-                (acc, val) => acc + val,
-                0
-            );
-            resourceUtilization = Math.min((totalResourceUsage / totalRequests) * 5, 100);
-        }
+        crossDepartmentImpact = unitsWithDelay.size;
+
+        // Mean wait time across active requests, expressed as a 0-100 utilization
+        // proxy (a 180-min wait reads as 100% utilization of the service window).
+        const resourceUtilization =
+            totalRequests > 0 ? Math.min(Math.round((totalWait / totalRequests / 180) * 100), 100) : 0;
 
         return {
             totalRequests,
             criticalDelays,
-            resourceUtilization: Math.round(resourceUtilization),
+            resourceUtilization,
             crossDepartmentImpact,
         };
     };
 
     const metrics = calculateMetrics();
 
-    // Define the metrics to display
-    const quickStats = [
-        {
-            label: 'Critical Delays',
-            value: metrics.criticalDelays.toString(),
-            trend: getRandomTrend(),
-            delta: getRandomDelta(),
-            icon: 'heroicons:exclamation-triangle',
-            color: 'healthcare-critical',
-            description: 'Services over threshold',
-        },
-        {
-            label: 'Active Requests',
-            value: metrics.totalRequests.toString(),
-            trend: getRandomTrend(),
-            delta: getRandomDelta(),
-            icon: 'heroicons:clipboard-document-list',
-            color: 'healthcare-info',
-            description: 'Current active service requests',
-        },
-        {
-            label: 'Resource Utilization',
-            value: `${metrics.resourceUtilization}%`,
-            trend: getRandomTrend(),
-            delta: getRandomDelta(),
-            icon: 'heroicons:chart-pie',
-            color: 'healthcare-warning',
-            description: 'Average utilization across services',
-        },
-        {
-            label: 'Cross-Dept Impact',
-            value: metrics.crossDepartmentImpact.toString(),
-            trend: getRandomTrend(),
-            delta: getRandomDelta(),
-            icon: 'heroicons:building-office-2',
-            color: 'healthcare-success',
-            description: 'Departments experiencing delays',
-        },
+    // Gold-standard KPI wall: real, server-derived counts. Status follows the
+    // page's own thresholds; no sparklines (no honest per-metric series exists).
+    const kpiMetrics = [
+        metric({
+            key: 'critical-delays',
+            label: 'Critical delays',
+            value: metrics.criticalDelays,
+            status: metrics.criticalDelays > 5 ? 'critical' : metrics.criticalDelays > 0 ? 'warning' : 'success',
+            goodWhenDown: true,
+            caption: 'Services over their category delay threshold',
+            definition: 'Service entries whose current wait exceeds the category threshold (120 min imaging, 90 min otherwise).',
+        }),
+        metric({
+            key: 'active-requests',
+            label: 'Active requests',
+            value: metrics.totalRequests,
+            status: 'info',
+            caption: 'Current active ancillary service requests',
+            definition: 'Total in-progress ancillary service requests across all monitored units.',
+        }),
+        metric({
+            key: 'resource-utilization',
+            label: 'Resource utilization',
+            value: metrics.resourceUtilization,
+            unit: '%',
+            status: metrics.resourceUtilization > 90 ? 'critical' : metrics.resourceUtilization > 75 ? 'warning' : 'success',
+            target: 75,
+            goodWhenDown: true,
+            caption: 'Mean wait as a share of the service window',
+            definition: 'Average request wait time across services expressed against a 180-minute service window.',
+        }),
+        metric({
+            key: 'cross-dept-impact',
+            label: 'Cross-dept impact',
+            value: metrics.crossDepartmentImpact,
+            status: metrics.crossDepartmentImpact > 3 ? 'warning' : 'success',
+            goodWhenDown: true,
+            caption: `Of ${demoData?.length ?? 0} units experiencing delays`,
+            definition: 'Number of distinct units with at least one service over its delay threshold.',
+        }),
     ];
 
     // Render trend chart
@@ -158,33 +150,33 @@ const AncillaryServices = ({ unitServices = null }) => {
 
     // Render Matrix View
     const renderMatrixView = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {demoData.map((unit) => (
-                <Card
+                <Panel
                     key={unit.id}
-                    className="group hover:shadow-xl transition-all duration-300 cursor-pointer healthcare-card border border-healthcare-border dark:border-healthcare-border-dark"
+                    className="group p-0 cursor-pointer"
                     onClick={() => setSelectedUnit(unit)}
                 >
-                    <Card.Header className="bg-healthcare-background dark:bg-healthcare-background-dark border-b border-healthcare-border dark:border-healthcare-border-dark">
+                    <div className="bg-healthcare-background dark:bg-healthcare-background-dark border-b border-healthcare-border dark:border-healthcare-border-dark px-4 py-3">
                         <div className="flex items-center justify-between">
-                            <Card.Title className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                 {unit.name}
-                            </Card.Title>
+                            </h3>
                             <Icon
                                 icon="heroicons:chevron-right"
                                 className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-transform group-hover:translate-x-1"
                             />
                         </div>
-                    </Card.Header>
-                    <Card.Content className="p-4">
+                    </div>
+                    <div className="p-4">
                         <div className="space-y-3">
                             {Object.entries(serviceCategories).map(([categoryKey, category]) => {
                                 const categoryServices = Object.entries(unit.services)
-                                    .filter(([serviceId, service]) => 
-                                        service && 
+                                    .filter(([serviceId, service]) =>
+                                        service &&
                                         services.find(s => s.id === serviceId)?.category === categoryKey
                                     );
-                                
+
                                 if (categoryServices.length === 0) return null;
 
                                 return (
@@ -211,7 +203,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                         }}
                                                     >
                                                         <div className="flex items-center space-x-2">
-                                                            <Icon 
+                                                            <Icon
                                                                 icon={
                                                                     service.value > 120 ? 'heroicons:exclamation-circle' :
                                                                     service.value > 90 ? 'heroicons:clock' :
@@ -244,8 +236,8 @@ const AncillaryServices = ({ unitServices = null }) => {
                                 );
                             })}
                         </div>
-                    </Card.Content>
-                </Card>
+                    </div>
+                </Panel>
             ))}
         </div>
     );
@@ -253,7 +245,7 @@ const AncillaryServices = ({ unitServices = null }) => {
     // Render Table View
     const renderTableView = () => (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark healthcare-card">
+            <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                 <thead className="bg-healthcare-background dark:bg-healthcare-background-dark">
                     <tr>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark w-32">
@@ -400,130 +392,89 @@ const AncillaryServices = ({ unitServices = null }) => {
             title="Ancillary Services"
             subtitle="Monitor and track hospital support services"
         >
-            {/* Summary Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {quickStats.map((stat, index) => (
-                    <Card key={index}>
-                        <Card.Content>
-                            <div className="flex items-center justify-between group">
-                                <div className="flex items-center space-x-3">
-                                    <div
-                                        className={`bg-${stat.color} bg-opacity-10 dark:bg-opacity-20 p-2 rounded-lg group-hover:bg-opacity-20 dark:group-hover:bg-opacity-30 transition-colors duration-300`}
-                                    >
-                                        <Icon
-                                            icon={stat.icon}
-                                            className={`w-6 h-6 text-${stat.color} dark:text-${stat.color}-dark`}
-                                        />
-                                    </div>
-                                    <div>
-                                        <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300">
-                                            {stat.label}
-                                        </div>
-                                        <div className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
-                                            {stat.value}
-                                        </div>
-                                        <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            {stat.description}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-end">
-                                    <div
-                                        className={`flex items-center ${
-                                            stat.trend === 'up'
-                                                ? 'text-healthcare-success dark:text-healthcare-success-dark'
-                                                : 'text-healthcare-critical dark:text-healthcare-critical-dark'
-                                        } transition-colors duration-300`}
-                                    >
-                                        <Icon
-                                            icon={
-                                                stat.trend === 'up'
-                                                    ? 'heroicons:arrow-up'
-                                                    : 'heroicons:arrow-down'
+            <div className="flex flex-col gap-5">
+                {/* Summary Metrics */}
+                <Section
+                    title="Service load"
+                    icon="heroicons:squares-plus"
+                    summary={`${metrics.totalRequests} active requests across ${demoData?.length ?? 0} units`}
+                >
+                    <MetricGrid metrics={kpiMetrics} />
+                </Section>
+
+                {/* Service detail matrix / table */}
+                <Section
+                    title="Service details"
+                    icon="heroicons:table-cells"
+                    summary={viewMode === 'table' ? 'Wait time by unit and service category' : 'Per-unit service status matrix'}
+                    actions={
+                        <div className="flex space-x-2">
+                            <button
+                                className={`inline-flex items-center px-3 py-1.5 ${
+                                    viewMode === 'table'
+                                        ? 'healthcare-button-primary'
+                                        : 'healthcare-button-secondary'
+                                } text-sm font-medium rounded-l-md`}
+                                onClick={() => setViewMode('table')}
+                            >
+                                <Icon icon="heroicons:table" className="w-4 h-4 mr-1.5" />
+                                Table
+                            </button>
+                            <button
+                                className={`inline-flex items-center px-3 py-1.5 ${
+                                    viewMode === 'matrix'
+                                        ? 'healthcare-button-primary'
+                                        : 'healthcare-button-secondary'
+                                } text-sm font-medium rounded-r-md -ml-px`}
+                                onClick={() => setViewMode('matrix')}
+                            >
+                                <Icon icon="heroicons:view-grid" className="w-4 h-4 mr-1.5" />
+                                Matrix
+                            </button>
+                            <button
+                                className="ml-2 inline-flex items-center px-3 py-1.5 healthcare-button healthcare-button-primary text-sm font-medium rounded-md"
+                                onClick={() => {
+                                    // Generate trend data for all services
+                                    const allTrends = [];
+                                    demoData.forEach(unit => {
+                                        Object.entries(unit.services).forEach(([serviceId, service]) => {
+                                            if (service) {
+                                                const serviceInfo = services.find(s => s.id === serviceId);
+                                                if (serviceInfo) {
+                                                    const trend = trendUtils.generateServiceTrend(serviceInfo.category);
+                                                    allTrends.push({
+                                                        unitName: unit.name,
+                                                        serviceName: serviceInfo.name,
+                                                        trend
+                                                    });
+                                                }
                                             }
-                                            className="w-4 h-4 mr-1"
-                                        />
-                                        <span className="text-sm font-medium">{stat.delta}</span>
-                                    </div>
-                                    <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transition-colors duration-300 mt-1">
-                                        vs. last hour
-                                    </div>
-                                </div>
-                            </div>
-                        </Card.Content>
-                    </Card>
-                ))}
+                                        });
+                                    });
+
+                                    if (allTrends.length > 0) {
+                                        setSelectedTrendData({
+                                            trend: allTrends[0].trend,
+                                            title: 'Service Wait Times',
+                                            allTrends
+                                        });
+                                    }
+                                    setTrendsModalOpen(true);
+                                }}
+                            >
+                                <Icon icon="heroicons:chart-bar" className="w-4 h-4 mr-1.5" />
+                                Show Trends
+                            </button>
+                        </div>
+                    }
+                >
+                    {viewMode === 'table' ? (
+                        <Panel className="p-0">{renderTableView()}</Panel>
+                    ) : (
+                        renderMatrixView()
+                    )}
+                </Section>
             </div>
-
-            {/* Main Grid Wrapped in Card */}
-            <Card className="healthcare-card">
-                <Card.Header className="flex items-center justify-between">
-                    <Card.Title>Service Details</Card.Title>
-                    {/* View Mode Toggle */}
-                    <div className="flex space-x-2">
-                        <button
-                            className={`inline-flex items-center px-4 py-2 ${
-                                viewMode === 'table'
-                                    ? 'healthcare-button-primary'
-                                    : 'healthcare-button-secondary'
-                            } text-sm font-medium rounded-l-md`}
-                            onClick={() => setViewMode('table')}
-                        >
-                            <Icon icon="heroicons:table" className="w-5 h-5 mr-2" />
-                            Table View
-                        </button>
-                        <button
-                            className={`inline-flex items-center px-4 py-2 ${
-                                viewMode === 'matrix'
-                                    ? 'healthcare-button-primary'
-                                    : 'healthcare-button-secondary'
-                            } text-sm font-medium rounded-r-md -ml-px`}
-                            onClick={() => setViewMode('matrix')}
-                        >
-                            <Icon icon="heroicons:view-grid" className="w-5 h-5 mr-2" />
-                            Matrix View
-                        </button>
-                        <button
-                            className="ml-2 inline-flex items-center px-4 py-2 healthcare-button healthcare-button-primary text-sm font-medium rounded-md"
-                            onClick={() => {
-                                // Generate trend data for all services
-                                const allTrends = [];
-                                demoData.forEach(unit => {
-                                    Object.entries(unit.services).forEach(([serviceId, service]) => {
-                                        if (service) {
-                                            const serviceInfo = services.find(s => s.id === serviceId);
-                                            if (serviceInfo) {
-                                                const trend = trendUtils.generateServiceTrend(serviceInfo.category);
-                                                allTrends.push({
-                                                    unitName: unit.name,
-                                                    serviceName: serviceInfo.name,
-                                                    trend
-                                                });
-                                            }
-                                        }
-                                    });
-                                });
-
-                                if (allTrends.length > 0) {
-                                    setSelectedTrendData({
-                                        trend: allTrends[0].trend,
-                                        title: 'Service Wait Times',
-                                        allTrends
-                                    });
-                                }
-                                setTrendsModalOpen(true);
-                            }}
-                        >
-                            <Icon icon="heroicons:chart-bar" className="w-5 h-5 mr-2" />
-                            Show Trends
-                        </button>
-                    </div>
-                </Card.Header>
-                <Card.Content>
-                    {/* Main Content */}
-                    {viewMode === 'table' ? renderTableView() : renderMatrixView()}
-                </Card.Content>
-            </Card>
 
             {/* Drill-down Modal */}
             {selectedUnit && (
@@ -549,7 +500,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                 </button>
                             </div>
                             <div className="px-6 py-4">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {Object.entries(selectedUnit.services)
                                         .filter(([_, service]) => service)
                                         .map(([serviceId, service]) => {
@@ -557,36 +508,32 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                 (s) => s.id === serviceId
                                             );
                                             return (
-                                                <Card key={serviceId} className="healthcare-card">
-                                                    <Card.Header>
-                                                        <Card.Title>
-                                                            {serviceInfo?.name}
-                                                        </Card.Title>
-                                                    </Card.Header>
-                                                    <Card.Content>
-                                                        <div className="mb-4">
-                                                            <span
-                                                                className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
-                                                                    service.value
-                                                                )}`}
-                                                            >
-                                                                Current Wait: {service.value} min
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm mb-2">
-                                                            {serviceInfo?.description}
-                                                        </p>
-                                                        <p className="text-sm mb-1">
-                                                            <strong>Average Time:</strong>{' '}
-                                                            {serviceInfo?.avgTime}
-                                                        </p>
-                                                        <p className="text-sm mb-1">
-                                                            <strong>Criteria:</strong>{' '}
-                                                            {serviceInfo?.criteria.join(', ')}
-                                                        </p>
-                                                        {showTrends && renderTrendChart(service)}
-                                                    </Card.Content>
-                                                </Card>
+                                                <Panel key={serviceId} className="p-4">
+                                                    <h4 className="text-md font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-3">
+                                                        {serviceInfo?.name}
+                                                    </h4>
+                                                    <div className="mb-4">
+                                                        <span
+                                                            className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
+                                                                service.value
+                                                            )}`}
+                                                        >
+                                                            Current Wait: {service.value} min
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm mb-2">
+                                                        {serviceInfo?.description}
+                                                    </p>
+                                                    <p className="text-sm mb-1">
+                                                        <strong>Average Time:</strong>{' '}
+                                                        {serviceInfo?.avgTime}
+                                                    </p>
+                                                    <p className="text-sm mb-1">
+                                                        <strong>Criteria:</strong>{' '}
+                                                        {serviceInfo?.criteria.join(', ')}
+                                                    </p>
+                                                    {showTrends && renderTrendChart(service)}
+                                                </Panel>
                                             );
                                         })}
                                 </div>

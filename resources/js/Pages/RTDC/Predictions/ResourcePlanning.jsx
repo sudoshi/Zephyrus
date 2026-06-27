@@ -1,9 +1,8 @@
 import React from 'react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
-import Card from '@/Components/Dashboard/Card';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 import { Icon } from '@iconify/react';
-import { Section, MetricGrid, EmptyState, metric } from '@/Components/system';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 
 // Resource Planning on the shared gold-standard design system. It answers one
 // operational question for the next planning horizon: does each unit's STAFFED
@@ -162,7 +161,7 @@ export default function ResourcePlanning({
       title="Resource Planning"
       subtitle={`Predicted demand vs staffed capacity — ${horizon} horizon${dateSuffix}`}
     >
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         {/* KPI wall */}
         <Section
           title="Planning headline"
@@ -180,17 +179,15 @@ export default function ResourcePlanning({
           icon="heroicons:chart-bar"
           summary="Per-unit predicted demand against beds the staffed line can cover"
         >
-          <Card>
-            <Card.Content>
-              {chartRows.length > 0 ? (
-                <div className="h-80">
-                  <BarChart data={chartData} options={chartOptions} />
-                </div>
-              ) : (
-                <EmptyState message="No predictions reporting for this horizon" />
-              )}
-            </Card.Content>
-          </Card>
+          <Panel className="p-4">
+            {chartRows.length > 0 ? (
+              <div className="h-80">
+                <BarChart data={chartData} options={chartOptions} />
+              </div>
+            ) : (
+              <EmptyState message="No predictions reporting for this horizon" />
+            )}
+          </Panel>
         </Section>
 
         {/* Recommended staffing table */}
@@ -201,9 +198,9 @@ export default function ResourcePlanning({
           drillHref="/rtdc/huddle/service"
           drillLabel="Service huddle"
         >
-          <Card>
-            <Card.Content className="p-0">
-              {recs.length > 0 ? (
+          <Panel className="overflow-hidden">
+            {recs.length > 0 ? (
+              <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark text-left">
@@ -263,13 +260,13 @@ export default function ResourcePlanning({
                     ))}
                   </tbody>
                 </table>
-              ) : (
-                <div className="p-4">
-                  <EmptyState message="All units staffed to predicted demand — no action needed" />
-                </div>
-              )}
-            </Card.Content>
-          </Card>
+              </div>
+            ) : (
+              <div className="p-4">
+                <EmptyState message="All units staffed to predicted demand — no action needed" />
+              </div>
+            )}
+          </Panel>
         </Section>
       </div>
     </RTDCPageLayout>
