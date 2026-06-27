@@ -137,10 +137,15 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
   ) : null;
 
   const body = (
-    <Panel className="flex h-full flex-col gap-2 p-4" style={{ borderLeft: `3px solid ${color}` }}>
+    <Panel className="flex h-full flex-col gap-2 p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-xs uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-          {metric.label}
+        <span className="flex min-w-0 items-center gap-1.5">
+          {/* Status dot (replaces the banned left side-stripe); the gauge/number
+              color + trend arrow carry the same status redundantly. */}
+          <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
+          <span className="min-w-0 truncate text-xs uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            {metric.label}
+          </span>
         </span>
         <span className="flex shrink-0 items-center gap-1">
           {trustBadge}

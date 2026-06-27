@@ -42,11 +42,13 @@ describe('CommandCenterView', () => {
     expect(screen.queryByLabelText('Unit census heat map')).not.toBeInTheDocument();
   });
 
-  it('collapses tile detail in command (glance) and expands it in executive (review)', () => {
+  it('shows tile sparklines in every role (density is not gated by role)', () => {
+    // Density is the default now: role re-orders bands and toggles the unit
+    // heat strip, but every tile keeps its sparkline + detail in every role.
     const { rerender } = render(
       <CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="just now" />,
     );
-    expect(screen.queryByTestId('sparkline-readmission')).not.toBeInTheDocument();
+    expect(screen.getByTestId('sparkline-readmission')).toBeInTheDocument();
 
     useCommandCenterStore.setState({ role: 'executive', serviceLine: null });
     rerender(<CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="just now" />);
