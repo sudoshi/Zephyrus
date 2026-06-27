@@ -44,14 +44,14 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange, onQuickSelect }) 
                     type="date"
                     value={startDate}
                     onChange={(e) => onDateChange('start', e.target.value)}
-                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary"
                 />
                 <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">to</span>
                 <input
                     type="date"
                     value={endDate}
                     onChange={(e) => onDateChange('end', e.target.value)}
-                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary"
                 />
             </div>
 

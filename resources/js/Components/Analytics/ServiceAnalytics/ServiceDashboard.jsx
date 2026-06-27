@@ -107,8 +107,8 @@ const ServiceDashboard = () => {
                     className={`px-3 py-2 text-sm font-medium rounded-md ${
                       quickDateFilter === days
                         ? isDarkMode
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-indigo-100 text-indigo-700'
+                          ? 'bg-healthcare-primary text-white'
+                          : 'bg-healthcare-primary/10 text-healthcare-primary'
                         : isDarkMode
                         ? 'text-healthcare-text-secondary-dark hover:bg-healthcare-surface-dark'
                         : 'text-healthcare-text-secondary hover:bg-healthcare-border'
@@ -156,8 +156,8 @@ const ServiceDashboard = () => {
                 type="button"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white rounded-md ${
                   isDarkMode
-                    ? 'bg-indigo-500 hover:bg-indigo-600'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
+                    ? 'bg-healthcare-primary/100 hover:opacity-90'
+                    : 'bg-healthcare-primary hover:opacity-90'
                 }`}
               >
                 <Icon

@@ -112,7 +112,7 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView, data = mockB
       <div className="mb-4 md:hidden">
         <button
           onClick={toggleFilters}
-          className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-healthcare-primary border border-transparent rounded-md shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
         >
           {filtersVisible ? 'Hide Filters' : 'Show Filters'}
         </button>

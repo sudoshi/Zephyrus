@@ -115,8 +115,8 @@ const ProviderDashboard = () => {
                 type="button"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium text-white rounded-md ${
                   isDarkMode
-                    ? 'bg-indigo-500 hover:bg-indigo-600'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
+                    ? 'bg-healthcare-primary/100 hover:opacity-90'
+                    : 'bg-healthcare-primary hover:opacity-90'
                 }`}
               >
                 <Icon

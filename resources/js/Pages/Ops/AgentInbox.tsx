@@ -25,7 +25,7 @@ function AgentCard({ definition }: { definition: AgentDefinition }) {
           <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{definition.description}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {definition.toolAllowlist.map((tool) => (
-              <span key={tool} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              <span key={tool} className="rounded-md bg-healthcare-background px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-white/5 dark:text-healthcare-text-secondary-dark">
                 {tool}
               </span>
             ))}
@@ -88,7 +88,7 @@ export default function AgentInbox() {
         title="Agent Inbox"
         subtitle="Governed agent roster, run traces with evaluations and safety events, and the approval-gated action queue"
         headerContent={
-          <Link href="/ops/executive-brief" className="inline-flex items-center gap-1.5 rounded-md border border-healthcare-border px-3 py-1.5 text-sm font-semibold text-healthcare-text-secondary hover:bg-slate-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
+          <Link href="/ops/executive-brief" className="inline-flex items-center gap-1.5 rounded-md border border-healthcare-border px-3 py-1.5 text-sm font-semibold text-healthcare-text-secondary hover:bg-healthcare-background dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
             <ClipboardList className="size-4" /> Executive brief
           </Link>
         }

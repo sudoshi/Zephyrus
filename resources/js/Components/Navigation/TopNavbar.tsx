@@ -38,7 +38,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
               dashboardActive ? 'bg-healthcare-hover dark:bg-healthcare-hover-dark' : ''
             }`}
           >
-            <span className="text-lg/[24px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <span className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
           </Link>
