@@ -1,14 +1,16 @@
 import React, { useMemo } from 'react';
-import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utilization';
+import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-data/primetime-utilization';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
 import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 
-const LocationComparisonView = ({ filters }) => {
+const LocationComparisonView = ({ filters, data = defaultPrimetime }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  // Live payload (prop) with the bundled mock as the default fallback.
+  const mockPrimetimeUtilization = data;
   const { isDarkMode } = useDarkMode();
   
   // Get chart theme with proper dark mode setting

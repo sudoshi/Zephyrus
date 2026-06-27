@@ -5,7 +5,7 @@ import { ResponsiveLine } from '@nivo/line';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
-const NonPrimeView = ({ filters }) => {
+const NonPrimeView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
@@ -13,7 +13,7 @@ const NonPrimeView = ({ filters }) => {
   const filteredData = useMemo(() => {
     // In a real application, we would filter the non-prime data based on the selected filters
     // For now, we'll just use the mock data
-    return mockBlockUtilization.nonPrimeData;
+    return data.nonPrimeData;
   }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
 
   // Helper function to format percentages
@@ -31,7 +31,7 @@ const NonPrimeView = ({ filters }) => {
   const getFilteredMetrics = () => {
     // In a real application, we would calculate metrics based on filtered data
     // For now, we'll just use the overall metrics
-    return mockBlockUtilization.overallMetrics;
+    return data.overallMetrics;
   };
   
   const metrics = getFilteredMetrics();
@@ -388,7 +388,7 @@ const NonPrimeView = ({ filters }) => {
                 </tr>
               </thead>
               <tbody className="bg-healthcare-surface dark:bg-healthcare-surface-dark divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                {mockBlockUtilization.serviceNonPrime && Object.entries(mockBlockUtilization.serviceNonPrime).map(([service, data], index) => (
+                {data.serviceNonPrime && Object.entries(data.serviceNonPrime).map(([service, row], index) => (
                   <tr key={index} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                       {service}

@@ -6,7 +6,7 @@ import TurnoverTimesDashboard from '@/Components/Analytics/TurnoverTimes/Turnove
 import TabNavigation from '@/Components/ui/TabNavigation';
 import { motion } from 'framer-motion';
 
-export default function TurnoverTimes({ auth }) {
+export default function TurnoverTimes({ auth, turnoverData = null }) {
   // Get the current URL from Inertia
   const { url } = usePage();
   
@@ -81,7 +81,7 @@ export default function TurnoverTimes({ auth }) {
           onTabChange={handleTabChange}
         />
         
-        <TurnoverTimesDashboard activeView={activeTab} />
+        <TurnoverTimesDashboard activeView={activeTab} data={turnoverData} />
       </motion.div>
     </AnalyticsLayout>
   );
@@ -95,4 +95,5 @@ TurnoverTimes.propTypes = {
       email: PropTypes.string,
     }),
   }),
+  turnoverData: PropTypes.object,
 };

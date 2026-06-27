@@ -5,7 +5,7 @@ import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import ORUtilizationDashboard from '@/Components/Analytics/ORUtilization/ORUtilizationDashboard';
 import TabNavigation from '@/Components/ui/TabNavigation';
 
-export default function ORUtilization({ auth }) {
+export default function ORUtilization({ auth, orUtilizationData = null }) {
   const { url } = usePage();
   const params = new URLSearchParams(window.location.search);
   const viewParam = params.get('view') || 'overview';
@@ -69,7 +69,7 @@ export default function ORUtilization({ auth }) {
         />
 
         {/* Dashboard Component - Pass the activeTab as activeView prop */}
-        <ORUtilizationDashboard activeView={activeTab} />
+        <ORUtilizationDashboard activeView={activeTab} liveData={orUtilizationData} />
       </div>
     </AnalyticsLayout>
   );

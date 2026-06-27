@@ -17,7 +17,7 @@ import NonPrimeView from './Views/NonPrimeView';
 // Import mock data
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 
-const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
+const BlockUtilizationDashboard = ({ activeView: initialActiveView, data = mockBlockUtilization }) => {
   const { url } = usePage();
   
   // Use the provided activeView prop if available, otherwise use the URL parameter
@@ -57,21 +57,21 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
   const getViewComponent = () => {
     switch (activeView) {
       case 'service':
-        return <ServiceView filters={filters} />;
+        return <ServiceView filters={filters} data={data} />;
       case 'trend':
-        return <TrendView filters={filters} />;
+        return <TrendView filters={filters} data={data} />;
       case 'dayOfWeek':
-        return <DayOfWeekView filters={filters} />;
+        return <DayOfWeekView filters={filters} data={data} />;
       case 'location':
-        return <LocationView filters={filters} />;
+        return <LocationView filters={filters} data={data} />;
       case 'block':
-        return <BlockView filters={filters} />;
+        return <BlockView filters={filters} data={data} />;
       case 'details':
-        return <DetailsView filters={filters} />;
+        return <DetailsView filters={filters} data={data} />;
       case 'nonprime':
-        return <NonPrimeView filters={filters} />;
+        return <NonPrimeView filters={filters} data={data} />;
       default:
-        return <ServiceView filters={filters} />;
+        return <ServiceView filters={filters} data={data} />;
     }
   };
 
@@ -82,7 +82,7 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
 
   // Format locations data for HierarchicalFilters
   const formatLocationsData = () => {
-    return Object.keys(mockBlockUtilization.sites).map(site => ({
+    return Object.keys(data.sites).map(site => ({
       id: site,
       name: site,
       hospitalId: site.split(' ')[0] // Extract hospital ID from site name (e.g., 'MARH' from 'MARH OR')
@@ -92,7 +92,7 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView }) => {
   // Format services data for HierarchicalFilters
   const formatServicesData = () => {
     const services = new Set();
-    Object.values(mockBlockUtilization.sites).forEach(site => {
+    Object.values(data.sites).forEach(site => {
       site.services.forEach(service => {
         services.add(service.service_name);
       });

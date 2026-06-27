@@ -5,7 +5,7 @@ import AnalyticsLayout from '../../Layouts/AnalyticsLayout';
 import PrimetimeUtilizationDashboard from '../../Components/Analytics/PrimetimeUtilization/PrimetimeUtilizationDashboard';
 import TabNavigation from '@/Components/ui/TabNavigation';
 
-export default function PrimetimeUtilization({ auth }) {
+export default function PrimetimeUtilization({ auth, primetime }) {
   const { url } = usePage();
   const params = new URLSearchParams(window.location.search);
   const viewParam = params.get('view') || 'overview';
@@ -79,7 +79,7 @@ export default function PrimetimeUtilization({ auth }) {
         />
         
         {/* Dashboard Component */}
-        <PrimetimeUtilizationDashboard activeView={activeTab} />
+        <PrimetimeUtilizationDashboard activeView={activeTab} primetime={primetime} />
       </div>
     </AnalyticsLayout>
   );

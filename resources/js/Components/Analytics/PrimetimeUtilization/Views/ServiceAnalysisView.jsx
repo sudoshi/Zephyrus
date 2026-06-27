@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockPrimetimeUtilization } from '../../../../mock-data/primetime-utilization';
+import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-data/primetime-utilization';
 import Panel from '../../../ui/Panel';
 
-const ServiceAnalysisView = ({ filters }) => {
+const ServiceAnalysisView = ({ filters, data = defaultPrimetime }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
+  // Live payload (prop) with the bundled mock as the default fallback.
+  const mockPrimetimeUtilization = data;
   
   // Format service data for the table
   const serviceData = useMemo(() => {

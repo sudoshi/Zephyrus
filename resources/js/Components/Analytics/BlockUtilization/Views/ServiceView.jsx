@@ -4,13 +4,13 @@ import { ResponsiveBar } from '@nivo/bar';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
-const ServiceView = ({ filters }) => {
+const ServiceView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty } = filters;
   
   // Filter data based on hierarchical filters
   const filteredData = useMemo(() => {
-    let filteredServiceData = [...mockBlockUtilization.serviceData];
+    let filteredServiceData = [...data.serviceData];
     
     // Filter by hospital if selected
     if (selectedHospital) {
@@ -57,7 +57,7 @@ const ServiceView = ({ filters }) => {
   // Get metrics based on filtered data
   const getFilteredMetrics = () => {
     if (filteredData.length === 0) {
-      return mockBlockUtilization.overallMetrics;
+      return data.overallMetrics;
     }
     
     // Calculate average metrics from filtered services

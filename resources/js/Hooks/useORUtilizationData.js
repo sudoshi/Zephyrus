@@ -299,7 +299,7 @@ const hardCodedData = {
  * Extremely simplified hook for OR utilization data
  * Uses hard-coded data with no external dependencies
  */
-export const useORUtilizationData = (filters = {}, autoLoad = true) => {
+export const useORUtilizationData = (filters = {}, autoLoad = true, liveData = null) => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(autoLoad);
   const [error, setError] = useState(null);
@@ -310,8 +310,12 @@ export const useORUtilizationData = (filters = {}, autoLoad = true) => {
     setError(null);
     
     try {
-      // No delay - immediate response
-      const filteredData = applyFilters(hardCodedData, filters);
+      // No delay - immediate response. Prefer live server-computed data when it
+      // carries locations; otherwise fall back to the static hardCodedData mock.
+      const source = liveData && liveData.locations && Object.keys(liveData.locations).length > 0
+        ? liveData
+        : hardCodedData;
+      const filteredData = applyFilters(source, filters);
       setData(filteredData);
     } catch (err) {
       console.error('Error loading OR utilization data:', err);
@@ -322,7 +326,7 @@ export const useORUtilizationData = (filters = {}, autoLoad = true) => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters, liveData]);
   
   // Load data on mount if autoLoad is true
   useEffect(() => {

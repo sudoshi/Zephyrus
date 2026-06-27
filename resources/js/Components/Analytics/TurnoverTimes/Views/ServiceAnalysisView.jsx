@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockTurnoverTimes } from '@/mock-data/turnover-times';
+import { mockTurnoverTimes as mockTurnoverTimesFallback } from '@/mock-data/turnover-times';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 
-const ServiceAnalysisView = ({ filters }) => {
+const ServiceAnalysisView = ({ filters, data = null }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   const [isDarkMode] = useDarkMode();
+  const mockTurnoverTimes = (data && Object.keys(data).length > 0) ? data : mockTurnoverTimesFallback;
   
   // Format service comparison data
   const serviceComparisonData = useMemo(() => {
@@ -282,6 +283,7 @@ const ServiceAnalysisView = ({ filters }) => {
 };
 
 ServiceAnalysisView.propTypes = {
+  data: PropTypes.object,
   filters: PropTypes.shape({
     selectedHospital: PropTypes.string,
     selectedLocation: PropTypes.string,

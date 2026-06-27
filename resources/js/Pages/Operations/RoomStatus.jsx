@@ -8,7 +8,7 @@ import MetricsCard from '@/Components/Common/MetricsCard';
 import RoomStatusCard from '@/Components/RoomStatus/RoomStatusCard';
 import RoomDetailsModal from '@/Components/RoomStatus/RoomDetailsModal';
 
-const RoomStatus = () => {
+const RoomStatus = ({ roomStatus = null }) => {
     const [selectedLocation, setSelectedLocation] = useState('all');
     const [selectedRoom, setSelectedRoom] = useState(null);
 
@@ -45,11 +45,15 @@ const RoomStatus = () => {
         turnoverTime: index % 3 === 1 ? 15 : null
     }));
 
+    // Live data from the controller (seeded prod.* tables); fall back to the
+    // static mock so the board still renders if the prop is absent.
+    const rooms = (roomStatus?.rooms?.length ? roomStatus.rooms : mockRooms);
+
     const stats = {
-        total: mockRooms.length,
-        inUse: mockRooms.filter(r => r.status === 'in_progress').length,
-        available: mockRooms.filter(r => r.status === 'available').length,
-        turnover: mockRooms.filter(r => r.status === 'turnover').length
+        total: rooms.length,
+        inUse: rooms.filter(r => r.status === 'in_progress' || r.status === 'delayed').length,
+        available: rooms.filter(r => r.status === 'available').length,
+        turnover: rooms.filter(r => r.status === 'turnover').length
     };
 
     return (
@@ -126,7 +130,7 @@ const RoomStatus = () => {
                             <div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                                 <h3 className="text-lg font-semibold mb-4">Room Status Board</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {mockRooms.map((room) => (
+                                    {rooms.map((room) => (
                                         <RoomStatusCard
                                             key={room.number}
                                             room={room}

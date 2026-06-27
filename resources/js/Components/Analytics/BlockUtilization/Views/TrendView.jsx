@@ -4,7 +4,7 @@ import { ResponsiveLine } from '@nivo/line';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
-const TrendView = ({ filters }) => {
+const TrendView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
@@ -12,7 +12,7 @@ const TrendView = ({ filters }) => {
   const filteredData = useMemo(() => {
     // In a real application, we would filter the trend data based on the selected filters
     // For now, we'll just use the mock data
-    return mockBlockUtilization.trendData;
+    return data.trendData;
   }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
   
   // Prepare data for the line chart
@@ -44,7 +44,7 @@ const TrendView = ({ filters }) => {
   const getFilteredMetrics = () => {
     // In a real application, we would calculate metrics based on filtered data
     // For now, we'll just use the overall metrics
-    return mockBlockUtilization.overallMetrics;
+    return data.overallMetrics;
   };
   
   const metrics = getFilteredMetrics();
@@ -195,8 +195,8 @@ const TrendView = ({ filters }) => {
         <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4 dark:text-white">Utilization by Location</h2>
           <div className="space-y-4">
-            {Object.keys(mockBlockUtilization.sites).map((siteName, index) => {
-              const site = mockBlockUtilization.sites[siteName];
+            {Object.keys(data.sites).map((siteName, index) => {
+              const site = data.sites[siteName];
               return (
                 <div key={index} className="border-b pb-3 last:border-0">
                   <div className="flex justify-between mb-2">
@@ -223,7 +223,7 @@ const TrendView = ({ filters }) => {
                 {
                   id: 'Non-Prime Time',
                   color: '#8B5CF6',
-                  data: mockBlockUtilization.nonPrimeTimeTrendData
+                  data: data.nonPrimeTimeTrendData
                 }
               ]}
               margin={{ top: 10, right: 30, bottom: 50, left: 60 }}

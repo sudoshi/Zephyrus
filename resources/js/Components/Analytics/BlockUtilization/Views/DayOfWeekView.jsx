@@ -3,7 +3,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { MetricCard, Panel } from '@/Components/ui';
 
-const DayOfWeekView = ({ filters }) => {
+const DayOfWeekView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
@@ -11,7 +11,7 @@ const DayOfWeekView = ({ filters }) => {
   const filteredData = useMemo(() => {
     // In a real application, we would filter the day of week data based on the selected filters
     // For now, we'll just use the mock data
-    return mockBlockUtilization.dayOfWeekData;
+    return data.dayOfWeekData;
   }, [selectedHospital, selectedLocation, selectedSpecialty, dateRange]);
 
   // Helper function to format percentages
@@ -29,7 +29,7 @@ const DayOfWeekView = ({ filters }) => {
   const getFilteredMetrics = () => {
     // In a real application, we would calculate metrics based on filtered data
     // For now, we'll just use the overall metrics
-    return mockBlockUtilization.overallMetrics;
+    return data.overallMetrics;
   };
   
   const metrics = getFilteredMetrics();

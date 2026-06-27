@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { mockRoomRunning } from '@/mock-data/room-running';
+import { mockRoomRunning as defaultRoomRunning } from '@/mock-data/room-running';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import { motion } from 'framer-motion';
 import ErrorBoundary from '@/Components/ErrorBoundary';
@@ -16,7 +16,11 @@ import ServiceAnalysisView from './Views/ServiceAnalysisView';
  * Room Running Dashboard Component
  * Displays comprehensive room running metrics and visualizations
  */
-const RoomRunningDashboard = ({ activeView = 'overview' }) => {
+const RoomRunningDashboard = ({ activeView = 'overview', roomRunning = defaultRoomRunning }) => {
+  // Live payload from the controller (Analytics/RoomRunningService); falls back
+  // to the static mock when the prop is absent so existing usage keeps working.
+  const mockRoomRunning = roomRunning;
+
   // State for filters
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -66,17 +70,17 @@ const RoomRunningDashboard = ({ activeView = 'overview' }) => {
   const renderView = () => {
     switch (activeView) {
       case 'overview':
-        return <OverviewView filters={filters} />;
+        return <OverviewView filters={filters} data={mockRoomRunning} />;
       case 'hourly':
-        return <HourlyAnalysisView filters={filters} />;
+        return <HourlyAnalysisView filters={filters} data={mockRoomRunning} />;
       case 'trends':
-        return <TrendsView filters={filters} />;
+        return <TrendsView filters={filters} data={mockRoomRunning} />;
       case 'location':
-        return <LocationComparisonView filters={filters} />;
+        return <LocationComparisonView filters={filters} data={mockRoomRunning} />;
       case 'service':
-        return <ServiceAnalysisView filters={filters} />;
+        return <ServiceAnalysisView filters={filters} data={mockRoomRunning} />;
       default:
-        return <OverviewView filters={filters} />;
+        return <OverviewView filters={filters} data={mockRoomRunning} />;
     }
   };
 

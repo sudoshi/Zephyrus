@@ -12,7 +12,10 @@ import LocationComparisonView from './Views/LocationComparisonView';
 import ProviderAnalysisView from './Views/ProviderAnalysisView';
 import ServiceAnalysisView from './Views/ServiceAnalysisView';
 
-const PrimetimeUtilizationDashboard = ({ activeView = 'overview' }) => {
+const PrimetimeUtilizationDashboard = ({ activeView = 'overview', primetime }) => {
+  // Live payload from the controller (App\Services\Analytics\PrimetimeUtilizationService);
+  // falls back to the bundled mock when the prop is absent (e.g. storybook / empty DB).
+  const data = primetime || mockPrimetimeUtilization;
   // State for filters
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -31,7 +34,7 @@ const PrimetimeUtilizationDashboard = ({ activeView = 'overview' }) => {
 
   // Get available hospitals, locations, and specialties from mock data
   const hospitals = ['MARH', 'MASH', 'MACH'];
-  const locations = Object.keys(mockPrimetimeUtilization.sites || {});
+  const locations = Object.keys(data.sites || {});
   const specialties = ['Orthopedics', 'General Surgery', 'Cardiology', 'Neurosurgery', 'Urology'];
 
   // Animation variants for view transitions
@@ -44,19 +47,19 @@ const PrimetimeUtilizationDashboard = ({ activeView = 'overview' }) => {
   const renderView = () => {
     switch (activeView) {
       case 'overview':
-        return <OverviewView filters={filters} />;
+        return <OverviewView filters={filters} data={data} />;
       case 'trends':
-        return <TrendsView filters={filters} />;
+        return <TrendsView filters={filters} data={data} />;
       case 'dayOfWeek':
-        return <DayOfWeekView filters={filters} />;
+        return <DayOfWeekView filters={filters} data={data} />;
       case 'location':
-        return <LocationComparisonView filters={filters} />;
+        return <LocationComparisonView filters={filters} data={data} />;
       case 'provider':
-        return <ProviderAnalysisView filters={filters} />;
+        return <ProviderAnalysisView filters={filters} data={data} />;
       case 'service':
-        return <ServiceAnalysisView filters={filters} />;
+        return <ServiceAnalysisView filters={filters} data={data} />;
       default:
-        return <OverviewView filters={filters} />;
+        return <OverviewView filters={filters} data={data} />;
     }
   };
 

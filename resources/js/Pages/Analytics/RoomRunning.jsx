@@ -5,7 +5,7 @@ import RoomRunningDashboard from '@/Components/Analytics/RoomRunning/RoomRunning
 import TabNavigation from '@/Components/ui/TabNavigation';
 import { motion } from 'framer-motion';
 
-export default function RoomRunning({ auth }) {
+export default function RoomRunning({ auth, roomRunning }) {
   // Get the current URL from Inertia
   const { url } = usePage();
   
@@ -78,7 +78,7 @@ export default function RoomRunning({ auth }) {
         />
         
         {/* Dashboard */}
-        <RoomRunningDashboard activeView={activeView} />
+        <RoomRunningDashboard activeView={activeView} roomRunning={roomRunning} />
       </motion.div>
     </AnalyticsLayout>
   );

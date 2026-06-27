@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\Operations;
 
-use App\Data\CaseManagementMockData;
 use App\Http\Controllers\Controller;
+use App\Services\Operations\CaseManagementService;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 class CaseManagementController extends Controller
 {
-    public function index()
+    public function index(CaseManagementService $caseManagement)
     {
-        $mockData = CaseManagementMockData::getData();
+        $data = $caseManagement->getData();
 
         return Inertia::render('Operations/CaseManagement', [
-            'procedures' => new Collection($mockData['mockProcedures']),
-            'specialties' => $mockData['specialties'],
-            'locations' => $mockData['locations'],
-            'stats' => $mockData['stats'],
+            'procedures' => new Collection($data['mockProcedures']),
+            'specialties' => $data['specialties'],
+            'locations' => $data['locations'],
+            'stats' => $data['stats'],
         ]);
     }
 }

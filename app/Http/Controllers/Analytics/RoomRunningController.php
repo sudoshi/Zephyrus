@@ -9,6 +9,8 @@ class RoomRunningController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Analytics/RoomRunning');
+        return Inertia::render('Analytics/RoomRunning', [
+            'roomRunning' => (new \App\Services\Analytics\RoomRunningService)->build(),
+        ]);
     }
 }

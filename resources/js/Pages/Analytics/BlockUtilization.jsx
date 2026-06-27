@@ -4,7 +4,7 @@ import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import BlockUtilizationDashboard from '@/Components/Analytics/BlockUtilization/BlockUtilizationDashboard';
 import TabNavigation from '@/Components/ui/TabNavigation';
 
-export default function BlockUtilization({ auth }) {
+export default function BlockUtilization({ auth, blockUtilization }) {
   const { url } = usePage();
   const params = new URLSearchParams(window.location.search);
   const viewParam = params.get('view') || 'service';
@@ -84,7 +84,7 @@ export default function BlockUtilization({ auth }) {
         />
 
         {/* Dashboard Component */}
-        <BlockUtilizationDashboard activeView={activeTab} />
+        <BlockUtilizationDashboard activeView={activeTab} data={blockUtilization} />
       </div>
     </AnalyticsLayout>
   );

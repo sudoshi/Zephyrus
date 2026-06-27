@@ -3,7 +3,7 @@ import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { Icon } from '@iconify/react';
 import Panel from '@/Components/ui/Panel';
 
-const DetailsView = ({ filters }) => {
+const DetailsView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
@@ -12,7 +12,7 @@ const DetailsView = ({ filters }) => {
   
   // Filter data based on hierarchical filters
   const filteredData = useMemo(() => {
-    let filteredBlockData = [...mockBlockUtilization.blockData];
+    let filteredBlockData = [...data.blockData];
     
     // Filter by hospital if selected
     if (selectedHospital) {

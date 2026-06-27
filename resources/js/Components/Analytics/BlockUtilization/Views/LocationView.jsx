@@ -3,13 +3,13 @@ import { ResponsiveBar } from '@nivo/bar';
 import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { MetricCard, Panel } from '@/Components/ui';
 
-const LocationView = ({ filters }) => {
+const LocationView = ({ filters, data = mockBlockUtilization }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   
   // Filter data based on hierarchical filters
   const filteredData = useMemo(() => {
-    let filteredLocationData = [...mockBlockUtilization.locationData];
+    let filteredLocationData = [...data.locationData];
     
     // Filter by hospital if selected
     if (selectedHospital) {

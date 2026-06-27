@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { mockTurnoverTimes } from '@/mock-data/turnover-times';
+import { mockTurnoverTimes as mockTurnoverTimesFallback } from '@/mock-data/turnover-times';
 // NOTE: Explicit .js extension is required here for CI/CD build compatibility
 // This is an exception to our standard import pattern (no extensions)
 import { useAnalyticsData } from '@/Hooks/useAnalyticsData.js';
@@ -13,7 +13,10 @@ import ServiceAnalysisView from './Views/ServiceAnalysisView';
 import { AnimatePresence, motion } from 'framer-motion';
 import ErrorBoundary from '@/Components/ErrorBoundary';
 
-export default function TurnoverTimesDashboard({ activeView = 'overview' }) {
+export default function TurnoverTimesDashboard({ activeView = 'overview', data = null }) {
+  // Live data from the controller (Inertia prop); fall back to the bundled mock
+  // when absent (empty DB / standalone render) so the surface always renders.
+  const mockTurnoverTimes = (data && Object.keys(data).length > 0) ? data : mockTurnoverTimesFallback;
   // State for filters
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -57,7 +60,7 @@ export default function TurnoverTimesDashboard({ activeView = 'overview' }) {
     };
   };
 
-  const { data, isLoading, error } = useAnalyticsData(fetchTurnoverData, [
+  const { isLoading, error } = useAnalyticsData(fetchTurnoverData, [
     filters.selectedHospital,
     filters.selectedLocation,
     filters.selectedSpecialty,
@@ -96,11 +99,11 @@ export default function TurnoverTimesDashboard({ activeView = 'overview' }) {
           variants={variants}
           transition={{ duration: 0.3 }}
         >
-          {activeView === 'overview' && <OverviewView filters={filters} />}
-          {activeView === 'hourly' && <HourlyAnalysisView filters={filters} />}
-          {activeView === 'trends' && <TrendsView filters={filters} />}
-          {activeView === 'location' && <LocationComparisonView filters={filters} />}
-          {activeView === 'service' && <ServiceAnalysisView filters={filters} />}
+          {activeView === 'overview' && <OverviewView filters={filters} data={mockTurnoverTimes} />}
+          {activeView === 'hourly' && <HourlyAnalysisView filters={filters} data={mockTurnoverTimes} />}
+          {activeView === 'trends' && <TrendsView filters={filters} data={mockTurnoverTimes} />}
+          {activeView === 'location' && <LocationComparisonView filters={filters} data={mockTurnoverTimes} />}
+          {activeView === 'service' && <ServiceAnalysisView filters={filters} data={mockTurnoverTimes} />}
         </motion.div>
       </AnimatePresence>
     );
@@ -132,5 +135,6 @@ export default function TurnoverTimesDashboard({ activeView = 'overview' }) {
 }
 
 TurnoverTimesDashboard.propTypes = {
-  activeView: PropTypes.oneOf(['overview', 'hourly', 'trends', 'location', 'service']).isRequired
+  activeView: PropTypes.oneOf(['overview', 'hourly', 'trends', 'location', 'service']).isRequired,
+  data: PropTypes.object
 };

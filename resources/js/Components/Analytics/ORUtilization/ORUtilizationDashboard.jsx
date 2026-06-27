@@ -18,7 +18,7 @@ import OpportunityAnalysisView from './Views/OpportunityAnalysisView';
  * OR Utilization Dashboard Component
  * Displays comprehensive OR utilization metrics and visualizations
  */
-const ORUtilizationDashboard = ({ activeView: initialActiveView }) => {
+const ORUtilizationDashboard = ({ activeView: initialActiveView, liveData = null }) => {
   // Get analytics context
   const { selectedLocation, dateRange } = useAnalytics();
   
@@ -63,7 +63,7 @@ const ORUtilizationDashboard = ({ activeView: initialActiveView }) => {
     refresh,
     derivedMetrics,
     hasData
-  } = useORUtilizationData(filters);
+  } = useORUtilizationData(filters, true, liveData);
   
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
