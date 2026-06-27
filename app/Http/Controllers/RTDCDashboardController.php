@@ -61,14 +61,6 @@ class RTDCDashboardController extends Controller
     }
 
     /**
-     * Display the discharge prediction page.
-     */
-    public function dischargePrediction(): InertiaResponse
-    {
-        return Inertia::render('RTDC/DischargePrediction');
-    }
-
-    /**
      * Display the global huddle page.
      */
     public function globalHuddle(): InertiaResponse
@@ -152,14 +144,6 @@ class RTDCDashboardController extends Controller
     public function resourcePlanning(): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/ResourcePlanning');
-    }
-
-    /**
-     * Display the discharge predictions page.
-     */
-    public function dischargePredictions(): InertiaResponse
-    {
-        return Inertia::render('RTDC/Predictions/DischargePredictions');
     }
 
     /**
