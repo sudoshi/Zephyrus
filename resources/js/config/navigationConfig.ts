@@ -104,6 +104,7 @@ export const NAVIGATION: readonly NavDomain[] = [
           { label: 'Demand', href: '/rtdc/predictions/demand', icon: PieChart },
           { label: 'Resources', href: '/rtdc/predictions/resources', icon: Boxes },
           { label: 'Discharge', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
+          { label: 'Risk Assessment', href: '/rtdc/predictions/risk', icon: AlertCircle },
         ],
       },
     ],

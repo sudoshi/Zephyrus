@@ -109,58 +109,58 @@ class RTDCDashboardController extends Controller
     }
 
     /**
-     * Display the utilization page.
+     * Display the utilization page (live, computed from prod.*).
      */
-    public function utilization(): InertiaResponse
+    public function utilization(\App\Services\Rtdc\UtilizationAnalyticsService $utilization): InertiaResponse
     {
-        return Inertia::render('RTDC/Analytics/Utilization');
+        return Inertia::render('RTDC/Analytics/Utilization', $utilization->build());
     }
 
     /**
-     * Display the performance metrics page.
+     * Display the performance metrics page (live, computed from prod.*).
      */
-    public function performance(): InertiaResponse
+    public function performance(\App\Services\Rtdc\PerformanceAnalyticsService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/Analytics/Performance');
+        return Inertia::render('RTDC/Analytics/Performance', $service->build());
     }
 
     /**
-     * Display the resources analytics page.
+     * Display the resources analytics page (live, computed from prod.*).
      */
-    public function resources(): InertiaResponse
+    public function resources(\App\Services\Rtdc\ResourceAnalyticsService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/Analytics/Resources');
+        return Inertia::render('RTDC/Analytics/Resources', $service->build());
     }
 
     /**
-     * Display the trends page.
+     * Display the trends page (live, computed from prod.*).
      */
-    public function trends(): InertiaResponse
+    public function trends(\App\Services\Rtdc\TrendsAnalyticsService $trends): InertiaResponse
     {
-        return Inertia::render('RTDC/Analytics/Trends');
+        return Inertia::render('RTDC/Analytics/Trends', $trends->build());
     }
 
     /**
-     * Display the demand forecast page.
+     * Display the demand forecast page (live, computed from prod.*).
      */
-    public function demandForecast(): InertiaResponse
+    public function demandForecast(\App\Services\Rtdc\DemandForecastService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/Predictions/DemandForecast');
+        return Inertia::render('RTDC/Predictions/DemandForecast', $service->build());
     }
 
     /**
-     * Display the resource planning page.
+     * Display the resource planning page (live, computed from prod.*).
      */
-    public function resourcePlanning(): InertiaResponse
+    public function resourcePlanning(\App\Services\Rtdc\ResourcePlanningAnalyticsService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/Predictions/ResourcePlanning');
+        return Inertia::render('RTDC/Predictions/ResourcePlanning', $service->build());
     }
 
     /**
-     * Display the risk assessment page.
+     * Display the risk assessment page (live, computed from prod.*).
      */
-    public function riskAssessment(): InertiaResponse
+    public function riskAssessment(\App\Services\Rtdc\RiskAssessmentService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/Predictions/RiskAssessment');
+        return Inertia::render('RTDC/Predictions/RiskAssessment', $service->build());
     }
 }
