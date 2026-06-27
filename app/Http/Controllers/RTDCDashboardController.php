@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\RTDCService;
+use App\Services\RtdcService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -10,7 +10,7 @@ use Inertia\Response as InertiaResponse;
 class RTDCDashboardController extends Controller
 {
     public function __construct(
-        private readonly RTDCService $rtdcService,
+        private readonly RtdcService $rtdcService,
     ) {}
 
     /**
