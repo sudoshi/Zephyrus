@@ -5,6 +5,7 @@ import { useTransportOverview } from '@/features/transport/hooks';
 export default function Analytics() {
   const { data } = useTransportOverview();
   const byType = data?.by_type ?? {};
+  const measures = data?.measures ?? [];
 
   return (
     <TransportLayout
@@ -45,21 +46,28 @@ export default function Analytics() {
         </div>
       </section>
 
-      <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Planned Measures</h2>
+      <section className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+        <h2 className="text-lg/[22px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Operational Measures</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {[
-            'Request-to-assign minutes',
-            'Dispatch-to-pickup minutes',
-            'Pickup-to-destination minutes',
-            'Patient-not-ready delay rate',
-            'Avoidable bed-hours attributed to transport',
-            'Vendor acceptance and cancellation rate',
-          ].map((measure) => (
-            <div key={measure} className="rounded-md border border-healthcare-border p-3 text-sm/[18px] dark:border-healthcare-border-dark">
-              {measure}
+          {measures.map((measure) => (
+            <div key={measure.key} className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+              <div className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{measure.label}</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-2xl/[28px] font-semibold tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                  {measure.value === null ? '—' : measure.value}
+                </span>
+                {measure.value !== null && (
+                  <span className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{measure.unit}</span>
+                )}
+              </div>
+              <div className="mt-1 text-xs/[16px] tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{measure.caption}</div>
             </div>
           ))}
+          {measures.length === 0 && (
+            <p className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark md:col-span-2 xl:col-span-3">
+              No measures yet. They populate from the transport request and lifecycle event tables.
+            </p>
+          )}
         </div>
       </section>
     </TransportLayout>

@@ -7,10 +7,12 @@ import {
   AlertTriangle, Activity
 } from 'lucide-react';
 
-const Bottlenecks = () => {
-  // Mock data for bottlenecks analysis
-  // Bottleneck data from the last 24 hours
-  const bottleneckData = [
+const Bottlenecks = ({ bottlenecks = null }) => {
+  // Fallback mock data — used only when the server prop is absent/empty so the
+  // page never renders blank. Real data flows in via the `bottlenecks` prop
+  // (DashboardService::getBottleneckStats), computed from live operational
+  // signals (long-LOS vs GMLOS, blocked beds, at-risk transports, OR turnover).
+  const MOCK_BOTTLENECK_DATA = [
     {
       rank: 1,
       type: 'Discharge Documentation Delays',
@@ -73,8 +75,8 @@ const Bottlenecks = () => {
     }
   ];
 
-  // Resource utilization data
-  const resourceData = [
+  // Resource utilization data (fallback mock — see note above)
+  const MOCK_RESOURCE_DATA = [
     {
       resource: 'EVS (Bed Turnover)',
       peakTime: '10 AM – 2 PM',
@@ -156,6 +158,13 @@ const Bottlenecks = () => {
       ]
     }
   ];
+
+  // Prefer server-computed data (from real operational signals); fall back to
+  // the mock only when the prop is absent or empty so the page never renders blank.
+  const bottleneckData =
+    bottlenecks?.bottleneckData?.length ? bottlenecks.bottleneckData : MOCK_BOTTLENECK_DATA;
+  const resourceData =
+    bottlenecks?.resourceData?.length ? bottlenecks.resourceData : MOCK_RESOURCE_DATA;
 
   // Calculate stats from bottleneck data
   const totalPatients = bottleneckData.reduce((sum, item) => sum + item.patientsAffected, 0);

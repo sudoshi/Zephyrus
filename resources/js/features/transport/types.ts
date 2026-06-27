@@ -69,6 +69,15 @@ export interface TransportOverview {
   queue: TransportRequest[];
   vendor_options: TransportOption[];
   resource_options: TransportOption[];
+  measures: TransportMeasure[];
+}
+
+export interface TransportMeasure {
+  key: string;
+  label: string;
+  value: number | null;
+  unit: string;
+  caption: string;
 }
 
 export interface TransportOption {

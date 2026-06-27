@@ -91,6 +91,13 @@ const overviewSchema = z.object({
   queue: z.array(requestSchema),
   vendor_options: z.array(optionSchema),
   resource_options: z.array(optionSchema),
+  measures: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    value: z.number().nullable(),
+    unit: z.string(),
+    caption: z.string(),
+  })),
 });
 
 const enterpriseConnectorSummarySchema = z.object({

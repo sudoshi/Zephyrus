@@ -11,6 +11,8 @@ export default function Edit({ auth, user }) {
         username: user.username || '',
         password: '',
         password_confirmation: '',
+        role: user.role || 'user',
+        is_active: user.is_active ?? true,
     });
 
     const submit = (e) => {
@@ -113,6 +115,38 @@ export default function Edit({ auth, user }) {
                                         className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark focus:border-healthcare-info dark:focus:border-healthcare-info-dark focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark transition-colors duration-300"
                                     />
                                     <InputError message={errors.password_confirmation} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="role" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        Role
+                                    </label>
+                                    <select
+                                        id="role"
+                                        value={data.role}
+                                        onChange={(e) => setData('role', e.target.value)}
+                                        className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark focus:border-healthcare-info dark:focus:border-healthcare-info-dark focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark transition-colors duration-300"
+                                    >
+                                        <option value="user">User</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="superuser">Superuser</option>
+                                    </select>
+                                    <InputError message={errors.role} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <label className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.is_active}
+                                            onChange={(e) => setData('is_active', e.target.checked)}
+                                            className="rounded border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-info focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark transition-colors duration-300"
+                                        />
+                                        <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                            Active account
+                                        </span>
+                                    </label>
+                                    <InputError message={errors.is_active} className="mt-2" />
                                 </div>
 
                                 <div className="flex items-center justify-end">

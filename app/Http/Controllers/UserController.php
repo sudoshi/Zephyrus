@@ -15,7 +15,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'username', 'created_at')
+        $users = User::select('id', 'name', 'email', 'username', 'role', 'is_active', 'created_at')
             ->orderBy('name')
             ->get();
 
@@ -37,18 +37,22 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:prod.users',
             'username' => 'required|string|max:255|unique:prod.users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'required|string|in:user,admin,superuser',
+            'is_active' => 'boolean',
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'username' => $validated['username'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'is_active' => $request->boolean('is_active'),
         ]);
 
         return redirect()->route('users.index')
@@ -61,7 +65,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         return Inertia::render('Admin/Users/Edit', [
-            'user' => $user,
+            'user' => $user->only(['id', 'name', 'email', 'username', 'role', 'is_active']),
         ]);
     }
 
@@ -74,6 +78,8 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:prod.users,email,'.$user->id,
             'username' => 'required|string|max:255|unique:prod.users,username,'.$user->id,
+            'role' => 'required|string|in:user,admin,superuser',
+            'is_active' => 'boolean',
         ];
 
         // Only validate password if it's provided
@@ -88,6 +94,8 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'username' => $request->username,
+            'role' => $request->role,
+            'is_active' => $request->boolean('is_active'),
         ];
 
         // Only update password if it's provided

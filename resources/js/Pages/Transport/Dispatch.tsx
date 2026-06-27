@@ -6,6 +6,7 @@ export default function Dispatch() {
       title="Dispatch Workbench"
       subtitle="Assign teams and vendors, dispatch movement, and update transport execution state"
       current="/transport/dispatch"
+      mode="dispatch"
     />
   );
 }

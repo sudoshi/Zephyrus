@@ -79,7 +79,154 @@ class TransportOperationsService
                 ->all(),
             'vendor_options' => $this->vendorOptions(),
             'resource_options' => $this->resourceOptions(),
+            'measures' => $this->measures(),
         ];
+    }
+
+    /**
+     * Operational throughput + delay measures computed from the transport_events
+     * lifecycle, pivoted per transport_request_id. Deterministic and safe on
+     * empty tables (every aggregate guards against division by zero / nulls).
+     *
+     * @return list<array{key: string, label: string, value: float|int|null, unit: string, caption: string}>
+     */
+    public function measures(): array
+    {
+        $events = TransportEvent::query()
+            ->whereIn('transport_request_id', TransportRequest::query()
+                ->where('is_deleted', false)
+                ->select('transport_request_id'))
+            ->orderBy('occurred_at')
+            ->get(['transport_request_id', 'event_type', 'payload', 'occurred_at']);
+
+        $byRequest = $events->groupBy('transport_request_id');
+
+        $requestToAssign = [];
+        $dispatchToPickup = [];
+        $pickupToDestination = [];
+        $completedCount = 0;
+        $completedWithNotReady = 0;
+        $avoidableDelayMinutes = 0.0;
+
+        foreach ($byRequest as $requestEvents) {
+            $requestedAt = $this->firstOccurrence($requestEvents, 'transport.requested');
+            $assignedAt = $this->firstOccurrence($requestEvents, 'transport.assigned');
+            $enRouteAt = $this->firstOccurrence($requestEvents, 'transport.en_route');
+            $arrivedAt = $this->firstOccurrence($requestEvents, 'transport.arrived');
+            $completedAt = $this->firstOccurrence($requestEvents, 'transport.completed');
+            $notReady = $requestEvents->where('event_type', 'transport.not_ready');
+
+            if ($requestedAt !== null && $assignedAt !== null && $assignedAt->gte($requestedAt)) {
+                $requestToAssign[] = $requestedAt->diffInMinutes($assignedAt);
+            }
+            if ($enRouteAt !== null && $arrivedAt !== null && $arrivedAt->gte($enRouteAt)) {
+                $dispatchToPickup[] = $enRouteAt->diffInMinutes($arrivedAt);
+            }
+            if ($arrivedAt !== null && $completedAt !== null && $completedAt->gte($arrivedAt)) {
+                $pickupToDestination[] = $arrivedAt->diffInMinutes($completedAt);
+            }
+
+            if ($completedAt !== null) {
+                $completedCount++;
+                if ($notReady->isNotEmpty()) {
+                    $completedWithNotReady++;
+                }
+            }
+
+            foreach ($notReady as $event) {
+                $avoidableDelayMinutes += (float) (($event->payload['not_ready_delay_min'] ?? 0));
+            }
+        }
+
+        $nonDeleted = TransportRequest::query()->where('is_deleted', false)->get(['assigned_team', 'status']);
+        $totalRequests = $nonDeleted->count();
+        $vendorAssigned = $nonDeleted->filter(fn (TransportRequest $request) => $this->isVendorTeam($request->assigned_team))->count();
+        $canceled = $nonDeleted->where('status', 'canceled')->count();
+        $vendorShare = $totalRequests > 0 ? round(($vendorAssigned / $totalRequests) * 100, 1) : null;
+        $cancellationRate = $totalRequests > 0 ? round(($canceled / $totalRequests) * 100, 1) : null;
+        $notReadyRate = $completedCount > 0 ? round(($completedWithNotReady / $completedCount) * 100, 1) : null;
+
+        return [
+            [
+                'key' => 'request_to_assign_min',
+                'label' => 'Request-to-assign minutes',
+                'value' => $this->avgMinutes($requestToAssign),
+                'unit' => 'min',
+                'caption' => count($requestToAssign).' assigned',
+            ],
+            [
+                'key' => 'dispatch_to_pickup_min',
+                'label' => 'Dispatch-to-pickup minutes',
+                'value' => $this->avgMinutes($dispatchToPickup),
+                'unit' => 'min',
+                'caption' => count($dispatchToPickup).' en route',
+            ],
+            [
+                'key' => 'pickup_to_destination_min',
+                'label' => 'Pickup-to-destination minutes',
+                'value' => $this->avgMinutes($pickupToDestination),
+                'unit' => 'min',
+                'caption' => count($pickupToDestination).' delivered',
+            ],
+            [
+                'key' => 'patient_not_ready_rate',
+                'label' => 'Patient-not-ready delay rate',
+                'value' => $notReadyRate,
+                'unit' => '%',
+                'caption' => $completedWithNotReady.' of '.$completedCount.' completed',
+            ],
+            [
+                'key' => 'avoidable_bed_hours',
+                'label' => 'Avoidable bed-hours attributed to transport',
+                'value' => round($avoidableDelayMinutes / 60, 1),
+                'unit' => 'hrs',
+                'caption' => round($avoidableDelayMinutes).' delay min',
+            ],
+            [
+                'key' => 'vendor_acceptance_cancellation',
+                'label' => 'Vendor acceptance and cancellation rate',
+                'value' => $vendorShare,
+                'unit' => '% vendor',
+                'caption' => ($cancellationRate ?? 0).'% canceled ('.$canceled.' of '.$totalRequests.')',
+            ],
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, TransportEvent>  $events
+     */
+    private function firstOccurrence($events, string $eventType): ?Carbon
+    {
+        return $events->firstWhere('event_type', $eventType)?->occurred_at;
+    }
+
+    /**
+     * @param  list<int|float>  $values
+     */
+    private function avgMinutes(array $values): ?float
+    {
+        if ($values === []) {
+            return null;
+        }
+
+        return round(array_sum($values) / count($values), 1);
+    }
+
+    private function isVendorTeam(?string $team): bool
+    {
+        if ($team === null || $team === '') {
+            return false;
+        }
+
+        $needle = strtolower($team);
+
+        foreach (['partner', 'transport', 'vendor', 'ambulance', 'ems', 'rideshare', 'uber', 'lyft'] as $token) {
+            if (str_contains($needle, $token)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function create(array $data, ?int $actorUserId): TransportRequest

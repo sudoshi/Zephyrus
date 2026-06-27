@@ -242,112 +242,83 @@ const ChatMessage = ({ message, isUser }) => {
   );
 };
 
-// Helper function to get a random process type
-const getRandomProcessType = () => {
-  const types = Object.keys(PROCESS_TYPES);
-  return types[Math.floor(Math.random() * types.length)];
-};
-
-// Helper function to get a random status
-const getRandomStatus = () => {
-  // Ensure we get a more balanced distribution of statuses
-  const randomNum = Math.random();
-  if (randomNum < 0.4) {
-    return 'New';
-  } else if (randomNum < 0.7) {
-    return 'In-Progress';
-  } else {
-    return 'Completed';
+// Deterministic helpers — no Math.random, so the same prop always renders the
+// same items across mounts. A stable string hash drives every "spread" choice.
+const stableHash = (str) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
   }
+  return Math.abs(h);
 };
 
-// Generate mock items for demonstration
-const generateMockItems = (count) => {
-  const items = [];
-  for (let i = 0; i < count; i++) {
-    const type = getRandomProcessType();
-    const processTypeObj = PROCESS_TYPES[type];
-    const exampleIndex = Math.floor(Math.random() * processTypeObj.examples.length);
-    
-    // Generate 2-4 related objects for OCEL representation
-    const relatedObjectCount = Math.floor(Math.random() * 3) + 2;
-    const relatedObjects = [];
-    const usedTypes = new Set();
-    
-    for (let j = 0; j < relatedObjectCount; j++) {
-      let objectType;
-      do {
-        objectType = OBJECT_TYPES[Math.floor(Math.random() * OBJECT_TYPES.length)];
-      } while (usedTypes.has(objectType));
-      
-      usedTypes.add(objectType);
-      relatedObjects.push({
-        type: objectType,
-        id: `${objectType.toLowerCase()}_${Math.floor(Math.random() * 1000) + 1}`
-      });
-    }
-    
-    // Generate realistic healthcare process data
-    const location = HOSPITAL_LOCATIONS[Math.floor(Math.random() * HOSPITAL_LOCATIONS.length)];
-    const patientCount = Math.floor(Math.random() * 50) + 10;
-    const timeImpact = Math.floor(Math.random() * 120) + 15;
-    let details = '';
-    
-    switch (type) {
-      case 'Reported Barriers':
-        details = `Impact on ${patientCount} patients per day with average delay of ${timeImpact} minutes. Staff reported ${Math.floor(Math.random() * 5) + 1} critical incidents related to this barrier in the past week.`;
-        break;
-      case 'Admission Process':
-        details = `Average admission processing time: ${timeImpact} minutes. Affects ${patientCount} patients per day. ${Math.floor(Math.random() * 30) + 10}% of admissions experience delays over standard processing time.`;
-        break;
-      case 'Discharge Process':
-        details = `Average time from discharge order to patient exit: ${timeImpact} minutes. ${Math.floor(Math.random() * 20) + 5}% of discharges delayed past noon, impacting ${patientCount} patients weekly.`;
-        break;
-      case 'Perioperative Process':
-        details = `OR utilization affected by ${timeImpact}-minute average delays. Impacts ${patientCount} surgical cases weekly. Case cancellation rate: ${Math.floor(Math.random() * 5) + 1}%.`;
-        break;
-      case 'Patient Flow':
-        details = `Bottleneck causing ${timeImpact}-minute average delays in patient movement. Affects ${patientCount} patients daily across ${Math.floor(Math.random() * 3) + 2} departments.`;
-        break;
-      case 'Medication Process':
-        details = `Medication process delays averaging ${timeImpact} minutes from order to administration. Affects ${patientCount} medication administrations daily. Error rate: ${(Math.random() * 2).toFixed(1)}%.`;
-        break;
-      default:
-        details = `Impact on ${patientCount} patients per day with average delay of ${timeImpact} minutes`;
-    }
-    
-    // Create OCEL-inspired process item
-    items.push({
-      id: i,
-      title: processTypeObj.examples[exampleIndex],
-      type: type,
-      location: location,
-      date: new Date(2025, 1, Math.floor(Math.random() * 28) + 1).toISOString(),
-      status: getRandomStatus(),
-      details: details,
-      score: Math.random() * 10,
-      relatedObjects: relatedObjects,
-      // Add OCEL-specific data
-      ocelData: {
-        eventCount: Math.floor(Math.random() * 1000) + 100,
-        objectInteractions: Math.floor(Math.random() * 50) + 10,
-        averagePathLength: (Math.random() * 5 + 2).toFixed(1) + " hours",
-        commonPathways: [
-          `${location} ED → Radiology → ${location} ED → Admission`,
-          `${location} ED → Admission → Ward`,
-          `${location} ED → Discharge`
-        ].slice(0, Math.floor(Math.random() * 2) + 2),
-        bottleneckActivities: [
-          'Documentation',
-          'Waiting for Resources',
-          'Handoff Communication',
-          'Order Processing',
-          'Test Results'
-        ].slice(0, Math.floor(Math.random() * 3) + 1)
-      }
+// Map a root-cause row's free-text type onto one of the canonical PROCESS_TYPES
+// keys so ProcessItem can resolve its color/label safely.
+const mapToProcessType = (rawType) => {
+  const t = (rawType || '').toLowerCase();
+  if (t.includes('discharge') || t.includes('documentation')) return 'Discharge Process';
+  if (t.includes('or ') || t.includes('pacu') || t.includes('perioperative') || t.includes('surg')) return 'Perioperative Process';
+  if (t.includes('admission') || t.includes('ed to') || t.includes('inpatient')) return 'Admission Process';
+  if (t.includes('medication') || t.includes('pharmacy')) return 'Medication Process';
+  if (t.includes('barrier')) return 'Reported Barriers';
+  return 'Patient Flow';
+};
+
+// Deterministically assign a workflow status from a seed so the New/In-Progress/
+// Completed columns are stable across mounts.
+const stableStatus = (seed) => STATUS_CATEGORIES[stableHash(`status:${seed}`) % STATUS_CATEGORIES.length];
+
+// Deterministically map the server-provided `rootCauses` array onto the OCEL
+// process-item shape the page renders. Every field is derived from the row
+// itself (rank, type, causes, metrics) via a stable hash — no Math.random — so
+// the New/In-Progress/Completed columns and OCEL insights are identical on every
+// mount. Safe on an empty array (returns []).
+const rootCausesToItems = (rootCauses) => {
+  return (rootCauses || []).map((rc, i) => {
+    const seed = `${rc.rank ?? i}:${rc.type ?? ''}`;
+    const hash = stableHash(seed);
+    const type = mapToProcessType(rc.type);
+    const causes = Array.isArray(rc.causes) ? rc.causes : [];
+    const metrics = Array.isArray(rc.metrics) ? rc.metrics : [];
+
+    // 3 stable related objects drawn from OBJECT_TYPES, offset by the seed hash.
+    const relatedObjects = [0, 1, 2].map((j) => {
+      const objectType = OBJECT_TYPES[(hash + j * 3) % OBJECT_TYPES.length];
+      return { type: objectType, id: `${objectType.toLowerCase()}_${(hash % 900) + 100 + j}` };
     });
-  }
-  return items;
+
+    const patientCount = rc.impactedPatients ?? ((hash % 40) + 10);
+    const details =
+      `Impacts ${patientCount} patients with an average delay of ${rc.avgDelay ?? 'n/a'}. ` +
+      `${rc.impactDetails ?? 'Downstream flow effects observed.'}`;
+
+    // Stable date inside the last ~6 months, derived from rank so it is filterable.
+    const date = new Date(2026, 0, 1 + ((rc.rank ?? i) * 23) % 170).toISOString();
+
+    return {
+      id: rc.rank ?? i,
+      title: rc.type ?? PROCESS_TYPES[type].examples[hash % PROCESS_TYPES[type].examples.length],
+      type,
+      location: rc.location ?? 'Hospital-wide',
+      date,
+      status: stableStatus(seed),
+      details,
+      score: typeof rc.score === 'number' ? rc.score : (hash % 100) / 10,
+      relatedObjects,
+      ocelData: {
+        eventCount: 100 + (hash % 900),
+        objectInteractions: 10 + (hash % 50),
+        averagePathLength: `${(2 + (hash % 50) / 10).toFixed(1)} hours`,
+        commonPathways: [
+          `${rc.location ?? 'Unit'} → Assessment → Order Processing`,
+          `${rc.location ?? 'Unit'} → Handoff → Disposition`,
+        ],
+        // Surface the real causes as bottleneck activities when present.
+        bottleneckActivities: causes.length > 0 ? causes : ['Documentation', 'Handoff Communication'],
+        keyMetrics: metrics,
+      },
+    };
+  });
 };
 
 // Main RootCause component
@@ -435,30 +406,25 @@ const RootCause = ({ rootCauses = [] }) => {
     setFilteredCompletedItems(filteredCompletedItems);
   }, [selectedLocation, selectedType, startDate, endDate, newItems, inProgressItems, completedItems]);
   
-  // Load mock data on component mount
+  // Derive process items deterministically from the server `rootCauses` prop.
+  // No per-mount randomization: the same prop always produces the same items,
+  // so the columns are stable across navigations/re-renders. Safe when empty.
   useEffect(() => {
-    // Generate mock data
-    const mockItems = generateMockItems(20);
-    console.log('Generated mock items:', mockItems);
-    
-    // Set the items by status
-    const newItems = mockItems.filter(item => item.status === 'New');
-    const inProgressItems = mockItems.filter(item => item.status === 'In-Progress');
-    const completedItems = mockItems.filter(item => item.status === 'Completed');
-    
-    console.log('New items:', newItems);
-    console.log('In-Progress items:', inProgressItems);
-    console.log('Completed items:', completedItems);
-    
+    const items = rootCausesToItems(rootCauses);
+
+    const newItems = items.filter(item => item.status === 'New');
+    const inProgressItems = items.filter(item => item.status === 'In-Progress');
+    const completedItems = items.filter(item => item.status === 'Completed');
+
     setNewItems(newItems);
     setInProgressItems(inProgressItems);
     setCompletedItems(completedItems);
-    
+
     // Also update the filtered items initially
     setFilteredNewItems(newItems);
     setFilteredInProgressItems(inProgressItems);
     setFilteredCompletedItems(completedItems);
-  }, []); 
+  }, [rootCauses]);
   
   // Helper function to generate random recommendations based on process type
   const getRandomRecommendation = (processType) => {

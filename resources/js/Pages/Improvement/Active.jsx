@@ -8,7 +8,7 @@ import {
   RefreshCcw, Target, Activity, TrendingUp, TrendingDown
 } from 'lucide-react';
 
-const Active = ({ cycles = [] }) => {
+const Active = ({ cycles }) => {
   // Helper function for status icons
   const getStatusIcon = (status) => {
     switch (status) {
@@ -106,6 +106,10 @@ const Active = ({ cycles = [] }) => {
       progress: 65
     }
   ];
+
+  // Prefer live cycles from the server (Inertia prop); fall back to the
+  // bundled mock cycles so the page never renders empty in static previews.
+  const displayCycles = Array.isArray(cycles) && cycles.length > 0 ? cycles : mockCycles;
 
   // PDSA Summary Cards Data
   const pdsaSummaryCards = [
@@ -244,7 +248,7 @@ const Active = ({ cycles = [] }) => {
         <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Active PDSA Cycles</h2>
           <div className="grid grid-cols-1 gap-4">
-            {mockCycles.filter(cycle => cycle.status === 'in-progress').map((cycle, index) => (
+            {displayCycles.filter(cycle => cycle.status === 'in-progress').map((cycle, index) => (
               <div
                 key={index}
                 className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm transition-colors duration-300"
