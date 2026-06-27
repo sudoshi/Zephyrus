@@ -4,13 +4,17 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** Atmospheric ridgeline slideshow — deep navy + cyan tonality (Zephyrus = the west wind). */
+/**
+ * Cinematic slideshow — the ebb & flow of waves and the power of wind, in
+ * a deep navy/cyan tonality that honors the Zephyrus name (the west wind).
+ */
 const AUTH_BG_IMAGES = [
   '/images/auth/wind-01.jpg',
   '/images/auth/wind-02.jpg',
   '/images/auth/wind-03.jpg',
   '/images/auth/wind-04.jpg',
   '/images/auth/wind-05.jpg',
+  '/images/auth/wind-06.jpg',
 ];
 const SLIDE_MS = 8000;
 
