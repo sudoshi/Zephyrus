@@ -6,9 +6,9 @@ struct HomeView: View {
     @State private var pulse = false
     @State private var path = NavigationPath()
 
-    /// Foreground live-refresh cadence. (Reverb websockets replace polling in a later phase;
-    /// the architecture is push-first / WS-when-foregrounded / poll-fallback.)
-    private let refreshInterval: Duration = .seconds(8)
+    /// Poll cadence — now just the fallback safety net; live updates arrive over the Reverb
+    /// websocket (architecture: push-first / WS-when-foregrounded / poll-fallback).
+    private let refreshInterval: Duration = .seconds(15)
 
     init() {
         // The APIClient is value-type and cheap; mirror the app config.
@@ -49,8 +49,11 @@ struct HomeView: View {
             }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
             .task {
-                // Live foreground refresh loop; auto-cancels when the view goes away.
+                // Open the live websocket; keep the poll loop as a fallback. Both auto-stop
+                // when the view goes away.
                 let token = auth.accessToken ?? ""
+                vm.startLive(bearer: token)
+                defer { vm.stopLive() }
                 var first = true
                 while !Task.isCancelled {
                     await vm.load(bearer: token)
@@ -131,11 +134,7 @@ struct HomeView: View {
         HStack(spacing: Z.s2) {
             Text("Unit census")
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)
-            if vm.stale {
-                Label("Stale", systemImage: "wifi.exclamationmark")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Z.status(.warning))
-            } else {
+            if vm.live {
                 HStack(spacing: 4) {
                     Circle()
                         .fill(Z.status(.success))
@@ -146,6 +145,10 @@ struct HomeView: View {
                         .font(.system(size: 10, weight: .semibold)).tracking(0.5)
                         .foregroundStyle(Z.status(.success))
                 }
+            } else if vm.stale {
+                Label("Stale", systemImage: "wifi.exclamationmark")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Z.status(.warning))
             }
             Spacer()
             Text("as of \(vm.asOfDisplay)")

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Contracts\PushNotifier;
+use App\Events\Rtdc\BedsChanged;
+use App\Models\Bed;
 use App\Services\Push\LogPushNotifier;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +24,13 @@ class HummingbirdServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Push a PHI-free "beds changed" signal to mobile clients whenever a bed's status
+        // changes, so the Hummingbird apps re-snapshot the census in real time over Reverb.
+        // (In the test env BROADCAST_CONNECTION=null makes this a no-op.)
+        Bed::updated(function (Bed $bed): void {
+            if ($bed->wasChanged('status')) {
+                broadcast(new BedsChanged($bed->unit_id));
+            }
+        });
     }
 }

@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,11 +61,15 @@ fun HomeScreen(auth: AuthViewModel) {
     val bearer = auth.accessToken ?: ""
     var selectedUnitId by remember { mutableStateOf<Int?>(null) }
 
-    // Live foreground refresh loop; auto-cancels when the composable leaves.
+    // Open the live websocket while Home is on screen; poll loop below is the fallback.
+    DisposableEffect(Unit) {
+        home.startLive(bearer)
+        onDispose { home.stopLive() }
+    }
     LaunchedEffect(Unit) {
         while (true) {
             home.load(bearer)
-            kotlinx.coroutines.delay(8000)
+            kotlinx.coroutines.delay(15000)
         }
     }
     LaunchedEffect(home.needsReauth) { if (home.needsReauth) auth.logout() }
@@ -165,9 +170,7 @@ private fun houseRollup(home: HomeViewModel) {
 private fun censusHeader(home: HomeViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Unit census", color = Z.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        if (home.stale) {
-            Icon(Icons.Filled.WifiOff, contentDescription = null, tint = Z.statusWarning, modifier = Modifier.size(14.dp))
-        } else {
+        if (home.live) {
             val infinite = rememberInfiniteTransition(label = "live")
             val a by infinite.animateFloat(
                 initialValue = 1f, targetValue = 0.25f,
@@ -175,6 +178,8 @@ private fun censusHeader(home: HomeViewModel) {
             )
             Box(Modifier.size(7.dp).clip(CircleShape).background(Z.statusSuccess.copy(alpha = a)))
             Text("LIVE", color = Z.statusSuccess, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
+        } else if (home.stale) {
+            Icon(Icons.Filled.WifiOff, contentDescription = null, tint = Z.statusWarning, modifier = Modifier.size(14.dp))
         }
         Spacer(Modifier.weight(1f))
         Text("as of ${home.asOfDisplay}", color = Z.inkMuted, fontSize = 11.sp)

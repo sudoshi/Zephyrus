@@ -17,6 +17,9 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
     companion object {
         // The Android emulator reaches the Mac host loopback via 10.0.2.2.
         const val BASE_URL = "http://10.0.2.2:8001"
+        const val REVERB_HOST = "10.0.2.2"
+        const val REVERB_PORT = 8080
+        const val REVERB_KEY = "zephyrus-key"
     }
 
 

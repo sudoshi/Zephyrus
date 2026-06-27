@@ -4,6 +4,10 @@ import Foundation
 /// `php artisan serve` on the Mac is reachable at localhost:8001.
 enum AppConfig {
     static let baseURL = "http://localhost:8001"
+    // Reverb (Pusher-protocol) websocket. iOS Simulator shares host loopback.
+    static let reverbHost = "localhost"
+    static let reverbPort = 8080
+    static let reverbKey = "zephyrus-key"
 }
 
 /// Thin async URLSession client for the Hummingbird BFF. This is the seam the KMP shared

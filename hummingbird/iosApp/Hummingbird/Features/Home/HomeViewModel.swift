@@ -9,9 +9,32 @@ final class HomeViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var needsReauth = false
+    @Published var live = false
 
     let api: APIClient
+    private var bearerToken = ""
+
+    private lazy var realtime = RealtimeClient(
+        host: AppConfig.reverbHost, port: AppConfig.reverbPort, key: AppConfig.reverbKey,
+        channel: "hospital.beds",
+        onEvent: { [weak self] in
+            guard let self else { return }
+            Task { await self.load(bearer: self.bearerToken) }
+        },
+        onState: { [weak self] connected in self?.live = connected }
+    )
+
     init(api: APIClient) { self.api = api }
+
+    /// Open the Reverb websocket and re-snapshot on every beds.changed event.
+    func startLive(bearer: String) {
+        bearerToken = bearer
+        realtime.start()
+    }
+
+    func stopLive() {
+        realtime.stop()
+    }
 
     func load(bearer: String) async {
         isLoading = true

@@ -16,6 +16,17 @@ import kotlin.math.roundToInt
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val api = ApiClient()
 
+    var live by mutableStateOf(false); private set
+    private var bearerToken = ""
+    private val realtime = RealtimeClient(
+        ApiClient.REVERB_HOST, ApiClient.REVERB_PORT, ApiClient.REVERB_KEY, "hospital.beds",
+        onEvent = { viewModelScope.launch { load(bearerToken) } },
+        onState = { connected -> viewModelScope.launch { live = connected } },
+    )
+
+    fun startLive(bearer: String) { bearerToken = bearer; realtime.start() }
+    fun stopLive() { realtime.stop() }
+
     var units by mutableStateOf<List<CensusUnit>>(emptyList()); private set
     var asOf by mutableStateOf<String?>(null); private set
     var webLink by mutableStateOf<String?>(null); private set
