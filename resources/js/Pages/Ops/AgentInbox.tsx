@@ -19,13 +19,13 @@ function AgentCard({ definition }: { definition: AgentDefinition }) {
         <div>
           <div className="flex items-center gap-2">
             <Bot className="size-4 text-healthcare-primary" />
-            <span className="text-base/[19px] font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{definition.label}</span>
+            <span className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{definition.label}</span>
             {definition.readOnly && <ToneBadge tone="info">read-only</ToneBadge>}
           </div>
-          <p className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{definition.description}</p>
+          <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{definition.description}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {definition.toolAllowlist.map((tool) => (
-              <span key={tool} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs/[14px] font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              <span key={tool} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300">
                 {tool}
               </span>
             ))}
@@ -36,7 +36,7 @@ function AgentCard({ definition }: { definition: AgentDefinition }) {
             type="button"
             onClick={() => run.mutate(definition.key)}
             disabled={run.isPending}
-            className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-2.5 py-1 text-xs/[16px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             <Play className="size-3.5" /> {run.isPending ? 'Running' : 'Run'}
           </button>
@@ -50,7 +50,7 @@ function AgentCard({ definition }: { definition: AgentDefinition }) {
               {result.status}
             </ToneBadge>
             {result.output.headline && (
-              <span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{result.output.headline}</span>
+              <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{result.output.headline}</span>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -88,7 +88,7 @@ export default function AgentInbox() {
         title="Agent Inbox"
         subtitle="Governed agent roster, run traces with evaluations and safety events, and the approval-gated action queue"
         headerContent={
-          <Link href="/ops/executive-brief" className="inline-flex items-center gap-1.5 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-semibold text-healthcare-text-secondary hover:bg-slate-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
+          <Link href="/ops/executive-brief" className="inline-flex items-center gap-1.5 rounded-md border border-healthcare-border px-3 py-1.5 text-sm font-semibold text-healthcare-text-secondary hover:bg-slate-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
             <ClipboardList className="size-4" /> Executive brief
           </Link>
         }
@@ -103,7 +103,7 @@ export default function AgentInbox() {
 
           <Panel title="Governed agents" icon={<Bot className="size-5 text-healthcare-primary" />}>
             {definitions.isLoading ? (
-              <div className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading agents...</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading agents...</div>
             ) : (
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {(definitions.data ?? []).map((definition) => (
@@ -115,7 +115,7 @@ export default function AgentInbox() {
 
           <Panel title="Pending approvals" icon={<ShieldCheck className="size-5 text-healthcare-primary" />}>
             {(inbox.data?.approvals.length ?? 0) === 0 ? (
-              <div className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 No pending approvals. Review and approve in the{' '}
                 <Link href="/analytics/opportunities" className="font-medium text-healthcare-primary">Opportunity Portfolio</Link>.
               </div>
@@ -124,11 +124,11 @@ export default function AgentInbox() {
                 {(inbox.data?.approvals ?? []).map((approval) => (
                   <li key={approval.approvalId} className="flex items-center justify-between gap-2 rounded-md border border-healthcare-border p-2.5 dark:border-healthcare-border-dark">
                     <div>
-                      <span className="text-sm/[18px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                      <span className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {approval.action?.recommendation?.title ?? approval.action?.type ?? 'Action'}
                       </span>
                       {approval.action?.ownerName && (
-                        <p className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Owner: {approval.action.ownerName}</p>
+                        <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Owner: {approval.action.ownerName}</p>
                       )}
                     </div>
                     <ToneBadge tone={normalizeTone(approval.action?.recommendation?.riskLevel)}>
@@ -142,14 +142,14 @@ export default function AgentInbox() {
 
           <Panel title="Active actions" icon={<Inbox className="size-5 text-healthcare-primary" />}>
             {(inbox.data?.actions.length ?? 0) === 0 ? (
-              <div className="text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No active actions.</div>
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No active actions.</div>
             ) : (
               <ul className="space-y-2">
                 {(inbox.data?.actions ?? []).map((action) => (
                   <li key={action.actionId} className="flex items-center justify-between gap-2 rounded-md border border-healthcare-border p-2.5 dark:border-healthcare-border-dark">
                     <div className="flex items-center gap-2">
                       {action.status === 'completed' && <CheckCircle2 className="size-4 text-healthcare-success dark:text-healthcare-success-dark" />}
-                      <span className="text-sm/[18px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                      <span className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                         {action.recommendation?.title ?? action.type}
                       </span>
                     </div>
