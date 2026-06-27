@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import Card from '@/Components/Dashboard/Card';
 import {
@@ -25,28 +25,19 @@ const getStatusClasses = (value) => {
 const getRandomTrend = () => (Math.random() > 0.5 ? 'up' : 'down');
 const getRandomDelta = () => `${Math.floor(Math.random() * 10) + 1}%`;
 
-const AncillaryServices = () => {
+const AncillaryServices = ({ unitServices = null }) => {
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'matrix'
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [expandedService, setExpandedService] = useState(null);
     const [showTrends, setShowTrends] = useState(false);
     const [trendsModalOpen, setTrendsModalOpen] = useState(false);
     const [selectedTrendData, setSelectedTrendData] = useState(null);
-    const [demoData, setDemoData] = useState(() => generateDemoData());
-    const [lastUpdated, setLastUpdated] = useState(new Date());
-
-    // Real-time updates every 30 seconds
-    useEffect(() => {
-        // Initial data load
-        setDemoData(generateDemoData());
-        
-        const interval = setInterval(() => {
-            setDemoData(generateDemoData());
-            setLastUpdated(new Date());
-        }, 30000);
-        
-        return () => clearInterval(interval);
-    }, []);
+    // Server-computed, deterministic per-unit ancillary data (falls back to the
+    // local generator if the prop is ever absent).
+    const [demoData] = useState(() =>
+        unitServices && unitServices.length > 0 ? unitServices : generateDemoData()
+    );
+    const [lastUpdated] = useState(new Date());
 
     // Calculate summary metrics
     const calculateMetrics = () => {

@@ -55,9 +55,11 @@ class RTDCDashboardController extends Controller
     /**
      * Display the ancillary services page.
      */
-    public function ancillaryServices(): InertiaResponse
+    public function ancillaryServices(\App\Services\Rtdc\AncillaryServicesService $service): InertiaResponse
     {
-        return Inertia::render('RTDC/AncillaryServices');
+        return Inertia::render('RTDC/AncillaryServices', [
+            'unitServices' => $service->build(),
+        ]);
     }
 
     /**
