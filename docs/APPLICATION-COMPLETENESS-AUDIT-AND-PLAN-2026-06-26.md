@@ -11,6 +11,33 @@ by a synthesis pass. Findings below were cross-checked against direct inspection
 
 ---
 
+## 0. Execution Progress (live)
+
+**Landed & verified (commits `e5b4283`, `cc5487a`, `9023135`, `a684fe3`):**
+- **P0 foundation** — `db:seed` was *entirely broken* (stale `TestDataSeeder`: missing
+  `providers.npi`, phantom `or_cases.procedure_name`, missing `asa_rating_id`). Fixed +
+  made idempotent; **registered `RtdcSeeder`** (sole creator of units/beds) in the chain;
+  seeded `transport_events` + `care_transition` requests. `db:seed` now runs clean and
+  idempotent (verified 2× — no errors, no row growth).
+- **P0 orchestrator** — new `php artisan zephyrus:demo-seed` chains `db:seed` +
+  `facility:import-catalog` + `patient-flow:import-synthetic` (all fixture data git-tracked),
+  so a fresh DB lights up Patient Flow Navigator, Facility Model, ED Flow, and an Integration
+  source from one idempotent command (replaces the fragile manual runbook).
+- **P1 crashes** — fixed the two PDSA white-screens (Index/Show now consume the 7 seeded
+  `pdsa_cycles` with guards + empty states); `getImprovementStats` now real (fixes the
+  Improvement Dashboard zeroed cards); fixed the broken `/improvement/active/{id}` link.
+- Verified: `db:seed` idempotent, `zephyrus:demo-seed` idempotent (flow_events=918,
+  facility_spaces=1472 stable), all improvement controllers return Inertia responses without
+  throwing, `npx tsc --noEmit` + `npx vite build` clean.
+
+**Remaining:** P0 tail (OpsMetricTrust/OpsIntelligence seeders, 6–12mo OR expansion, gate
+Analytics fallback) · P1 orphan deletions (**awaiting sign-off — §7**) · P2–P5 (role
+dashboards, surgical analytics, Periop, RTDC analytics/predictions, ED domain + 8 pages,
+Improvement backend). Note: the audit's `/resources` route-collision finding was a
+false positive (disproven by direct verification — see §3).
+
+---
+
 ## 1. Executive Summary
 
 Zephyrus is a **polished but structurally bifurcated** command-center app. A genuinely live operational
@@ -462,20 +489,20 @@ differentiated + Analytics measures computed; Admin manages role/status; `check-
 ## 9. Consolidated TODO Checklist
 
 **P0 — Demo data (critical path)**
-- [ ] Register `RtdcSeeder` before `CommandCenterDemoSeeder` in `DatabaseSeeder`; verify idempotency
-- [ ] `zephyrus:demo-seed` orchestrator (db:seed + patient-flow + facility imports); wire `deploy.sh --db`
-- [ ] Extend `CommandCenterDemoSeeder`: transport_events, care_transition, diversion_events, ED rtdc_predictions, ambient signals
+- [x] Register `RtdcSeeder` before `CommandCenterDemoSeeder` in `DatabaseSeeder`; verify idempotency ✅ `cc5487a`
+- [x] `zephyrus:demo-seed` orchestrator (db:seed + patient-flow + facility imports) ✅ `a684fe3` *(deploy.sh has no `--db` branch; command is the canonical runbook)*
+- [x] Extend `CommandCenterDemoSeeder`: transport_events, care_transition ✅ `cc5487a` *(diversion_events/pdsa already seeded; ED rtdc_predictions + ambient signals still TODO)*
 - [ ] `OpsMetricTrustSeeder` (metric defs/lineage/values/source_freshness/data_quality_findings)
 - [ ] `OpsIntelligenceSeeder` + operational_events + blocked beds/barriers
 - [ ] Broaden OR-case seeding to 6–12 months
 - [ ] Gate `Analytics.jsx` fallback mocks behind dev flag
 
 **P1 — Un-break (critical path)**
-- [ ] Fix PDSA Index + Show crashes against seeded `pdsa_cycles` + null-guards
-- [ ] Delete discharge orphans (DischargePrediction, DischargePredictions) + dead methods
-- [ ] Delete/defer 3 dead Analytics controllers/pages (sign-off)
-- [ ] Resolve PDSA orphan components (verify imports first)
-- [ ] Fix `/improvement/active/{id}` href (`Active.jsx:286`)
+- [x] Fix PDSA Index + Show crashes against seeded `pdsa_cycles` + null-guards ✅ `9023135`
+- [ ] Delete discharge orphans (DischargePrediction, DischargePredictions) + dead methods — **awaiting sign-off**
+- [ ] Delete/defer 3 dead Analytics controllers/pages — **awaiting sign-off**
+- [ ] Resolve PDSA orphan components (verify imports first) — **awaiting sign-off**
+- [x] Fix `/improvement/active/{id}` href (`Active.jsx:286`) ✅ `9023135`
 
 **P2 — Role dashboards + RTDC mock → live**
 - [ ] Wire 4 role dashboards + `/home` to props; real Improvement counts
