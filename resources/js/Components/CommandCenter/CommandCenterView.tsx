@@ -37,12 +37,12 @@ export function CommandCenterView({
     wasStale.current = stale;
   }, [stale]);
 
-  // Adaptive emphasis by role: the executive view leads with outcomes & forecast
-  // and suppresses unit-level census noise; command leads with capacity & flow.
-  // Command is the glance view (collapsed tiles); executive is the review view
-  // (tiles expand to show sparkline + detail breakdown).
+  // Adaptive emphasis by role re-orders the bands and toggles the unit heat
+  // strip, but NEVER strips information: every tile shows its sparkline + detail
+  // breakdown in every role (density with clarity, per PRODUCT.md). Role changes
+  // arrangement and lead, not how much each panel says.
   const showHeatStrip = role !== 'executive';
-  const detailed = role === 'executive';
+  const detailed = true;
   const bands = role === 'executive'
     ? [data.outcomes, data.forecast, data.capacity, data.flow]
     : [data.capacity, data.flow, data.outcomes, data.forecast];

@@ -41,7 +41,7 @@
   --sidebar-width:           260px;
   --sidebar-width-collapsed: 72px;
   --topbar-height:           56px;
-  --content-max-width:       1600px;
+  --content-max-width:       95vw;    /* every page fills 95% of the viewport */
   --panel-padding:           var(--space-4);  /* 20px → 16px: denser card interiors */
   --content-padding:         var(--space-4);  /* 24px → 16px: tighter page gutters */
 
