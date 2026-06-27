@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Predictions;
 
 use App\Http\Controllers\Controller;
+use App\Services\Predictions\UtilizationForecastService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class UtilizationForecastController extends Controller
 {
-    public function index()
+    public function index(Request $request, UtilizationForecastService $forecast)
     {
-        return Inertia::render('Predictions/UtilizationForecast');
+        $timeframe = $request->string('timeframe', 'month')->toString();
+
+        return Inertia::render('Predictions/UtilizationForecast', [
+            'forecast' => $forecast->build($timeframe),
+        ]);
     }
 }
