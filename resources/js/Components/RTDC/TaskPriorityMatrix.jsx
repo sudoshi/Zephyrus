@@ -60,8 +60,10 @@ const TaskPriorityMatrix = ({ tasks }) => {
                             <input
                                 type="checkbox"
                                 checked={task.completed}
-                                onChange={() => {}}
-                                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                readOnly
+                                disabled
+                                title="Task status — updated in the patient status workflow"
+                                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-healthcare-primary focus:ring-healthcare-primary h-4 w-4 cursor-default"
                             />
                         </div>
                         <div className="mt-2 flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
