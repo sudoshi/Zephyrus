@@ -785,9 +785,15 @@ class CommandCenterDemoSeeder extends Seeder
             return;
         }
 
+        // Clearing the requests cascades their transport_events (FK cascadeOnDelete),
+        // so this stays idempotent for both tables.
         DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->delete();
 
+        $hasEvents = Schema::hasTable('prod.transport_events');
+
         // [request_type, priority, mode, minutes_until_due] — negatives are overdue.
+        // care_transition rows back the /transport/care-transitions worklist, which
+        // was otherwise empty (the seeder never seeded that request_type).
         $specs = [
             ['inpatient', 'stat', 'stretcher', -20],
             ['inpatient', 'urgent', 'wheelchair', -5],
@@ -795,6 +801,8 @@ class CommandCenterDemoSeeder extends Seeder
             ['transfer', 'urgent', 'stretcher', -15],
             ['inpatient', 'routine', 'bed', 45],
             ['ems', 'stat', 'als', 10],
+            ['care_transition', 'routine', 'wheelchair', 90],
+            ['care_transition', 'urgent', 'stretcher', 40],
         ];
 
         foreach ($specs as $i => [$type, $priority, $mode, $minutesUntilDue]) {
@@ -802,25 +810,82 @@ class CommandCenterDemoSeeder extends Seeder
             $destination = $nonEdUnits->get(($i + 1) % $nonEdUnits->count());
             $status = ['requested', 'assigned', 'escalated'][$i % 3];
 
-            DB::table('prod.transport_requests')->insert([
+            $destinationName = match ($type) {
+                'discharge' => 'Main Lobby Discharge',
+                'care_transition' => $i % 2 === 0 ? 'Sunrise Skilled Nursing' : 'Home Health Services',
+                default => $destination->name,
+            };
+
+            $requestedAt = now()->subMinutes(75 - $i * 5);
+            $assignedAt = $status === 'assigned' ? now()->subMinutes(10) : null;
+
+            $requestId = DB::table('prod.transport_requests')->insertGetId([
                 'request_uuid' => (string) Str::uuid(),
                 'request_type' => $type,
                 'priority' => $priority,
                 'status' => $status,
                 'patient_ref' => 'sim-transport-'.($i + 1),
                 'origin' => $origin->name,
-                'destination' => $type === 'discharge' ? 'Main Lobby Discharge' : $destination->name,
+                'destination' => $destinationName,
                 'transport_mode' => $mode,
                 'clinical_service' => 'Medicine',
                 'requested_by' => 'demo-seeder',
-                'requested_at' => now()->subMinutes(75 - $i * 5),
+                'requested_at' => $requestedAt,
                 'needed_at' => now()->addMinutes($minutesUntilDue),
-                'assigned_at' => $status === 'assigned' ? now()->subMinutes(10) : null,
+                'assigned_at' => $assignedAt,
                 'assigned_team' => $status === 'assigned' ? 'Porter Pool' : null,
                 'is_deleted' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ], 'transport_request_id');
+
+            if (! $hasEvents) {
+                continue;
+            }
+
+            // Build a plausible status-transition timeline so request-detail
+            // panels and Transport Analytics duration measures have real data.
+            $events = [[
+                'event_type' => 'transport.requested',
+                'from_status' => null,
+                'to_status' => 'requested',
+                'occurred_at' => $requestedAt,
+            ]];
+            if ($status === 'assigned') {
+                $events[] = [
+                    'event_type' => 'transport.assigned',
+                    'from_status' => 'requested',
+                    'to_status' => 'assigned',
+                    'occurred_at' => $assignedAt,
+                ];
+            } elseif ($status === 'escalated') {
+                $events[] = [
+                    'event_type' => 'transport.escalated',
+                    'from_status' => 'requested',
+                    'to_status' => 'escalated',
+                    'occurred_at' => (clone $requestedAt)->addMinutes(8),
+                ];
+            }
+
+            foreach ($events as $event) {
+                DB::table('prod.transport_events')->insert([
+                    'event_uuid' => (string) Str::uuid(),
+                    'transport_request_id' => $requestId,
+                    'event_type' => $event['event_type'],
+                    'from_status' => $event['from_status'],
+                    'to_status' => $event['to_status'],
+                    'payload' => json_encode([
+                        'request_type' => $type,
+                        'priority' => $priority,
+                        'origin' => $origin->name,
+                        'destination' => $destinationName,
+                        'source' => 'command_center_demo',
+                    ]),
+                    'source' => 'demo-seeder',
+                    'occurred_at' => $event['occurred_at'],
+                    'created_at' => now(),
+                ]);
+            }
         }
     }
 

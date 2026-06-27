@@ -22,15 +22,22 @@ class RtdcSeeder extends Seeder
             ['name' => 'Step-Down', 'abbreviation' => 'SD', 'type' => 'step_down', 'staffed_bed_count' => 24, 'ratio_floor' => 3],
         ];
 
+        // Idempotent: firstOrCreate keyed on natural keys (unit abbreviation,
+        // bed label per unit) so this is safe to run inside DatabaseSeeder on
+        // every `php artisan db:seed` without accumulating duplicate units/beds.
         foreach ($units as $u) {
-            $unit = Unit::create($u);
+            $unit = Unit::firstOrCreate(['abbreviation' => $u['abbreviation']], $u);
             for ($i = 1; $i <= $u['staffed_bed_count']; $i++) {
-                Bed::create([
-                    'unit_id' => $unit->unit_id,
-                    'label' => sprintf('%s-%02d', $unit->abbreviation, $i),
-                    'status' => 'available',
-                    'isolation_capable' => $i % 8 === 0,
-                ]);
+                Bed::firstOrCreate(
+                    [
+                        'unit_id' => $unit->unit_id,
+                        'label' => sprintf('%s-%02d', $unit->abbreviation, $i),
+                    ],
+                    [
+                        'status' => 'available',
+                        'isolation_capable' => $i % 8 === 0,
+                    ]
+                );
             }
         }
     }
