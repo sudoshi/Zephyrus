@@ -60,7 +60,7 @@ const TaskTemplates = ({ onApplyTemplate }) => {
                 </span>
                 <button 
                     onClick={() => onApplyTemplate?.(template)}
-                    className="p-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                    className="p-1 text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80"
                 >
                     <Icon icon="heroicons:plus-circle" className="w-5 h-5" />
                 </button>
@@ -73,7 +73,7 @@ const TaskTemplates = ({ onApplyTemplate }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Task Templates</Card.Title>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                         Create Template
                     </button>

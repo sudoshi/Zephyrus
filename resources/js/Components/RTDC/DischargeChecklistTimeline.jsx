@@ -23,7 +23,7 @@ const DischargeChecklistTimeline = ({ milestones }) => {
             case 'discharge':
                 return 'bg-healthcare-success/10 dark:bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark';
             default:
-                return 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400';
+                return 'bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 text-healthcare-primary dark:text-healthcare-primary-dark';
         }
     };
 
@@ -83,7 +83,7 @@ const DischargeChecklistTimeline = ({ milestones }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Discharge Timeline</Card.Title>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                         Add Milestone
                     </button>

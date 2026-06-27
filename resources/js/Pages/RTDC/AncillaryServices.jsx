@@ -159,12 +159,12 @@ const AncillaryServices = ({ unitServices = null }) => {
                 >
                     <div className="bg-healthcare-background dark:bg-healthcare-background-dark border-b border-healthcare-border dark:border-healthcare-border-dark px-4 py-3">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark group-hover:opacity-80 dark:group-hover:opacity-80 transition-colors">
                                 {unit.name}
                             </h3>
                             <Icon
                                 icon="heroicons:chevron-right"
-                                className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-transform group-hover:translate-x-1"
+                                className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark group-hover:opacity-80 dark:group-hover:opacity-80 transition-transform group-hover:translate-x-1"
                             />
                         </div>
                     </div>

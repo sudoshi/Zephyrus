@@ -18,8 +18,8 @@ const QuickStatsPanel = ({ patient }) => {
 
     const StatItem = ({ icon, label, value }) => (
         <div className="flex items-center gap-3 p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
-                <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 rounded-full">
+                <Icon icon={icon} className="w-5 h-5 text-healthcare-primary dark:text-healthcare-primary-dark" />
             </div>
             <div>
                 <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>

@@ -118,7 +118,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
         <button
             className={`flex items-center gap-2 px-4 py-2 rounded-t-lg ${
                 activeTab === id
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-healthcare-primary text-white'
                     : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
             }`}
             onClick={() => setActiveTab(id)}
@@ -140,7 +140,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                 type="checkbox"
                 checked={checked}
                 onChange={onChange}
-                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                className="rounded border-healthcare-border dark:border-healthcare-border-dark text-healthcare-primary focus:ring-healthcare-primary h-4 w-4"
             />
             <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</span>
         </label>
@@ -162,7 +162,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                             <div className="flex items-center space-x-3">
                                 <Icon
                                     icon="heroicons:document-text"
-                                    className="w-6 h-6 text-indigo-600 dark:text-indigo-400"
+                                    className="w-6 h-6 text-healthcare-primary dark:text-healthcare-primary-dark"
                                 />
                                 <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     Status Update
@@ -313,9 +313,9 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                         }
                                                     }}
                                                     placeholder="Describe the barrier..."
-                                                    className="flex-1 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="flex-1 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary"
                                                 />
-                                                <select className="w-40 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <select className="w-40 rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary">
                                                     <option value="Clinical">Clinical</option>
                                                     <option value="Social">Social</option>
                                                     <option value="Administrative">Administrative</option>
@@ -323,7 +323,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                 </select>
                                                 <button
                                                     onClick={handleAddBarrier}
-                                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                    className="px-4 py-2 bg-healthcare-primary text-white rounded-md hover:bg-healthcare-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
                                                 >
                                                     Add Barrier
                                                 </button>
@@ -427,7 +427,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                 <textarea
                                                     rows="4"
                                                     placeholder="Add notes about barrier resolution efforts..."
-                                                    className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary"
                                                 />
                                                 <div className="space-y-3">
                                                     {patient?.teamCommunication
@@ -460,13 +460,13 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                         <div className="flex items-center space-x-3">
                             <button
                                 onClick={onClose}
-                                className="inline-flex items-center px-4 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="inline-flex items-center px-4 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSave}
-                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-healthcare-primary hover:bg-healthcare-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
                             >
                                 Save Changes
                             </button>

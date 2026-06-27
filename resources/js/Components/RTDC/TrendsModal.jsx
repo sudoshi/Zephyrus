@@ -134,7 +134,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                             <div className="flex items-center space-x-3">
                                 <Icon 
                                     icon="heroicons:chart-bar" 
-                                    className="w-6 h-6 text-indigo-600 dark:text-indigo-400" 
+                                    className="w-6 h-6 text-healthcare-primary dark:text-healthcare-primary-dark" 
                                 />
                                 <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                     Service Wait Time Trends
@@ -166,7 +166,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 setSelectedUnit(unit);
                                                 setSelectedService(null);
                                             }}
-                                            className="w-full pl-10 pr-4 py-2 text-sm font-medium rounded-md border bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors appearance-none"
+                                            className="w-full pl-10 pr-4 py-2 text-sm font-medium rounded-md border bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:border-healthcare-primary transition-colors appearance-none"
                                         >
                                             <option value="">Select a unit</option>
                                             {units?.map((unit) => (
@@ -200,7 +200,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 !selectedUnit
                                                     ? 'bg-healthcare-background dark:bg-healthcare-background-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark cursor-not-allowed'
                                                     : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
-                                            } border-healthcare-border dark:border-healthcare-border-dark focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                                            } border-healthcare-border dark:border-healthcare-border-dark focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:border-healthcare-primary`}
                                         >
                                             <option value="">Select a service</option>
                                             {Object.entries(serviceCategories).map(([categoryKey, category]) => (
@@ -245,7 +245,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                         onClick={() => setTimeRange(range.id)}
                                         className={`px-4 py-2 text-sm font-medium ${
                                             timeRange === range.id
-                                                ? 'bg-indigo-600 text-white'
+                                                ? 'bg-healthcare-primary text-white'
                                                 : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
                                         } border border-healthcare-border dark:border-healthcare-border-dark first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 transition-colors`}
                                     >
@@ -264,7 +264,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                         onClick={() => setViewMode(mode.id)}
                                         className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
                                             viewMode === mode.id
-                                                ? 'bg-indigo-600 text-white'
+                                                ? 'bg-healthcare-primary text-white'
                                                 : 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark'
                                         } border border-healthcare-border dark:border-healthcare-border-dark first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 transition-colors`}
                                     >
@@ -278,7 +278,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                             <select
                                                 value={sortBy}
                                                 onChange={(e) => setSortBy(e.target.value)}
-                                                className="block pl-10 pr-4 py-2 text-sm font-medium rounded-md border bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors appearance-none"
+                                                className="block pl-10 pr-4 py-2 text-sm font-medium rounded-md border bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:border-healthcare-primary transition-colors appearance-none"
                                             >
                                                 <option value="time">Sort by Time</option>
                                                 <option value="value">Sort by Wait Time</option>
@@ -453,7 +453,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 >
                                                     <Icon
                                                         icon="heroicons:clock"
-                                                        className="w-4 h-4 mr-2 text-indigo-500"
+                                                        className="w-4 h-4 mr-2 text-healthcare-primary"
                                                     />
                                                     {time}
                                                 </div>
@@ -513,7 +513,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                         </div>
                         <div className="flex items-center space-x-3">
                             <button
-                                className="inline-flex items-center px-4 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="inline-flex items-center px-4 py-2 border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark bg-healthcare-surface dark:bg-healthcare-surface-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
                                 onClick={() => {
                                     // Export functionality would go here
                                 }}
@@ -522,7 +522,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                 Export Data
                             </button>
                             <button
-                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-healthcare-primary hover:bg-healthcare-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary"
                                 onClick={onClose}
                             >
                                 Done

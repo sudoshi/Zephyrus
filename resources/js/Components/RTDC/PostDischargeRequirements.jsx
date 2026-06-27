@@ -9,8 +9,8 @@ const PostDischargeRequirements = ({ requirements }) => {
         <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
-                        <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 rounded-full">
+                        <Icon icon={icon} className="w-5 h-5 text-healthcare-primary dark:text-healthcare-primary-dark" />
                     </div>
                     <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{title}</h3>
                 </div>
@@ -69,7 +69,7 @@ const PostDischargeRequirements = ({ requirements }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Post-Discharge Requirements</Card.Title>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                         Add Requirement
                     </button>
@@ -98,10 +98,10 @@ const PostDischargeRequirements = ({ requirements }) => {
                     {requirements.caregiverInfo && (
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
+                                <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 rounded-full">
                                     <Icon 
                                         icon="heroicons:users" 
-                                        className="w-5 h-5 text-indigo-600 dark:text-indigo-400" 
+                                        className="w-5 h-5 text-healthcare-primary dark:text-healthcare-primary-dark" 
                                     />
                                 </div>
                                 <h3 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">

@@ -8,8 +8,8 @@ const PatientPreferences = ({ preferences }) => {
     const PreferenceItem = ({ icon, label, value, editable = true }) => (
         <div className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
             <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-full">
-                    <Icon icon={icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 rounded-full">
+                    <Icon icon={icon} className="w-5 h-5 text-healthcare-primary dark:text-healthcare-primary-dark" />
                 </div>
                 <div>
                     <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
@@ -38,7 +38,7 @@ const PatientPreferences = ({ preferences }) => {
                 <Card.Header>
                     <div className="flex justify-between items-center">
                         <Card.Title>Patient Preferences</Card.Title>
-                        <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                        <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                             <Icon icon="heroicons:plus" className="w-4 h-4" />
                             Add Preference
                         </button>
@@ -70,7 +70,7 @@ const PatientPreferences = ({ preferences }) => {
                 <Card.Header>
                     <div className="flex justify-between items-center">
                         <Card.Title>Restrictions & Precautions</Card.Title>
-                        <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                        <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                             <Icon icon="heroicons:plus" className="w-4 h-4" />
                             Add Restriction
                         </button>
@@ -97,7 +97,7 @@ const PatientPreferences = ({ preferences }) => {
                 <Card.Content>
                     <textarea
                         rows="4"
-                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary"
                         placeholder="Add any special instructions or notes..."
                     />
                     <div className="mt-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

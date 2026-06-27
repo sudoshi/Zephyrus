@@ -53,15 +53,15 @@ const InterventionsChecklist = ({ interventions }) => {
                     {new Date(intervention.scheduledTime).toLocaleString()}
                 </div>
                 <div className="mt-3 flex items-center gap-3">
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:check-circle" className="w-4 h-4" />
                         Mark Complete
                     </button>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:calendar" className="w-4 h-4" />
                         Reschedule
                     </button>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:chat-bubble-left-ellipsis" className="w-4 h-4" />
                         Add Note
                     </button>
@@ -75,7 +75,7 @@ const InterventionsChecklist = ({ interventions }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Interventions & Procedures</Card.Title>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                         Add Intervention
                     </button>

@@ -55,7 +55,7 @@ const CareGoalsSection = ({ goals }) => {
                         <div className="flex-1">
                             <div className="bg-healthcare-border dark:bg-healthcare-border-dark rounded-full h-2">
                                 <div
-                                    className="bg-indigo-600 dark:bg-indigo-400 rounded-full h-2 transition-all duration-300"
+                                    className="bg-healthcare-primary dark:bg-healthcare-primary-dark rounded-full h-2 transition-all duration-300"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
@@ -67,11 +67,11 @@ const CareGoalsSection = ({ goals }) => {
                 </div>
 
                 <div className="mt-4 flex items-center gap-4">
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:pencil-square" className="w-4 h-4" />
                         Update Progress
                     </button>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:chat-bubble-left-ellipsis" className="w-4 h-4" />
                         Add Note
                     </button>
@@ -85,7 +85,7 @@ const CareGoalsSection = ({ goals }) => {
             <Card.Header>
                 <div className="flex justify-between items-center">
                     <Card.Title>Care Goals</Card.Title>
-                    <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
+                    <button className="text-sm text-healthcare-primary dark:text-healthcare-primary-dark hover:opacity-80 flex items-center gap-1">
                         <Icon icon="heroicons:plus" className="w-4 h-4" />
                         Add Goal
                     </button>

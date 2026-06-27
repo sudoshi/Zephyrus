@@ -51,7 +51,7 @@ const PathwayCard = ({
                             id={`${title}-eligible`}
                             checked={isEligible}
                             onChange={(e) => onUpdateEligibility(e.target.checked)}
-                            className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-healthcare-primary focus:ring-healthcare-primary"
                         />
                         <label 
                             htmlFor={`${title}-eligible`}
@@ -67,7 +67,7 @@ const PathwayCard = ({
                                 id={`${title}-consent`}
                                 checked={hasConsented}
                                 onChange={(e) => onUpdateConsent(e.target.checked)}
-                                className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-indigo-600 focus:ring-indigo-500"
+                                className="h-4 w-4 rounded border-healthcare-border dark:border-healthcare-border-dark text-healthcare-primary focus:ring-healthcare-primary"
                             />
                             <label 
                                 htmlFor={`${title}-consent`}
@@ -93,7 +93,7 @@ const PathwayCard = ({
                         value={eligibilityNotes}
                         onChange={(e) => onUpdateNotes(e.target.value)}
                         rows={3}
-                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
+                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
                         placeholder="Enter assessment details..."
                     />
                 </div>
@@ -181,7 +181,7 @@ const DischargePathwaysSection = ({
                                         id="preferred-unit"
                                         value={alternativePathways.cadArena.preferredUnit || ''}
                                         onChange={(e) => handleUpdateCAD({ preferredUnit: e.target.value })}
-                                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
+                                        className="w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-healthcare-primary focus:ring-healthcare-primary bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
                                     >
                                         <option value="">Select a unit</option>
                                         {availableUnits.map((unit) => (

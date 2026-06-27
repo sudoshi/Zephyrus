@@ -22,10 +22,10 @@ const CareTeamTimeline = ({ teamCommunication }) => {
         <div className="relative pb-8">
             <div className="relative flex items-start space-x-3">
                 <div className="relative">
-                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center ring-8 ring-healthcare-surface dark:ring-healthcare-surface-dark">
+                    <div className="h-8 w-8 rounded-full bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 flex items-center justify-center ring-8 ring-healthcare-surface dark:ring-healthcare-surface-dark">
                         <Icon 
                             icon={getActivityIcon(activity.category)} 
-                            className="h-5 w-5 text-indigo-600 dark:text-indigo-400" 
+                            className="h-5 w-5 text-healthcare-primary dark:text-healthcare-primary-dark" 
                         />
                     </div>
                 </div>
@@ -44,7 +44,7 @@ const CareTeamTimeline = ({ teamCommunication }) => {
                         <p>{activity.message}</p>
                     </div>
                     <div className="mt-2">
-                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 text-healthcare-primary dark:text-healthcare-primary-dark">
                             {activity.category}
                         </span>
                     </div>
