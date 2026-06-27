@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
-import PageContentLayout from '@/Components/Common/PageContentLayout';
 import ProcessFlowDiagram from '@/Components/Process/ProcessFlowDiagram';
 import ProcessMetricsModal from '@/Components/Process/ProcessMetricsModal';
 import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
-import PatientFlowDashboard from '@/Components/Analytics/PatientFlow/PatientFlowDashboard';
 import { Section, Panel } from '@/Components/system';
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
