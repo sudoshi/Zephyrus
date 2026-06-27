@@ -16,11 +16,11 @@ class RTDCDashboardController extends Controller
     /**
      * Display the RTDC dashboard.
      */
-    public function index(Request $request): InertiaResponse
+    public function index(Request $request, \App\Services\Dashboard\RtdcDashboardService $dashboard): InertiaResponse
     {
         $this->rtdcService->activateWorkflow($request);
 
-        return Inertia::render('Dashboard/RTDC');
+        return Inertia::render('Dashboard/RTDC', $dashboard->build());
     }
 
     /**

@@ -4,7 +4,7 @@ import DashboardOverview from '@/Components/Dashboard/DashboardOverview';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
 
-const PerioperativeDashboard = () => {
+const PerioperativeDashboard = ({ overview }) => {
     return (
         <DashboardLayout>
             <Head title="Perioperative Dashboard - Zephyrus" />
@@ -12,7 +12,7 @@ const PerioperativeDashboard = () => {
                 title="Perioperative"
                 subtitle="Overview of surgical services metrics"
             >
-                <DashboardOverview />
+                <DashboardOverview overview={overview} />
             </PageContentLayout>
         </DashboardLayout>
     );

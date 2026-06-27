@@ -5,8 +5,8 @@ import { syntheticData } from '../../mock-data/dashboard';
 import DrillDownModal from './DrillDownModal';
 import  { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
 
-const LastMonthSection = () => {
-    const data = syntheticData.lastMonth;
+const LastMonthSection = ({ data: dataProp }) => {
+    const data = dataProp ?? syntheticData.lastMonth;
     const [selectedMetric, setSelectedMetric] = useState(null);
     const [isDarkMode] = useDarkMode();
     const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];

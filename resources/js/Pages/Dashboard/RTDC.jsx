@@ -9,12 +9,17 @@ import SimpleTrendChart from '@/Components/Analytics/Common/SimpleTrendChart';
 import CompactTabPanel from '@/Components/RTDC/CompactTabPanel';
 import EnhancedDepartmentMetrics from '@/Components/RTDC/EnhancedDepartmentMetrics';
 import HistoricalMetricsSection from '@/Components/RTDC/HistoricalMetrics/HistoricalMetricsSection';
-import { departmentData } from '@/mock-data/rtdc';
-import { alertsData } from '@/mock-data/rtdc-alerts';
-import { capacityData } from '@/mock-data/rtdc-capacity';
-import { staffingData } from '@/mock-data/rtdc-staffing';
+import { departmentData as mockDepartmentData } from '@/mock-data/rtdc';
+import { alertsData as mockAlertsData } from '@/mock-data/rtdc-alerts';
+import { capacityData as mockCapacityData } from '@/mock-data/rtdc-capacity';
+import { staffingData as mockStaffingData } from '@/mock-data/rtdc-staffing';
 
-const RTDCDashboard = () => {
+const RTDCDashboard = ({
+    departmentData = mockDepartmentData,
+    alertsData = mockAlertsData,
+    capacityData = mockCapacityData,
+    staffingData = mockStaffingData,
+}) => {
     const [selectedTimeframe, setSelectedTimeframe] = useState('day');
     const [expandedSections, setExpandedSections] = useState({
         census: true,

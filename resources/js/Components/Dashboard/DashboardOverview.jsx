@@ -5,7 +5,8 @@ import { Icon } from '@iconify/react';
 import { syntheticData } from '../../mock-data/dashboard';
 import Card from '@/Components/Dashboard/Card';
 
-const DashboardOverview = () => {
+const DashboardOverview = ({ overview = syntheticData }) => {
+    const data = overview ?? syntheticData;
     const [selectedLocation, setSelectedLocation] = useState('all');
     const [selectedService, setSelectedService] = useState('all');
     const [selectedSurgeon, setSelectedSurgeon] = useState('all');
@@ -168,8 +169,8 @@ const DashboardOverview = () => {
 
             {/* Main Content */}
             <div className="space-y-6">
-                <LastMonthSection />
-                <MonthToDateSection />
+                <LastMonthSection data={data.lastMonth} />
+                <MonthToDateSection data={data.monthToDate} reports={data.workbenchReports} />
             </div>
         </div>
     );

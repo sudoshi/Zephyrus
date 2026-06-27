@@ -22,6 +22,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Perioperative', [
             'workflow' => $workflow,
+            'overview' => app(\App\Services\Dashboard\PerioperativeMetricsService::class)->build(),
         ]);
     }
 

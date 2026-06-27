@@ -8,8 +8,8 @@ import LineChart from './Charts/LineChart';
 import WorkbenchReports from './WorkbenchReports';
 import { syntheticData } from '../../mock-data/dashboard';
 
-const MonthToDateSection = () => {
-    const data = syntheticData.monthToDate;
+const MonthToDateSection = ({ data: dataProp, reports }) => {
+    const data = dataProp ?? syntheticData.monthToDate;
     const [expandedSections, setExpandedSections] = useState({
         performance: true,
         utilization: true,
@@ -266,7 +266,7 @@ const MonthToDateSection = () => {
                 )}
 
                 {/* Workbench Reports */}
-                <WorkbenchReports reports={syntheticData.workbenchReports} />
+                <WorkbenchReports reports={reports ?? syntheticData.workbenchReports} />
             </div>
         </section>
     );

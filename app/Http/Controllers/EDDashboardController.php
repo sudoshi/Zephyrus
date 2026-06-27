@@ -12,13 +12,13 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index(Request $request)
+    public function index(Request $request, \App\Services\Dashboard\EdDashboardService $edDashboard)
     {
         $request->session()->put('workflow', 'emergency');
 
-        return Inertia::render('Dashboard/ED', [
+        return Inertia::render('Dashboard/ED', array_merge([
             'workflow' => 'emergency',
-        ]);
+        ], $edDashboard->build()));
     }
 
     /**

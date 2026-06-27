@@ -10,7 +10,16 @@ import AlertsAndPredictions from '@/Components/ED/AlertsAndPredictions';
 import ResourceManagement from '@/Components/ED/ResourceManagement';
 import { edMetrics, performanceMetrics, patientStatusBoard, alertsData } from '@/mock-data/ed';
 
-const EDDashboard = () => {
+const EDDashboard = ({
+    edMetrics: edMetricsProp = edMetrics,
+    performanceMetrics: performanceMetricsProp = performanceMetrics,
+    patientStatusBoard: patientStatusBoardProp = patientStatusBoard,
+    alertsData: alertsDataProp = alertsData,
+}) => {
+    const ed = edMetricsProp;
+    const perf = performanceMetricsProp;
+    const board = patientStatusBoardProp;
+    const alerts = alertsDataProp;
     return (
         <DashboardLayout>
             <Head title="ED Dashboard - ZephyrusOR" />
@@ -34,19 +43,19 @@ const EDDashboard = () => {
                             <MetricsCardGroup cols={2}>
                                 <MetricsCard
                                     title="Total Patients"
-                                    value={edMetrics.currentStatus.totalPatients.toString()}
-                                    trend={edMetrics.currentStatus.totalPatients > edMetrics.currentStatus.capacity * 0.8 ? 'down' : 'up'}
-                                    trendValue={edMetrics.currentStatus.occupancy}
+                                    value={ed.currentStatus.totalPatients.toString()}
+                                    trend={ed.currentStatus.totalPatients > ed.currentStatus.capacity * 0.8 ? 'down' : 'up'}
+                                    trendValue={ed.currentStatus.occupancy}
                                     icon="heroicons:users"
-                                    description={`${edMetrics.currentStatus.occupancy}% occupancy`}
+                                    description={`${ed.currentStatus.occupancy}% occupancy`}
                                 />
                                 <MetricsCard
                                     title="Waiting Room"
-                                    value={edMetrics.currentStatus.waitingRoom.toString()}
-                                    trend={edMetrics.currentStatus.waitingRoom > 10 ? 'down' : 'up'}
-                                    trendValue={edMetrics.currentStatus.averageWaitTime}
+                                    value={ed.currentStatus.waitingRoom.toString()}
+                                    trend={ed.currentStatus.waitingRoom > 10 ? 'down' : 'up'}
+                                    trendValue={ed.currentStatus.averageWaitTime}
                                     icon="heroicons:clock"
-                                    description={`${edMetrics.currentStatus.averageWaitTime} min avg wait`}
+                                    description={`${ed.currentStatus.averageWaitTime} min avg wait`}
                                 />
                             </MetricsCardGroup>
                             <div className="mt-6">
@@ -54,7 +63,7 @@ const EDDashboard = () => {
                                     Triage Categories
                                 </h4>
                                 <div className="space-y-3">
-                                    {Object.entries(edMetrics.triageCategories).map(([category, data]) => (
+                                    {Object.entries(ed.triageCategories).map(([category, data]) => (
                                         <div key={category} className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
                                             <div className="flex items-center space-x-3">
                                                 <div className={`w-2 h-2 rounded-full ${
@@ -96,19 +105,19 @@ const EDDashboard = () => {
                             <MetricsCardGroup cols={2}>
                                 <MetricsCard
                                     title="Door to Provider"
-                                    value={`${performanceMetrics.doorToProvider.current}min`}
-                                    trend={performanceMetrics.doorToProvider.trend}
-                                    trendValue={performanceMetrics.doorToProvider.trendValue}
+                                    value={`${perf.doorToProvider.current}min`}
+                                    trend={perf.doorToProvider.trend}
+                                    trendValue={perf.doorToProvider.trendValue}
                                     icon="heroicons:clock"
-                                    description={`Target: ${performanceMetrics.doorToProvider.target}min`}
+                                    description={`Target: ${perf.doorToProvider.target}min`}
                                 />
                                 <MetricsCard
                                     title="Left Without Being Seen"
-                                    value={`${performanceMetrics.leftWithoutBeingSeen.current}%`}
-                                    trend={performanceMetrics.leftWithoutBeingSeen.trend}
-                                    trendValue={performanceMetrics.leftWithoutBeingSeen.trendValue}
+                                    value={`${perf.leftWithoutBeingSeen.current}%`}
+                                    trend={perf.leftWithoutBeingSeen.trend}
+                                    trendValue={perf.leftWithoutBeingSeen.trendValue}
                                     icon="heroicons:arrow-right"
-                                    description={`Target: ${performanceMetrics.leftWithoutBeingSeen.target}%`}
+                                    description={`Target: ${perf.leftWithoutBeingSeen.target}%`}
                                 />
                             </MetricsCardGroup>
                             <div className="mt-6">
@@ -117,7 +126,7 @@ const EDDashboard = () => {
                                 </h4>
                                 <div className="h-48">
                                         <TrendChart
-                                            data={edMetrics.waitTimes.trends}
+                                            data={ed.waitTimes.trends}
                                             series={[
                                                 {
                                                     dataKey: 'waitTime',
@@ -171,7 +180,7 @@ const EDDashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                        {patientStatusBoard.map((patient) => (
+                                        {board.map((patient) => (
                                             <tr key={patient.id}>
                                                 <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {patient.location}
@@ -206,12 +215,12 @@ const EDDashboard = () => {
                     </Card>
 
                     {/* Resource Management */}
-                    <ResourceManagement resources={edMetrics.resources} />
+                    <ResourceManagement resources={ed.resources} />
 
                     {/* Alerts and Predictions */}
                     <AlertsAndPredictions
-                        alerts={alertsData.alerts}
-                        predictions={edMetrics.predictions}
+                        alerts={alerts.alerts}
+                        predictions={ed.predictions}
                     />
                 </div>
             </PageContentLayout>
