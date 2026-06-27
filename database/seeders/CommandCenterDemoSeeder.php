@@ -887,6 +887,87 @@ class CommandCenterDemoSeeder extends Seeder
                 ]);
             }
         }
+
+        if (! $hasEvents) {
+            return;
+        }
+
+        // Completed + canceled transport history with full lifecycle events so the
+        // Transport Analytics duration measures compute (request->assign,
+        // dispatch->pickup, pickup->destination, patient-not-ready delay rate,
+        // avoidable bed-hours, vendor acceptance/cancellation). Deterministic.
+        $completedTypes = ['inpatient', 'transfer', 'discharge', 'ems', 'care_transition'];
+        for ($j = 0; $j < 14; $j++) {
+            $seed = 91000 + $j;
+            $type = $completedTypes[$j % count($completedTypes)];
+            $origin = $nonEdUnits->get($j % $nonEdUnits->count());
+            $destination = $nonEdUnits->get(($j + 2) % $nonEdUnits->count());
+            $isCanceled = $j % 7 === 6;     // ~2 canceled
+            $notReady = $j % 4 === 0;       // ~4 patient-not-ready delays
+            $vendor = $j % 3 === 0;         // ~5 vendor-assigned
+
+            $requestedAt = now()->subMinutes(55 * ($j + 1));
+            $assignedAt = (clone $requestedAt)->addMinutes($this->seededRand($seed + 1, 4, 18));
+            $enRouteAt = (clone $assignedAt)->addMinutes($this->seededRand($seed + 2, 2, 10));
+            $notReadyDelay = $notReady ? $this->seededRand($seed + 4, 15, 45) : 0;
+            $arrivedAt = (clone $enRouteAt)->addMinutes($this->seededRand($seed + 3, 5, 18) + $notReadyDelay);
+            $completedAt = (clone $arrivedAt)->addMinutes($this->seededRand($seed + 5, 8, 25));
+
+            $status = $isCanceled ? 'canceled' : 'completed';
+            $team = $vendor ? 'MedTransport Partners' : 'Porter Pool';
+
+            $reqId = DB::table('prod.transport_requests')->insertGetId([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => $type,
+                'priority' => ['routine', 'urgent', 'stat'][$j % 3],
+                'status' => $status,
+                'patient_ref' => 'sim-transport-hist-'.($j + 1),
+                'origin' => $origin->name,
+                'destination' => $type === 'discharge' ? 'Main Lobby Discharge' : $destination->name,
+                'transport_mode' => ['stretcher', 'wheelchair', 'bed'][$j % 3],
+                'clinical_service' => 'Medicine',
+                'requested_by' => 'demo-seeder',
+                'requested_at' => $requestedAt,
+                'needed_at' => (clone $requestedAt)->addMinutes(60),
+                'assigned_at' => $assignedAt,
+                'assigned_team' => $team,
+                'is_deleted' => false,
+                'created_at' => $requestedAt,
+                'updated_at' => $completedAt,
+            ], 'transport_request_id');
+
+            $events = [
+                ['transport.requested', null, 'requested', $requestedAt],
+                ['transport.assigned', 'requested', 'assigned', $assignedAt],
+                ['transport.en_route', 'assigned', 'en_route', $enRouteAt],
+            ];
+            if ($notReady) {
+                $events[] = ['transport.not_ready', 'en_route', 'en_route', (clone $enRouteAt)->addMinutes(2)];
+            }
+            $events[] = ['transport.arrived', 'en_route', 'arrived', $arrivedAt];
+            $events[] = $isCanceled
+                ? ['transport.canceled', 'arrived', 'canceled', $completedAt]
+                : ['transport.completed', 'arrived', 'completed', $completedAt];
+
+            foreach ($events as [$etype, $from, $to, $at]) {
+                DB::table('prod.transport_events')->insert([
+                    'event_uuid' => (string) Str::uuid(),
+                    'transport_request_id' => $reqId,
+                    'event_type' => $etype,
+                    'from_status' => $from,
+                    'to_status' => $to,
+                    'payload' => json_encode([
+                        'request_type' => $type,
+                        'vendor' => $vendor,
+                        'not_ready_delay_min' => $notReadyDelay,
+                        'source' => 'command_center_demo',
+                    ]),
+                    'source' => 'demo-seeder',
+                    'occurred_at' => $at,
+                    'created_at' => now(),
+                ]);
+            }
+        }
     }
 
     private function seedEdVisits(?Unit $edUnit, $nonEdUnits): void
