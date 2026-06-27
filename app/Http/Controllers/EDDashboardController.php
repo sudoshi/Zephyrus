@@ -26,9 +26,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function waitTime()
+    public function waitTime(\App\Services\Ed\WaitTimeService $waitTime)
     {
-        return Inertia::render('ED/Analytics/WaitTime');
+        return Inertia::render('ED/Analytics/WaitTime', $waitTime->build());
     }
 
     /**
@@ -46,9 +46,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function resources()
+    public function resources(\App\Services\Ed\ResourceAnalyticsService $resourceAnalytics)
     {
-        return Inertia::render('ED/Analytics/Resources');
+        return Inertia::render('ED/Analytics/Resources', $resourceAnalytics->build());
     }
 
     /**
@@ -56,9 +56,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function triage()
+    public function triage(\App\Services\Ed\TriageService $triage)
     {
-        return Inertia::render('ED/Operations/Triage');
+        return Inertia::render('ED/Operations/Triage', $triage->build());
     }
 
     /**
@@ -66,9 +66,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function treatment()
+    public function treatment(\App\Services\Ed\TreatmentService $treatment)
     {
-        return Inertia::render('ED/Operations/Treatment');
+        return Inertia::render('ED/Operations/Treatment', $treatment->build());
     }
 
     /**
@@ -76,9 +76,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function resourceManagement()
+    public function resourceManagement(\App\Services\Ed\ResourceManagementService $resourceManagement)
     {
-        return Inertia::render('ED/Operations/Resources');
+        return Inertia::render('ED/Operations/Resources', $resourceManagement->build());
     }
 
     /**
@@ -86,9 +86,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function arrival()
+    public function arrival(\App\Services\Ed\ArrivalPredictionService $arrivalPrediction)
     {
-        return Inertia::render('ED/Predictions/Arrival');
+        return Inertia::render('ED/Predictions/Arrival', $arrivalPrediction->build());
     }
 
     /**
@@ -96,9 +96,9 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function acuity()
+    public function acuity(\App\Services\Ed\AcuityPredictionService $acuityPrediction)
     {
-        return Inertia::render('ED/Predictions/Acuity');
+        return Inertia::render('ED/Predictions/Acuity', $acuityPrediction->build());
     }
 
     /**
@@ -106,8 +106,8 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function resourcePlanning()
+    public function resourcePlanning(\App\Services\Ed\ResourceOptimizationService $resourceOptimization)
     {
-        return Inertia::render('ED/Predictions/Resources');
+        return Inertia::render('ED/Predictions/Resources', $resourceOptimization->build());
     }
 }
