@@ -16,8 +16,6 @@ import TimelineSlider from '@/Components/Process/TimelineSlider';
 import { workflows } from '@/Components/Process/ProcessSelector';
 import VariantsViewPanel from '@/Components/Process/VariantsViewPanel';
 
-// Log the imported workflows for debugging
-console.log('Imported workflows in Process.jsx:', workflows);
 
 const Process = ({ auth, savedLayout }) => {
   const [processData, setProcessData] = useState(null);
@@ -31,98 +29,14 @@ const Process = ({ auth, savedLayout }) => {
   const [selectedMap, setSelectedMap] = useState('Bed Placement');
   const [flowDirection, setFlowDirection] = useState('Vertical');
   const [timelineRange, setTimelineRange] = useState([new Date(2024, 0, 1), new Date()]);
-  
-  // Reference to track if the component has mounted
-  const componentMounted = useRef(false);
 
-  // Initialize with Bed Placement workflow on mount
-  useEffect(() => {
-    console.log('Component mounting - initializing with Bed Placement workflow');
-    
-    // Set initial state
-    setSelectedMap('Bed Placement');
-    setLoading(true);
-    
-    // Directly load the bed placement data file without using fetchData
-    const loadBedPlacementData = async () => {
-      try {
-        console.log('Directly loading bed_placement_process_map.json');
-        const response = await fetch('/mock-data/bed_placement_process_map.json');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load Bed Placement data: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Successfully loaded Bed Placement data:', data);
-        
-        // Validate data structure
-        if (!data || !data.nodes || !data.edges) {
-          throw new Error('Invalid Bed Placement data structure');
-        }
-        
-        // Set the data and mark component as mounted
-        setProcessData(data);
-        componentMounted.current = true;
-      } catch (error) {
-        console.error('Error loading Bed Placement data:', error);
-        setError(`Failed to load Bed Placement data: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    // Execute the data loading
-    loadBedPlacementData();
-    
-    // Cleanup function
-    return () => {
-      console.log('Process component unmounting');
-    };
-  }, []);
-  
-  // Function to handle map selection changes
+  // Switch the active process map; the [selectedMap] effect loads its data.
   const handleMapChange = (mapName) => {
-    console.log(`Changing map to: ${mapName}`);
-    
-    // Only update if the map is actually changing
-    if (mapName !== selectedMap) {
-      setSelectedMap(mapName);
-      // Reset selected elements
-      setSelectedNode(null);
-      setSelectedEdge(null);
-      setIsMetricsModalOpen(false);
-      
-      // Special handling for Bed Placement to ensure it always loads correctly
-      if (mapName === 'Bed Placement') {
-        console.log('Special handling for Bed Placement map');
-        setLoading(true);
-        
-        // Direct fetch of the Bed Placement data file
-        fetch('/mock-data/bed_placement_process_map.json')
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`Failed to load Bed Placement data: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => {
-            console.log('Successfully loaded Bed Placement data directly');
-            setProcessData(data);
-            setError(null);
-          })
-          .catch(err => {
-            console.error('Error loading Bed Placement data:', err);
-            setError(`Failed to load Bed Placement data: ${err.message}`);
-            // Fall back to the regular fetchData as a backup
-            fetchData('Bed Placement');
-          })
-          .finally(() => setLoading(false));
-      } else {
-        // For other maps, use the regular fetchData function
-        fetchData(mapName);
-      }
-    }
+    if (mapName === selectedMap) return;
+    setSelectedMap(mapName);
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    setIsMetricsModalOpen(false);
   };
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -206,161 +120,98 @@ const Process = ({ auth, savedLayout }) => {
 
   // Define fetchData outside useEffect so it can be called from handleMapChange
   const fetchData = async (workflowName = null) => {
-      // Skip fetch if component is still mounting and we're trying to load Bed Placement
-      if (!componentMounted.current && (workflowName === 'Bed Placement' || (!workflowName && selectedMap === 'Bed Placement'))) {
-        console.log('Skipping fetchData call during initial mount for Bed Placement');
-        return;
-      }
-      
       try {
         // Use the provided workflow name or the selected map from state
         const workflow = workflowName || selectedMap;
-        console.log(`Fetching process map data for workflow: ${workflow}`);
         setLoading(true);
         setError(null); // Reset any previous errors
-        
-        // Debug log to track fetch calls
-        console.log(`Process map fetch initiated for: ${workflow} at ${new Date().toISOString()}`);
-        
+
         // Ensure we're not trying to fetch data for an empty workflow
         if (!workflow) {
-          console.error('No workflow specified for fetchData');
           setError('No workflow specified');
           setLoading(false);
           return;
         }
         
-        // Map workflow names to their corresponding sample data files
+        // Map workflow names to their corresponding sample process-map files.
         const workflowDataFiles = {
           'Bed Placement': 'bed_placement_process_map.json',
           'Admissions': 'admissions_process_map.json',
           'Discharges': 'discharges_process_map.json',
-          'ED to Inpatient': 'ed_to_inpatient_process_map.json'
+          'ED to Inpatient': 'ed_to_inpatient_process_map.json',
         };
-        
-        // Define the base path for process map data files
+
         const dataBasePath = '/mock-data';
-        
-        // Check if we have a sample data file for this workflow
+
+        // Load the workflow's sample process-map file directly when available.
         if (workflowDataFiles[workflow]) {
-          console.log(`Loading sample data for ${workflow} workflow`);
-          
           try {
-            // Load the sample data file directly
             const response = await fetch(`${dataBasePath}/${workflowDataFiles[workflow]}`);
-            
+
             if (!response.ok) {
               throw new Error(`Failed to load sample data: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            console.log(`Loaded sample ${workflow} data:`, data);
             setProcessData(data);
             setLoading(false);
             return;
           } catch (error) {
-            console.error(`Error loading sample ${workflow} data:`, error);
-            // Fall back to API if sample data fails to load
+            // Fall back to the API if the sample file fails to load.
           }
         }
-        
-        // For other workflows or if sample data failed to load, use the API
-        // Include process mining parameters in the API request
+
+        // Fall back to the process-mining API, honoring the requested workflow.
         const url = new URL('/improvement/api/nursing-operations', window.location.origin);
-        
-        // Add default parameters
         url.searchParams.append('hospital', 'Virtua Mullica Hospital');
         url.searchParams.append('workflow', workflow);
         url.searchParams.append('timeRange', '7 Days');
-        
-        // Force all workflows to use the mock data format for consistency
         url.searchParams.append('format', 'mock_data');
-        console.log(`Using mock data format for all workflows including ${workflow}`);
-        
-        // Add default process mining parameters
         url.searchParams.append('nodeCount', 100);
         url.searchParams.append('arcCount', 10);
         url.searchParams.append('parallelismFactor', 40);
         url.searchParams.append('frequencyMetric', 'case');
         url.searchParams.append('durationMetric', 'average');
-        
-        console.log(`API request URL: ${url.toString()}`);
-        
+
         const response = await fetch(url, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+            'Cache-Control': 'no-cache',
+          },
         });
-        
+
         if (!response.ok) {
-          console.error(`API response not OK: ${response.status} ${response.statusText}`);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          console.error(`Unexpected content type: ${contentType}`);
           throw new Error(`Expected JSON response but got ${contentType}`);
         }
-        
+
         const data = await response.json();
-        console.log(`Received data for ${selectedMap}:`, data);
-        
+
         if (!data || !data.nodes || !data.edges) {
-          console.error('Invalid data structure received:', data);
           throw new Error('Invalid data structure received from API');
         }
-        
-        // Validate the data structure for all process maps
-        console.log(`Validating data structure for ${selectedMap}...`);
-        
-        // Check if the first node has the expected structure
-        const firstNode = data.nodes[0];
-        if (firstNode) {
-          console.log('First node structure:', firstNode);
-          
-          // Log the data format for debugging
-          const hasLabel = 'label' in firstNode || (firstNode.data && 'label' in firstNode.data);
-          const hasType = 'type' in firstNode;
-          const hasPosition = 'position' in firstNode;
-          
-          console.log('Data format validation:', {
-            hasLabel,
-            hasType,
-            hasPosition,
-            nodeCount: data.nodes.length,
-            edgeCount: data.edges.length
-          });
-        }
-        
+
         setProcessData(data);
-        console.log(`Successfully loaded ${selectedMap} process map with ${data.nodes.length} nodes and ${data.edges.length} edges`);
       } catch (error) {
         const workflow = workflowName || selectedMap;
-        console.error(`Error fetching data for ${workflow}:`, error);
         setError(`Failed to load process data for ${workflow}: ${error.message}`);
         setProcessData(null); // Clear any previous data
-        
-        // Log additional debugging information
-        console.error('Error details:', {
-          workflow: workflow,
-          url: url?.toString(),
-          error: error.stack || error.message
-        });
       } finally {
         setLoading(false);
       }
     };
 
-  // Handle workflow changes after initial mount
+  // Load the selected workflow's process map on mount and whenever it changes.
   useEffect(() => {
-    // Only respond to changes after component has mounted and initial data is loaded
-    if (componentMounted.current && selectedMap) {
-      console.log(`Workflow changed to: ${selectedMap}, fetching data`);
+    if (selectedMap) {
       fetchData(selectedMap);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMap]);
 
   const handleNodeClick = (node) => {
@@ -378,8 +229,7 @@ const Process = ({ auth, savedLayout }) => {
   // Handle timeline range changes
   const handleTimelineChange = (range) => {
     setTimelineRange(range);
-    // Here you would typically filter your process data based on the selected time range
-    console.log(`Timeline range updated: ${range[0].toLocaleTimeString()} - ${range[1].toLocaleTimeString()}`);
+    // Timeline range is captured in state for future server-side filtering.
   };
 
   const handleCloseModal = () => {
@@ -457,10 +307,7 @@ const Process = ({ auth, savedLayout }) => {
                   <select
                     id="map-selector"
                     value={selectedMap}
-                    onChange={(e) => {
-                      console.log(`Changing selected map from ${selectedMap} to ${e.target.value}`);
-                      handleMapChange(e.target.value);
-                    }}
+                    onChange={(e) => handleMapChange(e.target.value)}
                     className="px-3 py-1.5 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-healthcare-primary focus:border-transparent text-sm"
                   >
                     {workflows.map((workflow) => (

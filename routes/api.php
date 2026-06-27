@@ -226,37 +226,28 @@ Route::middleware('throttle:60,1')->group(function () {
 Route::prefix('improvement')->middleware('throttle:60,1')->group(function () {
     Route::get('/api/nursing-operations', function () {
         $workflow = request('workflow', 'Bed Placement');
-        $format = request('format', 'mock_data');
 
-        // Log the requested workflow for debugging
-        error_log('API request for workflow: '.$workflow.', format: '.$format);
+        // Map each process workflow to its OCEL process-map file. Honor the
+        // requested workflow instead of always returning Bed Placement.
+        $workflowFiles = [
+            'Bed Placement' => 'bed_placement_process_map.json',
+            'Admissions' => 'admissions_process_map.json',
+            'Discharges' => 'discharges_process_map.json',
+            'ED to Inpatient' => 'ed_to_inpatient_process_map.json',
+        ];
 
-        // ALWAYS use the bed_placement_process_map.json file regardless of the requested workflow
-        // This ensures we always return our custom Bed Placement process map
-        $jsonPath = base_path('sample-pages/OCEL/bed_placement_process_map.json');
-        error_log('ALWAYS loading Bed Placement data from: '.$jsonPath.' regardless of requested workflow: '.$workflow);
+        $file = $workflowFiles[$workflow] ?? $workflowFiles['Bed Placement'];
+        $jsonPath = base_path('sample-pages/OCEL/'.$file);
 
-        if (file_exists($jsonPath)) {
-            try {
-                $jsonData = file_get_contents($jsonPath);
-                $data = json_decode($jsonData, true);
+        if (is_file($jsonPath)) {
+            $data = json_decode((string) file_get_contents($jsonPath), true);
 
-                if (json_last_error() === JSON_ERROR_NONE && isset($data['nodes']) && isset($data['edges'])) {
-                    error_log('Successfully loaded Bed Placement data with '.count($data['nodes']).' nodes and '.count($data['edges']).' edges');
-
-                    return response()->json($data);
-                } else {
-                    error_log('JSON parsing error: '.json_last_error_msg().' in: '.$jsonPath);
-                }
-            } catch (\Exception $e) {
-                error_log('Exception reading JSON: '.$e->getMessage());
+            if (json_last_error() === JSON_ERROR_NONE && isset($data['nodes'], $data['edges'])) {
+                return response()->json($data);
             }
-        } else {
-            error_log('Bed Placement JSON file not found at: '.$jsonPath);
         }
 
-        // If we get here, create a minimal mock data structure to return
-        error_log('Creating fallback mock data structure for workflow: '.$workflow);
+        // Fallback structure when the requested workflow's file is missing/invalid.
         $fallbackData = [
             'nodes' => [
                 [
