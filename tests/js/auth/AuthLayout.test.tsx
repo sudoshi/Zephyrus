@@ -14,14 +14,16 @@ describe('AuthLayout', () => {
     const { container } = render(<AuthLayout><div>my form</div></AuthLayout>);
 
     expect(screen.getByText('my form')).toBeInTheDocument();
+    // The brand lockup is the "Zephyrus" wordmark (one in each panel — sidebar + form header).
+    // The earlier icon <img class="za-lockup-icon"> was retired in the split-elegant auth redesign.
     expect(screen.getAllByText('Zephyrus')).toHaveLength(2);
+    expect(container.querySelectorAll('.za-wordmark')).toHaveLength(2);
     expect(screen.queryByAltText('Zephyrus application icon')).not.toBeInTheDocument();
-    expect(container.querySelector('.za-lockup-icon')).toHaveAttribute('alt', '');
-    expect(container.querySelector('.za-lockup-icon')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByText('Operations Command Center')).toBeInTheDocument();
     expect(screen.getByText('Emergency Department')).toBeInTheDocument();
-    expect(screen.getByText('RTDC')).toBeInTheDocument();
-    expect(screen.getByText('Perioperative')).toBeInTheDocument();
+    // RTDC / Perioperative appear in both the domain map and the secondary tag list, so assert presence (>=1).
+    expect(screen.getAllByText('RTDC').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Perioperative').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Process Improvement')).toBeInTheDocument();
   });
 });

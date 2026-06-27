@@ -4,7 +4,7 @@ import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import { Button } from '@/Components/ui/button';
-import Panel from '@/Components/ui/Panel';
+import { Section, Panel } from '@/Components/system';
 import Input from '@/Components/ui/input';
 import { DatePicker } from '@/Components/ui/flowbite/DatePicker';
 import Textarea from '@/Components/ui/textarea';
@@ -642,9 +642,12 @@ const RootCause = ({ rootCauses = [] }) => {
         subtitle="Human-In-The-Loop AI Assistant for Process Analysis"
         className="flex flex-col"
       >
-        <Panel className="p-6 flex flex-col">
+        <div className="flex flex-col gap-5">
           {/* Filters */}
-          <div className="grid grid-cols-3 gap-6 mb-6">
+          <Section title="Filters" icon="lucide:filter"
+                   summary="Scope process items by location, type, and date range">
+          <Panel className="p-4">
+          <div className="grid grid-cols-3 gap-6">
             {/* Location filter */}
             <div>
               <label htmlFor="location-filter" className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">
@@ -720,8 +723,12 @@ const RootCause = ({ rootCauses = [] }) => {
               </p>
             </div>
           </div>
-          
+          </Panel>
+          </Section>
+
           {/* Main content grid */}
+          <Section title="Process Analysis" icon="lucide:git-branch"
+                   summary="Human-in-the-loop AI assistant for root-cause analysis">
           <div className="grid grid-cols-4 gap-4 flex-1">
             {/* Process items column with tabs */}
             <div className="col-span-1 flex flex-col">
@@ -760,7 +767,7 @@ const RootCause = ({ rootCauses = [] }) => {
               </div>
               
               {/* Process Items Container */}
-              <div className="overflow-y-auto bg-healthcare-surface dark:bg-healthcare-surface-dark border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 mb-4 h-[950px]">
+              <Panel className="overflow-y-auto p-4 mb-4 h-[950px]">
                 <h3 className="font-medium text-healthcare-text-primary dark:text-white mb-3">{activeTab} Processes</h3>
                 {activeTab === 'New' && (
                   <div className="space-y-4">
@@ -818,15 +825,15 @@ const RootCause = ({ rootCauses = [] }) => {
                     )}
                   </div>
                 )}
-              </div>
+              </Panel>
             </div>
-            
+
             {/* Conversation and analysis column */}
             <div className="col-span-3 flex flex-col">
               {/* Chat interface */}
               <div className="flex flex-col mb-4">
                 <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">How Can I Help?</h2>
-                <div className="flex flex-col border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg overflow-hidden h-[500px]">
+                <Panel className="flex flex-col h-[500px]">
                   <div className="flex-1 overflow-y-auto p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark">
                     {messages.map((message, index) => (
                       <ChatMessage
@@ -854,14 +861,14 @@ const RootCause = ({ rootCauses = [] }) => {
                       <Icon icon="lucide:send" className="w-4 h-4 text-white" />
                     </Button>
                   </div>
-                </div>
+                </Panel>
               </div>
-              
+
               {/* OCEL Process Details */}
               {selectedItem && (
                 <div className="mb-4">
                   <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">Process Analysis</h2>
-                  <div className="border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark">
+                  <Panel className="p-4">
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <h4 className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Process Type</h4>
@@ -938,21 +945,21 @@ const RootCause = ({ rootCauses = [] }) => {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </Panel>
                 </div>
               )}
-              
+
               {/* Analysis section */}
               <div className="flex-1">
                 <h2 className="font-medium text-healthcare-text-primary dark:text-white mb-3">Analysis</h2>
-                <div className="border-2 border-healthcare-border dark:border-healthcare-border-dark rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark h-[350px]">
-                  <Textarea 
+                <Panel className="h-[350px]">
+                  <Textarea
                     value={analysis}
                     onChange={(e) => setAnalysis(e.target.value)}
                     placeholder="Enter your analysis here..."
                     className="w-full h-full resize-none border-0 focus:ring-0"
                   />
-                </div>
+                </Panel>
                 <div className="flex justify-end mt-4 gap-2">
                   <Button onClick={handleExport} variant="outline" size="sm">
                     <Icon icon="lucide:download" className="w-4 h-4 mr-1" />
@@ -966,7 +973,8 @@ const RootCause = ({ rootCauses = [] }) => {
               </div>
             </div>
           </div>
-        </Panel>
+          </Section>
+        </div>
       </PageContentLayout>
     </DashboardLayout>
   );

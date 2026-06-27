@@ -2,18 +2,19 @@ import React, { useMemo, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 import { Icon } from '@iconify/react';
 
 // ED Resource Optimization (Predictions). Answers one operational question for
 // the next 8h horizon: does the on-shift roster cover the staffing/bed load
 // implied by PREDICTED arrivals and their acuity, and where should the next
-// resource go? KPI tiles → required-vs-available chart (toggle nurses /
-// providers / beds) → recommendations list. Values are computed live from
-// prod.ed_visits by ResourceOptimizationService; the authored demo literals
-// keep the page legible if it renders before props are wired.
+// resource go? Rebuilt on the gold-standard design system: KPI wall is one
+// MetricGrid, the required-vs-available chart + allocation table + recommendation
+// /acuity lists live in Panels under Section headers (the resource-type toggle
+// lives in the Section `actions` slot). Values are computed live from
+// prod.ed_visits by ResourceOptimizationService; the authored demo literals keep
+// the page legible if it renders before props are wired.
 
 // --- demo fallbacks (used only when no live props arrive) -------------------
 const DEMO_AVAILABLE = { nurses: 6, providers: 3, beds: 40 };
@@ -179,6 +180,34 @@ export default function Resources({
   const hoursAtRisk = rows.filter((r) => r.status !== 'optimal').length;
   const totalPredicted = rows.reduce((acc, r) => acc + (r.predictedArrivals || 0), 0);
 
+  // KPI wall — pressure headline numbers. Status pairs the gap/pressure trend
+  // with tone; the label + value carry the meaning, never colour alone.
+  const kpiMetrics = [
+    metric({
+      key: 'peak-arrivals', label: 'Peak predicted arrivals', value: Number(k.peakArrivals.value),
+      status: 'info', caption: `Busiest hour at ${k.peakArrivals.hour}`,
+      definition: 'Highest predicted arrivals in any single hour of the horizon.',
+    }),
+    metric({
+      key: 'nurse-gap', label: 'Max nurse gap', value: Number(k.nurseGap.value),
+      status: k.nurseGap.value > 0 ? 'critical' : 'success', goodWhenDown: true,
+      caption: k.nurseGap.value > 0 ? `Shortfall at ${k.nurseGap.hour}` : 'Nursing fully covered',
+      definition: 'Largest shortfall of required vs available nurses across the horizon.',
+    }),
+    metric({
+      key: 'bed-pressure', label: 'Peak bed pressure', value: Number(k.bedPressure.value), unit: '%',
+      status: k.bedPressure.value >= 100 ? 'critical' : k.bedPressure.value >= 80 ? 'warning' : 'success',
+      target: 100, goodWhenDown: true, caption: 'Required vs available beds',
+      definition: 'Peak required beds as a share of available beds (100% = at capacity).',
+    }),
+    metric({
+      key: 'high-acuity-share', label: 'High-acuity share', value: Number(k.highAcuityShare.value), unit: '%',
+      status: k.highAcuityShare.value >= 25 ? 'warning' : 'success',
+      caption: 'ESI 1-2 of predicted mix',
+      definition: 'Predicted share of incoming patients triaged ESI 1-2.',
+    }),
+  ];
+
   // Loading / unpopulated guard — render the skeleton if nothing resolved at all.
   if (!hasData && !forecast) {
     return (
@@ -227,241 +256,170 @@ export default function Resources({
       >
         <div className="flex flex-col gap-5">
           {/* KPI wall */}
-          <MetricsCardGroup cols={4}>
-            <MetricsCard
-              title="Peak Predicted Arrivals"
-              value={k.peakArrivals.value.toString()}
-              trend={k.peakArrivals.trend}
-              trendValue={k.peakArrivals.value}
-              icon="heroicons:arrow-trending-up"
-              description={`Busiest hour at ${k.peakArrivals.hour}`}
-              comparison=""
-            />
-            <MetricsCard
-              title="Max Nurse Gap"
-              value={k.nurseGap.value.toString()}
-              trend={k.nurseGap.value > 0 ? 'down' : 'up'}
-              trendValue={k.nurseGap.value}
-              icon="heroicons:user-group"
-              description={
-                k.nurseGap.value > 0
-                  ? `Shortfall at ${k.nurseGap.hour}`
-                  : 'Nursing fully covered'
-              }
-              comparison=""
-            />
-            <MetricsCard
-              title="Peak Bed Pressure"
-              value={`${k.bedPressure.value}%`}
-              trend={k.bedPressure.value >= 100 ? 'down' : 'up'}
-              trendValue={k.bedPressure.value}
-              icon="heroicons:rectangle-stack"
-              description="Required vs available beds"
-              comparison=""
-            />
-            <MetricsCard
-              title="High-Acuity Share"
-              value={`${k.highAcuityShare.value}%`}
-              trend={k.highAcuityShare.value >= 25 ? 'down' : 'up'}
-              trendValue={k.highAcuityShare.value}
-              icon="heroicons:shield-exclamation"
-              description="ESI 1-2 of predicted mix"
-              comparison=""
-            />
-          </MetricsCardGroup>
+          <Section
+            title="Resource pressure"
+            icon="heroicons:cpu-chip"
+            summary={`${totalPredicted} predicted arrivals across the next ${rows.length} hours`}
+          >
+            <MetricGrid metrics={kpiMetrics} />
+          </Section>
 
-          {/* Required vs available chart */}
-          <Card>
-            <Card.Header>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <Card.Title>
-                    <div className="flex items-center gap-2">
-                      <Icon icon="heroicons:chart-bar" className="h-5 w-5" aria-hidden="true" />
-                      <span>Required vs Available — {view.label}</span>
-                    </div>
-                  </Card.Title>
-                  <Card.Description>
-                    {totalPredicted} predicted arrivals across the next {rows.length} hours
-                  </Card.Description>
-                </div>
-                <div
-                  className="inline-flex rounded-md bg-healthcare-background dark:bg-healthcare-background-dark p-0.5"
-                  role="tablist"
-                  aria-label="Resource type"
-                >
-                  {Object.entries(RESOURCE_VIEWS).map(([key, cfg]) => {
-                    const activeTab = key === resourceView;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeTab}
-                        onClick={() => setResourceView(key)}
-                        className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-healthcare-warning ${
-                          activeTab
-                            ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark shadow-sm'
-                            : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark'
-                        }`}
-                      >
-                        <Icon icon={cfg.icon} className="h-4 w-4" aria-hidden="true" />
-                        {cfg.label}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* Required vs available chart — resource toggle lives in actions */}
+          <Section
+            title={`Required vs available — ${view.label}`}
+            icon="heroicons:chart-bar"
+            summary={`${totalPredicted} predicted arrivals across the next ${rows.length} hours`}
+            actions={
+              <div
+                className="inline-flex rounded-md bg-healthcare-background dark:bg-healthcare-background-dark p-0.5"
+                role="tablist"
+                aria-label="Resource type"
+              >
+                {Object.entries(RESOURCE_VIEWS).map(([key, cfg]) => {
+                  const activeTab = key === resourceView;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab}
+                      onClick={() => setResourceView(key)}
+                      className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-healthcare-warning ${
+                        activeTab
+                          ? 'bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark shadow-sm'
+                          : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark'
+                      }`}
+                    >
+                      <Icon icon={cfg.icon} className="h-4 w-4" aria-hidden="true" />
+                      {cfg.label}
+                    </button>
+                  );
+                })}
               </div>
-            </Card.Header>
-            <Card.Content>
+            }
+          >
+            <Panel className="p-4">
               {hasData ? (
                 <div className="h-80">
                   <BarChart data={chartData} options={chartOptions} />
                 </div>
               ) : (
-                <div className="flex h-80 flex-col items-center justify-center text-center">
-                  <Icon
-                    icon="heroicons:chart-bar"
-                    className="mb-3 h-10 w-10 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
-                    aria-hidden="true"
-                  />
-                  <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    No arrival forecast available for this horizon
-                  </p>
-                </div>
+                <EmptyState
+                  icon="heroicons:chart-bar"
+                  message="No arrival forecast available for this horizon"
+                />
               )}
-            </Card.Content>
-          </Card>
+            </Panel>
+          </Section>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             {/* Hourly allocation board */}
-            <div className="lg:col-span-2">
-              <Card>
-                <Card.Header>
-                  <Card.Title>
-                    <div className="flex items-center gap-2">
-                      <Icon icon="heroicons:table-cells" className="h-5 w-5" aria-hidden="true" />
-                      <span>Hourly Allocation Plan</span>
-                    </div>
-                  </Card.Title>
-                  <Card.Description>
-                    Predicted demand and the roster needed to cover it, hour by hour
-                  </Card.Description>
-                </Card.Header>
-                <Card.Content className="p-0">
-                  {hasData ? (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark text-left">
-                          <th className="px-4 py-3 font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Hour
-                          </th>
-                          <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Arrivals
-                          </th>
-                          <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Nurses
-                          </th>
-                          <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Providers
-                          </th>
-                          <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Beds
-                          </th>
-                          <th className="px-4 py-3 font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            Status
-                          </th>
+            <Section
+              className="lg:col-span-2"
+              title="Hourly allocation plan"
+              icon="heroicons:table-cells"
+              summary="Predicted demand and the roster needed to cover it, hour by hour"
+            >
+              <Panel className="p-0">
+                {hasData ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark text-left">
+                        <th className="px-4 py-3 font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Hour
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Arrivals
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Nurses
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Providers
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Beds
+                        </th>
+                        <th className="px-4 py-3 font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr
+                          key={r.hour}
+                          className="border-b border-healthcare-border dark:border-healthcare-border-dark last:border-0 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-200"
+                        >
+                          <td className="px-4 py-3 font-medium tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            {r.hour}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            {r.predictedArrivals}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            <span className={r.requiredNurses > r.availableNurses ? STATUS_TEXT.critical : ''}>
+                              {r.requiredNurses}
+                            </span>
+                            <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                              {' '}/ {r.availableNurses}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            <span className={r.requiredProviders > r.availableProviders ? STATUS_TEXT.critical : ''}>
+                              {r.requiredProviders}
+                            </span>
+                            <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                              {' '}/ {r.availableProviders}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                            <span className={r.requiredBeds > r.availableBeds ? STATUS_TEXT.critical : ''}>
+                              {r.requiredBeds}
+                            </span>
+                            <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                              {' '}/ {r.availableBeds}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className={`h-2 w-2 rounded-full ${STATUS_DOT[r.status] ?? STATUS_DOT.info}`}
+                                aria-hidden="true"
+                              />
+                              <Icon
+                                icon={STATUS_ICON[r.status] ?? STATUS_ICON.info}
+                                className={`h-4 w-4 ${STATUS_TEXT[r.status] ?? STATUS_TEXT.info}`}
+                                aria-hidden="true"
+                              />
+                              <span className={`text-xs font-medium ${STATUS_TEXT[r.status] ?? STATUS_TEXT.info}`}>
+                                {STATUS_LABEL[r.status] ?? 'Covered'}
+                              </span>
+                            </span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((r) => (
-                          <tr
-                            key={r.hour}
-                            className="border-b border-healthcare-border dark:border-healthcare-border-dark last:border-0 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-200"
-                          >
-                            <td className="px-4 py-3 font-medium tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                              {r.hour}
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                              {r.predictedArrivals}
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                              <span className={r.requiredNurses > r.availableNurses ? STATUS_TEXT.critical : ''}>
-                                {r.requiredNurses}
-                              </span>
-                              <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                {' '}/ {r.availableNurses}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                              <span className={r.requiredProviders > r.availableProviders ? STATUS_TEXT.critical : ''}>
-                                {r.requiredProviders}
-                              </span>
-                              <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                {' '}/ {r.availableProviders}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                              <span className={r.requiredBeds > r.availableBeds ? STATUS_TEXT.critical : ''}>
-                                {r.requiredBeds}
-                              </span>
-                              <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                {' '}/ {r.availableBeds}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center gap-1.5">
-                                <span
-                                  className={`h-2 w-2 rounded-full ${STATUS_DOT[r.status] ?? STATUS_DOT.info}`}
-                                  aria-hidden="true"
-                                />
-                                <Icon
-                                  icon={STATUS_ICON[r.status] ?? STATUS_ICON.info}
-                                  className={`h-4 w-4 ${STATUS_TEXT[r.status] ?? STATUS_TEXT.info}`}
-                                  aria-hidden="true"
-                                />
-                                <span className={`text-xs font-medium ${STATUS_TEXT[r.status] ?? STATUS_TEXT.info}`}>
-                                  {STATUS_LABEL[r.status] ?? 'Covered'}
-                                </span>
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <Icon
-                        icon="heroicons:table-cells"
-                        className="mb-3 h-10 w-10 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
-                        aria-hidden="true"
-                      />
-                      <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                        No hourly allocation plan available
-                      </p>
-                    </div>
-                  )}
-                </Card.Content>
-              </Card>
-            </div>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="p-4">
+                    <EmptyState
+                      icon="heroicons:table-cells"
+                      message="No hourly allocation plan available"
+                    />
+                  </div>
+                )}
+              </Panel>
+            </Section>
 
             {/* Right rail: recommendations + acuity mix */}
             <div className="flex flex-col gap-5">
-              <Card>
-                <Card.Header>
-                  <Card.Title>
-                    <div className="flex items-center gap-2">
-                      <Icon
-                        icon="heroicons:clipboard-document-list"
-                        className="h-5 w-5"
-                        aria-hidden="true"
-                      />
-                      <span>Recommendations</span>
-                    </div>
-                  </Card.Title>
-                  <Card.Description>Prioritized by severity</Card.Description>
-                </Card.Header>
-                <Card.Content className="space-y-3">
+              <Section
+                title="Recommendations"
+                icon="heroicons:clipboard-document-list"
+                summary="Prioritized by severity"
+              >
+                <Panel className="space-y-3 p-4">
                   {recs.map((rec) => (
                     <div
                       key={rec.id}
@@ -492,20 +450,15 @@ export default function Resources({
                       </div>
                     </div>
                   ))}
-                </Card.Content>
-              </Card>
+                </Panel>
+              </Section>
 
-              <Card>
-                <Card.Header>
-                  <Card.Title>
-                    <div className="flex items-center gap-2">
-                      <Icon icon="heroicons:chart-pie" className="h-5 w-5" aria-hidden="true" />
-                      <span>Predicted Acuity Mix</span>
-                    </div>
-                  </Card.Title>
-                  <Card.Description>Drives the staffing weight per arrival</Card.Description>
-                </Card.Header>
-                <Card.Content className="space-y-3">
+              <Section
+                title="Predicted acuity mix"
+                icon="heroicons:chart-pie"
+                summary="Drives the staffing weight per arrival"
+              >
+                <Panel className="space-y-3 p-4">
                   {acuity.map((a) => (
                     <div key={a.esi} className="flex items-center gap-3">
                       <span
@@ -531,8 +484,8 @@ export default function Resources({
                       </div>
                     </div>
                   ))}
-                </Card.Content>
-              </Card>
+                </Panel>
+              </Section>
             </div>
           </div>
 

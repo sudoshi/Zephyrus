@@ -3,9 +3,14 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
+
+// ED Resource Management rebuilt on the gold-standard design system: the KPI wall
+// is one MetricGrid of KpiTiles, the resource inventory table and the
+// capacity-vs-demand chart live in Panels under Section headers. All values are
+// server-computed from the live `prod` schema (ResourceService over seeded
+// census activity); the page renders an empty state rather than fabricating data.
 
 // Status token name -> the paired text + chip classes (color is never the only
 // signal; every status is rendered alongside a label and an icon).
@@ -68,23 +73,8 @@ const UtilizationBar = ({ value, status }) => {
     );
 };
 
-const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark py-12 text-center shadow-sm transition-colors duration-300">
-        <div className="mb-4 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/10 p-4">
-            <Icon
-                icon="heroicons:cube-transparent"
-                className="h-8 w-8 text-healthcare-info dark:text-healthcare-info-dark"
-            />
-        </div>
-        <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-            No resource data available
-        </h3>
-        <p className="mt-2 max-w-md text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Resource inventory will appear here once the Emergency Department has
-            active census activity.
-        </p>
-    </div>
-);
+// Map a service status ('success' = healthy) to a four-color status level.
+const kpiStatus = (status) => (status === 'success' ? 'success' : 'warning');
 
 export default function Resources({
     summary = null,
@@ -148,6 +138,35 @@ export default function Resources({
         }
     }, [generatedAt]);
 
+    const kpiMetrics = summary
+        ? [
+              metric({
+                  key: 'bed-occupancy', label: 'Bed Occupancy', value: Number(summary.occupancy.value ?? 0), unit: '%',
+                  status: kpiStatus(summary.occupancy.status), goodWhenDown: true,
+                  caption: `${summary.occupancy.occupied} of ${summary.occupancy.total} staffed beds`,
+                  definition: 'Share of staffed ED beds currently occupied.',
+              }),
+              metric({
+                  key: 'available-beds', label: 'Available Beds', value: Number(summary.availableBeds.value ?? 0),
+                  status: kpiStatus(summary.availableBeds.status),
+                  caption: `${summary.availableBeds.cleaning} cleaning · ${summary.availableBeds.blocked} blocked`,
+                  definition: 'Clean, staffed ED beds immediately available for placement.',
+              }),
+              metric({
+                  key: 'nurse-coverage', label: 'Nurse Coverage', value: Number(summary.nurseCoverage.value ?? 0), unit: '%',
+                  status: kpiStatus(summary.nurseCoverage.status),
+                  caption: `${summary.nurseCoverage.present} present · ${summary.nurseCoverage.required} required`,
+                  definition: 'Nurses present against the required staffing level for current census.',
+              }),
+              metric({
+                  key: 'equipment-in-use', label: 'Equipment In Use', value: Number(summary.equipmentUtilization.value ?? 0), unit: '%',
+                  status: kpiStatus(summary.equipmentUtilization.status), goodWhenDown: true,
+                  caption: `${summary.equipmentUtilization.inUse} active · ${summary.equipmentUtilization.total} units total`,
+                  definition: 'Share of tracked ED equipment currently in active use.',
+              }),
+          ]
+        : [];
+
     return (
         <DashboardLayout>
             <Head title="Resource Management - Emergency" />
@@ -164,68 +183,24 @@ export default function Resources({
                 }
             >
                 {!hasData || !summary ? (
-                    <EmptyState />
+                    <Panel className="p-4">
+                        <EmptyState
+                            message="No resource data available. Inventory will appear here once the Emergency Department has active census activity."
+                            icon="heroicons:cube-transparent"
+                        />
+                    </Panel>
                 ) : (
-                    <div className="space-y-6">
-                        {/* KPI tiles */}
-                        <MetricsCardGroup cols={4}>
-                            <MetricsCard
-                                title="Bed Occupancy"
-                                value={`${summary.occupancy.value}%`}
-                                icon="heroicons:building-office-2"
-                                trend={summary.occupancy.status === 'success' ? 'up' : 'down'}
-                                trendValue={summary.occupancy.value}
-                                trendFormatter={(v) => `${v}%`}
-                                description={`${summary.occupancy.occupied} of ${summary.occupancy.total} staffed beds`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Available Beds"
-                                value={summary.availableBeds.value.toString()}
-                                icon="heroicons:home-modern"
-                                trend={summary.availableBeds.status === 'success' ? 'up' : 'down'}
-                                trendValue={summary.availableBeds.cleaning}
-                                trendFormatter={(v) => `${v} cleaning`}
-                                description={`${summary.availableBeds.blocked} blocked`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Nurse Coverage"
-                                value={`${summary.nurseCoverage.value}%`}
-                                icon="heroicons:user-group"
-                                trend={summary.nurseCoverage.status === 'success' ? 'up' : 'down'}
-                                trendValue={summary.nurseCoverage.present}
-                                trendFormatter={(v) => `${v} present`}
-                                description={`${summary.nurseCoverage.required} required`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Equipment In Use"
-                                value={`${summary.equipmentUtilization.value}%`}
-                                icon="heroicons:cube"
-                                trend={summary.equipmentUtilization.status === 'success' ? 'up' : 'down'}
-                                trendValue={summary.equipmentUtilization.inUse}
-                                trendFormatter={(v) => `${v} active`}
-                                description={`${summary.equipmentUtilization.total} units total`}
-                                comparison={null}
-                            />
-                        </MetricsCardGroup>
+                    <div className="flex flex-col gap-5">
+                        <Section title="Capacity overview" icon="heroicons:squares-2x2"
+                                 summary={`${summary.occupancy.value}% occupancy · ${summary.availableBeds.value} beds open`}>
+                            <MetricGrid metrics={kpiMetrics} />
+                        </Section>
 
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                            {/* Resource inventory table */}
-                            <Card className="lg:col-span-2">
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:squares-2x2" className="h-5 w-5" />
-                                            <span>Resource Inventory</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>
-                                        Capacity, current use, and availability by resource class
-                                    </Card.Description>
-                                </Card.Header>
-                                <Card.Content className="p-0">
+                        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                            <Section title="Resource Inventory" icon="heroicons:squares-2x2"
+                                     summary="Capacity, current use, and availability by resource class"
+                                     className="lg:col-span-2">
+                                <Panel className="p-0">
                                     <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                         <thead>
                                             <tr className="text-left text-xs font-medium uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -294,31 +269,18 @@ export default function Resources({
                                             ))}
                                         </tbody>
                                     </table>
-                                </Card.Content>
-                            </Card>
+                                </Panel>
+                            </Section>
 
-                            {/* Capacity vs demand chart */}
-                            <Card>
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:chart-bar" className="h-5 w-5" />
-                                            <span>Capacity vs Demand</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>
-                                        Available capacity against current demand by class
-                                    </Card.Description>
-                                </Card.Header>
-                                <Card.Content>
+                            <Section title="Capacity vs Demand" icon="heroicons:chart-bar"
+                                     summary="Available capacity against current demand by class">
+                                <Panel className="p-4">
                                     {chartData ? (
                                         <div className="h-72">
                                             <BarChart data={chartData} options={chartOptions} />
                                         </div>
                                     ) : (
-                                        <p className="py-12 text-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            No capacity data available.
-                                        </p>
+                                        <EmptyState message="No capacity data available." icon="heroicons:chart-bar" />
                                     )}
                                     {summary.boarding && (
                                         <div className="mt-4 flex items-center justify-between rounded-lg bg-healthcare-background dark:bg-healthcare-background-dark p-3">
@@ -339,8 +301,8 @@ export default function Resources({
                                             </div>
                                         </div>
                                     )}
-                                </Card.Content>
-                            </Card>
+                                </Panel>
+                            </Section>
                         </div>
                     </div>
                 )}

@@ -3,9 +3,16 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import TrendChart from '@/Components/Common/TrendChart';
+
+// ED Arrival Prediction rebuilt on the gold-standard design system: the KPI wall
+// is one MetricGrid of KpiTiles, the forecast curve / diurnal profile / hourly
+// board live in Panels under Section headers. This is a FORECAST page — the
+// next-12h / next-24h tiles carry the real per-hour predicted series as a
+// sparkline trajectory so the tile shows the forecast shape. All values are
+// server-computed (population diurnal model until live ED visit data accrues);
+// the page never fabricates a series.
 
 const EMPTY_KPIS = {
     next12h: { value: 0, label: 'Predicted arrivals (next 12h)', trend: 'neutral', trendValue: null, description: '' },
@@ -49,6 +56,54 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
     const hasForecast = Array.isArray(forecast) && forecast.length > 0;
     const hasData = meta?.hasData ?? hasForecast;
 
+    // Real predicted series (oldest→newest) drives the forecast sparklines on the
+    // next-12h / next-24h tiles. Never fabricated — only present when forecast rows exist.
+    const predictedSeries = hasForecast
+        ? forecast.map((r) => Number(r.predicted) || 0)
+        : null;
+    const predicted12hSeries = predictedSeries ? predictedSeries.slice(0, 12) : null;
+
+    const kpiMetrics = [
+        metric({
+            key: 'next-12h',
+            label: kpis.next12h.label,
+            value: Number(kpis.next12h.value ?? 0),
+            display: integerFormatter(kpis.next12h.value),
+            status: 'info',
+            trajectory: predicted12hSeries,
+            caption: kpis.next12h.description || undefined,
+            definition: 'Total predicted ED arrivals across the next 12 hours.',
+        }),
+        metric({
+            key: 'next-24h',
+            label: kpis.next24h.label,
+            value: Number(kpis.next24h.value ?? 0),
+            display: integerFormatter(kpis.next24h.value),
+            status: 'info',
+            trajectory: predictedSeries,
+            caption: kpis.next24h.description || undefined,
+            definition: 'Total predicted ED arrivals across the next 24 hours.',
+        }),
+        metric({
+            key: 'peak-hour',
+            label: kpis.peakHour.label,
+            value: Number(kpis.peakHour.count ?? 0),
+            display: String(kpis.peakHour.value ?? '--:--'),
+            status: 'warning',
+            caption: kpis.peakHour.description || (kpis.peakHour.count ? `${kpis.peakHour.count} predicted arrivals` : undefined),
+            definition: 'Hour of day with the highest predicted arrival volume in the horizon.',
+        }),
+        metric({
+            key: 'current-rate',
+            label: kpis.currentRate.label,
+            value: Number(kpis.currentRate.value ?? 0),
+            display: integerFormatter(kpis.currentRate.value),
+            status: 'info',
+            caption: kpis.currentRate.description || undefined,
+            definition: 'Observed ED arrivals over the last 60 minutes, against the expected rate.',
+        }),
+    ];
+
     return (
         <DashboardLayout>
             <Head title="Arrival Prediction - Emergency" />
@@ -65,78 +120,37 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                     </div>
                 }
             >
-                {!hasData && (
-                    <div className="mb-4 flex items-start gap-3 rounded-lg border border-healthcare-border bg-healthcare-surface p-4 shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-                        <Icon icon="heroicons:information-circle" className="mt-0.5 h-5 w-5 shrink-0 text-healthcare-info dark:text-healthcare-info-dark" />
-                        <div>
-                            <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                No arrival history available
-                            </p>
-                            <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                The forecast below uses a population-level diurnal model until ED visit data is recorded.
-                            </p>
-                        </div>
-                    </div>
-                )}
+                <div className="flex flex-col gap-5">
+                    {!hasData && (
+                        <Panel className="flex items-start gap-3 p-4">
+                            <Icon icon="heroicons:information-circle" className="mt-0.5 h-5 w-5 shrink-0 text-healthcare-info dark:text-healthcare-info-dark" />
+                            <div>
+                                <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    No arrival history available
+                                </p>
+                                <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    The forecast below uses a population-level diurnal model until ED visit data is recorded.
+                                </p>
+                            </div>
+                        </Panel>
+                    )}
 
-                {/* KPI tiles */}
-                <MetricsCardGroup cols={4}>
-                    <MetricsCard
-                        title={kpis.next12h.label}
-                        value={kpis.next12h.value}
-                        formatter={integerFormatter}
-                        trend={kpis.next12h.trend}
-                        trendValue={kpis.next12h.trendValue ?? undefined}
-                        icon="heroicons:user-plus"
-                        description={kpis.next12h.description}
-                        comparison={null}
-                    />
-                    <MetricsCard
-                        title={kpis.next24h.label}
-                        value={kpis.next24h.value}
-                        formatter={integerFormatter}
-                        trend={kpis.next24h.trend}
-                        trendValue={kpis.next24h.trendValue ?? undefined}
-                        icon="heroicons:calendar-days"
-                        description={kpis.next24h.description}
-                        comparison={null}
-                    />
-                    <MetricsCard
-                        title={kpis.peakHour.label}
-                        value={kpis.peakHour.value}
-                        trend={kpis.peakHour.trend}
-                        trendValue={kpis.peakHour.trendValue ?? undefined}
+                    {/* KPI wall */}
+                    <Section
+                        title="Forecast roll-up"
                         icon="heroicons:chart-bar-square"
-                        description={kpis.peakHour.description}
-                        comparison={null}
-                    />
-                    <MetricsCard
-                        title={kpis.currentRate.label}
-                        value={kpis.currentRate.value}
-                        formatter={integerFormatter}
-                        trend={kpis.currentRate.trend}
-                        trendValue={kpis.currentRate.trendValue ?? undefined}
-                        icon="heroicons:clock"
-                        description={kpis.currentRate.description}
-                        comparison={null}
-                    />
-                </MetricsCardGroup>
+                        summary={`${meta?.horizonHours ?? 24}h horizon${meta?.historyDays ? ` · ${meta.historyDays}d history` : ''}`}
+                    >
+                        <MetricGrid metrics={kpiMetrics} />
+                    </Section>
 
-                {/* Forecast curve */}
-                <div className="mt-6">
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="heroicons:presentation-chart-line" className="h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark" />
-                                    <span>Arrival Forecast — Next {meta?.horizonHours ?? 24} Hours</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>
-                                Predicted arrivals per hour with a 90% confidence band, overlaid on the historical hourly average.
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    {/* Forecast curve */}
+                    <Section
+                        title={`Arrival Forecast — Next ${meta?.horizonHours ?? 24} Hours`}
+                        icon="heroicons:presentation-chart-line"
+                        summary="Predicted arrivals per hour with a 90% confidence band, overlaid on the historical hourly average"
+                    >
+                        <Panel className="p-4">
                             {hasForecast ? (
                                 <div className="h-[340px]">
                                     <TrendChart
@@ -154,30 +168,20 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                                     />
                                 </div>
                             ) : (
-                                <div className="flex h-[340px] items-center justify-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                    Forecast unavailable.
-                                </div>
+                                <EmptyState message="Forecast unavailable." icon="heroicons:presentation-chart-line" />
                             )}
-                        </Card.Content>
-                    </Card>
-                </div>
+                        </Panel>
+                    </Section>
 
-                {/* Diurnal profile + hourly board */}
-                <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
-                    <div className="lg:col-span-3">
-                        <Card>
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="heroicons:clock" className="h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark" />
-                                        <span>Diurnal Arrival Profile</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>
-                                    Expected arrivals by hour of day, with observed history over the look-back window.
-                                </Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                    {/* Diurnal profile + hourly board */}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                        <Section
+                            className="lg:col-span-3"
+                            title="Diurnal Arrival Profile"
+                            icon="heroicons:clock"
+                            summary="Expected arrivals by hour of day, with observed history over the look-back window"
+                        >
+                            <Panel className="p-4">
                                 {hourlyProfile.length > 0 ? (
                                     <div className="h-[300px]">
                                         <TrendChart
@@ -193,26 +197,18 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                                         />
                                     </div>
                                 ) : (
-                                    <div className="flex h-[300px] items-center justify-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                        No profile data.
-                                    </div>
+                                    <EmptyState message="No profile data." icon="heroicons:clock" />
                                 )}
-                            </Card.Content>
-                        </Card>
-                    </div>
+                            </Panel>
+                        </Section>
 
-                    <div className="lg:col-span-2">
-                        <Card>
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="heroicons:table-cells" className="h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark" />
-                                        <span>Hourly Forecast Board</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>Next 12 hours, with confidence range.</Card.Description>
-                            </Card.Header>
-                            <Card.Content className="p-0">
+                        <Section
+                            className="lg:col-span-2"
+                            title="Hourly Forecast Board"
+                            icon="heroicons:table-cells"
+                            summary="Next 12 hours, with confidence range"
+                        >
+                            <Panel>
                                 {hasForecast ? (
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm">
@@ -254,12 +250,10 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                                         </table>
                                     </div>
                                 ) : (
-                                    <div className="flex h-[300px] items-center justify-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                        No forecast rows.
-                                    </div>
+                                    <EmptyState message="No forecast rows." icon="heroicons:table-cells" />
                                 )}
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
                     </div>
                 </div>
             </PageContentLayout>

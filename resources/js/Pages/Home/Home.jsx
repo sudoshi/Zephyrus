@@ -1,14 +1,12 @@
 import React from 'react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import Panel from '@/Components/ui/Panel';
 import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import Progress from '@/Components/ui/progress'; // Update import statement to use default import
-import { useDashboard } from '@/Contexts/DashboardContext';
+import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import TabNavigation from '@/Components/ui/TabNavigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Mock data for demonstration
 const mockData = {
@@ -81,10 +79,10 @@ const getPriorityColor = (priority) => {
 const Home = ({ workflow }) => {
     const pageTitle = workflow === 'superuser' ? 'SUPERUSER Dashboard' : 'System Overview';
     const pageSubtitle = workflow === 'superuser' ? 'Complete access to all system modules and workflows' : 'Cross-facility performance metrics and priorities';
-    
+
     // Tab navigation for SUPERUSER dashboard
     const [activeTab, setActiveTab] = useState('overview');
-    
+
     const menuGroups = [
         {
             title: 'Dashboard Views',
@@ -96,11 +94,22 @@ const Home = ({ workflow }) => {
             ]
         }
     ];
-    
+
     const handleTabChange = (tabId) => {
         setActiveTab(tabId);
     };
-    
+
+    const systemMetrics = [
+        metric({ key: 'total-facilities', label: 'Total Facilities', value: 5, status: 'info',
+            definition: 'Hospitals connected to the Zephyrus command center.' }),
+        metric({ key: 'active-users', label: 'Active Users', value: 128, status: 'success',
+            definition: 'Users currently signed in across all facilities.' }),
+        metric({ key: 'system-alerts', label: 'System Alerts', value: 3, status: 'warning',
+            definition: 'Open system-level alerts requiring attention.' }),
+        metric({ key: 'system-health', label: 'System Health', value: 98, unit: '%', status: 'success',
+            definition: 'Composite platform health across services.' }),
+    ];
+
     return (
         <DashboardLayout>
             <Head title={`${pageTitle} - Zephyrus`} />
@@ -108,10 +117,11 @@ const Home = ({ workflow }) => {
                 title={pageTitle}
                 subtitle={pageSubtitle}
             >
+                <div className="flex flex-col gap-5">
                 {workflow === 'superuser' && (
                     <>
-                    <div className="mb-6">
-                        <TabNavigation 
+                    <div>
+                        <TabNavigation
                             menuGroups={menuGroups}
                             activeTab={activeTab}
                             onTabChange={handleTabChange}
@@ -119,43 +129,14 @@ const Home = ({ workflow }) => {
                     </div>
                     {activeTab === 'overview' && (
                         <>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <Panel title="Total Facilities" isSubpanel={true} dropLightIntensity="strong" className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <Icon icon="heroicons:building-office-2" className="w-10 h-10 text-healthcare-primary" />
-                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">5</span>
-                                </div>
-                            </Panel>
-                            <Panel title="Active Users" isSubpanel={true} dropLightIntensity="strong" className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <Icon icon="heroicons:users" className="w-10 h-10 text-healthcare-success" />
-                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">128</span>
-                                </div>
-                            </Panel>
-                            <Panel title="System Alerts" isSubpanel={true} dropLightIntensity="strong" className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <Icon icon="heroicons:bell-alert" className="w-10 h-10 text-healthcare-warning" />
-                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">3</span>
-                                </div>
-                            </Panel>
-                            <Panel title="System Health" isSubpanel={true} dropLightIntensity="strong" className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <Icon icon="heroicons:check-circle" className="w-10 h-10 text-healthcare-success" />
-                                    <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">98%</span>
-                                </div>
-                            </Panel>
-                        </div>
-                        <Card className="mb-6">
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center space-x-2">
-                                        <Icon icon="heroicons:key" className="w-5 h-5 text-healthcare-primary" />
-                                        <span>Quick Access</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>Navigate to specific workflow dashboards</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                        <Section title="System Status" icon="heroicons:server-stack"
+                                 summary="Platform-wide facility, user, alert, and health snapshot">
+                            <MetricGrid metrics={systemMetrics} />
+                        </Section>
+
+                        <Section title="Quick Access" icon="heroicons:key"
+                                 summary="Navigate to specific workflow dashboards">
+                            <Panel className="p-4">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     {[
                                         { name: 'RTDC', icon: 'heroicons:command-line', color: 'text-healthcare-primary', href: '/dashboard/rtdc' },
@@ -163,7 +144,7 @@ const Home = ({ workflow }) => {
                                         { name: 'EMERGENCY', icon: 'heroicons:exclamation-triangle', color: 'text-healthcare-warning', href: '/dashboard/emergency' },
                                         { name: 'IMPROVEMENT', icon: 'heroicons:arrow-trending-up', color: 'text-healthcare-info', href: '/dashboard/improvement' }
                                     ].map((item) => (
-                                        <a 
+                                        <a
                                             key={item.name}
                                             href={item.href}
                                             className="flex flex-col items-center justify-center p-6 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg border border-healthcare-border dark:border-healthcare-border-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark transition-all duration-300"
@@ -173,21 +154,13 @@ const Home = ({ workflow }) => {
                                         </a>
                                     ))}
                                 </div>
-                            </Card.Content>
-                        </Card>
-                        
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-                            <Card>
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:clock" className="w-5 h-5 text-healthcare-primary" />
-                                            <span>Recent Activity</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>System-wide activity feed</Card.Description>
-                                </Card.Header>
-                                <Card.Content>
+                            </Panel>
+                        </Section>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                            <Section title="Recent Activity" icon="heroicons:clock"
+                                     summary="System-wide activity feed">
+                                <Panel className="p-4">
                                     <div className="space-y-4">
                                         {[
                                             { user: 'Admin User', action: 'Updated system settings', time: '10 minutes ago', icon: 'heroicons:cog-6-tooth', color: 'text-healthcare-primary' },
@@ -210,20 +183,12 @@ const Home = ({ workflow }) => {
                                             </div>
                                         ))}
                                     </div>
-                                </Card.Content>
-                            </Card>
-                            
-                            <Card>
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:bell-alert" className="w-5 h-5 text-healthcare-warning" />
-                                            <span>System Alerts</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>Recent system alerts and notifications</Card.Description>
-                                </Card.Header>
-                                <Card.Content>
+                                </Panel>
+                            </Section>
+
+                            <Section title="System Alerts" icon="heroicons:bell-alert"
+                                     summary="Recent system alerts and notifications">
+                                <Panel className="p-4">
                                     <div className="space-y-4">
                                         {[
                                             { title: 'Database Performance', message: 'Database query performance degraded in the last hour', severity: 'warning', time: '45 minutes ago' },
@@ -256,91 +221,59 @@ const Home = ({ workflow }) => {
                                             );
                                         })}
                                     </div>
-                                </Card.Content>
-                            </Card>
+                                </Panel>
+                            </Section>
                         </div>
                         </>
                     )}
-                    
+
                     {activeTab === 'analytics' && (
-                        <Card className="mb-6">
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center space-x-2">
-                                        <Icon icon="heroicons:chart-bar" className="w-5 h-5 text-healthcare-primary" />
-                                        <span>System Analytics</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>System-wide analytics and metrics</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                        <Section title="System Analytics" icon="heroicons:chart-bar"
+                                 summary="System-wide analytics and metrics">
+                            <Panel className="p-4">
                                 <div className="p-6 text-center">
                                     <Icon icon="heroicons:chart-bar" className="w-16 h-16 text-healthcare-primary mx-auto mb-4" />
                                     <h3 className="text-xl font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">Analytics Dashboard</h3>
                                     <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">Comprehensive analytics across all workflows and facilities</p>
                                 </div>
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
                     )}
-                    
+
                     {activeTab === 'administration' && (
-                        <Card className="mb-6">
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center space-x-2">
-                                        <Icon icon="heroicons:cog-6-tooth" className="w-5 h-5 text-healthcare-primary" />
-                                        <span>System Administration</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>Manage system settings and user access</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                        <Section title="System Administration" icon="heroicons:cog-6-tooth"
+                                 summary="Manage system settings and user access">
+                            <Panel className="p-4">
                                 <div className="p-6 text-center">
                                     <Icon icon="heroicons:cog-6-tooth" className="w-16 h-16 text-healthcare-primary mx-auto mb-4" />
                                     <h3 className="text-xl font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">Administration Panel</h3>
                                     <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">Configure system settings and manage user permissions</p>
                                 </div>
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
                     )}
-                    
+
                     {activeTab === 'reports' && (
-                        <Card className="mb-6">
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center space-x-2">
-                                        <Icon icon="heroicons:document-text" className="w-5 h-5 text-healthcare-primary" />
-                                        <span>System Reports</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>Generate and view system reports</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                        <Section title="System Reports" icon="heroicons:document-text"
+                                 summary="Generate and view system reports">
+                            <Panel className="p-4">
                                 <div className="p-6 text-center">
                                     <Icon icon="heroicons:document-text" className="w-16 h-16 text-healthcare-primary mx-auto mb-4" />
                                     <h3 className="text-xl font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">Reports Dashboard</h3>
                                     <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">Access and generate reports across all workflows and facilities</p>
                                 </div>
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
                     )}
                     </>
                 )}
 
-                
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     {/* Top Bottlenecks */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-healthcare-warning" />
-                                    <span>Top Bottlenecks</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>System-wide bottlenecks across 5 hospitals (Last 7 days)</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Top Bottlenecks" icon="heroicons:exclamation-triangle"
+                             summary="System-wide bottlenecks across 5 hospitals (Last 7 days)">
+                        <Panel className="p-4">
                             <div className="space-y-4">
                                 {mockData.bottlenecks.map(bottleneck => (
                                     <div key={bottleneck.id} className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg">
@@ -358,21 +291,13 @@ const Home = ({ workflow }) => {
                                     </div>
                                 ))}
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
 
                     {/* Active PDSA Cycles */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:arrow-path" className="w-5 h-5 text-healthcare-primary" />
-                                    <span>Active PDSA Cycles</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Current improvement initiatives in progress</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Active PDSA Cycles" icon="heroicons:arrow-path"
+                             summary="Current improvement initiatives in progress">
+                        <Panel className="p-4">
                             <div className="space-y-4">
                                 {mockData.pdsaCycles.map(cycle => (
                                     <div key={cycle.id} className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg">
@@ -389,21 +314,13 @@ const Home = ({ workflow }) => {
                                     </div>
                                 ))}
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
 
                     {/* Discharge Prioritization */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:home" className="w-5 h-5 text-healthcare-success" />
-                                    <span>Discharge Prioritization</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>High-priority discharges reported after 2 PM yesterday</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Discharge Prioritization" icon="heroicons:home"
+                             summary="High-priority discharges reported after 2 PM yesterday">
+                        <Panel className="p-4">
                             <div className="space-y-4">
                                 {mockData.dischargePriority.map(discharge => (
                                     <div key={discharge.id} className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg">
@@ -421,21 +338,13 @@ const Home = ({ workflow }) => {
                                     </div>
                                 ))}
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
 
                     {/* Improvement Impact */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:chart-bar" className="w-5 h-5 text-healthcare-primary" />
-                                    <span>Improvement Impact</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Active improvement initiatives and their impact scores</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Improvement Impact" icon="heroicons:chart-bar"
+                             summary="Active improvement initiatives and their impact scores">
+                        <Panel className="p-4">
                             <div className="space-y-4">
                                 {mockData.improvements.map(improvement => (
                                     <div key={improvement.id} className="p-4 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg">
@@ -463,8 +372,9 @@ const Home = ({ workflow }) => {
                                     </div>
                                 ))}
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
+                </div>
                 </div>
             </PageContentLayout>
         </DashboardLayout>

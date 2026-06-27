@@ -12,6 +12,7 @@ describe('navigationConfig', () => {
     expect(NAVIGATION.map((d) => d.key)).toEqual([
       'rtdc',
       'transport',
+      'staffing',
       'perioperative',
       'emergency',
       'improvement',
@@ -37,7 +38,8 @@ describe('navigationConfig', () => {
 
   it('does not link the known-dead routes', () => {
     const hrefs = NAVIGATION.flatMap((d) => d.groups.flatMap((g) => g.items.map((i) => i.href)));
-    expect(hrefs).not.toContain('/rtdc/predictions/risk');
+    // NOTE: /rtdc/predictions/risk is now a LIVE route (web.php → RTDCDashboardController@riskAssessment
+    // → RTDC/Predictions/RiskAssessment), so it is intentionally linked and no longer in this list.
     expect(hrefs).not.toContain('/operations/staffing');
     expect(hrefs).not.toContain('/analytics/procedure-analysis');
     expect(hrefs).not.toContain('/predictions/volume-forecasting');

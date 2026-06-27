@@ -3,8 +3,7 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Analytics/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -14,9 +13,11 @@ import { useDarkMode } from '@/hooks/useDarkMode';
  * Predicted ESI acuity mix for incoming patients over the next four hours,
  * computed live by App\Services\Ed\AcuityPredictionService from the historical
  * ESI-level proportions in prod.ed_visits plus a deterministic hourly arrival
- * profile. Status is always paired with an icon + label, never colour alone,
- * per the design non-negotiables. Metrics use tabular-nums; resting cards are
- * shadow-sm via the canon Surface primitive.
+ * profile. Rebuilt on the gold-standard design system: the KPI wall is one
+ * MetricGrid of KpiTiles, charts/tables/mix-lists live in Panels under Section
+ * headers. Status is always paired with an icon + label, never colour alone.
+ * All values are server-computed; the page renders empty states rather than
+ * fabricating data.
  */
 
 // ESI acuity → design-system status tone (high acuity escalates the tone).
@@ -46,15 +47,6 @@ const ESI_COLOR_VAR = {
     4: '--healthcare-success',
     5: '--healthcare-success',
 };
-
-const EmptyState = ({ icon = 'heroicons:chart-bar', message }) => (
-    <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-        <div className="mb-1 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/10 p-3">
-            <Icon icon={icon} className="h-6 w-6 text-healthcare-info dark:text-healthcare-info-dark" aria-hidden="true" />
-        </div>
-        <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{message}</p>
-    </div>
-);
 
 const MixBar = ({ row }) => {
     const pct = Math.max(0, Math.min(100, row.percent ?? 0));
@@ -97,11 +89,9 @@ export default function Acuity({
             <DashboardLayout>
                 <Head title="Acuity Prediction - Emergency" />
                 <PageContentLayout title="Acuity Prediction" subtitle="Forecast patient acuity mix">
-                    <Card>
-                        <Card.Content>
-                            <EmptyState icon="heroicons:cpu-chip" message="Loading acuity forecast…" />
-                        </Card.Content>
-                    </Card>
+                    <Panel className="p-4">
+                        <EmptyState icon="heroicons:cpu-chip" message="Loading acuity forecast…" />
+                    </Panel>
                 </PageContentLayout>
             </DashboardLayout>
         );
@@ -163,6 +153,33 @@ export default function Acuity({
     const liveHasData = liveMix.some((r) => (r.count ?? 0) > 0);
     const histHasData = historicalMix.some((r) => (r.count ?? 0) > 0);
 
+    // KPI wall — predicted-vs-live acuity headline numbers. Status pairs the
+    // high-acuity trend with tone; never colour alone (label + value carry it).
+    const kpiMetrics = [
+        metric({
+            key: 'predicted-arrivals', label: 'Predicted arrivals', value: Number(kpis.predictedArrivals ?? 0),
+            status: 'info', caption: `Next ${kpis.horizonHours} hours`,
+            definition: 'Forecast patient arrivals over the prediction horizon.',
+        }),
+        metric({
+            key: 'predicted-high-acuity', label: 'Predicted high acuity', value: Number(kpis.predictedHighAcuityPct ?? 0), unit: '%',
+            status: kpis.highAcuityTrend === 'up' ? 'warning' : 'success',
+            caption: `${kpis.predictedHighAcuity} ESI 1-2 · baseline ${kpis.baselineHighAcuityPct}%`,
+            definition: 'Predicted share of incoming ESI 1-2 patients vs the 30-day baseline.',
+        }),
+        metric({
+            key: 'live-high-acuity', label: 'Live high acuity', value: Number(kpis.liveHighAcuityPct ?? 0), unit: '%',
+            status: 'info', caption: `${kpis.liveHighAcuity} ESI 1-2 in department`,
+            definition: 'Share of patients currently in the ED triaged ESI 1-2.',
+        }),
+        metric({
+            key: 'dominant-acuity', label: 'Dominant acuity', value: Number(kpis.dominantEsiPct ?? 0), unit: '%',
+            display: String(kpis.dominantEsi), status: 'neutral',
+            caption: `${kpis.dominantEsiPct}% of historical mix`,
+            definition: 'Most common ESI level across the 30-day calibration window.',
+        }),
+    ];
+
     return (
         <DashboardLayout>
             <Head title="Acuity Prediction - Emergency" />
@@ -186,181 +203,138 @@ export default function Acuity({
                     </div>
                 }
             >
-                {/* KPI tiles */}
-                <MetricsCardGroup cols={4}>
-                    <MetricsCard
-                        title="Predicted Arrivals"
-                        value={String(kpis.predictedArrivals)}
-                        icon="heroicons:arrow-down-tray"
-                        description={`Next ${kpis.horizonHours} hours`}
-                        comparison={null}
-                    />
-                    <MetricsCard
-                        title="Predicted High Acuity"
-                        value={`${kpis.predictedHighAcuityPct}%`}
-                        // 'up' = more high-acuity (ESI 1-2) than the floor is carrying now → escalate.
-                        trend={kpis.highAcuityTrend}
-                        trendValue={`${kpis.predictedHighAcuity}`}
-                        trendFormatter={(v) => `${v} pts`}
-                        icon="heroicons:exclamation-triangle"
-                        description={`Baseline ${kpis.baselineHighAcuityPct}%`}
-                        comparison="live floor"
-                    />
-                    <MetricsCard
-                        title="Live High Acuity"
-                        value={`${kpis.liveHighAcuityPct}%`}
-                        icon="heroicons:heart"
-                        description={`${kpis.liveHighAcuity} ESI 1-2 in department`}
-                        comparison={null}
-                    />
-                    <MetricsCard
-                        title="Dominant Acuity"
-                        value={kpis.dominantEsi}
-                        icon="heroicons:chart-pie"
-                        description={`${kpis.dominantEsiPct}% of historical mix`}
-                        comparison={null}
-                    />
-                </MetricsCardGroup>
+                <div className="flex flex-col gap-5">
+                    <Section
+                        title="Acuity forecast"
+                        icon="heroicons:cpu-chip"
+                        summary={`Next ${kpis.horizonHours} hours · calibrated on ${kpis.sampleSize} visits`}
+                    >
+                        <MetricGrid metrics={kpiMetrics} />
+                    </Section>
 
-                <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Predicted acuity mix — stacked ESI by forecast hour */}
-                    <Card className="lg:col-span-2">
-                        <Card.Header>
-                            <div className="flex items-center justify-between gap-2">
-                                <div>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:presentation-chart-bar" className="w-5 h-5" />
-                                            <span>Predicted Acuity Mix</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>
-                                        Projected ESI breakdown of incoming patients per hour
-                                    </Card.Description>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        {/* Predicted acuity mix — stacked ESI by forecast hour */}
+                        <Section
+                            className="lg:col-span-2"
+                            title="Predicted acuity mix"
+                            icon="heroicons:presentation-chart-bar"
+                            summary="Projected ESI breakdown of incoming patients per hour"
+                            actions={
+                                <span className="flex items-center gap-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     <Icon icon="heroicons:cpu-chip" className="h-4 w-4" aria-hidden="true" />
                                     <span className="tabular-nums">{kpis.modelConfidence}%</span> confidence
-                                </div>
-                            </div>
-                        </Card.Header>
-                        <Card.Content>
-                            {hasForecast ? (
-                                <div className="h-80">
-                                    <BarChart data={chartData} options={chartOptions} />
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    icon="heroicons:presentation-chart-bar"
-                                    message="No arrival history available to project an acuity mix."
-                                />
-                            )}
-                        </Card.Content>
-                    </Card>
+                                </span>
+                            }
+                        >
+                            <Panel className="p-4">
+                                {hasForecast ? (
+                                    <div className="h-80">
+                                        <BarChart data={chartData} options={chartOptions} />
+                                    </div>
+                                ) : (
+                                    <EmptyState
+                                        icon="heroicons:presentation-chart-bar"
+                                        message="No arrival history available to project an acuity mix."
+                                    />
+                                )}
+                            </Panel>
+                        </Section>
 
-                    {/* Live department acuity mix */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:users" className="w-5 h-5" />
-                                    <span>Live Department Mix</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Acuity of patients currently in the ED</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {liveHasData ? (
-                                <div className="space-y-4">
-                                    {liveMix.map((row) => (
-                                        <MixBar key={`live-${row.esi}`} row={row} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <EmptyState icon="heroicons:users" message="No patients currently in the department." />
-                            )}
-                        </Card.Content>
-                    </Card>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Per-ESI forecast summary table */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:rectangle-stack" className="w-5 h-5" />
-                                    <span>Forecast by Acuity</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Predicted incoming volume per ESI level</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Acuity
-                                            </th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Predicted
-                                            </th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Share
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                        {forecastRows.map((row) => (
-                                            <tr
-                                                key={`fc-${row.esi}`}
-                                                className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
-                                            >
-                                                <td className="px-4 py-3">
-                                                    <span
-                                                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${esiBadgeClass(row.esi)}`}
-                                                    >
-                                                        {row.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-sm tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    {row.predicted}
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-sm tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    {row.percent}%
-                                                </td>
-                                            </tr>
+                        {/* Live department acuity mix */}
+                        <Section
+                            title="Live department mix"
+                            icon="heroicons:users"
+                            summary="Acuity of patients currently in the ED"
+                        >
+                            <Panel className="p-4">
+                                {liveHasData ? (
+                                    <div className="space-y-4">
+                                        {liveMix.map((row) => (
+                                            <MixBar key={`live-${row.esi}`} row={row} />
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card.Content>
-                    </Card>
+                                    </div>
+                                ) : (
+                                    <EmptyState icon="heroicons:users" message="No patients currently in the department." />
+                                )}
+                            </Panel>
+                        </Section>
+                    </div>
 
-                    {/* Calibration: historical acuity mix */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:clock" className="w-5 h-5" />
-                                    <span>Calibration Mix (30-day)</span>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {/* Per-ESI forecast summary table */}
+                        <Section
+                            title="Forecast by acuity"
+                            icon="heroicons:rectangle-stack"
+                            summary="Predicted incoming volume per ESI level"
+                        >
+                            <Panel className="p-4">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                                        <thead>
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    Acuity
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    Predicted
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    Share
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                                            {forecastRows.map((row) => (
+                                                <tr
+                                                    key={`fc-${row.esi}`}
+                                                    className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
+                                                >
+                                                    <td className="px-4 py-3">
+                                                        <span
+                                                            className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${esiBadgeClass(row.esi)}`}
+                                                        >
+                                                            {row.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                        {row.predicted}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                        {row.percent}%
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </Card.Title>
-                            <Card.Description>Observed ESI proportions the forecast is trained on</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {histHasData ? (
-                                <div className="space-y-4">
-                                    {historicalMix.map((row) => (
-                                        <MixBar key={`hist-${row.esi}`} row={row} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <EmptyState icon="heroicons:clock" message="No historical visits to calibrate against." />
-                            )}
-                        </Card.Content>
-                    </Card>
+                            </Panel>
+                        </Section>
+
+                        {/* Calibration: historical acuity mix */}
+                        <Section
+                            title="Calibration mix (30-day)"
+                            icon="heroicons:clock"
+                            summary="Observed ESI proportions the forecast is trained on"
+                        >
+                            <Panel className="p-4">
+                                {histHasData ? (
+                                    <div className="space-y-4">
+                                        {historicalMix.map((row) => (
+                                            <MixBar key={`hist-${row.esi}`} row={row} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EmptyState icon="heroicons:clock" message="No historical visits to calibrate against." />
+                                )}
+                            </Panel>
+                        </Section>
+                    </div>
+
+                    {generatedAt && (
+                        <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            Forecast generated {new Date(generatedAt).toLocaleString()}
+                        </p>
+                    )}
                 </div>
             </PageContentLayout>
         </DashboardLayout>

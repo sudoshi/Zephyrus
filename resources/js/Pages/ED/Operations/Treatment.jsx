@@ -3,9 +3,14 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
+
+// ED Treatment Board rebuilt on the gold-standard design system: the KPI wall is
+// one MetricGrid of KpiTiles, the acuity-mix chart and the active treatment
+// board live in Panels under Section headers. All values are server-computed
+// from the live `prod` schema (TreatmentService over seeded ed_visits); the page
+// renders empty states rather than fabricating data.
 
 // Maps a status tone token from TreatmentService into a healthcare-* class set.
 // Status is never communicated by color alone — every badge carries an icon + label.
@@ -58,25 +63,6 @@ const StatusBadge = ({ status, tone }) => {
     );
 };
 
-const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-4 rounded-full bg-healthcare-info/10 p-4">
-            <Icon
-                icon="heroicons:check-badge"
-                className="h-8 w-8 text-healthcare-info dark:text-healthcare-info-dark"
-                aria-hidden="true"
-            />
-        </div>
-        <h3 className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-            No patients in active treatment
-        </h3>
-        <p className="mt-2 max-w-md text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Every patient who has been seen by a provider has been dispositioned and
-            departed. New treatment rooms will populate here automatically.
-        </p>
-    </div>
-);
-
 const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
     const rows = Array.isArray(board) ? board : [];
     const hasPatients = rows.length > 0;
@@ -85,6 +71,32 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
     const awaitingDisposition = kpis.awaitingDisposition ?? { value: 0, trend: 'flat', context: '' };
     const boarding = kpis.boarding ?? { value: 0, trend: 'flat', context: '' };
     const medianTreatment = kpis.medianTreatmentTime ?? { value: 0, trend: 'flat', context: '' };
+
+    const kpiMetrics = [
+        metric({
+            key: 'in-treatment', label: 'In Treatment', value: Number(inTreatment.value ?? 0),
+            status: 'info', caption: inTreatment.context || undefined,
+            definition: 'Patients currently being seen by a provider in a treatment room.',
+        }),
+        metric({
+            key: 'awaiting-disposition', label: 'Awaiting Disposition', value: Number(awaitingDisposition.value ?? 0),
+            status: (awaitingDisposition.value ?? 0) > 0 ? 'warning' : 'success', goodWhenDown: true,
+            caption: awaitingDisposition.context || undefined,
+            definition: 'Patients seen by a provider but not yet dispositioned (admit / discharge / transfer).',
+        }),
+        metric({
+            key: 'boarding', label: 'Boarding', value: Number(boarding.value ?? 0),
+            status: (boarding.value ?? 0) > 0 ? 'critical' : 'success', goodWhenDown: true,
+            caption: boarding.context || undefined,
+            definition: 'Admitted patients held in the ED awaiting an inpatient bed.',
+        }),
+        metric({
+            key: 'median-treatment', label: 'Median Treatment Time', value: Number(medianTreatment.value ?? 0),
+            display: formatElapsed(medianTreatment.value), goodWhenDown: true, status: 'neutral',
+            caption: medianTreatment.context || undefined,
+            definition: 'Median time patients have spent in active treatment.',
+        }),
+    ];
 
     const acuityChartData = useMemo(
         () => ({
@@ -118,118 +130,49 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                 title="ED Treatment Board"
                 subtitle="Patients in active treatment — disposition tracking and care-team assignment"
             >
-                <div className="space-y-6">
-                    {/* KPI tiles */}
-                    <MetricsCardGroup cols={4}>
-                        <MetricsCard
-                            title="In Treatment"
-                            value={String(inTreatment.value)}
-                            trend={inTreatment.trend}
-                            icon="heroicons:user-group"
-                            description={inTreatment.context}
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="Awaiting Disposition"
-                            value={String(awaitingDisposition.value)}
-                            trend={awaitingDisposition.trend}
-                            icon="heroicons:clipboard-document-check"
-                            description={awaitingDisposition.context}
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="Boarding"
-                            value={String(boarding.value)}
-                            trend={boarding.trend}
-                            icon="heroicons:building-office-2"
-                            description={boarding.context}
-                            comparison={null}
-                        />
-                        <MetricsCard
-                            title="Median Treatment Time"
-                            value={formatElapsed(medianTreatment.value)}
-                            trend={medianTreatment.trend}
-                            icon="heroicons:clock"
-                            description={medianTreatment.context}
-                            comparison={null}
-                        />
-                    </MetricsCardGroup>
+                <div className="flex flex-col gap-5">
+                    <Section title="Treatment overview" icon="heroicons:user-group"
+                             summary={`${inTreatment.value ?? 0} in treatment · ${boarding.value ?? 0} boarding`}>
+                        <MetricGrid metrics={kpiMetrics} />
+                    </Section>
 
-                    {/* Acuity mix chart */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="heroicons:chart-bar" className="h-5 w-5" aria-hidden="true" />
-                                    <span>Treatment Cohort by Acuity</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>
-                                ESI distribution of patients currently in treatment
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Treatment Cohort by Acuity" icon="heroicons:chart-bar"
+                             summary="ESI distribution of patients currently in treatment">
+                        <Panel className="p-4">
                             {hasPatients ? (
                                 <div className="h-56">
                                     <BarChart data={acuityChartData} options={acuityChartOptions} />
                                 </div>
                             ) : (
-                                <p className="py-8 text-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                    No active treatment cohort to chart.
-                                </p>
+                                <EmptyState message="No active treatment cohort to chart." icon="heroicons:chart-bar" />
                             )}
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
 
-                    {/* Treatment board table */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center gap-2">
-                                    <Icon
-                                        icon="heroicons:clipboard-document-list"
-                                        className="h-5 w-5"
-                                        aria-hidden="true"
-                                    />
-                                    <span>Active Treatment Board</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>
-                                {hasPatients
-                                    ? `${rows.length} patient${rows.length === 1 ? '' : 's'} with a provider, not yet departed`
-                                    : 'Live patients with a provider, not yet departed'}
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section title="Active Treatment Board" icon="heroicons:clipboard-document-list"
+                             summary={hasPatients
+                                 ? `${rows.length} patient${rows.length === 1 ? '' : 's'} with a provider, not yet departed`
+                                 : 'Live patients with a provider, not yet departed'}>
+                        <Panel className="p-0">
                             {hasPatients ? (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                         <thead>
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Room
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Chief Complaint
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    ESI
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    In Treatment
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Total LOS
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Status
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Care Team
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    Pending Orders
-                                                </th>
+                                                {[
+                                                    ['Room', 'left'],
+                                                    ['Chief Complaint', 'left'],
+                                                    ['ESI', 'left'],
+                                                    ['In Treatment', 'right'],
+                                                    ['Total LOS', 'right'],
+                                                    ['Status', 'left'],
+                                                    ['Care Team', 'left'],
+                                                    ['Pending Orders', 'left'],
+                                                ].map(([h, align]) => (
+                                                    <th key={h} className={`px-4 py-3 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-${align}`}>
+                                                        {h}
+                                                    </th>
+                                                ))}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
@@ -297,10 +240,13 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                     </table>
                                 </div>
                             ) : (
-                                <EmptyState />
+                                <EmptyState
+                                    message="No patients in active treatment — every patient seen by a provider has been dispositioned and departed."
+                                    icon="heroicons:check-badge"
+                                />
                             )}
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
                 </div>
             </PageContentLayout>
         </DashboardLayout>

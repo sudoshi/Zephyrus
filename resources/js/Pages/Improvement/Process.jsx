@@ -6,7 +6,7 @@ import ProcessFlowDiagram from '@/Components/Process/ProcessFlowDiagram';
 import ProcessMetricsModal from '@/Components/Process/ProcessMetricsModal';
 import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
 import PatientFlowDashboard from '@/Components/Analytics/PatientFlow/PatientFlowDashboard';
-import Panel from '@/Components/ui/Panel';
+import { Section, Panel } from '@/Components/system';
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 import { AnalyticsProvider } from '@/Contexts/AnalyticsContext';
@@ -444,10 +444,11 @@ const Process = ({ auth, savedLayout }) => {
     switch (activeTab) {
       case 'process-map':
         return (
-          <Panel 
-            dropLightIntensity="medium"
+          <Section
             title="Process Maps"
-            headerRight={
+            icon="lucide:map"
+            summary={`${selectedMap} workflow`}
+            actions={
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
                   <label htmlFor="map-selector" className="mr-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -485,70 +486,62 @@ const Process = ({ auth, savedLayout }) => {
                 </div>
               </div>
             }
-            headerContent={
-              <div className="flex justify-center w-full">
+          >
+            <Panel className="p-4">
+              <div className="mb-4 flex justify-center w-full">
                 <TimelineSlider
                   onChange={handleTimelineChange}
                 />
               </div>
-            }
-          >
-
-            
-
-            
-
-            
-
-            
-            <div className="relative">
-              <ProcessFlowDiagram 
-                ref={diagramRef}
-                data={processData} 
-                savedLayout={savedLayout}
-                onNodeClick={handleNodeClick}
-                onEdgeClick={handleEdgeClick}
-                workflowName={selectedMap}
-                processType={selectedMap.toLowerCase().replace(/\s+/g, '_')}
-                flowDirection={flowDirection.toLowerCase()}
+              <div className="relative">
+                <ProcessFlowDiagram
+                  ref={diagramRef}
+                  data={processData}
+                  savedLayout={savedLayout}
+                  onNodeClick={handleNodeClick}
+                  onEdgeClick={handleEdgeClick}
+                  workflowName={selectedMap}
+                  processType={selectedMap.toLowerCase().replace(/\s+/g, '_')}
+                  flowDirection={flowDirection.toLowerCase()}
+                />
+                {/* Floating action button for resetting layout */}
+                <button
+                  onClick={() => diagramRef.current?.resetLayout()}
+                  className="absolute bottom-4 right-4 p-3 rounded-full bg-healthcare-primary dark:bg-healthcare-primary-dark text-white shadow-lg hover:bg-healthcare-primary-hover dark:hover:bg-healthcare-primary-dark-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary dark:focus:ring-healthcare-primary-dark transition-colors duration-200"
+                  title="Reset Layout"
+                >
+                  <Icon icon="lucide:refresh-cw" className="h-5 w-5" />
+                </button>
+              </div>
+              <ProcessMetricsModal
+                isOpen={isMetricsModalOpen}
+                onClose={handleCloseModal}
+                selectedNode={selectedNode}
+                selectedEdge={selectedEdge}
+                overallMetrics={processData?.metrics}
               />
-              {/* Floating action button for resetting layout */}
-              <button
-                onClick={() => diagramRef.current?.resetLayout()}
-                className="absolute bottom-4 right-4 p-3 rounded-full bg-healthcare-primary dark:bg-healthcare-primary-dark text-white shadow-lg hover:bg-healthcare-primary-hover dark:hover:bg-healthcare-primary-dark-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-healthcare-primary dark:focus:ring-healthcare-primary-dark transition-colors duration-200"
-                title="Reset Layout"
-              >
-                <Icon icon="lucide:refresh-cw" className="h-5 w-5" />
-              </button>
-            </div>
-            <ProcessMetricsModal
-              isOpen={isMetricsModalOpen}
-              onClose={handleCloseModal}
-              selectedNode={selectedNode}
-              selectedEdge={selectedEdge}
-              overallMetrics={processData?.metrics}
-            />
-            <ProcessIntelligenceModal
-              isOpen={isIntelligenceModalOpen}
-              onClose={() => setIsIntelligenceModalOpen(false)}
-              metrics={processData?.metrics}
-            />
-          </Panel>
+              <ProcessIntelligenceModal
+                isOpen={isIntelligenceModalOpen}
+                onClose={() => setIsIntelligenceModalOpen(false)}
+                metrics={processData?.metrics}
+              />
+            </Panel>
+          </Section>
         );
-      
+
       case 'variants':
-        return <VariantsViewPanel />;
-      
+        return (
+          <Section title="Process Variants" icon="lucide:git-branch"
+                   summary="Variant frequency and pathway comparison">
+            <VariantsViewPanel />
+          </Section>
+        );
+
       case 'statistics':
         return (
-          <Panel title="Process Statistics" dropLightIntensity="medium">
-            <div className="p-4">
-              <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
-                Process Statistics
-              </h3>
-              <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-6">
-                View detailed statistics about your processes.
-              </p>
+          <Section title="Process Statistics" icon="lucide:bar-chart"
+                   summary="Detailed statistics about your processes">
+            <Panel className="p-4">
               <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-6 rounded-lg">
                 <div className="text-center py-12">
                   <Icon icon="lucide:bar-chart" className="h-16 w-16 mx-auto text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-50" />
@@ -560,20 +553,15 @@ const Process = ({ auth, savedLayout }) => {
                   </p>
                 </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </Section>
         );
-      
+
       case 'optimization':
         return (
-          <Panel title="Process Optimization" dropLightIntensity="medium">
-            <div className="p-4">
-              <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
-                Process Optimization
-              </h3>
-              <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-6">
-                Identify optimization opportunities in your processes.
-              </p>
+          <Section title="Process Optimization" icon="lucide:settings"
+                   summary="Identify optimization opportunities in your processes">
+            <Panel className="p-4">
               <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-6 rounded-lg">
                 <div className="text-center py-12">
                   <Icon icon="lucide:settings" className="h-16 w-16 mx-auto text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-50" />
@@ -585,8 +573,8 @@ const Process = ({ auth, savedLayout }) => {
                   </p>
                 </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </Section>
         );
       
       default:
@@ -620,15 +608,18 @@ const Process = ({ auth, savedLayout }) => {
         {/* Side Navigation */}
         <div className="w-64 flex flex-col gap-4">
           {/* Process Analysis Navigation */}
-          <Panel title="Process Analysis" className="rounded-lg overflow-hidden">
-            <ul className="space-y-2 p-2">
+          <Panel className="p-2">
+            <h2 className="px-2 pt-1 pb-2 text-sm font-semibold uppercase tracking-wide text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Process Analysis
+            </h2>
+            <ul className="space-y-2">
               {sideNavItems.map(item => (
                 <li key={item.id}>
                   <button
                     onClick={() => handleTabChange(item.id)}
                     className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-md transition-all duration-300 ${
-                      activeTab === item.id 
-                        ? 'bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 text-healthcare-primary dark:text-healthcare-primary-dark border border-healthcare-primary/30 dark:border-healthcare-primary-dark/30' 
+                      activeTab === item.id
+                        ? 'bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/20 text-healthcare-primary dark:text-healthcare-primary-dark border border-healthcare-primary/30 dark:border-healthcare-primary-dark/30'
                         : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark border border-transparent'
                     }`}
                   >

@@ -2,13 +2,20 @@ import React from 'react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Analytics/Common/MetricsCard';
+import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import { Icon } from '@iconify/react';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import AlertsAndPredictions from '@/Components/ED/AlertsAndPredictions';
 import ResourceManagement from '@/Components/ED/ResourceManagement';
 import { edMetrics, performanceMetrics, patientStatusBoard, alertsData } from '@/mock-data/ed';
+
+// Emergency Department workflow dashboard, rebuilt on the gold-standard design
+// system. The top-line department + performance numbers form one MetricGrid hero
+// wall (status paired with tone, never colour alone); triage mix, wait-time
+// trend, and the patient status board live in Panels under Section headers. The
+// Resource Management and Alerts/Predictions composites keep their own surfaces.
+// All values flow from live props (edMetrics / performanceMetrics / board /
+// alerts); mock-data is only the dev fallback — nothing is fabricated here.
 
 const EDDashboard = ({
     edMetrics: edMetricsProp = edMetrics,
@@ -20,6 +27,55 @@ const EDDashboard = ({
     const perf = performanceMetricsProp;
     const board = patientStatusBoardProp;
     const alerts = alertsDataProp;
+
+    const cs = ed.currentStatus;
+    const occupancyStatus = cs.occupancy >= 90 ? 'critical' : cs.occupancy >= 80 ? 'warning' : 'success';
+    const waitingStatus = cs.waitingRoom > 15 ? 'critical' : cs.waitingRoom > 10 ? 'warning' : 'success';
+    const d2pStatus =
+        perf.doorToProvider.current > perf.doorToProvider.target * 1.5 ? 'critical'
+            : perf.doorToProvider.current > perf.doorToProvider.target ? 'warning' : 'success';
+    const lwbsStatus =
+        perf.leftWithoutBeingSeen.current > perf.leftWithoutBeingSeen.target * 1.5 ? 'critical'
+            : perf.leftWithoutBeingSeen.current > perf.leftWithoutBeingSeen.target ? 'warning' : 'success';
+
+    // Real hourly wait-time series → trajectory on the wait-time hero tile.
+    const waitTrajectory = (ed.waitTimes?.trends ?? []).map((t) => t.waitTime);
+
+    // Hero KPI wall — top-line department + performance numbers. Status pairs the
+    // breach logic with tone; the label + value carry meaning, never colour alone.
+    const heroMetrics = [
+        metric({
+            key: 'total-patients', label: 'Total patients', value: Number(cs.totalPatients),
+            status: occupancyStatus, target: Number(cs.capacity), targetDisplay: `${cs.capacity} capacity`,
+            caption: `${cs.occupancy}% occupancy · ${cs.criticalCases} critical`,
+            definition: 'Patients currently in the department against staffed capacity.',
+        }),
+        metric({
+            key: 'waiting-room', label: 'Waiting room', value: Number(cs.waitingRoom),
+            status: waitingStatus, goodWhenDown: true, trajectory: waitTrajectory,
+            caption: `${cs.averageWaitTime} min avg wait`,
+            definition: 'Patients in the waiting room awaiting a treatment space.',
+        }),
+        metric({
+            key: 'door-to-provider', label: 'Door to provider', value: Number(perf.doorToProvider.current),
+            display: `${perf.doorToProvider.current} min`, status: d2pStatus, goodWhenDown: true,
+            target: Number(perf.doorToProvider.target), targetDisplay: `${perf.doorToProvider.target} min target`,
+            caption: `${perf.doorToProvider.trend === 'up' ? '+' : '-'}${perf.doorToProvider.trendValue} min vs prior`,
+            definition: 'Median time from arrival to first provider contact.',
+        }),
+        metric({
+            key: 'lwbs', label: 'Left without being seen', value: Number(perf.leftWithoutBeingSeen.current), unit: '%',
+            status: lwbsStatus, goodWhenDown: true, target: Number(perf.leftWithoutBeingSeen.target),
+            caption: `${perf.leftWithoutBeingSeen.trend === 'up' ? '+' : '-'}${perf.leftWithoutBeingSeen.trendValue} pts vs prior`,
+            definition: 'Share of arrivals who leave before being evaluated. Target ≤ 2%.',
+        }),
+    ];
+
+    const triageDot = (category) =>
+        category === 'resuscitation' ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark'
+            : category === 'emergent' ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark'
+                : 'bg-healthcare-success dark:bg-healthcare-success-dark';
+
     return (
         <DashboardLayout>
             <Head title="ED Dashboard - ZephyrusOR" />
@@ -27,161 +83,92 @@ const EDDashboard = ({
                 title="Emergency Department"
                 subtitle="Real-time ED operations and metrics"
             >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Current Status */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:heart" className="w-5 h-5" />
-                                    <span>Current Status</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Real-time department metrics</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            <MetricsCardGroup cols={2}>
-                                <MetricsCard
-                                    title="Total Patients"
-                                    value={ed.currentStatus.totalPatients.toString()}
-                                    trend={ed.currentStatus.totalPatients > ed.currentStatus.capacity * 0.8 ? 'down' : 'up'}
-                                    trendValue={ed.currentStatus.occupancy}
-                                    icon="heroicons:users"
-                                    description={`${ed.currentStatus.occupancy}% occupancy`}
-                                />
-                                <MetricsCard
-                                    title="Waiting Room"
-                                    value={ed.currentStatus.waitingRoom.toString()}
-                                    trend={ed.currentStatus.waitingRoom > 10 ? 'down' : 'up'}
-                                    trendValue={ed.currentStatus.averageWaitTime}
-                                    icon="heroicons:clock"
-                                    description={`${ed.currentStatus.averageWaitTime} min avg wait`}
-                                />
-                            </MetricsCardGroup>
-                            <div className="mt-6">
-                                <h4 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
-                                    Triage Categories
-                                </h4>
-                                <div className="space-y-3">
-                                    {Object.entries(ed.triageCategories).map(([category, data]) => (
-                                        <div key={category} className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
-                                            <div className="flex items-center space-x-3">
-                                                <div className={`w-2 h-2 rounded-full ${
-                                                    category === 'resuscitation' ? 'bg-healthcare-critical dark:bg-healthcare-critical-dark' :
-                                                    category === 'emergent' ? 'bg-healthcare-warning dark:bg-healthcare-warning-dark' :
-                                                    'bg-healthcare-success dark:bg-healthcare-success-dark'
-                                                }`} />
-                                                <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">
-                                                    {category}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center space-x-4">
-                                                <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    {data.count} patients
-                                                </span>
-                                                <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
-                                                    Target: {data.targetTime}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </Card.Content>
-                    </Card>
+                <div className="flex flex-col gap-5">
+                    {/* Hero KPI wall */}
+                    <Section
+                        title="Department status"
+                        icon="heroicons:heart"
+                        summary={`${cs.totalPatients}/${cs.capacity} beds · ${cs.occupancy}% occupancy`}
+                    >
+                        <MetricGrid metrics={heroMetrics} />
+                    </Section>
 
-                    {/* Performance Metrics */}
-                    <Card>
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:chart-bar" className="w-5 h-5" />
-                                    <span>Performance Metrics</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Key performance indicators</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            <MetricsCardGroup cols={2}>
-                                <MetricsCard
-                                    title="Door to Provider"
-                                    value={`${perf.doorToProvider.current}min`}
-                                    trend={perf.doorToProvider.trend}
-                                    trendValue={perf.doorToProvider.trendValue}
-                                    icon="heroicons:clock"
-                                    description={`Target: ${perf.doorToProvider.target}min`}
-                                />
-                                <MetricsCard
-                                    title="Left Without Being Seen"
-                                    value={`${perf.leftWithoutBeingSeen.current}%`}
-                                    trend={perf.leftWithoutBeingSeen.trend}
-                                    trendValue={perf.leftWithoutBeingSeen.trendValue}
-                                    icon="heroicons:arrow-right"
-                                    description={`Target: ${perf.leftWithoutBeingSeen.target}%`}
-                                />
-                            </MetricsCardGroup>
-                            <div className="mt-6">
-                                <h4 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
-                                    Wait Time Trends
-                                </h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {/* Triage categories */}
+                        <Section
+                            title="Triage categories"
+                            icon="heroicons:funnel"
+                            summary="Patients by acuity tier and target time"
+                        >
+                            <Panel className="space-y-3 p-4">
+                                {Object.entries(ed.triageCategories).map(([category, data]) => (
+                                    <div key={category} className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-2 h-2 rounded-full ${triageDot(category)}`} aria-hidden="true" />
+                                            <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">
+                                                {category}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center space-x-4">
+                                            <span className="text-sm tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                {data.count} patients
+                                            </span>
+                                            <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
+                                                Target: {data.targetTime}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </Panel>
+                        </Section>
+
+                        {/* Wait time trends */}
+                        <Section
+                            title="Wait time trends"
+                            icon="heroicons:chart-bar"
+                            summary="Average wait time across the day"
+                        >
+                            <Panel className="p-4">
                                 <div className="h-48">
-                                        <TrendChart
-                                            data={ed.waitTimes.trends}
-                                            series={[
-                                                {
-                                                    dataKey: 'waitTime',
-                                                    name: 'Wait Time',
-                                                },
-                                            ]}
-                                            xAxis={{
-                                                dataKey: 'hour',
-                                                type: 'category',
-                                            }}
-                                        />
+                                    <TrendChart
+                                        data={ed.waitTimes.trends}
+                                        series={[
+                                            {
+                                                dataKey: 'waitTime',
+                                                name: 'Wait Time',
+                                            },
+                                        ]}
+                                        xAxis={{
+                                            dataKey: 'hour',
+                                            type: 'category',
+                                        }}
+                                    />
                                 </div>
-                            </div>
-                        </Card.Content>
-                    </Card>
+                            </Panel>
+                        </Section>
+                    </div>
 
                     {/* Patient Status Board */}
-                    <Card className="lg:col-span-2">
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center space-x-2">
-                                    <Icon icon="heroicons:clipboard-document-list" className="w-5 h-5" />
-                                    <span>Patient Status Board</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>Active patient tracking</Card.Description>
-                        </Card.Header>
-                        <Card.Content>
+                    <Section
+                        title="Patient status board"
+                        icon="heroicons:clipboard-document-list"
+                        summary={`${board.length} active patients tracked`}
+                    >
+                        <Panel className="p-4">
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                     <thead>
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Location
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Chief Complaint
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Triage Level
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Wait Time
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Next Action
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                Provider
-                                            </th>
+                                            {['Location', 'Chief Complaint', 'Triage Level', 'Wait Time', 'Next Action', 'Provider'].map((h) => (
+                                                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    {h}
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
                                         {board.map((patient) => (
-                                            <tr key={patient.id}>
+                                            <tr key={patient.id} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-200">
                                                 <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {patient.location}
                                                 </td>
@@ -197,7 +184,7 @@ const EDDashboard = ({
                                                         Level {patient.triageLevel}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                <td className="px-4 py-3 text-sm tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {patient.waitTime} min
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -211,17 +198,29 @@ const EDDashboard = ({
                                     </tbody>
                                 </table>
                             </div>
-                        </Card.Content>
-                    </Card>
+                        </Panel>
+                    </Section>
 
-                    {/* Resource Management */}
-                    <ResourceManagement resources={ed.resources} />
+                    {/* Resource Management — composite keeps its own surface */}
+                    <Section
+                        title="Resource management"
+                        icon="heroicons:cube"
+                        summary="Current bed and equipment availability"
+                    >
+                        <ResourceManagement resources={ed.resources} />
+                    </Section>
 
-                    {/* Alerts and Predictions */}
-                    <AlertsAndPredictions
-                        alerts={alerts.alerts}
-                        predictions={ed.predictions}
-                    />
+                    {/* Alerts and Predictions — composite keeps its own surfaces */}
+                    <Section
+                        title="Alerts & predictions"
+                        icon="heroicons:bell-alert"
+                        summary="Active notifications and forecasted events"
+                    >
+                        <AlertsAndPredictions
+                            alerts={alerts.alerts}
+                            predictions={ed.predictions}
+                        />
+                    </Section>
                 </div>
             </PageContentLayout>
         </DashboardLayout>

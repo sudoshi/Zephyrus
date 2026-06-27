@@ -3,33 +3,13 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 
-// Tone -> healthcare status token map. Status is NEVER conveyed by color alone;
-// every badge pairs the tone with an icon + text label.
-const TONE = {
-    critical: {
-        text: 'text-healthcare-critical dark:text-healthcare-critical-dark',
-        bg: 'bg-healthcare-critical/15 dark:bg-healthcare-critical-dark/20',
-        icon: 'heroicons:exclamation-triangle',
-    },
-    warning: {
-        text: 'text-healthcare-warning dark:text-healthcare-warning-dark',
-        bg: 'bg-healthcare-warning/15 dark:bg-healthcare-warning-dark/20',
-        icon: 'heroicons:clock',
-    },
-    success: {
-        text: 'text-healthcare-success dark:text-healthcare-success-dark',
-        bg: 'bg-healthcare-success/15 dark:bg-healthcare-success-dark/20',
-        icon: 'heroicons:check-circle',
-    },
-    info: {
-        text: 'text-healthcare-info dark:text-healthcare-info-dark',
-        bg: 'bg-healthcare-info/15 dark:bg-healthcare-info-dark/20',
-        icon: 'heroicons:user-plus',
-    },
-};
+// ED Triage rebuilt on the gold-standard design system: the KPI wall is one
+// MetricGrid of KpiTiles, the triage board and the acuity/longest-wait sidebars
+// live in Panels under Section headers. All values are server-computed from the
+// live `prod` schema (TriageService over seeded ed_visits); the page renders
+// empty states rather than fabricating data.
 
 // ESI badge palette. Acuity is data-driven (a sanctioned, non-status use of the
 // scale) but still pairs the number with the tier label in the cell beside it.
@@ -39,6 +19,29 @@ const ESI_BADGE = {
     3: 'bg-healthcare-warning/15 text-healthcare-warning dark:text-healthcare-warning-dark',
     4: 'bg-healthcare-info/15 text-healthcare-info dark:text-healthcare-info-dark',
     5: 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark',
+};
+
+// Status tone -> icon. Status is NEVER conveyed by color alone; every badge
+// pairs the tone with an icon + text label.
+const TONE_ICON = {
+    critical: 'heroicons:exclamation-triangle',
+    warning: 'heroicons:clock',
+    success: 'heroicons:check-circle',
+    info: 'heroicons:user-plus',
+};
+
+const TONE_TEXT = {
+    critical: 'text-healthcare-critical dark:text-healthcare-critical-dark',
+    warning: 'text-healthcare-warning dark:text-healthcare-warning-dark',
+    success: 'text-healthcare-success dark:text-healthcare-success-dark',
+    info: 'text-healthcare-info dark:text-healthcare-info-dark',
+};
+
+const TONE_BG = {
+    critical: 'bg-healthcare-critical/15 dark:bg-healthcare-critical-dark/20',
+    warning: 'bg-healthcare-warning/15 dark:bg-healthcare-warning-dark/20',
+    success: 'bg-healthcare-success/15 dark:bg-healthcare-success-dark/20',
+    info: 'bg-healthcare-info/15 dark:bg-healthcare-info-dark/20',
 };
 
 const formatWait = (minutes) => {
@@ -74,12 +77,14 @@ const EsiBadge = ({ esi, label }) => (
 );
 
 const StatusBadge = ({ status, tone }) => {
-    const t = TONE[tone] || TONE.info;
+    const icon = TONE_ICON[tone] || TONE_ICON.info;
+    const text = TONE_TEXT[tone] || TONE_TEXT.info;
+    const bg = TONE_BG[tone] || TONE_BG.info;
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${t.bg} ${t.text}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${bg} ${text}`}
         >
-            <Icon icon={t.icon} className="h-3.5 w-3.5" aria-hidden="true" />
+            <Icon icon={icon} className="h-3.5 w-3.5" aria-hidden="true" />
             {status}
         </span>
     );
@@ -119,40 +124,6 @@ const EsiDistribution = ({ breakdown }) => {
     );
 };
 
-const EmptyQueue = () => (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-3 rounded-full bg-healthcare-success/15 dark:bg-healthcare-success-dark/20 p-3">
-            <Icon
-                icon="heroicons:check-badge"
-                className="h-7 w-7 text-healthcare-success dark:text-healthcare-success-dark"
-                aria-hidden="true"
-            />
-        </div>
-        <h3 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-            Triage queue is clear
-        </h3>
-        <p className="mt-1 max-w-sm text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            No patients are currently waiting in the Emergency Department.
-        </p>
-    </div>
-);
-
-const Th = ({ children, className = '' }) => (
-    <th
-        className={`px-4 py-3 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ${className}`}
-    >
-        {children}
-    </th>
-);
-
-const Td = ({ children, className = '' }) => (
-    <td
-        className={`px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark ${className}`}
-    >
-        {children}
-    </td>
-);
-
 export default function Triage({
     kpis = {},
     esiBreakdown = [],
@@ -170,6 +141,34 @@ export default function Triage({
         ...kpis,
     };
 
+    const kpiMetrics = [
+        metric({
+            key: 'in-queue', label: 'In Queue', value: Number(k.inQueue ?? 0), status: 'info',
+            caption: 'Patients currently in the ED',
+            definition: 'Patients currently present in the Emergency Department.',
+        }),
+        metric({
+            key: 'high-acuity', label: 'High Acuity (ESI 1-2)', value: Number(k.highAcuity ?? 0),
+            status: (k.highAcuity ?? 0) > 0 ? 'critical' : 'success', goodWhenDown: true,
+            caption: 'Emergent / resuscitation',
+            definition: 'Patients triaged at ESI 1 or 2 — emergent / resuscitation acuity.',
+        }),
+        metric({
+            key: 'longest-wait', label: 'Longest Wait', value: Number(k.longestWaitMinutes ?? 0),
+            display: formatWait(k.longestWaitMinutes), goodWhenDown: true,
+            status: (k.longestWaitMinutes ?? 0) > 60 ? 'warning' : 'success',
+            caption: `${k.overTarget ?? 0} over target`,
+            definition: 'Current wait of the patient who has waited longest.',
+        }),
+        metric({
+            key: 'door-to-triage', label: 'Median Door-to-Triage', value: Number(k.medianDoorToTriage ?? 0),
+            display: `${k.medianDoorToTriage ?? 0}m`, target: 10, targetDisplay: '10m', goodWhenDown: true,
+            status: (k.medianDoorToTriage ?? 0) <= 10 ? 'success' : 'warning',
+            caption: 'Target: 10m',
+            definition: 'Median time from arrival to triage completion. Target 10 minutes.',
+        }),
+    ];
+
     return (
         <DashboardLayout>
             <Head title="Triage - Emergency" />
@@ -177,188 +176,128 @@ export default function Triage({
                 title="ED Triage"
                 subtitle="Live triage queue, acuity mix, and patient prioritization"
             >
-                {/* KPI tiles */}
-                <MetricsCardGroup cols={4}>
-                    <MetricsCard
-                        title="In Queue"
-                        value={k.inQueue.toString()}
-                        icon="heroicons:user-group"
-                        comparison=""
-                        description="Patients currently in the ED"
-                    />
-                    <MetricsCard
-                        title="High Acuity (ESI 1-2)"
-                        value={k.highAcuity.toString()}
-                        trend={k.highAcuity > 0 ? 'down' : 'up'}
-                        icon="heroicons:exclamation-triangle"
-                        comparison=""
-                        description="Emergent / resuscitation"
-                    />
-                    <MetricsCard
-                        title="Longest Wait"
-                        value={formatWait(k.longestWaitMinutes)}
-                        trend={k.longestWaitMinutes > 60 ? 'down' : 'up'}
-                        icon="heroicons:clock"
-                        comparison=""
-                        description={`${k.overTarget} over target`}
-                    />
-                    <MetricsCard
-                        title="Median Door-to-Triage"
-                        value={`${k.medianDoorToTriage}m`}
-                        trend={k.medianDoorToTriage <= 10 ? 'up' : 'down'}
-                        icon="heroicons:bolt"
-                        comparison=""
-                        description="Target: 10m"
-                    />
-                </MetricsCardGroup>
+                <div className="flex flex-col gap-5">
+                    <Section title="Triage overview" icon="heroicons:user-group"
+                             summary={`${k.inQueue ?? 0} in queue · ${k.highAcuity ?? 0} high acuity`}>
+                        <MetricGrid metrics={kpiMetrics} />
+                    </Section>
 
-                <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Triage board */}
-                    <Card className="lg:col-span-2">
-                        <Card.Header>
-                            <Card.Title>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="heroicons:clipboard-document-list" className="h-5 w-5" />
-                                    <span>Triage Queue</span>
-                                </div>
-                            </Card.Title>
-                            <Card.Description>
-                                Ordered by acuity, then longest wait
-                            </Card.Description>
-                        </Card.Header>
-                        <Card.Content>
-                            {queue.length === 0 ? (
-                                <EmptyQueue />
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                        <thead>
-                                            <tr>
-                                                <Th>Patient</Th>
-                                                <Th>ESI</Th>
-                                                <Th>Chief Complaint</Th>
-                                                <Th>Room</Th>
-                                                <Th>Arrived</Th>
-                                                <Th className="text-right">Wait</Th>
-                                                <Th>Status</Th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
-                                            {queue.map((p) => (
-                                                <tr
-                                                    key={p.id}
-                                                    className="transition-colors duration-150 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
-                                                >
-                                                    <Td>
-                                                        <div className="font-medium">{p.patientName}</div>
-                                                        <div className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                            {p.patientRef}
-                                                        </div>
-                                                    </Td>
-                                                    <Td>
-                                                        <EsiBadge esi={p.esi} label={p.esiLabel} />
-                                                    </Td>
-                                                    <Td>{p.chiefComplaint}</Td>
-                                                    <Td className="whitespace-nowrap text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                        {p.triageRoom}
-                                                    </Td>
-                                                    <Td className="whitespace-nowrap tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                        {formatClock(p.arrivedAt)}
-                                                    </Td>
-                                                    <Td className="text-right">
-                                                        <span
-                                                            className={`tabular-nums font-medium ${
-                                                                p.overTarget
-                                                                    ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
-                                                                    : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                                            }`}
-                                                        >
-                                                            {formatWait(p.waitMinutes)}
-                                                        </span>
-                                                    </Td>
-                                                    <Td>
-                                                        <StatusBadge status={p.status} tone={p.statusTone} />
-                                                    </Td>
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                        <Section title="Triage Queue" icon="heroicons:clipboard-document-list"
+                                 summary="Ordered by acuity, then longest wait"
+                                 className="lg:col-span-2">
+                            <Panel className="p-0">
+                                {queue.length === 0 ? (
+                                    <EmptyState
+                                        message="Triage queue is clear — no patients are currently waiting in the Emergency Department."
+                                        icon="heroicons:check-badge"
+                                    />
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                                            <thead>
+                                                <tr>
+                                                    {['Patient', 'ESI', 'Chief Complaint', 'Room', 'Arrived', 'Wait', 'Status'].map((h, i) => (
+                                                        <th key={h} className={`px-4 py-3 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ${i === 5 ? 'text-right' : 'text-left'}`}>{h}</th>
+                                                    ))}
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </Card.Content>
-                    </Card>
-
-                    {/* Sidebar: ESI mix + longest waits */}
-                    <div className="space-y-6">
-                        <Card>
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="heroicons:chart-bar" className="h-5 w-5" />
-                                        <span>Acuity Mix</span>
+                                            </thead>
+                                            <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                                                {queue.map((p) => (
+                                                    <tr
+                                                        key={p.id}
+                                                        className="transition-colors duration-150 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
+                                                    >
+                                                        <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                            <div className="font-medium">{p.patientName}</div>
+                                                            <div className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                                {p.patientRef}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <EsiBadge esi={p.esi} label={p.esiLabel} />
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{p.chiefComplaint}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                            {p.triageRoom}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                            {formatClock(p.arrivedAt)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-sm">
+                                                            <span
+                                                                className={`tabular-nums font-medium ${
+                                                                    p.overTarget
+                                                                        ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
+                                                                        : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                                                }`}
+                                                            >
+                                                                {formatWait(p.waitMinutes)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <StatusBadge status={p.status} tone={p.statusTone} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                </Card.Title>
-                                <Card.Description>Active queue by ESI level</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
-                                {esiBreakdown.length === 0 ? (
-                                    <p className="py-6 text-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                        No acuity data available.
-                                    </p>
-                                ) : (
-                                    <EsiDistribution breakdown={esiBreakdown} />
                                 )}
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
 
-                        <Card>
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="heroicons:clock" className="h-5 w-5" />
-                                        <span>Longest Waits</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>Watch-list, by current wait</Card.Description>
-                            </Card.Header>
-                            <Card.Content>
-                                {longestWaits.length === 0 ? (
-                                    <p className="py-6 text-center text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                        No patients waiting.
-                                    </p>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {longestWaits.map((p) => (
-                                            <li
-                                                key={p.id}
-                                                className="flex items-center justify-between gap-3 rounded-md p-2 transition-colors duration-150 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
-                                            >
-                                                <div className="flex min-w-0 items-center gap-2.5">
-                                                    <EsiBadge esi={p.esi} />
-                                                    <div className="min-w-0">
-                                                        <div className="truncate text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                            {p.patientName}
-                                                        </div>
-                                                        <div className="truncate text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                            {p.chiefComplaint}
+                        <div className="flex flex-col gap-5">
+                            <Section title="Acuity Mix" icon="heroicons:chart-bar"
+                                     summary="Active queue by ESI level">
+                                <Panel className="p-4">
+                                    {esiBreakdown.length === 0 ? (
+                                        <EmptyState message="No acuity data available." icon="heroicons:chart-bar" />
+                                    ) : (
+                                        <EsiDistribution breakdown={esiBreakdown} />
+                                    )}
+                                </Panel>
+                            </Section>
+
+                            <Section title="Longest Waits" icon="heroicons:clock"
+                                     summary="Watch-list, by current wait">
+                                <Panel className="p-4">
+                                    {longestWaits.length === 0 ? (
+                                        <EmptyState message="No patients waiting." icon="heroicons:clock" />
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {longestWaits.map((p) => (
+                                                <li
+                                                    key={p.id}
+                                                    className="flex items-center justify-between gap-3 rounded-md p-2 transition-colors duration-150 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
+                                                >
+                                                    <div className="flex min-w-0 items-center gap-2.5">
+                                                        <EsiBadge esi={p.esi} />
+                                                        <div className="min-w-0">
+                                                            <div className="truncate text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                                {p.patientName}
+                                                            </div>
+                                                            <div className="truncate text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                                {p.chiefComplaint}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <span
-                                                    className={`shrink-0 text-sm font-semibold tabular-nums ${
-                                                        p.overTarget
-                                                            ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
-                                                            : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
-                                                    }`}
-                                                >
-                                                    {formatWait(p.waitMinutes)}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </Card.Content>
-                        </Card>
+                                                    <span
+                                                        className={`shrink-0 text-sm font-semibold tabular-nums ${
+                                                            p.overTarget
+                                                                ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
+                                                                : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                                                        }`}
+                                                    >
+                                                        {formatWait(p.waitMinutes)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </Panel>
+                            </Section>
+                        </div>
                     </div>
                 </div>
             </PageContentLayout>

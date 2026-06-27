@@ -3,9 +3,14 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
-import Card from '@/Components/Dashboard/Card';
-import MetricsCard, { MetricsCardGroup } from '@/Components/Common/MetricsCard';
+import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
+
+// ED Resource Analytics rebuilt on the gold-standard design system: the KPI wall
+// is one MetricGrid of KpiTiles, the occupancy / throughput charts and the
+// bed-hours-by-acuity table live in Panels under Section headers. All values are
+// server-computed from the live `prod` schema (seeded ed_visits); the page
+// renders empty states rather than fabricating data.
 
 // ESI badge styling — data-driven (acuity tier), not a status signal. Higher
 // acuity (lower number) reads as more urgent via the warm tokens.
@@ -21,43 +26,15 @@ const ESI_BADGE = {
 // crowding (>=90%) reads critical; <50% reads as comfortable headroom.
 function occupancyStatus(pct) {
     if (pct >= 90) {
-        return { tone: 'critical', label: 'At capacity', trend: 'down', icon: 'heroicons:exclamation-triangle' };
+        return { tone: 'critical', label: 'At capacity', icon: 'heroicons:exclamation-triangle' };
     }
     if (pct >= 75) {
-        return { tone: 'warning', label: 'Busy', trend: 'down', icon: 'heroicons:arrow-trending-up' };
+        return { tone: 'warning', label: 'Busy', icon: 'heroicons:arrow-trending-up' };
     }
     if (pct >= 50) {
-        return { tone: 'info', label: 'Steady', trend: 'neutral', icon: 'heroicons:minus' };
+        return { tone: 'info', label: 'Steady', icon: 'heroicons:minus' };
     }
-    return { tone: 'success', label: 'Headroom', trend: 'up', icon: 'heroicons:check-circle' };
-}
-
-const TONE_TEXT = {
-    critical: 'text-healthcare-critical dark:text-healthcare-critical-dark',
-    warning: 'text-healthcare-warning dark:text-healthcare-warning-dark',
-    info: 'text-healthcare-info dark:text-healthcare-info-dark',
-    success: 'text-healthcare-success dark:text-healthcare-success-dark',
-};
-
-const TONE_BADGE = {
-    critical: 'bg-healthcare-critical/15 text-healthcare-critical dark:text-healthcare-critical-dark',
-    warning: 'bg-healthcare-warning/15 text-healthcare-warning dark:text-healthcare-warning-dark',
-    info: 'bg-healthcare-info/15 text-healthcare-info dark:text-healthcare-info-dark',
-    success: 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark',
-};
-
-function EmptyState({ message }) {
-    return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Icon
-                icon="heroicons:chart-bar-square"
-                className="mb-3 h-8 w-8 text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark"
-            />
-            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                {message}
-            </p>
-        </div>
-    );
+    return { tone: 'success', label: 'Headroom', icon: 'heroicons:check-circle' };
 }
 
 export default function Resources({
@@ -134,6 +111,88 @@ export default function Resources({
         []
     );
 
+    // Gold-standard KPI wall. Occupancy KPIs carry earned-urgency status; the
+    // flow counts are neutral context tiles. Occupancy hours sparkline comes
+    // from the live per-hour utilization series when available.
+    const occupancyTrajectory = hasUtilization ? utilizationSeries.map((b) => b.occupancy) : null;
+
+    const kpiMetrics = useMemo(() => {
+        if (!kpis) return [];
+        return [
+            metric({
+                key: 'current-census',
+                label: 'Current Census',
+                value: Number(kpis.currentCensus ?? 0),
+                display: `${kpis.currentCensus} / ${kpis.capacity}`,
+                status: occStatus.tone,
+                caption: `${kpis.capacity} staffed beds`,
+                definition: 'ED patients currently occupying a bed against staffed-bed capacity.',
+            }),
+            metric({
+                key: 'avg-occupancy',
+                label: 'Avg Occupancy',
+                value: Number(kpis.avgOccupancy ?? 0),
+                unit: '%',
+                status: occStatus.tone,
+                trajectory: occupancyTrajectory,
+                caption: occStatus.label,
+                definition: 'Mean hourly census as a share of staffed-bed capacity over the window.',
+            }),
+            metric({
+                key: 'peak-occupancy',
+                label: 'Peak Occupancy',
+                value: Number(kpis.peakOccupancy ?? 0),
+                unit: '%',
+                status: kpis.peakOccupancy >= 90 ? 'critical' : kpis.peakOccupancy >= 75 ? 'warning' : 'info',
+                caption: `at ${kpis.peakHour}`,
+                definition: 'Highest single-hour occupancy reached in the window.',
+            }),
+            metric({
+                key: 'bed-hours',
+                label: 'Bed-Hours Used',
+                value: Number(kpis.bedHours ?? 0),
+                status: 'info',
+                caption: `last ${kpis.windowHours}h`,
+                definition: 'Total occupied bed-hours consumed across the window.',
+            }),
+            metric({
+                key: 'arrivals',
+                label: 'Arrivals',
+                value: Number(kpis.totalArrivals ?? 0),
+                status: 'info',
+                caption: `last ${kpis.windowHours}h`,
+                definition: 'ED arrivals registered in the window.',
+            }),
+            metric({
+                key: 'departures',
+                label: 'Departures',
+                value: Number(kpis.totalDischarges ?? 0),
+                status: 'info',
+                caption: `last ${kpis.windowHours}h`,
+                definition: 'Completed ED departures (discharge or admit) in the window.',
+            }),
+            metric({
+                key: 'bed-turnover',
+                label: 'Bed Turnover',
+                value: Number(kpis.turnoverRate ?? 0),
+                display: `${kpis.turnoverRate}×`,
+                status: 'info',
+                caption: 'departures per bed',
+                definition: 'Completed departures divided by staffed beds — bed cycling rate.',
+            }),
+            metric({
+                key: 'median-los',
+                label: 'Median LOS',
+                value: Number(kpis.avgLos ?? 0),
+                display: `${kpis.avgLos} min`,
+                status: kpis.avgLos > 240 ? 'warning' : 'success',
+                goodWhenDown: true,
+                caption: 'completed visits',
+                definition: 'Median ED length of stay for completed visits.',
+            }),
+        ];
+    }, [kpis, occStatus, occupancyTrajectory]);
+
     return (
         <DashboardLayout>
             <Head title="Resource Analytics - Emergency" />
@@ -142,161 +201,71 @@ export default function Resources({
                 subtitle="Utilization, occupancy, and throughput over the last 12 hours"
             >
                 {!kpis ? (
-                    <Card>
-                        <Card.Content>
-                            <EmptyState message="No ED resource data available for the current window." />
-                        </Card.Content>
-                    </Card>
+                    <Panel className="p-4">
+                        <EmptyState message="No ED resource data available for the current window." icon="heroicons:chart-bar-square" />
+                    </Panel>
                 ) : (
-                    <div className="space-y-6">
-                        {/* KPI tiles */}
-                        <MetricsCardGroup cols={4}>
-                            <MetricsCard
-                                title="Current Census"
-                                value={kpis.currentCensus}
-                                formatter={(v) => `${v} / ${kpis.capacity}`}
-                                trend={occStatus.trend}
-                                icon="heroicons:user-group"
-                                description={`${kpis.capacity} staffed beds`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Avg Occupancy"
-                                value={kpis.avgOccupancy}
-                                formatter={(v) => `${v}%`}
-                                trend={occStatus.trend}
-                                icon={occStatus.icon}
-                                description={occStatus.label}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Peak Occupancy"
-                                value={kpis.peakOccupancy}
-                                formatter={(v) => `${v}%`}
-                                trend={kpis.peakOccupancy >= 90 ? 'down' : 'neutral'}
-                                icon="heroicons:arrow-trending-up"
-                                description={`at ${kpis.peakHour}`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Bed-Hours Used"
-                                value={kpis.bedHours}
-                                formatter={(v) => v.toLocaleString()}
-                                trend="neutral"
-                                icon="heroicons:clock"
-                                description={`last ${kpis.windowHours}h`}
-                                comparison={null}
-                            />
-                        </MetricsCardGroup>
-
-                        <MetricsCardGroup cols={4}>
-                            <MetricsCard
-                                title="Arrivals"
-                                value={kpis.totalArrivals}
-                                trend="neutral"
-                                icon="heroicons:arrow-down-on-square"
-                                description={`last ${kpis.windowHours}h`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Departures"
-                                value={kpis.totalDischarges}
-                                trend="neutral"
-                                icon="heroicons:arrow-up-on-square"
-                                description={`last ${kpis.windowHours}h`}
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Bed Turnover"
-                                value={kpis.turnoverRate}
-                                formatter={(v) => `${v}×`}
-                                trend="neutral"
-                                icon="heroicons:arrow-path"
-                                description="departures per bed"
-                                comparison={null}
-                            />
-                            <MetricsCard
-                                title="Median LOS"
-                                value={kpis.avgLos}
-                                formatter={(v) => `${v} min`}
-                                trend={kpis.avgLos > 240 ? 'down' : 'up'}
-                                icon="heroicons:clock"
-                                description="completed visits"
-                                comparison={null}
-                            />
-                        </MetricsCardGroup>
+                    <div className="flex flex-col gap-5">
+                        {/* KPI wall */}
+                        <Section
+                            title="Capacity & throughput"
+                            icon="heroicons:squares-2x2"
+                            summary={`Occupancy, flow, and turnover · last ${kpis.windowHours}h`}
+                        >
+                            <MetricGrid metrics={kpiMetrics} />
+                        </Section>
 
                         {/* Utilization + throughput charts */}
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <Card>
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                                <Icon icon="heroicons:chart-bar" className="h-5 w-5" />
-                                                <span>Occupancy Over Time</span>
-                                            </div>
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TONE_BADGE[occStatus.tone]}`}
-                                            >
-                                                <Icon icon={occStatus.icon} className="mr-1 h-3.5 w-3.5" />
-                                                {occStatus.label}
-                                            </span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>
-                                        Hourly census as a share of staffed-bed capacity
-                                    </Card.Description>
-                                </Card.Header>
-                                <Card.Content>
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            <Section
+                                title="Occupancy Over Time"
+                                icon="heroicons:chart-bar"
+                                summary="Hourly census as a share of staffed-bed capacity"
+                                actions={
+                                    <span
+                                        className="inline-flex items-center gap-1 text-xs font-medium"
+                                        style={{ color: STATUS_VAR[occStatus.tone] }}
+                                    >
+                                        <Icon icon={occStatus.icon} className="h-3.5 w-3.5" aria-hidden="true" />
+                                        {occStatus.label}
+                                    </span>
+                                }
+                            >
+                                <Panel className="p-4">
                                     {hasUtilization ? (
                                         <div className="h-64">
                                             <BarChart data={utilizationChart} options={utilizationOptions} />
                                         </div>
                                     ) : (
-                                        <EmptyState message="No occupancy data for this window." />
+                                        <EmptyState message="No occupancy data for this window." icon="heroicons:chart-bar" />
                                     )}
-                                </Card.Content>
-                            </Card>
+                                </Panel>
+                            </Section>
 
-                            <Card>
-                                <Card.Header>
-                                    <Card.Title>
-                                        <div className="flex items-center space-x-2">
-                                            <Icon icon="heroicons:arrows-right-left" className="h-5 w-5" />
-                                            <span>Throughput</span>
-                                        </div>
-                                    </Card.Title>
-                                    <Card.Description>
-                                        Arrivals vs completed departures by hour
-                                    </Card.Description>
-                                </Card.Header>
-                                <Card.Content>
+                            <Section
+                                title="Throughput"
+                                icon="heroicons:arrows-right-left"
+                                summary="Arrivals vs completed departures by hour"
+                            >
+                                <Panel className="p-4">
                                     {hasThroughput ? (
                                         <div className="h-64">
                                             <BarChart data={throughputChart} options={throughputOptions} />
                                         </div>
                                     ) : (
-                                        <EmptyState message="No throughput data for this window." />
+                                        <EmptyState message="No throughput data for this window." icon="heroicons:arrows-right-left" />
                                     )}
-                                </Card.Content>
-                            </Card>
+                                </Panel>
+                            </Section>
                         </div>
 
                         {/* Bed-hours consumption by acuity */}
-                        <Card>
-                            <Card.Header>
-                                <Card.Title>
-                                    <div className="flex items-center space-x-2">
-                                        <Icon icon="heroicons:rectangle-stack" className="h-5 w-5" />
-                                        <span>Bed-Hours by Acuity</span>
-                                    </div>
-                                </Card.Title>
-                                <Card.Description>
-                                    Occupied bed-hours consumed per ESI tier over the last {kpis.windowHours} hours
-                                </Card.Description>
-                            </Card.Header>
-                            <Card.Content>
+                        <Section
+                            title="Bed-Hours by Acuity"
+                            icon="heroicons:rectangle-stack"
+                            summary={`Occupied bed-hours consumed per ESI tier over the last ${kpis.windowHours} hours`}
+                        >
+                            <Panel className="p-4">
                                 {hasBedHours ? (
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
@@ -351,10 +320,10 @@ export default function Resources({
                                         </table>
                                     </div>
                                 ) : (
-                                    <EmptyState message="No bed-hours recorded for this window." />
+                                    <EmptyState message="No bed-hours recorded for this window." icon="heroicons:rectangle-stack" />
                                 )}
-                            </Card.Content>
-                        </Card>
+                            </Panel>
+                        </Section>
                     </div>
                 )}
             </PageContentLayout>
