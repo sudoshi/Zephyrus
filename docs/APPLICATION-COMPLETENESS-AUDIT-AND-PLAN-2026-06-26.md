@@ -499,9 +499,9 @@ differentiated + Analytics measures computed; Admin manages role/status; `check-
 
 **P1 — Un-break (critical path)**
 - [x] Fix PDSA Index + Show crashes against seeded `pdsa_cycles` + null-guards ✅ `9023135`
-- [ ] Delete discharge orphans (DischargePrediction, DischargePredictions) + dead methods — **awaiting sign-off**
-- [ ] Delete/defer 3 dead Analytics controllers/pages — **awaiting sign-off**
-- [ ] Resolve PDSA orphan components (verify imports first) — **awaiting sign-off**
+- [x] Delete discharge orphans (DischargePrediction, DischargePredictions) + dead methods ✅ `bc02764`
+- [x] Delete 3 dead Analytics controllers/pages (+ orphan PatientFlow page) — user-approved ✅ `bc02764`
+- [~] PDSA orphan components (PDSADashboard/CycleManagementPage) — re-verify import graph; not yet removed
 - [x] Fix `/improvement/active/{id}` href (`Active.jsx:286`) ✅ `9023135`
 
 **P2 — Role dashboards + RTDC mock → live**
