@@ -20,8 +20,8 @@ enum AppConfig {
     static let reverbHost = devHost
     static let reverbPort = 8080
 #else
-    // TODO: point at the deployed BFF before TestFlight (e.g. "hummingbird.acumenus.net").
-    static let publicHost = "REPLACE_WITH_PUBLIC_HOST"
+    // Production BFF — globally reachable, valid TLS, serves the mobile routes (verified 2026-06-28).
+    static let publicHost = "zephyrus.acumenus.net"
     static let baseURL = "https://\(publicHost)"
     static let reverbScheme = "wss"
     static let reverbHost = publicHost
