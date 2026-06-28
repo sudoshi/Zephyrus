@@ -5,7 +5,7 @@ import { useEddyStore } from '@/stores/eddyStore';
 import { useEddyContext } from '@/features/eddy/hooks';
 import { streamEddyChat } from '@/features/eddy/stream';
 import { EddyMessageList } from './EddyMessageList';
-import { EddyMark } from './EddyMark';
+import { EddyAvatar } from './EddyAvatar';
 
 const SURFACE_LABEL: Record<string, string> = {
   chat: 'General',
@@ -77,10 +77,8 @@ export function EddySlideOver() {
       <Surface className="relative flex h-full w-full max-w-md flex-col rounded-none border-l shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-healthcare-border px-4 py-3 dark:border-healthcare-border-dark">
-          <div className="flex items-center gap-2">
-            <span className="text-healthcare-primary dark:text-healthcare-primary-dark">
-              <EddyMark size={24} />
-            </span>
+          <div className="flex items-center gap-2.5">
+            <EddyAvatar size={36} />
             <div className="leading-tight">
               <p className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Eddy</p>
               <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { EddyChatMessage } from '@/stores/eddyStore';
-import { EddyMark } from './EddyMark';
+import { EddyAvatar } from './EddyAvatar';
 import { EddyApprovalCard } from './EddyApprovalCard';
 
 interface EddyMessageListProps {
@@ -41,9 +41,7 @@ export function EddyMessageList({ messages, isSending, surface }: EddyMessageLis
 function EmptyState() {
   return (
     <div className="mt-6 flex flex-col items-center gap-3 px-6 text-center">
-      <span className="text-healthcare-primary dark:text-healthcare-primary-dark">
-        <EddyMark size={32} />
-      </span>
+      <EddyAvatar size={72} />
       <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         Ask Eddy about this screen or the operational picture.
       </p>
@@ -66,8 +64,9 @@ function Bubble({ message }: { message: EddyChatMessage }) {
   }
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[90%] rounded-lg border border-healthcare-border bg-healthcare-surface px-3 py-2 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+    <div className="flex justify-start gap-2">
+      <EddyAvatar size={26} className="mt-0.5" />
+      <div className="max-w-[85%] rounded-lg border border-healthcare-border bg-healthcare-surface px-3 py-2 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <p className="whitespace-pre-wrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           {message.content}
         </p>
