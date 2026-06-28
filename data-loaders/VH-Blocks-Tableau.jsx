@@ -890,7 +890,7 @@ const BlockUtilizationDashboard = () => {
 
       {/* Title and Date Range */}
       <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-red-600">VIRTUA - Block Utilization and Non-Prime Time use Trend</h2>
+        <h2 className="text-xl font-bold text-red-600">SUMMIT - Block Utilization and Non-Prime Time use Trend</h2>
         <p className="text-green-600">Current: {startDate} - {endDate} - Comparative: {compStartDate} - {compEndDate}</p>
       </div>
 

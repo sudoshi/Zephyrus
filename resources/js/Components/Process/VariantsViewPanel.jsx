@@ -524,11 +524,11 @@ const VariantsViewPanel = () => {
                 onChange={(e) => setHospitalFilter(e.target.value)}
               >
                 <option value="all">All Hospitals</option>
-                <option value="memorial">{NETWORK_FACILITY_NAMES[1]}</option>
-                <option value="voorhees">{NETWORK_FACILITY_NAMES[3]}</option>
-                <option value="marlton">{NETWORK_FACILITY_NAMES[0]}</option>
-                <option value="willingboro">{NETWORK_FACILITY_NAMES[4]}</option>
-                <option value="camden">{NETWORK_FACILITY_NAMES[2]}</option>
+                <option value="hawthorne">{NETWORK_FACILITY_NAMES[1]}</option>
+                <option value="glenmoore">{NETWORK_FACILITY_NAMES[3]}</option>
+                <option value="main">{NETWORK_FACILITY_NAMES[0]}</option>
+                <option value="castleton">{NETWORK_FACILITY_NAMES[4]}</option>
+                <option value="riverton">{NETWORK_FACILITY_NAMES[2]}</option>
               </select>
             </div>
             <div>

@@ -316,7 +316,7 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 62,
       casesInNonPrimeTime: 11
     },
-    'VIRTUA BREAST CARE - VOORH': {
+    'SUMMIT BREAST CARE - GLENMOORE': {
       service: 'Breast Surgery',
       primeTimeUtilization: 75.8,
       nonPrimeTimePercentage: 17.2,
@@ -332,7 +332,7 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 73,
       casesInNonPrimeTime: 16
     },
-    'VIRTUA SURGICAL GROUP - MARLTON': {
+    'SUMMIT SURGICAL GROUP - MAIN': {
       service: 'General Surgery',
       primeTimeUtilization: 76.7,
       nonPrimeTimePercentage: 18.1,
@@ -340,7 +340,7 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 107,
       casesInNonPrimeTime: 17
     },
-    'VIRTUA GYNECOLOGIC ONCOLOGY - VOORHEES': {
+    'SUMMIT GYNECOLOGIC ONCOLOGY - GLENMOORE': {
       service: 'Gynecologic Oncology',
       primeTimeUtilization: 79.5,
       nonPrimeTimePercentage: 20.9,
@@ -348,7 +348,7 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 68,
       casesInNonPrimeTime: 14
     },
-    'VIRTUA OB/GYN - VOORHEES': {
+    'SUMMIT OB/GYN - GLENMOORE': {
       service: 'Obstetrics and Gynecology',
       primeTimeUtilization: 74.0,
       nonPrimeTimePercentage: 15.4,
@@ -356,7 +356,7 @@ export const mockPrimetimeUtilization = {
       casesInPrimeTime: 139,
       casesInNonPrimeTime: 17
     },
-    'VIRTUA RECONSTRUCTIVE ORTHOPEDICS - VOORHEES': {
+    'SUMMIT RECONSTRUCTIVE ORTHOPEDICS - GLENMOORE': {
       service: 'Orthopaedic Surgery',
       primeTimeUtilization: 81.4,
       nonPrimeTimePercentage: 22.8,
