@@ -31,6 +31,18 @@ struct APIClient {
         return try Self.decoder.decode(TokenResponse.self, from: data)
     }
 
+    /// POST /api/auth/change-password — exchange a scoped change token + temp password
+    /// for a new password and a full session token pair. The caller guarantees the
+    /// new password is confirmed client-side, so confirmation mirrors `newPassword`.
+    func changePassword(currentPassword: String, newPassword: String, bearer: String) async throws -> TokenResponse {
+        let data = try await send(path: "/api/auth/change-password", method: "POST",
+                                  body: ["current_password": currentPassword,
+                                         "new_password": newPassword,
+                                         "new_password_confirmation": newPassword],
+                                  bearer: bearer)
+        return try Self.decoder.decode(TokenResponse.self, from: data)
+    }
+
     func me(bearer: String) async throws -> MeData {
         try await getEnvelope(path: "/api/mobile/v1/me", bearer: bearer, as: MeData.self).data
     }

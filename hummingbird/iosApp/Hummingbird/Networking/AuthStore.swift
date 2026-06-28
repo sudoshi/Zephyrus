@@ -19,6 +19,9 @@ final class AuthStore: ObservableObject {
     let api: APIClient
     private(set) var accessToken: String?
     private(set) var refreshToken: String?
+    /// Narrowly-scoped token (ability `password:change`) held only while the user is
+    /// on the change-password screen. Exchanged for a full session by `changePassword`.
+    private(set) var changeToken: String?
     private let keychain = Keychain(service: "net.acumenus.hummingbird")
 
     init(api: APIClient) { self.api = api }
@@ -47,6 +50,7 @@ final class AuthStore: ObservableObject {
         do {
             let result = try await api.token(username: username, password: password)
             if result.passwordChangeRequired == true {
+                changeToken = result.changeToken
                 phase = .needsPasswordChange
                 return
             }
@@ -67,6 +71,45 @@ final class AuthStore: ObservableObject {
         }
     }
 
+    /// Exchange the temp password for a new one using the scoped change token, then
+    /// adopt the full session the backend hands back. Mirrors `login`'s token handling.
+    func changePassword(currentPassword: String, newPassword: String) async {
+        guard let change = changeToken else {
+            errorMessage = "Your change session expired. Please sign in again."
+            phase = .loggedOut
+            return
+        }
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+        do {
+            let result = try await api.changePassword(currentPassword: currentPassword,
+                                                      newPassword: newPassword, bearer: change)
+            guard let access = result.accessToken else {
+                errorMessage = "Unexpected response from the server."
+                return
+            }
+            accessToken = access
+            refreshToken = result.refreshToken
+            keychain.set(access, for: "accessToken")
+            if let rt = result.refreshToken { keychain.set(rt, for: "refreshToken") }
+            changeToken = nil
+            me = try await api.me(bearer: access)
+            phase = .loggedIn
+        } catch let error as APIError {
+            errorMessage = error.message
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Abandon a forced change and return to the sign-in screen.
+    func backToLogin() {
+        changeToken = nil
+        errorMessage = nil
+        phase = .loggedOut
+    }
+
     func logout() async {
         if let token = accessToken { await api.revoke(bearer: token) }
         clearTokens()
@@ -78,6 +121,7 @@ final class AuthStore: ObservableObject {
     private func clearTokens() {
         accessToken = nil
         refreshToken = nil
+        changeToken = nil
         keychain.delete("accessToken")
         keychain.delete("refreshToken")
     }

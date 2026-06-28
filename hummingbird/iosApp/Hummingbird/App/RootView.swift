@@ -14,7 +14,7 @@ struct RootView: View {
             case .loggedOut:
                 LoginView()
             case .needsPasswordChange:
-                PasswordChangeNoticeView()
+                ChangePasswordView()
             case .loggedIn:
                 if let me = auth.me, !profile.isOnboarded(userId: me.id) {
                     OnboardingView()
@@ -46,27 +46,3 @@ struct RootView: View {
     }
 }
 
-/// v1 placeholder: the must-change-password challenge is honored by the backend; the full
-/// in-app change flow lands in a later phase. For now we explain and let the user sign out.
-struct PasswordChangeNoticeView: View {
-    @EnvironmentObject var auth: AuthStore
-
-    var body: some View {
-        VStack(spacing: Z.s4) {
-            Image(systemName: "lock.rotation")
-                .font(.system(size: 40, weight: .semibold))
-                .foregroundStyle(Z.gold)
-            Text("Password change required")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Z.ink)
-            Text("Your account must set a new password before using Hummingbird. Finish this on the web app, then sign in again.")
-                .font(.system(size: 14))
-                .foregroundStyle(Z.inkMuted)
-                .multilineTextAlignment(.center)
-            Button("Back to sign in") { Task { await auth.logout() } }
-                .buttonStyle(.borderedProminent)
-                .tint(Z.primary)
-        }
-        .padding(Z.s6)
-    }
-}
