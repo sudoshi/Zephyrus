@@ -17,6 +17,11 @@ struct HomeView: View {
         _vm = StateObject(wrappedValue: HomeViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!)))
     }
 
+    // The confirmed role drives what this surface emphasizes and which units it lists.
+    private var role: RoleExperience { RoleExperience.of(profile.roleId) }
+    private var pinned: CensusUnit? { role.pinnedUnit(vm.units, myUnitId: profile.unitId) }
+    private var listUnits: [CensusUnit] { role.censusList(vm.units, myUnitId: profile.unitId) }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
@@ -34,18 +39,13 @@ struct HomeView: View {
                         RetryableMessage(symbol: "building.2", title: "No units reporting",
                                          message: "No units are reporting a census right now.")
                     } else {
-                        houseRollup
-                        censusHeader
-                        ForEach(vm.units) { unit in
-                            NavigationLink(value: unit.unitId) { KpiTile(unit: unit) }
-                                .buttonStyle(.plain)
-                        }
+                        roleContent
                     }
                 }
                 .padding(Z.s4)
             }
             .background(Z.bg)
-            .navigationTitle("House Status")
+            .navigationTitle(role.homeTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -94,6 +94,35 @@ struct HomeView: View {
         .tint(Z.primary)
     }
 
+    // MARK: Role-scoped content
+
+    @ViewBuilder
+    private var roleContent: some View {
+        if let pinned {
+            sectionLabel("YOUR UNIT")
+            NavigationLink(value: pinned.unitId) { KpiTile(unit: pinned) }
+                .buttonStyle(.plain)
+        }
+
+        if role.censusScope == .turns {
+            turnsCard(listUnits)
+        } else {
+            rollupCard(rollupLabel, CensusRollup(listUnits))
+        }
+
+        if listUnits.isEmpty {
+            Text(emptyCensusMessage)
+                .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+                .frame(maxWidth: .infinity).padding(.top, Z.s4)
+        } else {
+            censusHeader(censusTitle)
+            ForEach(listUnits) { unit in
+                NavigationLink(value: unit.unitId) { KpiTile(unit: unit) }
+                    .buttonStyle(.plain)
+            }
+        }
+    }
+
     // MARK: Sections
 
     private var greeting: some View {
@@ -108,41 +137,41 @@ struct HomeView: View {
     }
 
     private var roleLine: String {
-        if let role = profile.role {
-            if let unit = profile.unitName { return "\(role.title) · \(unit)" }
-            return role.title
+        if let r = profile.role {
+            if let unit = profile.unitName { return "\(r.title) · \(unit)" }
+            return r.title
         }
         if let wf = auth.me?.workflowPreference { return "\(wf.capitalized) workflow" }
         return ""
     }
 
-    private var houseRollup: some View {
+    private func rollupCard(_ label: String, _ r: CensusRollup) -> some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
                 HStack {
-                    Text("HOUSE CAPACITY")
+                    Text(label)
                         .font(.system(size: 11, weight: .semibold)).tracking(0.5)
                         .foregroundStyle(Z.inkMuted)
                     Spacer()
-                    StatusChip(status: vm.houseStatus)
+                    StatusChip(status: r.status)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: Z.s2) {
-                    Text("\(vm.totalOccupied)")
+                    Text("\(r.occupied)")
                         .font(.system(size: 40, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.ink)
-                    Text("/ \(vm.totalSafe) safe beds")
+                    Text("/ \(r.safe) safe beds")
                         .font(.system(size: 15)).foregroundStyle(Z.inkMuted)
                     Spacer()
-                    Text("\(vm.occupancyPercent)%")
+                    Text("\(r.percent)%")
                         .font(.system(size: 22, weight: .semibold)).monospacedDigit()
-                        .foregroundStyle(Z.status(vm.houseStatus))
+                        .foregroundStyle(Z.status(r.status))
                 }
                 Divider().overlay(Z.border)
                 HStack(spacing: Z.s2) {
-                    Image(systemName: vm.pressuredUnitCount > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
-                        .foregroundStyle(vm.pressuredUnitCount > 0 ? Z.status(.warning) : Z.status(.success))
-                    Text(vm.pressuredUnitCount > 0
-                         ? "\(vm.pressuredUnitCount) of \(vm.units.count) units near or at capacity"
+                    Image(systemName: r.pressured > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                        .foregroundStyle(r.pressured > 0 ? Z.status(.warning) : Z.status(.success))
+                    Text(r.pressured > 0
+                         ? "\(r.pressured) of \(r.total) units near or at capacity"
                          : "All units within safe capacity")
                         .font(.system(size: 13)).foregroundStyle(Z.ink)
                 }
@@ -150,9 +179,37 @@ struct HomeView: View {
         }
     }
 
-    private var censusHeader: some View {
+    /// EVS leads with cleaning pressure, not occupancy.
+    private func turnsCard(_ units: [CensusUnit]) -> some View {
+        let dirty = units.reduce(0) { $0 + $1.blocked }
+        let toTurn = units.filter { $0.blocked > 0 }.count
+        return Panel {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                Text("BEDS TO TURN")
+                    .font(.system(size: 11, weight: .semibold)).tracking(0.5)
+                    .foregroundStyle(Z.inkMuted)
+                HStack(alignment: .firstTextBaseline, spacing: Z.s2) {
+                    Text("\(dirty)")
+                        .font(.system(size: 40, weight: .semibold)).monospacedDigit()
+                        .foregroundStyle(Z.ink)
+                    Text("blocked / dirty beds")
+                        .font(.system(size: 15)).foregroundStyle(Z.inkMuted)
+                }
+                Divider().overlay(Z.border)
+                HStack(spacing: Z.s2) {
+                    Image(systemName: toTurn > 0 ? "sparkles" : "checkmark.circle.fill")
+                        .foregroundStyle(toTurn > 0 ? Z.status(.warning) : Z.status(.success))
+                    Text(toTurn > 0 ? "\(toTurn) of \(units.count) units need a turn"
+                                    : "No beds waiting on a turn")
+                        .font(.system(size: 13)).foregroundStyle(Z.ink)
+                }
+            }
+        }
+    }
+
+    private func censusHeader(_ title: String) -> some View {
         HStack(spacing: Z.s2) {
-            Text("Unit census")
+            Text(title)
                 .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)
             if vm.live {
                 HStack(spacing: 4) {
@@ -176,6 +233,38 @@ struct HomeView: View {
         }
         .padding(.top, Z.s2)
         .onAppear { pulse = true }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold)).tracking(0.5)
+            .foregroundStyle(Z.inkMuted)
+    }
+
+    // MARK: Role copy
+
+    private var rollupLabel: String {
+        switch role.censusScope {
+        case .unitFocused: return "REST OF HOUSE"
+        case .criticalCare: return "CRITICAL CARE"
+        case .turns, .house: return "HOUSE CAPACITY"
+        }
+    }
+
+    private var censusTitle: String {
+        switch role.censusScope {
+        case .unitFocused: return "Rest of house"
+        case .criticalCare: return "Critical care units"
+        case .turns: return "Units to turn"
+        case .house: return "Unit census"
+        }
+    }
+
+    private var emptyCensusMessage: String {
+        switch role.censusScope {
+        case .criticalCare: return "No critical-care units are reporting right now."
+        default: return "No other units are reporting right now."
+        }
     }
 
     private var firstName: String {

@@ -44,19 +44,28 @@ final class ForYouViewModel: ObservableObject {
         guard let name = item.unit else { return nil }
         return unitsByName[name]
     }
+
+    /// The queue narrowed to what a given role is responsible for.
+    func filtered(by role: RoleExperience, myUnit: String?) -> [ForYouItem] {
+        items.filter { role.keep($0, unitsByName: unitsByName, myUnit: myUnit) }
+    }
 }
 
 /// The "For You" queue — one prioritized list of things that need action.
 struct ForYouView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm = ForYouViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var path = NavigationPath()
 
+    private var role: RoleExperience { RoleExperience.of(profile.roleId) }
+
     var body: some View {
-        NavigationStack(path: $path) {
+        let items = vm.filtered(by: role, myUnit: profile.unitName)
+        return NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s3) {
-                    header
+                    header(count: items.count)
                     if vm.items.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if vm.items.isEmpty && vm.errorMessage != nil {
@@ -65,10 +74,10 @@ struct ForYouView: View {
                                          message: vm.errorMessage ?? "", tone: .warning) {
                             Task { await vm.load(bearer: auth.accessToken ?? "") }
                         }
-                    } else if vm.items.isEmpty {
+                    } else if items.isEmpty {
                         emptyState
                     } else {
-                        ForEach(vm.items) { item in
+                        ForEach(items) { item in
                             if let unit = vm.unit(for: item) {
                                 NavigationLink(value: unit.unitId) { ForYouRow(item: item) }
                                     .buttonStyle(.plain)
@@ -110,13 +119,13 @@ struct ForYouView: View {
         .tint(Z.primary)
     }
 
-    private var header: some View {
+    private func header(count: Int) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Needs you now")
+            Text(role.queueTitle)
                 .font(.system(size: 22, weight: .semibold)).foregroundStyle(Z.ink)
             // Suppress the count when we have nothing because the load failed (it's unknown, not 0).
             if !(vm.items.isEmpty && vm.errorMessage != nil) {
-                Text("\(vm.items.count) item\(vm.items.count == 1 ? "" : "s") to action")
+                Text("\(count) item\(count == 1 ? "" : "s") to action")
                     .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
             }
         }
@@ -127,8 +136,9 @@ struct ForYouView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 40)).foregroundStyle(Z.status(.success))
             Text("All clear").font(.system(size: 18, weight: .semibold)).foregroundStyle(Z.ink)
-            Text("Nothing needs your action right now.")
+            Text(role.emptyQueue)
                 .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(.top, Z.s6)
     }

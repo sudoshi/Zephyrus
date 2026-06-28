@@ -15,6 +15,7 @@ final class HomeViewModel: ObservableObject {
     private var bearerToken = ""
 
     private lazy var realtime = RealtimeClient(
+        scheme: AppConfig.reverbScheme,
         host: AppConfig.reverbHost, port: AppConfig.reverbPort, key: AppConfig.reverbKey,
         channel: "hospital.beds",
         onEvent: { [weak self] in
@@ -63,41 +64,48 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    // MARK: House roll-up (derived)
+    // MARK: House roll-up
 
-    /// Units with an actual safe-capacity baseline. The house ratio is computed over these
-    /// only, so units with no capacity data (live: safeCapacity == 0) don't skew the numerator
-    /// against a denominator they aren't part of.
-    private var capacityUnits: [CensusUnit] { units.filter { $0.safeCapacity > 0 } }
-
-    var totalOccupied: Int { capacityUnits.reduce(0) { $0 + $1.occupied } }
-    var totalSafe: Int { capacityUnits.reduce(0) { $0 + $1.safeCapacity } }
-    var occupancyPercent: Int {
-        guard totalSafe > 0 else { return 0 }
-        return Int((Double(totalOccupied) / Double(totalSafe) * 100).rounded())
-    }
-
-    /// House-level status from house occupancy — not the single worst unit (that's surfaced
-    /// separately by `pressuredUnitCount`). Falls back to `.info` ("No data") when no unit
-    /// reports a capacity baseline.
-    var houseStatus: CapacityStatus {
-        guard totalSafe > 0 else { return .info }
-        switch occupancyPercent {
-        case 100...: return .critical
-        case 85...: return .warning
-        default: return .success
-        }
-    }
-
-    var pressuredUnitCount: Int {
-        units.filter { $0.capacity == .warning || $0.capacity == .critical }.count
-    }
+    /// Occupancy roll-up over whatever set of units a surface shows (whole house, a role's
+    /// scoped slice, etc.).
+    var rollup: CensusRollup { CensusRollup(units) }
 
     var asOfDisplay: String {
         guard let asOf, let date = ISO8601DateFormatter.flexible.date(from: asOf) else { return "—" }
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
         return f.string(from: date)
+    }
+}
+
+/// Occupancy roll-up for an arbitrary set of census units. The ratio is computed over
+/// capacity-bearing units only (live data often has safeCapacity == 0 = "No data"), so the
+/// numerator and denominator stay consistent, and the status reflects house occupancy rather
+/// than the single worst unit (that's `pressured`).
+struct CensusRollup {
+    let total: Int
+    let occupied: Int
+    let safe: Int
+    let percent: Int
+    let status: CapacityStatus
+    let pressured: Int
+
+    init(_ units: [CensusUnit]) {
+        total = units.count
+        let withCapacity = units.filter { $0.safeCapacity > 0 }
+        occupied = withCapacity.reduce(0) { $0 + $1.occupied }
+        safe = withCapacity.reduce(0) { $0 + $1.safeCapacity }
+        percent = safe > 0 ? Int((Double(occupied) / Double(safe) * 100).rounded()) : 0
+        if safe == 0 {
+            status = .info
+        } else {
+            switch percent {
+            case 100...: status = .critical
+            case 85...: status = .warning
+            default: status = .success
+            }
+        }
+        pressured = units.filter { $0.capacity == .warning || $0.capacity == .critical }.count
     }
 }
 

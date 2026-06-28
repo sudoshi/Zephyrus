@@ -14,9 +14,9 @@ final class RealtimeClient {
     private var task: URLSessionWebSocketTask?
     private var running = false
 
-    init(host: String, port: Int, key: String, channel: String,
+    init(scheme: String = "ws", host: String, port: Int, key: String, channel: String,
          onEvent: @escaping () -> Void, onState: @escaping (Bool) -> Void) {
-        self.url = URL(string: "ws://\(host):\(port)/app/\(key)?protocol=7&client=hummingbird-ios&version=1.0")!
+        self.url = URL(string: "\(scheme)://\(host):\(port)/app/\(key)?protocol=7&client=hummingbird-ios&version=1.0")!
         self.channel = channel
         self.onEvent = onEvent
         self.onState = onState

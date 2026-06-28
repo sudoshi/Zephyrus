@@ -1,12 +1,32 @@
 import Foundation
 
-/// Where the BFF lives. The iOS Simulator shares the host loopback, so the Dockerized
-/// `php artisan serve` on the Mac is reachable at localhost:8001.
+/// Where the BFF lives, resolved per build so the same source runs against the right host:
+/// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
+/// - Debug on a physical device: the Mac's LAN IP — a device can't see the Mac's loopback,
+///   so both the phone and Mac must be on the same Wi-Fi. Override at launch with an
+///   `HB_HOST` environment variable in the Xcode scheme when the Mac's IP changes.
+/// - Release (TestFlight / App Store): the public BFF over HTTPS/WSS. ATS forbids cleartext
+///   to a public host, so set `publicHost` to a real TLS-terminated domain before archiving.
 enum AppConfig {
+#if targetEnvironment(simulator)
     static let baseURL = "http://localhost:8001"
-    // Reverb (Pusher-protocol) websocket. iOS Simulator shares host loopback.
+    static let reverbScheme = "ws"
     static let reverbHost = "localhost"
     static let reverbPort = 8080
+#elseif DEBUG
+    static let devHost = ProcessInfo.processInfo.environment["HB_HOST"] ?? "192.168.1.35"
+    static let baseURL = "http://\(devHost):8001"
+    static let reverbScheme = "ws"
+    static let reverbHost = devHost
+    static let reverbPort = 8080
+#else
+    // TODO: point at the deployed BFF before TestFlight (e.g. "hummingbird.acumenus.net").
+    static let publicHost = "REPLACE_WITH_PUBLIC_HOST"
+    static let baseURL = "https://\(publicHost)"
+    static let reverbScheme = "wss"
+    static let reverbHost = publicHost
+    static let reverbPort = 443
+#endif
     static let reverbKey = "zephyrus-key"
 }
 

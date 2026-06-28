@@ -37,9 +37,10 @@ struct RootView: View {
             }
             // Test affordance: SIMCTL_CHILD_HB_ROLE=<id> pre-confirms onboarding so screenshots
             // can land past it. No-op in production.
-            if let roleId = env["HB_ROLE"], Role.by(id: roleId) != nil,
-               let me = auth.me, !profile.isOnboarded(userId: me.id) {
-                profile.confirm(userId: me.id, roleId: roleId, unitId: nil,
+            // (Overrides any prior confirmation so role-specific surfaces can be exercised per launch.)
+            if let roleId = env["HB_ROLE"], Role.by(id: roleId) != nil, let me = auth.me {
+                profile.confirm(userId: me.id, roleId: roleId,
+                                unitId: env["HB_ONBOARD_UNIT"].flatMap { Int($0) },
                                 unitName: env["HB_ONBOARD_UNIT_NAME"] ?? "House-wide")
             }
         }
