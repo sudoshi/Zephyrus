@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
 use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
+use App\Http\Controllers\Api\Mobile\EddyController as MobileEddyController;
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
@@ -367,4 +368,18 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
 
     Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
+
+    // Eddy — process-aware AI agent on mobile. Chat + conversations + the approval
+    // inbox are reads (mobile:read). The approval DECISION is a human write and
+    // additionally requires mobile:act — Eddy's scoped token never reaches here.
+    Route::prefix('eddy')->group(function () {
+        Route::post('/chat', [MobileEddyController::class, 'chat']);
+        Route::post('/chat/stream', [MobileEddyController::class, 'stream']);
+        Route::get('/conversations', [MobileEddyController::class, 'conversations']);
+        Route::get('/conversations/{uuid}', [MobileEddyController::class, 'conversation']);
+        Route::get('/approvals', [MobileEddyController::class, 'approvals']);
+        Route::get('/approvals/{uuid}', [MobileEddyController::class, 'approval']);
+        Route::post('/approvals/{uuid}/decision', [MobileEddyController::class, 'decide'])
+            ->middleware(CheckForAnyAbility::class.':mobile:act');
+    });
 });

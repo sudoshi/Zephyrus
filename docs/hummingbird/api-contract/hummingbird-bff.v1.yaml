@@ -28,6 +28,7 @@ tags:
   - { name: transport }
   - { name: evs }
   - { name: realtime }
+  - { name: eddy }
 
 paths:
   /auth/token:
@@ -194,6 +195,54 @@ paths:
       tags: [realtime]
       summary: Reverb host/key + the PHI-free channels this user should subscribe to.
       responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RealtimeConfig' } } } } }
+
+  # ---- Eddy — process-aware AI agent (Phase 5 mobile embed) ----
+  /eddy/chat:
+    post:
+      tags: [eddy]
+      summary: Send a turn to Eddy. Stateless service; Laravel persists the conversation (origin=hummingbird).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatRequest' } } } }
+      responses:
+        '200': { description: Assistant reply., content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatEnvelope' } } } }
+        '503': { description: Eddy unreachable — envelope.meta.stale=true, data.message is a notice string. }
+  /eddy/chat/stream:
+    post:
+      tags: [eddy]
+      summary: SSE token stream. Frames - conversation_id, then token, a terminal persisted (with proposed_action), then [DONE].
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatRequest' } } } }
+      responses: { '200': { description: text/event-stream, content: { text/event-stream: { schema: { type: string } } } } }
+  /eddy/conversations:
+    get:
+      tags: [eddy]
+      summary: The user's recent Eddy conversations (most recent first).
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+  /eddy/conversations/{uuid}:
+    get:
+      tags: [eddy]
+      summary: One conversation with its messages (user-scoped).
+      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+  /eddy/approvals:
+    get:
+      tags: [eddy]
+      summary: Pending Eddy-proposed approvals the user may act on (the doorbell deep-links here). PHI-minimized.
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalListEnvelope' } } } } }
+  /eddy/approvals/{uuid}:
+    get:
+      tags: [eddy]
+      summary: Fetch-on-open dry-run preview for one pending approval (operational params only — no patient PHI).
+      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalPreviewEnvelope' } } } } }
+  /eddy/approvals/{uuid}/decision:
+    post:
+      tags: [eddy]
+      summary: Approve/reject a pending Eddy approval. Requires the mobile:act scope (a human decision; never the agent). Block offline.
+      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalDecision' } } } }
+      responses:
+        '200': { description: Decided., content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '403': { description: Token lacks mobile:act. }
+        '422': { description: Illegal transition (already decided)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
 components:
   securitySchemes:
@@ -398,3 +447,86 @@ components:
         key: { type: string }
         channels: { type: array, items: { type: string }, description: "PHI-free public channels (e.g. unit.{id}, hospital.beds)." }
         note: { type: string, description: Reverb does not replay — re-snapshot tracked queries on every (re)connect. }
+
+    # ---- Eddy (process-aware AI agent) ----
+    EddyChatRequest:
+      type: object
+      properties:
+        message: { type: string, maxLength: 8000 }
+        surface: { type: string, description: "ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat", default: chat }
+        conversation_id: { type: string, format: uuid, description: Continue an existing conversation; omit to start a new one. }
+        page_context: { type: string, description: The mobile screen Eddy is invoked from (process-awareness hint). }
+      required: [message]
+    EddyProposedAction:
+      type: object
+      description: A DRAFT for human approval — Eddy never executes. Render the approval sheet from this.
+      properties:
+        action_type: { type: string, enum: [flag_barrier, propose_huddle_action, propose_transport_dispatch, propose_bed_placement, propose_surge_plan] }
+        title: { type: string }
+        params: { type: object, additionalProperties: true, description: Operational params (unit codes/counts) — not patient PHI. }
+        rationale: { type: string }
+        runner_up: { type: string, description: The defensible alternative Eddy weighed. }
+        tier: { type: string, enum: [T1, T2, T3] }
+        risk: { type: string, enum: [low, medium, high, critical] }
+        label: { type: string }
+    EddyMessage:
+      type: object
+      properties:
+        id: { type: integer }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        provider: { type: string, description: "ollama|anthropic — the model that answered." }
+        proposed_action: { oneOf: [{ $ref: '#/components/schemas/EddyProposedAction' }, { type: 'null' }] }
+    EddyChatEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                conversation_id: { type: string, format: uuid }
+                status: { type: string, enum: [success, error] }
+                message:
+                  oneOf:
+                    - { $ref: '#/components/schemas/EddyMessage' }
+                    - { type: string, description: A notice string on hard failure (status=error). }
+    EddyApprovalSummary:
+      type: object
+      description: PHI-free summary the doorbell deep-links into. Tier is server-derived from the action catalog.
+      properties:
+        approval_uuid: { type: string, format: uuid }
+        action_uuid: { type: string, format: uuid }
+        action_type: { type: string }
+        title: { type: string }
+        surface: { type: string }
+        tier: { type: string, enum: [T1, T2, T3] }
+        risk: { type: string, enum: [low, medium, high, critical] }
+        requested_at: { type: string, format: date-time }
+      required: [approval_uuid, action_type, tier]
+    EddyApprovalListEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: '#/components/schemas/EddyApprovalSummary' } }
+    EddyApprovalPreviewEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              allOf:
+                - { $ref: '#/components/schemas/EddyApprovalSummary' }
+                - type: object
+                  properties:
+                    rationale: { type: string }
+                    runner_up: { type: string }
+                    params: { type: object, additionalProperties: true, description: Operational params only — no patient PHI. }
+                    preview: { type: string, description: Human-readable "would do X" dry-run descriptor. }
+    EddyApprovalDecision:
+      type: object
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        reason: { type: string, maxLength: 1000 }
+      required: [decision]

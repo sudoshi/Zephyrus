@@ -32,7 +32,7 @@ class EddyChatService
         $surface = $this->normalizeSurface($input['surface'] ?? 'chat');
         $message = (string) $input['message'];
 
-        $conversation = $this->resolveConversation($user, $input['conversation_id'] ?? null, $surface, $message);
+        $conversation = $this->resolveConversation($user, $input['conversation_id'] ?? null, $surface, $message, $input['origin'] ?? 'web');
         $providerPolicy = $this->policy->payloadForSurface($surface) ?? $this->localFallbackPolicy();
 
         // History = prior turns only (the user's new message is sent separately).
@@ -95,7 +95,7 @@ class EddyChatService
         ];
     }
 
-    private function resolveConversation(User $user, ?string $conversationId, string $surface, string $message): EddyConversation
+    private function resolveConversation(User $user, ?string $conversationId, string $surface, string $message, string $origin = 'web'): EddyConversation
     {
         if ($conversationId) {
             $existing = EddyConversation::forUser($user->id)
@@ -111,7 +111,7 @@ class EddyChatService
             'user_id' => $user->id,
             'surface' => $surface,
             'title' => Str::limit($message, 60),
-            'origin' => 'web',
+            'origin' => in_array($origin, ['web', 'hummingbird'], true) ? $origin : 'web',
         ]);
     }
 
@@ -255,7 +255,7 @@ class EddyChatService
     {
         $surface = $this->normalizeSurface($input['surface'] ?? 'chat');
         $message = (string) $input['message'];
-        $conversation = $this->resolveConversation($user, $input['conversation_id'] ?? null, $surface, $message);
+        $conversation = $this->resolveConversation($user, $input['conversation_id'] ?? null, $surface, $message, $input['origin'] ?? 'web');
         $providerPolicy = $this->policy->payloadForSurface($surface) ?? $this->localFallbackPolicy();
         $history = $this->history($conversation);
 

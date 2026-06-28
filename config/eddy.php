@@ -60,4 +60,28 @@ return [
         'write' => ['ops:read', 'ops:draft'],
     ],
 
+    // Mobile (Hummingbird) push — the PHI-free "Eddy has a suggestion" doorbell.
+    // The doorbell carries ONLY {approval_uuid, action_uuid, action_type, surface,
+    // tier, deep_link} — never params, rationale, or any clinical/patient detail.
+    // The native app fetches the dry-run on open over the biometric-gated token.
+    'push' => [
+        // When false, an Eddy proposal lands pending in the inbox without ringing
+        // the doorbell (the seam stays inert until mobile push is provisioned).
+        'enabled' => filter_var(env('EDDY_PUSH_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+        // Deep link the native app routes on tap (mirrors the web /ops agent-inbox).
+        'deep_link' => env('EDDY_PUSH_DEEP_LINK', 'zephyrus://eddy/approvals'),
+
+        // Action-catalog risk → notification tier. Tier-1 is an iOS Critical Alert /
+        // high-priority FCM channel, RESERVED for genuine capacity breaches (earned
+        // urgency). Everything routine is Tier-2/3. Derived server-side; the app is
+        // presentation-only. Keys are the EddyActionService::CATALOG risk levels.
+        'tier_by_risk' => [
+            'critical' => 'tier_1',
+            'high' => 'tier_1',
+            'medium' => 'tier_2',
+            'low' => 'tier_3',
+        ],
+    ],
+
 ];
