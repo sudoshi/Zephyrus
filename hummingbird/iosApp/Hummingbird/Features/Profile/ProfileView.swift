@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 
 /// Account + shift settings: who you are, the role/unit you confirmed for this shift, your
 /// default workflow, connection info, and the sign-out / switch-role actions (previously
@@ -7,7 +9,9 @@ struct ProfileView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
     @EnvironmentObject var lock: AppLock
+    @EnvironmentObject var push: PushManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var census: [CensusUnit] = []
 
     private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
@@ -24,6 +28,7 @@ struct ProfileView: View {
                     identity
                     shiftCard
                     if isSuperuser { personaSwitcher }
+                    notificationsCard
                     securityCard
                     accountCard
                     aboutCard
@@ -139,6 +144,53 @@ struct ProfileView: View {
                         .foregroundStyle(Z.primary)
                 }
             }
+        }
+    }
+
+    // MARK: Notifications
+
+    private var notificationsCard: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                sectionLabel("NOTIFICATIONS")
+                HStack(spacing: Z.s3) {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 18)).foregroundStyle(Z.primary).frame(width: 26)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Push alerts")
+                            .font(.system(size: 15, weight: .medium)).foregroundStyle(Z.ink)
+                        Text(notificationStatusText)
+                            .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    }
+                    Spacer()
+                    notificationAction
+                }
+            }
+        }
+    }
+
+    private var notificationStatusText: String {
+        switch push.status {
+        case .authorized, .provisional, .ephemeral: return "On — earned-urgency alerts for your role."
+        case .denied: return "Off — enable in iOS Settings."
+        default: return "Get alerted when something needs you."
+        }
+    }
+
+    @ViewBuilder
+    private var notificationAction: some View {
+        switch push.status {
+        case .authorized, .provisional, .ephemeral:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18)).foregroundStyle(Z.status(.success))
+        case .denied:
+            Button("Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            }
+            .font(.system(size: 14, weight: .medium)).foregroundStyle(Z.primary)
+        default:
+            Button("Enable") { Task { await push.requestAuthorization() } }
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(Z.primary)
         }
     }
 

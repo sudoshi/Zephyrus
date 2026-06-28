@@ -75,6 +75,16 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/for-you", bearer: bearer, as: [ForYouItem].self).data
     }
 
+    /// POST /api/mobile/v1/devices — register this device's APNs token for push.
+    func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
+                        deviceName: String?, bearer: String) async throws {
+        var body = ["platform": "ios", "push_token": pushToken]
+        if let appVersion { body["app_version"] = appVersion }
+        if let osVersion { body["os_version"] = osVersion }
+        if let deviceName { body["device_name"] = deviceName }
+        _ = try await send(path: "/api/mobile/v1/devices", method: "POST", body: body, bearer: bearer)
+    }
+
     func revoke(bearer: String) async {
         _ = try? await send(path: "/api/auth/token/revoke", method: "POST", body: [:], bearer: bearer)
     }

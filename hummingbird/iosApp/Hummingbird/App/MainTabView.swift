@@ -2,6 +2,7 @@ import SwiftUI
 
 /// The signed-in shell: House Status + the For You queue.
 struct MainTabView: View {
+    @EnvironmentObject var push: PushManager
     @State private var selection: Int
 
     init() {
@@ -19,5 +20,11 @@ struct MainTabView: View {
                 .tabItem { Label("For You", systemImage: "tray.full.fill") }
         }
         .tint(Z.primary)
+        .onChange(of: push.deeplinkTab) { _, tab in
+            // A tapped push routes here: For You by default, House if specified.
+            guard let tab else { return }
+            selection = (tab == "house") ? 0 : 1
+            push.deeplinkTab = nil
+        }
     }
 }

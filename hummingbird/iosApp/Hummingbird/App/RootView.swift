@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
     @EnvironmentObject var lock: AppLock
+    @EnvironmentObject var push: PushManager
     @Environment(\.scenePhase) private var scenePhase
 
     private var isLoggedIn: Bool { if case .loggedIn = auth.phase { return true } else { return false } }
@@ -72,6 +74,21 @@ struct RootView: View {
             // Test affordance: SIMCTL_CHILD_HB_LOCK=1 engages the lock screen for QA/screenshots
             // even without enrolled biometrics (pair with HB_NO_AUTOUNLOCK=1). No-op in production.
             if env["HB_LOCK"] == "1", isLoggedIn { lock.isLocked = true }
+
+            // Push: register the APNs token with the BFF once it arrives and we have a session.
+            push.onToken = { token in
+                guard let bearer = auth.accessToken else { return }
+                let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+                Task {
+                    try? await auth.api.registerDevice(
+                        pushToken: token, appVersion: appVersion,
+                        osVersion: UIDevice.current.systemVersion,
+                        deviceName: UIDevice.current.name, bearer: bearer)
+                }
+            }
+            push.bootstrap()
+            // Test affordance: SIMCTL_CHILD_HB_ASK_PUSH=1 triggers the permission prompt. No-op in prod.
+            if env["HB_ASK_PUSH"] == "1" { await push.requestAuthorization() }
         }
     }
 
