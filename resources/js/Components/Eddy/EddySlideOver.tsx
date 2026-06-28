@@ -58,6 +58,8 @@ export function EddySlideOver() {
               model: reply.model,
               routeReason: reply.route_reason,
               fallbackReason: reply.fallback_reason,
+              proposedAction: reply.proposed_action ?? null,
+              proposalState: reply.proposed_action ? 'pending' : undefined,
             },
       );
     } catch {
@@ -114,7 +116,7 @@ export function EddySlideOver() {
         </div>
 
         {/* Messages */}
-        <EddyMessageList messages={messages} isSending={isSending} />
+        <EddyMessageList messages={messages} isSending={isSending} surface={ctx.surface} />
 
         {/* Composer */}
         <form onSubmit={onSubmit} className="border-t border-healthcare-border p-3 dark:border-healthcare-border-dark">

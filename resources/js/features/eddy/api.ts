@@ -1,5 +1,12 @@
 import axios from 'axios';
-import { eddyChatResponseSchema, eddyConversationSummarySchema, type EddyChatResponse, type EddyConversationSummary } from './schemas';
+import {
+  eddyChatResponseSchema,
+  eddyConversationSummarySchema,
+  eddyProposeResultSchema,
+  type EddyChatResponse,
+  type EddyConversationSummary,
+  type EddyProposeResult,
+} from './schemas';
 import { z } from 'zod';
 
 export interface SendChatInput {
@@ -22,4 +29,20 @@ export async function sendEddyChat(input: SendChatInput): Promise<EddyChatRespon
 export async function fetchEddyConversations(): Promise<EddyConversationSummary[]> {
   const { data } = await axios.get('/api/eddy/conversations');
   return envelope(z.array(eddyConversationSummarySchema)).parse(data).data;
+}
+
+export interface ProposeActionInput {
+  action_type: string;
+  title?: string;
+  surface?: string;
+  params?: Record<string, unknown>;
+  rationale?: string | null;
+  runner_up?: string | null;
+  approve?: boolean;
+}
+
+/** Create (and, for a human, approve) a governance action proposed by Eddy. */
+export async function proposeEddyAction(input: ProposeActionInput): Promise<EddyProposeResult> {
+  const { data } = await axios.post('/api/eddy/actions/propose', input);
+  return envelope(eddyProposeResultSchema).parse(data).data;
 }

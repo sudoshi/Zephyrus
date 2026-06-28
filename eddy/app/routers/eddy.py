@@ -41,6 +41,7 @@ class ChatRequest(BaseModel):
     provider_policy: dict | None = None
     live_context: dict = Field(default_factory=dict)
     knowledge: list[dict] = Field(default_factory=list)
+    allowed_actions: list[str] = Field(default_factory=list)
 
 
 @router.post("/chat")
@@ -55,6 +56,7 @@ async def chat(req: ChatRequest) -> dict:
         provider_policy=req.provider_policy,
         live_context=req.live_context or None,
         knowledge=req.knowledge or None,
+        allowed_actions=req.allowed_actions or None,
     )
     return result.to_dict()
 

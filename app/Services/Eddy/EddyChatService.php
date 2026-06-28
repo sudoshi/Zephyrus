@@ -69,10 +69,15 @@ class EddyChatService
                 'cost_usd' => $result['cost_usd'] ?? 0,
                 'redaction_count' => $result['sanitizer_redaction_count'] ?? 0,
                 'status' => $result['status'] ?? 'success',
+                'proposed_action' => $result['proposed_action'] ?? null,
             ],
         ]);
 
         $this->recordCloudUsageIfApplicable($user, $surface, $providerPolicy, $result);
+
+        // Surface a proposed action (a DRAFT for human approval — Eddy never executes).
+        // Only pass through allowlisted action types; the propose endpoint re-validates.
+        $proposedAction = $this->sanitizeProposedAction($result['proposed_action'] ?? null);
 
         return [
             'conversation_id' => $conversation->eddy_conversation_uuid,
@@ -85,6 +90,7 @@ class EddyChatService
                 'model' => $result['model'] ?? null,
                 'route_reason' => $result['route_reason'] ?? null,
                 'fallback_reason' => $result['fallback_reason'] ?? null,
+                'proposed_action' => $proposedAction,
             ],
         ];
     }
@@ -153,6 +159,8 @@ class EddyChatService
                     // Process-awareness: the PHI-free live-ops snapshot + surface doctrine.
                     'live_context' => $this->context->forSurface($user, $surface) ?: (object) [],
                     'knowledge' => $this->knowledge->forSurface($surface, $message),
+                    // The actions Eddy may PROPOSE (drafts for human approval); never executes.
+                    'allowed_actions' => array_keys(EddyActionService::CATALOG),
                 ]);
         } catch (\Throwable $e) {
             Log::warning('eddy.chat.transport_failed', ['error' => $e->getMessage()]);
@@ -220,6 +228,34 @@ class EddyChatService
             'model' => (string) config('eddy.models.chat_local'),
             'entitlement' => 'local',
             'settings' => [],
+        ];
+    }
+
+    /**
+     * Validate a model-proposed action against the catalog and enrich it with
+     * tier/risk for the dock. Unknown types are dropped (the propose endpoint
+     * re-validates anyway). The model NEVER executes — this is a draft for a human.
+     *
+     * @param  array<string, mixed>|null  $proposed
+     * @return array<string, mixed>|null
+     */
+    private function sanitizeProposedAction(?array $proposed): ?array
+    {
+        $type = is_array($proposed) ? (string) ($proposed['action_type'] ?? '') : '';
+        $spec = EddyActionService::CATALOG[$type] ?? null;
+        if ($spec === null) {
+            return null;
+        }
+
+        return [
+            'action_type' => $type,
+            'title' => (string) ($proposed['title'] ?? $spec['label']),
+            'params' => is_array($proposed['params'] ?? null) ? $proposed['params'] : [],
+            'rationale' => isset($proposed['rationale']) ? (string) $proposed['rationale'] : null,
+            'runner_up' => isset($proposed['runner_up']) ? (string) $proposed['runner_up'] : null,
+            'tier' => $spec['tier'],
+            'risk' => $spec['risk'],
+            'label' => $spec['label'],
         ];
     }
 }

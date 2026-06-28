@@ -11,6 +11,7 @@ The local fallback is self-contained from Eddy's own env (OLLAMA_BASE_URL).
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 
 import httpx
@@ -44,9 +45,33 @@ class ChatResult:
     sanitizer_redaction_count: int = 0
     status: str = "success"
     error_class: str | None = None
+    proposed_action: dict | None = None  # advice-not-autopilot: a draft for human approval
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+_PROPOSE_RE = re.compile(r"<propose_action>\s*(\{.*?\})\s*</propose_action>", re.DOTALL)
+
+
+def extract_proposed_action(reply: str) -> tuple[str, dict | None]:
+    """Pull a <propose_action>{...}</propose_action> block out of the model reply.
+
+    Returns (clean_reply, proposed_action|None). Malformed JSON or a missing
+    action_type → no proposal (the raw reply is preserved). Eddy never executes;
+    Laravel re-validates the action_type against its catalog at propose time.
+    """
+    match = _PROPOSE_RE.search(reply or "")
+    if not match:
+        return reply, None
+    clean = _PROPOSE_RE.sub("", reply).strip()
+    try:
+        action = json.loads(match.group(1))
+    except (ValueError, TypeError):
+        return reply, None
+    if not isinstance(action, dict) or not action.get("action_type"):
+        return clean, None
+    return clean, action
 
 
 _PERSONA = (
@@ -66,8 +91,11 @@ def build_system_prompt(
     user_profile: dict | None,
     live_context: dict | None = None,
     knowledge: list[dict] | None = None,
+    allowed_actions: list[str] | None = None,
 ) -> str:
     parts = [_PERSONA]
+    if allowed_actions:
+        parts.append(_format_action_protocol(allowed_actions))
     if surface and surface != "chat":
         parts.append(f"The operator is currently on the '{surface}' surface.")
     if page_context:
@@ -131,6 +159,20 @@ def _format_knowledge(knowledge: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _format_action_protocol(allowed_actions: list[str]) -> str:
+    allowed = ", ".join(allowed_actions)
+    return (
+        "ACTION PROPOSALS: You cannot take actions yourself. When the operator asks you to DO "
+        "something operational, NEVER claim you did it. Instead, after a one-line explanation, "
+        "append EXACTLY ONE block:\n"
+        '<propose_action>{"action_type": "<one of the allowed types>", "title": "<short imperative>", '
+        '"params": {<relevant ids/fields>}, "rationale": "<why, grounded in the live data>", '
+        '"runner_up": "<the second-best option>"}</propose_action>\n'
+        f"Allowed action_type values ONLY: {allowed}. Nothing happens until a human approves. "
+        "If no action is warranted, do not emit the block."
+    )
+
+
 def _normalize_history(history: list[dict] | None) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     for turn in (history or [])[-10:]:
@@ -157,6 +199,7 @@ class ChatRouter:
         provider_policy: dict | None = None,
         live_context: dict | None = None,
         knowledge: list[dict] | None = None,
+        allowed_actions: list[str] | None = None,
     ) -> ChatResult:
         s = self.settings
         policy = provider_policy or {}
@@ -185,7 +228,7 @@ class ChatRouter:
         if wants_cloud and not s.anthropic_api_key:
             wants_cloud, fallback_reason = False, "cloud_key_missing"
 
-        system_prompt = build_system_prompt(surface, page_context, user_profile, live_context, knowledge)
+        system_prompt = build_system_prompt(surface, page_context, user_profile, live_context, knowledge, allowed_actions)
         adapter_req = ChatAdapterRequest(system_prompt=system_prompt, message=message, history=_normalize_history(history))
 
         # ── Frontier path ──────────────────────────────────────────────
@@ -237,8 +280,9 @@ class ChatRouter:
         return self._result(resp, surface, route_reason, fallback_reason, redactions)
 
     def _result(self, resp, surface, route_reason, fallback_reason, redactions) -> ChatResult:
+        clean_reply, proposed_action = extract_proposed_action(resp.reply)
         return ChatResult(
-            reply=resp.reply,
+            reply=clean_reply,
             provider=resp.provider,
             transport=resp.transport,
             model=resp.model,
@@ -252,4 +296,5 @@ class ChatRouter:
             fallback_reason=fallback_reason,
             sanitizer_redaction_count=redactions,
             status="success",
+            proposed_action=proposed_action,
         )

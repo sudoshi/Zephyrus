@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import type { EddyChatMessage } from '@/stores/eddyStore';
 import { EddyMark } from './EddyMark';
+import { EddyApprovalCard } from './EddyApprovalCard';
 
 interface EddyMessageListProps {
   messages: EddyChatMessage[];
   isSending: boolean;
+  surface?: string;
 }
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -12,7 +14,7 @@ const PROVIDER_LABEL: Record<string, string> = {
   anthropic: 'Claude · frontier',
 };
 
-export function EddyMessageList({ messages, isSending }: EddyMessageListProps) {
+export function EddyMessageList({ messages, isSending, surface }: EddyMessageListProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +25,12 @@ export function EddyMessageList({ messages, isSending }: EddyMessageListProps) {
     <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
       {messages.length === 0 && <EmptyState />}
       {messages.map((message) => (
-        <Bubble key={message.id} message={message} />
+        <div key={message.id}>
+          <Bubble message={message} />
+          {message.role === 'assistant' && message.proposedAction && (
+            <EddyApprovalCard message={message} surface={surface} />
+          )}
+        </div>
       ))}
       {isSending && <TypingIndicator />}
       <div ref={endRef} />
