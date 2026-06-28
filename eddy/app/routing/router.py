@@ -162,14 +162,17 @@ def _format_knowledge(knowledge: list[dict]) -> str:
 def _format_action_protocol(allowed_actions: list[str]) -> str:
     allowed = ", ".join(allowed_actions)
     return (
-        "ACTION PROPOSALS: You cannot take actions yourself. When the operator asks you to DO "
-        "something operational, NEVER claim you did it. Instead, after a one-line explanation, "
-        "append EXACTLY ONE block:\n"
-        '<propose_action>{"action_type": "<one of the allowed types>", "title": "<short imperative>", '
-        '"params": {<relevant ids/fields>}, "rationale": "<why, grounded in the live data>", '
-        '"runner_up": "<the second-best option>"}</propose_action>\n'
-        f"Allowed action_type values ONLY: {allowed}. Nothing happens until a human approves. "
-        "If no action is warranted, do not emit the block."
+        "ACTION PROPOSALS — REQUIRED OUTPUT FORMAT.\n"
+        "You cannot perform actions. When the operator asks you to DO something operational "
+        "(flag a barrier, dispatch transport, open a surge plan, etc.), write ONE short sentence "
+        "of explanation, then append EXACTLY ONE block on its own line, copying this exact JSON shape:\n"
+        '<propose_action>{"action_type": "flag_barrier", "title": "Imaging delay on 3 West", '
+        '"params": {"unit": "3W", "barrier": "imaging"}, "rationale": "Two discharges are held on pending CT reads.", '
+        '"runner_up": "Escalate to the radiology charge."}</propose_action>\n'
+        f"Set action_type to one of EXACTLY these values: {allowed}. Fill params/rationale/runner_up "
+        "from the operator's request and the live data. Output the block verbatim in that JSON shape — "
+        "do not describe it, do not use code fences. A human reviews and approves; nothing happens "
+        "until they do. If the operator is NOT asking you to take an action, omit the block entirely."
     )
 
 

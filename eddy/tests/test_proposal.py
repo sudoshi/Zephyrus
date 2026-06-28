@@ -38,4 +38,4 @@ def test_action_protocol_lists_allowed_types_in_the_prompt():
     assert "ACTION PROPOSALS" in prompt
     assert "flag_barrier" in prompt
     assert "propose_surge_plan" in prompt
-    assert "human approves" in prompt
+    assert "approve" in prompt
