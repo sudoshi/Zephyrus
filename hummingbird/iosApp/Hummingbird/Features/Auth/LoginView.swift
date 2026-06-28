@@ -3,7 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var auth: AuthStore
     @State private var username = "demo"
-    @State private var password = "Password123!"
+    @State private var password = "demo1234"
     @FocusState private var focused: Field?
 
     private enum Field { case username, password }
@@ -13,9 +13,14 @@ struct LoginView: View {
             Spacer()
 
             VStack(spacing: Z.s2) {
-                Image(systemName: "bird.fill")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(Z.primary)
+                Image("BrandMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 88)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                    .padding(.bottom, Z.s1)
+                    .accessibilityLabel("Hummingbird")
                 Text("Hummingbird")
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(Z.ink)

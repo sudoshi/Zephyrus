@@ -37,6 +37,9 @@ struct RootView: View {
             // Test/demo affordance: SIMCTL_CHILD_HB_AUTOLOGIN=1 lets UI tests and
             // headless screenshots land on Home without a manual tap. No-op in production.
             let env = ProcessInfo.processInfo.environment
+            // Test affordance: SIMCTL_CHILD_HB_SHOWLOGIN=1 forces the sign-in screen even if a
+            // token is cached (useful for screenshots/QA). No-op in production.
+            if env["HB_SHOWLOGIN"] == "1" { await auth.logout() }
             if env["HB_AUTOLOGIN"] == "1", case .loggedOut = auth.phase {
                 await auth.login(username: env["HB_USER"] ?? "demo",
                                  password: env["HB_PASS"] ?? "Password123!")
