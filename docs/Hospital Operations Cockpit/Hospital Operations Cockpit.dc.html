@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { margin: 0; background: #080b11; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes blip { 0%,100% { box-shadow: 0 0 0 0 oklch(0.64 0.20 25 / .55); } 50% { box-shadow: 0 0 0 5px oklch(0.64 0.20 25 / 0); } }
+</style>
+</helmet>
+<div style="background:radial-gradient(1400px 700px at 70% -200px, #101a28, #080b11 60%);min-height:100vh;padding:16px 18px 30px;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#e6ecf2;-webkit-font-smoothing:antialiased">
+
+  <!-- ===== COMMAND BAR ===== -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;padding:4px 4px 14px">
+    <div style="display:flex;align-items:center;gap:13px;min-width:0">
+      <div style="width:34px;height:34px;border-radius:8px;background:oklch(0.72 0.13 200);display:grid;place-items:center;flex:0 0 auto;box-shadow:0 0 16px oklch(0.72 0.13 200 / .35)">
+        <div style="width:15px;height:15px;border:2.4px solid #06121a;border-radius:3px;position:relative">
+          <div style="position:absolute;left:50%;top:1px;bottom:1px;width:2.4px;background:#06121a;transform:translateX(-50%)"></div>
+          <div style="position:absolute;top:50%;left:1px;right:1px;height:2.4px;background:#06121a;transform:translateY(-50%)"></div>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <div style="font:700 19px/1.05 'IBM Plex Sans';letter-spacing:-.01em;color:#f1f5fa">Riverbend Regional Medical Center</div>
+        <div style="font:600 10.5px/1.3 'IBM Plex Sans';letter-spacing:.16em;text-transform:uppercase;color:#7d8a99;margin-top:3px">House Command Center &nbsp;·&nbsp; 612 Licensed Beds &nbsp;·&nbsp; Level II Trauma</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:11px;padding:8px 16px;border-radius:10px;background:linear-gradient(180deg, oklch(0.80 0.14 78 / .14), oklch(0.80 0.14 78 / .05));border:1px solid oklch(0.80 0.14 78 / .4)">
+      <span style="color:oklch(0.80 0.14 78);font-size:13px;line-height:1">▲</span>
+      <div>
+        <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.16em;text-transform:uppercase;color:oklch(0.86 0.09 80)">Capacity Status</div>
+        <div style="font:700 15px/1.1 'IBM Plex Sans';color:#f3f6fa;margin-top:3px">SURGE — LEVEL 2 (YELLOW)</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto">
+      <div style="text-align:right">
+        <div style="font:600 26px/1 'IBM Plex Mono';letter-spacing:.02em;color:#f1f5fa">{{clockTime}}</div>
+        <div style="font:600 10px/1.3 'IBM Plex Sans';letter-spacing:.14em;color:#7d8a99;margin-top:4px">{{clockDate}}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:20px;border:1px solid #1f2937;background:#0c121c">
+        <span style="width:7px;height:7px;border-radius:50%;background:oklch(0.74 0.13 162);animation:pulse 2s ease-in-out infinite"></span>
+        <span style="font:600 10px/1 'IBM Plex Sans';letter-spacing:.14em;color:#9fb0c0">LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CENSUS STRIP ===== -->
+  <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:11px">
+    <sc-for list="{{census}}" as="c" hint-placeholder-count="8">
+      <div style="background:linear-gradient(180deg,#101826,#0b111b);border:1px solid #1c2533;border-radius:11px;padding:11px 13px;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{c.label}}</span>
+          <span style="{{c.markStyle}};font-size:9px;line-height:1;flex:0 0 auto">{{c.mark}}</span>
+        </div>
+        <div style="{{c.valStyle}};margin-top:9px">{{c.value}}</div>
+        <div style="font:500 10px/1.2 'IBM Plex Sans';color:#69727f;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{c.sub}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ===== ALERT TICKER ===== -->
+  <div style="display:flex;align-items:stretch;gap:0;border:1px solid oklch(0.64 0.20 25 / .35);border-radius:10px;overflow:hidden;background:linear-gradient(180deg, oklch(0.64 0.20 25 / .08), #0b0e15);margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;background:oklch(0.64 0.20 25 / .16);border-right:1px solid oklch(0.64 0.20 25 / .3);flex:0 0 auto">
+      <span style="width:9px;height:9px;border-radius:2px;background:oklch(0.64 0.20 25);animation:blip 1.6s ease-in-out infinite"></span>
+      <span style="font:700 11px/1 'IBM Plex Sans';letter-spacing:.14em;color:oklch(0.82 0.12 30)">ACTIVE ALERTS</span>
+    </div>
+    <div style="flex:1;overflow:hidden;display:flex;align-items:center">
+      <div style="display:flex;gap:0;white-space:nowrap;animation:ticker 60s linear infinite;will-change:transform">
+        <sc-for list="{{alerts}}" as="a" hint-placeholder-count="8">
+          <span style="display:inline-flex;align-items:center;gap:9px;padding:11px 26px;border-right:1px solid #161d28">
+            <span style="{{a.style}};font-size:10px">{{a.mark}}</span>
+            <span style="font:500 12.5px/1 'IBM Plex Sans';color:#c4cedb">{{a.txt}}</span>
+          </span>
+        </sc-for>
+        <sc-for list="{{alerts}}" as="a" hint-placeholder-count="8">
+          <span style="display:inline-flex;align-items:center;gap:9px;padding:11px 26px;border-right:1px solid #161d28">
+            <span style="{{a.style}};font-size:10px">{{a.mark}}</span>
+            <span style="font:500 12.5px/1 'IBM Plex Sans';color:#c4cedb">{{a.txt}}</span>
+          </span>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OKR SCORECARD ===== -->
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:0 2px">
+      <span style="font:600 12px/1 'IBM Plex Sans';letter-spacing:.16em;text-transform:uppercase;color:#aeb9c7">Executive OKR Scorecard</span>
+      <div style="flex:1;height:1px;background:linear-gradient(90deg,#1e2735,transparent)"></div>
+      <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">FY26 Q2 · ACTUAL vs TARGET</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:11px">
+      <sc-for list="{{okrs}}" as="o" hint-placeholder-count="7">
+        <div onClick="{{openers.okr}}" style="position:relative;background:linear-gradient(180deg,#101826,#0b111b);border:1px solid #1c2533;border-radius:12px;padding:13px 14px 12px;overflow:hidden;min-width:0;cursor:pointer">
+          <div style="{{o.accent}};position:absolute;left:0;top:0;bottom:0;width:3px"></div>
+          <div style="font:600 9px/1.3 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99;min-height:24px">{{o.obj}}</div>
+          <div style="font:500 11px/1.35 'IBM Plex Sans';color:#aab4c2;margin-top:5px;min-height:30px">{{o.kr}}</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:9px">
+            <span style="{{o.actualStyle}}">{{o.actual}}</span>
+            <span style="{{o.chipStyle}};font-size:11px;line-height:1">{{o.chip}}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:8px">
+            <span style="font:500 10px/1.2 'IBM Plex Mono';color:#69727f">tgt {{o.target}}</span>
+            {{o.spark}}
+          </div>
+          <div style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79;margin-top:7px">Δ {{o.trend}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ===== DOMAIN GRID ===== -->
+  <div style="display:grid;grid-template-columns:1.08fr 1fr 1fr;gap:14px;align-items:start">
+
+    <!-- COLUMN 1 -->
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+
+      <!-- RTDC -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.rtdc}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">RTDC · Capacity & Census</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">↻ {{clockTime}}</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:flex;align-items:center;gap:18px">
+            {{occGauge}}
+            <div style="flex:1;min-width:0">
+              <div style="font:600 10px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">House-Wide</div>
+              <div style="font:600 30px/1 'IBM Plex Mono';color:#eef3f8;margin-top:7px;letter-spacing:-.02em">547<span style="font-size:16px;color:#69727f"> / 612</span></div>
+              <div style="display:flex;gap:14px;margin-top:13px">
+                <sc-for list="{{subGauges}}" as="s" hint-placeholder-count="3">
+                  <div style="text-align:center">{{s.g}}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#18212f;border:1px solid #18212f;border-radius:9px;overflow:hidden;margin-top:14px">
+            <div style="background:#0c1320;padding:10px 12px">
+              <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">Pending Admits</div>
+              <div style="font:600 21px/1 'IBM Plex Mono';color:oklch(0.72 0.13 235);margin-top:7px">23</div>
+            </div>
+            <div style="background:#0c1320;padding:10px 12px">
+              <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">Pending D/C</div>
+              <div style="font:600 21px/1 'IBM Plex Mono';color:#eef3f8;margin-top:7px">38</div>
+            </div>
+            <div style="background:#0c1320;padding:10px 12px">
+              <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">Net Avail.</div>
+              <div style="font:600 21px/1 'IBM Plex Mono';color:#eef3f8;margin-top:7px">41</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div style="display:grid;grid-template-columns:1.5fr 0.9fr 1.4fr 0.5fr 0.5fr 0.5fr 0.4fr;gap:8px;padding:0 4px 8px;font:600 9px/1 'IBM Plex Sans';letter-spacing:.08em;text-transform:uppercase;color:#5f6b79">
+              <span>Unit</span><span style="text-align:right">Cen/Cap</span><span>Occupancy</span><span style="text-align:right">In</span><span style="text-align:right">Out</span><span style="text-align:right">Avl</span><span style="text-align:center">St</span>
+            </div>
+            <sc-for list="{{units}}" as="u" hint-placeholder-count="10">
+              <div style="display:grid;grid-template-columns:1.5fr 0.9fr 1.4fr 0.5fr 0.5fr 0.5fr 0.4fr;gap:8px;align-items:center;padding:7px 4px;border-top:1px solid #141c28">
+                <span style="font:500 12px/1.2 'IBM Plex Sans';color:#d3dbe4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{u.unit}}</span>
+                <span style="font:500 11px/1 'IBM Plex Mono';color:#9aa6b4;text-align:right">{{u.c}}/{{u.cap}}</span>
+                <div style="display:flex;align-items:center;gap:7px"><div style="flex:1">{{u.bar}}</div><span style="font:500 10px/1 'IBM Plex Mono';color:#8c97a5;width:30px;text-align:right">{{u.occ}}</span></div>
+                <span style="font:500 11px/1 'IBM Plex Mono';color:oklch(0.72 0.13 235);text-align:right">{{u.ain}}</span>
+                <span style="font:500 11px/1 'IBM Plex Mono';color:#9aa6b4;text-align:right">{{u.dout}}</span>
+                <span style="font:500 11px/1 'IBM Plex Mono';color:#9aa6b4;text-align:right">{{u.avail}}</span>
+                <span style="{{u.chipStyle}};font-size:9px;text-align:center">{{u.chip}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- FLOW / TRANSPORT -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.flow}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Patient Flow & Transport</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">↻ {{clockTime}}</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+            <sc-for list="{{flowTiles}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px;background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:12px">
+            <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99;margin-bottom:11px">Discharge Pipeline — Today</div>
+            <sc-for list="{{funnel}}" as="f" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:1.4fr 2fr 0.3fr;gap:10px;align-items:center;margin-bottom:9px">
+                <span style="font:500 11px/1.2 'IBM Plex Sans';color:#c4cedb">{{f.label}}</span>
+                <div>{{f.bar}}</div>
+                <span style="font:600 13px/1 'IBM Plex Mono';color:#eef3f8;text-align:right">{{f.n}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMN 2 -->
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+
+      <!-- EMERGENCY -->
+      <div style="background:linear-gradient(180deg,#141019,#100c14);border:1px solid oklch(0.64 0.20 25 / .28);border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid oklch(0.64 0.20 25 / .22);background:#140d12">
+          <div onClick="{{openers.ed}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.64 0.20 25)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#d8c2c4">Emergency Department</span>
+            <span style="font:600 12px/1;color:oklch(0.64 0.20 25 / .6);margin-left:1px">⤢</span>
+          </div>
+          <span style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;padding:3px 8px;border-radius:5px;background:oklch(0.64 0.20 25 / .18);color:oklch(0.82 0.12 30)">SEVERE OVERCROWDING</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:flex;align-items:center;gap:18px">
+            {{nedocs}}
+            <div style="flex:1;min-width:0">
+              <div style="font:600 10px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">Crowding Index</div>
+              <div style="font:500 12px/1.4 'IBM Plex Sans';color:#aab4c2;margin-top:5px">142 of 200 — Category 6: <span style="color:oklch(0.78 0.13 30)">Disaster / dangerously overcrowded</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:11px;padding:8px 10px;border-radius:8px;background:oklch(0.74 0.13 162 / .1);border:1px solid oklch(0.74 0.13 162 / .25)">
+                <span style="color:oklch(0.74 0.13 162);font-size:10px">●</span>
+                <span style="font:600 10px/1.3 'IBM Plex Sans';color:#bcd0c6">AMBULANCE DIVERSION: OFF</span>
+                <span style="font:500 10px/1.3 'IBM Plex Sans';color:#69727f">· receiving</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px">
+            <sc-for list="{{edTiles}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px;background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <span style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99">Acuity Mix (ESI)</span>
+              <span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">71 patients</span>
+            </div>
+            <div style="display:flex;gap:3px;height:11px;border-radius:4px;overflow:hidden">
+              <sc-for list="{{esi}}" as="e" hint-placeholder-count="3">
+                <div style="height:100%;border-radius:2px;flex:{{e.w}};background:{{e.color}}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:9px">
+              <sc-for list="{{esi}}" as="e" hint-placeholder-count="3">
+                <span style="font:500 10px/1 'IBM Plex Sans';color:#9aa6b4"><span style="color:#69727f">{{e.label}}</span> &nbsp;{{e.n}}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERIOP -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.periop}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Perioperative · OR</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">14 / 18 rooms running</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:flex;align-items:center;gap:18px">
+            {{orGauge}}
+            <div style="flex:1;min-width:0">
+              <div style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#7d8a99;margin-bottom:9px">Room Board · 18 Suites</div>
+              {{rooms}}
+              <div style="display:flex;flex-wrap:wrap;gap:11px;margin-top:11px">
+                <span style="display:flex;align-items:center;gap:5px;font:500 9.5px/1 'IBM Plex Sans';color:#8c97a5"><span style="width:9px;height:9px;border-radius:3px;background:#3c4a5b"></span>Running</span>
+                <span style="display:flex;align-items:center;gap:5px;font:500 9.5px/1 'IBM Plex Sans';color:#8c97a5"><span style="width:9px;height:9px;border-radius:3px;background:oklch(0.80 0.14 78)"></span>Idle</span>
+                <span style="display:flex;align-items:center;gap:5px;font:500 9.5px/1 'IBM Plex Sans';color:#8c97a5"><span style="width:9px;height:9px;border-radius:3px;background:oklch(0.72 0.13 235)"></span>Turning</span>
+                <span style="display:flex;align-items:center;gap:5px;font:500 9.5px/1 'IBM Plex Sans';color:#8c97a5"><span style="width:9px;height:9px;border-radius:3px;background:#222d3b"></span>Closed</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px">
+            <sc-for list="{{periopTiles}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMN 3 -->
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+
+      <!-- STAFFING -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.staffing}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Staffing & Workforce</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">next shift 19:00</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+            <sc-for list="{{staffTiles}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:14px">
+            <div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 0.4fr;gap:8px;padding:0 4px 8px;font:600 9px/1 'IBM Plex Sans';letter-spacing:.08em;text-transform:uppercase;color:#5f6b79">
+              <span>Unit · RN Ratio</span><span style="text-align:center">Actual</span><span style="text-align:center">Target</span><span style="text-align:center">St</span>
+            </div>
+            <sc-for list="{{ratios}}" as="r" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:1.8fr 1fr 1fr 0.4fr;gap:8px;align-items:center;padding:7px 4px;border-top:1px solid #141c28">
+                <span style="font:500 12px/1.2 'IBM Plex Sans';color:#d3dbe4">{{r.unit}}</span>
+                <span style="{{r.actualStyle}};text-align:center">{{r.actual}}</span>
+                <span style="font:500 12px/1 'IBM Plex Mono';color:#8c97a5;text-align:center">{{r.target}}</span>
+                <span style="{{r.chipStyle}};font-size:9px;text-align:center">{{r.chip}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUALITY -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.quality}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Quality & Safety</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">MTD</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+            <sc-for list="{{qualTiles}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px">
+            <sc-for list="{{daysSince}}" as="d" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:8px;padding:9px 10px;text-align:center">
+                <div style="font:600 19px/1 'IBM Plex Mono';{{d.style}}">{{d.n}}</div>
+                <div style="font:600 8.5px/1.2 'IBM Plex Sans';letter-spacing:.05em;text-transform:uppercase;color:#69727f;margin-top:5px">days · {{d.label}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;padding-top:13px;border-top:1px solid #141c28">
+            <sc-for list="{{codes}}" as="c" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:7px;background:#0c1320;border:1px solid #18212f;border-radius:7px;padding:6px 10px">
+                <span style="font:600 14px/1 'IBM Plex Mono';{{c.style}}">{{c.n}}</span>
+                <span style="font:500 10px/1.2 'IBM Plex Sans';color:#9aa6b4">{{c.label}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICE LINES -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.service}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Service Lines · Throughput</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">ALOS vs GMLOS</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 0.4fr;gap:8px;padding:0 4px 8px;font:600 9px/1 'IBM Plex Sans';letter-spacing:.08em;text-transform:uppercase;color:#5f6b79">
+            <span>Service</span><span style="text-align:right">ALOS</span><span style="text-align:right">Exp</span><span style="text-align:right">O:E</span><span style="text-align:center">St</span>
+          </div>
+          <sc-for list="{{svc}}" as="s" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 0.4fr;gap:8px;align-items:center;padding:7px 4px;border-top:1px solid #141c28">
+              <span style="font:500 12px/1.2 'IBM Plex Sans';color:#d3dbe4">{{s.name}}</span>
+              <span style="font:500 11px/1 'IBM Plex Mono';color:#c4cedb;text-align:right">{{s.alos}}</span>
+              <span style="font:500 11px/1 'IBM Plex Mono';color:#69727f;text-align:right">{{s.exp}}</span>
+              <span style="{{s.oeStyle}};text-align:right">{{s.oe}}</span>
+              <span style="{{s.chipStyle}};font-size:9px;text-align:center">{{s.chip}}</span>
+            </div>
+          </sc-for>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px">
+            <sc-for list="{{throughTiles}}" as="t" hint-placeholder-count="4">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:8px;padding:9px 10px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:4px">
+                  <span style="font:600 8.5px/1.2 'IBM Plex Sans';letter-spacing:.05em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:3px;margin-top:7px"><span style="font:600 18px/1 'IBM Plex Mono';color:{{t.valStyle.color}}">{{t.value}}</span><span style="font:500 9px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="font:500 9px/1.2 'IBM Plex Sans';color:#69727f;margin-top:5px">{{t.sub}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCIAL -->
+      <div style="background:linear-gradient(180deg,#101825,#0c121d);border:1px solid #1d2737;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #18212f;background:#0d1420">
+          <div onClick="{{openers.financial}}" style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <span style="width:7px;height:7px;border-radius:2px;background:oklch(0.72 0.13 200)"></span>
+            <span style="font:600 11.5px/1 'IBM Plex Sans';letter-spacing:.13em;text-transform:uppercase;color:#b3bdca">Labor & Financial Stewardship</span>
+            <span style="font:600 12px/1;color:#46545f;margin-left:1px">⤢</span>
+          </div>
+          <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">today vs budget</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px">
+            <sc-for list="{{finTiles}}" as="t" hint-placeholder-count="4">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:10px 11px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.06em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:4px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 9px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;margin-top:7px"><span style="font:500 9px/1.2 'IBM Plex Sans';color:#69727f">{{t.sub}}</span>{{t.spark}}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LEGEND / FOOTER ===== -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-top:18px;padding:13px 16px;background:#0b111b;border:1px solid #18212f;border-radius:11px">
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <span style="font:600 9px/1 'IBM Plex Sans';letter-spacing:.12em;text-transform:uppercase;color:#5f6b79">Status Legend</span>
+      <sc-for list="{{legend}}" as="l" hint-placeholder-count="5">
+        <span style="display:flex;align-items:center;gap:7px;font:500 11px/1 'IBM Plex Sans';color:#9aa6b4"><span style="color:{{l.c}};font-size:10px">{{l.s}}</span>{{l.label}}</span>
+      </sc-for>
+      <span style="font:500 10px/1.3 'IBM Plex Sans';color:#5f6b79;max-width:280px">Color reserved for abnormal states (ISA-101). Shape encodes status redundantly for color-vision safety.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;font:500 10px/1 'IBM Plex Mono';color:#5f6b79">
+      <span>Sources: RTDC · EHR · ADT · Time & Attendance · OR Mgr · EVS</span>
+      <span>Auto-refresh 60s</span>
+      <span style="color:#8c97a5">Last sync {{clockTime}}</span>
+    </div>
+  </div>
+
+  <!-- ===== DRILL-DOWN MODAL ===== -->
+  <sc-if value="{{drillOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeDrill}}" style="position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:38px 26px;background:rgba(4,7,12,.74);backdrop-filter:blur(4px)">
+      <div onClick="{{stop}}" style="width:100%;max-width:1280px;max-height:88vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#0f1722,#0b111a);border:1px solid #243246;border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.65)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 22px;border-bottom:1px solid #1b2533;background:#0d1420;flex:0 0 auto">
+          <div style="display:flex;align-items:center;gap:13px;min-width:0">
+            <span style="{{drill.accent}};width:9px;height:30px;border-radius:3px;flex:0 0 auto"></span>
+            <div style="min-width:0">
+              <div style="font:700 16px/1.1 'IBM Plex Sans';color:#f1f5fa">{{drill.title}}</div>
+              <div style="font:500 11px/1.3 'IBM Plex Sans';color:#8c97a5;margin-top:3px">{{drill.sub}}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto">
+            <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">⟲ {{clockTime}} · auto-refresh 60s</span>
+            <button onClick="{{closeDrill}}" style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;border:1px solid #283446;background:#121b28;color:#9fb0c0;font:600 10px/1 'IBM Plex Sans';letter-spacing:.08em;cursor:pointer">ESC · CLOSE</button>
+          </div>
+        </div>
+        <div style="overflow:auto;padding:18px 22px 24px">
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px">
+            <sc-for list="{{drill.kpis}}" as="t" hint-placeholder-count="6">
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:9px;padding:11px 12px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                  <span style="font:600 9px/1.2 'IBM Plex Sans';letter-spacing:.07em;text-transform:uppercase;color:#7d8a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.label}}</span>
+                  <span style="{{t.chipStyle}}">{{t.chip}}</span>
+                </div>
+                <div style="display:flex;align-items:baseline;gap:5px;margin-top:8px"><span style="{{t.valStyle}}">{{t.value}}</span><span style="font:500 10px/1 'IBM Plex Mono';color:#69727f">{{t.unit}}</span></div>
+                <div style="font:500 9.5px/1.2 'IBM Plex Sans';color:#69727f;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.sub}}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{drill.tables}}" as="tbl" hint-placeholder-count="2">
+            <div style="margin-bottom:18px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+                <span style="font:600 11px/1 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#aeb9c7">{{tbl.title}}</span>
+                <div style="flex:1;height:1px;background:linear-gradient(90deg,#1c2533,transparent)"></div>
+                <span style="font:500 10px/1 'IBM Plex Mono';color:#5f6b79">{{tbl.note}}</span>
+              </div>
+              <div style="background:#0c1320;border:1px solid #18212f;border-radius:10px;overflow:hidden">
+                <div style="display:flex;gap:12px;align-items:center;padding:9px 14px;background:#0e1622">
+                  <sc-for list="{{tbl.cols}}" as="col" hint-placeholder-count="6"><span style="{{col.style}}">{{col.label}}</span></sc-for>
+                </div>
+                <sc-for list="{{tbl.rows}}" as="row" hint-placeholder-count="8">
+                  <div style="{{row.style}}">
+                    <sc-for list="{{row.cells}}" as="cell" hint-placeholder-count="6"><div style="{{cell.wrap}}">{{cell.content}}</div></sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { now: new Date(2026, 5, 28, 14, 32, 7), drill: null };
+  componentDidMount() {
+    this._t = setInterval(() => this.setState(s => ({ now: new Date(s.now.getTime() + 1000) })), 1000);
+    this._esc = (e) => { if (e.key === 'Escape') this.setState({ drill: null }); };
+    window.addEventListener('keydown', this._esc);
+  }
+  componentWillUnmount() { clearInterval(this._t); window.removeEventListener('keydown', this._esc); }
+  open(id){ this.setState({ drill: id }); }
+  closeDrill = () => this.setState({ drill: null });
+  stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+
+  meta(t) {
+    const m = {
+      ok:     { c: 'oklch(0.74 0.13 162)', s: '●' },
+      normal: { c: '#6b7686',              s: '–' },
+      watch:  { c: 'oklch(0.72 0.13 235)', s: '●' },
+      warn:   { c: 'oklch(0.80 0.14 78)',  s: '▲' },
+      crit:   { c: 'oklch(0.64 0.20 25)',  s: '◆' },
+    };
+    return m[t] || m.normal;
+  }
+  ce(...a){ return React.createElement(...a); }
+
+  bar(pct, color, h) {
+    h = h || 6;
+    return this.ce('div', { style: { height: h, background: '#172131', borderRadius: h / 2, overflow: 'hidden', width: '100%' } },
+      this.ce('div', { style: { height: '100%', width: Math.max(2, Math.min(100, pct)) + '%', background: color, borderRadius: h / 2, transition: 'width .6s ease' } }));
+  }
+  spark(data, color) {
+    const w = 70, h = 18, max = Math.max(...data), min = Math.min(...data);
+    const pts = data.map((v, i) => {
+      const x = (i / (data.length - 1)) * (w - 2) + 1;
+      const y = h - 2 - ((v - min) / ((max - min) || 1)) * (h - 4);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    const last = pts[pts.length - 1].split(',');
+    return this.ce('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, style: { display: 'block', overflow: 'visible' } },
+      this.ce('polyline', { points: pts.join(' '), fill: 'none', stroke: color, strokeWidth: 1.5, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+      this.ce('circle', { cx: last[0], cy: last[1], r: 1.8, fill: color }));
+  }
+  gauge(pct, color, size, big, small, scale) {
+    size = size || 132;
+    const deg = Math.max(0, Math.min(100, (pct / (scale || 100)) * 100)) * 3.6;
+    return this.ce('div', { style: { position: 'relative', width: size, height: size, flex: '0 0 auto' } },
+      this.ce('div', { style: { width: size, height: size, borderRadius: '50%', background: `conic-gradient(${color} ${deg}deg, #1a2535 ${deg}deg 360deg)` } }),
+      this.ce('div', { style: { position: 'absolute', inset: '13%', borderRadius: '50%', background: '#0b1320', boxShadow: 'inset 0 0 0 1px #1d2837', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px' } },
+        this.ce('div', { style: { font: `600 ${Math.round(size * 0.26)}px/1 'IBM Plex Mono'`, color: '#eef3f8', letterSpacing: '-.02em' } }, big),
+        this.ce('div', { style: { font: "600 9px/1 'IBM Plex Sans'", letterSpacing: '.1em', textTransform: 'uppercase', color: '#7e8a99' } }, small)));
+  }
+  tile(label, value, unit, sub, tier, data) {
+    const m = this.meta(tier);
+    const colored = tier === 'warn' || tier === 'crit';
+    return {
+      label, value, unit, sub, chip: m.s,
+      chipStyle: { color: m.c, fontSize: '9px', lineHeight: 1, flex: '0 0 auto' },
+      valStyle: { font: "600 23px/1 'IBM Plex Mono'", letterSpacing: '-.02em', color: tier === 'ok' ? 'oklch(0.78 0.11 162)' : colored ? m.c : '#eef3f8' },
+      spark: data ? this.spark(data, colored ? m.c : '#465360') : null,
+    };
+  }
+  chip(value, sub, tier, label) {
+    const m = this.meta(tier);
+    const colored = tier === 'warn' || tier === 'crit';
+    return { label, value, sub, mark: m.s,
+      markStyle: { color: m.c },
+      valStyle: { font: "600 26px/1 'IBM Plex Mono'", letterSpacing: '-.02em', color: tier === 'ok' ? 'oklch(0.78 0.11 162)' : colored ? m.c : '#eef3f8' } };
+  }
+
+  mkTable(title, note, cols, rows){
+    const colDefs = cols.map(c => ({ label: c[0], flex: c[1], align: c[2] || 'left',
+      style: { flex: c[1], minWidth: 0, font: "600 9px/1.2 'IBM Plex Sans'", letterSpacing: '.07em', textTransform: 'uppercase', color: '#5f6b79', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', justifyContent: c[2]==='right' ? 'flex-end' : c[2]==='center' ? 'center' : 'flex-start' } }));
+    const builtRows = rows.map((cells, ri) => ({
+      style: { display: 'flex', gap: '12px', alignItems: 'center', padding: '9px 14px', borderTop: '1px solid #141c28' },
+      cells: cells.map((cs, i) => this.mkCell(cs, colDefs[i] || colDefs[colDefs.length - 1]))
+    }));
+    return { title, note, cols: colDefs, rows: builtRows };
+  }
+  mkCell(cs, cd){
+    const jc = cd.align==='right' ? 'flex-end' : cd.align==='center' ? 'center' : 'flex-start';
+    const wrap = { flex: cd.flex, display: 'flex', alignItems: 'center', justifyContent: jc, gap: '7px', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', font: "500 12px/1.3 'IBM Plex Sans'", color: '#c4cedb' };
+    if (cs == null) cs = { v: '' };
+    if (typeof cs === 'string' || typeof cs === 'number') cs = { v: String(cs) };
+    let content = cs.v != null ? cs.v : '';
+    if (cs.bar){
+      content = this.ce('div', { style: { width: '100%', display: 'flex', alignItems: 'center', gap: '8px' } },
+        this.bar(cs.bar[0], cs.bar[1], 6),
+        this.ce('span', { style: { font: "500 10px/1 'IBM Plex Mono'", color: '#8c97a5', width: '34px', textAlign: 'right', flex: '0 0 auto' } }, cs.bar[2] != null ? cs.bar[2] : cs.bar[0] + '%'));
+      wrap.overflow = 'visible';
+    } else if (cs.chip){
+      const m = this.meta(cs.chip); content = m.s; wrap.color = m.c; wrap.font = "600 11px/1 'IBM Plex Sans'";
+    } else if (cs.tag){
+      const m = this.meta(cs.tag.tier);
+      content = this.ce('span', { style: { padding: '2px 8px', borderRadius: '5px', border: '1px solid ' + m.c, color: m.c, font: "600 10px/1 'IBM Plex Sans'", letterSpacing: '.02em', whiteSpace: 'nowrap' } }, cs.tag.text);
+    } else {
+      if (cs.mono) wrap.font = "500 12px/1 'IBM Plex Mono'";
+      if (cs.strong) wrap.font = cs.mono ? "600 13px/1 'IBM Plex Mono'" : "600 12.5px/1.3 'IBM Plex Sans'";
+      if (cs.dim) wrap.color = '#69727f';
+      if (cs.tier && cs.tier !== 'normal') wrap.color = this.meta(cs.tier).c;
+      if (cs.color) wrap.color = cs.color;
+    }
+    return { wrap, content };
+  }
+  buildDrill(id){
+    const A = 'oklch(0.72 0.13 200)', R = 'oklch(0.64 0.20 25)';
+    const t = (l,v,u,s,tier) => this.tile(l,v,u,s,tier);
+    const tb = (a,b,c,d) => this.mkTable(a,b,c,d);
+    const bc = (tier) => tier==='normal' ? '#3c4a5b' : this.meta(tier).c;
+    const BLUE = 'oklch(0.72 0.13 235)';
+    if (id === 'rtdc'){
+      const U = [
+        ['ICU \u00b7 Critical Care',24,26,92,4,3,1,1,25,'warn'],['CVICU',14,16,88,1,2,0,0,14,'normal'],['Neuro ICU',11,12,92,1,1,1,1,11,'warn'],['3 Telemetry',38,40,95,5,4,2,2,39,'warn'],['4 Stepdown',40,42,95,3,3,1,1,40,'warn'],['5 Med/Surg West',44,48,92,6,5,2,3,45,'warn'],['6 Med/Surg East',46,48,96,4,2,1,0,47,'crit'],['7 Ortho / Neuro',37,40,93,3,4,1,1,36,'normal'],['8 Oncology',22,26,85,2,3,0,2,21,'normal'],['9 Med/Surg',39,44,89,4,4,1,1,39,'normal'],['Mother / Baby',18,24,75,4,5,0,0,17,'normal'],['NICU',12,18,67,1,1,0,0,12,'normal'],['Pediatrics',9,16,56,2,2,0,1,9,'normal'],['Behavioral Health',16,18,89,1,1,0,0,16,'normal'],['Rehabilitation',14,16,88,0,2,1,0,13,'normal'],['Observation',14,20,70,5,6,0,2,12,'watch']
+      ];
+      const B = [['ED \u2192 ICU',5,'6h 40m','Critical Care bed','No staffed ICU bed','crit'],['ED \u2192 Telemetry',6,'7h 12m','Monitored bed','Tele capacity / staffing','crit'],['ED \u2192 Med/Surg',3,'4h 05m','Floor bed','Awaiting EVS turnaround','warn'],['PACU \u2192 Floor',3,'2h 30m','Med/Surg bed','Bed cleaning in progress','warn'],['ICU \u2192 Stepdown',5,'5h 18m','Stepdown bed','Downgrade orders pending','warn']];
+      return { title: 'Real-Time Demand & Capacity \u2014 House Detail', sub: 'Bed capacity, throughput and projected midnight census \u00b7 all units', accent: { background: A },
+        kpis: [ t('House Census','547','/612','89% occupancy','warn'), t('Available','41','beds','staffed & ready','normal'), t('Pending Admits','23','','ED 14 \u00b7 direct 5 \u00b7 xfer 4','watch'), t('Pending D/C','38','','19 confirmed','normal'), t('Boarders','22','','ED 14 \u00b7 PACU 3 \u00b7 ICU 5','crit'), t('Blocked Beds','9','','staffing 6 \u00b7 iso 3','warn') ],
+        tables: [
+          tb('Unit Capacity Board','16 inpatient units \u00b7 live ADT feed', [['Unit',2,'left'],['Cen / Cap',1.1,'right'],['Occupancy',2,'left'],['Adm',0.6,'right'],['D/C',0.6,'right'],['Xfer',0.6,'right'],['Blkd',0.6,'right'],['Mid Proj',0.9,'right'],['St',0.5,'center']],
+            U.map(u => [ {v:u[0],strong:1}, {v:u[1]+'/'+u[2],mono:1}, {bar:[u[3],bc(u[9]),u[3]+'%']}, {v:String(u[4]),mono:1,color:BLUE}, {v:String(u[5]),mono:1}, {v:String(u[6]),mono:1}, u[7]>0?{v:String(u[7]),mono:1,tier:'warn'}:{v:'0',mono:1,dim:1}, {v:String(u[8]),mono:1}, {chip:u[9]} ])),
+          tb('Boarding & Placement Barriers','admitted patients awaiting an inpatient bed', [['Holding Area',1.5,'left'],['Pts',0.6,'right'],['Longest Wait',1.1,'right'],['Awaiting',1.5,'left'],['Primary Barrier',2,'left'],['St',0.5,'center']],
+            B.map(r => [ {v:r[0],strong:1}, {v:String(r[1]),mono:1}, {v:r[2],mono:1,tier:r[5]}, {v:r[3]}, {v:r[4],dim:1}, {chip:r[5]} ]))
+        ] };
+    }
+    if (id === 'ed'){
+      const board = [
+        ['T-01',1,'Cardiac arrest \u2014 post ROSC','64 M','0h 38m','Patel','Admit ICU','crit'],['T-03',2,'Chest pain / STEMI','58 M','1h 12m','Reyes','Cath lab','crit'],['T-05',2,'Acute stroke \u2014 tPA window','71 F','0h 54m','Nguyen','Admit Neuro ICU','warn'],['T-08',3,'Abdominal pain','34 F','3h 22m','Cole','CT pending','warn'],['T-11',3,'Shortness of breath','67 M','4h 10m','Cole','Admit Tele \u2014 boarding','crit'],['T-14',3,'Sepsis / fever','79 F','2h 48m','Patel','Admit Med/Surg','warn'],['Hall A1',3,'Flank pain / renal colic','45 M','2h 05m','Reyes','Observation','warn'],['Hall A3',4,'Laceration \u2014 forearm','29 M','1h 30m','Cole','D/C pending','normal'],['T-17',2,'GI bleed','62 M','3h 40m','Nguyen','Admit ICU \u2014 boarding','crit'],['T-19',3,'Syncope','55 F','2h 12m','Patel','Telemetry obs','warn'],['WR-Q',4,'Migraine','38 F','2h 50m','\u2014','Waiting room','watch'],['WR-Q',5,'Medication refill','41 M','3h 05m','\u2014','Waiting room','normal'],['Peds-2',3,'Asthma exacerbation','8 M','1h 18m','Singh','Admit Pediatrics','warn']
+      ];
+      const boarders = [['T-11','Hospitalist / Tele','Telemetry monitored bed','5h 06m','No bed \u2014 capacity','crit'],['T-17','Critical Care','ICU','7h 12m','Awaiting ICU discharge','crit'],['T-14','Hospitalist','Med/Surg floor','3h 40m','EVS cleaning in progress','warn'],['T-21','Hospitalist','Med/Surg floor','2h 18m','Bed assigned \u2014 transport','warn'],['T-23','Cardiology','Telemetry','4h 02m','No staffed bed','crit'],['Hall A5','Surgery','Surgical floor','3h 30m','Report / handoff pending','warn']];
+      return { title: 'Emergency Department \u2014 Track Board', sub: 'Live patient tracking, acuity and disposition \u00b7 NEDOCS 142 (Severe)', accent: { background: R },
+        kpis: [ t('In Department','71','pts','54 beds \u00b7 28 waiting','warn'), t('Waiting Room','28','','avg wait 1h 48m','warn'), t('Door-to-Provider','41','min','target \u2264 30','warn'), t('LWBS','3.8','%','target \u2264 2.0','crit'), t('Admitted Boarders','14','','longest 7h 12m','crit'), t('Median LOS \u00b7 Disch','3h41','','target \u2264 3h','warn') ],
+        tables: [
+          tb('Active Track Board','representative active patients', [['Bed',0.9,'left'],['ESI',0.7,'center'],['Chief Complaint',2.4,'left'],['Pt',0.8,'left'],['LOS',0.9,'right'],['Provider',1,'left'],['Disposition',1.7,'left'],['St',0.5,'center']],
+            board.map(r => [ {v:r[0],strong:1,mono:1}, {tag:{text:String(r[1]),tier:r[1]<=2?'crit':r[1]===3?'warn':'normal'}}, {v:r[2]}, {v:r[3],dim:1}, {v:r[4],mono:1}, {v:r[5]}, {v:r[6],tier: r[6].indexOf('boarding')>=0?'crit':undefined}, {chip:r[7]} ])),
+          tb('Admitted Boarders \u2014 Awaiting Bed','disposition decided, no bed assigned', [['Patient',1,'left'],['Admitting Service',1.6,'left'],['Bed Requested',1.5,'left'],['Boarding',1,'right'],['Bed Status',1.8,'left'],['St',0.5,'center']],
+            boarders.map(r => [ {v:r[0],strong:1,mono:1}, {v:r[1]}, {v:r[2]}, {v:r[3],mono:1,tier:r[5]}, {v:r[4],dim:1}, {chip:r[5]} ]))
+        ] };
+    }
+    if (id === 'periop'){
+      const ORB = [
+        ['OR 1','Running','Lap cholecystectomy','General Surgery','Reyes','07:30','+0','normal'],['OR 2','Running','Total knee arthroplasty','Orthopedics','Cole','07:30','+18','warn'],['OR 3','In Turnover','Next: Inguinal hernia','General Surgery','Patel','11:15','+12','watch'],['OR 4','Idle','Open \u2014 no case scheduled','\u2014','\u2014','\u2014','\u2014','warn'],['OR 5','Running','CABG \u00d73','Cardiac Surgery','Nguyen','07:00','+0','normal'],['OR 6','Running','Craniotomy \u2014 tumor','Neurosurgery','Singh','07:45','+35','crit'],['OR 7','In Turnover','Next: Cataract extraction','Ophthalmology','Lee','10:30','+8','watch'],['OR 8','Running','Total hysterectomy','Gynecology','Adams','08:00','+22','warn'],['OR 9','Running','Posterior spinal fusion','Ortho / Neuro','Cole','07:30','+0','normal'],['OR 10','Idle','Open \u2014 staffing hold','\u2014','\u2014','\u2014','\u2014','warn'],['OR 11','Running','Appendectomy','General Surgery','Reyes','09:15','+5','normal'],['OR 12','Running','Mastectomy','Surgical Oncology','Adams','08:30','+14','warn'],['OR 13','Closed','Closed \u2014 no staff','\u2014','\u2014','\u2014','\u2014','normal'],['OR 14','Running','Cystoscopy','Urology','Khan','09:00','+0','normal'],['OR 15','In Turnover','Next: TAVR','Cardiac Surgery','Nguyen','12:00','+10','watch'],['OR 16','Running','Thyroidectomy','ENT','Park','08:15','+0','normal'],['OR 17','Idle','Open \u2014 add-on hold','\u2014','\u2014','\u2014','\u2014','warn'],['OR 18','Running','Colectomy','Colorectal','Diaz','07:30','+7','normal']
+      ];
+      const PACU = [['PACU-1','CABG \u00d73 recovery','Phase I','1h 20m','ICU bed ready','normal'],['PACU-3','TKA recovery','Phase II','0h 45m','Awaiting floor bed \u2014 HOLD','warn'],['PACU-5','Lap chole recovery','Phase II','0h 30m','D/C home pending','normal'],['PACU-7','Hysterectomy recovery','Phase I','0h 55m','Floor bed \u2014 HOLD','warn'],['PACU-9','Spinal fusion recovery','Phase I','1h 05m','Stepdown bed \u2014 HOLD','warn'],['PACU-11','Appendectomy recovery','Phase II','0h 20m','D/C home','normal']];
+      return { title: 'Perioperative \u2014 OR Schedule & Status', sub: 'Live room board, case progress and PACU \u00b7 18 suites \u00b7 prime-time util 73%', accent: { background: A },
+        kpis: [ t('Prime Util','73','%','target \u2265 80','warn'), t('First-Case On-Time','68','%','target \u2265 85','warn'), t('Avg Turnover','34','min','target \u2264 30','warn'), t('Cases Today','48','sched','21 done \u00b7 9 active','normal'), t('PACU','11/14','','3 holds','warn'), t('Cancellations','3','today','1 no-show','watch') ],
+        tables: [
+          tb('OR Room Board \u2014 Live','18 surgical suites', [['OR',0.7,'left'],['Status',1.1,'left'],['Current / Next Case',2.2,'left'],['Service',1.3,'left'],['Surgeon',1,'left'],['Sched',0.8,'right'],['\u0394 Delay',0.8,'right'],['St',0.5,'center']],
+            ORB.map(r => { const d = r[6]; const dt = (d==='+0'||d==='\u2014') ? undefined : (parseInt(d)>=20?'crit':'warn'); return [ {v:r[0],strong:1,mono:1}, {v:r[1],tier: r[1]==='Idle'?'warn':r[1]==='In Turnover'?'watch':undefined, color: r[1]==='Running'?'#9fb0c0':r[1]==='Closed'?'#5f6b79':undefined}, {v:r[2]}, {v:r[3],dim:1}, {v:r[4]}, {v:r[5],mono:1,dim: r[5]==='\u2014'}, {v:d,mono:1,tier:dt,dim: d==='\u2014'}, {chip:r[7]} ]; })),
+          tb('PACU & Phase II Recovery','post-anesthesia care \u00b7 3 active holds', [['Bay',0.9,'left'],['Patient Case',2,'left'],['Phase',1,'left'],['Time in PACU',1.1,'right'],['Status',1.7,'left'],['St',0.5,'center']],
+            PACU.map(r => [ {v:r[0],strong:1,mono:1}, {v:r[1]}, {v:r[2],dim:1}, {v:r[3],mono:1}, {v:r[4],tier: r[4].indexOf('HOLD')>=0?'warn':undefined, dim: r[4].indexOf('HOLD')<0}, {chip:r[5]} ]))
+        ] };
+    }
+    if (id === 'staffing'){
+      const COV = [['ICU \u00b7 Critical Care',24,12,12,'1:2','1:2',0,4,'ok'],['CVICU',14,7,7,'1:2','1:2',0,2,'ok'],['Neuro ICU',11,5,6,'1:2.2','1:2',1,6,'warn'],['3 Telemetry',38,8,10,'1:5','1:4',2,12,'warn'],['4 Stepdown',40,9,11,'1:4.4','1:4',2,10,'warn'],['5 Med/Surg West',44,7,11,'1:6','1:4',4,16,'crit'],['6 Med/Surg East',46,9,9,'1:5','1:5',0,8,'ok'],['7 Ortho / Neuro',37,8,8,'1:4.6','1:5',0,4,'normal'],['8 Oncology',22,5,5,'1:4.4','1:5',0,2,'ok'],['Mother / Baby',18,6,6,'1:3','1:3',0,0,'ok'],['Emergency Dept',71,14,18,'1:5','1:4',4,14,'warn'],['Behavioral Health',16,3,3,'1:5.3','1:6',0,2,'normal']];
+      const OPEN = [['5 Med/Surg West','RN','Nights 12h','19:00','$$ Crisis','Unfilled \u2014 2 needed','crit'],['Emergency Dept','RN','Nights 12h','19:00','$$ Crisis','Unfilled \u2014 2 needed','crit'],['3 Telemetry','RN','Days 12h','07:00','$ Premium','Pending agency','warn'],['4 Stepdown','RN','Nights 12h','19:00','$ Premium','Float pool assigned','watch'],['ICU','RN','Nights 12h','19:00','\u2014','Filled \u2014 overtime','normal'],['Neuro ICU','CNA','Days 8h','07:00','\u2014','Unfilled','warn'],['6 Med/Surg East','RN','Days 12h','07:00','$ Premium','Filled','ok'],['House Float','Sitter','Nights 12h','19:00','\u2014','Unfilled \u2014 3 needed','warn']];
+      return { title: 'Staffing & Workforce \u2014 Coverage Detail', sub: 'Current-shift coverage, ratios and open requests \u00b7 next shift 19:00', accent: { background: A },
+        kpis: [ t('Open Shifts','47','/24h','filled 62%','warn'), t('Overtime','6.2','%','target \u2264 4.0','warn'), t('Agency RNs','8','active','float 12/15','watch'), t('Callouts','14','today','3 on-call act.','warn'), t('Sitters / 1:1','9','active','high obs demand','watch'), t('Productivity','96','%','HPPD index','normal') ],
+        tables: [
+          tb('Unit Coverage \u2014 Current Shift (Days)','RN scheduled vs needed', [['Unit',1.8,'left'],['Cen',0.7,'right'],['Sched',0.8,'right'],['Need',0.8,'right'],['Ratio',0.9,'center'],['Target',0.9,'center'],['Open',0.7,'right'],['OT hrs',0.8,'right'],['St',0.5,'center']],
+            COV.map(r => [ {v:r[0],strong:1}, {v:String(r[1]),mono:1}, {v:String(r[2]),mono:1}, {v:String(r[3]),mono:1,tier: r[3]>r[2]?'warn':undefined}, {v:r[4],mono:1,strong:1,tier:r[8]}, {v:r[5],mono:1,dim:1}, r[6]>0?{v:String(r[6]),mono:1,tier:'warn'}:{v:'0',mono:1,dim:1}, {v:String(r[7]),mono:1,tier: r[7]>=12?'warn':undefined}, {chip:r[8]} ])),
+          tb('Open Shift Requests \u2014 Next 24h','incentive tier and fill status', [['Unit',1.6,'left'],['Role',1,'left'],['Shift',1.2,'left'],['Start',0.9,'right'],['Incentive',1.1,'left'],['Fill Status',1.7,'left'],['St',0.5,'center']],
+            OPEN.map(r => [ {v:r[0],strong:1}, {v:r[1],mono:1}, {v:r[2]}, {v:r[3],mono:1}, {v:r[4],dim: r[4]==='\u2014'}, {v:r[5],tier: r[6]==='crit'?'crit':undefined, dim: r[6]==='normal'||r[6]==='ok'}, {chip:r[6]} ]))
+        ] };
+    }
+    if (id === 'flow'){
+      const TQ = [['#4821','13:58','ED T-08','CT Scanner','Wheelchair','STAT','22m','crit'],['#4822','14:05','3 Tele 312','Cath Lab','Stretcher','Urgent','17m','warn'],['#4823','14:09','5 MSW 508','Discharge Lounge','Wheelchair','Routine','41m','warn'],['#4824','14:12','PACU-3','6 MSE 610','Stretcher','Urgent','9m','normal'],['#4825','14:15','ED T-14','MRI','Stretcher','STAT','12m','warn'],['#4826','14:18','7 Ortho 705','Physical Therapy','Wheelchair','Routine','25m','warn'],['#4827','14:20','ICU 4','Interventional Rad','Bed','Urgent','6m','normal'],['#4828','14:22','8 Onc 802','Discharge','Wheelchair','Routine','8m','normal'],['#4829','14:24','ED Hall A3','X-Ray','Wheelchair','Routine','4m','normal'],['#4830','14:25','4 SD 410','Echo Lab','Stretcher','Urgent','3m','normal']];
+      const EVS = [['5 Med/Surg West',5,3,'1h 06m','2h 14m','\u2264 45m','crit'],['6 Med/Surg East',4,2,'0h 58m','1h 40m','\u2264 45m','warn'],['3 Telemetry',3,2,'0h 52m','1h 22m','\u2264 45m','warn'],['7 Ortho / Neuro',2,2,'0h 47m','1h 05m','\u2264 45m','warn'],['ICU \u00b7 Critical Care',2,1,'0h 38m','0h 55m','\u2264 30m','warn'],['8 Oncology',2,1,'0h 44m','1h 02m','\u2264 45m','normal'],['Emergency Dept',3,2,'0h 35m','1h 10m','\u2264 30m','warn'],['Discharge Lounge',1,1,'0h 30m','0h 40m','\u2264 45m','normal']];
+      const BARR = [['Rm 508','5 MSW','Awaiting SNF placement','Case Management','14h','warn'],['Rm 610','6 MSE','Pending pharmacy / scripts','Pharmacy','3h','warn'],['Rm 312','3 Tele','Awaiting ride / transport','Family','5h','normal'],['Rm 705','7 Ortho','PT clearance pending','Therapy','4h','warn'],['Rm 802','8 Onc','Home O2 / DME delivery','Care Coordination','8h','warn'],['Rm 410','4 SD','MD discharge order pending','Hospitalist','2h','warn']];
+      return { title: 'Patient Flow & Transport \u2014 Operations', sub: 'Transport queue, EVS bed turnaround and discharge barriers', accent: { background: A },
+        kpis: [ t('D/C by Noon','31','%','target \u2265 40','warn'), t('Discharge Lounge','6','pts','capacity 10','normal'), t('Transport Queue','11','pending','7 in progress','warn'), t('Avg Wait','18','min','target \u2264 15','warn'), t('Bed Turnaround','58','min','target \u2264 45','warn'), t('Dirty Beds','22','','14 cleaning','warn') ],
+        tables: [
+          tb('Transport Queue \u2014 Live','active patient transport requests', [['Req',0.8,'left'],['Time',0.8,'right'],['From',1.3,'left'],['To',1.4,'left'],['Mode',1,'left'],['Priority',1,'center'],['Wait',0.8,'right'],['St',0.5,'center']],
+            TQ.map(r => [ {v:r[0],strong:1,mono:1}, {v:r[1],mono:1,dim:1}, {v:r[2]}, {v:r[3]}, {v:r[4],dim:1}, {tag:{text:r[5],tier: r[5]==='STAT'?'crit':r[5]==='Urgent'?'warn':'normal'}}, {v:r[6],mono:1,tier:r[7]}, {chip:r[7]} ])),
+          tb('EVS Bed Turnaround by Unit','dirty-to-clean cycle time', [['Unit',1.8,'left'],['Dirty',0.8,'right'],['In Prog',0.9,'right'],['Avg Turn',1,'right'],['Longest',1,'right'],['Target',0.9,'right'],['St',0.5,'center']],
+            EVS.map(r => [ {v:r[0],strong:1}, {v:String(r[1]),mono:1}, {v:String(r[2]),mono:1}, {v:r[3],mono:1,tier:r[6]}, {v:r[4],mono:1,dim:1}, {v:r[5],mono:1,dim:1}, {chip:r[6]} ])),
+          tb('Discharge Barriers \u2014 Active','confirmed discharges held up', [['Patient',1,'left'],['Unit',1,'left'],['Barrier',2,'left'],['Owner',1.4,'left'],['Hrs',0.7,'right'],['St',0.5,'center']],
+            BARR.map(r => [ {v:r[0],strong:1,mono:1}, {v:r[1],dim:1}, {v:r[2]}, {v:r[3]}, {v:r[4],mono:1,tier:r[5]}, {chip:r[5]} ]))
+        ] };
+    }
+    if (id === 'quality'){
+      const HAC = [['CLABSI',2,'0.92','0.78','41',9,'warn'],['CAUTI',3,'1.10','0.95','23',12,'warn'],['C. difficile',4,'6.8','5.4','12',16,'warn'],['SSI (NHSN)',1,'0.71','0.85','28',5,'ok'],['Falls w/ Injury',1,'0.34','0.45','6',7,'ok'],['HAPI Stage 3+',1,'0.21','0.30','9',4,'ok'],['MRSA Bacteremia',0,'0.00','0.40','58',2,'ok'],['VAP',1,'0.55','0.70','19',3,'normal']];
+      const SEP = [['ED T-14','13:10','Complete','In progress','3.8','warn'],['ICU 6','11:40','Complete','Complete','2.1','ok'],['5 MSW 508','12:55','Antibiotics due 15m','Pending','4.2','crit'],['3 Tele 312','13:30','Cultures pending','Pending','2.9','warn'],['ED T-19','13:50','Fluids running','Pending','3.1','warn'],['6 MSE 610','12:20','Complete','Lactate redraw due','2.6','warn']];
+      const EVT = [['07:42','Code Blue','5 MSW','High','ROSC \u2014 transferred ICU','crit'],['08:15','Code Stroke','ED','High','tPA given \u2014 Neuro ICU','warn'],['09:03','Rapid Response','6 MSE','Moderate','Stabilized on unit','watch'],['09:48','Code STEMI','ED','High','Cath lab \u2014 door 38m','warn'],['10:22','Fall \u2014 no injury','7 Ortho','Low','Assessed \u2014 no harm','normal'],['11:10','Rapid Response','3 Tele','Moderate','Transferred Stepdown','watch'],['12:35','Medication Event','8 Onc','Low','Near-miss \u2014 intercepted','normal'],['13:20','Code Stroke','ED','High','Evaluated \u2014 no tPA','warn']];
+      return { title: 'Quality & Safety \u2014 Detail', sub: 'HAI/HAC ledger, sepsis bundle and live safety event log \u00b7 MTD', accent: { background: A },
+        kpis: [ t('Sepsis 3-hr','84','%','target \u2265 90','warn'), t('Hand Hygiene','94','%','target \u2265 90','ok'), t('Falls Rate','2.9','/1k','target \u2264 3.0','watch'), t('Rapid Response','7','today','Code Blue 1','watch'), t('CLABSI MTD','2','','SIR 1.18','warn'), t('Med Reconciliation','91','%','target \u2265 95','warn') ],
+        tables: [
+          tb('HAI / HAC Ledger \u2014 Month to Date','infection and harm measures vs NHSN benchmark', [['Measure',1.8,'left'],['Cases',0.8,'right'],['Rate /1k',1,'right'],['Benchmark',1,'right'],['Days Since',1.1,'right'],['YTD',0.7,'right'],['St',0.5,'center']],
+            HAC.map(r => [ {v:r[0],strong:1}, {v:String(r[1]),mono:1,tier: r[1]>0&&r[6]>5?'warn':undefined}, {v:r[2],mono:1,tier:r[6]}, {v:r[3],mono:1,dim:1}, {v:r[4],mono:1}, {v:String(r[5]),mono:1,dim:1}, {chip:r[6]} ])),
+          tb('Sepsis Bundle \u2014 Active / At-Risk Cases','3-hr and 6-hr bundle progress', [['Patient / Unit',1.5,'left'],['Onset',0.9,'right'],['3-hr Bundle',1.4,'left'],['6-hr Bundle',1.4,'left'],['Lactate',0.9,'right'],['St',0.5,'center']],
+            SEP.map(r => { const lac = parseFloat(r[4]); return [ {v:r[0],strong:1}, {v:r[1],mono:1,dim:1}, {v:r[2]}, {v:r[3],dim:1}, {v:r[4],mono:1,tier: lac>=4?'crit':lac>=2.5?'warn':'ok'}, {chip:r[5]} ]; })),
+          tb('Safety Event & Code Log \u2014 Today','rapid responses, codes and reported events', [['Time',0.8,'right'],['Event',1.5,'left'],['Unit',1,'left'],['Severity',1.1,'left'],['Outcome',1.8,'left'],['St',0.5,'center']],
+            EVT.map(r => [ {v:r[0],mono:1,dim:1}, {v:r[1],strong:1}, {v:r[2]}, {v:r[3],tier: r[3]==='High'?'warn':undefined}, {v:r[4],dim:1}, {chip:r[5]} ]))
+        ] };
+    }
+    if (id === 'service'){
+      const SL = [['Cardiology',96,'5.2','4.8','1.08','15.1%',8,'1.04','warn'],['Orthopedics',74,'3.1','3.4','0.91','9.2%',2,'1.18','ok'],['Neurosciences',58,'6.8','6.1','1.11','16.8%',9,'0.97','warn'],['General Surgery',62,'4.2','4.0','1.05','11.4%',4,'1.06','normal'],['Oncology',49,'5.9','5.5','1.07','13.9%',5,'1.01','normal'],['Medicine',142,'5.6','5.0','1.12','17.2%',12,'0.94','warn'],['Cardiac Surgery',28,'7.4','7.0','1.06','12.1%',3,'1.09','normal'],['Women\u2019s / OB',44,'2.6','2.5','1.04','6.8%',1,'1.12','ok']];
+      const DRG = [['291','Heart failure & shock w/ MCC',64,'5.4','1.10','18.2%','warn'],['871','Septicemia w/ MCC',58,'6.1','1.14','15.4%','warn'],['470','Major joint replacement, lower',52,'2.8','0.89','7.1%','ok'],['190','COPD w/ MCC',41,'4.6','1.06','16.0%','warn'],['392','Esophagitis / GI disorders',38,'3.2','0.98','9.8%','normal'],['247','PCI w/ drug-eluting stent',34,'2.4','1.02','8.4%','normal'],['064','Acute ischemic stroke',29,'5.8','1.12','13.1%','warn'],['683','Renal failure w/ CC',27,'4.9','1.08','17.6%','warn']];
+      return { title: 'Service Lines \u2014 Throughput & LOS', sub: 'Length-of-stay performance, readmissions and DRG mix \u00b7 MTD', accent: { background: A },
+        kpis: [ t('O:E LOS Ratio','1.07','','34 avoidable days','warn'), t('30-Day Readmit','14.2','%','target \u2264 13.0','warn'), t('Avoidable Days','34','','MTD','warn'), t('Case Mix Index','1.84','','acuity stable','normal'), t('Observation Rate','9.1','%','conversion 38%','normal'), t('Discharges MTD','1,284','','vs 1,210 plan','normal') ],
+        tables: [
+          tb('Service Line Performance','ALOS vs GMLOS, readmits and contribution', [['Service',1.6,'left'],['Cen',0.7,'right'],['ALOS',0.8,'right'],['GMLOS',0.9,'right'],['O:E',0.8,'right'],['Readmit',1,'right'],['Avd Days',1,'right'],['Margin',0.9,'right'],['St',0.5,'center']],
+            SL.map(r => [ {v:r[0],strong:1}, {v:String(r[1]),mono:1}, {v:r[2],mono:1}, {v:r[3],mono:1,dim:1}, {v:r[4],mono:1,strong:1,tier:r[8]}, {v:r[5],mono:1}, {v:String(r[6]),mono:1}, {v:r[7],mono:1,tier: parseFloat(r[7])<1?'warn':'ok'}, {chip:r[8]} ])),
+          tb('Top DRGs by Volume \u2014 Month to Date','highest-volume diagnosis groups', [['DRG',0.8,'left'],['Description',2.6,'left'],['Cases',0.8,'right'],['ALOS',0.8,'right'],['O:E',0.8,'right'],['Readmit',1,'right'],['St',0.5,'center']],
+            DRG.map(r => [ {v:r[0],mono:1,strong:1}, {v:r[1]}, {v:String(r[2]),mono:1}, {v:r[3],mono:1}, {v:r[4],mono:1,tier:r[6]}, {v:r[5],mono:1}, {chip:r[6]} ]))
+        ] };
+    }
+    if (id === 'financial'){
+      const CC = [['ICU \u00b7 Critical Care','312','13','22.1','21.0','+1.1','warn'],['Med/Surg West','188','46','8.9','7.8','+1.1','crit'],['Med/Surg East','176','46','7.6','7.8','\u22120.2','ok'],['Telemetry','164','38','8.4','7.5','+0.9','warn'],['Emergency Dept','402','198','2.03','1.85','+0.18','warn'],['Perioperative','520','48','\u2014','\u2014','+0.06','warn'],['Oncology','98','22','7.1','7.4','\u22120.3','ok'],['Mother / Baby','132','18','9.8','9.5','+0.3','normal'],['Imaging','146','310','\u2014','\u2014','\u22120.04','ok'],['Laboratory','118','1,240','\u2014','\u2014','+0.02','normal']];
+      const PP = [['Overtime','$58.2k','$284k','+22%','warn'],['Agency / Contract Labor','$61.4k','$312k','+34%','crit'],['Incentive / Crisis Pay','$19.8k','$96k','+18%','warn'],['On-Call / Callback','$8.9k','$41k','+6%','normal'],['Total Premium','$148.3k','$733k','+27%','warn']];
+      return { title: 'Labor & Financial Stewardship', sub: 'Cost-center productivity and premium pay \u00b7 today vs budget', accent: { background: A },
+        kpis: [ t('Worked Hrs / UOS','1.04','idx','target \u2264 1.00','warn'), t('Premium Pay','$148','k','OT + agency','warn'), t('Productivity','96','%','target \u2265 100','warn'), t('Cost / OR Case','$5.8','k','vs $5.4k budget','warn'), t('Contract Labor','$61','k','today','crit'), t('Overtime','6.2','%','target \u2264 4.0','warn') ],
+        tables: [
+          tb('Cost Center Productivity \u2014 Today','worked hours per unit of service vs target', [['Cost Center',1.8,'left'],['Worked Hrs',1.1,'right'],['UOS',1,'right'],['HPPD / Idx',1.1,'right'],['Target',1,'right'],['Variance',1,'right'],['St',0.5,'center']],
+            CC.map(r => [ {v:r[0],strong:1}, {v:r[1],mono:1}, {v:r[2],mono:1}, {v:r[3],mono:1}, {v:r[4],mono:1,dim:1}, {v:r[5],mono:1,tier: r[5].charAt(0)==='+'&&r[6]!=='normal'?r[6]:(r[5].charAt(0)==='\u2212'?'ok':undefined)}, {chip:r[6]} ])),
+          tb('Premium Pay Breakdown','overtime, agency and incentive spend', [['Category',1.8,'left'],['Today',1.1,'right'],['Week-to-Date',1.3,'right'],['vs Budget',1.1,'right'],['St',0.5,'center']],
+            PP.map(r => { const tot = r[0].indexOf('Total')>=0; return [ {v:r[0],strong:tot?1:0}, {v:r[1],mono:1,strong:tot?1:0}, {v:r[2],mono:1,dim:1}, {v:r[3],mono:1,tier:r[4]}, {chip:r[4]} ]; }))
+        ] };
+    }
+    if (id === 'okr'){
+      const OK = [['Safe Care \u00b7 Zero Harm','Sepsis 3-hr Bundle','84%','\u2265 90%','+2pt','CMO','warn'],['Timely Access','ED Median LOS (Admit)','6h22','\u2264 5h','+38m','VP Operations','crit'],['Smooth Throughput','Discharge Before Noon','31%','\u2265 40%','\u22123pt','CNO','warn'],['Right-Sized Capacity','Midnight Occupancy','89%','\u2264 85%','+1pt','House Sup','warn'],['Engaged Workforce','Unfilled Shifts / 24h','47','\u2264 30','+9','CNO','warn'],['Reliable Care','Hand Hygiene','94%','\u2265 90%','+1pt','Quality','ok'],['Financial Stewardship','Worked Hrs / UOS','1.04','\u2264 1.00','+0.02','CFO','warn'],['Patient Experience','HCAHPS Top-Box','71%','\u2265 76%','\u22121pt','CXO','warn'],['Care Reliability','30-Day Readmission','14.2%','\u2264 13.0%','+0.4pt','CMO','warn']];
+      return { title: 'Executive OKR Scorecard \u2014 Detail', sub: 'Objectives, key results and accountable owners \u00b7 FY26 Q2', accent: { background: A },
+        kpis: [ t('On Target','1','of 9','Hand Hygiene','ok'), t('Warning','7','of 9','approaching threshold','warn'), t('Critical','1','of 9','ED LOS','crit'), t('Composite','YELLOW','','surge level 2','warn'), t('WoW Trend','\u22122','net pts','3 worsening','warn'), t('Board Review','T\u22123','days','QBR Jul 1','normal') ],
+        tables: [
+          tb('Objectives & Key Results \u2014 FY26 Q2','enterprise scorecard with accountable owners', [['Objective',1.8,'left'],['Key Result',2.2,'left'],['Actual',1,'right'],['Target',1,'right'],['\u0394 WoW',1,'right'],['Owner',1.2,'left'],['St',0.5,'center']],
+            OK.map(r => [ {v:r[0],strong:1}, {v:r[1]}, {v:r[2],mono:1,strong:1,tier:r[6]}, {v:r[3],mono:1,dim:1}, {v:r[4],mono:1}, {v:r[5],dim:1}, {chip:r[6]} ]))
+        ] };
+    }
+    return { title: '', sub: '', accent: { background: A }, kpis: [], tables: [] };
+  }
+
+  renderVals() {
+    const now = this.state.now;
+    const clockTime = now.toLocaleTimeString('en-GB', { hour12: false });
+    const clockDate = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase();
+
+    // ---- Census strip ----
+    const census = [
+      this.chip('547', '/ 612 staffed · 89%', 'warn', 'House Census'),
+      this.chip('41', 'staffed & ready', 'normal', 'Available Beds'),
+      this.chip('23', 'awaiting placement', 'watch', 'Pending Admits'),
+      this.chip('38', '19 confirmed today', 'normal', 'Pending D/C'),
+      this.chip('14', '9 over 4 hours', 'crit', 'ED Boarders'),
+      this.chip('92%', '24 / 26 · 2 open', 'warn', 'ICU Occupancy'),
+      this.chip('48', '21 done · 9 active', 'normal', 'OR Cases Today'),
+      this.chip('OFF', 'EMS receiving', 'ok', 'Ambulance Divert'),
+    ];
+
+    // ---- Alert ticker ----
+    const alerts = [
+      { t: 'crit', txt: 'ED OVERCROWDED — NEDOCS 142 (Severe); waiting room 28, 5 in hallway beds' },
+      { t: 'crit', txt: '14 admitted patients boarding in ED · longest 7h 12m · 5 awaiting ICU stepdown' },
+      { t: 'crit', txt: 'LWBS 3.8% (target ≤2.0%) — 4 patients left without being seen in last hour' },
+      { t: 'warn', txt: 'ICU 92% — 2 beds available; CVICU holding 1 PACU recovery' },
+      { t: 'warn', txt: '5 Med/Surg West staffed 1:6 (target 1:4); 3 RN callouts, on-call activated' },
+      { t: 'warn', txt: 'OR first-case on-time 68%; mean delay 22m; 3 rooms idle in prime time' },
+      { t: 'warn', txt: 'EVS bed turnaround 58m (target ≤45m); 22 dirty beds, 14 in progress' },
+      { t: 'watch', txt: 'Sepsis 3-hr bundle 84% (target 90%) — 2 active cases approaching window' },
+    ].map(a => ({ ...a, mark: this.meta(a.t).s, style: { color: this.meta(a.t).c } }));
+
+    // ---- OKR scorecard ----
+    const okrRaw = [
+      ['Safe Care · Zero Harm', 'Sepsis 3-hr Bundle Compliance', '84%', '≥ 90%', 'warn', '+2 pt WoW', [78,80,79,82,81,83,84]],
+      ['Timely Access', 'ED Median LOS — Admitted', '6h 22m', '≤ 5h 00m', 'crit', '+38 min', [5.4,5.6,5.9,6.0,6.1,6.3,6.4]],
+      ['Smooth Throughput', 'Discharges Before Noon', '31%', '≥ 40%', 'warn', '−3 pt', [36,35,33,34,32,33,31]],
+      ['Right-Sized Capacity', 'Midnight Bed Occupancy', '89%', '≤ 85%', 'warn', '+1 pt', [84,85,86,88,87,88,89]],
+      ['Engaged Workforce', 'Unfilled Shifts / Next 24h', '47', '≤ 30', 'warn', '+9', [30,33,36,40,42,45,47]],
+      ['Reliable Care', 'Hand Hygiene Compliance', '94%', '≥ 90%', 'ok', '+1 pt', [90,91,92,93,93,94,94]],
+      ['Financial Stewardship', 'Worked Hours / UOS Index', '1.04', '≤ 1.00', 'warn', '+0.02', [0.99,1.0,1.01,1.02,1.02,1.03,1.04]],
+    ];
+    const okrs = okrRaw.map(([obj, kr, actual, target, tier, trend, data]) => {
+      const m = this.meta(tier);
+      const colored = tier === 'warn' || tier === 'crit';
+      return { obj, kr, actual, target, trend, chip: m.s,
+        chipStyle: { color: m.c }, accent: { background: m.c },
+        actualStyle: { font: "600 30px/1 'IBM Plex Mono'", letterSpacing: '-.02em', color: tier === 'ok' ? 'oklch(0.78 0.11 162)' : colored ? m.c : '#eef3f8' },
+        spark: this.spark(data, colored ? m.c : tier === 'ok' ? 'oklch(0.74 0.13 162)' : '#465360') };
+    });
+
+    // ---- RTDC / Capacity ----
+    const occGauge = this.gauge(89, 'oklch(0.80 0.14 78)', 150, '89%', 'Occupancy');
+    const subGauges = [
+      { label: 'ICU', g: this.gauge(92, 'oklch(0.80 0.14 78)', 74, '92', 'ICU') },
+      { label: 'Telemetry', g: this.gauge(95, 'oklch(0.80 0.14 78)', 74, '95', 'Tele') },
+      { label: 'Med/Surg', g: this.gauge(92, 'oklch(0.80 0.14 78)', 74, '92', 'M/S') },
+    ];
+    const unitsRaw = [
+      ['ICU · Critical Care', 24, 26, 92, 4, 3, 2, 'warn'],
+      ['CVICU', 14, 16, 88, 1, 2, 2, 'normal'],
+      ['3 Telemetry', 38, 40, 95, 5, 4, 2, 'warn'],
+      ['4 Stepdown / Tele', 40, 42, 95, 3, 3, 2, 'warn'],
+      ['5 Med/Surg West', 44, 48, 92, 6, 5, 4, 'warn'],
+      ['6 Med/Surg East', 46, 48, 96, 4, 2, 2, 'crit'],
+      ['7 Ortho / Neuro', 37, 40, 93, 3, 4, 3, 'normal'],
+      ['8 Oncology', 22, 26, 85, 2, 3, 4, 'normal'],
+      ['Mother / Baby', 18, 24, 75, 4, 5, 6, 'normal'],
+      ['Behavioral Health', 16, 18, 89, 1, 1, 2, 'normal'],
+    ];
+    const units = unitsRaw.map(([unit, c, cap, occ, ain, dout, avail, tier]) => {
+      const m = this.meta(tier);
+      return { unit, c, cap, occ: occ + '%', ain, dout, avail,
+        bar: this.bar(occ, tier === 'normal' ? '#3c4a5b' : m.c, 6),
+        chip: m.s, chipStyle: { color: m.c } };
+    });
+
+    // ---- Emergency Department ----
+    const nedocs = this.gauge(142, 'oklch(0.64 0.20 25)', 150, '142', 'NEDOCS', 200);
+    const edTiles = [
+      this.tile('In Department', '71', 'pts', '54 beds · 28 waiting', 'warn', [58,61,64,66,68,70,71]),
+      this.tile('Door-to-Provider', '41', 'min', 'target ≤ 30 min', 'warn', [28,31,34,36,38,40,41]),
+      this.tile('LWBS Rate', '3.8', '%', 'target ≤ 2.0%', 'crit', [2.1,2.4,2.9,3.1,3.4,3.6,3.8]),
+      this.tile('Admitted Boarders', '14', 'holds', 'longest 7h 12m', 'crit', [6,8,9,11,12,13,14]),
+      this.tile('Median LOS · Disch', '3h41', '', 'target ≤ 3h', 'warn', [3.0,3.2,3.4,3.5,3.6,3.7,3.7]),
+      this.tile('EMS Inbound', '4', 'units', '1 Code STEMI', 'watch', null),
+    ];
+    const esi = [
+      { label: 'ESI 1–2', n: 18, w: 26, color: 'oklch(0.64 0.20 25)' },
+      { label: 'ESI 3', n: 39, w: 55, color: 'oklch(0.80 0.14 78)' },
+      { label: 'ESI 4–5', n: 14, w: 19, color: '#46545f' },
+    ];
+
+    // ---- Perioperative ----
+    const orGauge = this.gauge(73, 'oklch(0.80 0.14 78)', 132, '73%', 'Prime Util');
+    const periopTiles = [
+      this.tile('First-Case On-Time', '68', '%', 'target ≥ 85%', 'warn', [82,79,76,74,71,69,68]),
+      this.tile('Avg Turnover', '34', 'min', 'target ≤ 30 min', 'warn', [29,30,31,33,33,34,34]),
+      this.tile('Cases Today', '48', 'sched', '21 done · 9 active', 'normal', null),
+      this.tile('Add-Ons / Cancels', '6/3', '', '1 no-show', 'watch', null),
+      this.tile('PACU Holds', '3', 'to floor', 'occ 11 / 14', 'warn', null),
+      this.tile('Block Utilization', '71', '%', 'this week', 'normal', [74,73,72,71,72,71,71]),
+    ];
+    const roomStates = [
+      'run','run','run','idle','run','run','turn','run','run','idle',
+      'run','run','run','closed','run','turn','run','idle'
+    ];
+    const roomColor = { run: '#3c4a5b', idle: 'oklch(0.80 0.14 78)', turn: 'oklch(0.72 0.13 235)', closed: '#222d3b' };
+    const rooms = this.ce('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px' } },
+      roomStates.map((s, i) => this.ce('div', { key: i, title: 'OR ' + (i + 1) + ' · ' + s,
+        style: { width: 18, height: 18, borderRadius: 4, background: roomColor[s], boxShadow: s === 'run' ? 'inset 0 0 0 1px #4a5a6c' : 'none' } })));
+
+    // ---- Staffing ----
+    const staffTiles = [
+      this.tile('Unfilled Shifts 24h', '47', '', 'filled 62%', 'warn', [30,33,36,40,42,45,47]),
+      this.tile('Overtime', '6.2', '%', 'target ≤ 4.0%', 'warn', [4.1,4.6,5.0,5.4,5.8,6.0,6.2]),
+      this.tile('Agency RNs', '8', 'active', 'float pool 12/15', 'watch', null),
+      this.tile('Callouts', '14', 'today', '3 on-call act.', 'warn', null),
+      this.tile('Sitters / 1:1', '9', 'active', 'high obs demand', 'watch', null),
+      this.tile('Productivity', '96', '%', 'HPPD index', 'normal', [98,97,97,96,96,96,96]),
+    ];
+    const ratiosRaw = [
+      ['ICU', '1:2', '1:2', 'ok'],
+      ['Emergency Dept', '1:5', '1:4', 'warn'],
+      ['4 Stepdown', '1:5', '1:4', 'warn'],
+      ['5 Med/Surg West', '1:6', '1:4', 'crit'],
+      ['6 Med/Surg East', '1:5', '1:5', 'ok'],
+      ['Behavioral Health', '1:6', '1:6', 'normal'],
+    ];
+    const ratios = ratiosRaw.map(([unit, actual, target, tier]) => {
+      const m = this.meta(tier);
+      return { unit, actual, target, chip: m.s, chipStyle: { color: m.c },
+        actualStyle: { font: "600 14px/1 'IBM Plex Mono'", color: tier === 'warn' || tier === 'crit' ? m.c : '#dbe2ea' } };
+    });
+
+    // ---- Flow / Transport ----
+    const flowTiles = [
+      this.tile('D/C Before Noon', '31', '%', 'target ≥ 40%', 'warn', [36,35,33,34,32,33,31]),
+      this.tile('Discharge Lounge', '6', 'pts', 'capacity 10', 'normal', null),
+      this.tile('Transport Queue', '11', 'pending', '7 in progress', 'warn', null),
+      this.tile('Transport Wait', '18', 'min', 'target ≤ 15 · max 41', 'warn', [12,13,15,16,17,18,18]),
+      this.tile('Bed Turnaround', '58', 'min', 'EVS target ≤ 45', 'warn', [44,48,51,54,56,57,58]),
+      this.tile('Dirty Beds', '22', '', '14 cleaning now', 'warn', null),
+    ];
+    const funnelRaw = [['Predicted Discharges', 38], ['Order Written', 24], ['Bed Ready / Confirmed', 12], ['Departed (so far)', 19]];
+    const funnel = funnelRaw.map(([label, n]) => ({ label, n, bar: this.bar((n / 38) * 100, 'oklch(0.72 0.13 200)', 8) }));
+
+    // ---- Quality & Safety ----
+    const daysSinceRaw = [['CLABSI', 41], ['CAUTI', 23], ['C. diff', 12], ['Fall w/ Injury', 6], ['Serious Safety Event', 18], ['HAPI Stage 3+', 9]];
+    const daysSince = daysSinceRaw.map(([label, n]) => ({ label, n, tier: n < 15 ? 'warn' : 'ok',
+      style: { color: n < 15 ? 'oklch(0.80 0.14 78)' : 'oklch(0.74 0.13 162)' } }));
+    const qualTiles = [
+      this.tile('Sepsis 3-hr', '84', '%', '6-hr 79% · tgt 90', 'warn', [78,80,79,82,81,83,84]),
+      this.tile('Hand Hygiene', '94', '%', 'target ≥ 90%', 'ok', [90,91,92,93,93,94,94]),
+      this.tile('Falls Rate', '2.9', '/1k', 'target ≤ 3.0', 'watch', null),
+      this.tile('Rapid Responses', '7', 'today', 'Code Blue 1', 'watch', null),
+      this.tile('Med Reconciliation', '91', '%', 'target ≥ 95%', 'warn', null),
+      this.tile('Restraints', '4', 'active', '2 behavioral', 'normal', null),
+    ];
+    const codes = [
+      { label: 'Code Blue', n: 1, tier: 'crit' },
+      { label: 'Code Stroke', n: 3, tier: 'warn' },
+      { label: 'Code STEMI', n: 2, tier: 'warn' },
+      { label: 'Rapid Response', n: 7, tier: 'watch' },
+      { label: 'Trauma', n: 5, tier: 'watch' },
+    ].map(c => ({ ...c, style: { color: this.meta(c.tier).c } }));
+
+    // ---- Service Lines ----
+    const svcRaw = [
+      ['Cardiology', '5.2', '4.8', '1.08', 'warn'],
+      ['Orthopedics', '3.1', '3.4', '0.91', 'ok'],
+      ['Neurosciences', '6.8', '6.1', '1.11', 'warn'],
+      ['General Surgery', '4.2', '4.0', '1.05', 'normal'],
+      ['Oncology', '5.9', '5.5', '1.07', 'normal'],
+      ['Medicine', '5.6', '5.0', '1.12', 'warn'],
+    ];
+    const svc = svcRaw.map(([name, alos, exp, oe, tier]) => {
+      const m = this.meta(tier);
+      return { name, alos, exp, oe, chip: m.s, chipStyle: { color: m.c },
+        oeStyle: { font: "600 14px/1 'IBM Plex Mono'", color: tier === 'warn' || tier === 'crit' ? m.c : tier === 'ok' ? 'oklch(0.74 0.13 162)' : '#dbe2ea' } };
+    });
+    const throughTiles = [
+      this.tile('30-Day Readmits', '14.2', '%', 'target ≤ 13.0', 'warn', null),
+      this.tile('O:E LOS Ratio', '1.07', '', '34 avoidable days', 'warn', null),
+      this.tile('Observation Rate', '9.1', '%', 'conv 38%', 'normal', null),
+      this.tile('Case Mix Index', '1.84', '', 'acuity stable', 'normal', null),
+    ];
+
+    // ---- Financial / Labor ----
+    const finTiles = [
+      this.tile('Worked Hrs / UOS', '1.04', 'idx', 'target ≤ 1.00', 'warn', [0.99,1.0,1.01,1.02,1.02,1.03,1.04]),
+      this.tile('Premium Pay', '$148', 'k', 'OT + agency today', 'warn', null),
+      this.tile('Labor Productivity', '96', '%', 'target ≥ 100%', 'warn', null),
+      this.tile('Cost / OR Case', '$5.8', 'k', 'vs $5.4k budget', 'warn', null),
+    ];
+
+    const legend = [
+      { s: '●', label: 'Normal', c: '#6b7686' },
+      { s: '●', label: 'On Target', c: 'oklch(0.74 0.13 162)' },
+      { s: '●', label: 'Watch', c: 'oklch(0.72 0.13 235)' },
+      { s: '▲', label: 'Warning', c: 'oklch(0.80 0.14 78)' },
+      { s: '◆', label: 'Critical', c: 'oklch(0.64 0.20 25)' },
+    ];
+
+    const drillId = this.state.drill;
+    const drill = drillId ? this.buildDrill(drillId) : { title: '', sub: '', accent: {}, kpis: [], tables: [] };
+    const openers = { rtdc: () => this.open('rtdc'), flow: () => this.open('flow'), ed: () => this.open('ed'), periop: () => this.open('periop'), staffing: () => this.open('staffing'), quality: () => this.open('quality'), service: () => this.open('service'), financial: () => this.open('financial'), okr: () => this.open('okr') };
+
+    return {
+      clockTime, clockDate, census, alerts, okrs,
+      occGauge, subGauges, units, nedocs, edTiles, esi,
+      orGauge, periopTiles, rooms, staffTiles, ratios,
+      flowTiles, funnel, daysSince, qualTiles, codes,
+      svc, throughTiles, finTiles, legend,
+      drillOpen: !!drillId, drill, openers, closeDrill: this.closeDrill, stop: this.stop,
+    };
+  }
+}
+</script>
+</body>
+</html>
