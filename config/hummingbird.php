@@ -21,6 +21,20 @@ return [
         'change_ttl_minutes' => (int) env('HUMMINGBIRD_CHANGE_TTL_MINUTES', 15),
     ],
 
+    // APNs (Apple Push Notification service), token-based (.p8) auth. When key_id + team_id +
+    // bundle_id and a key are present the container binds the real ApnsPushNotifier; otherwise it
+    // falls back to the log-only stub. The .p8 may be inline (APNS_PRIVATE_KEY = PEM contents) or
+    // a file path (APNS_PRIVATE_KEY_PATH).
+    'apns' => [
+        'key_id' => env('APNS_KEY_ID'),
+        'team_id' => env('APNS_TEAM_ID'),
+        'bundle_id' => env('APNS_BUNDLE_ID', 'net.acumenus.hummingbird'),
+        'private_key' => env('APNS_PRIVATE_KEY'),
+        'private_key_path' => env('APNS_PRIVATE_KEY_PATH'),
+        // false = sandbox (dev/simulator builds); true = production (TestFlight / App Store).
+        'production' => (bool) env('APNS_PRODUCTION', false),
+    ],
+
     // PHI-free public Reverb channels every authenticated mobile client subscribes
     // to. Per-user unit channels (unit.{id}) are appended from the caller's unit
     // assignments. Reverb does not replay missed frames — clients MUST re-snapshot
