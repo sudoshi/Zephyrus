@@ -1,0 +1,7 @@
+# Xcode / xcodebuild artifacts (transient — never commit)
+.build-device/
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build-archive/

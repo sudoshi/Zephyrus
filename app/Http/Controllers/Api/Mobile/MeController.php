@@ -28,13 +28,32 @@ class MeController extends Controller
             'is_admin' => $user->hasRole(['super-admin', 'admin']),
             'workflow_preference' => $user->workflow_preference,
             'must_change_password' => (bool) $user->must_change_password,
-            'units' => $user->units()->get()->map(fn ($unit) => [
+            'units' => $this->unitAssignments($user),
+        ], links: ['web' => url('/home')]);
+    }
+
+    /**
+     * User→unit assignments, PHI-free. Tolerates deployments where the optional
+     * `user_unit` pivot hasn't been provisioned: the assignments simply resolve to
+     * none rather than failing the whole profile (the mobile onboarding falls back
+     * to the census unit list in that case).
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function unitAssignments(\App\Models\User $user): \Illuminate\Support\Collection
+    {
+        try {
+            return $user->units()->get()->map(fn ($unit) => [
                 'unit_id' => $unit->unit_id,
                 'name' => $unit->name,
                 'role' => $unit->pivot->role,
                 'is_primary' => (bool) $unit->pivot->is_primary,
-            ])->values(),
-        ], links: ['web' => url('/home')]);
+            ])->values();
+        } catch (\Illuminate\Database\QueryException $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     public function updatePreferences(Request $request): JsonResponse

@@ -126,6 +126,12 @@ class MobileAuthTest extends TestCase
 
         $this->withToken($token)->postJson('/api/auth/token/revoke')->assertOk();
 
+        // Forget the guard's memoized user so the next request re-resolves the bearer
+        // token against the DB. Each real HTTP request is a fresh bootstrap; within a
+        // single test the sanctum RequestGuard would otherwise cache the user resolved
+        // during the revoke call and mask the revocation.
+        $this->app['auth']->forgetGuards();
+
         // The token must no longer authenticate.
         $this->withToken($token)->getJson('/api/mobile/v1/me')->assertStatus(401);
     }

@@ -1,0 +1,14 @@
+# --- Android ---
+local.properties
+.gradle/
+**/build/
+.kotlin/
+
+# XcodeGen generates the .xcodeproj from project.yml — don't track it.
+*.xcodeproj/
+# Xcode build artifacts
+DerivedData/
+build/
+*.xcuserstate
+*.xcuserdatad/
+.DS_Store
