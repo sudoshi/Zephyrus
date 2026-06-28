@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
 
     var body: some View {
         ZStack {
@@ -15,8 +16,15 @@ struct RootView: View {
             case .needsPasswordChange:
                 PasswordChangeNoticeView()
             case .loggedIn:
-                MainTabView()
+                if let me = auth.me, !profile.isOnboarded(userId: me.id) {
+                    OnboardingView()
+                } else {
+                    MainTabView()
+                }
             }
+        }
+        .onChange(of: auth.me?.id) { _, id in
+            if let id { profile.load(userId: id) }
         }
         .task {
             if case .loading = auth.phase { await auth.bootstrap() }
@@ -26,6 +34,13 @@ struct RootView: View {
             if env["HB_AUTOLOGIN"] == "1", case .loggedOut = auth.phase {
                 await auth.login(username: env["HB_USER"] ?? "demo",
                                  password: env["HB_PASS"] ?? "Password123!")
+            }
+            // Test affordance: SIMCTL_CHILD_HB_ROLE=<id> pre-confirms onboarding so screenshots
+            // can land past it. No-op in production.
+            if let roleId = env["HB_ROLE"], Role.by(id: roleId) != nil,
+               let me = auth.me, !profile.isOnboarded(userId: me.id) {
+                profile.confirm(userId: me.id, roleId: roleId, unitId: nil,
+                                unitName: env["HB_ONBOARD_UNIT_NAME"] ?? "House-wide")
             }
         }
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm: HomeViewModel
     @State private var pulse = false
     @State private var path = NavigationPath()
@@ -39,6 +40,11 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        Button {
+                            if let id = auth.me?.id { profile.reset(userId: id) }
+                        } label: {
+                            Label("Switch role / unit", systemImage: "arrow.left.arrow.right")
+                        }
                         Button(role: .destructive) { Task { await auth.logout() } } label: {
                             Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                         }
@@ -88,12 +94,19 @@ struct HomeView: View {
             Text("Good shift, \(firstName)")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(Z.ink)
-            if let wf = auth.me?.workflowPreference {
-                Text("\(wf.capitalized) workflow")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Z.inkMuted)
-            }
+            Text(roleLine)
+                .font(.system(size: 13))
+                .foregroundStyle(Z.inkMuted)
         }
+    }
+
+    private var roleLine: String {
+        if let role = profile.role {
+            if let unit = profile.unitName { return "\(role.title) · \(unit)" }
+            return role.title
+        }
+        if let wf = auth.me?.workflowPreference { return "\(wf.capitalized) workflow" }
+        return ""
     }
 
     private var houseRollup: some View {
