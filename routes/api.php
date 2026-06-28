@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Eddy\EddyActionController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
@@ -175,6 +176,15 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
     Route::get('/conversations', [EddyChatController::class, 'conversations']);
     Route::get('/conversations/{uuid}', [EddyChatController::class, 'conversation']);
     Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);
+    // Phase 3 — advice-not-autopilot action proposals (the dock human proposes/approves).
+    Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
+    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
+    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+});
+
+// Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->group(function () {
+    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
 // Admin integration health (web session auth)
