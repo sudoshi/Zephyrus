@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var vm: HomeViewModel
     @State private var pulse = false
     @State private var path = NavigationPath()
+    @State private var showProfile = false
 
     /// Poll cadence — now just the fallback safety net; live updates arrive over the Reverb
     /// websocket (architecture: push-first / WS-when-foregrounded / poll-fallback).
@@ -39,20 +40,13 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            if let id = auth.me?.id { profile.reset(userId: id) }
-                        } label: {
-                            Label("Switch role / unit", systemImage: "arrow.left.arrow.right")
-                        }
-                        Button(role: .destructive) { Task { await auth.logout() } } label: {
-                            Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-                    } label: {
+                    Button { showProfile = true } label: {
                         Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
                     }
+                    .accessibilityLabel("Profile and settings")
                 }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
             .task {
                 // Open the live websocket; keep the poll loop as a fallback. Both auto-stop
@@ -68,6 +62,10 @@ struct HomeView: View {
                         // Deep-link test affordance: SIMCTL_CHILD_HB_OPEN_UNIT=<id> opens a unit.
                         if let s = ProcessInfo.processInfo.environment["HB_OPEN_UNIT"], let id = Int(s) {
                             path.append(id)
+                        }
+                        // Test affordance: SIMCTL_CHILD_HB_PROFILE=1 opens the profile sheet.
+                        if ProcessInfo.processInfo.environment["HB_PROFILE"] == "1" {
+                            showProfile = true
                         }
                     }
                     try? await Task.sleep(for: refreshInterval)
@@ -117,7 +115,7 @@ struct HomeView: View {
                         .font(.system(size: 11, weight: .semibold)).tracking(0.5)
                         .foregroundStyle(Z.inkMuted)
                     Spacer()
-                    StatusChip(status: vm.worstStatus)
+                    StatusChip(status: vm.houseStatus)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: Z.s2) {
                     Text("\(vm.totalOccupied)")
@@ -128,7 +126,7 @@ struct HomeView: View {
                     Spacer()
                     Text("\(vm.occupancyPercent)%")
                         .font(.system(size: 22, weight: .semibold)).monospacedDigit()
-                        .foregroundStyle(Z.status(vm.worstStatus))
+                        .foregroundStyle(Z.status(vm.houseStatus))
                 }
                 Divider().overlay(Z.border)
                 HStack(spacing: Z.s2) {

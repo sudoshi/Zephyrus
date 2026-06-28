@@ -39,7 +39,9 @@ struct KpiTile: View {
                         .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(Z.inkMuted)
                     Spacer()
-                    if unit.bedNeed > 0 {
+                    // Only show "over" when there's an actual safe-capacity baseline to be
+                    // over; no-data units (safeCapacity == 0) report occupancy without one.
+                    if unit.bedNeed > 0 && unit.safeCapacity > 0 {
                         Label("\(unit.bedNeed) over", systemImage: "arrow.up")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Z.status(.critical))

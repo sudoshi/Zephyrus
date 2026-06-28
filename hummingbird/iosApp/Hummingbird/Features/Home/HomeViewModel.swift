@@ -58,15 +58,30 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: House roll-up (derived)
 
-    var totalOccupied: Int { units.reduce(0) { $0 + $1.occupied } }
-    var totalSafe: Int { units.reduce(0) { $0 + $1.safeCapacity } }
+    /// Units with an actual safe-capacity baseline. The house ratio is computed over these
+    /// only, so units with no capacity data (live: safeCapacity == 0) don't skew the numerator
+    /// against a denominator they aren't part of.
+    private var capacityUnits: [CensusUnit] { units.filter { $0.safeCapacity > 0 } }
+
+    var totalOccupied: Int { capacityUnits.reduce(0) { $0 + $1.occupied } }
+    var totalSafe: Int { capacityUnits.reduce(0) { $0 + $1.safeCapacity } }
     var occupancyPercent: Int {
         guard totalSafe > 0 else { return 0 }
         return Int((Double(totalOccupied) / Double(totalSafe) * 100).rounded())
     }
-    var worstStatus: CapacityStatus {
-        units.map(\.capacity).max(by: { $0.severity < $1.severity }) ?? .info
+
+    /// House-level status from house occupancy — not the single worst unit (that's surfaced
+    /// separately by `pressuredUnitCount`). Falls back to `.info` ("No data") when no unit
+    /// reports a capacity baseline.
+    var houseStatus: CapacityStatus {
+        guard totalSafe > 0 else { return .info }
+        switch occupancyPercent {
+        case 100...: return .critical
+        case 85...: return .warning
+        default: return .success
+        }
     }
+
     var pressuredUnitCount: Int {
         units.filter { $0.capacity == .warning || $0.capacity == .critical }.count
     }
