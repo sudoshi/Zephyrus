@@ -8,6 +8,8 @@ use App\Models\Eddy\EddyConversation;
 use App\Services\Eddy\EddyChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EddyChatController extends Controller
 {
@@ -24,6 +26,94 @@ class EddyChatController extends Controller
         $hardFailure = is_string($result['message'] ?? null);
 
         return response()->json(['data' => $result], $hardFailure ? 503 : 200);
+    }
+
+    /**
+     * Stream a turn over SSE: persist the user message, proxy Eddy's token stream
+     * to the browser, and persist the assistant turn from the terminal `complete`
+     * frame. (The Reverb shared-bus variant — needed for Hummingbird — lands when
+     * the Reverb server + queue worker are provisioned.)
+     */
+    public function stream(EddyChatRequest $request): StreamedResponse
+    {
+        $user = $request->user();
+        $prep = $this->chat->prepareStream($user, $request->validated());
+        $eddyUrl = rtrim((string) config('services.eddy.url'), '/').'/eddy/chat/stream';
+
+        return response()->stream(function () use ($prep, $eddyUrl, $user) {
+            $this->sse(['conversation_id' => $prep['conversation']->eddy_conversation_uuid]);
+
+            $buffer = '';
+            $complete = null;
+            try {
+                $response = Http::withOptions(['stream' => true])->timeout(180)->acceptJson()->post($eddyUrl, $prep['envelope']);
+                $body = $response->toPsrResponse()->getBody();
+                while (! $body->eof()) {
+                    $chunk = $body->read(2048);
+                    if ($chunk === '') {
+                        continue;
+                    }
+                    echo $chunk;            // passthrough Eddy's SSE frames to the browser
+                    $this->flush();
+                    $buffer .= $chunk;
+                    $complete = $this->extractComplete($buffer) ?? $complete;
+                }
+            } catch (\Throwable $e) {
+                $this->sse(['error' => 'Eddy stream is unavailable.']);
+            }
+
+            if ($complete !== null) {
+                $assistant = $this->chat->persistStreamResult($user, $prep, $complete);
+                // The sanitized (tier/risk/label-enriched) proposal — the dock renders
+                // the approval card from THIS, not the raw model block in `complete`.
+                $this->sse([
+                    'persisted' => true,
+                    'message_id' => $assistant->eddy_message_id,
+                    'proposed_action' => $assistant->metadata['proposed_action'] ?? null,
+                ]);
+            }
+            $this->sse('[DONE]');
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    private function sse(array|string $payload): void
+    {
+        echo 'data: '.(is_string($payload) ? $payload : json_encode($payload))."\n\n";
+        $this->flush();
+    }
+
+    private function flush(): void
+    {
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        flush();
+    }
+
+    /**
+     * Find the terminal `complete` frame in the accumulated SSE buffer.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractComplete(string $buffer): ?array
+    {
+        foreach (explode("\n\n", $buffer) as $frame) {
+            $line = trim($frame);
+            if (! str_starts_with($line, 'data: ')) {
+                continue;
+            }
+            $decoded = json_decode(substr($line, 6), true);
+            if (is_array($decoded) && ($decoded['complete'] ?? false) === true) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 
     /** List the authenticated user's conversations (most recent first). */

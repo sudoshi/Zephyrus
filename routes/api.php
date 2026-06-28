@@ -173,6 +173,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(functi
 // Eddy — process-aware AI agent (web session auth). Read-only chat in Phase 1.
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(function () {
     Route::post('/chat', [EddyChatController::class, 'chat']);
+    Route::post('/chat/stream', [EddyChatController::class, 'stream']);
     Route::get('/conversations', [EddyChatController::class, 'conversations']);
     Route::get('/conversations/{uuid}', [EddyChatController::class, 'conversation']);
     Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);

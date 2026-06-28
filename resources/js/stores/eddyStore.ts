@@ -31,6 +31,11 @@ interface EddyState {
   setSending: (sending: boolean) => void;
   setConversationId: (id: string | null) => void;
   setProposalState: (messageId: string, state: EddyProposalState) => void;
+  appendAssistant: (messageId: string, chunk: string) => void;
+  finalizeAssistant: (
+    messageId: string,
+    data: { content?: string; provider?: string | null; proposedAction?: EddyProposedAction | null; status?: 'success' | 'error' },
+  ) => void;
 }
 
 export const useEddyStore = create<EddyState>((set) => ({
@@ -53,5 +58,24 @@ export const useEddyStore = create<EddyState>((set) => ({
   setProposalState: (messageId, proposalState) =>
     set((state) => ({
       messages: state.messages.map((m) => (m.id === messageId ? { ...m, proposalState } : m)),
+    })),
+  appendAssistant: (messageId, chunk) =>
+    set((state) => ({
+      messages: state.messages.map((m) => (m.id === messageId ? { ...m, content: m.content + chunk } : m)),
+    })),
+  finalizeAssistant: (messageId, data) =>
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              content: data.content !== undefined && data.content !== '' ? data.content : m.content,
+              provider: data.provider ?? m.provider,
+              status: data.status ?? m.status,
+              proposedAction: data.proposedAction ?? null,
+              proposalState: data.proposedAction ? 'pending' : m.proposalState,
+            }
+          : m,
+      ),
     })),
 }));

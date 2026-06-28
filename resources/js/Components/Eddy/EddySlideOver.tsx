@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Surface } from '@/Components/ui/Surface';
 import { useEddyStore } from '@/stores/eddyStore';
-import { useEddyChat, useEddyContext } from '@/features/eddy/hooks';
+import { useEddyContext } from '@/features/eddy/hooks';
+import { streamEddyChat } from '@/features/eddy/stream';
 import { EddyMessageList } from './EddyMessageList';
 import { EddyMark } from './EddyMark';
 
@@ -19,9 +20,8 @@ const SURFACE_LABEL: Record<string, string> = {
 };
 
 export function EddySlideOver() {
-  const { close, messages, pushUser, pushAssistant, setSending, isSending, conversationId, setConversationId } = useEddyStore();
+  const { close, messages, pushUser, pushAssistant, appendAssistant, finalizeAssistant, setSending, isSending, conversationId, setConversationId } = useEddyStore();
   const ctx = useEddyContext();
-  const chat = useEddyChat();
   const [text, setText] = useState('');
 
   useEffect(() => {
@@ -37,41 +37,26 @@ export function EddySlideOver() {
     if (!message || isSending) return;
     setText('');
     pushUser(message);
+
+    // Stream the reply token-by-token; the assistant bubble fills in live, then
+    // finalizes with the clean reply + any proposed action on completion.
+    const assistantId = crypto.randomUUID();
+    pushAssistant({ id: assistantId, role: 'assistant', content: '' });
     setSending(true);
-    try {
-      const result = await chat.mutateAsync({
-        message,
-        surface: ctx.surface,
-        page_context: ctx.pageContext,
-        conversation_id: conversationId,
-      });
-      setConversationId(result.conversation_id);
-      const reply = result.message;
-      pushAssistant(
-        typeof reply === 'string'
-          ? { id: crypto.randomUUID(), role: 'assistant', content: reply, status: 'error' }
-          : {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: reply.content,
-              provider: reply.provider,
-              model: reply.model,
-              routeReason: reply.route_reason,
-              fallbackReason: reply.fallback_reason,
-              proposedAction: reply.proposed_action ?? null,
-              proposalState: reply.proposed_action ? 'pending' : undefined,
-            },
-      );
-    } catch {
-      pushAssistant({
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: 'Eddy is unavailable right now. Please try again shortly.',
-        status: 'error',
-      });
-    } finally {
-      setSending(false);
-    }
+
+    await streamEddyChat(
+      { message, surface: ctx.surface, page_context: ctx.pageContext, conversation_id: conversationId },
+      {
+        onConversationId: (id) => setConversationId(id),
+        onToken: (token) => appendAssistant(assistantId, token),
+        onComplete: ({ cleanReply, proposedAction, provider }) =>
+          finalizeAssistant(assistantId, { content: cleanReply, provider, proposedAction }),
+        onError: (msg) =>
+          finalizeAssistant(assistantId, { content: msg || 'Eddy is unavailable right now.', status: 'error' }),
+      },
+    );
+
+    setSending(false);
   };
 
   const onSubmit = (event: React.FormEvent) => {

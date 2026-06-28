@@ -142,26 +142,10 @@ class EddyChatService
         try {
             $response = Http::timeout((int) config('services.eddy.timeout', 30))
                 ->acceptJson()
-                ->post(rtrim((string) config('services.eddy.url'), '/').'/eddy/chat', [
-                    'message' => $message,
-                    'surface' => $surface,
-                    'page_context' => $input['page_context'] ?? null,
-                    'page_component' => $input['page_component'] ?? null,
-                    'page_data' => (object) ($input['page_data'] ?? []),
-                    'history' => $history,
-                    'user_profile' => [
-                        'name' => $user->name,
-                        'roles' => $user->getRoleNames()->all(),
-                    ],
-                    'user_id' => $user->id,
-                    'conversation_id' => $conversation->eddy_conversation_uuid,
-                    'provider_policy' => $providerPolicy,
-                    // Process-awareness: the PHI-free live-ops snapshot + surface doctrine.
-                    'live_context' => $this->context->forSurface($user, $surface) ?: (object) [],
-                    'knowledge' => $this->knowledge->forSurface($surface, $message),
-                    // The actions Eddy may PROPOSE (drafts for human approval); never executes.
-                    'allowed_actions' => array_keys(EddyActionService::CATALOG),
-                ]);
+                ->post(
+                    rtrim((string) config('services.eddy.url'), '/').'/eddy/chat',
+                    $this->buildEnvelope($user, $message, $surface, $input, $history, $conversation, $providerPolicy),
+                );
         } catch (\Throwable $e) {
             Log::warning('eddy.chat.transport_failed', ['error' => $e->getMessage()]);
 
@@ -229,6 +213,106 @@ class EddyChatService
             'entitlement' => 'local',
             'settings' => [],
         ];
+    }
+
+    /**
+     * The full chat envelope sent to Eddy (shared by the request/response and the
+     * streaming paths).
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<int, array{role:string, content:string}>  $history
+     * @param  array<string, mixed>  $providerPolicy
+     * @return array<string, mixed>
+     */
+    private function buildEnvelope(User $user, string $message, string $surface, array $input, array $history, EddyConversation $conversation, array $providerPolicy): array
+    {
+        return [
+            'message' => $message,
+            'surface' => $surface,
+            'page_context' => $input['page_context'] ?? null,
+            'page_component' => $input['page_component'] ?? null,
+            'page_data' => (object) ($input['page_data'] ?? []),
+            'history' => $history,
+            'user_profile' => ['name' => $user->name, 'roles' => $user->getRoleNames()->all()],
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->eddy_conversation_uuid,
+            'provider_policy' => $providerPolicy,
+            'live_context' => $this->context->forSurface($user, $surface) ?: (object) [],
+            'knowledge' => $this->knowledge->forSurface($surface, $message),
+            'allowed_actions' => array_keys(EddyActionService::CATALOG),
+        ];
+    }
+
+    /**
+     * Prepare a streaming turn: resolve/create the conversation, persist the user
+     * message, and build the envelope. The controller proxies Eddy's SSE; the
+     * assistant turn is persisted on completion via persistStreamResult().
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{conversation:EddyConversation, surface:string, providerPolicy:array<string,mixed>, envelope:array<string,mixed>}
+     */
+    public function prepareStream(User $user, array $input): array
+    {
+        $surface = $this->normalizeSurface($input['surface'] ?? 'chat');
+        $message = (string) $input['message'];
+        $conversation = $this->resolveConversation($user, $input['conversation_id'] ?? null, $surface, $message);
+        $providerPolicy = $this->policy->payloadForSurface($surface) ?? $this->localFallbackPolicy();
+        $history = $this->history($conversation);
+
+        EddyMessage::create([
+            'eddy_conversation_id' => $conversation->eddy_conversation_id,
+            'role' => 'user',
+            'content' => $message,
+            'metadata' => ['surface' => $surface],
+        ]);
+
+        return [
+            'conversation' => $conversation,
+            'surface' => $surface,
+            'providerPolicy' => $providerPolicy,
+            'envelope' => $this->buildEnvelope($user, $message, $surface, $input, $history, $conversation, $providerPolicy),
+        ];
+    }
+
+    /**
+     * Persist the streamed assistant turn from Eddy's terminal `complete` frame.
+     *
+     * @param  array{conversation:EddyConversation, surface:string, providerPolicy:array<string,mixed>}  $prep
+     * @param  array<string, mixed>  $complete
+     */
+    public function persistStreamResult(User $user, array $prep, array $complete): EddyMessage
+    {
+        $conversation = $prep['conversation'];
+        $proposed = $this->sanitizeProposedAction($complete['proposed_action'] ?? null);
+
+        $assistant = EddyMessage::create([
+            'eddy_conversation_id' => $conversation->eddy_conversation_id,
+            'role' => 'assistant',
+            'content' => (string) ($complete['clean_reply'] ?? ''),
+            'metadata' => [
+                'provider' => $complete['provider'] ?? null,
+                'model' => $complete['model'] ?? null,
+                'status' => 'success',
+                'streamed' => true,
+                'proposed_action' => $proposed,
+            ],
+        ]);
+
+        // Cloud-usage accounting on the stream path is best-effort (token/cost detail
+        // is on the non-stream path); record a row only when a cloud provider answered.
+        if (($complete['provider'] ?? 'ollama') !== 'ollama') {
+            $this->recordCloudUsageIfApplicable($user, $prep['surface'], $prep['providerPolicy'], [
+                'provider' => (string) $complete['provider'],
+                'model' => (string) ($complete['model'] ?? ''),
+                'tokens_in' => 0,
+                'tokens_out' => 0,
+                'cost_usd' => 0,
+                'status' => 'success',
+                'request_surface' => $prep['surface'],
+            ]);
+        }
+
+        return $assistant;
     }
 
     /**
