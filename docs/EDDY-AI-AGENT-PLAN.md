@@ -2716,6 +2716,18 @@ Dependency spine: **Phase 0 → 1 → 2 → 3** are strictly sequential (each bu
 
 **Dependencies:** Phase 1 contracts, Phase 3 action model, Phase 4 streaming. **Acceptance:** charge nurse on mobile gets a PHI-free "Eddy has a suggestion" push, opens it (biometric), sees the suggestion fetched on-open, approves/overrides; offline draft syncs on reconnect; `phi-free-push.spec.ts` green.
 
+> **IMPLEMENTED (revised) — `feature/eddy-phase-5-6`, 2026-06-28.** Hummingbird turned
+> out to be **native KMP (Compose/SwiftUI) + a Mobile BFF**, not Expo/React Native
+> (Hospital-1 merged that architecture into `main`). So §7.8's "share the TS
+> `packages/core`" premise is void — there is no RN and the shared layer is Kotlin.
+> Phase 5 instead ships, **in this repo**, the Eddy **Mobile BFF** (`/api/mobile/v1/eddy/*`:
+> chat, SSE stream, conversations, the Eddy-only approval inbox + decision gated on
+> `mobile:act`), the **PHI-free approval doorbell** (`EddyApprovalNotifier` →
+> `PushNotifier`, tier derived from the action catalog, gated by `EDDY_PUSH_ENABLED`),
+> the OpenAPI contract additions (7 paths/8 schemas in `hummingbird-bff.v1.yaml`), and
+> the native-surface spec (`docs/hummingbird/reference/08-eddy-mobile.md`). The native
+> Compose/SwiftUI Eddy screens live in the separate `hummingbird/` repo.
+
 ### Phase 6 — Institutional knowledge + learning loop
 
 **Tasks**
@@ -2724,6 +2736,22 @@ Dependency spine: **Phase 0 → 1 → 2 → 3** are strictly sequential (each bu
 - Auto-curate `eddy_knowledge` from resolved barriers / completed PDSA cycles / recurring overrides (with human review gate).
 
 **Dependencies:** Phase 2 RAG seam, Phase 3 override signal. **Acceptance:** Eddy cites institution-specific knowledge ahead of generic guidance; repeated overrides measurably shift its runner-up ordering; super-admin sees per-provider cost + redaction counts; vector path degrades gracefully to FTS when pgvector absent.
+
+> **IMPLEMENTED — `feature/eddy-phase-5-6`, 2026-06-28.** Hybrid retrieval:
+> `eddy_knowledge.embedding vector(N)` + HNSW(`vector_cosine_ops`) added **only when
+> pgvector is present** (migration `2026_06_28_130000`; CREATE EXTENSION guarded →
+> degrades to keyword on a hardened role). `EddyKnowledgeService` blends cosine + keyword
+> and falls back to the Phase 2 keyword path when embeddings are off / a query won't
+> embed / nothing is embedded; only `status='approved'` rows surface. Embedding via the
+> new Eddy `/eddy/embed` endpoint + `EddyEmbeddingService` (fail-open) + `eddy:embed-knowledge`
+> backfill. **Learning loop:** `EddyLearningService` rolls human approve/reject (web propose
+> + mobile decide) into `eddy_user_profiles.frequently_used` → preferred/discouraged action
+> ordering injected into the envelope + a `LEARNED PREFERENCES` prompt block. **Auto-curation:**
+> `EddyKnowledgeCurator` proposes PHI-free playbook entries from recurring *resolved-barrier
+> patterns* (aggregates, never encounters; 3+ repeats, deduped, `status='proposed'`) behind a
+> super-admin review gate (`eddy:curate-knowledge`). **Admin:** `EddyAdminController` — cost/
+> redaction aggregates, the route simulator, and the proposed-knowledge review queue. pgvector
+> 0.8.0 confirmed available on dev+test.
 
 ---
 
