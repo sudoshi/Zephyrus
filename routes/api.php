@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Ops\AgentController;
@@ -166,6 +167,14 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(functi
     Route::post('/actions/{action}/override', [OperationalActionController::class, 'override']);
     Route::post('/actions/{action}/expire', [OperationalActionController::class, 'expire']);
     Route::post('/simulation-scenarios/{scenario}/promote', [SimulationController::class, 'promote']);
+});
+
+// Eddy — process-aware AI agent (web session auth). Read-only chat in Phase 1.
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(function () {
+    Route::post('/chat', [EddyChatController::class, 'chat']);
+    Route::get('/conversations', [EddyChatController::class, 'conversations']);
+    Route::get('/conversations/{uuid}', [EddyChatController::class, 'conversation']);
+    Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);
 });
 
 // Admin integration health (web session auth)

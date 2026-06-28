@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { DashboardProvider } from '@/Contexts/DashboardContext';
 import { ModeProvider } from '@/Contexts/ModeContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import { EddyDock } from '@/Components/Eddy/EddyDock';
 import { queryClient } from '@/lib/queryClient';
 import { usePage } from '@inertiajs/react';
 
@@ -25,6 +26,7 @@ export function Providers({ children }: ProvidersProps) {
                             {children}
                         </div>
                         <ToastProvider />
+                        <EddyDock />
                     </DashboardProvider>
                 </ModeProvider>
             </HeroUIProvider>
