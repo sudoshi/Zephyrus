@@ -13,10 +13,9 @@ struct UnitDetailView: View {
     private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
 
     private var status: CapacityStatus { unit.capacity }
-    /// Whether this unit has an acuity-adjusted safe-capacity baseline. Live data often
-    /// doesn't (safeCapacity == 0) → we show occupancy without a misleading ratio.
-    private var hasCapacity: Bool { unit.safeCapacity > 0 }
-    private var fraction: Double { hasCapacity ? Double(unit.occupied) / Double(unit.safeCapacity) : 0 }
+    /// Occupancy is measured against staffed beds (always present); guard only the rare 0 case.
+    private var hasCapacity: Bool { unit.staffedBedCount > 0 }
+    private var fraction: Double { hasCapacity ? Double(unit.occupied) / Double(unit.staffedBedCount) : 0 }
     private var pct: Int { Int((fraction * 100).rounded()) }
 
     var body: some View {
@@ -33,12 +32,12 @@ struct UnitDetailView: View {
                         divider
                         row("Blocked / dirty", "\(unit.blocked)")
                         divider
-                        row("Safe capacity", hasCapacity ? "\(unit.safeCapacity)" : "—")
+                        row("Can admit now", "\(unit.canAdmit)")
                         divider
                         row("Staffed beds", "\(unit.staffedBedCount)")
-                        if hasCapacity && unit.bedNeed > 0 {
+                        if unit.bedNeed > 0 {
                             divider
-                            row("Over safe capacity", "\(unit.bedNeed)", emphasize: true)
+                            row("Over capacity", "\(unit.bedNeed)", emphasize: true)
                         }
                     }
                 }
@@ -58,9 +57,7 @@ struct UnitDetailView: View {
                     }
                 }
 
-                Text(hasCapacity
-                     ? "Safe capacity is acuity-adjusted. Bed need = occupied − safe capacity."
-                     : "No acuity-adjusted safe capacity is set for this unit, so occupancy is shown without a ratio.")
+                Text("Occupancy is occupied of staffed beds. “Can admit now” is the fewer of nurse-safety headroom (acuity-adjusted) and clean open beds.")
                     .font(.system(size: 11))
                     .foregroundStyle(Z.inkMuted)
                     .multilineTextAlignment(.center)
@@ -105,7 +102,7 @@ struct UnitDetailView: View {
                     Text("\(pct)%")
                         .font(.system(size: 44, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.ink)
-                    Text("\(unit.occupied) / \(unit.safeCapacity) safe")
+                    Text("\(unit.occupied) / \(unit.staffedBedCount) staffed")
                         .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
                 }
             } else {
@@ -114,7 +111,7 @@ struct UnitDetailView: View {
                         .font(.system(size: 44, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.ink)
                     Text("occupied").font(.system(size: 13)).foregroundStyle(Z.inkMuted)
-                    Text("no safe-capacity data")
+                    Text("no staffed-bed data")
                         .font(.system(size: 10)).foregroundStyle(Z.inkMuted)
                 }
             }

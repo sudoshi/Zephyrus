@@ -92,9 +92,9 @@ struct CensusRollup {
 
     init(_ units: [CensusUnit]) {
         total = units.count
-        let withCapacity = units.filter { $0.safeCapacity > 0 }
+        let withCapacity = units.filter { $0.staffedBedCount > 0 }
         occupied = withCapacity.reduce(0) { $0 + $1.occupied }
-        safe = withCapacity.reduce(0) { $0 + $1.safeCapacity }
+        safe = withCapacity.reduce(0) { $0 + $1.staffedBedCount }
         percent = safe > 0 ? Int((Double(occupied) / Double(safe) * 100).rounded()) : 0
         if safe == 0 {
             status = .info

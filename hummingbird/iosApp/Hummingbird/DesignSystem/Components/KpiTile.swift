@@ -35,13 +35,12 @@ struct KpiTile: View {
                         .font(.system(size: 34, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Z.ink)
-                    Text("/ \(unit.safeCapacity) safe beds")
+                    Text("/ \(unit.staffedBedCount) staffed beds")
                         .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(Z.inkMuted)
                     Spacer()
-                    // Only show "over" when there's an actual safe-capacity baseline to be
-                    // over; no-data units (safeCapacity == 0) report occupancy without one.
-                    if unit.bedNeed > 0 && unit.safeCapacity > 0 {
+                    // "Over" only when occupancy exceeds staffed beds (bed_need > 0).
+                    if unit.bedNeed > 0 && unit.staffedBedCount > 0 {
                         Label("\(unit.bedNeed) over", systemImage: "arrow.up")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Z.status(.critical))
@@ -51,7 +50,7 @@ struct KpiTile: View {
 
                 // Occupancy bar
                 GeometryReader { geo in
-                    let ratio = unit.safeCapacity > 0 ? min(1.2, Double(unit.occupied) / Double(unit.safeCapacity)) : 0
+                    let ratio = unit.staffedBedCount > 0 ? min(1.2, Double(unit.occupied) / Double(unit.staffedBedCount)) : 0
                     ZStack(alignment: .leading) {
                         Capsule().fill(Z.border)
                         Capsule()
@@ -64,6 +63,7 @@ struct KpiTile: View {
                 HStack(spacing: Z.s3) {
                     metric("\(unit.available)", "available")
                     metric("\(unit.blocked)", "blocked/dirty")
+                    metric("\(unit.canAdmit)", "can admit")
                     Spacer()
                 }
             }
@@ -74,7 +74,7 @@ struct KpiTile: View {
         .clipShape(RoundedRectangle(cornerRadius: Z.radius, style: .continuous))
         .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(unit.name), \(status.label), \(unit.occupied) of \(unit.safeCapacity) safe beds occupied")
+        .accessibilityLabel("\(unit.name), \(status.label), \(unit.occupied) of \(unit.staffedBedCount) staffed beds occupied, can admit \(unit.canAdmit)")
     }
 
     private func metric(_ value: String, _ label: String) -> some View {

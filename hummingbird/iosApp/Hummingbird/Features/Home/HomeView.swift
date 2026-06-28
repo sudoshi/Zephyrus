@@ -159,7 +159,7 @@ struct HomeView: View {
                     Text("\(r.occupied)")
                         .font(.system(size: 40, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.ink)
-                    Text("/ \(r.safe) safe beds")
+                    Text("/ \(r.safe) staffed beds")
                         .font(.system(size: 15)).foregroundStyle(Z.inkMuted)
                     Spacer()
                     Text("\(r.percent)%")

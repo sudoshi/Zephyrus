@@ -31,19 +31,23 @@ class RtdcController extends Controller
                 $beds = $unit->beds;
                 $occupied = $beds->where('status', 'occupied')->count();
                 $available = $beds->where('status', 'available')->count();
-                $safe = (int) $this->acuity->adjustedCapacity($unit->unit_id);
+                $staffed = (int) $unit->staffed_bed_count;
+
+                // What the unit can actually accept right now = the smaller of nurse-safety
+                // headroom (acuity-adjusted) and clean open beds. Either being 0 means "can't admit".
+                $canAdmit = max(0, min((int) $this->acuity->adjustedCapacity($unit->unit_id), $available));
 
                 return [
                     'unit_id' => $unit->unit_id,
                     'name' => $unit->name,
                     'type' => $unit->type,
-                    'staffed_bed_count' => $unit->staffed_bed_count,
+                    'staffed_bed_count' => $staffed,
                     'occupied' => $occupied,
                     'available' => $available,
                     'blocked' => $beds->whereIn('status', ['blocked', 'dirty'])->count(),
-                    'safe_capacity' => $safe,
-                    'bed_need' => max(0, $occupied - $safe),
-                    'status' => $this->capacityStatus($occupied, $safe),
+                    'can_admit' => $canAdmit,
+                    'bed_need' => max(0, $occupied - $staffed),
+                    'status' => $this->capacityStatus($occupied, $staffed, $canAdmit),
                 ];
             })
             ->values();
@@ -52,19 +56,20 @@ class RtdcController extends Controller
     }
 
     /**
-     * Map occupancy vs. safe capacity to the rationed status vocabulary.
+     * Rationed status from physical occupancy (occupied / staffed beds), escalated to at least
+     * "warning" when the unit can't safely admit anyone (no nurse-safety headroom or no clean bed).
      */
-    private function capacityStatus(int $occupied, int $safe): string
+    private function capacityStatus(int $occupied, int $staffed, int $canAdmit): string
     {
-        if ($safe <= 0) {
+        if ($staffed <= 0) {
             return 'info';
         }
 
-        $ratio = $occupied / max(1, $safe);
+        $ratio = $occupied / $staffed;
 
         return match (true) {
             $ratio >= 1.0 => 'critical',
-            $ratio >= 0.9 => 'warning',
+            $ratio >= 0.9 || $canAdmit <= 0 => 'warning',
             default => 'success',
         };
     }

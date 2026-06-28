@@ -57,7 +57,7 @@ struct CensusUnit: Decodable, Identifiable {
     let occupied: Int
     let available: Int
     let blocked: Int
-    let safeCapacity: Int
+    let canAdmit: Int
     let bedNeed: Int
     let status: String
 

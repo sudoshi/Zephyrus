@@ -60,14 +60,18 @@ class ForYouController extends Controller
 
         foreach (Unit::with('beds')->where('is_deleted', false)->get() as $unit) {
             $occupied = $unit->beds->where('status', 'occupied')->count();
-            $safe = (int) $this->acuity->adjustedCapacity($unit->unit_id);
-            if ($safe > 0 && $occupied / $safe >= 1.0) {
+            $available = $unit->beds->where('status', 'available')->count();
+            $staffed = (int) $unit->staffed_bed_count;
+            // Can't admit = neither nurse-safety headroom (acuity) nor a clean open bed.
+            $canAdmit = max(0, min((int) $this->acuity->adjustedCapacity($unit->unit_id), $available));
+
+            if ($occupied > 0 && $canAdmit <= 0) {
                 $items->push([
                     'id' => 'cap-'.$unit->unit_id,
                     'type' => 'capacity',
                     'tier' => 'critical',
                     'title' => $unit->name.' at capacity',
-                    'subtitle' => $occupied.' / '.$safe.' safe beds occupied',
+                    'subtitle' => $occupied.' / '.$staffed.' beds · no safe admit capacity',
                     'unit' => $unit->name,
                     'at' => now()->toIso8601String(),
                 ]);
