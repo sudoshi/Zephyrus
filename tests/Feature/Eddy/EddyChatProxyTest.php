@@ -73,7 +73,9 @@ class EddyChatProxyTest extends TestCase
                 && $body['surface'] === 'rtdc'
                 && $body['user_id'] === $user->id
                 && isset($body['provider_policy']['provider_type'])
-                && array_key_exists('history', $body);
+                && array_key_exists('history', $body)
+                && array_key_exists('live_context', $body)   // process-awareness (Phase 2)
+                && array_key_exists('knowledge', $body);
         });
     }
 

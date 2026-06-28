@@ -17,7 +17,11 @@ use Illuminate\Support\Str;
  */
 class EddyChatService
 {
-    public function __construct(private readonly EddyProviderPolicyService $policy) {}
+    public function __construct(
+        private readonly EddyProviderPolicyService $policy,
+        private readonly EddyContextService $context,
+        private readonly EddyKnowledgeService $knowledge,
+    ) {}
 
     /**
      * @param  array{message:string, surface?:?string, page_context?:?string, page_component?:?string, page_data?:?array, conversation_id?:?string}  $input
@@ -146,6 +150,9 @@ class EddyChatService
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->eddy_conversation_uuid,
                     'provider_policy' => $providerPolicy,
+                    // Process-awareness: the PHI-free live-ops snapshot + surface doctrine.
+                    'live_context' => $this->context->forSurface($user, $surface) ?: (object) [],
+                    'knowledge' => $this->knowledge->forSurface($surface, $message),
                 ]);
         } catch (\Throwable $e) {
             Log::warning('eddy.chat.transport_failed', ['error' => $e->getMessage()]);

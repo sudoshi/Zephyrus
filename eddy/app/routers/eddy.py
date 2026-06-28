@@ -39,6 +39,8 @@ class ChatRequest(BaseModel):
     user_id: int | None = None
     conversation_id: str | None = None
     provider_policy: dict | None = None
+    live_context: dict = Field(default_factory=dict)
+    knowledge: list[dict] = Field(default_factory=list)
 
 
 @router.post("/chat")
@@ -51,6 +53,8 @@ async def chat(req: ChatRequest) -> dict:
         history=req.history,
         user_profile=req.user_profile,
         provider_policy=req.provider_policy,
+        live_context=req.live_context or None,
+        knowledge=req.knowledge or None,
     )
     return result.to_dict()
 
@@ -65,7 +69,7 @@ async def chat_stream(req: ChatRequest) -> StreamingResponse:
     provider_type = (policy.get("provider_type") or "ollama").lower()
     wants_cloud = provider_type not in {"ollama", ""} and settings.eddy_allow_cloud and bool(settings.anthropic_api_key)
 
-    system_prompt = build_system_prompt(req.surface, req.page_context or req.page_component, req.user_profile)
+    system_prompt = build_system_prompt(req.surface, req.page_context or req.page_component, req.user_profile, req.live_context or None, req.knowledge or None)
     adapter_req = ChatAdapterRequest(system_prompt=system_prompt, message=req.message, history=_normalize_history(req.history))
 
     async def event_stream():

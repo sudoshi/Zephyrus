@@ -60,7 +60,13 @@ _PERSONA = (
 )
 
 
-def build_system_prompt(surface: str, page_context: str | None, user_profile: dict | None) -> str:
+def build_system_prompt(
+    surface: str,
+    page_context: str | None,
+    user_profile: dict | None,
+    live_context: dict | None = None,
+    knowledge: list[dict] | None = None,
+) -> str:
     parts = [_PERSONA]
     if surface and surface != "chat":
         parts.append(f"The operator is currently on the '{surface}' surface.")
@@ -69,7 +75,60 @@ def build_system_prompt(surface: str, page_context: str | None, user_profile: di
     roles = (user_profile or {}).get("roles") or []
     if roles:
         parts.append(f"The operator's role(s): {', '.join(map(str, roles))}.")
-    return " ".join(parts)
+    if live_context:
+        parts.append(_format_live_context(live_context))
+    if knowledge:
+        parts.append(_format_knowledge(knowledge))
+    return "\n\n".join(parts)
+
+
+def _format_live_context(ctx: dict) -> str:
+    """The process-awareness block — current operational truth, queried just now."""
+    lines = ["LIVE OPERATIONS DATA (queried just now — treat as the current operational truth):"]
+
+    freshness = ctx.get("source_freshness") or {}
+    lag = freshness.get("census_lag_minutes")
+    if freshness.get("status") == "warning" or lag is None or (isinstance(lag, int) and lag > 60):
+        stale = "has no timestamped census" if lag is None else f"census snapshot is {lag} min old"
+        lines.append(f"- DATA TRUST CAUTION: {stale}. Caveat any prescriptive output and recommend confirming feed freshness before acting.")
+
+    cap = ctx.get("capacity") or {}
+    if cap:
+        lines.append(
+            "- Capacity: "
+            f"{cap.get('available_beds')} available / {cap.get('occupied_beds')} occupied / {cap.get('blocked_beds')} blocked beds; "
+            f"net beds {cap.get('net_beds')} after {cap.get('pending_admits')} pending admits; "
+            f"{cap.get('ed_boarders')} ED boarders; {cap.get('transport_at_risk')} transports at SLA risk; "
+            f"risk score {cap.get('risk_score')}/100."
+        )
+
+    for finding in ctx.get("findings") or []:
+        lines.append(f"- [{finding.get('status')}] {finding.get('detail')}")
+
+    if ctx.get("headline"):
+        lines.append(f"- House-wide: {ctx['headline']}")
+    for sit in ctx.get("situation") or []:
+        lines.append(f"- {sit.get('domain')} [{sit.get('status')}]: {sit.get('detail')}")
+
+    gov = ctx.get("governance") or {}
+    if gov:
+        lines.append(
+            f"- Governance: {gov.get('pending_approvals', 0)} pending approvals, "
+            f"{gov.get('draft_actions', 0)} draft actions, {gov.get('open_recommendations', 0)} open recommendations."
+        )
+
+    lines.append("Ground every operational claim in this data. If it does not answer the question, say so rather than guessing.")
+    return "\n".join(lines)
+
+
+def _format_knowledge(knowledge: list[dict]) -> str:
+    lines = ["KNOWLEDGE BASE (institutional doctrine — cite when relevant):"]
+    for item in knowledge[:4]:
+        title = item.get("title", "")
+        source = item.get("source")
+        suffix = f" (source: {source})" if source else ""
+        lines.append(f"- {title}{suffix}: {item.get('body', '')}")
+    return "\n".join(lines)
 
 
 def _normalize_history(history: list[dict] | None) -> list[dict[str, str]]:
@@ -96,6 +155,8 @@ class ChatRouter:
         history: list[dict] | None = None,
         user_profile: dict | None = None,
         provider_policy: dict | None = None,
+        live_context: dict | None = None,
+        knowledge: list[dict] | None = None,
     ) -> ChatResult:
         s = self.settings
         policy = provider_policy or {}
@@ -124,7 +185,7 @@ class ChatRouter:
         if wants_cloud and not s.anthropic_api_key:
             wants_cloud, fallback_reason = False, "cloud_key_missing"
 
-        system_prompt = build_system_prompt(surface, page_context, user_profile)
+        system_prompt = build_system_prompt(surface, page_context, user_profile, live_context, knowledge)
         adapter_req = ChatAdapterRequest(system_prompt=system_prompt, message=message, history=_normalize_history(history))
 
         # ── Frontier path ──────────────────────────────────────────────
