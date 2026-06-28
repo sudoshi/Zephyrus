@@ -74,6 +74,26 @@ services:
     networks: [zephyrus]
     profiles: [dev]
 
+  # Eddy — process-aware AI agent (opt-in; start with `docker compose --profile eddy up -d`).
+  # Laravel reaches it at http://eddy:8000. Provider secrets come from .env (Eddy-only).
+  eddy:
+    build:
+      context: .
+      dockerfile: docker/eddy/Dockerfile
+    container_name: zephyrus-eddy
+    env_file: [.env]
+    environment:
+      EDDY_PORT: 8000
+    ports: ["${EDDY_PORT:-8090}:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [zephyrus]
+    profiles: [eddy]
+    restart: unless-stopped
+
 networks:
   zephyrus:
     driver: bridge

@@ -1,0 +1,19 @@
+# Eddy FastAPI service — Phase 0 scaffold.
+# Core runtime (imported now):
+fastapi==0.136.*
+uvicorn[standard]==0.34.*
+httpx==0.28.*
+pydantic==2.*
+pydantic-settings==2.*
+
+# Provider runtimes (declared now; imported from Phase 1/3 onward):
+anthropic>=0.69.0
+claude-agent-sdk>=0.2.86
+ollama==0.6.*
+
+# Persistence / memory / streaming (added when their phase lands):
+# sqlalchemy>=2.0          # Phase 2 (live-context reads)
+# psycopg[binary]>=3.2     # Phase 2
+# pgvector>=0.3            # Phase 6 (embeddings)
+# sentence-transformers    # Phase 6
+# pusher>=3.3              # Phase 4 (Reverb fan-out)

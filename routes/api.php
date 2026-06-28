@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Eddy\EddyActionController;
+use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
@@ -172,6 +174,24 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(functi
     Route::post('/actions/{action}/override', [OperationalActionController::class, 'override']);
     Route::post('/actions/{action}/expire', [OperationalActionController::class, 'expire']);
     Route::post('/simulation-scenarios/{scenario}/promote', [SimulationController::class, 'promote']);
+});
+
+// Eddy — process-aware AI agent (web session auth). Read-only chat in Phase 1.
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(function () {
+    Route::post('/chat', [EddyChatController::class, 'chat']);
+    Route::post('/chat/stream', [EddyChatController::class, 'stream']);
+    Route::get('/conversations', [EddyChatController::class, 'conversations']);
+    Route::get('/conversations/{uuid}', [EddyChatController::class, 'conversation']);
+    Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);
+    // Phase 3 — advice-not-autopilot action proposals (the dock human proposes/approves).
+    Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
+    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
+    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+});
+
+// Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->group(function () {
+    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
 // Admin integration health (web session auth)

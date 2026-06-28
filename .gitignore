@@ -64,6 +64,8 @@ composer.phar
 storage/pids/*.pid
 .env.testing
 
-# Python (helper scripts)
+# Python (helper scripts + the Eddy FastAPI service)
 __pycache__/
 *.pyc
+/eddy/.venv/
+/eddy/.impeccable/
