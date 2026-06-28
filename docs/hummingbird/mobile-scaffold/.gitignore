@@ -1,0 +1,9 @@
+# Gradle / Android build artifacts (transient — never commit)
+.gradle/
+build/
+captures/
+local.properties
+
+# IDE
+.idea/
+*.iml
