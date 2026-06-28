@@ -2,7 +2,9 @@ import Foundation
 import Security
 
 /// Minimal Keychain wrapper for the access/refresh tokens. Tokens live in the Keychain
-/// (not UserDefaults) per the security plan; biometric gating + auto-lock land in a later phase.
+/// (not UserDefaults) and are hardened to this device only — never synced to iCloud Keychain —
+/// and readable only while the device is unlocked. Biometric app-lock (opt-in) is layered on
+/// top via `AppLock` rather than per-item ACLs, so launch/bootstrap stays non-interactive.
 struct Keychain {
     let service: String
 
@@ -16,7 +18,9 @@ struct Keychain {
         SecItemDelete(query as CFDictionary)
         var attributes = query
         attributes[kSecValueData as String] = data
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        // Device-only (no iCloud sync) + only while unlocked: the strongest accessibility that
+        // still lets the app read the token on foreground launch.
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         SecItemAdd(attributes as CFDictionary, nil)
     }
 

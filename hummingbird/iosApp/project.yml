@@ -26,6 +26,7 @@ targets:
       path: Hummingbird/Info.plist
       properties:
         CFBundleDisplayName: Hummingbird
+        NSFaceIDUsageDescription: Unlock Hummingbird with Face ID.
         UIUserInterfaceStyle: Dark
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:

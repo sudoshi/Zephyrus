@@ -6,6 +6,7 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
+    @EnvironmentObject var lock: AppLock
     @Environment(\.dismiss) private var dismiss
     @State private var census: [CensusUnit] = []
 
@@ -23,6 +24,7 @@ struct ProfileView: View {
                     identity
                     shiftCard
                     if isSuperuser { personaSwitcher }
+                    securityCard
                     accountCard
                     aboutCard
                     signOut
@@ -135,6 +137,38 @@ struct ProfileView: View {
                     Label("Switch role / unit", systemImage: "arrow.left.arrow.right")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Z.primary)
+                }
+            }
+        }
+    }
+
+    // MARK: Security (biometric app-lock)
+
+    private var securityCard: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                sectionLabel("SECURITY")
+                if BiometricAuth.isAvailable {
+                    Toggle(isOn: Binding(
+                        get: { lock.enabled },
+                        set: { lock.setEnabled($0) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Require \(BiometricAuth.label)")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Z.ink)
+                            Text("Lock the app when it's reopened or resumed.")
+                                .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                        }
+                    }
+                    .tint(Z.primary)
+                } else {
+                    HStack(spacing: Z.s2) {
+                        Image(systemName: "lock.slash")
+                            .font(.system(size: 14)).foregroundStyle(Z.inkMuted)
+                        Text("Set up Face ID, Touch ID, or a passcode on this device to enable app lock.")
+                            .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    }
                 }
             }
         }

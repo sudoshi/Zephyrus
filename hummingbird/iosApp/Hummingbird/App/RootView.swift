@@ -3,6 +3,10 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
+    @EnvironmentObject var lock: AppLock
+    @Environment(\.scenePhase) private var scenePhase
+
+    private var isLoggedIn: Bool { if case .loggedIn = auth.phase { return true } else { return false } }
 
     var body: some View {
         ZStack {
@@ -22,6 +26,17 @@ struct RootView: View {
                     MainTabView()
                 }
             }
+        }
+        .overlay {
+            // Biometric app-lock covers everything once a session exists and the lock is engaged.
+            // (isLocked is only set through enabled-gated paths, so this implies the feature is on.)
+            if isLoggedIn, lock.isLocked {
+                LockView()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Re-lock when leaving the foreground so returning requires auth.
+            if phase == .background { lock.lockIfEnabled() }
         }
         .onChange(of: auth.me?.id) { _, id in
             guard let id else { return }
@@ -52,6 +67,11 @@ struct RootView: View {
                                 unitId: env["HB_ONBOARD_UNIT"].flatMap { Int($0) },
                                 unitName: env["HB_ONBOARD_UNIT_NAME"] ?? "House-wide")
             }
+            // Cold-launch into a cached session → engage the lock so it requires auth.
+            if isLoggedIn, lock.enabled { lock.isLocked = true }
+            // Test affordance: SIMCTL_CHILD_HB_LOCK=1 engages the lock screen for QA/screenshots
+            // even without enrolled biometrics (pair with HB_NO_AUTOUNLOCK=1). No-op in production.
+            if env["HB_LOCK"] == "1", isLoggedIn { lock.isLocked = true }
         }
     }
 
