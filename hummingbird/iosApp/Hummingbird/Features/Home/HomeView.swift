@@ -22,11 +22,20 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     greeting
-                    houseRollup
-                    censusHeader
                     if vm.units.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                    } else if vm.units.isEmpty && vm.errorMessage != nil {
+                        // Hard failure with nothing cached — don't render a misleading 0/0 rollup.
+                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the census",
+                                         message: vm.errorMessage ?? "", tone: .warning) {
+                            Task { await vm.load(bearer: auth.accessToken ?? "") }
+                        }
+                    } else if vm.units.isEmpty {
+                        RetryableMessage(symbol: "building.2", title: "No units reporting",
+                                         message: "No units are reporting a census right now.")
                     } else {
+                        houseRollup
+                        censusHeader
                         ForEach(vm.units) { unit in
                             NavigationLink(value: unit.unitId) { KpiTile(unit: unit) }
                                 .buttonStyle(.plain)

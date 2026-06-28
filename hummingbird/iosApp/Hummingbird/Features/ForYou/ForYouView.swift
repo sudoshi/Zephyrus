@@ -15,6 +15,11 @@ final class ForYouViewModel: ObservableObject {
     init(api: APIClient) { self.api = api }
 
     func load(bearer: String) async {
+        // Test affordance: SIMCTL_CHILD_HB_FORCE_ERROR=1 simulates an unreachable server. No-op in prod.
+        if ProcessInfo.processInfo.environment["HB_FORCE_ERROR"] == "1" {
+            errorMessage = "Can't reach the server. Check your connection and try again."
+            return
+        }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -54,6 +59,12 @@ struct ForYouView: View {
                     header
                     if vm.items.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                    } else if vm.items.isEmpty && vm.errorMessage != nil {
+                        // A failed load must never read as "All clear".
+                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load your queue",
+                                         message: vm.errorMessage ?? "", tone: .warning) {
+                            Task { await vm.load(bearer: auth.accessToken ?? "") }
+                        }
                     } else if vm.items.isEmpty {
                         emptyState
                     } else {
@@ -103,8 +114,11 @@ struct ForYouView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Needs you now")
                 .font(.system(size: 22, weight: .semibold)).foregroundStyle(Z.ink)
-            Text("\(vm.items.count) item\(vm.items.count == 1 ? "" : "s") to action")
-                .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+            // Suppress the count when we have nothing because the load failed (it's unknown, not 0).
+            if !(vm.items.isEmpty && vm.errorMessage != nil) {
+                Text("\(vm.items.count) item\(vm.items.count == 1 ? "" : "s") to action")
+                    .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+            }
         }
     }
 

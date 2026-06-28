@@ -37,6 +37,13 @@ final class HomeViewModel: ObservableObject {
     }
 
     func load(bearer: String) async {
+        // Test affordance: SIMCTL_CHILD_HB_FORCE_ERROR=1 simulates an unreachable server so the
+        // offline/error state can be exercised without taking the backend down. No-op in prod.
+        if ProcessInfo.processInfo.environment["HB_FORCE_ERROR"] == "1" {
+            errorMessage = "Can't reach the server. Check your connection and try again."
+            stale = true
+            return
+        }
         isLoading = true
         defer { isLoading = false }
         do {
