@@ -94,7 +94,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
         switch (activeTab) {
             case 'capacity':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg">
                                 <h4 className="text-sm font-medium mb-2">Current Occupancy</h4>
@@ -121,7 +121,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                 );
             case 'staffing':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg">
                                 <h4 className="text-sm font-medium mb-2">Current Coverage</h4>
@@ -152,7 +152,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                 );
             case 'acuity':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-4 rounded-lg">
                             <h4 className="text-sm font-medium mb-4">Acuity Distribution</h4>
                             {'level1' in department.acuity ? (
@@ -195,7 +195,7 @@ const DepartmentDetailsModal = ({ department, isOpen, onClose }) => {
                 </div>
             }
         >
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Tabs */}
                 <div className="flex space-x-2 border-b border-healthcare-border dark:border-healthcare-border-dark">
                     {tabs.map((tab) => (
@@ -225,7 +225,7 @@ const EnhancedDepartmentMetrics = ({ departments }) => {
     const [selectedDepartment, setSelectedDepartment] = useState(null);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {Object.values(departments).map((department) => (
                 <DepartmentOverviewCard
                     key={department.name}

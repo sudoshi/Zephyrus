@@ -47,11 +47,11 @@ const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
       <div className="modal-backdrop" />
 
       {/* Modal */}
-      <div className="flex min-h-screen items-center justify-center">
-        <div 
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+        <div
           ref={modalRef}
           tabIndex={-1}
-          className="modal-content bg-healthcare-surface dark:bg-healthcare-surface-dark"
+          className="modal-surface w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6"
         >
           {/* Header */}
           <div className="border-b border-healthcare-border dark:border-healthcare-border-dark pb-4 mb-6">

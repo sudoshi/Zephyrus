@@ -16,7 +16,7 @@ export default function PDSACycleManagementPage({ id }) {
 
   if (!cycleData) {
     return (
-      <div className="p-6">
+      <div className="p-4">
         <Head title="PDSA Cycle Not Found" />
         <Button variant="ghost" href="/improvement/pdsa" className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
@@ -44,7 +44,7 @@ export default function PDSACycleManagementPage({ id }) {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 space-y-4">
       <Head title={`PDSA Cycle - ${cycleData.title}`} />
       
       {/* Breadcrumb / Header */}
@@ -85,7 +85,7 @@ export default function PDSACycleManagementPage({ id }) {
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <Tabs defaultValue="overview">
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -201,7 +201,7 @@ export default function PDSACycleManagementPage({ id }) {
             </TabsContent>
 
             {/* Metrics Tab */}
-            <TabsContent value="metrics" className="space-y-6">
+            <TabsContent value="metrics" className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold mb-2">Key Metrics</h2>
                 <ul className="list-disc ml-5 space-y-1">

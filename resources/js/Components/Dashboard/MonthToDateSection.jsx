@@ -26,7 +26,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
     const renderChartSection = (title, info, children, className = '') => (
         <Card className={className}>
             <Card.Content>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                         {title}
                     </h3>
@@ -34,8 +34,8 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                         {info && (
                             <div className="relative group">
                                 <Icon 
-                                    icon="heroicons:information-circle" 
-                                    className="w-10 h-10 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
+                                    icon="heroicons:information-circle"
+                                    className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
                                 />
                                 <div className="absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none right-0">
                                     {info}
@@ -87,7 +87,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
     );
 
     return (
-        <section className="space-y-6">
+        <section className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                     Month to Date
@@ -111,15 +111,15 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                 </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Performance Metrics Section */}
                 {renderCollapsibleSection(
                     "Performance Metrics",
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
                         {renderChartSection(
                             "On Time Starts",
                             "Displays the percentage of cases that were on time and took place within the current calendar month.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <ServiceBarChart data={data.onTimeStarts.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("First Case", "85%")}
@@ -132,7 +132,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                         {renderChartSection(
                             "Case Length Accuracy",
                             "Displays the percentage of cases performed within the current calendar month that were accurately scheduled.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <StackedBarChart data={data.caseLengthAccuracy.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Under", "15%")}
@@ -148,11 +148,11 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                 {/* Utilization Metrics Section */}
                 {renderCollapsibleSection(
                     "Utilization Metrics",
-                    <div className="space-y-6 p-6">
+                    <div className="space-y-4 p-4">
                         {renderChartSection(
                             "Block Utilization",
                             "Displays a high-level summary of OR block utilization data for your OR locations.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full">
                                         <thead>
@@ -219,7 +219,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                         {renderChartSection(
                             "Primetime Utilization",
                             "Displays the total in-room and setup/cleanup minutes over the available primetime minutes.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <LineChart data={data.primetimeUtilization.trend} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("In-Room Time", "82%")}
@@ -235,11 +235,11 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                 {/* Case Metrics Section */}
                 {renderCollapsibleSection(
                     "Case Metrics",
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
                         {renderChartSection(
                             "Performed Cases",
                             "Displays the volume of cases that were performed within the current calendar month.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <ServiceBarChart data={data.performedCases.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Total", "324")}
@@ -252,7 +252,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                         {renderChartSection(
                             "Average Turnover",
                             "Displays the average room and procedure turnover for cases.",
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <DualBarChart data={data.avgTurnover.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
                                     {renderMetricBox("Average", "32m")}

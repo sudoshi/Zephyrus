@@ -310,7 +310,7 @@ const VariantsViewPanel = () => {
 
   const renderSummaryTab = () => (
     <div className="p-4">
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <Panel isSubpanel={true} dropLightIntensity="medium" title="Process Overview" className="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
           <div className="grid grid-cols-2 gap-y-2">
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Cases (24h):</div>
@@ -338,7 +338,7 @@ const VariantsViewPanel = () => {
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-6 bg-healthcare-background dark:bg-healthcare-background-dark/30">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-4 bg-healthcare-background dark:bg-healthcare-background-dark/30">
         <div className="p-4">
           <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4 text-center">Common bed assignment pathways by frequency</div>
           <div className="overflow-x-auto">
@@ -462,7 +462,7 @@ const VariantsViewPanel = () => {
         </div>
       </Panel>
       
-      <Panel isSubpanel={true} dropLightIntensity="strong" title="Key Process Insights" className="mb-6 bg-purple-50 dark:bg-purple-900/20">
+      <Panel isSubpanel={true} dropLightIntensity="strong" title="Key Process Insights" className="mb-4 bg-purple-50 dark:bg-purple-900/20">
         <ul className="text-sm space-y-2">
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
@@ -607,7 +607,7 @@ const VariantsViewPanel = () => {
   
   const renderOutliersTab = () => (
     <div className="p-4">
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-6 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-4 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
         <p className="text-sm mb-3 dark:text-white">Outliers are defined as bed assignments taking {'>'}6 hours (approximately 2 standard deviations above mean). These cases represent 12% of total bed assignments.</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -645,7 +645,7 @@ const VariantsViewPanel = () => {
         </div>
       </Panel>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-6 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-4 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-healthcare-info/20 dark:divide-healthcare-info-dark/30">
             <thead>
@@ -749,7 +749,7 @@ const VariantsViewPanel = () => {
   
   const renderStatisticsTab = () => (
     <div className="p-4">
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <Panel isSubpanel={true} dropLightIntensity="medium" title="Time of Day Impact" className="bg-indigo-50 dark:bg-indigo-900/20">
           {/* Chart container with proper styling according to standards */}
           <div className="mt-2 p-4 bg-gray-900 rounded-lg">
@@ -828,7 +828,7 @@ const VariantsViewPanel = () => {
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-6 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-4 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
         {/* Chart container with proper styling according to standards */}
         <div className="mt-2 p-4 bg-gray-900 rounded-lg mb-3">
           {/* This is where a hospital comparison chart would be rendered using the chart theme */}
