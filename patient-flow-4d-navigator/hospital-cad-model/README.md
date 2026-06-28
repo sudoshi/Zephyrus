@@ -1,9 +1,10 @@
-# 500-Bed Level I Trauma Academic Medical Center CAD Model
+# Summit Regional Medical Center — Level I Trauma Academic Medical Center CAD Model
 
-Generated: 2026-06-25
+Generated: 2026-06-28
 
-This directory contains a concept-level CAD/BIM and navigable web model for the
-500-bed Tier 1 / ACS Level I trauma academic medical center planning model.
+This directory contains a concept-level CAD/BIM and navigable web model for
+Summit Regional Medical Center, a Tier 1 / ACS Level I trauma academic medical
+center planning model.
 
 ## Standards Strategy
 

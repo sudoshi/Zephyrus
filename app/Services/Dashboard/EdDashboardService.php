@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Dashboard;
 
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -671,7 +672,7 @@ class EdDashboardService
             4 => ['Laceration', 'Minor Injury', 'Back Pain', 'Sprain'],
             5 => ['Medication Refill', 'Suture Removal', 'Rash', 'Cold Symptoms'],
         ];
-        $providers = ['Dr. Smith', 'Dr. Johnson', 'Dr. Brown', 'Dr. Davis', 'Dr. Patel', 'Dr. Nguyen'];
+        $providers = app(HospitalManifest::class)->providerNames('emergency');
         $areas = [
             1 => 'Trauma',
             2 => 'Trauma',

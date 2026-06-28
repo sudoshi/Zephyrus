@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 // Hard-coded data directly in the hook
 const hardCodedData = {
-  // Locations data with Virtua Health hospitals
+  // Locations data with Summit Health network hospitals
   locations: {
     'MARH OR': {
       id: 'marh-or',
       hospitalId: 'marh',
-      hospitalName: 'Virtua Marlton Hospital',
+      hospitalName: NETWORK_FACILITY_NAMES[0],
       name: 'MARH OR',
-      fullName: 'Marlton Operating Room',
+      fullName: `${NETWORK_FACILITY_NAMES[0]} — Operating Room`,
       utilization: 73.8,
       primeTimeUtilization: 79.2,
       nonPrimeTimeUtilization: 47.5,
@@ -20,16 +21,16 @@ const hardCodedData = {
       rooms: [
         {
           id: 'MAOR01',
-          name: 'VH MARH OR 01',
-          room: 'VH MARH OR 01', // Added room property
+          name: 'SH MARH OR 01',
+          room: 'SH MARH OR 01', // Added room property
           utilization: 82.4,
           primeTimeUtilization: 86.7,
           nonPrimeTimeUtilization: 52.3
         },
         {
           id: 'MAOR02',
-          name: 'VH MARH OR 02',
-          room: 'VH MARH OR 02', // Added room property
+          name: 'SH MARH OR 02',
+          room: 'SH MARH OR 02', // Added room property
           utilization: 78.9,
           primeTimeUtilization: 83.5,
           nonPrimeTimeUtilization: 49.8
@@ -39,9 +40,9 @@ const hardCodedData = {
     'MEMH OR': {
       id: 'memh-or',
       hospitalId: 'memh',
-      hospitalName: 'Virtua Mount Holly Hospital',
+      hospitalName: NETWORK_FACILITY_NAMES[1],
       name: 'MEMH OR',
-      fullName: 'Mt. Holly Operating Room',
+      fullName: `${NETWORK_FACILITY_NAMES[1]} — Operating Room`,
       utilization: 75.2,
       primeTimeUtilization: 81.4,
       nonPrimeTimeUtilization: 48.9,
@@ -52,16 +53,16 @@ const hardCodedData = {
       rooms: [
         {
           id: 'MEOR01',
-          name: 'VH MEMH OR 01',
-          room: 'VH MEMH OR 01', // Added room property
+          name: 'SH MEMH OR 01',
+          room: 'SH MEMH OR 01', // Added room property
           utilization: 83.7,
           primeTimeUtilization: 88.2,
           nonPrimeTimeUtilization: 53.8
         },
         {
           id: 'MEOR02',
-          name: 'VH MEMH OR 02',
-          room: 'VH MEMH OR 02', // Added room property
+          name: 'SH MEMH OR 02',
+          room: 'SH MEMH OR 02', // Added room property
           utilization: 80.1,
           primeTimeUtilization: 85.3,
           nonPrimeTimeUtilization: 51.2
@@ -71,9 +72,9 @@ const hardCodedData = {
     'VORH OR': {
       id: 'vorh-or',
       hospitalId: 'vorh',
-      hospitalName: 'Virtua Voorhees Hospital',
+      hospitalName: NETWORK_FACILITY_NAMES[3],
       name: 'VORH OR',
-      fullName: 'Voorhees Operating Room',
+      fullName: `${NETWORK_FACILITY_NAMES[3]} — Operating Room`,
       utilization: 70.6,
       primeTimeUtilization: 76.8,
       nonPrimeTimeUtilization: 43.2,
@@ -84,16 +85,16 @@ const hardCodedData = {
       rooms: [
         {
           id: 'VOR01',
-          name: 'VH VORH OR 01',
-          room: 'VH VORH OR 01', // Added room property
+          name: 'SH VORH OR 01',
+          room: 'SH VORH OR 01', // Added room property
           utilization: 78.3,
           primeTimeUtilization: 83.5,
           nonPrimeTimeUtilization: 48.7
         },
         {
           id: 'VOR02',
-          name: 'VH VORH OR 02',
-          room: 'VH VORH OR 02', // Added room property
+          name: 'SH VORH OR 02',
+          room: 'SH VORH OR 02', // Added room property
           utilization: 74.9,
           primeTimeUtilization: 80.2,
           nonPrimeTimeUtilization: 46.3
@@ -103,9 +104,9 @@ const hardCodedData = {
     'OLLH OR': {
       id: 'ollh-or',
       hospitalId: 'ollh',
-      hospitalName: 'Virtua Our Lady of Lourdes Hospital',
+      hospitalName: NETWORK_FACILITY_NAMES[2],
       name: 'OLLH OR',
-      fullName: 'Our Lady of Lourdes Operating Room',
+      fullName: `${NETWORK_FACILITY_NAMES[2]} — Operating Room`,
       utilization: 77.3,
       primeTimeUtilization: 83.1,
       nonPrimeTimeUtilization: 49.5,
@@ -116,16 +117,16 @@ const hardCodedData = {
       rooms: [
         {
           id: 'OLOR01',
-          name: 'VH OLLH OR 01',
-          room: 'VH OLLH OR 01', // Added room property
+          name: 'SH OLLH OR 01',
+          room: 'SH OLLH OR 01', // Added room property
           utilization: 85.2,
           primeTimeUtilization: 89.7,
           nonPrimeTimeUtilization: 54.8
         },
         {
           id: 'OLOR02',
-          name: 'VH OLLH OR 02',
-          room: 'VH OLLH OR 02', // Added room property
+          name: 'SH OLLH OR 02',
+          room: 'SH OLLH OR 02', // Added room property
           utilization: 82.4,
           primeTimeUtilization: 87.1,
           nonPrimeTimeUtilization: 52.6
@@ -134,7 +135,7 @@ const hardCodedData = {
     }
   },
 
-  // Specialty data with Virtua Health specialties
+  // Specialty data with Summit Health network specialties
   specialties: {
     'Orthopaedic Surgery': {
       utilization: 79.8,
@@ -170,33 +171,33 @@ const hardCodedData = {
     }
   },
 
-  // Provider data with Virtua Health providers
+  // Provider data with Summit Health network providers
   providers: {
     'abraham-john-a': {
       id: 'abraham-john-a',
       name: 'ABRAHAM, JOHN A',
-      group: 'Virtua Orthopaedics & Spine',
+      group: 'Summit Orthopaedics & Spine',
       title: 'MD',
       specialty: 'Orthopaedic Surgery'
     },
     'rodriguez-arthur-j': {
       id: 'rodriguez-arthur-j',
       name: 'RODRIGUEZ, ARTHUR J',
-      group: 'Virtua Cardiovascular Surgery',
+      group: 'Summit Cardiovascular Surgery',
       title: 'MD',
       specialty: 'Cardiac Surgery'
     },
     'smith-robert-j': {
       id: 'smith-robert-j',
       name: 'SMITH, ROBERT J',
-      group: 'Virtua Surgical Group',
+      group: 'Summit Surgical Group',
       title: 'MD',
       specialty: 'General Surgery'
     },
     'rosenberg-william-s': {
       id: 'rosenberg-william-s',
       name: 'ROSENBERG, WILLIAM S',
-      group: 'Virtua Brain & Spine Institute',
+      group: 'Summit Brain & Spine Institute',
       title: 'MD',
       specialty: 'Neurosurgery'
     }

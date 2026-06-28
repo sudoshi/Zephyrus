@@ -306,7 +306,7 @@ def flow_event_to_fhir_bundle(event: FlowEvent) -> dict:
     encounter = {
         "resourceType": "Encounter",
         "id": event.encounter_id,
-        "identifier": [{"system": "urn:parthenon:encounter", "value": event.encounter_id}],
+        "identifier": [{"system": "urn:hosp1:encounter", "value": event.encounter_id}],
         "status": event.fhir_encounter_status or "in-progress",
         "class": {
             "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
@@ -323,7 +323,7 @@ def flow_event_to_fhir_bundle(event: FlowEvent) -> dict:
     patient = {
         "resourceType": "Patient",
         "id": event.patient_id,
-        "identifier": [{"system": "urn:parthenon:synthetic-patient", "value": event.patient_display_id}],
+        "identifier": [{"system": "urn:hosp1:synthetic-patient", "value": event.patient_display_id}],
     }
     location = {
         "resourceType": "Location",

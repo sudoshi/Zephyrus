@@ -17,7 +17,7 @@ import DischargeChecklistTimeline from '@/Components/RTDC/DischargeChecklistTime
 import PostDischargeRequirements from '@/Components/RTDC/PostDischargeRequirements';
 import DischargePathwaysSection from '@/Components/RTDC/DischargePathwaysSection';
 import  { useDarkMode } from '@/hooks/useDarkMode';
-import { UNITS } from '@/mock-data/rtdc-service-huddle-constants';
+import { UNIT_ABBRS } from '@/constants/summitHospital';
 
 const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
     const [isDarkMode] = useDarkMode();
@@ -224,7 +224,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                             alternativePathways: pathways
                                         }));
                                     }}
-                                    availableUnits={UNITS}
+                                    availableUnits={UNIT_ABBRS}
                                 />
                                 <DischargeReadinessScore 
                                     requirements={{
@@ -383,7 +383,7 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
                                                 {[
                                                     {
                                                         barrier: "Pending physical therapy evaluation",
-                                                        resolvedBy: "Dr. Smith",
+                                                        resolvedBy: "Dr. Patel",
                                                         resolvedAt: "2024-02-07T14:30:00",
                                                         resolution: "PT evaluation completed and cleared for discharge"
                                                     },

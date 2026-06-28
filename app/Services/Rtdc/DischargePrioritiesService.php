@@ -76,7 +76,7 @@ class DischargePrioritiesService
      */
     public function build(): array
     {
-        $hospital = (string) config('facility_models.zep_500.facility_name', 'Zephyrus Medical Center');
+        $hospital = (string) config('facility_models.zep_500.facility_name', 'Summit Regional Medical Center');
 
         $occupancyByUnit = $this->occupancyByUnit();
         $gmlosByType = $this->gmlosByType();

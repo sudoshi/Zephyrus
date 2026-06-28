@@ -4,6 +4,7 @@ namespace App\Services\Transport;
 
 use App\Models\Transport\TransportEvent;
 use App\Models\Transport\TransportRequest;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
 
 class TransportOperationsService
 {
+    public function __construct(private readonly HospitalManifest $hospital) {}
+
     public const ACTIVE_STATUSES = [
         'requested',
         'accepted',
@@ -362,7 +365,7 @@ class TransportOperationsService
     public function resourceOptions(): array
     {
         return [
-            ['key' => 'porter_pool', 'name' => 'Porter Pool', 'type' => 'internal_team', 'available' => 7],
+            ['key' => 'porter_pool', 'name' => $this->hospital->transport()['internal_team']['name'], 'type' => 'internal_team', 'available' => 7],
             ['key' => 'discharge_lounge', 'name' => 'Discharge Lounge', 'type' => 'handoff_area', 'available' => 5],
             ['key' => 'wheelchair_bank', 'name' => 'Wheelchair Bank', 'type' => 'equipment', 'available' => 18],
             ['key' => 'stretcher_pool', 'name' => 'Stretcher Pool', 'type' => 'equipment', 'available' => 9],

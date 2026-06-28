@@ -13,6 +13,7 @@ import dagre from 'dagre';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import 'reactflow/dist/style.css';
+import { PRIMARY_FACILITY_NAME } from '@/constants/summitHospital';
 
 
 
@@ -582,7 +583,7 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
   const fetchSavedLayout = useCallback(async () => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const hospital = urlParams.get('hospital') || 'Virtua Marlton Hospital';
+      const hospital = urlParams.get('hospital') || PRIMARY_FACILITY_NAME;
       const workflow = workflowName || urlParams.get('workflow') || 'Admissions';
       const timeRange = urlParams.get('timeRange') || '24 Hours';
       
@@ -656,7 +657,7 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
         const payload = {
           process_type: processTypeToUse,
           layout_data: simplifiedViewport, // Just x, y and zoom - nothing else
-          hospital: 'Virtua Marlton Hospital',
+          hospital: PRIMARY_FACILITY_NAME,
           workflow: workflowToUse,
           time_range: '24 Hours',
         };
@@ -702,7 +703,7 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
           const payload = {
             process_type: processTypeToUse,
             layout_data: layoutData,  // Just node positions
-            hospital: 'Virtua Marlton Hospital', // hardcode to ensure consistency
+            hospital: PRIMARY_FACILITY_NAME, // hardcode to ensure consistency
             workflow: workflowToUse,
             time_range: '24 Hours',
           };

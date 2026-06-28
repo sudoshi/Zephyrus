@@ -12,7 +12,7 @@ class FacilityImportCatalogCommand extends Command
     protected $signature = 'facility:import-catalog
         {path : Path to a hospital model_catalog.json file}
         {--facility-code=ZEPHYRUS-500 : Stable facility code used to prefix canonical space codes}
-        {--facility-name=500-Bed Level I Trauma Academic Medical Center : Facility display name}
+        {--facility-name=Summit Regional Medical Center : Facility display name}
         {--source-name= : Optional source name; defaults to the file name}
         {--map-operational : Create or attach prod.units/prod.beds and operational mapping rows}';
 

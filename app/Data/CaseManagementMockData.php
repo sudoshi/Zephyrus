@@ -2,6 +2,8 @@
 
 namespace App\Data;
 
+use App\Support\Hospital\HospitalManifest;
+
 class CaseManagementMockData
 {
     public static function getData()
@@ -58,6 +60,11 @@ class CaseManagementMockData
         }
 
         // Fallback to minimal set if parsing fails
+        $manifest = app(HospitalManifest::class);
+        $surgeon = $manifest->providerNames()[0] ?? 'Dr. Smith';
+        $anesthesiologist = $manifest->providerNames('perioperative')[0] ?? $surgeon;
+        $scrubNurse = $manifest->nurseNames()[0] ?? $surgeon;
+
         return [
             [
                 'id' => 1,
@@ -69,13 +76,13 @@ class CaseManagementMockData
                 'location' => 'OR 3',
                 'startTime' => '07:30',
                 'expectedDuration' => 90,
-                'provider' => 'Dr. Smith',
+                'provider' => $surgeon,
                 'resourceStatus' => 'On Time',
                 'journey' => 60,
                 'staff' => [
-                    ['name' => 'Dr. Smith', 'role' => 'Surgeon'],
-                    ['name' => 'Dr. Jones', 'role' => 'Anesthesiologist'],
-                    ['name' => 'Nurse Johnson', 'role' => 'Scrub Nurse'],
+                    ['name' => $surgeon, 'role' => 'Surgeon'],
+                    ['name' => $anesthesiologist, 'role' => 'Anesthesiologist'],
+                    ['name' => $scrubNurse, 'role' => 'Scrub Nurse'],
                 ],
                 'resources' => [
                     ['name' => 'OR 3', 'status' => 'onTime'],
