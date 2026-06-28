@@ -14,10 +14,12 @@ import { EddySlideOver } from './EddySlideOver';
 export function EddyDock() {
   const { props } = usePage<PageProps>();
   const user = props.auth?.user ?? null;
+  const enabled = props.eddy?.enabled ?? false;
   const isOpen = useEddyStore((state) => state.isOpen);
   const toggle = useEddyStore((state) => state.toggle);
 
   useEffect(() => {
+    if (!enabled) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && (event.key === 'E' || event.key === 'e')) {
         event.preventDefault();
@@ -26,9 +28,11 @@ export function EddyDock() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [toggle]);
+  }, [toggle, enabled]);
 
-  if (!user || user.must_change_password) return null;
+  // Eddy ships disabled: no dock until EDDY_ENABLED=true. Also suppressed on
+  // guest/auth surfaces and while a forced password change owns the screen.
+  if (!enabled || !user || user.must_change_password) return null;
 
   return isOpen ? <EddySlideOver /> : <EddyLauncher />;
 }

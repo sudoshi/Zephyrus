@@ -14,6 +14,9 @@ export interface PageProps {
     roles?: string[];
     is_admin?: boolean;
   };
+  eddy?: {
+    enabled: boolean;
+  };
   flash?: {
     message?: string;
     error?: string;
