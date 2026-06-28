@@ -2,7 +2,14 @@ import React, { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Icon } from '@iconify/react';
 
+const MAX_WIDTHS = {
+    sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl',
+    '2xl': 'max-w-2xl', '3xl': 'max-w-3xl', '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl', '6xl': 'max-w-6xl', '7xl': 'max-w-7xl',
+};
+
 const Modal = ({ open, onClose, title, children, maxWidth = '5xl', showClose = true }) => {
+    const maxWidthClass = MAX_WIDTHS[maxWidth] ?? MAX_WIDTHS['5xl'];
     return (
         <Transition appear show={open} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -29,7 +36,7 @@ const Modal = ({ open, onClose, title, children, maxWidth = '5xl', showClose = t
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className={`modal-content max-w-${maxWidth}`}>
+                            <Dialog.Panel className={`modal-surface relative w-full ${maxWidthClass} max-h-[85vh] overflow-y-auto p-6 text-left`}>
                                 {showClose && (
                                     <button
                                         onClick={onClose}

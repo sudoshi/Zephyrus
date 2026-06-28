@@ -1,24 +1,11 @@
 // Mock data generator for discharge priorities
+import { NETWORK_FACILITY_NAMES, UNIT_ABBRS } from '@/constants/summitHospital';
+
 const generateMockDischargeData = () => {
   // Constants for generating realistic data
-  const HOSPITALS = [
-    'Marlton Hospital',
-    'Mount Holly Hospital',
-    'Our Lady of Lourdes Hospital',
-    'Voorhees Hospital',
-    'Willingboro Hospital'
-  ];
+  const HOSPITALS = NETWORK_FACILITY_NAMES;
 
-  const UNITS = [
-    'Medical/Surgical',
-    'Telemetry',
-    'ICU',
-    'CCU',
-    'Oncology',
-    'Orthopedics',
-    'Neurology',
-    'Rehabilitation'
-  ];
+  const UNITS = UNIT_ABBRS;
 
   const SERVICES = [
     'Internal Medicine',

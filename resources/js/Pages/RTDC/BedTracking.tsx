@@ -50,17 +50,19 @@ const flow = [
     definition: 'Projected discharges minus admissions over the next 4 hours.', drillHref: '/rtdc/predictions/demand' }),
 ];
 
+// Fallback only — overridden by live unitCensus from BedTrackingService when present.
+// Units are the real Summit Regional roster (see config/hospital/hospital-1.php).
 const UNITS: UnitCensus[] = [
-  { unitId: 1, name: '4 West', type: 'Med/Surg', staffed: 32, occupied: 30, blocked: 1, available: 1, occupancyPct: 94, acuityAdjustedPct: 96, status: 'critical' },
-  { unitId: 2, name: '5 East', type: 'Med/Surg', staffed: 28, occupied: 24, blocked: 0, available: 4, occupancyPct: 86, acuityAdjustedPct: 88, status: 'warning' },
-  { unitId: 3, name: '6 North', type: 'Telemetry', staffed: 24, occupied: 22, blocked: 1, available: 1, occupancyPct: 92, acuityAdjustedPct: 95, status: 'critical' },
-  { unitId: 4, name: 'ICU', type: 'Critical', staffed: 20, occupied: 17, blocked: 0, available: 3, occupancyPct: 85, acuityAdjustedPct: 90, status: 'warning' },
-  { unitId: 5, name: 'PCU', type: 'Step-down', staffed: 18, occupied: 13, blocked: 1, available: 4, occupancyPct: 72, acuityAdjustedPct: 75, status: 'success' },
-  { unitId: 6, name: '3 South', type: 'Med/Surg', staffed: 30, occupied: 21, blocked: 0, available: 9, occupancyPct: 70, acuityAdjustedPct: 72, status: 'success' },
-  { unitId: 7, name: 'Ortho', type: 'Surgical', staffed: 22, occupied: 19, blocked: 0, available: 3, occupancyPct: 86, acuityAdjustedPct: 84, status: 'warning' },
-  { unitId: 8, name: 'Oncology', type: 'Med/Surg', staffed: 16, occupied: 12, blocked: 1, available: 3, occupancyPct: 75, acuityAdjustedPct: 80, status: 'success' },
-  { unitId: 9, name: 'Neuro', type: 'Specialty', staffed: 18, occupied: 17, blocked: 0, available: 1, occupancyPct: 94, acuityAdjustedPct: 97, status: 'critical' },
-  { unitId: 10, name: 'CVICU', type: 'Critical', staffed: 14, occupied: 11, blocked: 0, available: 3, occupancyPct: 79, acuityAdjustedPct: 86, status: 'warning' },
+  { unitId: 1, name: 'MICU', type: 'Critical', staffed: 24, occupied: 22, blocked: 1, available: 1, occupancyPct: 92, acuityAdjustedPct: 95, status: 'critical' },
+  { unitId: 2, name: 'SICU', type: 'Critical', staffed: 24, occupied: 21, blocked: 0, available: 3, occupancyPct: 88, acuityAdjustedPct: 91, status: 'warning' },
+  { unitId: 3, name: 'CVICU', type: 'Critical', staffed: 20, occupied: 18, blocked: 0, available: 2, occupancyPct: 90, acuityAdjustedPct: 93, status: 'critical' },
+  { unitId: 4, name: '7E', type: 'Telemetry', staffed: 32, occupied: 27, blocked: 1, available: 4, occupancyPct: 84, acuityAdjustedPct: 87, status: 'warning' },
+  { unitId: 5, name: '5E', type: 'Med/Surg', staffed: 28, occupied: 24, blocked: 0, available: 4, occupancyPct: 86, acuityAdjustedPct: 88, status: 'warning' },
+  { unitId: 6, name: '6E', type: 'Med/Surg', staffed: 24, occupied: 19, blocked: 1, available: 4, occupancyPct: 79, acuityAdjustedPct: 82, status: 'success' },
+  { unitId: 7, name: 'BHU', type: 'Behavioral', staffed: 24, occupied: 22, blocked: 0, available: 2, occupancyPct: 92, acuityAdjustedPct: 92, status: 'critical' },
+  { unitId: 8, name: 'ONC', type: 'Oncology', staffed: 24, occupied: 22, blocked: 1, available: 1, occupancyPct: 92, acuityAdjustedPct: 94, status: 'critical' },
+  { unitId: 9, name: 'AIR', type: 'Rehab', staffed: 20, occupied: 15, blocked: 0, available: 5, occupancyPct: 75, acuityAdjustedPct: 77, status: 'success' },
+  { unitId: 10, name: 'PED', type: 'Pediatrics', staffed: 24, occupied: 18, blocked: 0, available: 6, occupancyPct: 75, acuityAdjustedPct: 78, status: 'success' },
 ];
 
 interface BedTrackingProps {

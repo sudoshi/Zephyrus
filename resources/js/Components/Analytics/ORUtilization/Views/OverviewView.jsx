@@ -52,12 +52,12 @@ const OverviewView = ({ data, derivedMetrics }) => {
 
   return (
     <div>
-      <Panel title="OR Utilization Overview" className="mb-6">
+      <Panel title="OR Utilization Overview" className="mb-4">
         <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">
           Comprehensive view of operating room utilization metrics and opportunities for {getSelectedLocationName()}.
         </p>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           {efficiencyMetrics && (
             <Panel isSubpanel={true} dropLightIntensity="medium" title="Efficiency Metrics">
               <EfficiencyMetricsCard {...efficiencyMetrics} />
@@ -71,7 +71,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
           )}
         </div>
         
-        <Panel isSubpanel={true} dropLightIntensity="medium" title="Utilization Trends" className="mb-6">
+        <Panel isSubpanel={true} dropLightIntensity="medium" title="Utilization Trends" className="mb-4">
           <UtilizationTrendsCard 
             trendsData={trendsData}
             comparisonTrendsData={[]}
@@ -79,7 +79,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
           />
         </Panel>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Panel isSubpanel={true} dropLightIntensity="medium" title="Specialty Distribution">
             <SpecialtyDistributionCard 
               specialtyData={data?.specialties || {}}

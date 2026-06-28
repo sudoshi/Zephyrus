@@ -39,6 +39,10 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
                 'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
             ],
+            // Eddy ships disabled — the dock only mounts when this is true.
+            'eddy' => [
+                'enabled' => (bool) config('services.eddy.enabled'),
+            ],
             'workflow' => $request->session()->get('workflow'),
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

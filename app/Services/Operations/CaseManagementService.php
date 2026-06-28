@@ -2,6 +2,7 @@
 
 namespace App\Services\Operations;
 
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -62,6 +63,8 @@ class CaseManagementService
     private const PHASE_PROCEDURE = 'Procedure';
 
     private const PHASE_RECOVERY = 'Recovery';
+
+    public function __construct(private readonly HospitalManifest $manifest) {}
 
     /** @return array<string,mixed> */
     public function getData(): array
@@ -282,14 +285,20 @@ class CaseManagementService
      */
     private function staffFor(string $surgeon, int $caseId): array
     {
-        $anesthesiologists = ['Dr. Jones', 'Dr. Wilson', 'Dr. Brown', 'Dr. Lee', 'Dr. Garcia', 'Dr. Martinez'];
-        $anes = $anesthesiologists[$caseId % count($anesthesiologists)];
-        $scrubLast = trim(str_replace('Dr.', '', $surgeon)) ?: 'OR';
+        $anesthesiologists = $this->manifest->providerNames('perioperative');
+        $nurses = $this->manifest->nurseNames();
+
+        $anes = $anesthesiologists === []
+            ? $surgeon
+            : $anesthesiologists[$caseId % count($anesthesiologists)];
+        $scrub = $nurses === []
+            ? $surgeon
+            : $nurses[$caseId % count($nurses)];
 
         return [
             ['name' => $surgeon, 'role' => 'Surgeon'],
             ['name' => $anes, 'role' => 'Anesthesiologist'],
-            ['name' => "Nurse {$scrubLast}", 'role' => 'Scrub Nurse'],
+            ['name' => $scrub, 'role' => 'Scrub Nurse'],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Rtdc;
 
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -40,21 +41,9 @@ class ServiceHuddleService
         'Internal Medicine', 'Orthopedics', 'Pulmonology', 'General Surgery',
     ];
 
-    private const PRIMARY_TEAMS = [
-        'CHF Team', 'Stroke Team', 'Medical Team A', 'Medical Team B',
-        'Medical Team C', 'Surgical Team A', 'Surgical Team B', 'Oncology Team',
-    ];
-
     private const CONSULTING_SERVICES = [
         'Infectious Disease', 'Pain Management', 'Psychiatry', 'Physical Therapy',
         'Occupational Therapy', 'Wound Care', 'Nutrition', 'Social Work',
-    ];
-
-    private const NURSES = [
-        'Sarah Chen, RN', 'Michael Rodriguez, RN', 'Emily Johnson, RN',
-        'David Kim, RN', 'Jessica Taylor, RN', 'James Wilson, RN',
-        'Maria Garcia, RN', 'Robert Smith, RN', 'Lisa Brown, RN',
-        'John Davis, RN', 'Amanda White, RN', 'Kevin Anderson, RN',
     ];
 
     private const FIRST_NAMES = [
@@ -74,6 +63,31 @@ class ServiceHuddleService
     private const CARE_LEVEL = ['Routine', 'Intermediate', 'Critical'];
 
     private const PHASE = ['Assessment', 'Treatment', 'Recovery'];
+
+    /**
+     * Primary-team pool, sourced from the hospital manifest's care teams.
+     *
+     * @var list<string>
+     */
+    private array $primaryTeams;
+
+    /**
+     * Assigned-nurse pool, sourced from the hospital manifest's nurse roster.
+     *
+     * @var list<string>
+     */
+    private array $nurses;
+
+    public function __construct(HospitalManifest $manifest)
+    {
+        $teams = array_values($manifest->careTeamNames());
+        $nurses = array_values($manifest->nurseNames());
+
+        // Defensive fallbacks keep the deterministic modulo indexing safe even
+        // if a manifest ever ships an empty roster (every accessor stays total).
+        $this->primaryTeams = $teams !== [] ? $teams : ['Hospitalist Medicine Service'];
+        $this->nurses = $nurses !== [] ? $nurses : ['Charge Nurse, RN'];
+    }
 
     /**
      * Full Service Huddle payload.
@@ -246,9 +260,9 @@ class ServiceHuddleService
                 'bp' => $this->bloodPressure($seed),
                 'o2sat' => $this->oxygenSaturation($seed),
             ],
-            'primaryTeam' => self::PRIMARY_TEAMS[$seed % count(self::PRIMARY_TEAMS)],
+            'primaryTeam' => $this->primaryTeams[$seed % count($this->primaryTeams)],
             'consultingServices' => $this->consultingServices($seed),
-            'assignedNurse' => self::NURSES[$seed % count(self::NURSES)],
+            'assignedNurse' => $this->nurses[$seed % count($this->nurses)],
             'careJourney' => [
                 'mobility' => self::MOBILITY[$seed % count(self::MOBILITY)],
                 'careLevel' => self::CARE_LEVEL[(int) $row->acuity_tier % count(self::CARE_LEVEL)],

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Datepicker } from '@/Components/ui/flowbite';
 import { Calendar, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 /**
  * Hierarchical filters component for analytics dashboards
@@ -18,10 +19,10 @@ const HierarchicalFilters = ({
 }) => {
   // Hospital list (hardcoded as per requirements)
   const hospitals = [
-    { id: 'marh', name: 'Virtua Marlton Hospital' },
-    { id: 'memh', name: 'Virtua Mount Holly Hospital' },
-    { id: 'ollh', name: 'Virtua Our Lady of Lourdes Hospital' },
-    { id: 'vorh', name: 'Virtua Voorhees Hospital' }
+    { id: 'marh', name: NETWORK_FACILITY_NAMES[0] },
+    { id: 'memh', name: NETWORK_FACILITY_NAMES[1] },
+    { id: 'ollh', name: NETWORK_FACILITY_NAMES[2] },
+    { id: 'vorh', name: NETWORK_FACILITY_NAMES[3] }
   ];
   
   // Filter state

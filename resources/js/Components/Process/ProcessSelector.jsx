@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Brain } from 'lucide-react';
 import { Icon } from '@iconify/react';
 import Panel from '@/Components/ui/Panel';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 // View presets for different user roles
 const viewPresets = {
@@ -35,13 +36,7 @@ const viewPresets = {
     }
 };
 
-const hospitals = [
-    'Virtua Marlton Hospital',
-    'Virtua Mount Holly Hospital',
-    'Virtua Our Lady of Lourdes Hospital',
-    'Virtua Voorhees Hospital',
-    'Virtua Willingboro Hospital'
-];
+const hospitals = NETWORK_FACILITY_NAMES;
 
 // Define available workflows for process maps
 export const workflows = [

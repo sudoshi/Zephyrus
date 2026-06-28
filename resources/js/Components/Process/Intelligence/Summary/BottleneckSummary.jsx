@@ -198,14 +198,14 @@ const BottleneckSummary = ({ metrics }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ActionModal 
         isOpen={isActionModalOpen}
         onClose={() => setIsActionModalOpen(false)}
         action={selectedAction}
       />
       {/* Header Section */}
-      <div className="healthcare-card p-6">
+      <div className="healthcare-card p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-full p-4">
@@ -229,7 +229,7 @@ const BottleneckSummary = ({ metrics }) => {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-4">
             {Object.entries(healthScore.componentScores).map(([key, score]) => {
               const maxScore = key === 'waitTime' ? 25 : key === 'acuity' ? 15 : 20;
               const percentage = (score / maxScore) * 100;
@@ -255,7 +255,7 @@ const BottleneckSummary = ({ metrics }) => {
       </div>
 
       {/* Critical Actions Section */}
-      <div className="healthcare-card p-6">
+      <div className="healthcare-card p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark flex items-center gap-2">
             <AlertCircle className="h-6 w-6 text-healthcare-critical dark:text-healthcare-critical-dark" />
@@ -306,7 +306,7 @@ const BottleneckSummary = ({ metrics }) => {
       </div>
 
       {/* Resource Predictions Section */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-4">
         <MetricChart
           title="Resource Utilization Forecast"
           height="64"
@@ -425,7 +425,7 @@ const BottleneckSummary = ({ metrics }) => {
         <h3 className="font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">
           Optimization Recommendations
         </h3>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-4">
           {['staffing', 'resources', 'workflow'].map(category => (
             <div key={category} className="space-y-4">
               <h4 className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">

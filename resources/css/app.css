@@ -187,6 +187,32 @@
     @apply p-4;
   }
 
+  /* ---- Modal / dialog scrim ----------------------------------------------
+     A real backdrop behind every modal. Several modals (Common/Modal,
+     PatientJourneyModal) referenced `.modal-backdrop` by name but it had no
+     global definition — it only existed as a scoped animation class — so those
+     modals rendered with a fully transparent backdrop and unreadable drill-in
+     content. Defined once here so every consumer gets a proper scrim. No
+     z-index: the scrim must paint *below* its sibling panel container. */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgb(15 23 42 / 0.62); /* slate-900 @ 62% */
+  }
+
+  .dark .modal-backdrop {
+    background-color: rgb(15 23 42 / 0.80); /* surface-base-dark #0F172A @ 80% */
+  }
+
+  /* Canonical solid modal panel: a real surface (bg + border + radius) with
+     floating elevation. Apply to any dialog panel so content never sits on a
+     transparent box. Floating elements earn shadow-lg per the elevation system. */
+  .modal-surface {
+    @apply bg-healthcare-surface dark:bg-healthcare-surface-dark;
+    @apply border border-healthcare-border dark:border-healthcare-border-dark;
+    @apply rounded-lg shadow-lg;
+  }
+
   .healthcare-button {
     @apply bg-healthcare-primary hover:bg-healthcare-primary-hover dark:bg-healthcare-primary-dark;
     @apply text-white font-medium;

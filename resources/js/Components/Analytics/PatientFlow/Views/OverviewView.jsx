@@ -69,10 +69,10 @@ const OverviewView = ({ data, derivedMetrics }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Key Metrics */}
       <Panel title="Key Metrics" className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {keyMetrics.map((metric, index) => (
             <motion.div
               key={index}
@@ -105,10 +105,10 @@ const OverviewView = ({ data, derivedMetrics }) => {
       </Panel>
 
       {/* Process Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <Panel title="Process Overview" className="h-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {processMetrics.map((metric, index) => (
                 <motion.div
                   key={index}
@@ -139,7 +139,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 + 0.8 }}
-                    className="relative mb-6 pl-12"
+                    className="relative mb-4 pl-12"
                   >
                     <div className="absolute left-0 top-0 w-12 flex items-center justify-center">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
@@ -206,7 +206,7 @@ const OverviewView = ({ data, derivedMetrics }) => {
                               ? 'carbon:warning-alt'
                               : 'carbon:information'
                         } 
-                        className={insight.type === 'positive' || insight.type === 'negative' ? 'w-5 h-5' : 'w-10 h-10'}
+                        className={insight.type === 'positive' || insight.type === 'negative' ? 'w-5 h-5' : 'w-5 h-5'}
                       />
                     </div>
                     <div>

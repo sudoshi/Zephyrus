@@ -191,7 +191,7 @@ const BlockScheduleManager = () => {
 
     if (error) {
         return (
-            <div className="p-6 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
+            <div className="p-4 text-center text-healthcare-critical dark:text-healthcare-critical-dark">
                 <Icon icon="heroicons:exclamation-circle" className="w-12 h-12 mx-auto mb-4" />
                 <p>{error}</p>
             </div>
@@ -199,7 +199,7 @@ const BlockScheduleManager = () => {
     }
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-4 p-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">Block Schedule</h2>
                 <Button 
@@ -211,7 +211,7 @@ const BlockScheduleManager = () => {
                 </Button>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
                 <Card>
                     <Card.Header>
                         <Card.Title>Block Utilization</Card.Title>
@@ -254,7 +254,7 @@ const BlockScheduleManager = () => {
             </Card>
 
             <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
-                <div className="p-6">
+                <div className="p-4">
                     <h3 className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-4">Add Block Time</h3>
                     <Form onSubmit={handleSubmit} className="space-y-4">
                         <Form.Field>

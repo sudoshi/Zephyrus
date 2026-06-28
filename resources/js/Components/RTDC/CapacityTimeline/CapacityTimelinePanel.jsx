@@ -14,7 +14,7 @@ const TimeSelector = ({ selectedTime, onTimeChange }) => {
     ];
 
     return (
-        <div className="flex space-x-2 mb-6">
+        <div className="flex space-x-2 mb-4">
             {times.map(time => (
                 <button
                     key={time.id}
@@ -40,11 +40,11 @@ const CapacityTimelinePanel = () => {
         switch (selectedTime) {
             case 'overnight':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <DemandCapacityModel />
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <DischargeTracker />
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <Card>
                                     <Card.Header>
                                         <Card.Title>
@@ -81,7 +81,7 @@ const CapacityTimelinePanel = () => {
                 );
             case 'morning':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <DemandCapacityModel />
                         <CapacityHuddleTracker />
                     </div>

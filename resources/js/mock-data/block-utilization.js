@@ -1,4 +1,6 @@
 // Mock data for block utilization dashboard
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
+
 export const mockBlockUtilization = {
   sites: {
     'MARH OR': {
@@ -296,7 +298,7 @@ export const mockBlockUtilization = {
     },
     {
       name: 'OLLH OR',
-      hospital: 'Our Lady of Lourdes Hospital',
+      hospital: NETWORK_FACILITY_NAMES[2],
       utilization: 70.8,
       totalBlockUtilization: 83.9,
       nonPrimePercentage: 9.7,

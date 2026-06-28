@@ -2,8 +2,8 @@
 
 Generated: 2026-06-25
 
-This artifact is a prototype 3D/4D patient-flow navigator for the 500-bed
-Level I trauma academic medical center CAD model. It supports historical replay
+This artifact is a prototype 3D/4D patient-flow navigator for the Summit
+Regional Medical Center CAD model. It supports historical replay
 and near-real-time simulated ADT streaming from HL7 v2 messages, with normalized
 FHIR-shaped patient movement events.
 

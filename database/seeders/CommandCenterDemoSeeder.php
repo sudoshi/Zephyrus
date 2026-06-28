@@ -14,6 +14,7 @@ use App\Models\PdsaCycle;
 use App\Models\RtdcPrediction;
 use App\Models\RtdcReconciliation;
 use App\Models\Unit;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use Illuminate\Support\Str;
 
 class CommandCenterDemoSeeder extends Seeder
 {
+    private HospitalManifest $manifest;
+
     /**
      * Run the database seeds.
      *
@@ -31,6 +34,9 @@ class CommandCenterDemoSeeder extends Seeder
      */
     public function run(): void
     {
+        // Single source of truth for unit/provider/service/transport names.
+        $this->manifest = app(HospitalManifest::class);
+
         // Fixed seed for deterministic output.
         mt_srand(20260622);
 
@@ -184,7 +190,7 @@ class CommandCenterDemoSeeder extends Seeder
      * UPDATE, not INSERT).
      *
      * Duplicates are soft-deleted in step 0a, so $canonicalUnits contains
-     * exactly 6 rows (one per abbreviation). No workaround needed.
+     * one row per abbreviation (the 25-unit Summit roster). No workaround needed.
      */
     private function tuneCommandCenterBusyState($canonicalUnits, ?Unit $edUnit): void
     {
@@ -196,41 +202,53 @@ class CommandCenterDemoSeeder extends Seeder
         // so this row always wins over earlier snapshots from the core seeder.
         //
         // Duplicates are soft-deleted; the service filters WHERE u.is_deleted=false,
-        // so only these 6 canonical units contribute to house totals.
+        // so only the canonical Summit units contribute to house totals.
         //
-        // Unit targets (staffed total = 180):
-        //   ED  (40): occ=35 avail=3 blocked=2  → 87.5% ; aac=37
-        //   5E  (32): occ=28 avail=2 blocked=2  → 87.5% ; aac=29
-        //   5W  (32): occ=27 avail=3 blocked=2  → 84.4% ; aac=28
-        //   6E  (32): occ=30 avail=1 blocked=1  → 93.75%; aac=28  (RED)
-        //   ICU (20): occ=18 avail=1 blocked=1  → 90%   ; aac=17  (RED)
-        //   SD  (24): occ=19 avail=4 blocked=1  → 79.2% ; aac=21
-        //   House totals: occ=157, avail=14, staffed=180 → 87.2% occupancy
-        //   avail=14, pending=12 → net_beds = 2  (tight house ✓)
+        // Targets are derived from HospitalManifest::censusDemoTargets() — the
+        // single source of truth for the 25-unit Summit roster (23 inpatient
+        // units summing to exactly 500 staffed beds, + ED + the PERIOP/OR
+        // platform). For each unit:
+        //   occupied  = target_occupied
+        //   blocked   = small heuristic (1 on a handful of high-occupancy units,
+        //               else 0; ~5 house-wide)
+        //   available = staffed_bed_count − occupied − blocked
+        //   aac       = occupied + small ICU/telemetry acuity adjustment
+        //
+        // House totals (23 inpatient units): staffed=500, occupied=432,
+        //   blocked≈5 → ~86% inpatient occupancy (tight house ✓). ED is tracked
+        //   separately (target_occupied=0; its boarding load is set in 10d).
         // ------------------------------------------------------------------
         $sentinelAt = now()->startOfDay()->addHours(12); // today at 12:00:00
 
-        // Keyed by unit abbreviation → [occupied, available, blocked, aac]
-        //
-        // Blocked target: house-wide = 4 (ED=1, 5E=1, 5W=1, 6E=0, ICU=1, SD=0).
-        // Occupancy target: ~87% house-wide (157 occ / 180 staffed).
-        // Available: avail = staffed − occupied − blocked.
-        //   ED  (40): 40 − 35 − 1 = 4
-        //   5E  (32): 32 − 28 − 1 = 3
-        //   5W  (32): 32 − 27 − 1 = 4
-        //   6E  (32): 32 − 30 − 0 = 2
-        //   ICU (20): 20 − 18 − 1 = 1
-        //   SD  (24): 24 − 19 − 0 = 5
-        //   House: occ=157, avail=19, blocked=4, staffed=180 → 87.2%
-        //   net_beds = avail(19) − pending(12) = 7  (comfortable but tight)
-        $censusTargets = [
-            'ED' => [35, 4, 1, 37],
-            '5E' => [28, 3, 1, 29],
-            '5W' => [27, 4, 1, 28],
-            '6E' => [30, 2, 0, 28],
-            'ICU' => [18, 1, 1, 17],
-            'SD' => [19, 5, 0, 21],
-        ];
+        // A small, deterministic set of high-occupancy units carry one blocked
+        // bed so the house-wide blocked count is realistic (~5) without forcing
+        // an alarm-fatigue dashboard. ICU/step-down units also get a modest
+        // acuity-adjusted-capacity (aac) bump above raw occupancy.
+        $blockedUnits = ['MICU', 'ONC', 'BMT', '6E', '7E'];
+
+        // Keyed by unit abbreviation → [occupied, available, blocked, aac],
+        // built from the manifest so every one of the 25 units gets a snapshot.
+        $censusTargets = [];
+        foreach ($this->manifest->censusDemoTargets() as $target) {
+            $abbr = $target['abbr'];
+            $staffed = (int) $target['staffed_beds'];
+            $occupied = (int) $target['target_occupied'];
+            $blocked = in_array($abbr, $blockedUnits, true) ? 1 : 0;
+            $available = max(0, $staffed - $occupied - $blocked);
+
+            // Acuity-adjusted capacity: ICU/step-down units run "heavier" than
+            // their raw occupancy; med/surg tracks occupancy 1:1.
+            $unitMeta = $this->manifest->unit($abbr);
+            $type = $unitMeta['type'] ?? 'med_surg';
+            $aacAdj = match ($type) {
+                'icu' => 2,
+                'step_down' => 1,
+                default => 0,
+            };
+            $aac = min($staffed, $occupied + $aacAdj);
+
+            $censusTargets[$abbr] = [$occupied, $available, $blocked, $aac];
+        }
 
         foreach ($canonicalUnits as $unit) {
             $abbr = $unit->abbreviation;
@@ -484,7 +502,9 @@ class CommandCenterDemoSeeder extends Seeder
         BedRequest::where('created_by', 'seeder')->delete();
 
         $sources = ['ed', 'transfer', 'direct', 'or'];
-        $services = ['Medicine', 'Surgery', 'Cardiology', 'Neurology', 'Orthopedics', 'Oncology'];
+        // Clinical service labels sourced from the manifest's service lines so
+        // bed-request services match the Summit roster (no hardcoded literals).
+        $services = array_map(fn ($l) => $l['name'], $this->manifest->serviceLines());
         $unitTypes = ['med_surg', 'icu', 'step_down', 'any'];
 
         // Fetch beds for decisions.
@@ -522,7 +542,7 @@ class CommandCenterDemoSeeder extends Seeder
                 'patient_ref' => sprintf('sim-br-%04d', $i),
                 'source' => $source,
                 'sex' => ['M', 'F'][$this->seededRand($seed + 1, 0, 1)],
-                'service' => $services[$this->seededRand($seed + 2, 0, 5)],
+                'service' => $services[$this->seededRand($seed + 2, 0, count($services) - 1)],
                 'acuity_tier' => $this->seededRand($seed + 3, 1, 4),
                 'isolation_required' => 'none',
                 'required_unit_type' => $unitTypes[$this->seededRand($seed + 4, 0, 3)],
@@ -615,14 +635,18 @@ class CommandCenterDemoSeeder extends Seeder
         DB::table('prod.staffing_requests')->where('requested_by', 'demo-seeder')->delete();
         DB::table('prod.staffing_plans')->whereDate('shift_date', $today)->delete();
 
-        // Pick the two short units: prefer 6E + ICU, else the first two non-ED.
-        $preferred = $nonEdUnits->filter(fn ($u) => in_array($u->abbreviation, ['6E', 'ICU'], true))->values();
+        // Pick the two short units to carry the "staffing is tight on two units"
+        // signal: one high-occupancy ICU + one high-occupancy med/surg unit from
+        // the manifest. Falls back to the first ICU/non-ED units if absent so the
+        // signal always lands on real units.
+        $preferredAbbrs = $this->highOccupancyShortUnitAbbrs();
+        $preferred = $nonEdUnits->filter(fn ($u) => in_array($u->abbreviation, $preferredAbbrs, true))->values();
         $shortUnits = ($preferred->count() >= 2 ? $preferred : $nonEdUnits->take(2))
             ->pluck('abbreviation')
             ->all();
 
         foreach ($nonEdUnits as $unit) {
-            $isIcu = $unit->type === 'icu' || $unit->abbreviation === 'ICU';
+            $isIcu = $unit->type === 'icu';
             $isShort = in_array($unit->abbreviation, $shortUnits, true);
 
             $rnRequired = $isIcu ? 5 : 6;
@@ -641,6 +665,37 @@ class CommandCenterDemoSeeder extends Seeder
                 $this->insertStaffingRequest($unit, 'rn', $today, $rnGap, $isIcu ? 'stat' : 'urgent', $rnStatus);
             }
         }
+    }
+
+    /**
+     * Return the two manifest unit abbreviations that should carry the
+     * "staffing is tight on two units" demo signal: the highest-occupancy ICU
+     * and the highest-occupancy med/surg-or-step-down unit (by target
+     * occupancy). Deterministic — driven entirely by the manifest.
+     *
+     * @return list<string>
+     */
+    private function highOccupancyShortUnitAbbrs(): array
+    {
+        $byOccDesc = $this->manifest->censusDemoTargets();
+        usort($byOccDesc, fn ($a, $b) => ($b['target_occupancy'] <=> $a['target_occupancy']));
+
+        $icu = null;
+        $ward = null;
+        foreach ($byOccDesc as $target) {
+            $unit = $this->manifest->unit($target['abbr']);
+            $type = $unit['type'] ?? null;
+            if ($icu === null && $type === 'icu') {
+                $icu = $target['abbr'];
+            } elseif ($ward === null && in_array($type, ['med_surg', 'step_down'], true)) {
+                $ward = $target['abbr'];
+            }
+            if ($icu !== null && $ward !== null) {
+                break;
+            }
+        }
+
+        return array_values(array_filter([$icu, $ward]));
     }
 
     private function insertStaffingPlan(Unit $unit, string $role, string $today, int $required, int $scheduled, int $minSafe, float $ratioTarget, string $status): void
@@ -791,6 +846,17 @@ class CommandCenterDemoSeeder extends Seeder
 
         $hasEvents = Schema::hasTable('prod.transport_events');
 
+        // Transport teams + post-acute destinations from the manifest.
+        $internalTeam = $this->manifest->transport()['internal_team']['name'] ?? 'Patient Transport';
+        $vendorTeams = array_map(fn ($v) => $v['name'], $this->manifest->transport()['vendors'] ?? []);
+        $vendorTeam = $vendorTeams[0] ?? $internalTeam;
+        $snfNames = $this->manifest->postAcuteNames('snf');
+        $homeHealthNames = $this->manifest->postAcuteNames('home_health');
+        // Care-transition destinations: alternate SNF / home-health from the
+        // post-acute network (falls back to any post-acute partner).
+        $snfDest = $snfNames[0] ?? ($this->manifest->postAcuteNames()[0] ?? 'Skilled Nursing Facility');
+        $homeHealthDest = $homeHealthNames[0] ?? ($this->manifest->postAcuteNames()[0] ?? 'Home Health Services');
+
         // [request_type, priority, mode, minutes_until_due] — negatives are overdue.
         // care_transition rows back the /transport/care-transitions worklist, which
         // was otherwise empty (the seeder never seeded that request_type).
@@ -812,7 +878,7 @@ class CommandCenterDemoSeeder extends Seeder
 
             $destinationName = match ($type) {
                 'discharge' => 'Main Lobby Discharge',
-                'care_transition' => $i % 2 === 0 ? 'Sunrise Skilled Nursing' : 'Home Health Services',
+                'care_transition' => $i % 2 === 0 ? $snfDest : $homeHealthDest,
                 default => $destination->name,
             };
 
@@ -833,7 +899,7 @@ class CommandCenterDemoSeeder extends Seeder
                 'requested_at' => $requestedAt,
                 'needed_at' => now()->addMinutes($minutesUntilDue),
                 'assigned_at' => $assignedAt,
-                'assigned_team' => $status === 'assigned' ? 'Porter Pool' : null,
+                'assigned_team' => $status === 'assigned' ? $internalTeam : null,
                 'is_deleted' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -914,7 +980,7 @@ class CommandCenterDemoSeeder extends Seeder
             $completedAt = (clone $arrivedAt)->addMinutes($this->seededRand($seed + 5, 8, 25));
 
             $status = $isCanceled ? 'canceled' : 'completed';
-            $team = $vendor ? 'MedTransport Partners' : 'Porter Pool';
+            $team = $vendor ? $vendorTeam : $internalTeam;
 
             $reqId = DB::table('prod.transport_requests')->insertGetId([
                 'request_uuid' => (string) Str::uuid(),
@@ -1103,11 +1169,14 @@ class CommandCenterDemoSeeder extends Seeder
         // Reference data (idempotent via updateOrInsert on natural keys).
         // ----------------------------------------------------------------
 
-        // Location.
+        // Location — display name aligned to the manifest's perioperative
+        // platform (the OR/periop unit); 'MOR' stays the immutable natural key.
+        $periopUnit = $this->manifest->unitsByType('periop')[0] ?? null;
+        $orLocationName = $periopUnit['short_name'] ?? 'Main OR Suite';
         $locationId = DB::table('prod.locations')->where('abbreviation', 'MOR')->value('location_id');
         if (! $locationId) {
             $locationId = DB::table('prod.locations')->insertGetId([
-                'name' => 'Main OR Suite',
+                'name' => $orLocationName,
                 'abbreviation' => 'MOR',
                 'type' => 'surgical',
                 'pos_type' => 'inpatient',
@@ -1120,10 +1189,31 @@ class CommandCenterDemoSeeder extends Seeder
             ], 'location_id');
         }
 
-        // Specialties.
-        $specialtyNames = [
-            'General Surgery', 'Orthopedics', 'Cardiology', 'Neurosurgery', 'OB/GYN',
-        ];
+        // Specialties + services — sourced from the manifest's surgical service
+        // lines so OR reference data matches the Summit roster. We take the
+        // perioperative-relevant lines (those that staff the OR platform) and
+        // fall back across the full service-line list to guarantee enough rows.
+        $surgicalLineCodes = ['trauma_surgery', 'cardiovascular', 'neurosciences', 'oncology', 'womens_health'];
+        $serviceLineByCode = [];
+        foreach ($this->manifest->serviceLines() as $line) {
+            $serviceLineByCode[$line['code']] = $line['name'];
+        }
+        // Ordered surgical lines that exist in the manifest, then any remaining
+        // lines, so we always have at least the 5 specialties / 4 services below.
+        $surgicalLines = [];
+        foreach ($surgicalLineCodes as $code) {
+            if (isset($serviceLineByCode[$code])) {
+                $surgicalLines[] = ['code' => $code, 'name' => $serviceLineByCode[$code]];
+            }
+        }
+        foreach ($this->manifest->serviceLines() as $line) {
+            if (! in_array($line['code'], $surgicalLineCodes, true)) {
+                $surgicalLines[] = ['code' => $line['code'], 'name' => $line['name']];
+            }
+        }
+
+        // Specialties (first 5 surgical lines).
+        $specialtyNames = array_map(fn ($l) => $l['name'], array_slice($surgicalLines, 0, 5));
         $specialtyIds = [];
         foreach ($specialtyNames as $idx => $name) {
             $code = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $name), 0, 6));
@@ -1144,13 +1234,14 @@ class CommandCenterDemoSeeder extends Seeder
             }
         }
 
-        // Services (4).
-        $serviceData = [
-            ['name' => 'General Surgery', 'code' => 'GS'],
-            ['name' => 'Orthopedics', 'code' => 'ORTHO'],
-            ['name' => 'Cardiology', 'code' => 'CARD'],
-            ['name' => 'Neurosurgery', 'code' => 'NEURO'],
-        ];
+        // Services (4) — first 4 surgical service lines from the manifest.
+        $serviceData = [];
+        foreach (array_slice($surgicalLines, 0, 4) as $line) {
+            $serviceData[] = [
+                'name' => $line['name'],
+                'code' => strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $line['name']), 0, 6)),
+            ];
+        }
         $serviceIds = [];
         foreach ($serviceData as $s) {
             $existing = DB::table('prod.services')->where('code', $s['code'])->first();
@@ -1170,13 +1261,24 @@ class CommandCenterDemoSeeder extends Seeder
             }
         }
 
-        // Providers (4 surgeons).
-        $providerData = [
-            ['name' => 'Dr. Smith',    'npi' => '1000000001', 'spec' => $specialtyIds[0]],
-            ['name' => 'Dr. Johnson',  'npi' => '1000000002', 'spec' => $specialtyIds[1]],
-            ['name' => 'Dr. Williams', 'npi' => '1000000003', 'spec' => $specialtyIds[2]],
-            ['name' => 'Dr. Brown',    'npi' => '1000000004', 'spec' => $specialtyIds[3]],
-        ];
+        // Providers (4 surgeons) — sourced from the manifest. Prefer providers
+        // whose role is surgeon; fall back to the full provider pool so we
+        // always have 4. Each is mapped onto one of the OR specialties above.
+        $manifestProviders = $this->manifest->providers();
+        $surgeonProviders = array_values(array_filter(
+            $manifestProviders,
+            fn ($p) => ($p['role'] ?? null) === 'surgeon'
+        ));
+        $providerPool = count($surgeonProviders) >= 4 ? $surgeonProviders : $manifestProviders;
+
+        $providerData = [];
+        foreach (array_slice($providerPool, 0, 4) as $idx => $p) {
+            $providerData[] = [
+                'name' => $p['name'],
+                'npi' => $p['npi'],
+                'spec' => $specialtyIds[$idx % count($specialtyIds)],
+            ];
+        }
         $providerIds = [];
         foreach ($providerData as $p) {
             $existing = DB::table('prod.providers')->where('npi', $p['npi'])->first();
@@ -1730,7 +1832,7 @@ class CommandCenterDemoSeeder extends Seeder
                 'unit_idx' => 0,
             ],
             [
-                'title' => 'Improve discharge-before-noon rate on 5 East',
+                'title' => 'Improve discharge-before-noon rate on a high-occupancy med/surg unit',
                 'status' => 'active',
                 'objective' => 'Increase DBN rate from 28% to 45% within 60 days.',
                 'unit_idx' => 1,

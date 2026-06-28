@@ -800,7 +800,7 @@ class RegionalTransferService
         return [
             [
                 'facility_code' => 'zephyrus_main',
-                'facility_name' => 'Zephyrus Academic Medical Center',
+                'facility_name' => 'Summit Regional Medical Center',
                 'organization_key' => 'zephyrus-network',
                 'campus_key' => 'main',
                 'building_key' => 'main_tower',

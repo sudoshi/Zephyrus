@@ -52,4 +52,15 @@ return [
         ))),
     ],
 
+    // Eddy — the process-aware AI agent. The browser never calls Eddy directly;
+    // the SPA calls Laravel /api/eddy/*, and Laravel proxies here server-side.
+    // Provider secrets (Anthropic key, etc.) live ONLY in the Eddy service env.
+    'eddy' => [
+        'enabled' => filter_var(env('EDDY_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'url' => env('EDDY_BASE_URL', 'http://eddy:8000'),
+        'timeout' => (int) env('EDDY_TIMEOUT_SECONDS', 30),
+        'shared_secret' => env('EDDY_SHARED_SECRET'),   // HMAC for Laravel<->Eddy request bodies
+        'callback_token' => env('EDDY_CALLBACK_TOKEN'), // bearer Eddy uses on non-user telemetry callbacks
+    ],
+
 ];

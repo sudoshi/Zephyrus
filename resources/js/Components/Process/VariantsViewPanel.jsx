@@ -4,6 +4,7 @@ import Panel from '@/Components/ui/Panel';
 import TabNavigation from '@/Components/ui/TabNavigation';
 import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
 import { getChartTheme } from '@/utils/chartTheme';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 const VariantsViewPanel = () => {
   const { isDarkMode } = useDarkMode();
@@ -13,7 +14,7 @@ const VariantsViewPanel = () => {
   const [hospitalFilter, setHospitalFilter] = useState('all');
   const [selectedMap, setSelectedMap] = useState('bed-assignment');
   
-  // Mock data for Virtua Health system bed assignment process
+  // Mock data for the Summit Health network bed assignment process
   const bedAssignmentStats = {
     totalCases: 287,
     totalVariants: 4,
@@ -97,7 +98,7 @@ const VariantsViewPanel = () => {
   // Hospital-specific data
   const hospitals = [
     {
-      name: "Virtua Memorial Hospital",
+      name: NETWORK_FACILITY_NAMES[1],
       bedCount: 320,
       avgTime: "3.7 hours",
       orPercentage: 38,
@@ -105,7 +106,7 @@ const VariantsViewPanel = () => {
       topSource: "OR"
     },
     {
-      name: "Virtua Voorhees Hospital",
+      name: NETWORK_FACILITY_NAMES[3],
       bedCount: 398,
       avgTime: "3.2 hours",
       edCount: 1245,
@@ -113,7 +114,7 @@ const VariantsViewPanel = () => {
       topSource: "ED"
     },
     {
-      name: "Virtua Marlton Hospital",
+      name: NETWORK_FACILITY_NAMES[0],
       bedCount: 188,
       avgTime: "1.4 hours",
       directAdmissionPercentage: 22,
@@ -121,7 +122,7 @@ const VariantsViewPanel = () => {
       topSource: "Direct Admissions"
     },
     {
-      name: "Virtua Willingboro Hospital",
+      name: NETWORK_FACILITY_NAMES[4],
       bedCount: 143,
       avgTime: "3.4 hours",
       directAdmissionPercentage: 24,
@@ -129,7 +130,7 @@ const VariantsViewPanel = () => {
       topSource: "Direct Admissions"
     },
     {
-      name: "Virtua Camden Hospital",
+      name: NETWORK_FACILITY_NAMES[2],
       bedCount: 125,
       avgTime: "3.9 hours",
       transferPercentage: 8,
@@ -309,7 +310,7 @@ const VariantsViewPanel = () => {
 
   const renderSummaryTab = () => (
     <div className="p-4">
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <Panel isSubpanel={true} dropLightIntensity="medium" title="Process Overview" className="bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
           <div className="grid grid-cols-2 gap-y-2">
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Cases (24h):</div>
@@ -337,7 +338,7 @@ const VariantsViewPanel = () => {
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-6 bg-healthcare-background dark:bg-healthcare-background-dark/30">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Bed Assignment Process Variants" className="mb-4 bg-healthcare-background dark:bg-healthcare-background-dark/30">
         <div className="p-4">
           <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4 text-center">Common bed assignment pathways by frequency</div>
           <div className="overflow-x-auto">
@@ -446,7 +447,7 @@ const VariantsViewPanel = () => {
             </div>
           </div>
           <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-4 text-center">
-            Figure: Visualization of common bed assignment pathways across Virtua Health System. 
+            Figure: Visualization of common bed assignment pathways across the Summit Health network.
             The most common pathway is direct ED to Bed assignment (38%), followed by Direct Admit pathways (26.1%).
           </div>
           
@@ -461,7 +462,7 @@ const VariantsViewPanel = () => {
         </div>
       </Panel>
       
-      <Panel isSubpanel={true} dropLightIntensity="strong" title="Key Process Insights" className="mb-6 bg-purple-50 dark:bg-purple-900/20">
+      <Panel isSubpanel={true} dropLightIntensity="strong" title="Key Process Insights" className="mb-4 bg-purple-50 dark:bg-purple-900/20">
         <ul className="text-sm space-y-2">
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
@@ -473,7 +474,7 @@ const VariantsViewPanel = () => {
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
-            <span className="dark:text-white">Virtua Marlton Hospital has the fastest average bed assignment time (1.4 hours), 56% better than the system average.</span>
+            <span className="dark:text-white">{NETWORK_FACILITY_NAMES[0]} has the fastest average bed assignment time (1.4 hours), 56% better than the system average.</span>
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
@@ -523,11 +524,11 @@ const VariantsViewPanel = () => {
                 onChange={(e) => setHospitalFilter(e.target.value)}
               >
                 <option value="all">All Hospitals</option>
-                <option value="memorial">Virtua Memorial</option>
-                <option value="voorhees">Virtua Voorhees</option>
-                <option value="marlton">Virtua Marlton</option>
-                <option value="willingboro">Virtua Willingboro</option>
-                <option value="camden">Virtua Camden</option>
+                <option value="hawthorne">{NETWORK_FACILITY_NAMES[1]}</option>
+                <option value="glenmoore">{NETWORK_FACILITY_NAMES[3]}</option>
+                <option value="main">{NETWORK_FACILITY_NAMES[0]}</option>
+                <option value="castleton">{NETWORK_FACILITY_NAMES[4]}</option>
+                <option value="riverton">{NETWORK_FACILITY_NAMES[2]}</option>
               </select>
             </div>
             <div>
@@ -606,7 +607,7 @@ const VariantsViewPanel = () => {
   
   const renderOutliersTab = () => (
     <div className="p-4">
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-6 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-4 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
         <p className="text-sm mb-3 dark:text-white">Outliers are defined as bed assignments taking {'>'}6 hours (approximately 2 standard deviations above mean). These cases represent 12% of total bed assignments.</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -644,7 +645,7 @@ const VariantsViewPanel = () => {
         </div>
       </Panel>
       
-      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-6 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="medium" title="Hospital-Specific Outlier Rates" className="mb-4 bg-healthcare-info/10 dark:bg-healthcare-info-dark/20">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-healthcare-info/20 dark:divide-healthcare-info-dark/30">
             <thead>
@@ -657,31 +658,31 @@ const VariantsViewPanel = () => {
             </thead>
             <tbody className="divide-y divide-healthcare-info/20 dark:divide-healthcare-info-dark/30">
               <tr>
-                <td className="px-3 py-2 text-sm dark:text-white">Virtua Memorial</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[1]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">14%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">ED (76%)</td>
                 <td className="px-3 py-2 text-sm dark:text-white">8.2 hours</td>
               </tr>
               <tr>
-                <td className="px-3 py-2 text-sm dark:text-white">Virtua Voorhees</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[3]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">11%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">ED (82%)</td>
                 <td className="px-3 py-2 text-sm dark:text-white">7.6 hours</td>
               </tr>
               <tr>
-                <td className="px-3 py-2 text-sm dark:text-white">Virtua Marlton</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[0]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">6%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (54%)</td>
                 <td className="px-3 py-2 text-sm dark:text-white">6.8 hours</td>
               </tr>
               <tr>
-                <td className="px-3 py-2 text-sm dark:text-white">Virtua Willingboro</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[4]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">15%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (68%)</td>
                 <td className="px-3 py-2 text-sm dark:text-white">9.1 hours</td>
               </tr>
               <tr>
-                <td className="px-3 py-2 text-sm dark:text-white">Virtua Camden</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[2]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">18%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (72%)</td>
                 <td className="px-3 py-2 text-sm dark:text-white">9.7 hours</td>
@@ -748,7 +749,7 @@ const VariantsViewPanel = () => {
   
   const renderStatisticsTab = () => (
     <div className="p-4">
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <Panel isSubpanel={true} dropLightIntensity="medium" title="Time of Day Impact" className="bg-indigo-50 dark:bg-indigo-900/20">
           {/* Chart container with proper styling according to standards */}
           <div className="mt-2 p-4 bg-gray-900 rounded-lg">
@@ -827,7 +828,7 @@ const VariantsViewPanel = () => {
         </Panel>
       </div>
       
-      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-6 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
+      <Panel isSubpanel={true} dropLightIntensity="strong" title="Hospital Performance Comparison" className="mb-4 bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
         {/* Chart container with proper styling according to standards */}
         <div className="mt-2 p-4 bg-gray-900 rounded-lg mb-3">
           {/* This is where a hospital comparison chart would be rendered using the chart theme */}

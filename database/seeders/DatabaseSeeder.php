@@ -17,6 +17,14 @@ class DatabaseSeeder extends Seeder
             // ran only via the rtdc:demo-reset command, so a bare `db:seed` left the
             // RTDC spine empty.) RtdcSeeder is idempotent (firstOrCreate).
             RtdcSeeder::class,
+            // ProviderRegistrySeeder seeds the full clinical provider roster
+            // (prod.providers, NPIs 17000000xx) plus the service-line catalog
+            // (prod.specialties / prod.services) from the HospitalManifest. It
+            // runs BEFORE CommandCenterDemoSeeder so the named attendings and
+            // every service line exist before CCDS layers operational demo data;
+            // both key reference rows on natural keys (npi / code), so the
+            // overlap is reused, not duplicated. Idempotent.
+            ProviderRegistrySeeder::class,
             // CommandCenterDemoSeeder owns the full reference set (locations,
             // specialties, services, providers, rooms, ASA/case-type/class) AND the
             // operational demo data. (TestDataSeeder was removed from the chain: its

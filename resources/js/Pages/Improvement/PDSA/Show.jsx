@@ -35,7 +35,7 @@ const Show = ({ auth, cycle }) => {
       
       <div className="p-4">
         <div>
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <Link href="/improvement/pdsa">
               <button className="healthcare-button-secondary flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
@@ -49,7 +49,7 @@ const Show = ({ auth, cycle }) => {
           </div>
 
           <div className="healthcare-card">
-            <div className="border-b p-6">
+            <div className="border-b p-4">
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold">{cycle.title}</h2>
                 <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.objective}</p>
@@ -72,7 +72,7 @@ const Show = ({ auth, cycle }) => {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4">
               <Tabs defaultValue="plan" className="w-full">
                 <TabsList className="w-full justify-start">
                   <TabsTrigger value="plan">Plan</TabsTrigger>
@@ -84,7 +84,7 @@ const Show = ({ auth, cycle }) => {
                 </TabsList>
 
                 <TabsContent value="plan" className="mt-6">
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Objective</h3>
                       <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{cycle.plan?.objective}</p>
@@ -150,7 +150,7 @@ const Show = ({ auth, cycle }) => {
                 </TabsContent>
 
                 <TabsContent value="study" className="mt-6">
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Key Metrics</h3>
                       <ul className="list-disc ml-5 space-y-1">

@@ -13,8 +13,9 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    // HasApiTokens added for the Hummingbird mobile companion (token-based API auth).
-    // This is an ADDITIVE change: the web session-cookie auth flow is unchanged.
+    // HasApiTokens provides Sanctum token-based API auth — used by the Hummingbird
+    // mobile companion (mobile access tokens) and by the Eddy agent (short-TTL,
+    // ability-scoped tokens). Additive: the web session-cookie auth flow is unchanged.
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**

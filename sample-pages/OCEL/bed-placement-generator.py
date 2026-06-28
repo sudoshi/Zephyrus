@@ -13,11 +13,11 @@ def generate_bed_placement_data(num_cases=50):
     
     # Define hospitals with bed counts from the paper
     hospitals = {
-        'Virtua Memorial Hospital': 320,
-        'Virtua Voorhees Hospital': 398,
-        'Virtua Marlton Hospital': 188,
-        'Virtua Willingboro Hospital': 143,
-        'Virtua Camden Hospital': 125
+        'Summit Health — Hawthorne Campus': 320,
+        'Summit Health — Glenmoore Medical Center': 398,
+        'Summit Regional Medical Center': 188,
+        'Summit Health — Castleton General Hospital': 143,
+        'Summit Health — Riverton Community Hospital': 125
     }
     
     # Define input nodes (case origins) from the paper

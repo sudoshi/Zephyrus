@@ -2,6 +2,7 @@
 
 namespace App\Services\Operations;
 
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,8 @@ class RoomStatusService
 
     /** Elapsed/scheduled ratio beyond which an in-progress case reads as delayed. */
     private const DELAY_RATIO = 1.15;
+
+    public function __construct(private readonly HospitalManifest $manifest) {}
 
     /**
      * @return array{rooms:list<array<string,mixed>>,generatedAt:string}
@@ -271,14 +274,22 @@ class RoomStatusService
      */
     private function staff(object $c): array
     {
-        $anesthesiologists = ['Dr. Patel', 'Dr. Nguyen', 'Dr. Garcia', 'Dr. Cohen'];
-        $nurses = ['Mary Johnson', 'Sarah Lee', 'Emily Davis', 'Anna Martins'];
-        $i = (int) $c->case_id % 4;
+        $surgeon = (string) $c->surgeon;
+        $anesthesiologists = $this->manifest->providerNames('perioperative');
+        $nurses = $this->manifest->nurseNames();
+        $caseId = (int) $c->case_id;
+
+        $anes = $anesthesiologists === []
+            ? $surgeon
+            : $anesthesiologists[$caseId % count($anesthesiologists)];
+        $nurse = $nurses === []
+            ? $surgeon
+            : $nurses[$caseId % count($nurses)];
 
         return [
-            ['name' => (string) $c->surgeon, 'role' => 'Surgeon'],
-            ['name' => $anesthesiologists[$i], 'role' => 'Anesthesiologist'],
-            ['name' => $nurses[$i], 'role' => 'Scrub Nurse'],
+            ['name' => $surgeon, 'role' => 'Surgeon'],
+            ['name' => $anes, 'role' => 'Anesthesiologist'],
+            ['name' => $nurse, 'role' => 'Scrub Nurse'],
         ];
     }
 

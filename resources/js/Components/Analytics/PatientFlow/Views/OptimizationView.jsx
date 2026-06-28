@@ -80,10 +80,10 @@ const OptimizationView = ({ data }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Panel title="Optimization Scenarios" isSubpanel={false}>
         <div className="p-4">
-          <div className="mb-6">
+          <div className="mb-4">
             <h3 className="text-lg font-medium mb-2">Process Optimization Recommendations</h3>
             <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Based on analysis of your patient flow data, the following optimization scenarios 
@@ -145,7 +145,7 @@ const OptimizationView = ({ data }) => {
         </div>
       </Panel>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Panel title="Current vs. Optimized Metrics" isSubpanel={false}>
           <div className="p-4">
             <table className="min-w-full divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
@@ -204,7 +204,7 @@ const OptimizationView = ({ data }) => {
           <div className="relative">
             <div className="absolute h-full w-0.5 bg-healthcare-info/20 dark:bg-healthcare-info-dark/30 left-6 top-0"></div>
             
-            <div className="relative z-10 mb-6">
+            <div className="relative z-10 mb-4">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:analytics" className="h-6 w-6" />
@@ -219,7 +219,7 @@ const OptimizationView = ({ data }) => {
               </div>
             </div>
             
-            <div className="relative z-10 mb-6">
+            <div className="relative z-10 mb-4">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:development" className="h-6 w-6" />
@@ -234,7 +234,7 @@ const OptimizationView = ({ data }) => {
               </div>
             </div>
             
-            <div className="relative z-10 mb-6">
+            <div className="relative z-10 mb-4">
               <div className="flex items-start">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-healthcare-info/10 dark:bg-healthcare-info-dark/20 text-healthcare-info dark:text-healthcare-info-dark">
                   <Icon icon="carbon:deployment-policy" className="h-6 w-6" />

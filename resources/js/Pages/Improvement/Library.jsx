@@ -20,13 +20,13 @@ const Library = ({ resources = [] }) => {
         subtitle="Access improvement resources and templates"
       >
         {/* Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {categories.map((category, index) => {
             const Icon = category.icon;
             return (
               <div
                 key={index}
-                className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-6 shadow-sm transition-colors duration-300"
+                className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg p-4 shadow-sm transition-colors duration-300"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-healthcare-primary/10 dark:bg-healthcare-primary-dark/10 rounded-lg">
@@ -46,7 +46,7 @@ const Library = ({ resources = [] }) => {
 
         {/* Resources List */}
         <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-sm transition-colors duration-300">
-          <div className="p-6 border-b border-healthcare-border dark:border-healthcare-border-dark">
+          <div className="p-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 Recent Resources
@@ -59,7 +59,7 @@ const Library = ({ resources = [] }) => {
           </div>
           <div className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
             {resources.map((resource, index) => (
-              <div key={index} className="p-6 flex items-center justify-between">
+              <div key={index} className="p-4 flex items-center justify-between">
                 <div>
                   <h4 className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark font-medium mb-1">
                     {resource.title}
@@ -94,7 +94,7 @@ const Library = ({ resources = [] }) => {
             <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark mb-2">
               No Resources Yet
             </h3>
-            <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-6">
+            <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-4">
               Add your first resource to the library
             </p>
             <Button className="flex items-center gap-2 bg-healthcare-primary hover:bg-healthcare-primary/90 text-white dark:bg-healthcare-primary-dark dark:hover:bg-healthcare-primary-dark/90">

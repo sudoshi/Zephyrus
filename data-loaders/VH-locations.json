@@ -2,27 +2,27 @@
   "hospitals": [
     {
       "id": "marh",
-      "name": "Virtua Marlton Hospital",
+      "name": "Summit Regional Medical Center",
       "code": "MARH"
     },
     {
       "id": "memh",
-      "name": "Virtua Mount Holly Hospital",
+      "name": "Summit Health — Hawthorne Campus",
       "code": "MEMH"
     },
     {
       "id": "ollh",
-      "name": "Virtua Our Lady of Lourdes Hospital",
+      "name": "Summit Health — Riverton Community Hospital",
       "code": "OLLH"
     },
     {
       "id": "vorh",
-      "name": "Virtua Voorhees Hospital",
+      "name": "Summit Health — Glenmoore Medical Center",
       "code": "VORH"
     },
     {
       "id": "wilh",
-      "name": "Virtua Willingboro Hospital",
+      "name": "Summit Health — Castleton General Hospital",
       "code": "WILH"
     }
   ],
@@ -32,13 +32,13 @@
       "id": "marh-ir",
       "name": "MARH IR",
       "hospitalId": "marh",
-      "fullName": "Marlton Interventional Radiology"
+      "fullName": "Summit Interventional Radiology"
     },
     {
       "id": "marh-or",
       "name": "MARH OR",
       "hospitalId": "marh",
-      "fullName": "Marlton Operating Room"
+      "fullName": "Summit Operating Room"
     },
     {
       "id": "memh-mhas-or",
@@ -56,31 +56,31 @@
       "id": "ollh-or",
       "name": "OLLH OR",
       "hospitalId": "ollh",
-      "fullName": "Our Lady of Lourdes Operating Room"
+      "fullName": "Riverton Operating Room"
     },
     {
       "id": "vorh-jri-or",
       "name": "VORH JRI OR",
       "hospitalId": "vorh",
-      "fullName": "Voorhees Joint Replacement Institute OR"
+      "fullName": "Glenmoore Joint Replacement Institute OR"
     },
     {
       "id": "vorh-or",
       "name": "VORH OR",
       "hospitalId": "vorh",
-      "fullName": "Voorhees Operating Room"
+      "fullName": "Glenmoore Operating Room"
     },
     {
       "id": "vssc-or",
       "name": "VSSC OR",
       "hospitalId": "vorh",
-      "fullName": "Voorhees Surgical Short Case OR"
+      "fullName": "Glenmoore Surgical Short Case OR"
     },
     {
       "id": "wilh-or",
       "name": "WILH OR",
       "hospitalId": "wilh",
-      "fullName": "Willingboro Operating Room"
+      "fullName": "Castleton Operating Room"
     }
   ],
 
