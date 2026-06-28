@@ -6,11 +6,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable;
+    // HasApiTokens enables short-TTL, ability-scoped tokens for the Eddy agent
+    // (Sanctum is already installed/configured). Additive — changes no auth behavior.
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The table associated with the model.
