@@ -5,11 +5,13 @@ use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Eddy\EddyActionController;
+use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
 use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
+use App\Http\Controllers\Api\Mobile\EddyController as MobileEddyController;
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
@@ -187,6 +189,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
     Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
     Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+
+    // Phase 6 — super-admin: cost/redaction accounting, route simulator, knowledge review.
+    Route::get('/admin/usage', [EddyAdminController::class, 'usage']);
+    Route::post('/admin/route-simulate', [EddyAdminController::class, 'simulate']);
+    Route::get('/admin/knowledge/proposed', [EddyAdminController::class, 'proposedKnowledge']);
+    Route::post('/admin/knowledge/{uuid}/review', [EddyAdminController::class, 'reviewKnowledge']);
 });
 
 // Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
@@ -367,4 +375,18 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
 
     Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
+
+    // Eddy — process-aware AI agent on mobile. Chat + conversations + the approval
+    // inbox are reads (mobile:read). The approval DECISION is a human write and
+    // additionally requires mobile:act — Eddy's scoped token never reaches here.
+    Route::prefix('eddy')->group(function () {
+        Route::post('/chat', [MobileEddyController::class, 'chat']);
+        Route::post('/chat/stream', [MobileEddyController::class, 'stream']);
+        Route::get('/conversations', [MobileEddyController::class, 'conversations']);
+        Route::get('/conversations/{uuid}', [MobileEddyController::class, 'conversation']);
+        Route::get('/approvals', [MobileEddyController::class, 'approvals']);
+        Route::get('/approvals/{uuid}', [MobileEddyController::class, 'approval']);
+        Route::post('/approvals/{uuid}/decision', [MobileEddyController::class, 'decide'])
+            ->middleware(CheckForAnyAbility::class.':mobile:act');
+    });
 });

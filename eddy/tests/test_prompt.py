@@ -45,3 +45,25 @@ def test_no_context_yields_no_blocks():
     prompt = build_system_prompt("chat", None, None)
     assert "LIVE OPERATIONS DATA" not in prompt
     assert "KNOWLEDGE BASE" not in prompt
+
+
+def test_learned_preferences_are_injected():
+    prompt = build_system_prompt(
+        "rtdc",
+        None,
+        {
+            "roles": ["charge_nurse"],
+            "preferences": {
+                "preferred_actions": ["flag_barrier"],
+                "discouraged_actions": ["propose_bed_placement"],
+            },
+        },
+    )
+    assert "LEARNED PREFERENCES" in prompt
+    assert "flag_barrier" in prompt
+    assert "propose_bed_placement" in prompt
+
+
+def test_empty_preferences_yield_no_block():
+    prompt = build_system_prompt("rtdc", None, {"roles": ["charge_nurse"], "preferences": {}})
+    assert "LEARNED PREFERENCES" not in prompt

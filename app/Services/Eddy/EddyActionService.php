@@ -35,7 +35,11 @@ class EddyActionService
         'propose_surge_plan' => ['tier' => 'T3', 'risk' => 'critical', 'label' => 'Propose a surge / red-stretch plan', 'recommendation_type' => 'eddy_surge'],
     ];
 
-    public function __construct(private readonly OperationalActionLifecycleService $lifecycle) {}
+    public function __construct(
+        private readonly OperationalActionLifecycleService $lifecycle,
+        private readonly EddyApprovalNotifier $notifier,
+        private readonly EddyLearningService $learning,
+    ) {}
 
     public function catalog(): array
     {
@@ -113,7 +117,16 @@ class EddyActionService
         $approved = false;
         if ($approve) {
             $this->lifecycle->decideApproval($approval, 'approved', 'Approved via Eddy dock.', $actor->id);
+            $this->learning->recordDecision($actor, $actionType, 'approved');   // Phase 6 learning signal
             $approved = true;
+        }
+
+        // Pending (not auto-approved) → ring the PHI-free Hummingbird doorbell so an
+        // approver can review on mobile. Resolves to the actor unless an explicit
+        // approver target is given. No-op when push is disabled (the default).
+        if (! $approved) {
+            $approver = $this->resolveApprover($actor, $proposal['notify_user_id'] ?? null);
+            $this->notifier->notifyApprover($approval->refresh(), $approver);
         }
 
         $action->refresh();
@@ -129,5 +142,23 @@ class EddyActionService
             'status' => $action->status,        // 'approved' if auto-approved, else 'draft'
             'approved' => $approved,
         ];
+    }
+
+    /**
+     * Resolve who should receive the approval doorbell. Defaults to the proposing
+     * actor; an explicit, valid user id overrides (a future approver-routing policy
+     * can supply this). An unresolvable id falls back to the actor — never null,
+     * so the seam can't silently drop a pending approval.
+     */
+    private function resolveApprover(User $actor, mixed $notifyUserId): User
+    {
+        if ($notifyUserId !== null && (int) $notifyUserId !== (int) $actor->id) {
+            $target = User::find((int) $notifyUserId);
+            if ($target) {
+                return $target;
+            }
+        }
+
+        return $actor;
     }
 }

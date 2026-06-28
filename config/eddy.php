@@ -60,4 +60,48 @@ return [
         'write' => ['ops:read', 'ops:draft'],
     ],
 
+    // Mobile (Hummingbird) push — the PHI-free "Eddy has a suggestion" doorbell.
+    // The doorbell carries ONLY {approval_uuid, action_uuid, action_type, surface,
+    // tier, deep_link} — never params, rationale, or any clinical/patient detail.
+    // The native app fetches the dry-run on open over the biometric-gated token.
+    'push' => [
+        // When false, an Eddy proposal lands pending in the inbox without ringing
+        // the doorbell (the seam stays inert until mobile push is provisioned).
+        'enabled' => filter_var(env('EDDY_PUSH_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+        // Deep link the native app routes on tap (mirrors the web /ops agent-inbox).
+        'deep_link' => env('EDDY_PUSH_DEEP_LINK', 'zephyrus://eddy/approvals'),
+
+        // Action-catalog risk → notification tier. Tier-1 is an iOS Critical Alert /
+        // high-priority FCM channel, RESERVED for genuine capacity breaches (earned
+        // urgency). Everything routine is Tier-2/3. Derived server-side; the app is
+        // presentation-only. Keys are the EddyActionService::CATALOG risk levels.
+        'tier_by_risk' => [
+            'critical' => 'tier_1',
+            'high' => 'tier_1',
+            'medium' => 'tier_2',
+            'low' => 'tier_3',
+        ],
+    ],
+
+    // Phase 6 — institutional knowledge RAG. The schema gets an `embedding vector(N)`
+    // column iff pgvector is present (the migration adds it); this flag gates whether
+    // retrieval actually computes/uses embeddings. OFF → deterministic keyword/FTS
+    // (the Phase 2 path) still works. The model must emit `dimensions`-wide vectors.
+    'embeddings' => [
+        'enabled' => filter_var(env('EDDY_EMBEDDINGS_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'model' => env('EDDY_EMBEDDING_MODEL', 'nomic-embed-text'),
+        'dimensions' => (int) env('EDDY_EMBEDDING_DIMENSIONS', 768),
+        // Weight blending the cosine similarity (0..1) with the keyword overlap when
+        // both are available. 1.0 = pure vector, 0.0 = pure keyword.
+        'vector_weight' => (float) env('EDDY_EMBEDDING_VECTOR_WEIGHT', 0.7),
+    ],
+
+    // Phase 6 — preference learning. Human approve/reject/override of Eddy proposals
+    // rolls up into per-user action preferences injected into the chat envelope so
+    // Eddy's runner-up ordering shifts toward what this user actually sanctions.
+    'learning' => [
+        'enabled' => filter_var(env('EDDY_LEARNING_ENABLED', true), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     eddy_ollama_num_predict: int = 256
     eddy_warmup_on_startup: bool = False
 
+    # --- embeddings (institutional-knowledge RAG, Phase 6) ---
+    eddy_embedding_model: str = "nomic-embed-text"
+
     # --- frontier provider (Anthropic / Claude Agent SDK) ---
     anthropic_api_key: str = ""
     eddy_cloud_chat_model: str = "claude-sonnet-4-6"
