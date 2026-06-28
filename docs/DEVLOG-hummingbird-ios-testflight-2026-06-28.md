@@ -59,10 +59,23 @@ One `AppConfig` resolved per build so the same source runs against the right hos
   **valid TLS** (`ssl_verify_result = 0`).
 - `GET /api/mobile/v1/me` (Accept: application/json) → `401 {"message":"Unauthenticated."}`;
   `POST /api/auth/token` (empty) → `422` with JSON validation errors — routes live and correct.
-- **Realtime caveat:** `wss://.../app/<key>` returns Apache **404** — the Reverb websocket
-  (LAN `:8080`) is **not proxied** at the edge. Release builds fall back to **polling**
-  (the app's designed fallback); live "badge" stays off until the proxy + `REVERB_APP_KEY`
-  are reconciled.
+- **Realtime — RESOLVED (2026-06-28):** `wss://zephyrus.acumenus.net/app/zephyrus-key` now
+  returns **`101 Switching Protocols`** (was Apache 404). The root cause was deeper than a
+  missing proxy: host `:8080` was held by **Aurora's** orphaned host-level Reverb, Zephyrus
+  had **no** Reverb of its own, and prod `.env` carried only the legacy `BROADCAST_DRIVER=log`
+  (Laravel 11 ignores it) with **zero** `REVERB_*`. Fix (four layers):
+  1. Moved Aurora's orphaned host-level `aurora-reverb.service` `8080 → 8094` (its public
+     realtime is served by its Docker stack via `:8085`, so unaffected), freeing `:8080`.
+  2. Stood up **`zephyrus-reverb.service`** (www-data, `127.0.0.1:8080`, enabled).
+  3. Prod `.env`: `BROADCAST_CONNECTION=reverb` + full `REVERB_*` block — broadcaster triggers
+     over **loopback** (`REVERB_HOST=127.0.0.1`) so a publish never hairpins through the TLS
+     edge; clients are advertised the **public** endpoint via new `REVERB_PUBLIC_*`.
+  4. Apache `:443` vhost: `mod_proxy_wstunnel` `/app/ → 127.0.0.1:8080` ahead of the Laravel
+     front controller (triggers `/apps/…` stay loopback-only).
+  Verified end-to-end: a `BedsChanged`-shape event published through prod's exact broadcaster
+  config was delivered to a subscribed client on `hospital.beds`. **Note:** prod must take the
+  push-first census code (PR #9 / commit `1d9f3e9`) for the live "badge" to fire on real census
+  changes — the transport is now live, the broadcasting code deploy is the last step.
 
 ## Validation
 - **Device:** Hummingbird installed + launched on a physical iPhone 15 (iPhone16,2).
@@ -73,8 +86,11 @@ One `AppConfig` resolved per build so the same source runs against the right hos
   *Zephyrus-Hummingbird* (`net.acumenus.hummingbird`, App Store ID `6785290384`).
 
 ## Follow-ups
-- Proxy the Reverb websocket at the edge (Apache `mod_proxy_wstunnel`, `/app/` → `:8080`)
-  and reconcile `REVERB_APP_KEY` to light up live updates in Release/TestFlight.
+- ~~Proxy the Reverb websocket at the edge~~ **DONE** (see Realtime — RESOLVED above). The WS
+  transport is live (`101`); the remaining step is deploying the push-first census code to prod
+  (PR #9 / `1d9f3e9`) so real census changes emit `BedsChanged`/`CensusUpdated`.
+- Move Aurora's host-level Reverb off the temporary `:8094` to its own supervised home (it is
+  currently orphaned relative to Aurora's Docker-served realtime) — deferred, low priority.
 - Add internal TestFlight testers (instant, no Beta App Review).
 - Optionally align `MARKETING_VERSION` (`0.1.0`) with the App Store version record (`1.0`).
 

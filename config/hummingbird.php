@@ -43,4 +43,17 @@ return [
         'hospital.beds',
     ],
 
+    // The Reverb endpoint advertised to mobile/web clients. This is deliberately
+    // SEPARATE from the broadcaster's trigger target (broadcasting.connections.reverb
+    // .options.*): in production the server triggers events over loopback
+    // (REVERB_HOST=127.0.0.1) so a publish never hairpins through the TLS edge, while
+    // clients must be told the PUBLIC host that Apache fronts (mod_proxy_wstunnel on
+    // /app). Falls back to the trigger vars so local dev — where both are the same
+    // localhost:8080 — needs no extra config.
+    'realtime_public' => [
+        'host' => env('REVERB_PUBLIC_HOST', env('REVERB_HOST', 'localhost')),
+        'port' => (int) env('REVERB_PUBLIC_PORT', (int) env('REVERB_PORT', 8080)),
+        'scheme' => env('REVERB_PUBLIC_SCHEME', env('REVERB_SCHEME', 'http')),
+    ],
+
 ];

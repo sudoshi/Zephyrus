@@ -21,8 +21,12 @@ class RealtimeConfigController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $reverb = config('broadcasting.connections.reverb', []);
-        $options = $reverb['options'] ?? [];
+        // The app KEY comes from the broadcaster credentials, but the host/port/scheme
+        // advertised here are the PUBLIC endpoint Apache fronts — NOT the broadcaster's
+        // loopback trigger target (broadcasting.connections.reverb.options.*), which in
+        // production points at 127.0.0.1 to keep publishes off the TLS edge.
+        $key = config('broadcasting.connections.reverb.key');
+        $public = config('hummingbird.realtime_public', []);
 
         $channels = config('hummingbird.realtime_channels', []);
         foreach ($request->user()->units()->get()->pluck('unit_id') as $unitId) {
@@ -31,10 +35,10 @@ class RealtimeConfigController extends Controller
 
         return $this->envelope([
             'scheme' => 'reverb-pusher',
-            'key' => $reverb['key'] ?? null,
-            'host' => $options['host'] ?? null,
-            'port' => (int) ($options['port'] ?? 443),
-            'tls' => ($options['scheme'] ?? 'https') === 'https',
+            'key' => $key,
+            'host' => $public['host'] ?? null,
+            'port' => (int) ($public['port'] ?? 443),
+            'tls' => ($public['scheme'] ?? 'https') === 'https',
             'channels' => array_values(array_unique($channels)),
             'note' => 'Reverb does not replay; re-snapshot tracked queries on every (re)connect.',
         ]);
