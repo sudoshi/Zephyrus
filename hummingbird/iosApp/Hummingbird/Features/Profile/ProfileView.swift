@@ -7,6 +7,14 @@ struct ProfileView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
     @Environment(\.dismiss) private var dismiss
+    @State private var census: [CensusUnit] = []
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    /// Demo / admin accounts get the quick persona switcher and skip onboarding.
+    private var isSuperuser: Bool {
+        auth.me?.isAdmin == true || auth.me?.workflowPreference == "superuser"
+    }
 
     var body: some View {
         NavigationStack {
@@ -14,6 +22,7 @@ struct ProfileView: View {
                 VStack(spacing: Z.s4) {
                     identity
                     shiftCard
+                    if isSuperuser { personaSwitcher }
                     accountCard
                     aboutCard
                     signOut
@@ -28,8 +37,52 @@ struct ProfileView: View {
                     Button("Done") { dismiss() }.tint(Z.primary)
                 }
             }
+            .task {
+                // Census powers a sensible default unit when switching into a unit-bound persona.
+                if let env = try? await api.census(bearer: auth.accessToken ?? "") { census = env.data }
+            }
         }
         .tint(Z.primary)
+    }
+
+    // MARK: Persona switcher (demo / superuser)
+
+    private var personaSwitcher: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                sectionLabel("SWITCH PERSONA")
+                Text("Jump into any role to demo its tailored view.")
+                    .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                ForEach(Array(Role.catalog.enumerated()), id: \.element.id) { index, role in
+                    if index > 0 { Divider().overlay(Z.border) }
+                    Button { switchTo(role) } label: { personaRow(role) }
+                        .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func personaRow(_ role: Role) -> some View {
+        let isCurrent = profile.roleId == role.id
+        return HStack(spacing: Z.s3) {
+            Image(systemName: role.symbol)
+                .font(.system(size: 18))
+                .foregroundStyle(isCurrent ? Z.primary : Z.inkMuted)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(role.title)
+                    .font(.system(size: 15, weight: isCurrent ? .semibold : .medium))
+                    .foregroundStyle(Z.ink)
+                Text(role.subtitle)
+                    .font(.system(size: 12)).foregroundStyle(Z.inkMuted).lineLimit(1)
+            }
+            Spacer()
+            if isCurrent {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16)).foregroundStyle(Z.primary)
+            }
+        }
+        .contentShape(Rectangle())
     }
 
     // MARK: Identity
@@ -133,6 +186,29 @@ struct ProfileView: View {
         guard let id = auth.me?.id else { return }
         dismiss()
         profile.reset(userId: id) // RootView re-gates to onboarding
+    }
+
+    /// One-tap persona switch for demos: confirm the role with a sensible default unit
+    /// (the most pressured matching unit for unit-bound roles; House-wide otherwise).
+    private func switchTo(_ role: Role) {
+        guard let id = auth.me?.id else { return }
+        let unit = defaultUnit(for: role)
+        profile.confirm(userId: id, roleId: role.id,
+                        unitId: unit?.unitId, unitName: unit?.name ?? "House-wide")
+        dismiss()
+    }
+
+    private func defaultUnit(for role: Role) -> CensusUnit? {
+        guard role.unitBound, !census.isEmpty else { return nil }
+        let pool: [CensusUnit]
+        if role.id == "intensivist" {
+            pool = census.filter { $0.type == "icu" || $0.type == "step_down" }
+        } else {
+            let medSurg = census.filter { $0.type == "med_surg" }
+            pool = medSurg.isEmpty ? census : medSurg
+        }
+        // Prefer the unit with the most going on, so the demo lands somewhere interesting.
+        return pool.max { ($0.bedNeed, $0.occupied) < ($1.bedNeed, $1.occupied) } ?? pool.first
     }
 
     private func signOutTapped() {

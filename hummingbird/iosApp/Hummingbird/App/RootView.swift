@@ -16,7 +16,7 @@ struct RootView: View {
             case .needsPasswordChange:
                 ChangePasswordView()
             case .loggedIn:
-                if let me = auth.me, !profile.isOnboarded(userId: me.id) {
+                if let me = auth.me, !profile.isOnboarded(userId: me.id), !isSuperuser(me) {
                     OnboardingView()
                 } else {
                     MainTabView()
@@ -24,7 +24,13 @@ struct RootView: View {
             }
         }
         .onChange(of: auth.me?.id) { _, id in
-            if let id { profile.load(userId: id) }
+            guard let id else { return }
+            profile.load(userId: id)
+            // Demo / admin accounts skip onboarding: drop straight into a house-wide view and
+            // use the in-app persona switcher (Profile) to explore each role's interface.
+            if let me = auth.me, !profile.isOnboarded(userId: id), isSuperuser(me) {
+                profile.confirm(userId: id, roleId: "house_supervisor", unitId: nil, unitName: "House-wide")
+            }
         }
         .task {
             if case .loading = auth.phase { await auth.bootstrap() }
@@ -44,6 +50,10 @@ struct RootView: View {
                                 unitName: env["HB_ONBOARD_UNIT_NAME"] ?? "House-wide")
             }
         }
+    }
+
+    private func isSuperuser(_ me: MeData) -> Bool {
+        me.isAdmin || me.workflowPreference == "superuser"
     }
 }
 
