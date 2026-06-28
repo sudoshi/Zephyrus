@@ -22,7 +22,7 @@ from app.routing.chat_adapters import (
     OllamaChatAdapter,
 )
 from app.routing.profiles import ProviderProfile
-from app.routing.router import ChatRouter, build_system_prompt, _normalize_history
+from app.routing.router import ChatRouter, build_system_prompt, extract_proposed_action, _normalize_history
 import httpx
 
 router = APIRouter(prefix="/eddy", tags=["eddy-chat"])
@@ -71,23 +71,39 @@ async def chat_stream(req: ChatRequest) -> StreamingResponse:
     provider_type = (policy.get("provider_type") or "ollama").lower()
     wants_cloud = provider_type not in {"ollama", ""} and settings.eddy_allow_cloud and bool(settings.anthropic_api_key)
 
-    system_prompt = build_system_prompt(req.surface, req.page_context or req.page_component, req.user_profile, req.live_context or None, req.knowledge or None)
+    system_prompt = build_system_prompt(
+        req.surface, req.page_context or req.page_component, req.user_profile,
+        req.live_context or None, req.knowledge or None, req.allowed_actions or None,
+    )
     adapter_req = ChatAdapterRequest(system_prompt=system_prompt, message=req.message, history=_normalize_history(req.history))
 
     async def event_stream():
+        full = ""
+        client: httpx.AsyncClient | None = None
         try:
             if wants_cloud:
                 profile = ProviderProfile(provider="anthropic", transport="anthropic_messages", model=policy.get("model") or settings.eddy_cloud_chat_model, entitlement="org_api_key")
-                async for ev in AnthropicMessagesAdapter(profile=profile, api_key=settings.anthropic_api_key).stream(adapter_req):
-                    yield _sse(ev)
+                agen = AnthropicMessagesAdapter(profile=profile, api_key=settings.anthropic_api_key).stream(adapter_req)
             else:
+                client = httpx.AsyncClient()
                 profile = ProviderProfile(provider="ollama", transport="ollama_chat", model=settings.eddy_ollama_model, base_url=settings.ollama_base_url, entitlement="local")
-                async with httpx.AsyncClient() as client:
-                    adapter = OllamaChatAdapter(profile=profile, client=client, default_num_predict=settings.eddy_ollama_num_predict, keep_alive_seconds=settings.eddy_ollama_keep_alive, timeout_seconds=180)
-                    async for ev in adapter.stream(adapter_req):
-                        yield _sse(ev)
+                agen = OllamaChatAdapter(profile=profile, client=client, default_num_predict=settings.eddy_ollama_num_predict, keep_alive_seconds=settings.eddy_ollama_keep_alive, timeout_seconds=180).stream(adapter_req)
+
+            async for ev in agen:
+                if ev.kind == "token":
+                    full += ev.token
+                    yield _sse(ev)
+                elif ev.kind == "error":
+                    yield _sse(ev)
+                elif ev.kind == "complete":
+                    # Strip the <propose_action> block and hand back the clean reply + parsed draft.
+                    clean, proposed = extract_proposed_action(full or ev.payload.get("full_content", ""))
+                    yield f"data: {json.dumps({'complete': True, 'clean_reply': clean, 'proposed_action': proposed, 'model': ev.payload.get('model'), 'provider': profile.provider})}\n\n"
         except ChatAdapterError as exc:
             yield f"data: {json.dumps({'error': str(exc), 'error_class': exc.error_class})}\n\n"
+        finally:
+            if client is not None:
+                await client.aclose()
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
