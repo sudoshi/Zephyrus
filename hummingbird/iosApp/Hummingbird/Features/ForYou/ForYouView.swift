@@ -5,6 +5,11 @@ final class ForYouViewModel: ObservableObject {
     @Published var items: [ForYouItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    /// Census units keyed by id + name, so a queue item that names a unit can drill into that
+    /// unit's live detail. Loaded best-effort alongside the queue.
+    @Published var unitsById: [Int: CensusUnit] = [:]
+    @Published var webLink: String?
+    private var unitsByName: [String: CensusUnit] = [:]
 
     let api: APIClient
     init(api: APIClient) { self.api = api }
@@ -20,6 +25,19 @@ final class ForYouViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+        // Best-effort census for navigation context; never blocks the queue.
+        if let census = try? await api.census(bearer: bearer) {
+            unitsById = Dictionary(census.data.map { ($0.unitId, $0) }, uniquingKeysWith: { a, _ in a })
+            unitsByName = Dictionary(census.data.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+            webLink = census.links?["web"]
+        }
+    }
+
+    /// The census unit a queue item points at (barriers / capacity carry a unit name; bed
+    /// requests don't), or nil when there's nothing specific to drill into.
+    func unit(for item: ForYouItem) -> CensusUnit? {
+        guard let name = item.unit else { return nil }
+        return unitsByName[name]
     }
 }
 
@@ -27,9 +45,10 @@ final class ForYouViewModel: ObservableObject {
 struct ForYouView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = ForYouViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s3) {
                     header
@@ -38,7 +57,14 @@ struct ForYouView: View {
                     } else if vm.items.isEmpty {
                         emptyState
                     } else {
-                        ForEach(vm.items) { ForYouRow(item: $0) }
+                        ForEach(vm.items) { item in
+                            if let unit = vm.unit(for: item) {
+                                NavigationLink(value: unit.unitId) { ForYouRow(item: item) }
+                                    .buttonStyle(.plain)
+                            } else {
+                                ForYouRow(item: item, navigable: false)
+                            }
+                        }
                     }
                 }
                 .padding(Z.s4)
@@ -46,11 +72,26 @@ struct ForYouView: View {
             .background(Z.bg)
             .navigationTitle("For You")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: Int.self) { unitId in
+                if let unit = vm.unitsById[unitId] {
+                    UnitDetailView(unit: unit, webLink: vm.webLink)
+                }
+            }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
             .task {
                 let token = auth.accessToken ?? ""
+                var first = true
                 while !Task.isCancelled {
                     await vm.load(bearer: token)
+                    if first {
+                        first = false
+                        // Test affordance: SIMCTL_CHILD_HB_FORYOU_OPEN=1 drills into the first
+                        // queue item that has a unit, to exercise the row→detail path. No-op in prod.
+                        if ProcessInfo.processInfo.environment["HB_FORYOU_OPEN"] == "1",
+                           let unit = vm.items.compactMap({ vm.unit(for: $0) }).first {
+                            path.append(unit.unitId)
+                        }
+                    }
                     try? await Task.sleep(for: .seconds(15))
                 }
             }
@@ -81,6 +122,9 @@ struct ForYouView: View {
 
 struct ForYouRow: View {
     let item: ForYouItem
+    /// Whether to show the disclosure chevron (drill into the related unit). Off when the
+    /// row is already shown in that unit's context, or has no unit to navigate to.
+    var navigable: Bool = true
     private var status: CapacityStatus { item.capacity }
 
     var body: some View {
@@ -97,8 +141,10 @@ struct ForYouRow: View {
                     }
                 }
                 Spacer(minLength: Z.s2)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.inkMuted)
+                if navigable {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.inkMuted)
+                }
             }
             .padding(Z.s3)
         }
@@ -123,6 +169,9 @@ struct ForYouRow: View {
 
     private var relativeTime: String? {
         guard let at = item.at, let date = parseISO(at) else { return nil }
+        // Anything within the last minute (incl. synthetic "now" items like at-capacity,
+        // and minor server clock skew that would read "in 0s") reads as "now".
+        if Date().timeIntervalSince(date) < 60 { return "now" }
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .abbreviated
         return f.localizedString(for: date, relativeTo: Date())
