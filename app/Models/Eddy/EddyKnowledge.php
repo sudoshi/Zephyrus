@@ -19,9 +19,15 @@ class EddyKnowledge extends Model
 
     protected $casts = [
         'tags' => 'array',
+        'curated_from' => 'array',
         'is_phi_free' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function scopeProposed(Builder $query): Builder
+    {
+        return $query->where('status', 'proposed');
+    }
 
     public function scopeActive(Builder $query): Builder
     {

@@ -21,6 +21,7 @@ class EddyChatService
         private readonly EddyProviderPolicyService $policy,
         private readonly EddyContextService $context,
         private readonly EddyKnowledgeService $knowledge,
+        private readonly EddyLearningService $learning,
     ) {}
 
     /**
@@ -233,7 +234,11 @@ class EddyChatService
             'page_component' => $input['page_component'] ?? null,
             'page_data' => (object) ($input['page_data'] ?? []),
             'history' => $history,
-            'user_profile' => ['name' => $user->name, 'roles' => $user->getRoleNames()->all()],
+            'user_profile' => [
+                'name' => $user->name,
+                'roles' => $user->getRoleNames()->all(),
+                'preferences' => $this->learning->preferencesFor($user),   // Phase 6 learned ordering
+            ],
             'user_id' => $user->id,
             'conversation_id' => $conversation->eddy_conversation_uuid,
             'provider_policy' => $providerPolicy,

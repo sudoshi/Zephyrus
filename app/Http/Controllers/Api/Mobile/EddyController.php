@@ -10,6 +10,7 @@ use App\Models\Eddy\EddyConversation;
 use App\Models\Ops\Approval;
 use App\Services\Eddy\EddyActionService;
 use App\Services\Eddy\EddyChatService;
+use App\Services\Eddy\EddyLearningService;
 use App\Services\Ops\OperationalActionLifecycleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,7 @@ class EddyController extends Controller
         private readonly EddyChatService $chat,
         private readonly EddyActionService $actions,
         private readonly OperationalActionLifecycleService $lifecycle,
+        private readonly EddyLearningService $learning,
     ) {}
 
     /** Send a turn; mobile envelope wrapping the assistant reply + conversation id. */
@@ -172,6 +174,9 @@ class EddyController extends Controller
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['code' => 'invalid_decision', 'message' => $e->getMessage()]], 422);
         }
+
+        // Phase 6 learning: a mobile human decision shifts this user's action preferences.
+        $this->learning->recordDecision($request->user(), (string) $action->action_type, $validated['decision']);
 
         return $this->envelope([
             'approval_uuid' => $approval->approval_uuid,

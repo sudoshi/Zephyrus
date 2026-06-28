@@ -103,11 +103,37 @@ def build_system_prompt(
     roles = (user_profile or {}).get("roles") or []
     if roles:
         parts.append(f"The operator's role(s): {', '.join(map(str, roles))}.")
+    preferences = (user_profile or {}).get("preferences") or {}
+    if preferences:
+        block = _format_preferences(preferences)
+        if block:
+            parts.append(block)
     if live_context:
         parts.append(_format_live_context(live_context))
     if knowledge:
         parts.append(_format_knowledge(knowledge))
     return "\n\n".join(parts)
+
+
+def _format_preferences(prefs: dict) -> str:
+    """Learned-preference block (Phase 6) — nudges runner-up ordering, never overrides
+    clinical/operational judgment or the safety gates."""
+    lines: list[str] = []
+    preferred = prefs.get("preferred_actions") or []
+    discouraged = prefs.get("discouraged_actions") or []
+    if preferred:
+        lines.append(
+            "Historically APPROVED by this operator — weight higher in your ordering: "
+            + ", ".join(map(str, preferred))
+            + "."
+        )
+    if discouraged:
+        lines.append(
+            "Historically REJECTED by this operator — propose only with a clear, specific justification: "
+            + ", ".join(map(str, discouraged))
+            + "."
+        )
+    return "LEARNED PREFERENCES:\n" + "\n".join(lines) if lines else ""
 
 
 def _format_live_context(ctx: dict) -> str:

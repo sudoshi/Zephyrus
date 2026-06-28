@@ -38,6 +38,7 @@ class EddyActionService
     public function __construct(
         private readonly OperationalActionLifecycleService $lifecycle,
         private readonly EddyApprovalNotifier $notifier,
+        private readonly EddyLearningService $learning,
     ) {}
 
     public function catalog(): array
@@ -116,6 +117,7 @@ class EddyActionService
         $approved = false;
         if ($approve) {
             $this->lifecycle->decideApproval($approval, 'approved', 'Approved via Eddy dock.', $actor->id);
+            $this->learning->recordDecision($actor, $actionType, 'approved');   // Phase 6 learning signal
             $approved = true;
         }
 

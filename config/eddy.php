@@ -84,4 +84,24 @@ return [
         ],
     ],
 
+    // Phase 6 — institutional knowledge RAG. The schema gets an `embedding vector(N)`
+    // column iff pgvector is present (the migration adds it); this flag gates whether
+    // retrieval actually computes/uses embeddings. OFF → deterministic keyword/FTS
+    // (the Phase 2 path) still works. The model must emit `dimensions`-wide vectors.
+    'embeddings' => [
+        'enabled' => filter_var(env('EDDY_EMBEDDINGS_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'model' => env('EDDY_EMBEDDING_MODEL', 'nomic-embed-text'),
+        'dimensions' => (int) env('EDDY_EMBEDDING_DIMENSIONS', 768),
+        // Weight blending the cosine similarity (0..1) with the keyword overlap when
+        // both are available. 1.0 = pure vector, 0.0 = pure keyword.
+        'vector_weight' => (float) env('EDDY_EMBEDDING_VECTOR_WEIGHT', 0.7),
+    ],
+
+    // Phase 6 — preference learning. Human approve/reject/override of Eddy proposals
+    // rolls up into per-user action preferences injected into the chat envelope so
+    // Eddy's runner-up ordering shifts toward what this user actually sanctions.
+    'learning' => [
+        'enabled' => filter_var(env('EDDY_LEARNING_ENABLED', true), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

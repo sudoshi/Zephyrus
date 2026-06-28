@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Eddy\EddyActionController;
+use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
@@ -188,6 +189,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
     Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
     Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+
+    // Phase 6 — super-admin: cost/redaction accounting, route simulator, knowledge review.
+    Route::get('/admin/usage', [EddyAdminController::class, 'usage']);
+    Route::post('/admin/route-simulate', [EddyAdminController::class, 'simulate']);
+    Route::get('/admin/knowledge/proposed', [EddyAdminController::class, 'proposedKnowledge']);
+    Route::post('/admin/knowledge/{uuid}/review', [EddyAdminController::class, 'reviewKnowledge']);
 });
 
 // Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
