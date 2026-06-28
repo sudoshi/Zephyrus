@@ -1,6 +1,10 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
+import { UNITS } from '@/constants/summitHospital';
+
+// Resolve a roster abbr to itself, guarding against drift if the roster changes.
+const rosterUnit = (abbr) => UNITS.find((u) => u.abbr === abbr)?.abbr ?? abbr;
 
 const MilestoneStatus = ({ status }) => {
     const getStatusColor = () => {
@@ -36,8 +40,8 @@ const DischargeTracker = () => {
     const discharges = [
         {
             id: 1,
-            unit: '5E',
-            room: '5E-12',
+            unit: rosterUnit('7E'),
+            room: '7E-12',
             priority: 'high',
             expectedTime: '10:00 AM',
             milestones: [
@@ -51,8 +55,8 @@ const DischargeTracker = () => {
         },
         {
             id: 2,
-            unit: 'ICU',
-            room: 'ICU-04',
+            unit: rosterUnit('MICU'),
+            room: 'MICU-04',
             priority: 'high',
             expectedTime: '11:30 AM',
             milestones: [

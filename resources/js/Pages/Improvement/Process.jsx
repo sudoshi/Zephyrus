@@ -13,6 +13,7 @@ import ProcessFilters from '@/Components/Process/ProcessFilters';
 import TimelineSlider from '@/Components/Process/TimelineSlider';
 import { workflows } from '@/Components/Process/ProcessSelector';
 import VariantsViewPanel from '@/Components/Process/VariantsViewPanel';
+import { NETWORK_FACILITY_NAMES, PRIMARY_FACILITY_NAME } from '@/constants/summitHospital';
 
 
 const Process = ({ auth, savedLayout }) => {
@@ -87,8 +88,8 @@ const Process = ({ auth, savedLayout }) => {
   // Create patient flow filters object with default values
   const getPatientFlowFilters = () => {
     return {
-      selectedHospital: 'Virtua Mullica Hospital',
-      selectedLocation: 'Virtua Mullica Hospital',
+      selectedHospital: PRIMARY_FACILITY_NAME,
+      selectedLocation: PRIMARY_FACILITY_NAME,
       selectedDepartment: 'All Departments',
       selectedUnit: '',
       selectedPatientType: 'All Patients',
@@ -161,7 +162,7 @@ const Process = ({ auth, savedLayout }) => {
 
         // Fall back to the process-mining API, honoring the requested workflow.
         const url = new URL('/improvement/api/nursing-operations', window.location.origin);
-        url.searchParams.append('hospital', 'Virtua Mullica Hospital');
+        url.searchParams.append('hospital', PRIMARY_FACILITY_NAME);
         url.searchParams.append('workflow', workflow);
         url.searchParams.append('timeRange', '7 Days');
         url.searchParams.append('format', 'mock_data');
@@ -479,10 +480,10 @@ const Process = ({ auth, savedLayout }) => {
           {/* Process Filters Panel */}
           <ProcessFilters
             hospitals={[
-              { id: 'marh', name: 'Virtua Marlton Hospital' },
-              { id: 'memh', name: 'Virtua Mount Holly Hospital' },
-              { id: 'ollh', name: 'Virtua Our Lady of Lourdes Hospital' },
-              { id: 'vorh', name: 'Virtua Voorhees Hospital' }
+              { id: 'marh', name: NETWORK_FACILITY_NAMES[0] },
+              { id: 'memh', name: NETWORK_FACILITY_NAMES[1] },
+              { id: 'ollh', name: NETWORK_FACILITY_NAMES[2] },
+              { id: 'vorh', name: NETWORK_FACILITY_NAMES[3] }
             ]}
             units={[
               { id: 'unit1', name: 'Medical/Surgical', hospitalId: 'marh' },

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate a concept-level, navigable 3D CAD/BIM bundle for the 500-bed
-Tier 1 / Level I trauma academic medical center model.
+Generate a concept-level, navigable 3D CAD/BIM bundle for Summit Regional
+Medical Center, a Level I trauma academic medical center model.
 
 Outputs:
   - model/hospital_model.glb: runtime 3D model with per-object metadata.
@@ -55,6 +55,8 @@ MATERIALS = {
     "behavioral": {"rgba": [0.64, 0.52, 0.74, 0.88], "label": "Behavioral health"},
     "women": {"rgba": [0.87, 0.47, 0.61, 0.88], "label": "Women and infants"},
     "pediatrics": {"rgba": [0.40, 0.67, 0.83, 0.88], "label": "Pediatrics"},
+    "picu": {"rgba": [0.30, 0.55, 0.80, 0.92], "label": "Pediatric ICU"},
+    "nicu": {"rgba": [0.52, 0.72, 0.88, 0.92], "label": "Neonatal ICU"},
     "oncology": {"rgba": [0.46, 0.70, 0.38, 0.88], "label": "Oncology / BMT"},
     "rehab": {"rgba": [0.59, 0.71, 0.38, 0.88], "label": "Rehab"},
     "ed": {"rgba": [0.88, 0.38, 0.25, 0.88], "label": "Emergency"},
@@ -100,29 +102,29 @@ FLOOR_PROGRAM = [
 
 
 UNIT_PROGRAM = [
-    ("MS4A", "Adult Med/Surg A", 4, "adult_med_surg", "med_surg", 28, 10.00, "Med/surg universal rooms; swing telemetry"),
-    ("MS4B", "Adult Med/Surg B", 4, "adult_med_surg", "med_surg", 28, 10.00, "Standard acute-care pod"),
-    ("MS5A", "Adult Med/Surg C", 5, "adult_med_surg", "med_surg", 28, 10.00, "Respiratory isolation swing capacity"),
-    ("MS5B", "Adult Med/Surg D", 5, "adult_med_surg", "med_surg", 28, 10.00, "Geriatric-friendly fall prevention"),
-    ("MS6A", "Adult Med/Surg E", 6, "adult_med_surg", "med_surg", 24, 10.00, "Acuity-adaptable shell"),
-    ("MS6B", "Adult Med/Surg F", 6, "adult_med_surg", "med_surg", 24, 10.00, "Future specialty conversion"),
-    ("TEL7A", "Adult Telemetry A", 7, "cardiology", "telemetry", 32, 12.50, "Telemetry and stepdown headwalls"),
-    ("TEL7B", "Adult Telemetry B", 7, "medicine", "telemetry", 32, 12.50, "ED decompression telemetry demand"),
-    ("MICU3", "Medical ICU", 3, "critical_care", "icu", 24, 25.00, "High-observation ICU rooms"),
-    ("SICU3", "Surgical/Trauma ICU", 3, "trauma_surgery", "icu", 24, 25.00, "Direct trauma OR, CT, blood bank, helipad path"),
-    ("NSICU3", "Neuroscience ICU", 3, "neurosciences", "icu", 20, 20.00, "Stroke and neurotrauma adjacency"),
-    ("CVICU3", "Cardiovascular ICU", 3, "cardiovascular", "icu", 20, 15.00, "Cardiac surgery, ECMO and cath adjacency"),
-    ("BURN3", "Burn ICU", 3, "burn", "burn_icu", 8, 50.00, "Burn isolation and hydrotherapy support"),
-    ("BHU2", "Inpatient Behavioral Health", 2, "behavioral_health", "behavioral", 24, 0.00, "Ligature-resistant secure pod"),
-    ("ANT8", "Antepartum High-Risk OB", 8, "womens_health", "women", 12, 8.33, "High-risk antepartum, rapid C-section path"),
-    ("PP8", "Postpartum / Mother Baby", 8, "womens_health", "women", 28, 7.14, "Couplet-care and infant security"),
-    ("GYN8", "Gynecology Surgery", 8, "womens_health", "women", 8, 12.50, "Short-stay surgical recovery"),
-    ("PED9", "Pediatric Acute Care", 9, "pediatrics", "pediatrics", 24, 16.67, "Family-centered pediatric rooms"),
-    ("PICU9", "Pediatric ICU", 9, "pediatrics", "pediatrics", 12, 25.00, "Pediatric critical care and trauma"),
-    ("NICU9", "Neonatal ICU", 9, "neonatology", "pediatrics", 12, 25.00, "Single-family NICU rooms"),
-    ("ONC10", "Oncology / Hematology", 10, "oncology", "oncology", 24, 16.67, "Oncology and infusion adjacency"),
-    ("BMT10", "Bone Marrow Transplant / Cellular Therapy", 10, "oncology", "oncology", 16, 25.00, "Protective environment rooms"),
-    ("AIR11", "Acute Inpatient Rehabilitation", 11, "rehabilitation", "rehab", 20, 5.00, "Therapy gym adjacency"),
+    ("MS4A", "4 West — Medical/Surgical", 4, "adult_med_surg", "med_surg", 28, 10.00, "Med/surg universal rooms; swing telemetry"),
+    ("MS4B", "4 East — Medical/Surgical", 4, "adult_med_surg", "med_surg", 28, 10.00, "Standard acute-care pod"),
+    ("MS5A", "5 West — Medical/Surgical", 5, "adult_med_surg", "med_surg", 28, 10.00, "Respiratory isolation swing capacity"),
+    ("MS5B", "5 East — Medical/Surgical", 5, "adult_med_surg", "med_surg", 28, 10.00, "Geriatric-friendly fall prevention"),
+    ("MS6A", "6 West — Medical/Surgical", 6, "adult_med_surg", "med_surg", 24, 10.00, "Acuity-adaptable shell"),
+    ("MS6B", "6 East — Medical/Surgical", 6, "adult_med_surg", "med_surg", 24, 10.00, "Future specialty conversion"),
+    ("TEL7A", "7 East — Telemetry & Cardiology", 7, "cardiology", "telemetry", 32, 12.50, "Telemetry and stepdown headwalls"),
+    ("TEL7B", "7 West — Telemetry & Stepdown", 7, "medicine", "telemetry", 32, 12.50, "ED decompression telemetry demand"),
+    ("MICU3", "3 West — Medical ICU (MICU)", 3, "critical_care", "icu", 24, 25.00, "High-observation ICU rooms"),
+    ("SICU3", "3 East — Surgical/Trauma ICU (SICU)", 3, "trauma_surgery", "icu", 24, 25.00, "Direct trauma OR, CT, blood bank, helipad path"),
+    ("NSICU3", "3 South — Neuroscience ICU (NSICU)", 3, "neurosciences", "icu", 20, 20.00, "Stroke and neurotrauma adjacency"),
+    ("CVICU3", "3 North — Cardiovascular ICU (CVICU)", 3, "cardiovascular", "icu", 20, 15.00, "Cardiac surgery, ECMO and cath adjacency"),
+    ("BURN3", "3 Central — Burn ICU", 3, "burn", "burn_icu", 8, 50.00, "Burn isolation and hydrotherapy support"),
+    ("BHU2", "2 — Inpatient Behavioral Health (Secure)", 2, "behavioral_health", "behavioral", 24, 0.00, "Ligature-resistant secure pod"),
+    ("ANT8", "8 — Antepartum (High-Risk OB)", 8, "womens_health", "women", 12, 8.33, "High-risk antepartum, rapid C-section path"),
+    ("PP8", "8 — Postpartum / Mother-Baby", 8, "womens_health", "women", 28, 7.14, "Couplet-care and infant security"),
+    ("GYN8", "8 — Gynecology Surgery", 8, "womens_health", "women", 8, 12.50, "Short-stay surgical recovery"),
+    ("PED9", "9 — Pediatric Acute Care", 9, "pediatrics", "pediatrics", 24, 16.67, "Family-centered pediatric rooms"),
+    ("PICU9", "9 — Pediatric ICU (PICU)", 9, "pediatrics", "picu", 12, 25.00, "Pediatric critical care and trauma"),
+    ("NICU9", "9 — Neonatal ICU (NICU)", 9, "neonatology", "nicu", 12, 25.00, "Single-family NICU rooms"),
+    ("ONC10", "10 — Oncology / Hematology", 10, "oncology", "oncology", 24, 16.67, "Oncology and infusion adjacency"),
+    ("BMT10", "10 — Bone Marrow Transplant / Cellular Therapy", 10, "oncology", "oncology", 16, 25.00, "Protective environment rooms"),
+    ("AIR11", "11 — Acute Inpatient Rehabilitation", 11, "rehabilitation", "rehab", 20, 5.00, "Therapy gym adjacency"),
 ]
 
 
@@ -248,6 +250,10 @@ def service_material(service: str, acuity: str) -> str:
         return "icu"
     if acuity == "burn_icu":
         return "burn_icu"
+    if acuity == "picu":
+        return "picu"
+    if acuity == "nicu":
+        return "nicu"
     if "women" in service or service == "neonatology":
         return "women"
     if service in {"pediatrics", "neonatology"}:
@@ -857,11 +863,11 @@ def write_glb(boxes: list[Box]) -> None:
     gltf = {
         "asset": {
             "version": "2.0",
-            "generator": "Parthenon hospital CAD generator",
+            "generator": "Summit / HOSP1 hospital CAD generator",
             "copyright": "Concept model. Not for construction.",
         },
         "scene": 0,
-        "scenes": [{"name": "500-bed Level I Trauma Academic Medical Center", "nodes": root_children}],
+        "scenes": [{"name": "Summit Regional Medical Center Level I trauma academic medical center concept GLB", "nodes": root_children}],
         "nodes": nodes,
         "meshes": meshes,
         "materials": materials,
@@ -971,7 +977,7 @@ def write_ifc(boxes: list[Box]) -> None:
         entity_id += 1
         return current
 
-    project = add("IFCPROJECT('0HOSPITALMODEL0000001',$,'500 Bed Tier 1 Trauma Academic Medical Center',$,$,$,$,$,$)")
+    project = add("IFCPROJECT('0HOSPITALMODEL0000001',$,'Summit Regional Medical Center',$,$,$,$,$,$)")
     site = add("IFCSITE('1HOSPITALSITE0000001',$,'Academic Medical Center Campus',$,$,$,$,$,.ELEMENT.,$,$,$,$,$)")
     building = add("IFCBUILDING('2HOSPITALBLDG000001',$,'Main Hospital and Diagnostic Treatment Platform',$,$,$,$,$,.ELEMENT.,$,$,$)")
     add(f"IFCRELAGGREGATES('3RELPROJECTSITE0001',$,$,$,#{project},(#{site}))")
@@ -1017,7 +1023,7 @@ def write_ifc(boxes: list[Box]) -> None:
     header = f"""ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('Concept BIM/CAD exchange model generated from planning DDL'),'2;1');
-FILE_NAME('hospital_model.ifc','{generated_at}',('OpenAI Codex'),('Parthenon'),'Parthenon hospital CAD generator','Python stdlib','Concept only');
+FILE_NAME('hospital_model.ifc','{generated_at}',('Acumenus'),('Summit Regional Medical Center'),'Summit / HOSP1 hospital CAD generator','Python stdlib','Concept only');
 FILE_SCHEMA(('IFC4'));
 ENDSEC;
 DATA;
@@ -1052,7 +1058,7 @@ def write_tileset(boxes: list[Box]) -> None:
             "content": {
                 "uri": "../model/hospital_model.glb",
                 "metadata": {
-                    "name": "500-bed Level I trauma academic medical center concept GLB"
+                    "name": "Summit Regional Medical Center Level I trauma academic medical center concept GLB"
                 },
             },
         },
@@ -1082,7 +1088,7 @@ def write_catalog(boxes: list[Box]) -> None:
         materials[box.material] = materials.get(box.material, 0) + 1
     catalog = {
         "generated_at": dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z"),
-        "model_name": "500-bed Tier 1 / Level I trauma academic medical center",
+        "model_name": "Summit Regional Medical Center — Level I Trauma Academic Medical Center",
         "standard_strategy": {
             "ifc": "IFC4 semantic BIM handoff for spatial hierarchy and assets.",
             "dxf": "DXF AC1027 3DFACE CAD exchange geometry.",
@@ -1125,7 +1131,7 @@ def write_viewer() -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>500 Bed Academic Medical Center CAD Navigator</title>
+  <title>Summit Regional Medical Center CAD Navigator</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -1133,7 +1139,7 @@ def write_viewer() -> None:
     <canvas id="viewport" aria-label="3D hospital model"></canvas>
     <section id="toolbar" aria-label="Model controls">
       <div class="brand">
-        <strong>Trauma I AMC</strong>
+        <strong>Summit Regional Medical Center</strong>
         <span id="modelCount">Loading model</span>
       </div>
       <div class="control-row">
@@ -1768,12 +1774,13 @@ def write_readme(boxes: list[Box]) -> None:
         "procedure_rooms": sum(1 for b in boxes if b.category == "procedure_room"),
     }
     generated_date = dt.datetime.now(dt.UTC).date().isoformat()
-    readme = f"""# 500-Bed Level I Trauma Academic Medical Center CAD Model
+    readme = f"""# Summit Regional Medical Center — Level I Trauma Academic Medical Center CAD Model
 
 Generated: {generated_date}
 
-This directory contains a concept-level CAD/BIM and navigable web model for the
-500-bed Tier 1 / ACS Level I trauma academic medical center planning model.
+This directory contains a concept-level CAD/BIM and navigable web model for
+Summit Regional Medical Center, a Tier 1 / ACS Level I trauma academic medical
+center planning model.
 
 ## Standards Strategy
 

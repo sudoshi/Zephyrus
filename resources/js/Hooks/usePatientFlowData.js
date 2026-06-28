@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 /**
  * Custom hook to fetch and manage patient flow data
@@ -102,10 +103,10 @@ export const usePatientFlowData = (filters) => {
           { nodeId: 'treatment', waitTime: 15, utilization: 85 }
         ],
         locations: {
-          'Virtua Marlton Hospital': { id: 'marh', name: 'Virtua Marlton Hospital', fullName: 'Virtua Marlton Hospital' },
-          'Virtua Mount Holly Hospital': { id: 'memh', name: 'Virtua Mount Holly Hospital', fullName: 'Virtua Mount Holly Hospital' },
-          'Virtua Our Lady of Lourdes Hospital': { id: 'ollh', name: 'Virtua Our Lady of Lourdes Hospital', fullName: 'Virtua Our Lady of Lourdes Hospital' },
-          'Virtua Voorhees Hospital': { id: 'vorh', name: 'Virtua Voorhees Hospital', fullName: 'Virtua Voorhees Hospital' }
+          [NETWORK_FACILITY_NAMES[0]]: { id: 'marh', name: NETWORK_FACILITY_NAMES[0], fullName: NETWORK_FACILITY_NAMES[0] },
+          [NETWORK_FACILITY_NAMES[1]]: { id: 'memh', name: NETWORK_FACILITY_NAMES[1], fullName: NETWORK_FACILITY_NAMES[1] },
+          [NETWORK_FACILITY_NAMES[2]]: { id: 'ollh', name: NETWORK_FACILITY_NAMES[2], fullName: NETWORK_FACILITY_NAMES[2] },
+          [NETWORK_FACILITY_NAMES[3]]: { id: 'vorh', name: NETWORK_FACILITY_NAMES[3], fullName: NETWORK_FACILITY_NAMES[3] }
         },
         departments: {
           'Emergency': { id: 'er', name: 'Emergency' },

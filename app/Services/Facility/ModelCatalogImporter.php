@@ -37,7 +37,7 @@ class ModelCatalogImporter
         }
 
         $facilityCode = (string) ($options['facility_code'] ?? 'ZEPHYRUS-500');
-        $facilityName = (string) ($options['facility_name'] ?? ($catalog['model_name'] ?? '500-Bed Level I Trauma Academic Medical Center'));
+        $facilityName = (string) ($options['facility_name'] ?? ($catalog['model_name'] ?? 'Summit Regional Medical Center'));
         $sourceName = (string) ($options['source_name'] ?? basename($path));
         $mapOperational = (bool) ($options['map_operational'] ?? false);
         $checksum = hash('sha256', $contents);

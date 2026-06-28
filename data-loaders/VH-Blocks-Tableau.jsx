@@ -6,11 +6,11 @@ import { Calendar } from 'lucide-react';
 // 1. Hospitals (unchanged from your snippet)
 // -------------------------------------------------------------------
 const hospitals = [
-  { id: 'marh', name: 'Virtua Marlton Hospital', code: 'MARH' },
-  { id: 'memh', name: 'Virtua Mount Holly Hospital', code: 'MEMH' },
-  { id: 'ollh', name: 'Virtua Our Lady of Lourdes Hospital', code: 'OLLH' },
-  { id: 'vorh', name: 'Virtua Voorhees Hospital', code: 'VORH' },
-  { id: 'wilh', name: 'Virtua Willingboro Hospital', code: 'WILH' }
+  { id: 'marh', name: 'Summit Regional Medical Center', code: 'MARH' },
+  { id: 'memh', name: 'Summit Health — Hawthorne Campus', code: 'MEMH' },
+  { id: 'ollh', name: 'Summit Health — Riverton Community Hospital', code: 'OLLH' },
+  { id: 'vorh', name: 'Summit Health — Glenmoore Medical Center', code: 'VORH' },
+  { id: 'wilh', name: 'Summit Health — Castleton General Hospital', code: 'WILH' }
 ];
 
 // -------------------------------------------------------------------
@@ -538,15 +538,15 @@ const locationMapping = [
 //    free to remove or unify them with the new locationMapping data.
 // -------------------------------------------------------------------
 const orLocations = [
-  { id: 'marh-ir', name: 'MARH IR', hospitalId: 'marh', fullName: 'Marlton Interventional Radiology' },
-  { id: 'marh-or', name: 'MARH OR', hospitalId: 'marh', fullName: 'Marlton Operating Room' },
+  { id: 'marh-ir', name: 'MARH IR', hospitalId: 'marh', fullName: 'Summit Interventional Radiology' },
+  { id: 'marh-or', name: 'MARH OR', hospitalId: 'marh', fullName: 'Summit Operating Room' },
   { id: 'memh-mhas-or', name: 'MEMH MHAS OR', hospitalId: 'memh', fullName: 'Mt. Holly Ambulatory Surgery OR' },
   { id: 'memh-or', name: 'MEMH OR', hospitalId: 'memh', fullName: 'Mt. Holly Operating Room' },
-  { id: 'ollh-or', name: 'OLLH OR', hospitalId: 'ollh', fullName: 'Our Lady of Lourdes Operating Room' },
-  { id: 'vorh-jri-or', name: 'VORH JRI OR', hospitalId: 'vorh', fullName: 'Voorhees Joint Replacement Institute OR' },
-  { id: 'vorh-or', name: 'VORH OR', hospitalId: 'vorh', fullName: 'Voorhees Operating Room' },
-  { id: 'vssc-or', name: 'VSSC OR', hospitalId: 'vorh', fullName: 'Voorhees Surgical Short Case OR' },
-  { id: 'wilh-or', name: 'WILH OR', hospitalId: 'wilh', fullName: 'Willingboro Operating Room' }
+  { id: 'ollh-or', name: 'OLLH OR', hospitalId: 'ollh', fullName: 'Riverton Operating Room' },
+  { id: 'vorh-jri-or', name: 'VORH JRI OR', hospitalId: 'vorh', fullName: 'Glenmoore Joint Replacement Institute OR' },
+  { id: 'vorh-or', name: 'VORH OR', hospitalId: 'vorh', fullName: 'Glenmoore Operating Room' },
+  { id: 'vssc-or', name: 'VSSC OR', hospitalId: 'vorh', fullName: 'Glenmoore Surgical Short Case OR' },
+  { id: 'wilh-or', name: 'WILH OR', hospitalId: 'wilh', fullName: 'Castleton Operating Room' }
 ];
 
 // -------------------------------------------------------------------
@@ -890,7 +890,7 @@ const BlockUtilizationDashboard = () => {
 
       {/* Title and Date Range */}
       <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-red-600">VIRTUA - Block Utilization and Non-Prime Time use Trend</h2>
+        <h2 className="text-xl font-bold text-red-600">SUMMIT - Block Utilization and Non-Prime Time use Trend</h2>
         <p className="text-green-600">Current: {startDate} - {endDate} - Comparative: {compStartDate} - {compEndDate}</p>
       </div>
 

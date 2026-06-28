@@ -8,6 +8,7 @@ import { Section, Panel } from '@/Components/system';
 import Input from '@/Components/ui/input';
 import { DatePicker } from '@/Components/ui/flowbite/DatePicker';
 import Textarea from '@/Components/ui/textarea';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 
 // Process types with their respective colors
 const PROCESS_TYPES = {
@@ -104,13 +105,7 @@ const PROCESS_TYPES = {
 };
 
 // Hospital locations
-const HOSPITAL_LOCATIONS = [
-  'Virtua Marlton Hospital',
-  'Virtua Mount Holly Hospital',
-  'Virtua Our Lady of Lourdes Hospital',
-  'Virtua Voorhees Hospital',
-  'Virtua Willingboro Hospital'
-];
+const HOSPITAL_LOCATIONS = NETWORK_FACILITY_NAMES;
 
 // OCEL 2.0 Object Types for Healthcare
 const OBJECT_TYPES = [

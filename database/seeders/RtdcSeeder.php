@@ -4,29 +4,36 @@ namespace Database\Seeders;
 
 use App\Models\Bed;
 use App\Models\Unit;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Database\Seeder;
 
 class RtdcSeeder extends Seeder
 {
     /**
-     * Default config-driven unit mix: ED + 3 med/surg + ICU + step-down (~300 beds).
+     * Seed the full Summit Regional unit roster (all 25 manifest units — 23
+     * inpatient + ED + PERIOP) and their beds from the HospitalManifest single
+     * source of truth. No unit/bed-count literals live here anymore.
      */
     public function run(): void
     {
-        $units = [
-            ['name' => 'Emergency Department', 'abbreviation' => 'ED', 'type' => 'ed', 'staffed_bed_count' => 40, 'ratio_floor' => 4],
-            ['name' => '5 East', 'abbreviation' => '5E', 'type' => 'med_surg', 'staffed_bed_count' => 32, 'ratio_floor' => 5],
-            ['name' => '5 West', 'abbreviation' => '5W', 'type' => 'med_surg', 'staffed_bed_count' => 32, 'ratio_floor' => 5],
-            ['name' => '6 East', 'abbreviation' => '6E', 'type' => 'med_surg', 'staffed_bed_count' => 32, 'ratio_floor' => 5],
-            ['name' => 'ICU', 'abbreviation' => 'ICU', 'type' => 'icu', 'staffed_bed_count' => 20, 'ratio_floor' => 2],
-            ['name' => 'Step-Down', 'abbreviation' => 'SD', 'type' => 'step_down', 'staffed_bed_count' => 24, 'ratio_floor' => 3],
-        ];
+        $manifest = app(HospitalManifest::class);
+        $units = $manifest->units();
 
         // Idempotent: firstOrCreate keyed on natural keys (unit abbreviation,
         // bed label per unit) so this is safe to run inside DatabaseSeeder on
         // every `php artisan db:seed` without accumulating duplicate units/beds.
         foreach ($units as $u) {
-            $unit = Unit::firstOrCreate(['abbreviation' => $u['abbreviation']], $u);
+            $unit = Unit::firstOrCreate(
+                ['abbreviation' => $u['abbr']],
+                [
+                    'name' => $u['name'],
+                    'abbreviation' => $u['abbr'],
+                    'type' => $u['type'],
+                    'staffed_bed_count' => $u['staffed_bed_count'],
+                    'ratio_floor' => (int) round($u['nurse_ratio'] ?? 4),
+                ]
+            );
+
             for ($i = 1; $i <= $u['staffed_bed_count']; $i++) {
                 Bed::firstOrCreate(
                     [
@@ -40,5 +47,13 @@ class RtdcSeeder extends Seeder
                 );
             }
         }
+
+        // Soft-delete any pre-existing units that are NOT in the manifest roster
+        // (legacy 'SD', the old single 'ICU', etc.) so the live app shows only the
+        // Summit 25. Additive/non-destructive: flips is_deleted, never DROPs rows.
+        $manifestAbbrs = $manifest->unitAbbrs();
+        Unit::whereNotIn('abbreviation', $manifestAbbrs)
+            ->where('is_deleted', false)
+            ->update(['is_deleted' => true]);
     }
 }

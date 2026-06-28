@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ed;
 
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -57,15 +58,33 @@ class TreatmentService
         5 => ['Medication Refill', 'Suture Removal', 'Rash', 'Cold Symptoms'],
     ];
 
-    /** Attending pool — deterministic per visit. */
-    private const PROVIDERS = [
-        'Dr. Smith', 'Dr. Johnson', 'Dr. Brown', 'Dr. Davis', 'Dr. Patel', 'Dr. Nguyen',
-    ];
+    /** Attending pool — emergency providers from the hospital manifest (memoized). */
+    private ?array $providers = null;
 
-    /** Nurse pool — deterministic per visit. */
-    private const NURSES = [
-        'RN Carter', 'RN Lopez', 'RN Adams', 'RN Reed', 'RN Khan', 'RN Owens',
-    ];
+    /** Nurse pool — nurses from the hospital manifest (memoized). */
+    private ?array $nurses = null;
+
+    /**
+     * Emergency attending pool, sourced from the hospital manifest. Memoized so
+     * the deterministic per-visit selection is stable across the whole board.
+     *
+     * @return list<string>
+     */
+    private function providers(): array
+    {
+        return $this->providers ??= app(HospitalManifest::class)->providerNames('emergency');
+    }
+
+    /**
+     * Nurse pool, sourced from the hospital manifest. Memoized so the
+     * deterministic per-visit selection is stable across the whole board.
+     *
+     * @return list<string>
+     */
+    private function nurses(): array
+    {
+        return $this->nurses ??= app(HospitalManifest::class)->nurseNames();
+    }
 
     /**
      * Assemble the full Treatment board payload.
@@ -164,8 +183,10 @@ class TreatmentService
             [$status, $statusTone] = $this->statusFor($row);
             $room = $this->treatmentRoom($id, $esi);
             $complaint = $this->chiefComplaint($id, $esi);
-            $provider = self::PROVIDERS[$this->hash($id, 'md') % count(self::PROVIDERS)];
-            $nurse = self::NURSES[$this->hash($id, 'rn') % count(self::NURSES)];
+            $providers = $this->providers();
+            $nurses = $this->nurses();
+            $provider = $providers[$this->hash($id, 'md') % count($providers)];
+            $nurse = $nurses[$this->hash($id, 'rn') % count($nurses)];
             $orders = $this->pendingOrders($id, $esi, $status);
 
             $board[] = [

@@ -16,7 +16,7 @@ export const systemCapacityData = {
     units: [
         {
             id: 1,
-            name: '5 East',
+            name: '7E',
             description: 'Cardiology / Tele',
             availableBeds: 1,
             predictedDC: 3,
@@ -26,7 +26,7 @@ export const systemCapacityData = {
         },
         {
             id: 2,
-            name: '5 West',
+            name: '5W',
             description: 'Nephrology',
             availableBeds: 2,
             predictedDC: 1,
@@ -35,7 +35,7 @@ export const systemCapacityData = {
         },
         {
             id: 3,
-            name: '6 East',
+            name: '4E',
             description: 'Orthopedics',
             availableBeds: 0,
             predictedDC: 4,
@@ -44,7 +44,7 @@ export const systemCapacityData = {
         },
         {
             id: 4,
-            name: '6 West',
+            name: 'ONC',
             description: 'Oncology',
             availableBeds: 4,
             predictedDC: 1,
@@ -53,7 +53,7 @@ export const systemCapacityData = {
         },
         {
             id: 5,
-            name: '7 East',
+            name: '5E',
             description: 'General Surgery',
             availableBeds: 1,
             predictedDC: 5,
@@ -62,7 +62,7 @@ export const systemCapacityData = {
         },
         {
             id: 6,
-            name: '7 West',
+            name: '6W',
             description: 'Pulmonology',
             availableBeds: 0,
             predictedDC: 2,
@@ -72,7 +72,7 @@ export const systemCapacityData = {
         },
         {
             id: 7,
-            name: '8 East',
+            name: 'NSICU',
             description: 'Neurology',
             availableBeds: 2,
             predictedDC: 3,
@@ -81,7 +81,7 @@ export const systemCapacityData = {
         },
         {
             id: 8,
-            name: '8 West',
+            name: '4W',
             description: 'Internal Medicine',
             availableBeds: 1,
             predictedDC: 4,
@@ -91,7 +91,7 @@ export const systemCapacityData = {
         },
         {
             id: 9,
-            name: '9 East',
+            name: '6E',
             description: 'General Surgery',
             availableBeds: 3,
             predictedDC: 2,
@@ -100,7 +100,7 @@ export const systemCapacityData = {
         },
         {
             id: 10,
-            name: '9 West',
+            name: '7W',
             description: 'Internal Medicine',
             availableBeds: 0,
             predictedDC: 3,
@@ -109,7 +109,7 @@ export const systemCapacityData = {
         },
         {
             id: 11,
-            name: 'ICU',
+            name: 'MICU',
             description: 'Intensive Care',
             availableBeds: 1,
             predictedDC: 2,
@@ -119,13 +119,13 @@ export const systemCapacityData = {
         },
         {
             id: 12,
-            name: 'CCU',
+            name: 'CVICU',
             description: 'Cardiac Care',
             availableBeds: 0,
             predictedDC: 1,
             targetedRequests: 2,
             status: -1,
-            redStretchPlan: 'Transferring stable patient to 5E telemetry'
+            redStretchPlan: 'Transferring stable patient to 7E telemetry'
         }
     ]
 };
@@ -207,8 +207,8 @@ export const alertsData = {
             id: 1,
             priority: 'high',
             title: 'Critical Staffing Shortage',
-            description: 'ICU requires additional nursing coverage for night shift',
-            department: 'ICU',
+            description: 'MICU requires additional nursing coverage for night shift',
+            department: 'MICU',
             time: '10 mins ago',
             category: 'staffing',
             actions: ['View Schedule', 'Contact Pool'],
@@ -398,18 +398,18 @@ export const serviceCategories = {
 // Generate Demo Data Function
 export const generateDemoData = () => {
     const units = [
-        { id: 1, name: '5 East' },
-        { id: 2, name: '5 West' },
-        { id: 3, name: '6 East' },
-        { id: 4, name: '6 West' },
-        { id: 5, name: '7 East' },
-        { id: 6, name: '7 West' },
-        { id: 7, name: '8 East' },
-        { id: 8, name: '8 West' },
-        { id: 9, name: '9 East' },
-        { id: 10, name: '9 West' },
-        { id: 11, name: 'ICU' },
-        { id: 12, name: 'CCU' }
+        { id: 1, name: '7E' },
+        { id: 2, name: '5W' },
+        { id: 3, name: '4E' },
+        { id: 4, name: 'ONC' },
+        { id: 5, name: '5E' },
+        { id: 6, name: '6W' },
+        { id: 7, name: 'NSICU' },
+        { id: 8, name: '4W' },
+        { id: 9, name: '6E' },
+        { id: 10, name: '7W' },
+        { id: 11, name: 'MICU' },
+        { id: 12, name: 'CVICU' }
     ];
 
     // Generate wait time based on service category and random factor
@@ -543,8 +543,8 @@ export const capacityTimelineData = {
         },
         {
             id: 2,
-            unit: 'ICU',
-            room: 'ICU-04',
+            unit: 'MICU',
+            room: 'MICU-04',
             priority: 'high',
             expectedTime: '11:30 AM',
             milestones: [
@@ -560,7 +560,7 @@ export const capacityTimelineData = {
     huddles: [
         {
             id: 1,
-            unit: 'ICU',
+            unit: 'MICU',
             status: 'critical',
             currentOccupancy: '95%',
             predictedDemand: 4,
@@ -571,13 +571,13 @@ export const capacityTimelineData = {
                     'Review 3 potential early discharges',
                     'Coordinate with ED for incoming critical patients'
                 ],
-                responsibleParty: 'Dr. Johnson',
+                responsibleParty: 'Dr. Anita Raghunathan',
                 deadline: '10:30 AM'
             }
         },
         {
             id: 2,
-            unit: 'Medical Floor',
+            unit: '4W',
             status: 'warning',
             currentOccupancy: '88%',
             predictedDemand: 6,
@@ -588,7 +588,7 @@ export const capacityTimelineData = {
                     'Coordinate with case management for placement',
                     'Review bed assignments for optimization'
                 ],
-                responsibleParty: 'Charge RN Smith',
+                responsibleParty: 'Maya Pendleton, RN',
                 deadline: '11:00 AM'
             }
         }

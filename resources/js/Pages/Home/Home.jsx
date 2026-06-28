@@ -7,15 +7,24 @@ import Progress from '@/Components/ui/progress'; // Update import statement to u
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import TabNavigation from '@/Components/ui/TabNavigation';
 import { useState } from 'react';
+import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
+
+const [
+    FACILITY_1,
+    FACILITY_2,
+    FACILITY_3,
+    FACILITY_4,
+    FACILITY_5,
+] = NETWORK_FACILITY_NAMES;
 
 // Mock data for demonstration
 const mockData = {
     bottlenecks: [
-        { id: 1, hospital: 'Marlton Hospital', department: 'ED', issue: 'CT Scanner Availability', impact: 89, affectedPatients: 45, trend: 'increasing' },
-        { id: 2, hospital: 'Mount Holly Hospital', department: 'PACU', issue: 'Staffing Shortage', impact: 82, affectedPatients: 28, trend: 'stable' },
-        { id: 3, hospital: 'Our Lady of Lourdes Hospital', department: 'OR', issue: 'Room Turnover Time', impact: 76, affectedPatients: 32, trend: 'decreasing' },
-        { id: 4, hospital: 'Voorhees Hospital', department: 'ICU', issue: 'Bed Availability', impact: 71, affectedPatients: 15, trend: 'increasing' },
-        { id: 5, hospital: 'Willingboro Hospital', department: 'Med/Surg', issue: 'Discharge Delays', impact: 68, affectedPatients: 52, trend: 'stable' },
+        { id: 1, hospital: FACILITY_1, department: 'ED', issue: 'CT Scanner Availability', impact: 89, affectedPatients: 45, trend: 'increasing' },
+        { id: 2, hospital: FACILITY_2, department: 'PACU', issue: 'Staffing Shortage', impact: 82, affectedPatients: 28, trend: 'stable' },
+        { id: 3, hospital: FACILITY_3, department: 'OR', issue: 'Room Turnover Time', impact: 76, affectedPatients: 32, trend: 'decreasing' },
+        { id: 4, hospital: FACILITY_4, department: 'ICU', issue: 'Bed Availability', impact: 71, affectedPatients: 15, trend: 'increasing' },
+        { id: 5, hospital: FACILITY_5, department: 'Med/Surg', issue: 'Discharge Delays', impact: 68, affectedPatients: 52, trend: 'stable' },
     ],
     pdsaCycles: [
         { id: 1, title: 'ED Flow Optimization', status: 'Study', progress: 75, dueDate: '2025-03-15', priority: 'high' },
@@ -24,10 +33,10 @@ const mockData = {
         { id: 4, title: 'ICU Capacity Management', status: 'Act', progress: 90, dueDate: '2025-02-28', priority: 'medium' },
     ],
     dischargePriority: [
-        { id: 1, patient: 'Smith, John', room: '4A-123', hospital: 'Marlton', priority: 'Critical', barrier: 'Transportation', timeReported: '14:35' },
-        { id: 2, patient: 'Johnson, Mary', room: '3B-234', hospital: 'Mount Holly', priority: 'High', barrier: 'Home Care Setup', timeReported: '14:42' },
-        { id: 3, patient: 'Williams, Robert', room: '5C-345', hospital: 'Voorhees', priority: 'Medium', barrier: 'Medication Reconciliation', timeReported: '14:15' },
-        { id: 4, patient: 'Brown, Patricia', room: '2A-456', hospital: 'Willingboro', priority: 'High', barrier: 'Pending Test Results', timeReported: '14:28' },
+        { id: 1, patient: 'Smith, John', room: '4A-123', hospital: FACILITY_1, priority: 'Critical', barrier: 'Transportation', timeReported: '14:35' },
+        { id: 2, patient: 'Johnson, Mary', room: '3B-234', hospital: FACILITY_2, priority: 'High', barrier: 'Home Care Setup', timeReported: '14:42' },
+        { id: 3, patient: 'Williams, Robert', room: '5C-345', hospital: FACILITY_4, priority: 'Medium', barrier: 'Medication Reconciliation', timeReported: '14:15' },
+        { id: 4, patient: 'Brown, Patricia', room: '2A-456', hospital: FACILITY_5, priority: 'High', barrier: 'Pending Test Results', timeReported: '14:28' },
     ],
     improvements: [
         { id: 1, title: 'ED Wait Time Reduction', impact: 92, components: { patientSatisfaction: 95, efficiency: 88, quality: 94, cost: 91 }, status: 'On Track' },
@@ -164,7 +173,7 @@ const Home = ({ workflow }) => {
                                     <div className="space-y-4">
                                         {[
                                             { user: 'Admin User', action: 'Updated system settings', time: '10 minutes ago', icon: 'heroicons:cog-6-tooth', color: 'text-healthcare-primary' },
-                                            { user: 'Dr. Smith', action: 'Logged into RTDC workflow', time: '25 minutes ago', icon: 'heroicons:user', color: 'text-healthcare-success' },
+                                            { user: 'Dr. Patel', action: 'Logged into RTDC workflow', time: '25 minutes ago', icon: 'heroicons:user', color: 'text-healthcare-success' },
                                             { user: 'System', action: 'Completed daily data refresh', time: '1 hour ago', icon: 'heroicons:arrow-path', color: 'text-healthcare-info' },
                                             { user: 'Jane Doe', action: 'Generated monthly report', time: '3 hours ago', icon: 'heroicons:document-text', color: 'text-healthcare-warning' },
                                             { user: 'System', action: 'Backup completed successfully', time: '6 hours ago', icon: 'heroicons:server', color: 'text-healthcare-primary' },

@@ -4,12 +4,20 @@ namespace App\Services;
 
 use App\Models\PdsaCycle;
 use App\Models\User;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class DashboardService
 {
+    private readonly HospitalManifest $hospital;
+
+    public function __construct(?HospitalManifest $hospital = null)
+    {
+        $this->hospital = $hospital ?? app(HospitalManifest::class);
+    }
+
     /**
      * Update the user's workflow preference.
      */
@@ -454,11 +462,16 @@ class DashboardService
      */
     public function getRootCauses(): array
     {
+        $medSurgUnits = $this->hospital->unitsByType('med_surg');
+        $stepDownUnits = $this->hospital->unitsByType('step_down');
+        $medSurgName = $medSurgUnits[0]['short_name'] ?? 'Medical / Surgical';
+        $stepDownAbbr = $stepDownUnits[0]['abbr'] ?? 'Step-Down';
+
         return [
             [
                 'rank' => 1,
                 'type' => 'Discharge Documentation Delays',
-                'location' => 'Med-Surg 3W',
+                'location' => $medSurgName,
                 'impactedPatients' => 14,
                 'impactDetails' => 'ICU Backlog (4), ED Boarding (8), Extended LOS (2)',
                 'score' => 76.6,
@@ -500,7 +513,7 @@ class DashboardService
             [
                 'rank' => 3,
                 'type' => 'ICU to Step-Down Transfer',
-                'location' => 'ICU → 4E',
+                'location' => 'ICU → '.$stepDownAbbr,
                 'impactedPatients' => 8,
                 'impactDetails' => 'PACU Holding (3 patients), OR Delays (4 cases)',
                 'score' => 45.3,

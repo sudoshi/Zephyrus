@@ -8,6 +8,7 @@ use App\Http\Requests\SaveProcessLayoutRequest;
 use App\Http\Requests\SaveViewportRequest;
 use App\Services\ProcessAnalysisService;
 use App\Services\ProcessLayoutService;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -29,7 +30,7 @@ class ProcessAnalysisController extends Controller
     {
         $savedLayout = $this->processAnalysisService->getSavedLayout(
             Auth::id(),
-            request('hospital', 'Virtua Marlton Hospital'),
+            request('hospital', app(HospitalManifest::class)->primaryNetworkFacilityName()),
             request('workflow', 'Admissions'),
             request('timeRange', '24 Hours'),
         );
@@ -44,7 +45,7 @@ class ProcessAnalysisController extends Controller
      */
     public function getNursingOperations(Request $request): JsonResponse
     {
-        $hospital = $request->query('hospital', 'Virtua Marlton Hospital');
+        $hospital = $request->query('hospital', app(HospitalManifest::class)->primaryNetworkFacilityName());
         $workflow = $request->query('workflow', 'Admissions');
         $timeRange = $request->query('timeRange', '24 Hours');
 

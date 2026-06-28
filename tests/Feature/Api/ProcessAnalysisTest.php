@@ -12,7 +12,7 @@ beforeEach(function () {
 describe('nursing operations API', function () {
     it('returns nursing operations data for authenticated user', function () {
         $response = $this->actingAs($this->user)
-            ->getJson('/improvement/api/nursing-operations?hospital=Virtua+Marlton+Hospital&workflow=Admissions&timeRange=24+Hours');
+            ->getJson('/improvement/api/nursing-operations?hospital=Summit+Regional+Medical+Center&workflow=Admissions&timeRange=24+Hours');
 
         $response->assertOk()
             ->assertJsonStructure(['nodes', 'edges', 'metrics']);
@@ -67,7 +67,7 @@ describe('process layout API', function () {
         $response = $this->actingAs($this->user)
             ->postJson('/improvement/process/layout', [
                 'process_type' => 'nursing_operations',
-                'hospital' => 'Virtua Marlton Hospital',
+                'hospital' => 'Summit Regional Medical Center',
                 'workflow' => 'Admissions',
                 'time_range' => '24 Hours',
                 'layout_data' => [
@@ -83,7 +83,7 @@ describe('process layout API', function () {
         $this->actingAs($this->user)
             ->postJson('/improvement/process/layout', [
                 'process_type' => 'nursing_operations',
-                'hospital' => 'Virtua Marlton Hospital',
+                'hospital' => 'Summit Regional Medical Center',
                 'workflow' => 'Admissions',
                 'time_range' => '24 Hours',
                 'layout_data' => [
@@ -93,7 +93,7 @@ describe('process layout API', function () {
 
         // Then retrieve it
         $response = $this->actingAs($this->user)
-            ->getJson('/improvement/process/layout?hospital=Virtua+Marlton+Hospital&workflow=Admissions&time_range=24+Hours');
+            ->getJson('/improvement/process/layout?hospital=Summit+Regional+Medical+Center&workflow=Admissions&time_range=24+Hours');
 
         $response->assertOk()
             ->assertJsonPath('found', true)
@@ -130,7 +130,7 @@ describe('viewport API', function () {
         $response = $this->actingAs($this->user)
             ->postJson('/improvement/process/viewport', [
                 'process_type' => 'nursing_operations',
-                'hospital' => 'Virtua Marlton Hospital',
+                'hospital' => 'Summit Regional Medical Center',
                 'workflow' => 'Admissions',
                 'time_range' => '24 Hours',
                 'layout_data' => [

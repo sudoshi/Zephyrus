@@ -7,10 +7,10 @@ from flow_engine import flow_event_to_fhir_bundle, parse_hl7_v2_message, reconst
 class FlowEngineTest(unittest.TestCase):
     def test_parse_adt_transfer(self):
         raw = "\r".join([
-            "MSH|^~\\&|EHR|AMC|FLOW|AMC|20260625010100||ADT^A02|MSG1|P|2.5.1",
+            "MSH|^~\\&|SUMMIT_EHR|SUMMIT_AMC|FLOW|SUMMIT_AMC|20260625010100||ADT^A02|MSG1|P|2.5.1",
             "EVN|A02|20260625010100",
-            "PID|||SYN000001^^^AMC^MR||FLOW^SYN000001",
-            "PV1||I|MS4A^MS4A-R001^MS4A-B001^PARTHENON|||ED^ED-ADULT-001^^PARTHENON|99001^ATTENDING^SYNTHETIC|||adult_med_surg|||||||||VIS000001^^^AMC^VN",
+            "PID|||SYN000001^^^SUMMIT_AMC^MR||FLOW^SYN000001",
+            "PV1||I|MS4A^MS4A-R001^MS4A-B001^SUMMIT|||ED^ED-ADULT-001^^SUMMIT|99001^ATTENDING^SYNTHETIC|||adult_med_surg|||||||||VIS000001^^^SUMMIT_AMC^VN",
             "",
         ])
         event = parse_hl7_v2_message(raw)
@@ -23,10 +23,10 @@ class FlowEngineTest(unittest.TestCase):
 
     def test_reconstruct_state_and_fhir_bundle(self):
         admit_raw = "\r".join([
-            "MSH|^~\\&|EHR|AMC|FLOW|AMC|20260625010100||ADT^A01|MSG2|P|2.5.1",
+            "MSH|^~\\&|SUMMIT_EHR|SUMMIT_AMC|FLOW|SUMMIT_AMC|20260625010100||ADT^A01|MSG2|P|2.5.1",
             "EVN|A01|20260625010100",
-            "PID|||SYN000002^^^AMC^MR||FLOW^SYN000002",
-            "PV1||I|MS4A^MS4A-R002^MS4A-B002^PARTHENON||||99001^ATTENDING^SYNTHETIC|||adult_med_surg|||||||||VIS000002^^^AMC^VN",
+            "PID|||SYN000002^^^SUMMIT_AMC^MR||FLOW^SYN000002",
+            "PV1||I|MS4A^MS4A-R002^MS4A-B002^SUMMIT||||99001^ATTENDING^SYNTHETIC|||adult_med_surg|||||||||VIS000002^^^SUMMIT_AMC^VN",
             "",
         ])
         discharge_raw = admit_raw.replace("ADT^A01|MSG2", "ADT^A03|MSG3").replace("EVN|A01", "EVN|A03").replace("20260625010100", "20260625030100")

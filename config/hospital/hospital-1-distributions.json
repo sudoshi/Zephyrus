@@ -1,0 +1,989 @@
+{
+  "facility": {
+    "code": "HOSP1",
+    "name": "Summit Regional Medical Center",
+    "shortName": "Summit",
+    "state": "PA",
+    "type": "Level I Trauma Academic Medical Center",
+    "licensedBeds": 500,
+    "cadFacilityCode": "ZEPHYRUS-500",
+    "note": "cadFacilityCode is the immutable join key across model_catalog.json -> location_index.json -> FacilitySpaceLocationResolver/RTDC; KEEP it, overlay Summit branding via config/hospital/hospital-1.php."
+  },
+  "unitRoster": [
+    {
+      "cadCode": "MICU3",
+      "sourceName": "Medical ICU",
+      "summitName": "3 West — Medical ICU (MICU)",
+      "abbr": "MICU",
+      "floor": 3,
+      "serviceLine": "critical_care",
+      "beds": 24,
+      "acuity": "icu",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT"
+    },
+    {
+      "cadCode": "SICU3",
+      "sourceName": "Surgical/Trauma ICU",
+      "summitName": "3 East — Surgical/Trauma ICU (SICU)",
+      "abbr": "SICU",
+      "floor": 3,
+      "serviceLine": "trauma_surgery",
+      "beds": 24,
+      "acuity": "icu",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT"
+    },
+    {
+      "cadCode": "NSICU3",
+      "sourceName": "Neuroscience ICU",
+      "summitName": "3 South — Neuroscience ICU (NSICU)",
+      "abbr": "NSICU",
+      "floor": 3,
+      "serviceLine": "neurosciences",
+      "beds": 20,
+      "acuity": "icu",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT"
+    },
+    {
+      "cadCode": "CVICU3",
+      "sourceName": "Cardiovascular ICU",
+      "summitName": "3 North — Cardiovascular ICU (CVICU)",
+      "abbr": "CVICU",
+      "floor": 3,
+      "serviceLine": "cardiovascular",
+      "beds": 20,
+      "acuity": "icu",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT"
+    },
+    {
+      "cadCode": "BURN3",
+      "sourceName": "Burn ICU",
+      "summitName": "3 Central — Burn ICU",
+      "abbr": "BURN",
+      "floor": 3,
+      "serviceLine": "burn",
+      "beds": 8,
+      "acuity": "burn_icu",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT"
+    },
+    {
+      "cadCode": "BHU2",
+      "sourceName": "Inpatient Behavioral Health",
+      "summitName": "2 — Inpatient Behavioral Health (Secure)",
+      "abbr": "BHU",
+      "floor": 2,
+      "serviceLine": "behavioral_health",
+      "beds": 24,
+      "acuity": "behavioral",
+      "atlanticCareunit": "INPATIENT PSYCH"
+    },
+    {
+      "cadCode": "MS4A",
+      "sourceName": "Adult Med/Surg A",
+      "summitName": "4 West — Medical/Surgical",
+      "abbr": "4W",
+      "floor": 4,
+      "serviceLine": "adult_med_surg",
+      "beds": 28,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "MS4B",
+      "sourceName": "Adult Med/Surg B",
+      "summitName": "4 East — Medical/Surgical",
+      "abbr": "4E",
+      "floor": 4,
+      "serviceLine": "adult_med_surg",
+      "beds": 28,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "MS5A",
+      "sourceName": "Adult Med/Surg C",
+      "summitName": "5 West — Medical/Surgical",
+      "abbr": "5W",
+      "floor": 5,
+      "serviceLine": "adult_med_surg",
+      "beds": 28,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "MS5B",
+      "sourceName": "Adult Med/Surg D",
+      "summitName": "5 East — Medical/Surgical",
+      "abbr": "5E",
+      "floor": 5,
+      "serviceLine": "adult_med_surg",
+      "beds": 28,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "MS6A",
+      "sourceName": "Adult Med/Surg E",
+      "summitName": "6 West — Medical/Surgical",
+      "abbr": "6W",
+      "floor": 6,
+      "serviceLine": "adult_med_surg",
+      "beds": 24,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "MS6B",
+      "sourceName": "Adult Med/Surg F",
+      "summitName": "6 East — Medical/Surgical",
+      "abbr": "6E",
+      "floor": 6,
+      "serviceLine": "adult_med_surg",
+      "beds": 24,
+      "acuity": "med_surg",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "TEL7A",
+      "sourceName": "Adult Telemetry A",
+      "summitName": "7 East — Telemetry & Cardiology",
+      "abbr": "7E",
+      "floor": 7,
+      "serviceLine": "cardiology",
+      "beds": 32,
+      "acuity": "telemetry",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "TEL7B",
+      "sourceName": "Adult Telemetry B",
+      "summitName": "7 West — Telemetry & Stepdown",
+      "abbr": "7W",
+      "floor": 7,
+      "serviceLine": "medicine",
+      "beds": 32,
+      "acuity": "telemetry",
+      "atlanticCareunit": "OBSERVATION"
+    },
+    {
+      "cadCode": "ANT8",
+      "sourceName": "Antepartum High-Risk OB",
+      "summitName": "8 — Antepartum (High-Risk OB)",
+      "abbr": "ANT",
+      "floor": 8,
+      "serviceLine": "womens_health",
+      "beds": 12,
+      "acuity": "women",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "PP8",
+      "sourceName": "Postpartum / Mother Baby",
+      "summitName": "8 — Postpartum / Mother-Baby",
+      "abbr": "PP",
+      "floor": 8,
+      "serviceLine": "womens_health",
+      "beds": 28,
+      "acuity": "women",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "GYN8",
+      "sourceName": "Gynecology Surgery",
+      "summitName": "8 — Gynecology Surgery",
+      "abbr": "GYN",
+      "floor": 8,
+      "serviceLine": "womens_health",
+      "beds": 8,
+      "acuity": "women",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "PED9",
+      "sourceName": "Pediatric Acute Care",
+      "summitName": "9 — Pediatric Acute Care",
+      "abbr": "PED",
+      "floor": 9,
+      "serviceLine": "pediatrics",
+      "beds": 24,
+      "acuity": "pediatrics",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "PICU9",
+      "sourceName": "Pediatric ICU",
+      "summitName": "9 — Pediatric ICU (PICU)",
+      "abbr": "PICU",
+      "floor": 9,
+      "serviceLine": "pediatrics",
+      "beds": 12,
+      "acuity": "pediatrics",
+      "atlanticCareunit": "MOBILE INTENSIVE CARE UNIT",
+      "latentBug": "acuity='pediatrics' (not 'picu') so icu_capable/telemetry_capable evaluate False — carried from source, fix in CAD-gen if ICU flags needed."
+    },
+    {
+      "cadCode": "NICU9",
+      "sourceName": "Neonatal ICU",
+      "summitName": "9 — Neonatal ICU (NICU)",
+      "abbr": "NICU",
+      "floor": 9,
+      "serviceLine": "neonatology",
+      "beds": 12,
+      "acuity": "pediatrics",
+      "atlanticCareunit": "NEWBORN",
+      "latentBug": "acuity='pediatrics' (not 'nicu') so icu_capable False — same latent bug as PICU9."
+    },
+    {
+      "cadCode": "ONC10",
+      "sourceName": "Oncology / Hematology",
+      "summitName": "10 — Oncology / Hematology",
+      "abbr": "ONC",
+      "floor": 10,
+      "serviceLine": "oncology",
+      "beds": 24,
+      "acuity": "oncology",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "BMT10",
+      "sourceName": "Bone Marrow Transplant / Cellular Therapy",
+      "summitName": "10 — Bone Marrow Transplant / Cellular Therapy",
+      "abbr": "BMT",
+      "floor": 10,
+      "serviceLine": "oncology",
+      "beds": 16,
+      "acuity": "oncology",
+      "atlanticCareunit": "INPATIENT"
+    },
+    {
+      "cadCode": "AIR11",
+      "sourceName": "Acute Inpatient Rehabilitation",
+      "summitName": "11 — Acute Inpatient Rehabilitation",
+      "abbr": "AIR",
+      "floor": 11,
+      "serviceLine": "rehabilitation",
+      "beds": 20,
+      "acuity": "rehab",
+      "atlanticCareunit": "INPATIENT REHAB"
+    },
+    {
+      "cadCode": "ED",
+      "sourceName": "Emergency Department",
+      "summitName": "1 — Emergency Department",
+      "abbr": "ED",
+      "floor": 1,
+      "serviceLine": "emergency",
+      "beds": 148,
+      "acuity": "emergency",
+      "atlanticCareunit": "EMERGENCY",
+      "note": "Floor-1 ED program = 148 positions (TRIAGE 8, TRAUMA 8, RESUS 6, ADULT 48, PED 12, BHSAFE 8, FAST 16, OBS 24, AII 6, DECON 12); not part of the 500 licensed inpatient beds."
+    },
+    {
+      "cadCode": "PERIOP",
+      "sourceName": "Procedural Platform",
+      "summitName": "2 — Perioperative / Procedural Platform",
+      "abbr": "OR",
+      "floor": 2,
+      "serviceLine": "perioperative",
+      "beds": 44,
+      "acuity": "procedural",
+      "atlanticCareunit": "HOSPITAL OUTPATIENT SURGERY",
+      "note": "Floor-2 procedural platform = 44 rooms (GENOR 8, TROR 2, HYBOR 2, CARDOR 2, NEUOR 2, TXPOR 2, ORTHOR 2, ROBOR 2, BURNOR 1, OBOR 3, CATH 4, EP 2, IR 4, ENDO 6, BRONCH 2) + PACU-01/02; maps to surgical-admit / HOSP OP SURGERY journeys."
+    }
+  ],
+  "proposedCduExtension": {
+    "cadCode": "CDU2",
+    "summitName": "2 — Clinical Decision Unit",
+    "abbr": "CDU",
+    "floor": 2,
+    "serviceLine": "emergency",
+    "beds": 16,
+    "acuity": "telemetry",
+    "atlanticCareunit": "OBSERVATION",
+    "recommendation": "Option A — append one UNIT_PROGRAM row ('CDU2','Clinical Decision Unit',2,'emergency','telemetry',16,0.00,'ED-adjacent short-stay observation / CDU') after line 125; bump 500-bed assertion at line 1845 to 516; re-run both generators; register in hospital-1.php + RTDC allow-lists. Floor-2 pinwheel slot is collision-free beside BHU2. Models the dominant OBSERVATION<->INPATIENT obs-bounce signature as a real licensed unit.",
+    "optional": true
+  },
+  "admissionArchetypes": [
+    {
+      "path": "EMERGENCY",
+      "probability": 0.22584
+    },
+    {
+      "path": "MOBILE INTENSIVE CARE UNIT",
+      "probability": 0.22393
+    },
+    {
+      "path": "EMERGENCY -> INPATIENT",
+      "probability": 0.18529
+    },
+    {
+      "path": "OUTPATIENT",
+      "probability": 0.11631
+    },
+    {
+      "path": "OUTPATIENT IN A BED",
+      "probability": 0.02916
+    },
+    {
+      "path": "HOSPITAL OUTPATIENT SURGERY",
+      "probability": 0.02189
+    },
+    {
+      "path": "EMERGENCY -> OBSERVATION -> INPATIENT",
+      "probability": 0.02181
+    },
+    {
+      "path": "EMERGENCY -> OBSERVATION",
+      "probability": 0.02105
+    },
+    {
+      "path": "INPATIENT",
+      "probability": 0.01925
+    },
+    {
+      "path": "OBSERVATION",
+      "probability": 0.01416
+    },
+    {
+      "path": "EMERGENCY -> INPATIENT -> EMERGENCY -> INPATIENT",
+      "probability": 0.00529
+    },
+    {
+      "path": "INPATIENT PSYCH",
+      "probability": 0.00501
+    },
+    {
+      "path": "SURGERY ADMIT -> INPATIENT",
+      "probability": 0.00389
+    },
+    {
+      "path": "EMERGENCY -> INPATIENT -> OBSERVATION (long obs-bounce, 11-hop)",
+      "probability": 0.00374
+    },
+    {
+      "path": "EMERGENCY -> INPATIENT -> OBSERVATION (long obs-bounce, 10-hop)",
+      "probability": 0.00364
+    },
+    {
+      "path": "EMERGENCY -> INPATIENT PSYCH",
+      "probability": 0.00331
+    }
+  ],
+  "admissionArchetypesNote": "Probabilities are over the 39,333-hadm denominator (admissions with >=1 valid careunit transfer); careunit path collapsed on consecutive duplicates. The long alternating EMERGENCY->INPATIENT->OBSERVATION->... paths are obs-status churn — the load-bearing simulation feature. These sum to ~0.916; the remaining ~0.084 is the long tail of rarer paths.",
+  "transitionMatrix": [
+    {
+      "from": "EMERGENCY",
+      "to": "INPATIENT",
+      "probability": 0.76303
+    },
+    {
+      "from": "EMERGENCY",
+      "to": "OBSERVATION",
+      "probability": 0.20709
+    },
+    {
+      "from": "EMERGENCY",
+      "to": "OUTPATIENT IN A BED",
+      "probability": 0.01392
+    },
+    {
+      "from": "EMERGENCY",
+      "to": "INPATIENT PSYCH",
+      "probability": 0.01175
+    },
+    {
+      "from": "EMERGENCY",
+      "to": "HOSPITAL OUTPATIENT SURGERY",
+      "probability": 0.00355
+    },
+    {
+      "from": "OBSERVATION",
+      "to": "INPATIENT",
+      "probability": 0.94245
+    },
+    {
+      "from": "OBSERVATION",
+      "to": "EMERGENCY",
+      "probability": 0.03606
+    },
+    {
+      "from": "OBSERVATION",
+      "to": "HOSPITAL OUTPATIENT SURGERY",
+      "probability": 0.0176
+    },
+    {
+      "from": "INPATIENT",
+      "to": "OBSERVATION",
+      "probability": 0.75921
+    },
+    {
+      "from": "INPATIENT",
+      "to": "HOSPITAL OUTPATIENT SURGERY",
+      "probability": 0.12736
+    },
+    {
+      "from": "INPATIENT",
+      "to": "EMERGENCY",
+      "probability": 0.10369
+    },
+    {
+      "from": "INPATIENT",
+      "to": "INPATIENT PSYCH",
+      "probability": 0.00613
+    },
+    {
+      "from": "HOSPITAL OUTPATIENT SURGERY",
+      "to": "INPATIENT",
+      "probability": 0.80914
+    },
+    {
+      "from": "HOSPITAL OUTPATIENT SURGERY",
+      "to": "OBSERVATION",
+      "probability": 0.12289
+    },
+    {
+      "from": "HOSPITAL OUTPATIENT SURGERY",
+      "to": "EMERGENCY",
+      "probability": 0.03263
+    },
+    {
+      "from": "SURGERY ADMIT",
+      "to": "INPATIENT",
+      "probability": 0.91633
+    },
+    {
+      "from": "OUTPATIENT IN A BED",
+      "to": "OUTPATIENT",
+      "probability": 0.36535
+    },
+    {
+      "from": "OUTPATIENT IN A BED",
+      "to": "OBSERVATION",
+      "probability": 0.3597
+    },
+    {
+      "from": "OUTPATIENT IN A BED",
+      "to": "EMERGENCY",
+      "probability": 0.15819
+    },
+    {
+      "from": "OUTPATIENT IN A BED",
+      "to": "INPATIENT",
+      "probability": 0.08663
+    },
+    {
+      "from": "OUTPATIENT",
+      "to": "OUTPATIENT IN A BED",
+      "probability": 0.30056
+    },
+    {
+      "from": "OUTPATIENT",
+      "to": "HOSPITAL OUTPATIENT SURGERY",
+      "probability": 0.19944
+    },
+    {
+      "from": "OUTPATIENT",
+      "to": "EMERGENCY",
+      "probability": 0.17416
+    },
+    {
+      "from": "OUTPATIENT",
+      "to": "SURGERY ADMIT",
+      "probability": 0.17135
+    },
+    {
+      "from": "INPATIENT PSYCH",
+      "to": "INPATIENT",
+      "probability": 0.63934
+    }
+  ],
+  "transitionMatrixNote": "Probability = share of out-edges from each 'from' node (not row-normalized to 1.0 across the matrix; some out-edges below threshold are omitted). The bidirectional OBSERVATION<->INPATIENT edges (OBS->INP 0.94245, INP->OBS 0.75921) are the load-bearing complexity signature. INPATIENT->EMERGENCY (0.104) and OBSERVATION->EMERGENCY (0.036) are deterioration/re-presentation back-edges.",
+  "losDistributionsByUnitType": [
+    {
+      "unitType": "INPATIENT",
+      "mappedAcuity": "med_surg",
+      "n": 10229,
+      "medianDays": 4.2569,
+      "p75": 7.0125,
+      "p90": 11.0783,
+      "max": 184.8111,
+      "mean": 5.8237
+    },
+    {
+      "unitType": "EMERGENCY",
+      "mappedAcuity": "emergency",
+      "n": 9412,
+      "medianDays": 0.175,
+      "p75": 0.2556,
+      "p90": 0.3694,
+      "max": 4.4021,
+      "mean": 0.2031
+    },
+    {
+      "unitType": "MOBILE INTENSIVE CARE UNIT",
+      "mappedAcuity": "icu",
+      "n": 8833,
+      "medianDays": 0.3576,
+      "p75": 0.5458,
+      "p90": 0.6854,
+      "max": 0.9993,
+      "mean": 0.3787,
+      "note": "This MICU careunit is a short-stay (sub-1-day) transport/transition unit, NOT licensed ICU LOS. For true ICU bed LOS use icuLos below (median 4.07d)."
+    },
+    {
+      "unitType": "OUTPATIENT",
+      "mappedAcuity": "procedural",
+      "n": 5963,
+      "medianDays": 0.5111,
+      "p75": 0.6035,
+      "p90": 0.6569,
+      "max": 0.9993,
+      "mean": 0.4343
+    },
+    {
+      "unitType": "OBSERVATION",
+      "mappedAcuity": "telemetry",
+      "n": 3883,
+      "medianDays": 1.1389,
+      "p75": 2.1514,
+      "p90": 3.6949,
+      "max": 35.8674,
+      "mean": 1.6306
+    },
+    {
+      "unitType": "OUTPATIENT IN A BED",
+      "mappedAcuity": "procedural",
+      "n": 1451,
+      "medianDays": 0.1333,
+      "p75": 0.2288,
+      "p90": 0.6063,
+      "max": 7.7194,
+      "mean": 0.2061
+    },
+    {
+      "unitType": "HOSPITAL OUTPATIENT SURGERY",
+      "mappedAcuity": "procedural",
+      "n": 1222,
+      "medianDays": 0.2278,
+      "p75": 1.0023,
+      "p90": 2.3422,
+      "max": 9.566,
+      "mean": 0.7762
+    },
+    {
+      "unitType": "INPATIENT PSYCH",
+      "mappedAcuity": "behavioral",
+      "n": 377,
+      "medianDays": 5.5125,
+      "p75": 8.7674,
+      "p90": 15.6358,
+      "max": 186.434,
+      "mean": 7.8243
+    },
+    {
+      "unitType": "INPATIENT REHAB",
+      "mappedAcuity": "rehab",
+      "n": 108,
+      "medianDays": 10.0441,
+      "p75": 13.9347,
+      "p90": 19.7915,
+      "max": 27.8153,
+      "mean": 11.2073
+    },
+    {
+      "unitType": "LTACH IP",
+      "mappedAcuity": "ltach",
+      "n": 85,
+      "medianDays": 22.1007,
+      "p75": 33.8924,
+      "p90": 43.1493,
+      "max": 128.9285,
+      "mean": 26.5821
+    }
+  ],
+  "icuLos": {
+    "n": 310,
+    "medianDays": 4.07,
+    "meanDays": 6.8225,
+    "maxDays": 120.62,
+    "note": "icustays.los, all first_careunit=ICU. Use this for true ICU bed-LOS in the ICU units (MICU3/SICU3/NSICU3/CVICU3); the MICU careunit LOS in losDistributionsByUnitType is a transport-unit artifact."
+  },
+  "edThroughputHours": {
+    "median": 5.3833,
+    "p90": 10.2983,
+    "mean": 6.3025,
+    "n": 21542,
+    "note": "edregtime->edouttime, hours; ED door-to-disposition. Distinct from EMERGENCY careunit LOS (0.175d ~4.2h)."
+  },
+  "serviceLineWeights": [
+    {
+      "serviceLine": "critical_care",
+      "weight": 0.2,
+      "summitUnits": [
+        "MICU3"
+      ],
+      "rationale": "MICU careunit 9282 transfer events + heavy vent/central-line/arterial-line procedure signature; geriatric cohort."
+    },
+    {
+      "serviceLine": "adult_med_surg",
+      "weight": 0.3,
+      "summitUnits": [
+        "MS4A",
+        "MS4B",
+        "MS5A",
+        "MS5B",
+        "MS6A",
+        "MS6B"
+      ],
+      "rationale": "INPATIENT dominates careunit volume (308405 events) and admission_type (10379); 6 med/surg pods are the largest physical footprint."
+    },
+    {
+      "serviceLine": "cardiology",
+      "weight": 0.1,
+      "summitUnits": [
+        "TEL7A",
+        "CVICU3"
+      ],
+      "rationale": "OBSERVATION/telemetry volume + ECMO/open-heart (3961), coronary fluoroscopy (B211YZZ) procedures."
+    },
+    {
+      "serviceLine": "trauma_surgery",
+      "weight": 0.08,
+      "summitUnits": [
+        "SICU3"
+      ],
+      "rationale": "Level I trauma + HOSP OP SURGERY -> INPATIENT conversion (0.809), surgical-admit pathways."
+    },
+    {
+      "serviceLine": "neurosciences",
+      "weight": 0.05,
+      "summitUnits": [
+        "NSICU3"
+      ],
+      "rationale": "Stroke/neurotrauma share of ICU; NEUOR procedural rooms."
+    },
+    {
+      "serviceLine": "medicine",
+      "weight": 0.07,
+      "summitUnits": [
+        "TEL7B"
+      ],
+      "rationale": "Stepdown/telemetry overflow, ED decompression, obs-bounce churn."
+    },
+    {
+      "serviceLine": "behavioral_health",
+      "weight": 0.04,
+      "summitUnits": [
+        "BHU2"
+      ],
+      "rationale": "INPATIENT PSYCH 5418 events / admission_type 379; ECT (9427) procedure present; long LOS (median 5.5d)."
+    },
+    {
+      "serviceLine": "oncology",
+      "weight": 0.05,
+      "summitUnits": [
+        "ONC10",
+        "BMT10"
+      ],
+      "rationale": "Infusion/nutrition support, protective-environment BMT; central-venous-access heavy."
+    },
+    {
+      "serviceLine": "rehabilitation",
+      "weight": 0.03,
+      "summitUnits": [
+        "AIR11"
+      ],
+      "rationale": "INPATIENT REHAB 1763 events, long LOS (median 10d)."
+    },
+    {
+      "serviceLine": "womens_health",
+      "weight": 0.04,
+      "summitUnits": [
+        "ANT8",
+        "PP8",
+        "GYN8"
+      ],
+      "rationale": "Low NEWBORN signal (25 events / 2 patients) keeps OB/peds intentionally light; retained for roster completeness."
+    },
+    {
+      "serviceLine": "pediatrics",
+      "weight": 0.02,
+      "summitUnits": [
+        "PED9",
+        "PICU9"
+      ],
+      "rationale": "Cohort is 64.74% geriatric with effectively ZERO pediatric volume (one 0-17 patient); peds units exist in plant but carry near-zero synthetic flow — keep weight minimal."
+    },
+    {
+      "serviceLine": "neonatology",
+      "weight": 0.005,
+      "summitUnits": [
+        "NICU9"
+      ],
+      "rationale": "NEWBORN careunit 25 events / 2 patients — vestigial; near-zero weight."
+    },
+    {
+      "serviceLine": "burn",
+      "weight": 0.01,
+      "summitUnits": [
+        "BURN3"
+      ],
+      "rationale": "Burn ICU 8 beds; small dedicated critical-care slice."
+    },
+    {
+      "serviceLine": "perioperative",
+      "weight": 0.005,
+      "summitUnits": [
+        "PERIOP"
+      ],
+      "rationale": "Procedural platform throughput; most surgical volume routes through HOSP OP SURGERY/SURGERY ADMIT -> INPATIENT."
+    }
+  ],
+  "serviceLineWeightsNote": "Weights sum to 1.0 and are deliberately critical-care-heavy + geriatric-skewed to match the verified procedure signature (vascular access, mechanical ventilation, RRT, nutrition support) and demographics (64.74% age 65+, one pediatric patient). Pediatric/neonatal/OB lines are retained for roster fidelity to the 23-unit CAD plant but down-weighted to reflect near-zero synthetic source volume.",
+  "dispositionMix": [
+    {
+      "destination": "Home/Self Care",
+      "probability": 0.78
+    },
+    {
+      "destination": "SNF/Sub-Acute Rehab",
+      "probability": 0.0681
+    },
+    {
+      "destination": "Home Health",
+      "probability": 0.0625
+    },
+    {
+      "destination": "Transfer to Acute Hospital",
+      "probability": 0.0258
+    },
+    {
+      "destination": "Left AMA/Elopement",
+      "probability": 0.0141
+    },
+    {
+      "destination": "LWBS/ED No-Treat",
+      "probability": 0.0052
+    },
+    {
+      "destination": "Inpatient Rehab",
+      "probability": 0.004
+    },
+    {
+      "destination": "Psychiatric Hospital",
+      "probability": 0.0037
+    },
+    {
+      "destination": "Hospice",
+      "probability": 0.0034
+    },
+    {
+      "destination": "Long Term/Intermediate Care",
+      "probability": 0.0022
+    },
+    {
+      "destination": "Other",
+      "probability": 0.0072
+    },
+    {
+      "destination": "Expired",
+      "probability": 0.0038
+    }
+  ],
+  "dispositionMixNote": "Verified atlantic disposition shares: Home/Self Care 0.80077, SNF 0.06811, Home Health 0.0625, Transfer-to-Acute 0.02576, Left AMA 0.01414, Expired (string bucket) 0.00414. Per spec, Home rounded to ~0.78 with the residual absorbed into Other/LWBS to keep the long tail visible; Expired here is set to the authoritative flag-based mortality 0.0038 (not the 174 EXPIRED-string count). All values sum to 1.0. Rollup requires splitting compound discharge_location on ' / ' (space-slash-space), never bare '/'.",
+  "demographics": {
+    "genderSplit": {
+      "F": 0.5588,
+      "M": 0.4412,
+      "counts": {
+        "F": 1816,
+        "M": 1434
+      }
+    },
+    "ageBuckets": [
+      {
+        "bucket": "0-17",
+        "share": 0.0003,
+        "count": 1
+      },
+      {
+        "bucket": "18-34",
+        "share": 0.0502,
+        "count": 163
+      },
+      {
+        "bucket": "35-49",
+        "share": 0.1111,
+        "count": 361
+      },
+      {
+        "bucket": "50-64",
+        "share": 0.1911,
+        "count": 621
+      },
+      {
+        "bucket": "65-79",
+        "share": 0.3348,
+        "count": 1088
+      },
+      {
+        "bucket": "80+",
+        "share": 0.3126,
+        "count": 1016
+      }
+    ],
+    "geriatricShare": 0.6474,
+    "ageAnchorDate": "2026-06-27",
+    "race": [
+      {
+        "code": "1.0",
+        "count": 2970
+      },
+      {
+        "code": "2.0",
+        "count": 268
+      },
+      {
+        "code": "4.0",
+        "count": 12
+      }
+    ],
+    "note": "Age buckets computed via age(DATE '2026-06-27', dob). Geriatric (65+) = 2104/3250 = 64.74%. Effectively zero pediatric volume (one 0-17 patient) — drives the down-weighting of peds/neonatal/OB lines."
+  },
+  "acuityWeighting": {
+    "emphasis": [
+      "icu",
+      "vent",
+      "central_line",
+      "arterial_line",
+      "dialysis_rrt",
+      "nutrition_support"
+    ],
+    "narrative": "Critical-care-dominant. Top procedures are a textbook ICU signature: SVC/RA infusion-device insertion (02HV33Z 2687), CVC with guidance (3897 2421), enteral nutrition (966 2028), mechanical ventilation across <96h/24-96h/>96h tiers (9671/5A1945Z/5A1955Z/9672), endotracheal intubation (9604/0BH17EZ), arterial lines (3891), extracorporeal circulation for open-heart (3961), and intermittent RRT/hemofiltration (5A1D70Z). Bias acuity assignment toward ICU/telemetry beds with high device/vent/line/dialysis utilization; pair with the geriatric age skew.",
+    "icuCapableUnits": [
+      "MICU3",
+      "SICU3",
+      "NSICU3",
+      "CVICU3",
+      "BURN3"
+    ],
+    "telemetryUnits": [
+      "TEL7A",
+      "TEL7B"
+    ]
+  },
+  "procedureClusters": [
+    "Critical Care / Central & Arterial Vascular Access (SVC/RA infusion devices, CVC with guidance, arterial lines)",
+    "Mechanical Ventilation & Airway Management (invasive ventilation <96h / 24-96h / >96h, endotracheal intubation)",
+    "Nutrition Support (enteral infusion of concentrated nutrition, upper-GI tube feeding)",
+    "Cardiology / Cardiac Surgery (extracorporeal circulation for open-heart surgery, multi-vessel coronary fluoroscopy)",
+    "Pulmonary (bronchoscopic bronchial biopsy, ventilatory support)",
+    "Gastroenterology (small-intestine endoscopy, percutaneous abdominal drainage)",
+    "Renal Replacement Therapy (intermittent urinary/hemofiltration, CRRT)",
+    "Behavioral / Neuro (electroconvulsive therapy)"
+  ],
+  "conditionSetGuidance": {
+    "caveat": "The atlantic diagnosis code->label dictionary is SCRAMBLED (proven: P22.0 'Respiratory distress syndrome of newborn' appears 1888x in a 64.74% geriatric population; IMO0002/'\\\\N'/'F41.9, F45.8' are placeholders/non-codes). DO NOT use atlantic diagnosis labels for epidemiology. The curated condition themes below are clinically-coherent substitutes derived from the (clean, verified) PROCEDURE signature + unit acuity + geriatric demographics.",
+    "byServiceLine": {
+      "critical_care": [
+        "Sepsis / septic shock",
+        "Acute respiratory failure (ventilator-dependent)",
+        "Multi-organ dysfunction",
+        "Shock requiring vasopressors",
+        "Acute kidney injury requiring RRT"
+      ],
+      "adult_med_surg": [
+        "Community-acquired pneumonia",
+        "Heart failure exacerbation",
+        "COPD exacerbation",
+        "Cellulitis / soft-tissue infection",
+        "Postoperative recovery",
+        "Dehydration / electrolyte derangement",
+        "UTI / urosepsis (elderly)"
+      ],
+      "cardiology": [
+        "NSTEMI / acute coronary syndrome",
+        "Atrial fibrillation with RVR",
+        "Decompensated heart failure",
+        "Post-cardiac-surgery monitoring",
+        "Symptomatic bradyarrhythmia"
+      ],
+      "trauma_surgery": [
+        "Blunt / penetrating trauma",
+        "Post-laparotomy critical care",
+        "Surgical-site infection",
+        "Acute abdomen / bowel obstruction"
+      ],
+      "neurosciences": [
+        "Acute ischemic stroke",
+        "Intracerebral hemorrhage",
+        "Subarachnoid hemorrhage",
+        "Status epilepticus",
+        "Traumatic brain injury"
+      ],
+      "medicine": [
+        "Telemetry monitoring / rule-out ACS",
+        "Syncope workup",
+        "Hyponatremia / metabolic disturbance",
+        "Observation-status chest pain"
+      ],
+      "behavioral_health": [
+        "Major depressive disorder with suicidality",
+        "Acute psychosis",
+        "Bipolar manic episode",
+        "Alcohol/substance withdrawal",
+        "ECT course"
+      ],
+      "oncology": [
+        "Neutropenic fever",
+        "Chemotherapy administration / toxicity",
+        "Bone-marrow-transplant conditioning",
+        "Malignancy-related complications"
+      ],
+      "rehabilitation": [
+        "Post-stroke rehabilitation",
+        "Post-surgical deconditioning",
+        "Polytrauma rehabilitation",
+        "Amputation rehabilitation"
+      ],
+      "womens_health": [
+        "High-risk antepartum monitoring",
+        "Postpartum recovery",
+        "Gynecologic surgical recovery"
+      ],
+      "pediatrics": [
+        "Pediatric acute care (low synthetic volume)"
+      ],
+      "neonatology": [
+        "Neonatal intensive care (vestigial synthetic volume)"
+      ],
+      "burn": [
+        "Major thermal burn",
+        "Inhalation injury"
+      ]
+    }
+  },
+  "mortalityRate": 0.00385,
+  "mortalityNote": "Authoritative flag-based rate: hospital_expire_flag=1 = 162/42078 = 0.003850. The disposition 'Expired' string bucket (174) is intentionally higher and methodologically distinct — do not conflate.",
+  "provenance": {
+    "source": "atlantic_health (synthetic MIMIC-IV)",
+    "patientBasis": 3250,
+    "admissionBasis": 42078,
+    "distinctHadm": 39506,
+    "careunitPathDenominator": 39333,
+    "encountersPerPatient": {
+      "mean": 12.9471,
+      "median": 10,
+      "max": 293
+    },
+    "verificationStatus": "All 13 structural+journey and all 27 clinical/demographic load-bearing claims independently reproduced exactly (SELECT-only) against atlantic_health; zero corrections required.",
+    "caveats": [
+      "SCRAMBLED DIAGNOSIS DICTIONARY: diagnosis code->label mappings are scrambled (P22.0->'newborn RDS' 1888x in geriatric cohort; IMO0002/'\\\\N'/comma-joined pairs are non-codes). Use diagnosis cardinality/variety only — NEVER for epidemiology. Procedure codes join cleanly (83425 rows / 352 codes, ICD-9+10) and ARE clinically coherent.",
+      "SYNTHETIC DATA: this is synthetic MIMIC-IV, not real patients. High encounters/patient (mean 12.95, max 293) and the OBSERVATION<->INPATIENT obs-bounce are synthesizer artifacts that nonetheless define the intended simulation complexity.",
+      "MICU CAREUNIT != ICU LOS: the 'MOBILE INTENSIVE CARE UNIT' careunit is a sub-1-day transport/transition unit; true ICU bed LOS is icustays.los (median 4.07d, n=310).",
+      "DISPOSITION DELIMITER: split compound discharge_location on ' / ' (space-slash-space), not bare '/', or SNF/Left-AMA mis-bucket.",
+      "AGE ANCHOR: age buckets anchored to 2026-06-27; re-anchor if generated at a different date."
+    ],
+    "extractedAt": "2026-06-27",
+    "workflowRunId": "wf_b74378f9-d9b"
+  }
+}

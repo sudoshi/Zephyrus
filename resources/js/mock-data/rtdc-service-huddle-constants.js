@@ -1,7 +1,15 @@
-// Constants for generating realistic data
+// Constants for generating realistic data.
+// Unit display strings are sourced from the Summit Regional roster
+// (config/hospital/hospital-1.php → resources/js/constants/summitHospital.js).
+// The huddle generator derives a room prefix via `unit.split(' ')[0]`, so each
+// string keeps a leading floor/number token (e.g. '5 West …' → '5').
 export const UNITS = [
-    '5 East', '5 West', '6 East', '6 West', '7 East', '7 West',
-    '8 East', '8 West', '9 East', '9 West', 'ICU', 'CCU',
+    '3 West — Medical ICU (MICU)', '3 North — Cardiovascular ICU (CVICU)',
+    '4 West — Medical/Surgical', '4 East — Medical/Surgical',
+    '5 West — Medical/Surgical', '5 East — Medical/Surgical',
+    '6 West — Medical/Surgical', '6 East — Medical/Surgical',
+    '7 East — Telemetry & Cardiology', '7 West — Telemetry & Stepdown',
+    '10 — Oncology / Hematology', '11 — Acute Inpatient Rehabilitation',
 ];
 
 export const SERVICES = [

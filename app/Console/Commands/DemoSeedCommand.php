@@ -25,7 +25,8 @@ class DemoSeedCommand extends Command
 
     private const FACILITY_CODE = 'ZEPHYRUS-500';
 
-    private const FACILITY_NAME = '500-Bed Level I Trauma Academic Medical Center';
+    // FACILITY_CODE (ZEPHYRUS-500) is the immutable join key; FACILITY_NAME is display-only branding.
+    private const FACILITY_NAME = 'Summit Regional Medical Center';
 
     private const CATALOG_PATH = 'patient-flow-4d-navigator/hospital-cad-model/data/model_catalog.json';
 
