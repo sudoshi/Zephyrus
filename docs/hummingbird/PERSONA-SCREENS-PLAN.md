@@ -34,9 +34,14 @@ against the running BFF + fixed Summit Healthcare demo data:
 transport/EVS SLAs refreshed to near-now, today's staffing plans with gaps (MICU critical, SICU/6E/
 7E), OR board live via simulated clock, 7 pending ops approvals, 5 PDSA cycles, 6 opportunities.
 Backend: PHP 8.5 + `artisan serve` on `:8001` against the fixed DB; `admin@acumenus.net` preserved.
+**Reproducible:** the tuning is folded into `database/seeders/DemoTuningSeeder.php` (idempotent,
+runs last in `DatabaseSeeder`) so a fresh `db:seed` yields the same compelling state — 85%
+occupancy, today's staffing gaps, near-now SLAs, clean ED beds, varied OR surgeons. BFF
+conformance tests live in `tests/Feature/MobileBffTest.php`; the **full Feature suite is green
+(270 passed, 2371 assertions)**.
 
-The remaining work is **Android parity** (no role layer yet) and optional polish (bespoke P3 unit
-board, OR surgeon variety, `/command/brief`). The section below is the original design plan.
+The remaining work is **Android parity** (no role layer yet) and optional polish (a bespoke P3
+charge-nurse unit board and the `/command/brief` narrative). The section below is the design plan.
 
 ---
 
