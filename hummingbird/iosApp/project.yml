@@ -34,6 +34,10 @@ targets:
       path: Hummingbird/Info.plist
       properties:
         CFBundleDisplayName: Hummingbird
+        # Drive the build number from CURRENT_PROJECT_VERSION so archive-testflight.sh's
+        # per-upload build number actually lands in the bundle (App Store Connect rejects
+        # duplicate build numbers). Without this XcodeGen writes a literal "1".
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSFaceIDUsageDescription: Unlock Hummingbird with Face ID.
         UIUserInterfaceStyle: Dark
         UILaunchScreen: {}
