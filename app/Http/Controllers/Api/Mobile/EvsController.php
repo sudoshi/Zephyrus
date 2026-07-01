@@ -1,0 +1,139 @@
+<?php
+
+namespace App\Http\Controllers\Api\Mobile;
+
+use App\Http\Concerns\RendersMobileEnvelope;
+use App\Http\Controllers\Controller;
+use App\Models\Evs\EvsRequest;
+use App\Services\Evs\EvsOperationsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
+
+/**
+ * EVS / bed-turns — the frontline "next dirty bed" surface (P2, Wave 1).
+ *
+ *   GET  /api/mobile/v1/evs/queue                       (mobile:read)
+ *   POST /api/mobile/v1/evs/requests/{id}/status        (mobile:act)
+ *
+ * Reads are PHI-minimized (no patient_ref / encounter_ref): just the bed location, turn type,
+ * isolation flag, priority, lifecycle status, and SLA. Writes delegate to
+ * {@see EvsOperationsService} verbatim — Claim (→assigned) → Start (→in_progress, stamps
+ * started_at) → Complete (→completed). Completing a turn unblocks the bed for placement.
+ */
+class EvsController extends Controller
+{
+    use RendersMobileEnvelope;
+
+    public function __construct(private readonly EvsOperationsService $evs) {}
+
+    /** The SLA-ordered active turn queue + the metrics the "Bed Turns" home leads with. */
+    public function queue(): JsonResponse
+    {
+        $active = EvsRequest::active()
+            ->orderByRaw("CASE priority WHEN 'stat' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END")
+            ->orderByRaw('needed_at NULLS LAST')
+            ->orderByDesc('evs_request_id')
+            ->get();
+
+        $turns = $active->map(fn (EvsRequest $r) => $this->shapeTurn($r))->values();
+
+        $completedToday = EvsRequest::query()
+            ->where('is_deleted', false)
+            ->where('status', 'completed')
+            ->whereDate('requested_at', Carbon::today())
+            ->count();
+
+        $metrics = [
+            'pending' => $active->count(),
+            'overdue' => $active->filter(fn (EvsRequest $r) => $this->atRisk($r))->count(),
+            'isolation' => $active->where('isolation_required', true)->count(),
+            'completed_today' => $completedToday,
+        ];
+
+        return $this->envelope(
+            ['metrics' => $metrics, 'turns' => $turns],
+            meta: ['count' => $turns->count()],
+            links: ['web' => url('/rtdc/bed-tracking')],
+        );
+    }
+
+    /** Advance a turn (Claim → Start → Complete). Delegates to the service. */
+    public function status(Request $request, int $id): JsonResponse
+    {
+        $allowed = array_merge(EvsOperationsService::ACTIVE_STATUSES, ['completed', 'canceled', 'failed']);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in($allowed)],
+            'assigned_team' => ['sometimes', 'string', 'max:120'],
+        ]);
+
+        $req = EvsRequest::where('evs_request_id', $id)->where('is_deleted', false)->firstOrFail();
+        $actorId = $request->user()?->id;
+
+        $updated = $validated['status'] === 'assigned'
+            ? $this->evs->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
+            : $this->evs->transition($req, $validated['status'], [], $actorId);
+
+        return $this->envelope($this->shapeTurn($updated), links: ['web' => url('/rtdc/bed-tracking')]);
+    }
+
+    // MARK: PHI-minimized shaping (mirrors EvsOperationsService::sla/isAtRisk semantics)
+
+    /** @return array<string, mixed> */
+    private function shapeTurn(EvsRequest $r): array
+    {
+        return [
+            'id' => $r->evs_request_id,
+            'uuid' => $r->request_uuid,
+            'request_type' => $r->request_type,
+            'priority' => $r->priority,
+            'status' => $r->status,
+            'tier' => $this->tier($r),
+            'location_label' => $r->location_label,
+            'unit_id' => $r->unit_id,
+            'turn_type' => $r->turn_type,
+            'isolation_required' => (bool) $r->isolation_required,
+            'needed_at' => $r->needed_at?->toIso8601String(),
+            'sla' => $this->sla($r),
+        ];
+    }
+
+    /** Rationed status vocabulary: stat → critical, urgent/at-risk → warning, else info. */
+    private function tier(EvsRequest $r): string
+    {
+        if ($r->priority === 'stat') {
+            return 'critical';
+        }
+
+        return ($r->priority === 'urgent' || $this->atRisk($r)) ? 'warning' : 'info';
+    }
+
+    private function atRisk(EvsRequest $r): bool
+    {
+        if ($r->priority === 'stat') {
+            return true;
+        }
+
+        if ($r->needed_at === null) {
+            return false;
+        }
+
+        return $r->needed_at->isPast() && ! in_array($r->status, ['completed', 'canceled', 'failed'], true);
+    }
+
+    /** @return array{minutes_until_due: int|null, at_risk: bool, label: string} */
+    private function sla(EvsRequest $r): array
+    {
+        $minutesUntilDue = $r->needed_at ? (int) round(now()->diffInMinutes($r->needed_at, false)) : null;
+
+        return [
+            'minutes_until_due' => $minutesUntilDue,
+            'at_risk' => $this->atRisk($r),
+            'label' => $minutesUntilDue === null
+                ? 'No target'
+                : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+        ];
+    }
+}

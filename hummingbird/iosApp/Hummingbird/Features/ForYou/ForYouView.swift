@@ -9,10 +9,29 @@ final class ForYouViewModel: ObservableObject {
     /// unit's live detail. Loaded best-effort alongside the queue.
     @Published var unitsById: [Int: CensusUnit] = [:]
     @Published var webLink: String?
+    /// Item ids with an action in flight, so their inline button shows progress and disables.
+    @Published var working: Set<String> = []
     private var unitsByName: [String: CensusUnit] = [:]
 
     let api: APIClient
     init(api: APIClient) { self.api = api }
+
+    /// Resolve an open barrier from its queue item (id like "barrier-123"), then refresh.
+    func resolveBarrier(item: ForYouItem, bearer: String) async {
+        guard let barrierId = Self.refId(item.id, prefix: "barrier-") else { return }
+        working.insert(item.id)
+        defer { working.remove(item.id) }
+        do {
+            try await api.resolveBarrier(id: barrierId, bearer: bearer)
+            await load(bearer: bearer)
+        } catch let error as APIError { errorMessage = error.message }
+        catch { errorMessage = error.localizedDescription }
+    }
+
+    /// Parse the numeric id out of a composite queue-item id ("barrier-123" → 123).
+    static func refId(_ composite: String, prefix: String) -> Int? {
+        composite.hasPrefix(prefix) ? Int(composite.dropFirst(prefix.count)) : nil
+    }
 
     func load(bearer: String) async {
         // Test affordance: SIMCTL_CHILD_HB_FORCE_ERROR=1 simulates an unreachable server. No-op in prod.
@@ -78,7 +97,14 @@ struct ForYouView: View {
                         emptyState
                     } else {
                         ForEach(items) { item in
-                            if let unit = vm.unit(for: item) {
+                            if item.type == "barrier" {
+                                // Discharge barriers get a one-tap inline Resolve (mobile:act).
+                                ForYouRow(item: item, navigable: false,
+                                          actionLabel: "Resolve",
+                                          busy: vm.working.contains(item.id)) {
+                                    Task { await vm.resolveBarrier(item: item, bearer: auth.accessToken ?? "") }
+                                }
+                            } else if let unit = vm.unit(for: item) {
                                 NavigationLink(value: unit.unitId) { ForYouRow(item: item) }
                                     .buttonStyle(.plain)
                             } else {
@@ -149,6 +175,10 @@ struct ForYouRow: View {
     /// Whether to show the disclosure chevron (drill into the related unit). Off when the
     /// row is already shown in that unit's context, or has no unit to navigate to.
     var navigable: Bool = true
+    /// An inline primary action (e.g. "Resolve"). When set, replaces the chevron with a button.
+    var actionLabel: String? = nil
+    var busy: Bool = false
+    var onAction: (() -> Void)? = nil
     private var status: CapacityStatus { item.capacity }
 
     var body: some View {
@@ -165,7 +195,22 @@ struct ForYouRow: View {
                     }
                 }
                 Spacer(minLength: Z.s2)
-                if navigable {
+                if let actionLabel, let onAction {
+                    Button(action: onAction) {
+                        Group {
+                            if busy {
+                                ProgressView().controlSize(.small).tint(Z.primary)
+                            } else {
+                                Text(actionLabel)
+                                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Z.primary)
+                            }
+                        }
+                        .padding(.horizontal, Z.s3).padding(.vertical, Z.s1)
+                        .background(Capsule().strokeBorder(Z.primary.opacity(0.5), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(busy)
+                } else if navigable {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.inkMuted)
                 }
@@ -182,6 +227,8 @@ struct ForYouRow: View {
         case "bed_request": return "bed.double.fill"
         case "barrier": return "exclamationmark.octagon.fill"
         case "capacity": return "building.2.fill"
+        case "transport": return "figure.walk"
+        case "evs": return "sparkles"
         default: return "bell.fill"
         }
     }

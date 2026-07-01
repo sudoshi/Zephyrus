@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// The signed-in shell: House Status + the For You queue.
+/// The signed-in shell: the role's Home + the For You queue. The first tab is role-adaptive —
+/// most personas get the census glance; the transporter gets the bespoke "My Trips" home.
 struct MainTabView: View {
     @EnvironmentObject var push: PushManager
+    @EnvironmentObject var profile: ProfileStore
     @State private var selection: Int
 
     init() {
@@ -10,11 +12,25 @@ struct MainTabView: View {
         _selection = State(initialValue: ProcessInfo.processInfo.environment["HB_TAB"] == "foryou" ? 1 : 0)
     }
 
+    private var home: RoleExperience.HomeKind { RoleExperience.of(profile.roleId).home }
+
     var body: some View {
         TabView(selection: $selection) {
-            HomeView()
-                .tag(0)
-                .tabItem { Label("House", systemImage: "building.2.fill") }
+            Group {
+                switch home {
+                case .census: HomeView()
+                case .transportJobs: TransportJobsView()
+                case .evsTurns: BedTurnsView()
+                case .houseCapacity: HouseCapacityView()
+                case .orBoard: ORBoardView()
+                case .capacityDemand: CapacityDemandView()
+                case .houseBrief: ExecutiveHomeView()
+                case .staffing: StaffingView()
+                case .improvement: ImprovementView()
+                }
+            }
+            .tag(0)
+            .tabItem { Label(home.tabLabel, systemImage: home.tabSymbol) }
             ForYouView()
                 .tag(1)
                 .tabItem { Label("For You", systemImage: "tray.full.fill") }

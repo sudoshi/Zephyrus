@@ -33,6 +33,10 @@ class DatabaseSeeder extends Seeder
             // creates them.)
             CommandCenterDemoSeeder::class,
             ImprovementDemoSeeder::class,
+            // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
+            // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
+            // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.
+            DemoTuningSeeder::class,
         ]);
     }
 }
