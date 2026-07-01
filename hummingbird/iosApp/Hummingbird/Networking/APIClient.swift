@@ -75,6 +75,102 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/for-you", bearer: bearer, as: [ForYouItem].self).data
     }
 
+    /// POST …/rtdc/barriers/{id}/resolve — clear an open discharge barrier (mobile:act).
+    func resolveBarrier(id: Int, bearer: String) async throws {
+        _ = try await send(path: "/api/mobile/v1/rtdc/barriers/\(id)/resolve", method: "POST", body: [:], bearer: bearer)
+    }
+
+    // MARK: RTDC house + bed placement (P5)
+
+    func rtdcHouse(bearer: String) async throws -> Envelope<HouseRollup> {
+        try await getEnvelope(path: "/api/mobile/v1/rtdc/house", bearer: bearer, as: HouseRollup.self)
+    }
+
+    func placements(bearer: String) async throws -> Envelope<[Placement]> {
+        try await getEnvelope(path: "/api/mobile/v1/rtdc/bed-requests", bearer: bearer, as: [Placement].self)
+    }
+
+    func placementRecommendations(id: Int, bearer: String) async throws -> PlacementRecs {
+        try await getEnvelope(path: "/api/mobile/v1/rtdc/bed-requests/\(id)/recommendations", bearer: bearer, as: PlacementRecs.self).data
+    }
+
+    /// POST …/rtdc/bed-requests/{id}/decision — place (accept a chosen bed) or reject (mobile:act).
+    func placeBed(id: Int, action: String, chosenBedId: Int?, bearer: String) async throws {
+        var body = ["action": action]
+        if let chosenBedId { body["chosen_bed_id"] = String(chosenBedId) }
+        _ = try await send(path: "/api/mobile/v1/rtdc/bed-requests/\(id)/decision", method: "POST", body: body, bearer: bearer)
+    }
+
+    // MARK: Executive / Capacity / OR / Staffing / Improvement (P9 / P6 / P4 / P7 / P10 / P8)
+
+    func commandHouse(bearer: String) async throws -> Envelope<HouseBrief> {
+        try await getEnvelope(path: "/api/mobile/v1/command/house", bearer: bearer, as: HouseBrief.self)
+    }
+
+    func orBoard(bearer: String) async throws -> Envelope<ORBoard> {
+        try await getEnvelope(path: "/api/mobile/v1/or/board", bearer: bearer, as: ORBoard.self)
+    }
+
+    func opsInbox(bearer: String) async throws -> Envelope<[OpsApproval]> {
+        try await getEnvelope(path: "/api/mobile/v1/ops/inbox", bearer: bearer, as: [OpsApproval].self)
+    }
+
+    /// POST …/ops/approvals/{uuid}/decision — approve/reject a governed action (mobile:act).
+    func opsDecide(uuid: String, decision: String, bearer: String) async throws {
+        _ = try await send(path: "/api/mobile/v1/ops/approvals/\(uuid)/decision", method: "POST",
+                           body: ["decision": decision], bearer: bearer)
+    }
+
+    func staffingOverview(bearer: String) async throws -> Envelope<StaffingOverview> {
+        try await getEnvelope(path: "/api/mobile/v1/staffing/overview", bearer: bearer, as: StaffingOverview.self)
+    }
+
+    /// POST …/staffing/requests/{id}/fill — assign a source and mark filled (mobile:act).
+    func staffingFill(id: Int, source: String, bearer: String) async throws {
+        _ = try await send(path: "/api/mobile/v1/staffing/requests/\(id)/fill", method: "POST",
+                           body: ["assigned_source": source], bearer: bearer)
+    }
+
+    func improvementPdsa(bearer: String) async throws -> [PdsaCycle] {
+        try await getEnvelope(path: "/api/mobile/v1/improvement/pdsa", bearer: bearer, as: [PdsaCycle].self).data
+    }
+
+    func improvementOpportunities(bearer: String) async throws -> [Opportunity] {
+        try await getEnvelope(path: "/api/mobile/v1/improvement/opportunities", bearer: bearer, as: [Opportunity].self).data
+    }
+
+    // MARK: Transport (P1)
+
+    func transportQueue(bearer: String) async throws -> Envelope<TransportQueue> {
+        try await getEnvelope(path: "/api/mobile/v1/transport/queue", bearer: bearer, as: TransportQueue.self)
+    }
+
+    /// POST …/transport/requests/{id}/status — advance a job (Claim → … → Completed).
+    func transportStatus(id: Int, status: String, bearer: String) async throws {
+        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/status", method: "POST",
+                           body: ["status": status], bearer: bearer)
+    }
+
+    /// POST …/transport/requests/{id}/handoff — structured handoff at the destination.
+    func transportHandoff(id: Int, handoffTo: String, summary: String?, bearer: String) async throws {
+        var body = ["handoff_to": handoffTo]
+        if let summary, !summary.isEmpty { body["handoff_summary"] = summary }
+        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/handoff", method: "POST",
+                           body: body, bearer: bearer)
+    }
+
+    // MARK: EVS / bed-turns (P2)
+
+    func evsQueue(bearer: String) async throws -> Envelope<EvsQueue> {
+        try await getEnvelope(path: "/api/mobile/v1/evs/queue", bearer: bearer, as: EvsQueue.self)
+    }
+
+    /// POST …/evs/requests/{id}/status — advance a turn (Claim → Start → Complete).
+    func evsStatus(id: Int, status: String, bearer: String) async throws {
+        _ = try await send(path: "/api/mobile/v1/evs/requests/\(id)/status", method: "POST",
+                           body: ["status": status], bearer: bearer)
+    }
+
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.
     func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
                         deviceName: String?, bearer: String) async throws {

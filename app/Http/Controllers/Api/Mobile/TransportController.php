@@ -1,0 +1,155 @@
+<?php
+
+namespace App\Http\Controllers\Api\Mobile;
+
+use App\Http\Concerns\RendersMobileEnvelope;
+use App\Http\Controllers\Controller;
+use App\Models\Transport\TransportRequest;
+use App\Services\Transport\TransportOperationsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
+
+/**
+ * Transport — the frontline "claim and run a trip" surface (P1, Wave 1).
+ *
+ *   GET  /api/mobile/v1/transport/queue                      (mobile:read)
+ *   POST /api/mobile/v1/transport/requests/{id}/status       (mobile:act)
+ *   POST /api/mobile/v1/transport/requests/{id}/handoff      (mobile:act)
+ *
+ * Reads are PHI-minimized: no patient_ref, no encounter_ref, no free-text notes — only the
+ * operational shape a transporter needs (origin → destination, mode, priority, lifecycle
+ * status, SLA). Writes delegate to {@see TransportOperationsService} verbatim (status
+ * transitions + structured handoff), so the BFF reshapes but never re-implements the lifecycle.
+ */
+class TransportController extends Controller
+{
+    use RendersMobileEnvelope;
+
+    public function __construct(private readonly TransportOperationsService $transport) {}
+
+    /** The prioritized active queue + the glanceable metrics the "My Trips" home leads with. */
+    public function queue(): JsonResponse
+    {
+        $active = TransportRequest::active()
+            ->orderByRaw("CASE priority WHEN 'stat' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END")
+            ->orderByRaw('needed_at NULLS LAST')
+            ->orderByDesc('transport_request_id')
+            ->get();
+
+        $jobs = $active->map(fn (TransportRequest $r) => $this->shapeJob($r))->values();
+
+        $completedToday = TransportRequest::query()
+            ->where('is_deleted', false)
+            ->where('status', 'completed')
+            ->whereDate('requested_at', Carbon::today())
+            ->count();
+
+        $metrics = [
+            'active' => $active->count(),
+            'stat' => $active->where('priority', 'stat')->count(),
+            'at_risk' => $active->filter(fn (TransportRequest $r) => $this->atRisk($r))->count(),
+            'completed_today' => $completedToday,
+        ];
+
+        return $this->envelope(
+            ['metrics' => $metrics, 'jobs' => $jobs],
+            meta: ['count' => $jobs->count()],
+            links: ['web' => url('/transport/dispatch')],
+        );
+    }
+
+    /** Advance a job along its lifecycle (Claim → … → Completed). Delegates to the service. */
+    public function status(Request $request, int $id): JsonResponse
+    {
+        $allowed = array_merge(TransportOperationsService::ACTIVE_STATUSES, ['completed', 'canceled', 'failed']);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in($allowed)],
+            'assigned_team' => ['sometimes', 'string', 'max:120'],
+        ]);
+
+        $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
+        $actorId = $request->user()?->id;
+
+        $updated = $validated['status'] === 'assigned'
+            ? $this->transport->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
+            : $this->transport->transition($req, $validated['status'], [], $actorId);
+
+        return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
+    }
+
+    /** Structured handoff at the destination → marks the job handed off. */
+    public function handoff(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'handoff_to' => ['required', 'string', 'max:160'],
+            'handoff_summary' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'documents' => ['sometimes', 'array'],
+            'outstanding_risks' => ['sometimes', 'array'],
+        ]);
+
+        $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
+        $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
+
+        return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
+    }
+
+    // MARK: PHI-minimized shaping (mirrors TransportOperationsService::sla/isAtRisk semantics)
+
+    /** @return array<string, mixed> */
+    private function shapeJob(TransportRequest $r): array
+    {
+        return [
+            'id' => $r->transport_request_id,
+            'uuid' => $r->request_uuid,
+            'type' => $r->request_type,
+            'priority' => $r->priority,
+            'status' => $r->status,
+            'tier' => $this->tier($r),
+            'origin' => $r->origin,
+            'destination' => $r->destination,
+            'mode' => $r->transport_mode,
+            'needed_at' => $r->needed_at?->toIso8601String(),
+            'sla' => $this->sla($r),
+        ];
+    }
+
+    /** Rationed status vocabulary: stat → critical, urgent/at-risk → warning, else info. */
+    private function tier(TransportRequest $r): string
+    {
+        if ($r->priority === 'stat') {
+            return 'critical';
+        }
+
+        return ($r->priority === 'urgent' || $this->atRisk($r)) ? 'warning' : 'info';
+    }
+
+    private function atRisk(TransportRequest $r): bool
+    {
+        if ($r->priority === 'stat') {
+            return true;
+        }
+
+        if ($r->needed_at === null) {
+            return false;
+        }
+
+        return $r->needed_at->isPast() && ! in_array($r->status, ['completed', 'canceled', 'failed'], true);
+    }
+
+    /** @return array{minutes_until_due: int|null, at_risk: bool, label: string} */
+    private function sla(TransportRequest $r): array
+    {
+        $minutesUntilDue = $r->needed_at ? (int) round(now()->diffInMinutes($r->needed_at, false)) : null;
+
+        return [
+            'minutes_until_due' => $minutesUntilDue,
+            'at_risk' => $this->atRisk($r),
+            'label' => $minutesUntilDue === null
+                ? 'No target'
+                : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+        ];
+    }
+}

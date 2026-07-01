@@ -16,6 +16,13 @@ use App\Http\Controllers\Api\Mobile\ForYouController as MobileForYouController;
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
+use App\Http\Controllers\Api\Mobile\CommandController as MobileCommandController;
+use App\Http\Controllers\Api\Mobile\EvsController as MobileEvsController;
+use App\Http\Controllers\Api\Mobile\ImprovementController as MobileImprovementController;
+use App\Http\Controllers\Api\Mobile\OpsController as MobileOpsController;
+use App\Http\Controllers\Api\Mobile\ORController as MobileORController;
+use App\Http\Controllers\Api\Mobile\StaffingController as MobileStaffingController;
+use App\Http\Controllers\Api\Mobile\TransportController as MobileTransportController;
 use App\Http\Controllers\Api\Ops\AgentController;
 use App\Http\Controllers\Api\Ops\OperationalActionController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
@@ -376,8 +383,53 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
 
     Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
+    Route::get('/rtdc/house', [MobileRtdcController::class, 'house']);
+    Route::get('/rtdc/bed-requests', [MobileRtdcController::class, 'placements']);
+    Route::get('/rtdc/bed-requests/{id}/recommendations', [MobileRtdcController::class, 'placementRecommendations']);
+    Route::post('/rtdc/bed-requests/{id}/decision', [MobileRtdcController::class, 'placeBed'])
+        ->middleware(CheckForAnyAbility::class.':mobile:act');
+    Route::post('/rtdc/barriers/{id}/resolve', [MobileRtdcController::class, 'resolveBarrier'])
+        ->middleware(CheckForAnyAbility::class.':mobile:act');
 
     Route::get('/for-you', [MobileForYouController::class, 'index']);
+
+    // Transport (P1) — the frontline claim-and-run queue. Reads PHI-minimized; the lifecycle
+    // writes (status transition + structured handoff) additionally require mobile:act.
+    Route::prefix('transport')->group(function () {
+        Route::get('/queue', [MobileTransportController::class, 'queue']);
+        Route::post('/requests/{id}/status', [MobileTransportController::class, 'status'])
+            ->middleware(CheckForAnyAbility::class.':mobile:act');
+        Route::post('/requests/{id}/handoff', [MobileTransportController::class, 'handoff'])
+            ->middleware(CheckForAnyAbility::class.':mobile:act');
+    });
+
+    // EVS / bed-turns (P2) — the frontline "next dirty bed" queue. Read PHI-minimized; the
+    // Claim → Start → Complete lifecycle write requires mobile:act.
+    Route::prefix('evs')->group(function () {
+        Route::get('/queue', [MobileEvsController::class, 'queue']);
+        Route::post('/requests/{id}/status', [MobileEvsController::class, 'status'])
+            ->middleware(CheckForAnyAbility::class.':mobile:act');
+    });
+
+    // Executive (P9) — house strain + hero KPIs (Command Center reshaped, PHI-free).
+    Route::get('/command/house', [MobileCommandController::class, 'house']);
+
+    // OR board (P4 OR nurse / P7 periop manager) — live room status (simulated-clock anchored).
+    Route::get('/or/board', [MobileORController::class, 'board']);
+
+    // Capacity lead (P6) — operational approvals inbox; the decision is a governed mobile:act write.
+    Route::get('/ops/inbox', [MobileOpsController::class, 'inbox']);
+    Route::post('/ops/approvals/{uuid}/decision', [MobileOpsController::class, 'decide'])
+        ->middleware(CheckForAnyAbility::class.':mobile:act');
+
+    // Staffing coordinator (P10) — gaps + open requests; the fill action is a mobile:act write.
+    Route::get('/staffing/overview', [MobileStaffingController::class, 'overview']);
+    Route::post('/staffing/requests/{id}/fill', [MobileStaffingController::class, 'fill'])
+        ->middleware(CheckForAnyAbility::class.':mobile:act');
+
+    // PI / quality lead (P8) — PDSA cycles + improvement opportunities (read-only).
+    Route::get('/improvement/pdsa', [MobileImprovementController::class, 'pdsa']);
+    Route::get('/improvement/opportunities', [MobileImprovementController::class, 'opportunities']);
 
     // Eddy — process-aware AI agent on mobile. Chat + conversations + the approval
     // inbox are reads (mobile:read). The approval DECISION is a human write and

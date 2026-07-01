@@ -6,6 +6,8 @@ use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Barrier;
 use App\Models\BedRequest;
+use App\Models\Evs\EvsRequest;
+use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Services\AcuityService;
 use Illuminate\Http\JsonResponse;
@@ -76,6 +78,40 @@ class ForYouController extends Controller
                     'at' => now()->toIso8601String(),
                 ]);
             }
+        }
+
+        // Cross-domain: STAT / at-risk transport jobs (the queue is the unifying primitive).
+        foreach (TransportRequest::active()->get() as $t) {
+            $atRisk = $t->priority === 'stat' || ($t->needed_at !== null && $t->needed_at->isPast());
+            if (! $atRisk) {
+                continue;
+            }
+            $items->push([
+                'id' => 'transport-'.$t->transport_request_id,
+                'type' => 'transport',
+                'tier' => $t->priority === 'stat' ? 'critical' : 'warning',
+                'title' => $t->priority === 'stat' ? 'STAT transport' : 'Transport past due',
+                'subtitle' => trim(($t->origin ?: '—').' → '.($t->destination ?: '—')),
+                'unit' => null,
+                'at' => optional($t->needed_at ?? $t->requested_at)->toIso8601String(),
+            ]);
+        }
+
+        // Cross-domain: overdue or isolation bed-turns (a completed turn unblocks a placement).
+        foreach (EvsRequest::active()->get() as $e) {
+            $overdue = $e->needed_at !== null && $e->needed_at->isPast();
+            if (! $overdue && ! $e->isolation_required) {
+                continue;
+            }
+            $items->push([
+                'id' => 'evs-'.$e->evs_request_id,
+                'type' => 'evs',
+                'tier' => $overdue ? 'warning' : 'info',
+                'title' => $e->isolation_required ? 'Isolation bed-turn' : 'Bed-turn past due',
+                'subtitle' => trim(($e->location_label ?: 'Bed').' · '.str_replace('_', ' ', (string) ($e->turn_type ?: $e->request_type))),
+                'unit' => null,
+                'at' => optional($e->needed_at ?? $e->requested_at)->toIso8601String(),
+            ]);
         }
 
         $rank = ['critical' => 0, 'warning' => 1, 'info' => 2, 'success' => 3];

@@ -21,6 +21,12 @@ struct Role: Identifiable, Hashable {
         Role(id: "intensivist", title: "Intensivist", subtitle: "Critical care units", symbol: "waveform.path.ecg", unitBound: true),
         Role(id: "evs", title: "EVS", subtitle: "Bed turns & cleaning", symbol: "sparkles", unitBound: false),
         Role(id: "transport", title: "Transport", subtitle: "Patient moves & trips", symbol: "figure.walk", unitBound: false),
+        Role(id: "or_nurse", title: "OR Nurse", subtitle: "Room board, cases & safety notes", symbol: "cross.case.fill", unitBound: false),
+        Role(id: "capacity_lead", title: "Capacity Lead", subtitle: "Capacity vs. demand & approvals", symbol: "chart.bar.fill", unitBound: false),
+        Role(id: "periop_manager", title: "Perioperative Manager", subtitle: "OR day — starts, turnover, delays", symbol: "calendar.badge.clock", unitBound: false),
+        Role(id: "staffing_coordinator", title: "Staffing Coordinator", subtitle: "Open requests & gaps below safe", symbol: "person.3.fill", unitBound: false),
+        Role(id: "pi_lead", title: "PI / Quality Lead", subtitle: "PDSA cycles & opportunities", symbol: "arrow.triangle.2.circlepath", unitBound: false),
+        Role(id: "executive", title: "Executive", subtitle: "Is the hospital OK? — house brief", symbol: "briefcase.fill", unitBound: false),
     ]
 
     static func by(id: String?) -> Role? {

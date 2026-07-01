@@ -25,12 +25,55 @@ struct RoleExperience {
         case none           // no relevant feed yet (honest empty)
     }
 
+    /// Which Home surface a role lands on. `.census` is the shared role-scoped capacity glance
+    /// (the original Home); bespoke homes are added per-wave as their BFF feed lands. The first
+    /// tab of the shell renders this; everything else (For You) stays shared.
+    enum HomeKind: Equatable {
+        case census             // role-scoped census glance (default)
+        case transportJobs      // P1 — "My Trips" claim-and-run queue
+        case evsTurns           // P2 — "Bed Turns" next-dirty-bed queue
+        case houseCapacity      // P5 — bed manager "House Capacity" + placements
+        case orBoard            // P4/P7 — live OR room board
+        case capacityDemand     // P6 — capacity/demand + ops approvals inbox
+        case houseBrief         // P9 — executive strain + hero KPIs
+        case staffing           // P10 — staffing gaps + requests
+        case improvement        // P8 — PDSA cycles + opportunities
+
+        var tabLabel: String {
+            switch self {
+            case .transportJobs: return "Trips"
+            case .evsTurns: return "Turns"
+            case .houseCapacity, .census: return "House"
+            case .orBoard: return "OR"
+            case .capacityDemand: return "Capacity"
+            case .houseBrief: return "Brief"
+            case .staffing: return "Staffing"
+            case .improvement: return "Improve"
+            }
+        }
+
+        var tabSymbol: String {
+            switch self {
+            case .transportJobs: return "figure.walk"
+            case .evsTurns: return "sparkles"
+            case .houseCapacity: return "bed.double.fill"
+            case .census: return "building.2.fill"
+            case .orBoard: return "cross.case.fill"
+            case .capacityDemand: return "chart.bar.fill"
+            case .houseBrief: return "chart.line.uptrend.xyaxis"
+            case .staffing: return "person.3.fill"
+            case .improvement: return "arrow.triangle.2.circlepath"
+            }
+        }
+    }
+
     let homeTitle: String
     let homeFocus: String
     let censusScope: CensusScope
     let queueTitle: String
     let emptyQueue: String
     let queueFilter: QueueFilter
+    var home: HomeKind = .census
 
     private static let criticalTypes: Set<String> = ["icu", "step_down"]
 
@@ -55,7 +98,8 @@ struct RoleExperience {
         case "bed_manager":
             return .init(homeTitle: "House Capacity", homeFocus: "Placement & flow",
                          censusScope: .house, queueTitle: "Placement queue",
-                         emptyQueue: "No pending placements or full units.", queueFilter: .placements)
+                         emptyQueue: "No pending placements or full units.", queueFilter: .placements,
+                         home: .houseCapacity)
         case "house_supervisor":
             return .init(homeTitle: "House Status", homeFocus: "Status & escalations",
                          censusScope: .house, queueTitle: "Escalations",
@@ -63,11 +107,48 @@ struct RoleExperience {
         case "evs":
             return .init(homeTitle: "Bed Turns", homeFocus: "Dirty & blocked beds",
                          censusScope: .turns, queueTitle: "Turn priority",
-                         emptyQueue: "No cleaning tasks queued yet.", queueFilter: .turns)
+                         emptyQueue: "No cleaning tasks queued yet.", queueFilter: .turns,
+                         home: .evsTurns)
         case "transport":
             return .init(homeTitle: "Transport", homeFocus: "Moves & trips",
                          censusScope: .house, queueTitle: "Requests",
-                         emptyQueue: "No transport requests yet.", queueFilter: .none)
+                         emptyQueue: "No transport requests yet.", queueFilter: .none,
+                         home: .transportJobs)
+        case "or_nurse":
+            // Greenfield OR surface (Wave 2). Until the OR board feed lands, an OR nurse sees the
+            // house glance with an honestly-empty OR queue rather than a shrunk census.
+            return .init(homeTitle: "Perioperative", homeFocus: "OR rooms, cases & safety",
+                         censusScope: .house, queueTitle: "OR",
+                         emptyQueue: "No OR items need action yet.", queueFilter: .none,
+                         home: .orBoard)
+        case "periop_manager":
+            return .init(homeTitle: "OR Today", homeFocus: "Starts, turnover & delays",
+                         censusScope: .house, queueTitle: "OR alerts",
+                         emptyQueue: "No OR delays or cancellations right now.", queueFilter: .none,
+                         home: .orBoard)
+        case "capacity_lead":
+            // Ops leader: capacity vs. demand + approvals. The full feed (placements + barriers +
+            // capacity) is the honest proxy until the Ops approvals inbox lands (Wave 2).
+            return .init(homeTitle: "Capacity & Demand", homeFocus: "Capacity, demand & approvals",
+                         censusScope: .house, queueTitle: "Approvals & alerts",
+                         emptyQueue: "Nothing needs your decision right now.", queueFilter: .all,
+                         home: .capacityDemand)
+        case "staffing_coordinator":
+            return .init(homeTitle: "Staffing", homeFocus: "Open requests & gaps below safe",
+                         censusScope: .house, queueTitle: "Staffing",
+                         emptyQueue: "No staffing gaps or open requests yet.", queueFilter: .none,
+                         home: .staffing)
+        case "pi_lead":
+            // Barriers are the available improvement signal until the PDSA feed lands (Wave 4).
+            return .init(homeTitle: "Improvement", homeFocus: "Cycles, opportunities & barriers",
+                         censusScope: .house, queueTitle: "Improvement",
+                         emptyQueue: "No improvement items need action yet.", queueFilter: .escalations,
+                         home: .improvement)
+        case "executive":
+            return .init(homeTitle: "House Brief", homeFocus: "Is the hospital OK?",
+                         censusScope: .house, queueTitle: "Escalations",
+                         emptyQueue: "No house escalations right now.", queueFilter: .escalations,
+                         home: .houseBrief)
         default:
             return .init(homeTitle: "House Status", homeFocus: "",
                          censusScope: .house, queueTitle: "Needs you now",
