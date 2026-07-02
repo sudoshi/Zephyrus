@@ -1,22 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { AUTH_BACKGROUND_FALLBACK, AUTH_BACKGROUND_SLIDES } from '@/Components/Auth/authBackgrounds';
 
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/**
- * Cinematic slideshow — the ebb & flow of waves and the power of wind, in
- * a deep navy/cyan tonality that honors the Zephyrus name (the west wind).
- */
-const AUTH_BG_IMAGES = [
-  '/images/auth/wind-01.jpg',
-  '/images/auth/wind-02.jpg',
-  '/images/auth/wind-03.jpg',
-  '/images/auth/wind-04.jpg',
-  '/images/auth/wind-05.jpg',
-  '/images/auth/wind-06.jpg',
-];
-const SLIDE_MS = 8000;
+const SLIDE_MS = 9500;
 
 /** Categorized capability pills — the product "spec sheet" descriptiveness. */
 const PILL_GROUPS: { label: string; tone: string; items: string[] }[] = [
@@ -36,7 +25,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Zephyrus guest/auth shell — "split-elegant" cinematic sign-in.
- * Full-bleed ridgeline slideshow → left brand panel (aurora + headline +
+ * Full-bleed hummingbird slideshow → left brand panel (aurora + headline +
  * domain map + capability pills) → right glass card (per-page `children`).
  * Dark-only; visuals come from the scoped `.zauth` stylesheet in
  * resources/css/auth.css.
@@ -49,21 +38,21 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion() || AUTH_BG_IMAGES.length <= 1) return;
-    const t = setInterval(() => setSlide((i) => (i + 1) % AUTH_BG_IMAGES.length), SLIDE_MS);
+    if (prefersReducedMotion() || AUTH_BACKGROUND_SLIDES.length <= 1) return;
+    const t = setInterval(() => setSlide((i) => (i + 1) % AUTH_BACKGROUND_SLIDES.length), SLIDE_MS);
     return () => clearInterval(t);
   }, []);
 
   return (
     <div className="zauth">
       {/* ===== Full-bleed cinematic background slideshow ===== */}
-      <div className="za-bg" aria-hidden="true">
-        <div className="za-bg-fallback" />
-        {AUTH_BG_IMAGES.map((src, i) => (
+      <div className="za-bg" data-active-index={slide} aria-hidden="true">
+        <div className="za-bg-fallback" style={{ background: AUTH_BACKGROUND_FALLBACK }} />
+        {AUTH_BACKGROUND_SLIDES.map(({ src, position }, i) => (
           <div
             key={src}
             className={`za-bg-slide${i === slide ? ' is-active' : ''}`}
-            style={{ backgroundImage: `url(${src})` }}
+            style={{ backgroundImage: `url(${src})`, backgroundPosition: position }}
           />
         ))}
         <div className="za-bg-scrim" />

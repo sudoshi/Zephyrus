@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { AUTH_BACKGROUND_IMAGES, AUTH_BACKGROUND_FALLBACK } from '@/Components/Auth/authBackgrounds';
+import { AUTH_BACKGROUND_FALLBACK, AUTH_BACKGROUND_SLIDES } from '@/Components/Auth/authBackgrounds';
 
-const INTERVAL_MS = 8000;
+const INTERVAL_MS = 9500;
 
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined'
@@ -10,15 +10,15 @@ function prefersReducedMotion(): boolean {
 }
 
 export function AuthBackground() {
-  const images = AUTH_BACKGROUND_IMAGES;
+  const slides = AUTH_BACKGROUND_SLIDES;
   const reduced = prefersReducedMotion();
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (reduced || images.length <= 1) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % images.length), INTERVAL_MS);
+    if (reduced || slides.length <= 1) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), INTERVAL_MS);
     return () => clearInterval(t);
-  }, [reduced, images.length]);
+  }, [reduced, slides.length]);
 
   return (
     <div className="absolute inset-0 z-0" data-active-index={index} aria-hidden="true">
@@ -26,11 +26,11 @@ export function AuthBackground() {
       <div className="absolute inset-0" style={{ background: AUTH_BACKGROUND_FALLBACK }} />
 
       {/* Crossfading slides */}
-      {images.map((src, i) => (
+      {slides.map(({ src, position }, i) => (
         <div
           key={src}
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-[2500ms] ease-in-out"
-          style={{ backgroundImage: `url(${src})`, opacity: i === index ? 1 : 0 }}
+          className="absolute inset-0 bg-cover transition-opacity duration-[3500ms] ease-in-out"
+          style={{ backgroundImage: `url(${src})`, backgroundPosition: position, opacity: i === index ? 1 : 0 }}
         />
       ))}
 
@@ -40,7 +40,8 @@ export function AuthBackground() {
         style={{
           background:
             'radial-gradient(ellipse at 30% 40%, rgba(8,10,20,.55) 0%, transparent 70%),'
-            + 'linear-gradient(180deg, rgba(8,10,20,.45) 0%, rgba(8,10,20,.80) 100%)',
+            + 'linear-gradient(90deg, rgba(6,8,15,.70) 0%, rgba(6,8,15,.46) 46%, rgba(6,8,15,.78) 100%),'
+            + 'linear-gradient(180deg, rgba(8,10,20,.36) 0%, rgba(8,10,20,.82) 100%)',
         }}
       />
     </div>

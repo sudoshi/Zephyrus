@@ -34,25 +34,30 @@
 
 .zauth *, .zauth *::before, .zauth *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ============ FULL-BLEED CINEMATIC BACKGROUND ============ */
+/* ============ FULL-BLEED HUMMINGBIRD BACKGROUND ============ */
 .za-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
 .za-bg-fallback {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse at 25% 30%, #1e2a5a 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 70%, #0a2540 0%, transparent 55%),
-    linear-gradient(160deg, #0b1120 0%, #0a0f1f 100%);
+    radial-gradient(ellipse at 18% 22%, #123626 0%, transparent 58%),
+    radial-gradient(ellipse at 82% 70%, #17264a 0%, transparent 56%),
+    linear-gradient(160deg, #06100f 0%, #09111f 100%);
 }
 .za-bg-slide {
-  position: absolute; inset: 0; background-size: cover; background-position: center;
-  opacity: 0; transition: opacity 2.5s ease-in-out; will-change: opacity;
+  position: absolute; inset: -1.5%; background-size: cover; background-position: center;
+  opacity: 0; filter: brightness(0.76) saturate(1.16) contrast(1.06);
+  transform: scale(1.02);
+  transition: opacity 3.5s ease-in-out, transform 12s ease-out;
+  will-change: opacity, transform;
 }
-.za-bg-slide.is-active { opacity: 1; }
+.za-bg-slide.is-active { opacity: 1; transform: scale(1.055); }
 .za-bg-scrim {
   position: absolute; inset: 0;
   background:
-    radial-gradient(1200px 820px at 28% 42%, rgba(6,8,15,0.42) 0%, transparent 72%),
-    linear-gradient(180deg, rgba(6,8,15,0.52) 0%, rgba(6,8,15,0.78) 100%);
+    radial-gradient(940px 620px at 72% 45%, rgba(6,8,15,0.34) 0%, transparent 70%),
+    radial-gradient(1100px 780px at 22% 42%, rgba(4,12,10,0.50) 0%, transparent 72%),
+    linear-gradient(90deg, rgba(6,8,15,0.78) 0%, rgba(6,8,15,0.50) 50%, rgba(6,8,15,0.78) 100%),
+    linear-gradient(180deg, rgba(6,8,15,0.30) 0%, rgba(6,8,15,0.84) 100%);
 }
 
 .za-shell { position: relative; z-index: 1; display: grid; grid-template-columns: 55fr 45fr; width: 100%; min-height: 100vh; }
@@ -68,9 +73,9 @@
   text-align: center;
   padding: clamp(2.5rem, 4vw, 4.5rem);
   background:
-    radial-gradient(900px 600px at 20% 20%, rgba(99, 102, 241, 0.22), transparent 55%),
-    radial-gradient(800px 700px at 80% 90%, rgba(34, 211, 238, 0.16), transparent 55%),
-    linear-gradient(160deg, rgba(10, 14, 26, 0.74) 0%, rgba(6, 8, 15, 0.80) 60%, rgba(8, 11, 21, 0.84) 100%);
+    radial-gradient(900px 600px at 20% 20%, rgba(45, 212, 191, 0.18), transparent 55%),
+    radial-gradient(800px 700px at 80% 90%, rgba(129, 140, 248, 0.14), transparent 55%),
+    linear-gradient(160deg, rgba(7, 18, 19, 0.70) 0%, rgba(6, 8, 15, 0.78) 62%, rgba(8, 11, 21, 0.84) 100%);
   border-right: 1px solid var(--hair);
 }
 
@@ -330,5 +335,6 @@
 @media (prefers-reduced-motion: reduce) {
   .za-orb { animation: none; }
   .za-card::before { animation: none; }
-  .za-bg-slide { transition: none; }
+  .za-bg-slide { transition: none; transform: none; }
+  .za-bg-slide.is-active { transform: none; }
 }

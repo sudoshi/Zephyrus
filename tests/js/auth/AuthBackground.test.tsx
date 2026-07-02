@@ -19,7 +19,7 @@ describe('AuthBackground', () => {
     const { container } = render(<AuthBackground />);
     const root = container.firstChild as HTMLElement;
     expect(root.getAttribute('data-active-index')).toBe('0');
-    act(() => { vi.advanceTimersByTime(8000); });
+    act(() => { vi.advanceTimersByTime(9500); });
     expect(root.getAttribute('data-active-index')).toBe('1');
   });
 
