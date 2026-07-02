@@ -32,6 +32,10 @@ class MobileBffTest extends TestCase
         '/api/mobile/v1/improvement/pdsa',
         '/api/mobile/v1/improvement/opportunities',
         '/api/mobile/v1/ops/inbox',
+        '/api/mobile/v1/altitude/home?persona=bed_manager',
+        '/api/mobile/v1/altitude/workspace/rtdc?persona=bed_manager',
+        '/api/mobile/v1/activity?persona=bed_manager',
+        '/api/mobile/v1/eddy/context/house?persona=bed_manager',
     ];
 
     public function test_read_endpoints_require_authentication(): void
@@ -79,6 +83,8 @@ class MobileBffTest extends TestCase
         $user->email = 'bfftest@example.com';
         $user->username = 'bfftest';
         $user->password = bcrypt('secret-test-password');
+        $user->role = 'admin';
+        $user->workflow_preference = 'rtdc';
         $user->save();
 
         return $user;

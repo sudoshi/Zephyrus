@@ -9,18 +9,22 @@ use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Mobile\ActivityController as MobileActivityController;
+use App\Http\Controllers\Api\Mobile\AltitudeController as MobileAltitudeController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
-use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
-use App\Http\Controllers\Api\Mobile\EddyController as MobileEddyController;
-use App\Http\Controllers\Api\Mobile\ForYouController as MobileForYouController;
-use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
-use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
-use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
 use App\Http\Controllers\Api\Mobile\CommandController as MobileCommandController;
+use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
+use App\Http\Controllers\Api\Mobile\EddyContextController as MobileEddyContextController;
+use App\Http\Controllers\Api\Mobile\EddyController as MobileEddyController;
 use App\Http\Controllers\Api\Mobile\EvsController as MobileEvsController;
+use App\Http\Controllers\Api\Mobile\ForYouController as MobileForYouController;
 use App\Http\Controllers\Api\Mobile\ImprovementController as MobileImprovementController;
+use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\OpsController as MobileOpsController;
 use App\Http\Controllers\Api\Mobile\ORController as MobileORController;
+use App\Http\Controllers\Api\Mobile\PatientContextController as MobilePatientContextController;
+use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
+use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
 use App\Http\Controllers\Api\Mobile\StaffingController as MobileStaffingController;
 use App\Http\Controllers\Api\Mobile\TransportController as MobileTransportController;
 use App\Http\Controllers\Api\Ops\AgentController;
@@ -382,6 +386,14 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
 
     Route::get('/realtime/config', [MobileRealtimeConfigController::class, 'show']);
 
+    Route::get('/altitude/home', [MobileAltitudeController::class, 'home']);
+    Route::get('/altitude/workspace/{domain}', [MobileAltitudeController::class, 'workspace']);
+    Route::get('/drills/{itemUuid}', [MobileAltitudeController::class, 'drill']);
+    Route::get('/patients/{contextRef}/operational-context', [MobilePatientContextController::class, 'show']);
+    Route::get('/activity', [MobileActivityController::class, 'index']);
+    Route::post('/activity/{eventUuid}/ack', [MobileActivityController::class, 'ack'])
+        ->middleware(CheckForAnyAbility::class.':mobile:act');
+
     Route::get('/rtdc/census', [MobileRtdcController::class, 'census']);
     Route::get('/rtdc/house', [MobileRtdcController::class, 'house']);
     Route::get('/rtdc/bed-requests', [MobileRtdcController::class, 'placements']);
@@ -443,5 +455,6 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
         Route::get('/approvals/{uuid}', [MobileEddyController::class, 'approval']);
         Route::post('/approvals/{uuid}/decision', [MobileEddyController::class, 'decide'])
             ->middleware(CheckForAnyAbility::class.':mobile:act');
+        Route::get('/context/{scopeRef}', [MobileEddyContextController::class, 'show']);
     });
 });

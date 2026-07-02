@@ -11,9 +11,12 @@ use App\Models\Ops\Approval;
 use App\Services\Eddy\EddyActionService;
 use App\Services\Eddy\EddyChatService;
 use App\Services\Eddy\EddyLearningService;
+use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\Mobile\OperationalActivityLedger;
 use App\Services\Ops\OperationalActionLifecycleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -38,6 +41,8 @@ class EddyController extends Controller
         private readonly EddyActionService $actions,
         private readonly OperationalActionLifecycleService $lifecycle,
         private readonly EddyLearningService $learning,
+        private readonly OperationalActivityLedger $ledger,
+        private readonly MobilePersonaCatalog $personas,
     ) {}
 
     /** Send a turn; mobile envelope wrapping the assistant reply + conversation id. */
@@ -162,28 +167,56 @@ class EddyController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $approval = $this->findActionableApproval($request, $uuid);
-
         try {
-            $action = $this->lifecycle->decideApproval(
-                $approval,
-                $validated['decision'],
-                $validated['reason'] ?? null,
-                $request->user()->id,
-            );
+            $result = DB::transaction(function () use ($request, $uuid, $validated): array {
+                $approval = $this->findActionableApproval($request, $uuid);
+                $action = $this->lifecycle->decideApproval(
+                    $approval,
+                    $validated['decision'],
+                    $validated['reason'] ?? null,
+                    $request->user()->id,
+                );
+
+                // Phase 6 learning: a mobile human decision shifts this user's action preferences.
+                $this->learning->recordDecision($request->user(), (string) $action->action_type, $validated['decision']);
+                $action->loadMissing('recommendation');
+
+                $this->ledger->record($validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected', [
+                    'actor_user_id' => $request->user()?->id,
+                    'actor_role' => $this->personas->fromRequest($request),
+                    'domain' => 'ops',
+                    'scope' => [
+                        'action_uuid' => $action->action_uuid,
+                        'approval_uuid' => $approval->approval_uuid,
+                    ],
+                    'status' => [
+                        'previous' => 'pending',
+                        'current' => $validated['decision'],
+                        'severity' => $validated['decision'] === 'approved' ? 'warning' : 'info',
+                    ],
+                    'recommendation' => [
+                        'source' => 'eddy',
+                        'recommendation_uuid' => $action->recommendation?->recommendation_uuid,
+                        'human_decision' => $validated['decision'],
+                    ],
+                    'payload' => [
+                        'reason' => $validated['reason'] ?? null,
+                        'action_type' => $action->action_type,
+                    ],
+                ]);
+
+                return [
+                    'approval_uuid' => $approval->approval_uuid,
+                    'action_uuid' => $action->action_uuid,
+                    'decision' => $validated['decision'],
+                    'action_status' => $action->status,
+                ];
+            });
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['code' => 'invalid_decision', 'message' => $e->getMessage()]], 422);
         }
 
-        // Phase 6 learning: a mobile human decision shifts this user's action preferences.
-        $this->learning->recordDecision($request->user(), (string) $action->action_type, $validated['decision']);
-
-        return $this->envelope([
-            'approval_uuid' => $approval->approval_uuid,
-            'action_uuid' => $action->action_uuid,
-            'decision' => $validated['decision'],
-            'action_status' => $action->status,
-        ]);
+        return $this->envelope($result);
     }
 
     /**

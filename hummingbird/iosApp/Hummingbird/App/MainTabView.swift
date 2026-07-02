@@ -8,8 +8,9 @@ struct MainTabView: View {
     @State private var selection: Int
 
     init() {
-        // Test affordance: SIMCTL_CHILD_HB_TAB=foryou opens the For You tab for screenshots.
-        _selection = State(initialValue: ProcessInfo.processInfo.environment["HB_TAB"] == "foryou" ? 1 : 0)
+        // Test affordance: SIMCTL_CHILD_HB_TAB=foryou|activity opens a tab for screenshots.
+        let tab = ProcessInfo.processInfo.environment["HB_TAB"]
+        _selection = State(initialValue: tab == "activity" ? 2 : (tab == "foryou" ? 1 : 0))
     }
 
     private var home: RoleExperience.HomeKind { RoleExperience.of(profile.roleId).home }
@@ -34,6 +35,9 @@ struct MainTabView: View {
             ForYouView()
                 .tag(1)
                 .tabItem { Label("For You", systemImage: "tray.full.fill") }
+            ActivityFeedView()
+                .tag(2)
+                .tabItem { Label("Activity", systemImage: "waveform.path.ecg.rectangle") }
         }
         .tint(Z.primary)
         .onChange(of: push.deeplinkTab) { _, tab in

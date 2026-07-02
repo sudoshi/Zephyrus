@@ -58,6 +58,7 @@ struct HouseCapacityView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
+                    AltitudeContextCard(domain: "rtdc")
                     if vm.house == nil && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if vm.house == nil && vm.errorMessage != nil {

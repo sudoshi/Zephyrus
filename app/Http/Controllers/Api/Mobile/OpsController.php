@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\Mobile;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Ops\Approval;
+use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\Mobile\OperationalActivityLedger;
 use App\Services\Ops\OperationalActionLifecycleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -23,7 +26,11 @@ class OpsController extends Controller
 {
     use RendersMobileEnvelope;
 
-    public function __construct(private readonly OperationalActionLifecycleService $lifecycle) {}
+    public function __construct(
+        private readonly OperationalActionLifecycleService $lifecycle,
+        private readonly OperationalActivityLedger $ledger,
+        private readonly MobilePersonaCatalog $personas,
+    ) {}
 
     public function inbox(): JsonResponse
     {
@@ -62,13 +69,42 @@ class OpsController extends Controller
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $approval = Approval::where('approval_uuid', $uuid)->where('status', 'pending')->firstOrFail();
-        $action = $this->lifecycle->decideApproval($approval, $validated['decision'], $validated['reason'] ?? null, $request->user()?->id);
+        $result = DB::transaction(function () use ($request, $uuid, $validated): array {
+            $approval = Approval::where('approval_uuid', $uuid)->where('status', 'pending')->firstOrFail();
+            $action = $this->lifecycle->decideApproval($approval, $validated['decision'], $validated['reason'] ?? null, $request->user()?->id);
+            $action->loadMissing('recommendation');
 
-        return $this->envelope([
-            'approval_uuid' => $uuid,
-            'decision' => $validated['decision'],
-            'action_status' => $action->status,
-        ], links: ['web' => url('/ops/agent-inbox')]);
+            $this->ledger->record($validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected', [
+                'actor_user_id' => $request->user()?->id,
+                'actor_role' => $this->personas->fromRequest($request),
+                'domain' => 'ops',
+                'scope' => [
+                    'action_uuid' => $action->action_uuid,
+                    'approval_uuid' => $approval->approval_uuid,
+                ],
+                'status' => [
+                    'previous' => 'pending',
+                    'current' => $validated['decision'],
+                    'severity' => $validated['decision'] === 'approved' ? 'warning' : 'info',
+                ],
+                'recommendation' => [
+                    'source' => $action->recommendation?->created_by_source,
+                    'recommendation_uuid' => $action->recommendation?->recommendation_uuid,
+                    'human_decision' => $validated['decision'],
+                ],
+                'payload' => [
+                    'reason' => $validated['reason'] ?? null,
+                    'action_type' => $action->action_type,
+                ],
+            ]);
+
+            return [
+                'approval_uuid' => $uuid,
+                'decision' => $validated['decision'],
+                'action_status' => $action->status,
+            ];
+        });
+
+        return $this->envelope($result, links: ['web' => url('/ops/agent-inbox')]);
     }
 }

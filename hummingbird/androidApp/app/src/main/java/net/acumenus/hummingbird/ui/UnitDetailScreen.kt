@@ -51,7 +51,7 @@ import kotlin.math.roundToInt
 fun UnitDetailScreen(unit: CensusUnit, webLink: String?, onBack: () -> Unit) {
     val status = unit.capacity
     val context = LocalContext.current
-    val fraction = if (unit.safeCapacity > 0) unit.occupied.toFloat() / unit.safeCapacity else 0f
+    val fraction = if (unit.staffedBedCount > 0) unit.occupied.toFloat() / unit.staffedBedCount else 0f
     val pct = (fraction * 100).roundToInt()
     val animated by animateFloatAsState(targetValue = fraction.coerceIn(0f, 1f), label = "gauge")
 
@@ -82,7 +82,7 @@ fun UnitDetailScreen(unit: CensusUnit, webLink: String?, onBack: () -> Unit) {
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$pct%", color = Z.ink, fontSize = 44.sp, fontWeight = FontWeight.SemiBold)
-                    Text("${unit.occupied} / ${unit.safeCapacity} safe", color = Z.inkMuted, fontSize = 13.sp)
+                    Text("${unit.occupied} / ${unit.staffedBedCount} staffed", color = Z.inkMuted, fontSize = 13.sp)
                 }
             }
 
@@ -98,7 +98,7 @@ fun UnitDetailScreen(unit: CensusUnit, webLink: String?, onBack: () -> Unit) {
                 HorizontalDivider(color = Z.border)
                 detailRow("Blocked / dirty", "${unit.blocked}")
                 HorizontalDivider(color = Z.border)
-                detailRow("Safe capacity", "${unit.safeCapacity}")
+                detailRow("Can admit", "${unit.canAdmit}")
                 HorizontalDivider(color = Z.border)
                 detailRow("Staffed beds", "${unit.staffedBedCount}")
                 if (unit.bedNeed > 0) {
@@ -121,7 +121,7 @@ fun UnitDetailScreen(unit: CensusUnit, webLink: String?, onBack: () -> Unit) {
             }
 
             Text(
-                "Safe capacity is acuity-adjusted. Bed need = occupied − safe capacity.",
+                "Can admit is the acuity-adjusted, bed-ready headroom available now.",
                 color = Z.inkMuted, fontSize = 11.sp, textAlign = TextAlign.Center,
             )
         }

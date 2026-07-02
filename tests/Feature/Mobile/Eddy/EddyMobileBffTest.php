@@ -140,7 +140,7 @@ class EddyMobileBffTest extends TestCase
 
     public function test_a_human_with_mobile_act_can_approve_on_mobile(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'capacity_lead', 'workflow_preference' => 'rtdc']);
         $approval = $this->eddyApproval($user, 'eddy');
         Sanctum::actingAs($user, ['mobile:read', 'mobile:act']);
 

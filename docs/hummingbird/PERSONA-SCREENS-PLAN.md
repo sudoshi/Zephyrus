@@ -1,6 +1,6 @@
 # Hummingbird — Persona Screens: Design + Build/Test/Validate Plan
 
-**Status:** Draft for build · **Created:** 2026-06-30 · **Owner:** mobile
+**Status:** Shipped baseline, incomplete relative to Altitude 2.0 · **Created:** 2026-06-30 · **Owner:** mobile
 **Relationship to existing docs:** This is the *concrete buildout* that operationalizes the
 already-approved persona specification in
 [`reference/02-core-functionality-by-role.md`](reference/02-core-functionality-by-role.md),
@@ -10,6 +10,11 @@ does **not** restate strategy (see [`PRODUCT.md`](../../PRODUCT.md)) or the visu
 [`DESIGN.md`](../../DESIGN.md)). It adds: per-persona screen designs grounded in the **seeded
 demo data**, the exact BFF endpoints each screen needs, the client wiring on iOS + Android, and
 an end-to-end test/validation protocol.
+
+**Altitude 2.0 overlay:** [`ALTITUDE-PERSONA-OPERATING-PLAN.md`](ALTITUDE-PERSONA-OPERATING-PLAN.md)
+is now the governing direction. This plan remains the shipped persona-screen baseline; it does
+not yet complete the shared A0/A1/A2/A2P/A3 descent, patient/encounter lens, cross-persona
+activity ledger, or Eddy event-awareness contract.
 
 ---
 

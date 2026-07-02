@@ -52,7 +52,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     val totalOccupied: Int get() = units.sumOf { it.occupied }
-    val totalSafe: Int get() = units.sumOf { it.safeCapacity }
+    val totalSafe: Int get() = units.sumOf { it.staffedBedCount }
     val occupancyPercent: Int get() = if (totalSafe > 0) (totalOccupied * 100.0 / totalSafe).roundToInt() else 0
     val worstStatus: CapacityStatus get() = units.map { it.capacity }.maxByOrNull { it.severity } ?: CapacityStatus.INFO
     val pressuredCount: Int get() = units.count { it.capacity == CapacityStatus.WARNING || it.capacity == CapacityStatus.CRITICAL }

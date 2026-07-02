@@ -85,6 +85,7 @@ struct ForYouView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s3) {
                     header(count: items.count)
+                    AltitudeContextCard(domain: roleAltitudeDomain)
                     if vm.items.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if vm.items.isEmpty && vm.errorMessage != nil {
@@ -97,13 +98,9 @@ struct ForYouView: View {
                         emptyState
                     } else {
                         ForEach(items) { item in
-                            if item.type == "barrier" {
-                                // Discharge barriers get a one-tap inline Resolve (mobile:act).
-                                ForYouRow(item: item, navigable: false,
-                                          actionLabel: "Resolve",
-                                          busy: vm.working.contains(item.id)) {
-                                    Task { await vm.resolveBarrier(item: item, bearer: auth.accessToken ?? "") }
-                                }
+                            if supportsDrill(item) {
+                                NavigationLink(value: item.id) { ForYouRow(item: item) }
+                                    .buttonStyle(.plain)
                             } else if let unit = vm.unit(for: item) {
                                 NavigationLink(value: unit.unitId) { ForYouRow(item: item) }
                                     .buttonStyle(.plain)
@@ -123,6 +120,9 @@ struct ForYouView: View {
                     UnitDetailView(unit: unit, webLink: vm.webLink)
                 }
             }
+            .navigationDestination(for: String.self) { itemId in
+                DrillDetailView(itemUuid: itemId)
+            }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
             .task {
                 let token = auth.accessToken ?? ""
@@ -132,9 +132,12 @@ struct ForYouView: View {
                     if first {
                         first = false
                         // Test affordance: SIMCTL_CHILD_HB_FORYOU_OPEN=1 drills into the first
-                        // queue item that has a unit, to exercise the row→detail path. No-op in prod.
+                        // queue item, to exercise the row→A2 drill path. No-op in prod.
                         if ProcessInfo.processInfo.environment["HB_FORYOU_OPEN"] == "1",
-                           let unit = vm.items.compactMap({ vm.unit(for: $0) }).first {
+                           let first = vm.items.first(where: supportsDrill) {
+                            path.append(first.id)
+                        } else if ProcessInfo.processInfo.environment["HB_FORYOU_OPEN"] == "1",
+                                  let unit = vm.items.compactMap({ vm.unit(for: $0) }).first {
                             path.append(unit.unitId)
                         }
                     }
@@ -167,6 +170,23 @@ struct ForYouView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(.top, Z.s6)
+    }
+
+    private func supportsDrill(_ item: ForYouItem) -> Bool {
+        item.id.hasPrefix("bedreq-")
+            || item.id.hasPrefix("barrier-")
+            || item.id.hasPrefix("transport-")
+            || item.id.hasPrefix("evs-")
+    }
+
+    private var roleAltitudeDomain: String {
+        switch profile.roleId {
+        case "transport": return "transport"
+        case "evs": return "evs"
+        case "staffing_coordinator": return "staffing"
+        case "capacity_lead": return "ops"
+        default: return "rtdc"
+        }
     }
 }
 
@@ -234,8 +254,13 @@ struct ForYouRow: View {
     }
 
     private var metaLine: String? {
-        let parts = [item.unit, relativeTime].compactMap { $0 }
+        let parts = [item.unit, contextToken, relativeTime].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var contextToken: String? {
+        guard let ref = item.patientContextRef else { return nil }
+        return "context \(ref)"
     }
 
     private var relativeTime: String? {

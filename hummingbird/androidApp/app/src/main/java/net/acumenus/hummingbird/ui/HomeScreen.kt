@@ -144,7 +144,7 @@ private fun houseRollup(home: HomeViewModel) {
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${home.totalOccupied}", color = Z.ink, fontSize = 40.sp, fontWeight = FontWeight.SemiBold)
-            Text("/ ${home.totalSafe} safe beds", color = Z.inkMuted, fontSize = 15.sp, modifier = Modifier.padding(bottom = 6.dp))
+            Text("/ ${home.totalSafe} staffed beds", color = Z.inkMuted, fontSize = 15.sp, modifier = Modifier.padding(bottom = 6.dp))
             Spacer(Modifier.weight(1f))
             Text("${home.occupancyPercent}%", color = home.worstStatus.color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 4.dp))
         }

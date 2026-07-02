@@ -20,8 +20,11 @@ tags:
   - { name: auth }
   - { name: me }
   - { name: home }
-  - { name: foryou }
+  - { name: altitude }
+  - { name: for-you }
   - { name: rtdc }
+  - { name: patients }
+  - { name: activity }
   - { name: ops }
   - { name: or }
   - { name: command }
@@ -90,20 +93,60 @@ paths:
       parameters: [{ name: workflow, in: query, schema: { $ref: '#/components/schemas/Workflow' }, description: Override the user's default workflow view. }]
       responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/HomeEnvelope' } } } } }
 
-  /foryou:
+  /altitude/home:
     get:
-      tags: [foryou]
+      tags: [altitude]
+      summary: A0 Persona Glance composed from the shared operational snapshot.
+      parameters: [{ name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' }, description: Confirmed shift role; defaults from the token/user when absent. }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+  /altitude/workspace/{domain}:
+    get:
+      tags: [altitude]
+      summary: A1 Live Workspace for a domain queue or board.
+      parameters:
+        - { name: domain, in: path, required: true, schema: { type: string, enum: [rtdc, capacity, transport, evs, staffing, ops, approvals] } }
+        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+  /drills/{itemUuid}:
+    get:
+      tags: [altitude]
+      summary: A2 drill for a For You item, alert, queue row, or operational event.
+      parameters:
+        - { name: itemUuid, in: path, required: true, schema: { type: string } }
+        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+  /patients/{contextRef}/operational-context:
+    get:
+      tags: [patients]
+      summary: A2P Patient/Encounter Lens for authorized operational detail entry.
+      parameters:
+        - { name: contextRef, in: path, required: true, schema: { type: string }, description: Opaque patient_context_ref issued by A2 drill/list surfaces. Raw patient identifiers are rejected. }
+        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PatientOperationalContextEnvelope' } } } } }
+  /activity:
+    get:
+      tags: [activity]
+      summary: Role-filtered cross-persona operational event feed.
+      parameters:
+        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ActivityFeedEnvelope' } } } } }
+  /activity/{eventUuid}/ack:
+    post:
+      tags: [activity]
+      summary: Acknowledge that an event was seen without mutating the operational object.
+      parameters: [{ name: eventUuid, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { '200': { description: Acknowledged, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+
+  /for-you:
+    get:
+      tags: [for-you]
       summary: The unified, ranked, cross-domain action queue for this worker.
       parameters:
+        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
         - { name: updated_since, in: query, schema: { type: string, format: date-time }, description: Delta sync. }
         - { name: cursor, in: query, schema: { type: string } }
       responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ForYouEnvelope' } } } } }
-  /foryou/{itemId}/ack:
-    post:
-      tags: [foryou]
-      summary: Acknowledge/dismiss a For-You item.
-      parameters: [{ name: itemId, in: path, required: true, schema: { type: string } }]
-      responses: { '204': { description: Acknowledged } }
 
   /rtdc/census:
     get:
@@ -117,7 +160,7 @@ paths:
   /rtdc/bed-requests/{id}/decision:
     post:
       tags: [rtdc]
-      summary: Accept / edit / reject a placement decision. Delegates to the placement service.
+      summary: Accept or reject a placement decision. Delegates to the placement service.
       parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PlacementDecision' } } } }
       responses: { '200': { description: Decided }, '409': { $ref: '#/components/responses/Conflict' } }
@@ -204,7 +247,8 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatRequest' } } } }
       responses:
         '200': { description: Assistant reply., content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatEnvelope' } } } }
-        '503': { description: Eddy unreachable — envelope.meta.stale=true, data.message is a notice string. }
+        '503':
+          description: Eddy unreachable. envelope.meta.stale=true; data.message is a notice string.
   /eddy/chat/stream:
     post:
       tags: [eddy]
@@ -243,6 +287,12 @@ paths:
         '200': { description: Decided., content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
         '403': { description: Token lacks mobile:act. }
         '422': { description: Illegal transition (already decided)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /eddy/context/{scopeRef}:
+    get:
+      tags: [eddy]
+      summary: Eddy-safe context packet for a drill, patient lens, event, or scope.
+      parameters: [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyContextEnvelope' } } } } }
 
 components:
   securitySchemes:
@@ -299,6 +349,27 @@ components:
 
     # ---- Me / prefs / devices ----
     Workflow: { type: string, enum: [superuser, rtdc, perioperative, emergency, improvement, transport] }
+    MobilePersonaId:
+      type: string
+      enum: [charge_nurse, bedside_nurse, bed_manager, house_supervisor, hospitalist, intensivist, evs, transport, or_nurse, capacity_lead, periop_manager, staffing_coordinator, pi_lead, executive]
+    OperationalStatus:
+      type: object
+      properties:
+        value: { type: string, enum: [success, warning, critical, info, neutral] }
+        glyph: { type: string, enum: [check, triangle, octagon, circle] }
+        label: { type: string }
+        generated_at: { type: string, format: date-time }
+      required: [value, label, generated_at]
+    MobilePersona:
+      type: object
+      properties:
+        role_id: { $ref: '#/components/schemas/MobilePersonaId' }
+        title: { type: string }
+        assignment_scope: { type: string, enum: [unit, house] }
+        home: { type: string }
+        focus: { type: string }
+        question: { type: string }
+      required: [role_id, title, assignment_scope]
     MeEnvelope:
       allOf:
         - { $ref: '#/components/schemas/Envelope' }
@@ -341,7 +412,7 @@ components:
               properties:
                 workflow: { $ref: '#/components/schemas/Workflow' }
                 tiles: { type: array, items: { $ref: '#/components/schemas/KpiTile' } }
-                foryou_head: { type: array, items: { $ref: '#/components/schemas/ForYouItem' }, description: Top N For-You items inline. }
+                for_you_head: { type: array, items: { $ref: '#/components/schemas/ForYouItem' }, description: Top N For-You items inline. }
     KpiTile:
       type: object
       description: A glanceable metric. status is ALWAYS paired with a trend/label (never color alone).
@@ -384,6 +455,84 @@ components:
             data: { type: array, items: { $ref: '#/components/schemas/ForYouItem' } }
             next_cursor: { type: string }
 
+    MobileAltitudeEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                altitude: { type: string, enum: [A0, A1, A2, A2P, A3] }
+                persona: { $ref: '#/components/schemas/MobilePersona' }
+                status: { $ref: '#/components/schemas/OperationalStatus' }
+                generated_at: { type: string, format: date-time }
+                patient_context_ref: { type: string, nullable: true }
+                provenance: { type: object, additionalProperties: true }
+                dependencies: { type: array, items: { type: object, additionalProperties: true } }
+                activity: { type: array, items: { $ref: '#/components/schemas/ActivityEvent' } }
+              required: [altitude, persona, generated_at]
+    PatientOperationalContextEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/PatientOperationalContext' }
+    PatientOperationalContext:
+      type: object
+      properties:
+        altitude: { type: string, const: A2P }
+        persona: { $ref: '#/components/schemas/MobilePersona' }
+        patient: { type: object, properties: { patient_context_ref: { type: string }, display: { type: string }, detail_authorized: { type: boolean }, phi_minimized: { type: boolean } } }
+        header: { type: object, additionalProperties: true }
+        status_spine: { type: array, items: { type: object, additionalProperties: true } }
+        timeline: { type: array, items: { type: object, additionalProperties: true } }
+        dependencies: { type: array, items: { type: object, additionalProperties: true } }
+        recommendations: { type: array, items: { type: object, additionalProperties: true } }
+        actions: { type: array, items: { $ref: '#/components/schemas/Action' } }
+        relay: { type: object, additionalProperties: true }
+        web: { type: object, additionalProperties: true }
+        phi_policy: { type: object, additionalProperties: true }
+      required: [altitude, persona, patient, header, status_spine, timeline, dependencies, phi_policy]
+    ActivityEvent:
+      type: object
+      properties:
+        event_uuid: { type: string, format: uuid }
+        event_type: { type: string }
+        occurred_at: { type: string, format: date-time }
+        actor_user_id: { type: integer, nullable: true }
+        actor_role: { type: string, nullable: true }
+        source_surface: { type: string }
+        domain: { type: string }
+        scope: { type: object, additionalProperties: true }
+        patient_context_ref: { type: string, nullable: true }
+        status: { type: object, additionalProperties: true }
+        recommendation: { type: object, additionalProperties: true }
+        relay: { type: object, additionalProperties: true }
+        phi_policy: { type: object, additionalProperties: true }
+      required: [event_uuid, event_type, occurred_at, domain]
+    ActivityFeedEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: '#/components/schemas/ActivityEvent' } }
+    EddyContextEnvelope:
+      allOf:
+        - { $ref: '#/components/schemas/Envelope' }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                scope_ref: { type: string }
+                scope_type: { type: string }
+                generated_at: { type: string, format: date-time }
+                persona: { $ref: '#/components/schemas/MobilePersona' }
+                phi_policy: { type: object, additionalProperties: true }
+                context: { type: object, additionalProperties: true }
+                questions_supported: { type: array, items: { type: string } }
+
     # ---- RTDC ----
     CensusEnvelope:
       allOf:
@@ -395,13 +544,14 @@ components:
               items:
                 type: object
                 properties:
-                  unit: { type: string }
+                  unit_id: { type: integer }
+                  name: { type: string }
+                  type: { type: string }
+                  staffed_bed_count: { type: integer }
                   occupied: { type: integer }
-                  total: { type: integer }
                   available: { type: integer }
-                  safe_capacity: { type: integer, description: Acuity-adjusted. }
-                  pending_admits: { type: integer }
-                  pending_discharges: { type: integer }
+                  blocked: { type: integer }
+                  can_admit: { type: integer, description: Acuity-adjusted beds that can be safely admitted now. }
                   bed_need: { type: integer, description: ">0 = deficit." }
                   status: { type: string, enum: [success, warning, critical, info] }
     BedRequestListEnvelope:
@@ -415,24 +565,26 @@ components:
                 type: object
                 properties:
                   id: { type: string }
-                  patient_ref: { type: string, description: Tokenized/initials — NOT full PHI. }
-                  to_unit: { type: string }
-                  priority: { type: string, enum: [routine, urgent, stat] }
+                  source: { type: string }
+                  service: { type: string }
+                  acuity_tier: { type: integer }
+                  isolation_required: { oneOf: [{ type: string }, { type: boolean }, { type: 'null' }] }
+                  required_unit_type: { type: string }
                   status: { type: string }
                   requested_at: { type: string, format: date-time }
                   placement_score: { type: number, description: Transparent score for the recommended bed. }
-    PlacementDecision: { type: object, properties: { decision: { type: string, enum: [accept, edit, reject] }, bed_id: { type: string }, reason: { type: string } }, required: [decision] }
+    PlacementDecision: { type: object, properties: { action: { type: string, enum: [accepted, rejected] }, chosen_bed_id: { type: integer }, reason: { type: string } }, required: [action] }
 
     # ---- Ops ----
-    ApprovalDecision: { type: object, properties: { decision: { type: string, enum: [approve, reject] }, reason: { type: string } }, required: [decision] }
+    ApprovalDecision: { type: object, properties: { decision: { type: string, enum: [approved, rejected] }, reason: { type: string } }, required: [decision] }
 
     # ---- Transport / EVS ----
-    StatusTransition: { type: object, properties: { to_status: { type: string }, note: { type: string }, version: { type: string, description: Optimistic-concurrency token. } }, required: [to_status] }
+    StatusTransition: { type: object, properties: { status: { type: string }, assigned_team: { type: string }, note: { type: string }, version: { type: string, description: Optimistic-concurrency token. } }, required: [status] }
     Handoff:
       type: object
       properties:
         handoff_to: { type: string }
-        summary: { type: string }
+        handoff_summary: { type: string }
         documents: { type: array, items: { type: string } }
         outstanding_risks: { type: array, items: { type: string } }
       required: [handoff_to]

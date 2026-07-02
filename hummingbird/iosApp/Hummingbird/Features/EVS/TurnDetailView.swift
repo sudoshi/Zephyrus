@@ -24,6 +24,22 @@ struct TurnDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Z.s4) {
                 locationCard
+                NavigationLink {
+                    DrillDetailView(itemUuid: "evs-\(turn.id)")
+                } label: {
+                    HStack {
+                        Label("Explain turn signal", systemImage: "questionmark.circle")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Z.primary)
+                        Spacer()
+                    }
+                    .padding(Z.s3)
+                    .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                if let ref = turn.patientContextRef {
+                    PatientContextLink(contextRef: ref, title: "Open operational dependency context")
+                }
                 if turn.isolationRequired { isolationCard }
                 stepperCard
                 if let webLink { openInZephyrus(webLink) }
@@ -40,6 +56,7 @@ struct TurnDetailView: View {
     private var locationCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
+                AltitudeBreadcrumbView(current: .a2, includesPatient: turn.patientContextRef != nil)
                 HStack(spacing: Z.s2) {
                     TurnPriorityChip(turn: turn)
                     if turn.isolationRequired { IsolationBadge() }

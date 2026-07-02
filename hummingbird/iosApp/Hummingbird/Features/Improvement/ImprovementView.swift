@@ -41,6 +41,7 @@ struct ImprovementView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
+                    AltitudeContextCard(domain: "ops")
                     if !vm.loaded && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if !vm.loaded, let e = vm.errorMessage {

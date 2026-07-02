@@ -30,6 +30,22 @@ struct JobDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Z.s4) {
                 routeCard
+                NavigationLink {
+                    DrillDetailView(itemUuid: "transport-\(job.id)")
+                } label: {
+                    HStack {
+                        Label("Explain trip signal", systemImage: "questionmark.circle")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Z.primary)
+                        Spacer()
+                    }
+                    .padding(Z.s3)
+                    .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                if let ref = job.patientContextRef {
+                    PatientContextLink(contextRef: ref, title: "Open transport-safe patient context")
+                }
                 stepperCard
                 if let webLink { openInZephyrus(webLink) }
             }
@@ -58,6 +74,7 @@ struct JobDetailView: View {
     private var routeCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
+                AltitudeBreadcrumbView(current: .a2, includesPatient: job.patientContextRef != nil)
                 HStack {
                     JobPriorityChip(job: job)
                     Spacer()

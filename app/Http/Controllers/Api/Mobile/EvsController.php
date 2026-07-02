@@ -6,9 +6,12 @@ use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Evs\EvsRequest;
 use App\Services\Evs\EvsOperationsService;
+use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\Mobile\OperationalActivityLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -26,7 +29,11 @@ class EvsController extends Controller
 {
     use RendersMobileEnvelope;
 
-    public function __construct(private readonly EvsOperationsService $evs) {}
+    public function __construct(
+        private readonly EvsOperationsService $evs,
+        private readonly OperationalActivityLedger $ledger,
+        private readonly MobilePersonaCatalog $personas,
+    ) {}
 
     /** The SLA-ordered active turn queue + the metrics the "Bed Turns" home leads with. */
     public function queue(): JsonResponse
@@ -71,10 +78,51 @@ class EvsController extends Controller
 
         $req = EvsRequest::where('evs_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $actorId = $request->user()?->id;
+        $from = $req->status;
 
-        $updated = $validated['status'] === 'assigned'
-            ? $this->evs->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
-            : $this->evs->transition($req, $validated['status'], [], $actorId);
+        $updated = DB::transaction(function () use ($actorId, $from, $req, $request, $validated): EvsRequest {
+            $updated = $validated['status'] === 'assigned'
+                ? $this->evs->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
+                : $this->evs->transition($req, $validated['status'], [], $actorId);
+
+            $eventType = match ($updated->status) {
+                'assigned' => 'evs.claimed',
+                'in_progress' => 'evs.started',
+                'completed' => 'evs.completed',
+                default => 'evs.progressed',
+            };
+
+            $this->ledger->record($eventType, [
+                'actor_user_id' => $actorId,
+                'actor_role' => $this->personas->fromRequest($request),
+                'domain' => 'evs',
+                'scope' => [
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                    'bed_id' => $updated->bed_id,
+                    'unit_id' => $updated->unit_id,
+                    'evs_request_id' => $updated->evs_request_id,
+                ],
+                'status' => [
+                    'previous' => $from,
+                    'current' => $updated->status,
+                    'severity' => $this->tier($updated),
+                ],
+                'payload' => [
+                    'location_label' => $updated->location_label,
+                    'turn_type' => $updated->turn_type,
+                    'isolation_required' => (bool) $updated->isolation_required,
+                ],
+                'entities' => [[
+                    'entity_type' => 'evs_request',
+                    'entity_ref' => (string) $updated->evs_request_id,
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                ]],
+            ]);
+
+            return $updated;
+        });
 
         return $this->envelope($this->shapeTurn($updated), links: ['web' => url('/rtdc/bed-tracking')]);
     }

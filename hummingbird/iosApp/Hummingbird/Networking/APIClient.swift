@@ -75,6 +75,49 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/for-you", bearer: bearer, as: [ForYouItem].self).data
     }
 
+    // MARK: Altitude 2.0 common contract (A0/A1/A2/A2P + relay/Eddy)
+
+    func altitudeHome(persona: String?, bearer: String) async throws -> Envelope<MobileAltitudeHome> {
+        try await getEnvelope(path: withPersona("/api/mobile/v1/altitude/home", persona), bearer: bearer, as: MobileAltitudeHome.self)
+    }
+
+    func altitudeWorkspace(domain: String, persona: String?, bearer: String) async throws -> Envelope<MobileAltitudeWorkspace> {
+        let encodedDomain = Self.pathComponent(domain)
+        return try await getEnvelope(path: withPersona("/api/mobile/v1/altitude/workspace/\(encodedDomain)", persona), bearer: bearer, as: MobileAltitudeWorkspace.self)
+    }
+
+    func altitudeDrill(itemUuid: String, persona: String?, bearer: String) async throws -> Envelope<MobileAltitudeDrill> {
+        let encodedUuid = Self.pathComponent(itemUuid)
+        return try await getEnvelope(path: withPersona("/api/mobile/v1/drills/\(encodedUuid)", persona), bearer: bearer, as: MobileAltitudeDrill.self)
+    }
+
+    func patientOperationalContext(contextRef: String, persona: String?, bearer: String) async throws -> Envelope<PatientOperationalContext> {
+        let encodedRef = Self.pathComponent(contextRef)
+        return try await getEnvelope(path: withPersona("/api/mobile/v1/patients/\(encodedRef)/operational-context", persona), bearer: bearer, as: PatientOperationalContext.self)
+    }
+
+    func activity(persona: String?, bearer: String) async throws -> Envelope<[ActivityEvent]> {
+        try await getEnvelope(path: withPersona("/api/mobile/v1/activity", persona), bearer: bearer, as: [ActivityEvent].self)
+    }
+
+    func acknowledgeActivity(eventUuid: String, persona: String?, bearer: String) async throws -> ActivityAck {
+        let encodedUuid = Self.pathComponent(eventUuid)
+        let data = try await send(path: withPersona("/api/mobile/v1/activity/\(encodedUuid)/ack", persona),
+                                  method: "POST", body: [:], bearer: bearer)
+        return try Self.decoder.decode(Envelope<ActivityAck>.self, from: data).data
+    }
+
+    func eddyContext(scopeRef: String, persona: String?, bearer: String) async throws -> Envelope<EddyContextPacket> {
+        let encodedRef = Self.pathComponent(scopeRef)
+        return try await getEnvelope(path: withPersona("/api/mobile/v1/eddy/context/\(encodedRef)", persona), bearer: bearer, as: EddyContextPacket.self)
+    }
+
+    /// POST an action endpoint supplied by an A2 drill payload. Use only for endpoints whose
+    /// server-side contract needs no additional body (for example barrier resolve).
+    func performMobileAction(endpoint: String, bearer: String) async throws {
+        _ = try await send(path: endpoint, method: "POST", body: [:], bearer: bearer)
+    }
+
     /// POST …/rtdc/barriers/{id}/resolve — clear an open discharge barrier (mobile:act).
     func resolveBarrier(id: Int, bearer: String) async throws {
         _ = try await send(path: "/api/mobile/v1/rtdc/barriers/\(id)/resolve", method: "POST", body: [:], bearer: bearer)
@@ -186,6 +229,20 @@ struct APIClient {
     }
 
     // MARK: Plumbing
+
+    private func withPersona(_ path: String, _ persona: String?) -> String {
+        guard let persona, !persona.isEmpty else { return path }
+        let separator = path.contains("?") ? "&" : "?"
+        return "\(path)\(separator)persona=\(Self.queryValue(persona))"
+    }
+
+    private static func pathComponent(_ raw: String) -> String {
+        raw.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? raw
+    }
+
+    private static func queryValue(_ raw: String) -> String {
+        raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? raw
+    }
 
     private func getEnvelope<T: Decodable>(path: String, bearer: String, as: T.Type) async throws -> Envelope<T> {
         let data = try await send(path: path, method: "GET", body: nil, bearer: bearer)

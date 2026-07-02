@@ -25,6 +25,115 @@ struct Meta: Decodable {
     let asOf: String?
     let stale: Bool?
     let version: Int?
+    let count: Int?
+    let nextCursor: String?
+}
+
+/// Lossless-enough JSON value for open-ended BFF fields (`scope`, `relay`, `phi_policy`,
+/// provenance payloads). Keeps the Swift DTOs compile-time safe without hard-coding every key.
+indirect enum JSONValue: Decodable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode(Int.self) {
+            self = .int(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .double(value)
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode([String: JSONValue].self) {
+            self = .object(value)
+        } else if let value = try? container.decode([JSONValue].self) {
+            self = .array(value)
+        } else {
+            self = .null
+        }
+    }
+
+    var stringValue: String? {
+        if case let .string(value) = self { return value }
+        return nil
+    }
+
+    var displayString: String {
+        switch self {
+        case .string(let value): return value
+        case .int(let value): return "\(value)"
+        case .double(let value): return "\(value)"
+        case .bool(let value): return value ? "yes" : "no"
+        case .object(let value): return "\(value.count) fields"
+        case .array(let value): return "\(value.count) items"
+        case .null: return "—"
+        }
+    }
+}
+
+struct MobilePersona: Decodable {
+    let roleId: String?
+    let assignmentScope: String?
+    let title: String?
+    let home: String?
+    let focus: String?
+    let question: String?
+    let web: String?
+}
+
+struct OperationalStatus: Decodable {
+    let value: String?
+    let glyph: String?
+    let label: String?
+    let generatedAt: String?
+
+    var capacity: CapacityStatus { CapacityStatus(apiValue: value ?? "info") }
+}
+
+struct Provenance: Decodable {
+    let sourceService: String?
+    let metricKey: String?
+    let snapshotVersion: String?
+    let stale: Bool?
+    let generatedAt: String?
+}
+
+struct MobileAction: Decodable, Identifiable {
+    let kind: String
+    let label: String?
+    let endpoint: String?
+    let method: String?
+    let requiresOnline: Bool?
+
+    var id: String { "\(kind)|\(endpoint ?? label ?? "")" }
+}
+
+struct OperationalDependency: Decodable, Identifiable {
+    let type: String?
+    let dependencyType: String?
+    let ownerRole: String?
+    let ownerUser: String?
+    let downstreamRoles: [String]?
+    let downstreamPatientRefs: [String]?
+    let status: String?
+    let label: String?
+    let entityRef: String?
+
+    var id: String {
+        [dependencyType ?? type ?? "dependency", ownerRole, status, label, entityRef]
+            .compactMap { $0 }
+            .joined(separator: "|")
+    }
+
+    var displayType: String { dependencyType ?? type ?? "dependency" }
 }
 
 /// GET /api/mobile/v1/me
@@ -69,11 +178,20 @@ struct CensusUnit: Decodable, Identifiable {
 struct ForYouItem: Decodable, Identifiable {
     let id: String
     let type: String
+    let domain: String?
+    let altitude: String?
     let tier: String
+    let status: String?
+    let statusDetail: OperationalStatus?
     let title: String
     let subtitle: String
     let unit: String?
     let at: String?
+    let patientContextRef: String?
+    let dependencies: [OperationalDependency]?
+    let recommendedActions: [MobileAction]?
+    let activity: [ActivityEvent]?
+    let provenance: Provenance?
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
 }
@@ -103,6 +221,7 @@ struct TransportJob: Decodable, Identifiable {
     let destination: String?
     let mode: String?
     let neededAt: String?
+    let patientContextRef: String?
     let sla: TransportSla
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
@@ -140,6 +259,7 @@ struct EvsTurn: Decodable, Identifiable {
     let turnType: String?
     let isolationRequired: Bool
     let neededAt: String?
+    let patientContextRef: String?
     let sla: EvsSla
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
@@ -178,6 +298,7 @@ struct Placement: Decodable, Identifiable {
     let isolationRequired: String?   // "none" | "contact" | "droplet" | "airborne"
     let requiredUnitType: String?
     let at: String?
+    let patientContextRef: String?
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
     var needsIsolation: Bool { isolationRequired != nil && isolationRequired != "none" }
@@ -357,6 +478,201 @@ struct Opportunity: Decodable, Identifiable {
     let status: String
     let impact: Int?
     var priorityTier: CapacityStatus { priority == "High" ? .critical : (priority == "Medium" ? .warning : .info) }
+}
+
+// MARK: Altitude 2.0
+
+struct AltitudeTile: Decodable, Identifiable {
+    let key: String
+    let label: String
+    let value: String
+    let status: String
+    let provenance: Provenance?
+
+    var id: String { key }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: status) }
+}
+
+struct MobileAltitudeHome: Decodable {
+    let altitude: String
+    let persona: MobilePersona?
+    let status: OperationalStatus?
+    let generatedAt: String?
+    let glanceQuestion: String?
+    let tiles: [AltitudeTile]?
+    let forYouHead: [ForYouItem]?
+    let activity: [ActivityEvent]?
+    let subscriptions: [String: JSONValue]?
+    let web: WebLink?
+}
+
+struct MobileAltitudeWorkspace: Decodable {
+    let altitude: String
+    let persona: MobilePersona?
+    let domain: String?
+    let generatedAt: String?
+    let status: OperationalStatus?
+    let workspace: WorkspacePayload?
+    let activity: [ActivityEvent]?
+    let web: WebLink?
+}
+
+struct WorkspacePayload: Decodable {
+    let summary: WorkspaceSummary?
+    let items: [JSONValue]?
+}
+
+struct WorkspaceSummary: Decodable {
+    let label: String?
+    let count: Int?
+}
+
+struct MobileAltitudeDrill: Decodable {
+    let altitude: String
+    let persona: MobilePersona?
+    let itemUuid: String?
+    let generatedAt: String?
+    let domain: String?
+    let status: OperationalStatus?
+    let explanation: String?
+    let dependencies: [OperationalDependency]?
+    let activity: [ActivityEvent]?
+    let patientContextRef: String?
+    let actions: [MobileAction]?
+    let web: WebLink?
+}
+
+struct WebLink: Decodable {
+    let href: String?
+    let label: String?
+    let altitude: String?
+}
+
+struct ActivityEvent: Decodable, Identifiable {
+    let eventUuid: String
+    let eventType: String
+    let occurredAt: String?
+    let actorUserId: Int?
+    let actorRole: String?
+    let sourceSurface: String?
+    let domain: String?
+    let scope: [String: JSONValue]?
+    let patientContextRef: String?
+    let status: [String: JSONValue]?
+    let recommendation: [String: JSONValue]?
+    let relay: [String: JSONValue]?
+    let phiPolicy: [String: JSONValue]?
+    let entities: [ActivityEntity]?
+
+    var id: String { eventUuid }
+
+    var severity: CapacityStatus {
+        if let raw = status?["severity"]?.stringValue { return CapacityStatus(apiValue: raw) }
+        if let raw = status?["current"]?.stringValue { return CapacityStatus(apiValue: raw) }
+        return .info
+    }
+
+    var currentStatus: String? {
+        status?["current"]?.stringValue ?? status?["status"]?.stringValue
+    }
+}
+
+struct ActivityEntity: Decodable {
+    let entityType: String?
+    let entityRef: String?
+    let patientContextRef: String?
+    let encounterRef: String?
+}
+
+struct ActivityAck: Decodable {
+    let eventUuid: String
+    let acknowledged: Bool
+    let acknowledgedAt: String?
+}
+
+struct PatientOperationalContext: Decodable {
+    let altitude: String
+    let persona: MobilePersona?
+    let patient: OperationalPatient
+    let header: PatientContextHeader
+    let statusSpine: [PatientStatusSpineItem]
+    let timeline: [PatientTimelineEvent]
+    let dependencies: [OperationalDependency]
+    let recommendations: [PatientRecommendation]?
+    let actions: [MobileAction]?
+    let relay: PatientRelay?
+    let activity: [ActivityEvent]?
+    let web: WebLink?
+    let phiPolicy: PatientPhiPolicy?
+}
+
+struct OperationalPatient: Decodable {
+    let patientContextRef: String?
+    let display: String?
+    let phiMinimized: Bool?
+}
+
+struct PatientContextHeader: Decodable {
+    let currentLocation: String?
+    let targetLocation: String?
+    let service: String?
+    let isolationRequired: Bool?
+    let responsibleTeam: String?
+    let asOf: String?
+}
+
+struct PatientStatusSpineItem: Decodable, Identifiable {
+    let domain: String?
+    let label: String?
+    let status: String?
+    let at: String?
+
+    var id: String { [domain, label, status, at].compactMap { $0 }.joined(separator: "|") }
+}
+
+struct PatientTimelineEvent: Decodable, Identifiable {
+    let eventType: String?
+    let domain: String?
+    let actorRole: String?
+    let statusBefore: String?
+    let statusAfter: String?
+    let occurredAt: String?
+    let affectedDependency: String?
+
+    var id: String { [eventType, domain, actorRole, statusAfter, occurredAt].compactMap { $0 }.joined(separator: "|") }
+}
+
+struct PatientRecommendation: Decodable, Identifiable {
+    let recommendationUuid: String?
+    let source: String?
+    let title: String?
+    let status: String?
+    let riskLevel: String?
+    let rationale: String?
+    let runnerUp: String?
+
+    var id: String { recommendationUuid ?? [source, title, status].compactMap { $0 }.joined(separator: "|") }
+}
+
+struct PatientRelay: Decodable {
+    let willNotifyRoles: [String]?
+    let activityRoles: [String]?
+}
+
+struct PatientPhiPolicy: Decodable {
+    let listSafe: Bool?
+    let pushSafe: Bool?
+    let requiresDetailAuth: Bool?
+}
+
+struct EddyContextPacket: Decodable {
+    let scopeRef: String
+    let scopeType: String?
+    let generatedAt: String?
+    let persona: MobilePersona?
+    let phiPolicy: [String: JSONValue]?
+    let context: [String: JSONValue]?
+    let questionsSupported: [String]?
 }
 
 /// An error surfaced from the API (either a Laravel `{message}` or a BFF `{error:{message}}`).

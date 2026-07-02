@@ -44,6 +44,7 @@ struct StaffingView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
+                    AltitudeContextCard(domain: "staffing")
                     if vm.overview == nil && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if vm.overview == nil, let e = vm.errorMessage {

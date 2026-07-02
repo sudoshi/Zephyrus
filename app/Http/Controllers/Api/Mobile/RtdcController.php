@@ -13,8 +13,11 @@ use App\Models\Unit;
 use App\Services\AcuityService;
 use App\Services\BarrierService;
 use App\Services\BedPlacementService;
+use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\Mobile\OperationalActivityLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -39,6 +42,8 @@ class RtdcController extends Controller
         private readonly AcuityService $acuity,
         private readonly BarrierService $barriers,
         private readonly BedPlacementService $placement,
+        private readonly OperationalActivityLedger $ledger,
+        private readonly MobilePersonaCatalog $personas,
     ) {}
 
     public function census(): JsonResponse
@@ -138,13 +143,43 @@ class RtdcController extends Controller
         $bedRequest = BedRequest::where('bed_request_id', $id)->where('is_deleted', false)->firstOrFail();
 
         try {
-            $this->placement->decide(
-                $bedRequest,
-                $validated['action'],
-                $validated['chosen_bed_id'] ?? null,
-                $validated['reason'] ?? null,
-                $request->user()?->id,
-            );
+            $result = DB::transaction(function () use ($bedRequest, $id, $request, $validated): array {
+                $this->placement->decide(
+                    $bedRequest,
+                    $validated['action'],
+                    $validated['chosen_bed_id'] ?? null,
+                    $validated['reason'] ?? null,
+                    $request->user()?->id,
+                );
+
+                $fresh = $bedRequest->fresh();
+                $this->ledger->record($validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected', [
+                    'actor_user_id' => $request->user()?->id,
+                    'actor_role' => $this->personas->fromRequest($request),
+                    'domain' => 'rtdc',
+                    'scope' => [
+                        'patient_ref' => $bedRequest->patient_ref,
+                        'bed_id' => $validated['chosen_bed_id'] ?? null,
+                        'bed_request_id' => $bedRequest->bed_request_id,
+                    ],
+                    'status' => [
+                        'previous' => 'pending',
+                        'current' => $fresh->status,
+                        'severity' => $validated['action'] === 'accepted' ? 'warning' : 'info',
+                    ],
+                    'payload' => [
+                        'decision' => $validated['action'],
+                        'reason' => $validated['reason'] ?? null,
+                    ],
+                    'entities' => [[
+                        'entity_type' => 'bed_request',
+                        'entity_ref' => (string) $bedRequest->bed_request_id,
+                        'patient_ref' => $bedRequest->patient_ref,
+                    ]],
+                ]);
+
+                return ['id' => $id, 'action' => $validated['action'], 'status' => $fresh->status];
+            });
         } catch (UnsafePlacementException $e) {
             return $this->envelope(['error' => $e->getMessage()], status: 422);
         } catch (BedUnavailableException $e) {
@@ -152,7 +187,7 @@ class RtdcController extends Controller
         }
 
         return $this->envelope(
-            ['id' => $id, 'action' => $validated['action'], 'status' => $bedRequest->fresh()->status],
+            $result,
             links: ['web' => url('/rtdc/bed-placement')],
         );
     }
@@ -161,12 +196,39 @@ class RtdcController extends Controller
      * POST /api/mobile/v1/rtdc/barriers/{id}/resolve — clear an open discharge barrier.
      * PHI-minimized ack only (the barrier's free-text description never returns to mobile).
      */
-    public function resolveBarrier(int $id): JsonResponse
+    public function resolveBarrier(Request $request, int $id): JsonResponse
     {
-        $this->barriers->resolve($id);
+        $result = DB::transaction(function () use ($id, $request): array {
+            $barrier = $this->barriers->resolve($id);
+
+            $this->ledger->record('barrier.resolved', [
+                'actor_user_id' => $request->user()?->id,
+                'actor_role' => $this->personas->fromRequest($request),
+                'domain' => 'rtdc',
+                'scope' => [
+                    'unit_id' => $barrier->unit_id,
+                    'barrier_id' => $barrier->barrier_id,
+                ],
+                'status' => [
+                    'previous' => 'open',
+                    'current' => 'resolved',
+                    'severity' => 'info',
+                ],
+                'payload' => [
+                    'category' => $barrier->category,
+                    'reason_code' => $barrier->reason_code,
+                ],
+                'entities' => [[
+                    'entity_type' => 'barrier',
+                    'entity_ref' => (string) $barrier->barrier_id,
+                ]],
+            ]);
+
+            return ['id' => $id, 'status' => 'resolved'];
+        });
 
         return $this->envelope(
-            ['id' => $id, 'status' => 'resolved'],
+            $result,
             links: ['web' => url('/rtdc/bed-tracking')],
         );
     }

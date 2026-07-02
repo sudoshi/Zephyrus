@@ -46,6 +46,7 @@ struct CapacityDemandView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
+                    AltitudeContextCard(domain: "ops")
                     if let s = vm.strain { strainHeader(s) }
                     if vm.approvals.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s5)
@@ -102,6 +103,7 @@ struct CapacityDemandView: View {
                 }
                 Text(a.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
                 if let r = a.rationale { Text(r).font(.system(size: 12)).foregroundStyle(Z.inkMuted).lineLimit(2) }
+                EddyContextButton(scopeRef: a.approvalUuid)
                 Button {
                     Task { await vm.approve(a, bearer: auth.accessToken ?? "") }
                 } label: {

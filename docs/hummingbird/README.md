@@ -16,6 +16,11 @@ nurse working a unit, to the CMO glancing at house status between meetings. It i
 > phases (P0–P5), with a full parity matrix and reference appendices. The numbered docs
 > below ([00–07](#document-map)) are deep-dive references; [research/](research/) is the
 > evidence.
+>
+> ## Direction overlay: [**ALTITUDE-PERSONA-OPERATING-PLAN.md**](ALTITUDE-PERSONA-OPERATING-PLAN.md)
+> The Zephyrus 2.0 alignment plan for Hummingbird: persona-specific Altitude descent,
+> patient/encounter drill, cross-persona action relay, and Eddy awareness of the complete
+> house care team decision trail.
 
 ---
 
@@ -109,6 +114,8 @@ that shape this entire plan. Full detail in [research/](research/).
 
 **▶ The plan (read this)**
 - [**IMPLEMENTATION-PLAN.md**](IMPLEMENTATION-PLAN.md) — the single consolidated, phased plan. Everything below is supporting detail it draws on.
+- [**ALTITUDE-PERSONA-OPERATING-PLAN.md**](ALTITUDE-PERSONA-OPERATING-PLAN.md) — the Zephyrus 2.0 direction overlay: Altitude per persona, patient/encounter drill, cross-persona relay, Eddy awareness.
+- [**ADR-2026-07-01-altitude-patient-lens.md**](ADR-2026-07-01-altitude-patient-lens.md) — records `A2P` as a patient/encounter drill leaf, not a fifth altitude.
 
 **Deep-dive references** (granular detail behind the consolidated plan)
 1. [00 — Vision, Scope & Personas](reference/00-vision-scope-personas.md) — who, what, and the boundaries of v1.

@@ -20,6 +20,22 @@ struct PlacementDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Z.s4) {
                 requestCard
+                NavigationLink {
+                    DrillDetailView(itemUuid: "bedreq-\(placement.id)")
+                } label: {
+                    HStack {
+                        Label("Explain placement signal", systemImage: "questionmark.circle")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Z.primary)
+                        Spacer()
+                    }
+                    .padding(Z.s3)
+                    .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                if let ref = placement.patientContextRef {
+                    PatientContextLink(contextRef: ref)
+                }
                 if loading {
                     ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s5)
                 } else if let error {
@@ -52,6 +68,7 @@ struct PlacementDetailView: View {
     private var requestCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
+                AltitudeBreadcrumbView(current: .a2, includesPatient: placement.patientContextRef != nil)
                 HStack(spacing: Z.s2) {
                     StatusChip(status: placement.capacity)
                     if placement.needsIsolation { IsolationBadge() }

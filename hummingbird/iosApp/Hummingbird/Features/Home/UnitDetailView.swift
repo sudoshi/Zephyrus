@@ -21,6 +21,7 @@ struct UnitDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Z.s5) {
+                AltitudeBreadcrumbView(current: .a1)
                 gauge
                 StatusChip(status: status)
 
@@ -82,7 +83,18 @@ struct UnitDetailView: View {
             VStack(alignment: .leading, spacing: Z.s3) {
                 Text("Active on this unit")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)
-                ForEach(activeItems) { ForYouRow(item: $0, navigable: false) }
+                ForEach(activeItems) { item in
+                    if supportsDrill(item) {
+                        NavigationLink {
+                            DrillDetailView(itemUuid: item.id)
+                        } label: {
+                            ForYouRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        ForYouRow(item: item, navigable: false)
+                    }
+                }
             }
         }
     }
@@ -129,5 +141,12 @@ struct UnitDetailView: View {
             Text(value).font(.system(size: 16, weight: .semibold)).monospacedDigit()
                 .foregroundStyle(emphasize ? Z.status(.critical) : Z.ink)
         }
+    }
+
+    private func supportsDrill(_ item: ForYouItem) -> Bool {
+        item.id.hasPrefix("bedreq-")
+            || item.id.hasPrefix("barrier-")
+            || item.id.hasPrefix("transport-")
+            || item.id.hasPrefix("evs-")
     }
 }

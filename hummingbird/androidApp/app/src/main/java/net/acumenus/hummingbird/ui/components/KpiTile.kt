@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import net.acumenus.hummingbird.data.CensusUnit
 import net.acumenus.hummingbird.ui.theme.Z
 
-/** Per-unit census tile: status stripe + name + chip + occupied/safe metric + occupancy bar. */
+/** Per-unit census tile: status stripe + name + chip + occupied/staffed metric + occupancy bar. */
 @Composable
 fun KpiTile(unit: CensusUnit, onClick: (() -> Unit)? = null) {
     val status = unit.capacity
@@ -54,14 +54,14 @@ fun KpiTile(unit: CensusUnit, onClick: (() -> Unit)? = null) {
 
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("${unit.occupied}", color = Z.ink, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
-                Text("/ ${unit.safeCapacity} safe beds", color = Z.inkMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
+                Text("/ ${unit.staffedBedCount} staffed", color = Z.inkMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
                 Spacer(Modifier.weight(1f))
                 if (unit.bedNeed > 0) {
                     Text("${unit.bedNeed} over", color = Z.statusCritical, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 5.dp))
                 }
             }
 
-            val ratio = if (unit.safeCapacity > 0) (unit.occupied.toFloat() / unit.safeCapacity).coerceIn(0f, 1f) else 0f
+            val ratio = if (unit.staffedBedCount > 0) (unit.occupied.toFloat() / unit.staffedBedCount).coerceIn(0f, 1f) else 0f
             Box(
                 Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)).background(Z.border),
             ) {
@@ -71,6 +71,7 @@ fun KpiTile(unit: CensusUnit, onClick: (() -> Unit)? = null) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Metric("${unit.available}", "available")
                 Metric("${unit.blocked}", "blocked/dirty")
+                Metric("${unit.canAdmit}", "can admit")
             }
         }
     }

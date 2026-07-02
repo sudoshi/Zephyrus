@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Mobile;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Transport\TransportRequest;
+use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\Mobile\OperationalActivityLedger;
 use App\Services\Transport\TransportOperationsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -27,7 +30,11 @@ class TransportController extends Controller
 {
     use RendersMobileEnvelope;
 
-    public function __construct(private readonly TransportOperationsService $transport) {}
+    public function __construct(
+        private readonly TransportOperationsService $transport,
+        private readonly OperationalActivityLedger $ledger,
+        private readonly MobilePersonaCatalog $personas,
+    ) {}
 
     /** The prioritized active queue + the glanceable metrics the "My Trips" home leads with. */
     public function queue(): JsonResponse
@@ -72,10 +79,42 @@ class TransportController extends Controller
 
         $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $actorId = $request->user()?->id;
+        $from = $req->status;
 
-        $updated = $validated['status'] === 'assigned'
-            ? $this->transport->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
-            : $this->transport->transition($req, $validated['status'], [], $actorId);
+        $updated = DB::transaction(function () use ($actorId, $from, $req, $request, $validated): TransportRequest {
+            $updated = $validated['status'] === 'assigned'
+                ? $this->transport->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
+                : $this->transport->transition($req, $validated['status'], [], $actorId);
+
+            $this->ledger->record($validated['status'] === 'assigned' ? 'transport.claimed' : 'transport.progressed', [
+                'actor_user_id' => $actorId,
+                'actor_role' => $this->personas->fromRequest($request),
+                'domain' => 'transport',
+                'scope' => [
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                    'transport_request_id' => $updated->transport_request_id,
+                ],
+                'status' => [
+                    'previous' => $from,
+                    'current' => $updated->status,
+                    'severity' => $this->tier($updated),
+                ],
+                'payload' => [
+                    'origin' => $updated->origin,
+                    'destination' => $updated->destination,
+                    'mode' => $updated->transport_mode,
+                ],
+                'entities' => [[
+                    'entity_type' => 'transport_request',
+                    'entity_ref' => (string) $updated->transport_request_id,
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                ]],
+            ]);
+
+            return $updated;
+        });
 
         return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
     }
@@ -91,7 +130,37 @@ class TransportController extends Controller
         ]);
 
         $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
-        $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
+        $from = $req->status;
+        $updated = DB::transaction(function () use ($from, $req, $request, $validated): TransportRequest {
+            $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
+
+            $this->ledger->record('transport.handoff_completed', [
+                'actor_user_id' => $request->user()?->id,
+                'actor_role' => $this->personas->fromRequest($request),
+                'domain' => 'transport',
+                'scope' => [
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                    'transport_request_id' => $updated->transport_request_id,
+                ],
+                'status' => [
+                    'previous' => $from,
+                    'current' => $updated->status,
+                    'severity' => $this->tier($updated),
+                ],
+                'payload' => [
+                    'handoff_to' => $validated['handoff_to'],
+                ],
+                'entities' => [[
+                    'entity_type' => 'transport_request',
+                    'entity_ref' => (string) $updated->transport_request_id,
+                    'patient_ref' => $updated->patient_ref,
+                    'encounter_ref' => $updated->encounter_ref,
+                ]],
+            ]);
+
+            return $updated;
+        });
 
         return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
     }

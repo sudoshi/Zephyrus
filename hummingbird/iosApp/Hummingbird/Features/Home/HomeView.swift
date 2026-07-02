@@ -27,6 +27,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     greeting
+                    AltitudeContextCard(domain: "rtdc")
                     if vm.units.isEmpty && vm.isLoading {
                         ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
                     } else if vm.units.isEmpty && vm.errorMessage != nil {
