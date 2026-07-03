@@ -28,17 +28,19 @@ class ORController extends Controller
         $rooms = collect($built['rooms'])->map(function (array $r) use ($names) {
             $cur = $r['currentCase'];
             $next = $r['nextCase'];
+            $visualStatus = match ($r['status']) {
+                'delayed' => 'critical',
+                'turnover' => 'warning',
+                'in_progress' => 'info',
+                default => 'success',
+            };
 
             return [
                 'id' => $r['number'],
                 'name' => $names[$r['number']] ?? ('OR-'.$r['number']),
                 'status' => $r['status'], // available | in_progress | turnover | delayed
-                'tier' => match ($r['status']) {
-                    'delayed' => 'critical',
-                    'turnover' => 'warning',
-                    'in_progress' => 'info',
-                    default => 'success',
-                },
+                'tier' => $visualStatus,
+                'visual_status' => $visualStatus,
                 'time_remaining' => $r['timeRemaining'],
                 'turnover_min' => $r['turnoverTime'],
                 'current' => $cur ? [

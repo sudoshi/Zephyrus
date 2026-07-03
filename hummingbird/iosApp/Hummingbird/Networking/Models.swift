@@ -181,6 +181,7 @@ struct ForYouItem: Decodable, Identifiable {
     let domain: String?
     let altitude: String?
     let tier: String
+    let visualStatus: String?
     let status: String?
     let statusDetail: OperationalStatus?
     let title: String
@@ -193,7 +194,7 @@ struct ForYouItem: Decodable, Identifiable {
     let activity: [ActivityEvent]?
     let provenance: Provenance?
 
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? status ?? tier) }
 }
 
 /// GET /api/mobile/v1/transport/queue — the transporter's "My Trips" home payload.
@@ -217,6 +218,7 @@ struct TransportJob: Decodable, Identifiable {
     let priority: String
     let status: String
     let tier: String
+    let visualStatus: String?
     let origin: String?
     let destination: String?
     let mode: String?
@@ -224,7 +226,7 @@ struct TransportJob: Decodable, Identifiable {
     let patientContextRef: String?
     let sla: TransportSla
 
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }
 }
 
 struct TransportSla: Decodable {
@@ -254,6 +256,7 @@ struct EvsTurn: Decodable, Identifiable {
     let priority: String
     let status: String
     let tier: String
+    let visualStatus: String?
     let locationLabel: String?
     let unitId: Int?
     let turnType: String?
@@ -262,7 +265,7 @@ struct EvsTurn: Decodable, Identifiable {
     let patientContextRef: String?
     let sla: EvsSla
 
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }
 }
 
 struct EvsSla: Decodable {
@@ -295,12 +298,13 @@ struct Placement: Decodable, Identifiable {
     let service: String?
     let acuityTier: Int?
     let tier: String
+    let visualStatus: String?
     let isolationRequired: String?   // "none" | "contact" | "droplet" | "airborne"
     let requiredUnitType: String?
     let at: String?
     let patientContextRef: String?
 
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }
     var needsIsolation: Bool { isolationRequired != nil && isolationRequired != "none" }
 }
 
@@ -378,11 +382,12 @@ struct ORRoom: Decodable, Identifiable {
     let name: String
     let status: String
     let tier: String
+    let visualStatus: String?
     let timeRemaining: Int?
     let turnoverMin: Int?
     let current: ORCaseInfo?
     let next: ORNextInfo?
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }
 }
 
 struct ORCaseInfo: Decodable {
@@ -408,10 +413,11 @@ struct OpsApproval: Decodable, Identifiable {
     let type: String?
     let risk: String?
     let tier: String
+    let visualStatus: String?
     let owner: String?
     let requestedAt: String?
     var id: String { approvalUuid }
-    var capacity: CapacityStatus { CapacityStatus(apiValue: tier) }
+    var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }
 }
 
 // MARK: Staffing (P10) — GET /staffing/overview

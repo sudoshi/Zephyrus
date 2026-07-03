@@ -92,20 +92,25 @@ class RtdcController extends Controller
     public function placements(): JsonResponse
     {
         $items = BedRequest::pending()->orderBy('created_at')->get()
-            ->map(fn (BedRequest $r) => [
-                'id' => $r->bed_request_id,
-                'source' => $r->source,
-                'service' => $r->service,
-                'acuity_tier' => $r->acuity_tier,
-                'tier' => match (true) {
+            ->map(function (BedRequest $r): array {
+                $visualStatus = match (true) {
                     $r->acuity_tier !== null && $r->acuity_tier <= 1 => 'critical',
                     $r->acuity_tier !== null && $r->acuity_tier <= 2 => 'warning',
                     default => 'info',
-                },
-                'isolation_required' => $r->isolation_required,
-                'required_unit_type' => $r->required_unit_type,
-                'at' => optional($r->created_at)->toIso8601String(),
-            ])
+                };
+
+                return [
+                    'id' => $r->bed_request_id,
+                    'source' => $r->source,
+                    'service' => $r->service,
+                    'acuity_tier' => $r->acuity_tier,
+                    'tier' => $visualStatus,
+                    'visual_status' => $visualStatus,
+                    'isolation_required' => $r->isolation_required,
+                    'required_unit_type' => $r->required_unit_type,
+                    'at' => optional($r->created_at)->toIso8601String(),
+                ];
+            })
             ->values();
 
         return $this->envelope($items, meta: ['count' => $items->count()], links: ['web' => url('/rtdc/bed-placement')]);

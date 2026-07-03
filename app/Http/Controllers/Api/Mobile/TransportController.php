@@ -170,13 +170,16 @@ class TransportController extends Controller
     /** @return array<string, mixed> */
     private function shapeJob(TransportRequest $r): array
     {
+        $visualStatus = $this->tier($r);
+
         return [
             'id' => $r->transport_request_id,
             'uuid' => $r->request_uuid,
             'type' => $r->request_type,
             'priority' => $r->priority,
             'status' => $r->status,
-            'tier' => $this->tier($r),
+            'tier' => $visualStatus,
+            'visual_status' => $visualStatus,
             'origin' => $r->origin,
             'destination' => $r->destination,
             'mode' => $r->transport_mode,

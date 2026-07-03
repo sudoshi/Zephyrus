@@ -1,0 +1,420 @@
+{
+    "version": "1.0.0",
+    "home_kinds": [
+        {
+            "id": "census",
+            "tab_label": "House",
+            "workspace_label": "Workspace"
+        },
+        {
+            "id": "transportJobs",
+            "tab_label": "Trips",
+            "workspace_label": "Trips"
+        },
+        {
+            "id": "evsTurns",
+            "tab_label": "Turns",
+            "workspace_label": "Turns"
+        },
+        {
+            "id": "houseCapacity",
+            "tab_label": "House",
+            "workspace_label": "Capacity"
+        },
+        {
+            "id": "orBoard",
+            "tab_label": "OR",
+            "workspace_label": "OR"
+        },
+        {
+            "id": "capacityDemand",
+            "tab_label": "Capacity",
+            "workspace_label": "Approvals"
+        },
+        {
+            "id": "houseBrief",
+            "tab_label": "Brief",
+            "workspace_label": "Brief"
+        },
+        {
+            "id": "staffing",
+            "tab_label": "Staffing",
+            "workspace_label": "Staffing"
+        },
+        {
+            "id": "improvement",
+            "tab_label": "Improve",
+            "workspace_label": "Improve"
+        }
+    ],
+    "feature_routes": [
+        {
+            "id": "rtdc",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/rtdc"
+        },
+        {
+            "id": "capacity",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/capacity"
+        },
+        {
+            "id": "transport",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/transport"
+        },
+        {
+            "id": "evs",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/evs"
+        },
+        {
+            "id": "staffing",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/staffing"
+        },
+        {
+            "id": "ops",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/ops"
+        },
+        {
+            "id": "approvals",
+            "kind": "workspace",
+            "mobile_path": "/altitude/workspace/approvals"
+        },
+        {
+            "id": "drill",
+            "kind": "detail",
+            "mobile_path": "/drills/{itemUuid}"
+        },
+        {
+            "id": "patient_context",
+            "kind": "detail",
+            "mobile_path": "/patients/{contextRef}/operational-context"
+        },
+        {
+            "id": "activity",
+            "kind": "feed",
+            "mobile_path": "/activity"
+        },
+        {
+            "id": "for_you",
+            "kind": "feed",
+            "mobile_path": "/for-you"
+        },
+        {
+            "id": "eddy_context",
+            "kind": "detail",
+            "mobile_path": "/eddy/context/{scopeRef}"
+        }
+    ],
+    "status_vocabulary": [
+        {
+            "id": "success",
+            "severity": 1,
+            "color_token": "statusSuccess",
+            "capacity_label": "Within capacity",
+            "ios_symbol": "checkmark.circle.fill",
+            "android_icon": "CheckCircle"
+        },
+        {
+            "id": "warning",
+            "severity": 2,
+            "color_token": "statusWarning",
+            "capacity_label": "Near capacity",
+            "ios_symbol": "exclamationmark.circle.fill",
+            "android_icon": "Warning"
+        },
+        {
+            "id": "critical",
+            "severity": 3,
+            "color_token": "statusCritical",
+            "capacity_label": "At capacity",
+            "ios_symbol": "exclamationmark.triangle.fill",
+            "android_icon": "Error"
+        },
+        {
+            "id": "info",
+            "severity": 0,
+            "color_token": "statusInfo",
+            "capacity_label": "No data",
+            "ios_symbol": "minus.circle.fill",
+            "android_icon": "RemoveCircle"
+        }
+    ],
+    "urgency_tiers": [
+        {
+            "id": "T1",
+            "label": "Critical",
+            "delivery": "critical_full_screen_intent"
+        },
+        {
+            "id": "T2",
+            "label": "High",
+            "delivery": "high_actionable"
+        },
+        {
+            "id": "T3",
+            "label": "Awareness",
+            "delivery": "awareness"
+        },
+        {
+            "id": "T4",
+            "label": "Digest",
+            "delivery": "digest"
+        }
+    ],
+    "status_label_sets": {
+        "capacity": [
+            {
+                "id": "within_capacity",
+                "status": "success",
+                "label": "Within capacity"
+            },
+            {
+                "id": "near_capacity",
+                "status": "warning",
+                "label": "Near capacity"
+            },
+            {
+                "id": "at_capacity",
+                "status": "critical",
+                "label": "At capacity"
+            },
+            {
+                "id": "no_data",
+                "status": "info",
+                "label": "No data"
+            }
+        ],
+        "task_queue": [
+            {
+                "id": "routine",
+                "status": "success",
+                "label": "Routine"
+            },
+            {
+                "id": "at_risk",
+                "status": "warning",
+                "label": "At risk"
+            },
+            {
+                "id": "overdue",
+                "status": "critical",
+                "label": "Overdue"
+            },
+            {
+                "id": "stat",
+                "status": "critical",
+                "label": "STAT"
+            }
+        ],
+        "approval": [
+            {
+                "id": "pending",
+                "status": "warning",
+                "label": "Pending"
+            },
+            {
+                "id": "approved",
+                "status": "success",
+                "label": "Approved"
+            },
+            {
+                "id": "rejected",
+                "status": "critical",
+                "label": "Rejected"
+            },
+            {
+                "id": "expired",
+                "status": "info",
+                "label": "Expired"
+            }
+        ]
+    },
+    "roles": [
+        {
+            "role_id": "charge_nurse",
+            "title": "Charge Nurse",
+            "subtitle": "Run a unit - placements, barriers, staffing",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "myUnit",
+            "glance_question": "Is my unit safe to receive and discharge?",
+            "web_deeplink": "/rtdc/bed-tracking",
+            "ios_icon": "person.2.fill",
+            "android_icon": "group"
+        },
+        {
+            "role_id": "bedside_nurse",
+            "title": "Bedside / Duty Nurse",
+            "subtitle": "Your patients on your unit",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "myUnit",
+            "glance_question": "Which of my patients need operational action?",
+            "web_deeplink": "/rtdc/bed-tracking",
+            "ios_icon": "cross.case.fill",
+            "android_icon": "medical_services"
+        },
+        {
+            "role_id": "bed_manager",
+            "title": "Bed Manager / Flow",
+            "subtitle": "House-wide capacity and placement",
+            "unit_bound": false,
+            "home_kind": "houseCapacity",
+            "default_domain": "capacity",
+            "queue_filter": "placements",
+            "glance_question": "Can the house absorb demand?",
+            "web_deeplink": "/rtdc/bed-placement",
+            "ios_icon": "bed.double.fill",
+            "android_icon": "bed"
+        },
+        {
+            "role_id": "house_supervisor",
+            "title": "House Supervisor",
+            "subtitle": "House status and escalations",
+            "unit_bound": false,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "escalations",
+            "glance_question": "What is threatening the house right now?",
+            "web_deeplink": "/dashboard/rtdc",
+            "ios_icon": "building.2.fill",
+            "android_icon": "apartment"
+        },
+        {
+            "role_id": "hospitalist",
+            "title": "Hospitalist",
+            "subtitle": "Your service and discharges",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "myUnit",
+            "glance_question": "Which patients are blocking flow or need a discharge decision?",
+            "web_deeplink": "/rtdc/barriers",
+            "ios_icon": "stethoscope",
+            "android_icon": "stethoscope"
+        },
+        {
+            "role_id": "intensivist",
+            "title": "Intensivist",
+            "subtitle": "Critical care units",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "criticalCare",
+            "glance_question": "Which critical-care decisions affect capacity and safety?",
+            "web_deeplink": "/rtdc/bed-tracking",
+            "ios_icon": "waveform.path.ecg",
+            "android_icon": "monitor_heart"
+        },
+        {
+            "role_id": "evs",
+            "title": "EVS",
+            "subtitle": "Bed turns and cleaning",
+            "unit_bound": false,
+            "home_kind": "evsTurns",
+            "default_domain": "evs",
+            "queue_filter": "turns",
+            "glance_question": "Which bed turn unlocks care next?",
+            "web_deeplink": "/rtdc/bed-tracking",
+            "ios_icon": "sparkles",
+            "android_icon": "cleaning_services"
+        },
+        {
+            "role_id": "transport",
+            "title": "Transport",
+            "subtitle": "Patient moves and trips",
+            "unit_bound": false,
+            "home_kind": "transportJobs",
+            "default_domain": "transport",
+            "queue_filter": "none",
+            "glance_question": "What trip needs me now?",
+            "web_deeplink": "/transport/dispatch",
+            "ios_icon": "figure.walk",
+            "android_icon": "directions_walk"
+        },
+        {
+            "role_id": "or_nurse",
+            "title": "OR Nurse",
+            "subtitle": "Room board, cases, and safety notes",
+            "unit_bound": false,
+            "home_kind": "orBoard",
+            "default_domain": "ops",
+            "queue_filter": "none",
+            "glance_question": "What case or room needs action now?",
+            "web_deeplink": "/operations/room-status",
+            "ios_icon": "cross.case.fill",
+            "android_icon": "local_hospital"
+        },
+        {
+            "role_id": "capacity_lead",
+            "title": "Capacity Lead",
+            "subtitle": "Capacity vs demand and approvals",
+            "unit_bound": false,
+            "home_kind": "capacityDemand",
+            "default_domain": "ops",
+            "queue_filter": "all",
+            "glance_question": "What decisions will change the next four hours?",
+            "web_deeplink": "/ops/agent-inbox",
+            "ios_icon": "chart.bar.fill",
+            "android_icon": "bar_chart"
+        },
+        {
+            "role_id": "periop_manager",
+            "title": "Perioperative Manager",
+            "subtitle": "OR day - starts, turnover, delays",
+            "unit_bound": false,
+            "home_kind": "orBoard",
+            "default_domain": "ops",
+            "queue_filter": "none",
+            "glance_question": "Is the OR day drifting?",
+            "web_deeplink": "/analytics/or-utilization",
+            "ios_icon": "calendar.badge.clock",
+            "android_icon": "event_note"
+        },
+        {
+            "role_id": "staffing_coordinator",
+            "title": "Staffing Coordinator",
+            "subtitle": "Open requests and gaps below safe",
+            "unit_bound": false,
+            "home_kind": "staffing",
+            "default_domain": "staffing",
+            "queue_filter": "none",
+            "glance_question": "Where are we below safe coverage?",
+            "web_deeplink": "/staffing",
+            "ios_icon": "person.3.fill",
+            "android_icon": "groups"
+        },
+        {
+            "role_id": "pi_lead",
+            "title": "PI / Quality Lead",
+            "subtitle": "PDSA cycles and opportunities",
+            "unit_bound": false,
+            "home_kind": "improvement",
+            "default_domain": "ops",
+            "queue_filter": "escalations",
+            "glance_question": "Which improvement work is tied to today's operational pain?",
+            "web_deeplink": "/improvement/pdsa-cycles",
+            "ios_icon": "arrow.triangle.2.circlepath",
+            "android_icon": "sync"
+        },
+        {
+            "role_id": "executive",
+            "title": "Executive",
+            "subtitle": "Is the hospital OK? - house brief",
+            "unit_bound": false,
+            "home_kind": "houseBrief",
+            "default_domain": "ops",
+            "queue_filter": "escalations",
+            "glance_question": "Is the hospital OK?",
+            "web_deeplink": "/dashboard",
+            "ios_icon": "briefcase.fill",
+            "android_icon": "business_center"
+        }
+    ]
+}

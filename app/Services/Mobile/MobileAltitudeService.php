@@ -11,6 +11,7 @@ use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Services\AcuityService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MobileAltitudeService
 {
@@ -165,6 +166,100 @@ class MobileAltitudeService
                 'activity' => $this->ledger->forEntity('evs_request', (string) $evs->evs_request_id),
                 'actions' => [['kind' => 'progress_turn', 'label' => 'Progress turn', 'endpoint' => "/api/mobile/v1/evs/requests/{$evs->evs_request_id}/status"]],
                 'web' => ['href' => url('/rtdc/bed-tracking')],
+            ];
+        }
+
+        if (str_starts_with($itemUuid, 'ops-approval-')) {
+            $approval = Approval::query()
+                ->with('action.recommendation')
+                ->where('approval_uuid', substr($itemUuid, 13))
+                ->firstOrFail();
+            $recommendation = $approval->action?->recommendation;
+
+            return [
+                'domain' => 'ops',
+                'status' => $this->status(match ($recommendation?->risk_level) {
+                    'critical' => 'critical',
+                    'high' => 'warning',
+                    default => 'info',
+                }),
+                'explanation' => 'A governed operational recommendation needs a human capacity decision before it can proceed.',
+                'dependencies' => [['type' => 'ops_approval', 'owner_role' => 'capacity_lead', 'status' => $approval->status]],
+                'patient_context_ref' => null,
+                'activity' => $this->ledger->forEntity('approval', (string) $approval->approval_uuid),
+                'actions' => [
+                    ['kind' => 'approve', 'label' => 'Approve in workspace', 'endpoint' => "/api/mobile/v1/ops/approvals/{$approval->approval_uuid}/decision"],
+                    ['kind' => 'reject', 'label' => 'Reject in workspace', 'endpoint' => "/api/mobile/v1/ops/approvals/{$approval->approval_uuid}/decision"],
+                ],
+                'web' => ['href' => url('/ops/agent-inbox')],
+            ];
+        }
+
+        if (str_starts_with($itemUuid, 'staffing-')) {
+            $request = StaffingRequest::query()
+                ->where('is_deleted', false)
+                ->whereKey((int) substr($itemUuid, 9))
+                ->firstOrFail();
+
+            return [
+                'domain' => 'staffing',
+                'status' => $this->status(match ($request->priority) {
+                    'stat' => 'critical',
+                    'urgent' => 'warning',
+                    default => 'info',
+                }),
+                'explanation' => 'A staffing request needs sourcing or fill action before the unit can return to minimum-safe coverage.',
+                'dependencies' => [['type' => 'staffing_request', 'owner_role' => 'staffing_coordinator', 'status' => $request->status]],
+                'patient_context_ref' => null,
+                'activity' => $this->ledger->forEntity('staffing_request', (string) $request->staffing_request_id),
+                'actions' => [['kind' => 'fill_staffing', 'label' => 'Fill from float pool', 'endpoint' => "/api/mobile/v1/staffing/requests/{$request->staffing_request_id}/fill"]],
+                'web' => ['href' => url('/staffing')],
+            ];
+        }
+
+        if (str_starts_with($itemUuid, 'cap-')) {
+            $unit = Unit::query()
+                ->with('beds')
+                ->where('is_deleted', false)
+                ->whereKey((int) substr($itemUuid, 4))
+                ->firstOrFail();
+            $occupied = $unit->beds->where('status', 'occupied')->count();
+            $available = $unit->beds->where('status', 'available')->count();
+            $canAdmit = max(0, min((int) $this->acuity->adjustedCapacity($unit->unit_id), $available));
+
+            return [
+                'domain' => 'rtdc',
+                'status' => $this->status($occupied > 0 && $canAdmit <= 0 ? 'critical' : 'info'),
+                'explanation' => 'A unit capacity signal is constraining safe admit flow and may block placements until beds or staffing capacity changes.',
+                'dependencies' => [['type' => 'unit_capacity', 'owner_role' => 'charge_nurse', 'status' => $canAdmit <= 0 ? 'blocked' : 'open']],
+                'patient_context_ref' => null,
+                'activity' => $this->ledger->forEntity('unit', (string) $unit->unit_id),
+                'actions' => [['kind' => 'review_capacity', 'label' => 'Review capacity workspace']],
+                'web' => ['href' => url('/rtdc/bed-tracking')],
+            ];
+        }
+
+        if (str_starts_with($itemUuid, 'improvement-')) {
+            $opportunity = DB::table('prod.improvement_opportunities')
+                ->where('is_deleted', false)
+                ->where('opportunity_id', (int) substr($itemUuid, 12))
+                ->first();
+
+            abort_unless($opportunity, 404);
+
+            return [
+                'domain' => 'improvement',
+                'status' => $this->status(match ($opportunity->priority) {
+                    'High' => 'critical',
+                    'Medium' => 'warning',
+                    default => 'info',
+                }),
+                'explanation' => 'An improvement opportunity is ready for PI review and prioritization in the broader operating portfolio.',
+                'dependencies' => [['type' => 'improvement_opportunity', 'owner_role' => 'pi_lead', 'status' => $opportunity->status]],
+                'patient_context_ref' => null,
+                'activity' => $this->ledger->forEntity('improvement_opportunity', (string) $opportunity->opportunity_id),
+                'actions' => [['kind' => 'continue_on_web', 'label' => 'Continue on web']],
+                'web' => ['href' => url('/improvement/opportunities')],
             ];
         }
 

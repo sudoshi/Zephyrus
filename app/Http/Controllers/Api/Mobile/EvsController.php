@@ -132,13 +132,16 @@ class EvsController extends Controller
     /** @return array<string, mixed> */
     private function shapeTurn(EvsRequest $r): array
     {
+        $visualStatus = $this->tier($r);
+
         return [
             'id' => $r->evs_request_id,
             'uuid' => $r->request_uuid,
             'request_type' => $r->request_type,
             'priority' => $r->priority,
             'status' => $r->status,
-            'tier' => $this->tier($r),
+            'tier' => $visualStatus,
+            'visual_status' => $visualStatus,
             'location_label' => $r->location_label,
             'unit_id' => $r->unit_id,
             'turn_type' => $r->turn_type,

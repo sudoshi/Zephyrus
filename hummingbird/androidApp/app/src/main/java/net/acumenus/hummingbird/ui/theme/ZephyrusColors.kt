@@ -1,10 +1,19 @@
 package net.acumenus.hummingbird.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 // Generated token palette — mirrors docs/hummingbird/design-tokens/samples/ZephyrusColor.kt
 // (the style-dictionary `composeColor` output). Dark is the default theme.
 object Z {
+    // Spacing scale mirrors the iOS/token naming used in Hummingbird plans.
+    val s1 = 4.dp
+    val s2 = 8.dp
+    val s3 = 12.dp
+    val s4 = 16.dp
+    val s5 = 20.dp
+    val s6 = 24.dp
+
     // Operational surfaces & ink (System A — blue/slate)
     val bg = Color(0xFF0F172A)
     val surface = Color(0xFF1E293B)

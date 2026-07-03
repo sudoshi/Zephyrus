@@ -44,6 +44,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             id = data.optInt("id"),
             name = data.optString("name"),
             username = data.optString("username"),
+            roles = data.optJSONArray("roles").strings(),
             workflowPreference = data.optStringOrNull("workflow_preference"),
             isAdmin = data.optBoolean("is_admin", false),
         )
@@ -54,31 +55,141 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
         val root = JSONObject(text)
         val arr = root.getJSONArray("data")
-        val units = List(arr.length()) { i ->
-            val o = arr.getJSONObject(i)
-            CensusUnit(
-                unitId = o.optInt("unit_id"),
-                name = o.optString("name"),
-                type = o.optString("type"),
-                staffedBedCount = o.optInt("staffed_bed_count"),
-                occupied = o.optInt("occupied"),
-                available = o.optInt("available"),
-                blocked = o.optInt("blocked"),
-                canAdmit = o.optInt("can_admit"),
-                bedNeed = o.optInt("bed_need"),
-                status = o.optString("status", "info"),
-            )
-        }
+        val units = List(arr.length()) { i -> parseCensusUnit(arr.getJSONObject(i)) }
         val meta = root.optJSONObject("meta")
         val web = root.optJSONObject("links")?.optStringOrNull("web")
         CensusResult(units, meta?.optStringOrNull("as_of"), meta?.optBoolean("stale", false) ?: false, web)
     }
 
-    suspend fun forYou(bearer: String): List<ForYouItem> = withContext(Dispatchers.IO) {
-        val (code, text) = send("GET", "/api/mobile/v1/for-you", null, bearer)
+    suspend fun forYou(bearer: String, persona: String? = null): List<ForYouItem> = withContext(Dispatchers.IO) {
+        val (code, text) = send("GET", withPersona("/api/mobile/v1/for-you", persona), null, bearer)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
         val arr = JSONObject(text).getJSONArray("data")
         arr.objects().map(::parseForYouItem)
+    }
+
+    suspend fun resolveBarrier(bearer: String, id: Int): Boolean = withContext(Dispatchers.IO) {
+        val (code, text) = send("POST", "/api/mobile/v1/rtdc/barriers/$id/resolve", "{}", bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        JSONObject(text).optJSONObject("data")?.optBoolean("resolved", true) ?: true
+    }
+
+    suspend fun transportQueue(bearer: String): TransportQueue = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/transport/queue", bearer)
+        parseTransportQueue(root)
+    }
+
+    suspend fun transportStatus(bearer: String, id: Int, status: String): TransportJob = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("status", status)
+        val (code, text) = send("POST", "/api/mobile/v1/transport/requests/$id/status", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        parseTransportJob(JSONObject(text).getJSONObject("data"))
+    }
+
+    suspend fun transportHandoff(
+        bearer: String,
+        id: Int,
+        handoffTo: String,
+        summary: String?,
+    ): TransportJob = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("handoff_to", handoffTo)
+        if (!summary.isNullOrBlank()) body.put("handoff_summary", summary)
+        val (code, text) = send("POST", "/api/mobile/v1/transport/requests/$id/handoff", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        parseTransportJob(JSONObject(text).getJSONObject("data"))
+    }
+
+    suspend fun evsQueue(bearer: String): EvsQueue = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/evs/queue", bearer)
+        parseEvsQueue(root)
+    }
+
+    suspend fun evsStatus(bearer: String, id: Int, status: String): EvsTurn = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("status", status)
+        val (code, text) = send("POST", "/api/mobile/v1/evs/requests/$id/status", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        parseEvsTurn(JSONObject(text).getJSONObject("data"))
+    }
+
+    suspend fun opsDecision(bearer: String, approvalUuid: String, decision: String): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("decision", decision)
+        val (code, text) = send("POST", "/api/mobile/v1/ops/approvals/${urlPart(approvalUuid)}/decision", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        JSONObject(text).optJSONObject("data")?.optStringOrNull("decision") == decision
+    }
+
+    suspend fun fillStaffingRequest(bearer: String, id: Int, assignedSource: String): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("assigned_source", assignedSource.ifBlank { "Mobile" })
+        val (code, text) = send("POST", "/api/mobile/v1/staffing/requests/$id/fill", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        JSONObject(text).has("data")
+    }
+
+    suspend fun orBoard(bearer: String): ORBoard = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/or/board", bearer)
+        parseORBoard(root)
+    }
+
+    suspend fun commandHouse(bearer: String): HouseBrief = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/command/house", bearer)
+        parseHouseBrief(root)
+    }
+
+    suspend fun opsInbox(bearer: String): List<OpsApproval> = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/ops/inbox", bearer)
+        root.getJSONArray("data").objects().map(::parseOpsApproval)
+    }
+
+    suspend fun staffingOverview(bearer: String): StaffingOverview = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/staffing/overview", bearer)
+        parseStaffingOverview(root)
+    }
+
+    suspend fun improvementPdsa(bearer: String): List<PdsaCycle> = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/improvement/pdsa", bearer)
+        root.getJSONArray("data").objects().map(::parsePdsaCycle)
+    }
+
+    suspend fun improvementOpportunities(bearer: String): List<Opportunity> = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/improvement/opportunities", bearer)
+        root.getJSONArray("data").objects().map(::parseOpportunity)
+    }
+
+    suspend fun rtdcHouse(bearer: String): HouseRollup = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/rtdc/house", bearer)
+        parseHouseRollup(root)
+    }
+
+    suspend fun placements(bearer: String): List<Placement> = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/rtdc/bed-requests", bearer)
+        root.getJSONArray("data").objects().map(::parsePlacement)
+    }
+
+    suspend fun placementRecommendations(bearer: String, id: Int): PlacementRecommendations = withContext(Dispatchers.IO) {
+        val root = getEnvelope("/api/mobile/v1/rtdc/bed-requests/$id/recommendations", bearer)
+        parsePlacementRecommendations(root)
+    }
+
+    suspend fun placeBed(
+        bearer: String,
+        id: Int,
+        action: String,
+        chosenBedId: Int?,
+        reason: String? = null,
+    ): PlacementDecisionResult = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("action", action)
+        chosenBedId?.let { body.put("chosen_bed_id", it) }
+        if (!reason.isNullOrBlank()) body.put("reason", reason)
+        val (code, text) = send("POST", "/api/mobile/v1/rtdc/bed-requests/$id/decision", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
+        val root = JSONObject(text)
+        val data = root.getJSONObject("data")
+        PlacementDecisionResult(
+            id = data.optInt("id", id),
+            action = data.optString("action", action),
+            status = data.optStringOrNull("status"),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+        )
     }
 
     suspend fun altitudeHome(bearer: String, persona: String): AltitudeHome = withContext(Dispatchers.IO) {
@@ -184,12 +295,14 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         return "Request failed (HTTP $code)."
     }
 
-    private fun withPersona(path: String, persona: String): String =
-        path + if (path.contains("?")) "&persona=${urlPart(persona)}" else "?persona=${urlPart(persona)}"
+    private fun withPersona(path: String, persona: String?): String {
+        if (persona.isNullOrBlank()) return path
+        return path + if (path.contains("?")) "&persona=${urlPart(persona)}" else "?persona=${urlPart(persona)}"
+    }
 
     private fun urlPart(value: String): String = URLEncoder.encode(value, "UTF-8")
 
-    private fun parseAltitudeHome(data: JSONObject): AltitudeHome = AltitudeHome(
+    internal fun parseAltitudeHome(data: JSONObject): AltitudeHome = AltitudeHome(
         altitude = data.optString("altitude", "A0"),
         persona = parsePersona(data.optJSONObject("persona")),
         status = parseStatus(data.optJSONObject("status")),
@@ -238,7 +351,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         web = parseWeb(data.optJSONObject("web")),
     )
 
-    private fun parsePatientContext(data: JSONObject): PatientOperationalContext {
+    internal fun parsePatientContext(data: JSONObject): PatientOperationalContext {
         val patient = data.optJSONObject("patient") ?: JSONObject()
         return PatientOperationalContext(
             altitude = data.optString("altitude", "A2P"),
@@ -294,6 +407,19 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
+    private fun parseCensusUnit(o: JSONObject): CensusUnit = CensusUnit(
+        unitId = o.optInt("unit_id"),
+        name = o.optString("name"),
+        type = o.optString("type"),
+        staffedBedCount = o.optInt("staffed_bed_count"),
+        occupied = o.optInt("occupied"),
+        available = o.optInt("available"),
+        blocked = o.optInt("blocked"),
+        canAdmit = o.optInt("can_admit"),
+        bedNeed = o.optInt("bed_need"),
+        status = o.optString("status", "info"),
+    )
+
     private fun parseTile(o: JSONObject): AltitudeTile {
         val status = normalizeStatus(o.optStringOrNull("status"))
         return AltitudeTile(
@@ -305,9 +431,10 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
-    private fun parseForYouItem(o: JSONObject): ForYouItem {
+    internal fun parseForYouItem(o: JSONObject): ForYouItem {
         val status = normalizeStatus(
-            o.optStringOrNull("tier")
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
                 ?: o.optStringOrNull("status")
                 ?: o.optJSONObject("status_detail")?.optStringOrNull("value"),
         )
@@ -324,10 +451,351 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
+    internal fun parseTransportQueue(root: JSONObject): TransportQueue {
+        val data = root.getJSONObject("data")
+        val metrics = data.optJSONObject("metrics") ?: JSONObject()
+
+        return TransportQueue(
+            metrics = TransportMetrics(
+                active = metrics.optInt("active"),
+                stat = metrics.optInt("stat"),
+                atRisk = metrics.optInt("at_risk"),
+                completedToday = metrics.optInt("completed_today"),
+            ),
+            jobs = data.optJSONArray("jobs").objects().map(::parseTransportJob),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    internal fun parseTransportJob(o: JSONObject): TransportJob {
+        val visualStatus = normalizeStatus(
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
+                ?: o.optStringOrNull("priority")
+                ?: o.optStringOrNull("status"),
+        )
+        val sla = o.optJSONObject("sla") ?: JSONObject()
+
+        return TransportJob(
+            id = o.optInt("id"),
+            uuid = o.optStringOrNull("uuid"),
+            type = o.optStringOrNull("type") ?: "transport",
+            priority = o.optStringOrNull("priority") ?: "routine",
+            status = o.optStringOrNull("status") ?: "requested",
+            visualStatus = visualStatus,
+            origin = o.optStringOrNull("origin"),
+            destination = o.optStringOrNull("destination"),
+            mode = o.optStringOrNull("mode"),
+            neededAt = o.optStringOrNull("needed_at"),
+            patientContextRef = o.optStringOrNull("patient_context_ref"),
+            sla = TransportSla(
+                minutesUntilDue = sla.optIntOrNull("minutes_until_due"),
+                atRisk = sla.optBoolean("at_risk", false),
+                label = sla.optStringOrNull("label") ?: "No target",
+            ),
+        )
+    }
+
+    internal fun parseEvsQueue(root: JSONObject): EvsQueue {
+        val data = root.getJSONObject("data")
+        val metrics = data.optJSONObject("metrics") ?: JSONObject()
+
+        return EvsQueue(
+            metrics = EvsMetrics(
+                pending = metrics.optInt("pending"),
+                overdue = metrics.optInt("overdue"),
+                isolation = metrics.optInt("isolation"),
+                completedToday = metrics.optInt("completed_today"),
+            ),
+            turns = data.optJSONArray("turns").objects().map(::parseEvsTurn),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    internal fun parseEvsTurn(o: JSONObject): EvsTurn {
+        val visualStatus = normalizeStatus(
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
+                ?: o.optStringOrNull("priority")
+                ?: o.optStringOrNull("status"),
+        )
+        val sla = o.optJSONObject("sla") ?: JSONObject()
+
+        return EvsTurn(
+            id = o.optInt("id"),
+            uuid = o.optStringOrNull("uuid"),
+            requestType = o.optStringOrNull("request_type") ?: "clean",
+            priority = o.optStringOrNull("priority") ?: "routine",
+            status = o.optStringOrNull("status") ?: "requested",
+            visualStatus = visualStatus,
+            locationLabel = o.optStringOrNull("location_label"),
+            unitId = o.optIntOrNull("unit_id"),
+            turnType = o.optStringOrNull("turn_type"),
+            isolationRequired = o.optBoolean("isolation_required", false),
+            neededAt = o.optStringOrNull("needed_at"),
+            patientContextRef = o.optStringOrNull("patient_context_ref"),
+            sla = EvsSla(
+                minutesUntilDue = sla.optIntOrNull("minutes_until_due"),
+                atRisk = sla.optBoolean("at_risk", false),
+                label = sla.optStringOrNull("label") ?: "No target",
+            ),
+        )
+    }
+
+    internal fun parseORBoard(root: JSONObject): ORBoard {
+        val data = root.getJSONObject("data")
+        val metrics = data.optJSONObject("metrics") ?: JSONObject()
+
+        return ORBoard(
+            rooms = data.optJSONArray("rooms").objects().map(::parseORRoom),
+            metrics = ORMetrics(
+                running = metrics.optInt("running"),
+                turnover = metrics.optInt("turnover"),
+                available = metrics.optInt("available"),
+                total = metrics.optInt("total"),
+                avgTurnoverMin = metrics.optInt("avg_turnover_min"),
+            ),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    private fun parseORRoom(o: JSONObject): ORRoom {
+        val visualStatus = normalizeStatus(
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
+                ?: o.optStringOrNull("status"),
+        )
+
+        return ORRoom(
+            id = o.optInt("id"),
+            name = o.optStringOrNull("name") ?: "OR-${o.optInt("id")}",
+            status = o.optStringOrNull("status") ?: "available",
+            tier = normalizeStatus(o.optStringOrNull("tier")),
+            visualStatus = visualStatus,
+            timeRemaining = o.optIntOrNull("time_remaining"),
+            turnoverMin = o.optIntOrNull("turnover_min"),
+            current = parseORCaseInfo(o.optJSONObject("current")),
+            next = parseORNextInfo(o.optJSONObject("next")),
+        )
+    }
+
+    private fun parseORCaseInfo(o: JSONObject?): ORCaseInfo? {
+        if (o == null) return null
+
+        return ORCaseInfo(
+            procedure = o.optStringOrNull("procedure") ?: "Procedure",
+            surgeon = o.optStringOrNull("surgeon") ?: "Care team",
+            elapsed = o.optInt("elapsed"),
+            expectedDuration = o.optInt("expected_duration"),
+            expectedEnd = o.optStringOrNull("expected_end"),
+            startTime = o.optStringOrNull("start_time"),
+        )
+    }
+
+    private fun parseORNextInfo(o: JSONObject?): ORNextInfo? {
+        if (o == null) return null
+
+        return ORNextInfo(
+            startTime = o.optStringOrNull("start_time"),
+            procedure = o.optStringOrNull("procedure") ?: "Procedure",
+        )
+    }
+
+    internal fun parseHouseBrief(root: JSONObject): HouseBrief {
+        val data = root.getJSONObject("data")
+
+        return HouseBrief(
+            strain = parseExecStrain(data.optJSONObject("strain")),
+            hero = data.optJSONArray("hero").objects().map(::parseHeroKpi),
+            generatedAt = data.optStringOrNull("generated_at"),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    private fun parseExecStrain(o: JSONObject?): ExecStrain = ExecStrain(
+        level = o?.optInt("level") ?: 0,
+        label = o?.optStringOrNull("label") ?: "Surge Level 0",
+        status = normalizeStatus(o?.optStringOrNull("status")),
+        previousLevel = o?.optInt("previousLevel") ?: 0,
+        drivers = o?.optJSONArray("drivers").objects().map(::parseStrainDriver),
+        updatedAt = o?.optStringOrNull("updatedAtIso"),
+    )
+
+    private fun parseStrainDriver(o: JSONObject): StrainDriver = StrainDriver(
+        label = o.optStringOrNull("label") ?: "Driver",
+        value = o.optStringOrNull("value") ?: "-",
+        status = normalizeStatus(o.optStringOrNull("status")),
+    )
+
+    private fun parseHeroKpi(o: JSONObject): HeroKpi = HeroKpi(
+        key = o.optStringOrNull("key") ?: o.toString().hashCode().toString(),
+        label = o.optStringOrNull("label") ?: "Metric",
+        display = o.optStringOrNull("display") ?: o.optStringOrNull("value") ?: "-",
+        status = normalizeStatus(o.optStringOrNull("status")),
+        targetDisplay = o.optStringOrNull("target_display"),
+    )
+
+    internal fun parseOpsApproval(o: JSONObject): OpsApproval {
+        val visualStatus = normalizeStatus(
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
+                ?: o.optStringOrNull("risk"),
+        )
+
+        return OpsApproval(
+            approvalUuid = o.optStringOrNull("approval_uuid") ?: "",
+            title = o.optStringOrNull("title") ?: "Operational approval",
+            rationale = o.optStringOrNull("rationale"),
+            type = o.optStringOrNull("type"),
+            risk = o.optStringOrNull("risk"),
+            tier = normalizeStatus(o.optStringOrNull("tier")),
+            visualStatus = visualStatus,
+            owner = o.optStringOrNull("owner"),
+            requestedAt = o.optStringOrNull("requested_at"),
+        )
+    }
+
+    internal fun parseStaffingOverview(root: JSONObject): StaffingOverview {
+        val data = root.getJSONObject("data")
+
+        return StaffingOverview(
+            metrics = parseStaffingMetrics(data.optJSONObject("metrics") ?: JSONObject()),
+            unitsAtRisk = data.optJSONArray("units_at_risk").objects().map(::parseUnitAtRisk),
+            queue = data.optJSONArray("queue").objects().map(::parseStaffingReq),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    private fun parseStaffingMetrics(o: JSONObject): StaffingMetrics = StaffingMetrics(
+        openRequests = o.optInt("open_requests"),
+        atRiskUnits = o.optInt("at_risk_units"),
+        criticalGaps = o.optInt("critical_gaps"),
+        coveragePct = o.optInt("coverage_pct"),
+        statRequests = o.optInt("stat_requests"),
+        totalGapHeadcount = o.optInt("total_gap_headcount"),
+    )
+
+    private fun parseUnitAtRisk(o: JSONObject): UnitAtRisk = UnitAtRisk(
+        unitId = o.optInt("unit_id"),
+        unitLabel = o.optStringOrNull("unit_label") ?: "Unit",
+        status = o.optStringOrNull("status") ?: "gap",
+        gapHeadcount = o.optInt("gap_headcount"),
+        worstRoleLabel = o.optStringOrNull("worst_role_label") ?: "Staff",
+        belowMinimumSafe = o.optBoolean("below_minimum_safe", false),
+    )
+
+    internal fun parseStaffingReq(o: JSONObject): StaffingReq {
+        val sla = o.optJSONObject("sla") ?: JSONObject()
+
+        return StaffingReq(
+            staffingRequestId = o.optInt("staffing_request_id"),
+            unitLabel = o.optStringOrNull("unit_label"),
+            roleLabel = o.optStringOrNull("role_label"),
+            priority = o.optStringOrNull("priority") ?: "routine",
+            status = o.optStringOrNull("status") ?: "requested",
+            headcountNeeded = o.optIntOrNull("headcount_needed"),
+            sla = EvsSla(
+                minutesUntilDue = sla.optIntOrNull("minutes_until_due"),
+                atRisk = sla.optBoolean("at_risk", false),
+                label = sla.optStringOrNull("label") ?: "No target",
+            ),
+        )
+    }
+
+    internal fun parsePdsaCycle(o: JSONObject): PdsaCycle = PdsaCycle(
+        id = o.optInt("id"),
+        title = o.optStringOrNull("title") ?: "PDSA cycle",
+        status = o.optStringOrNull("status") ?: "active",
+        owner = o.optStringOrNull("owner"),
+        objective = o.optStringOrNull("objective"),
+        unit = o.optStringOrNull("unit"),
+        startedAt = o.optStringOrNull("started_at"),
+        targetDate = o.optStringOrNull("target_date"),
+    )
+
+    internal fun parseOpportunity(o: JSONObject): Opportunity = Opportunity(
+        id = o.optInt("id"),
+        title = o.optStringOrNull("title") ?: "Improvement opportunity",
+        description = o.optStringOrNull("description"),
+        department = o.optStringOrNull("department"),
+        priority = o.optStringOrNull("priority") ?: "Low",
+        status = o.optStringOrNull("status") ?: "Open",
+        impact = o.optIntOrNull("impact"),
+    )
+
+    internal fun parseHouseRollup(root: JSONObject): HouseRollup {
+        val data = root.getJSONObject("data")
+        val occupancy = data.optJSONObject("occupancy") ?: JSONObject()
+
+        return HouseRollup(
+            occupancy = HouseOccupancy(
+                occupied = occupancy.optInt("occupied"),
+                staffed = occupancy.optInt("staffed"),
+                percent = occupancy.optInt("percent"),
+            ),
+            netBedNeed = data.optInt("net_bed_need"),
+            pendingPlacements = data.optInt("pending_placements"),
+            edBoarding = data.optInt("ed_boarding"),
+            units = data.optJSONArray("units").objects().map(::parseCensusUnit),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+            stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+        )
+    }
+
+    internal fun parsePlacement(o: JSONObject): Placement {
+        val visualStatus = normalizeStatus(
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
+                ?: o.optStringOrNull("status"),
+        )
+
+        return Placement(
+            id = o.optInt("id"),
+            source = o.optStringOrNull("source"),
+            service = o.optStringOrNull("service"),
+            acuityTier = o.optIntOrNull("acuity_tier"),
+            tier = normalizeStatus(o.optStringOrNull("tier")),
+            visualStatus = visualStatus,
+            isolationRequired = o.optIsolation("isolation_required"),
+            requiredUnitType = o.optStringOrNull("required_unit_type"),
+            at = o.optStringOrNull("at"),
+            patientContextRef = o.optStringOrNull("patient_context_ref"),
+        )
+    }
+
+    internal fun parsePlacementRecommendations(root: JSONObject): PlacementRecommendations {
+        val data = root.getJSONObject("data")
+
+        return PlacementRecommendations(
+            recommendations = data.optJSONArray("recommendations").objects().map(::parsePlacementRecommendation),
+            runnerUpDelta = data.optIntOrNull("runner_up_delta"),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
+        )
+    }
+
+    private fun parsePlacementRecommendation(o: JSONObject): PlacementRecommendation = PlacementRecommendation(
+        bedId = o.optInt("bed_id"),
+        bedLabel = o.optStringOrNull("bed_label") ?: "Bed",
+        unitName = o.optStringOrNull("unit_name") ?: "Unit",
+        score = o.optDouble("score", 0.0).toInt(),
+        chips = o.optJSONArray("chips").objects().map { chip ->
+            PlacementChip(
+                label = chip.optStringOrNull("label") ?: "Constraint",
+                ok = chip.optBoolean("ok", false),
+            )
+        },
+    )
+
     private fun parseWorkspaceItem(domain: String, o: JSONObject): AltitudeWorkspaceItem {
         val id = o.optStringOrNull("id") ?: o.optStringOrNull("approval_uuid") ?: o.toString().hashCode().toString()
         val status = normalizeStatus(
-            o.optStringOrNull("tier")
+            o.optStringOrNull("visual_status")
+                ?: o.optStringOrNull("tier")
                 ?: o.optStringOrNull("priority")
                 ?: o.optStringOrNull("status"),
         )
@@ -341,12 +809,12 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             drillItemId = drillIdForWorkspace(domain, id, o),
             fields = safeFields(
                 o,
-                exclude = setOf("id", "title", "subtitle", "patient_context_ref", "patient_ref"),
+                exclude = setOf("id", "title", "subtitle", "visual_status", "patient_context_ref", "patient_ref"),
             ),
         )
     }
 
-    private fun parseActivityEvent(o: JSONObject): ActivityEvent {
+    internal fun parseActivityEvent(o: JSONObject): ActivityEvent {
         val status = o.optJSONObject("status")
         val statusValue = normalizeStatus(
             status?.optStringOrNull("value")
@@ -515,8 +983,8 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
 
     private fun normalizeStatus(value: String?): String {
         return when (value?.lowercase()) {
-            "critical", "t1", "stat", "overdue", "failed", "blocked" -> "critical"
-            "warning", "t2", "urgent", "high", "pending", "active", "boarding" -> "warning"
+            "critical", "critical_gap", "t1", "stat", "overdue", "failed", "blocked" -> "critical"
+            "warning", "gap", "t2", "urgent", "high", "pending", "active", "boarding" -> "warning"
             "success", "complete", "completed", "placed", "resolved", "filled" -> "success"
             "info", "t3", "t4", "low", "normal" -> "info"
             else -> "info"
@@ -537,6 +1005,16 @@ private fun JSONObject.optStringOrNull(key: String): String? =
 
 private fun JSONObject.optIntOrNull(key: String): Int? =
     if (isNull(key) || !has(key)) null else optInt(key)
+
+private fun JSONObject.optIsolation(key: String): String? {
+    if (isNull(key) || !has(key)) return null
+    val raw = opt(key)
+    return when (raw) {
+        is Boolean -> if (raw) "isolation" else null
+        JSONObject.NULL -> null
+        else -> raw.toString().takeIf { it.isNotBlank() }
+    }
+}
 
 private fun JSONArray?.objects(): List<JSONObject> {
     if (this == null) return emptyList()

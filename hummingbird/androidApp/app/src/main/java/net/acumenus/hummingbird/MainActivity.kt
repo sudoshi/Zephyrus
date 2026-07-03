@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthPhase
 import net.acumenus.hummingbird.data.AuthViewModel
+import net.acumenus.hummingbird.ui.HummingbirdLaunchConfig
 import net.acumenus.hummingbird.ui.LoginScreen
 import net.acumenus.hummingbird.ui.MainScreen
 import net.acumenus.hummingbird.ui.theme.Z
@@ -47,6 +48,14 @@ class MainActivity : ComponentActivity() {
         val autologin = intent.getStringExtra("HB_AUTOLOGIN") == "1"
         val user = intent.getStringExtra("HB_USER") ?: "demo"
         val pass = intent.getStringExtra("HB_PASS") ?: "Password123!"
+        val launchConfig = HummingbirdLaunchConfig(
+            roleId = intent.getStringExtra("HB_ROLE"),
+            tab = intent.getStringExtra("HB_TAB"),
+            openUnitId = intent.getStringExtra("HB_OPEN_UNIT")?.toIntOrNull(),
+            openTarget = intent.getStringExtra("HB_OPEN_TARGET"),
+            forceError = intent.getStringExtra("HB_FORCE_ERROR") == "1",
+            debugExplorer = intent.getStringExtra("HB_DEBUG_EXPLORER") == "1",
+        )
 
         setContent {
             val auth: AuthViewModel = viewModel()
@@ -67,7 +76,7 @@ class MainActivity : ComponentActivity() {
                     }
                     AuthPhase.LOGGED_OUT -> LoginScreen(auth)
                     AuthPhase.NEEDS_PASSWORD_CHANGE -> PasswordChangeNotice(auth)
-                    AuthPhase.LOGGED_IN -> MainScreen(auth)
+                    AuthPhase.LOGGED_IN -> MainScreen(auth, launchConfig)
                 }
             }
         }

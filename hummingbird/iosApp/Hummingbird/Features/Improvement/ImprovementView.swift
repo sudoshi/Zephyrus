@@ -114,17 +114,27 @@ struct ImprovementView: View {
 
     private func oppRow(_ o: Opportunity) -> some View {
         Panel(padding: Z.s3) {
-            HStack(spacing: Z.s3) {
-                VStack(spacing: 1) {
-                    Text("\(o.impact ?? 0)").font(.system(size: 22, weight: .semibold)).monospacedDigit().foregroundStyle(Z.status(o.priorityTier))
-                    Text("impact").font(.system(size: 9)).foregroundStyle(Z.inkMuted)
+            VStack(alignment: .leading, spacing: Z.s2) {
+                HStack(spacing: Z.s3) {
+                    VStack(spacing: 1) {
+                        Text("\(o.impact ?? 0)").font(.system(size: 22, weight: .semibold)).monospacedDigit().foregroundStyle(Z.status(o.priorityTier))
+                        Text("impact").font(.system(size: 9)).foregroundStyle(Z.inkMuted)
+                    }
+                    .frame(width: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(o.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                        Text("\(o.department ?? "—") · \(o.priority) · \(o.status)").font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    }
+                    Spacer()
                 }
-                .frame(width: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(o.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
-                    Text("\(o.department ?? "—") · \(o.priority) · \(o.status)").font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                NavigationLink {
+                    DrillDetailView(itemUuid: "improvement-\(o.id)")
+                } label: {
+                    Label("Explain improvement signal", systemImage: "info.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Z.primary)
                 }
-                Spacer()
+                .buttonStyle(.plain)
             }
         }
     }

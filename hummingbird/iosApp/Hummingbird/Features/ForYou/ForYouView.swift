@@ -177,6 +177,10 @@ struct ForYouView: View {
             || item.id.hasPrefix("barrier-")
             || item.id.hasPrefix("transport-")
             || item.id.hasPrefix("evs-")
+            || item.id.hasPrefix("ops-approval-")
+            || item.id.hasPrefix("staffing-")
+            || item.id.hasPrefix("cap-")
+            || item.id.hasPrefix("improvement-")
     }
 
     private var roleAltitudeDomain: String {
@@ -249,6 +253,8 @@ struct ForYouRow: View {
         case "capacity": return "building.2.fill"
         case "transport": return "figure.walk"
         case "evs": return "sparkles"
+        case "ops_approval": return "checkmark.seal.fill"
+        case "staffing_request": return "person.2.badge.gearshape.fill"
         default: return "bell.fill"
         }
     }
@@ -259,8 +265,8 @@ struct ForYouRow: View {
     }
 
     private var contextToken: String? {
-        guard let ref = item.patientContextRef else { return nil }
-        return "context \(ref)"
+        guard item.patientContextRef != nil else { return nil }
+        return "patient context available"
     }
 
     private var relativeTime: String? {

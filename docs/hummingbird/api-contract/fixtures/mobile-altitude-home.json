@@ -1,0 +1,144 @@
+{
+    "data": {
+        "altitude": "A0",
+        "persona": {
+            "role_id": "bed_manager",
+            "assignment_scope": "house",
+            "title": "Bed Manager / Flow",
+            "home": "houseCapacity",
+            "focus": "House capacity and placement",
+            "question": "Can the house absorb demand?",
+            "web": "/rtdc/bed-placement"
+        },
+        "status": {
+            "value": "warning",
+            "glyph": "triangle",
+            "label": "Near capacity",
+            "generated_at": "2026-07-02T14:00:00Z"
+        },
+        "generated_at": "2026-07-02T14:00:00Z",
+        "glance_question": "Can the house absorb demand?",
+        "tiles": [
+            {
+                "key": "pending_placements",
+                "label": "PENDING PLACEMENTS",
+                "value": "4",
+                "status": "warning",
+                "provenance": {
+                    "source_service": "BedRequest",
+                    "metric_key": "rtdc.pending_bed_request",
+                    "snapshot_version": "202607021400",
+                    "stale": false,
+                    "generated_at": "2026-07-02T14:00:00Z"
+                }
+            },
+            {
+                "key": "safe_admit_capacity",
+                "label": "SAFE ADMIT",
+                "value": "2",
+                "status": "success",
+                "provenance": {
+                    "source_service": "AcuityService",
+                    "metric_key": "rtdc.safe_admit_capacity",
+                    "snapshot_version": "202607021400",
+                    "stale": false,
+                    "generated_at": "2026-07-02T14:00:00Z"
+                }
+            }
+        ],
+        "for_you_head": [
+            {
+                "id": "bedreq-42",
+                "type": "bed_request",
+                "domain": "rtdc",
+                "altitude": "A2",
+                "tier": "critical",
+                "visual_status": "critical",
+                "status": "critical",
+                "status_detail": {
+                    "value": "critical",
+                    "glyph": "octagon",
+                    "label": "STAT",
+                    "generated_at": "2026-07-02T14:00:00Z"
+                },
+                "title": "Bed placement needed",
+                "subtitle": "Cardiology - needs ICU",
+                "unit": null,
+                "at": "2026-07-02T13:52:00Z",
+                "patient_context_ref": "ptok_demo_flow_42",
+                "dependencies": [
+                    {
+                        "type": "bed_request",
+                        "owner_role": "bed_manager",
+                        "status": "pending",
+                        "entity_ref": "42"
+                    }
+                ],
+                "recommended_actions": [
+                    {
+                        "kind": "place",
+                        "label": "Review placement",
+                        "endpoint": "/api/mobile/v1/rtdc/bed-requests/42/decision",
+                        "method": "POST",
+                        "requires_online": true
+                    }
+                ],
+                "activity": [],
+                "provenance": {
+                    "source_service": "BedRequest",
+                    "metric_key": "rtdc.pending_bed_request",
+                    "stale": false,
+                    "generated_at": "2026-07-02T14:00:00Z"
+                }
+            }
+        ],
+        "activity": [
+            {
+                "event_uuid": "11111111-1111-4111-8111-111111111111",
+                "event_type": "bed_request.created",
+                "occurred_at": "2026-07-02T13:52:00Z",
+                "actor_user_id": 7,
+                "actor_role": "charge_nurse",
+                "source_surface": "hummingbird",
+                "domain": "rtdc",
+                "scope": {
+                    "bed_request_id": 42,
+                    "unit_id": 3
+                },
+                "patient_context_ref": "ptok_demo_flow_42",
+                "status": {
+                    "previous": null,
+                    "current": "pending",
+                    "severity": "critical",
+                    "label": "STAT"
+                },
+                "recommendation": null,
+                "relay": {
+                    "will_notify_roles": ["bed_manager"],
+                    "activity_roles": ["house_supervisor"]
+                },
+                "phi_policy": {
+                    "list_safe": true,
+                    "push_safe": true,
+                    "requires_detail_auth": true
+                }
+            }
+        ],
+        "subscriptions": {
+            "activity_role": "bed_manager",
+            "channels": ["hospital.beds"]
+        },
+        "web": {
+            "href": "http://localhost/rtdc/bed-placement",
+            "altitude": "A3"
+        }
+    },
+    "meta": {
+        "as_of": "2026-07-02T14:00:00Z",
+        "stale": false,
+        "version": 1
+    },
+    "links": {
+        "web": "http://localhost/rtdc/bed-placement"
+    }
+}

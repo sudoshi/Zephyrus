@@ -28,12 +28,20 @@ final class CapacityDemandViewModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
-    func approve(_ a: OpsApproval, bearer: String) async {
+    func decide(_ a: OpsApproval, decision: String, bearer: String) async {
         working.insert(a.id)
         defer { working.remove(a.id) }
-        do { try await api.opsDecide(uuid: a.approvalUuid, decision: "approved", bearer: bearer); await load(bearer: bearer) }
+        do { try await api.opsDecide(uuid: a.approvalUuid, decision: decision, bearer: bearer); await load(bearer: bearer) }
         catch let e as APIError { errorMessage = e.message }
         catch { errorMessage = error.localizedDescription }
+    }
+
+    func approve(_ a: OpsApproval, bearer: String) async {
+        await decide(a, decision: "approved", bearer: bearer)
+    }
+
+    func reject(_ a: OpsApproval, bearer: String) async {
+        await decide(a, decision: "rejected", bearer: bearer)
     }
 }
 
@@ -103,19 +111,39 @@ struct CapacityDemandView: View {
                 }
                 Text(a.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
                 if let r = a.rationale { Text(r).font(.system(size: 12)).foregroundStyle(Z.inkMuted).lineLimit(2) }
-                EddyContextButton(scopeRef: a.approvalUuid)
-                Button {
-                    Task { await vm.approve(a, bearer: auth.accessToken ?? "") }
+                NavigationLink {
+                    DrillDetailView(itemUuid: "ops-approval-\(a.approvalUuid)")
                 } label: {
-                    HStack(spacing: Z.s2) {
-                        if vm.working.contains(a.id) { ProgressView().controlSize(.small).tint(.white) }
-                        Text("Approve").font(.system(size: 15, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, Z.s2)
-                    .foregroundStyle(.white)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Z.primary))
+                    Label("Explain approval signal", systemImage: "info.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Z.primary)
                 }
-                .disabled(vm.working.contains(a.id))
+                .buttonStyle(.plain)
+                EddyContextButton(scopeRef: a.approvalUuid)
+                HStack(spacing: Z.s2) {
+                    Button {
+                        Task { await vm.reject(a, bearer: auth.accessToken ?? "") }
+                    } label: {
+                        Text("Reject").font(.system(size: 15, weight: .semibold))
+                            .frame(maxWidth: .infinity).padding(.vertical, Z.s2)
+                            .foregroundStyle(Z.status(.warning))
+                            .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.status(.warning).opacity(0.6), lineWidth: 1))
+                    }
+                    .disabled(vm.working.contains(a.id))
+
+                    Button {
+                        Task { await vm.approve(a, bearer: auth.accessToken ?? "") }
+                    } label: {
+                        HStack(spacing: Z.s2) {
+                            if vm.working.contains(a.id) { ProgressView().controlSize(.small).tint(.white) }
+                            Text("Approve").font(.system(size: 15, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, Z.s2)
+                        .foregroundStyle(.white)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Z.primary))
+                    }
+                    .disabled(vm.working.contains(a.id))
+                }
                 .padding(.top, 2)
             }
         }

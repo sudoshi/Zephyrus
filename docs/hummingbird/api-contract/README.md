@@ -1,11 +1,17 @@
 # Hummingbird BFF — API Contract
 
 [`hummingbird-bff.v1.yaml`](hummingbird-bff.v1.yaml) is the **OpenAPI 3.1 contract** for the
-mobile Backend-for-Frontend (`/api/mobile/v1/*`) — the *only* surface the native apps talk
-to. It is a **v1 draft** covering the highest-value endpoints (auth, me, home, For-You, RTDC
-beds/barriers, Ops approvals, OR board, Command Center, Transport, EVS, realtime config). It
-expands per the [feature-parity matrix](../01-feature-parity-matrix.md) and
+mobile Backend-for-Frontend (`/api/mobile/v1/*`) — the _only_ operational surface the native
+apps talk to after token exchange. It is a **v1 draft** covering the highest-value
+implemented endpoints (auth, me, devices, For You, RTDC census/house/placements, Altitude
+A0/A1/A2/A2P, activity, Ops approvals, OR board, Command Center, Transport, EVS, Staffing,
+Improvement, realtime config, and Eddy context/chat/approvals). It expands per the
+[feature-parity matrix](../01-feature-parity-matrix.md) and
 [backend requirements](../04-backend-requirements.md).
+
+[`mobile-route-contract-inventory.md`](mobile-route-contract-inventory.md) records the
+2026-07-02 Laravel-vs-OpenAPI reconciliation and the current iOS/Android client coverage
+gaps.
 
 ## Why a contract-first BFF
 
@@ -31,8 +37,14 @@ hummingbird-bff.v1.yaml
    ├── generates → shared/data Ktor client (KMP)  [openapi-generator / Ktor]
    ├── generates → Laravel route/Resource stubs + request validation
    ├── drives    → the conformance test spec (status rules, envelope, error/409 handling)
+   ├── fixtures  → shared DTO decode fixtures for Swift and Kotlin clients
    └── documents → the deep-link `links.web` targets for every WEB-deferred surface
 ```
+
+Current P1.4 decision: use **interim manually maintained DTOs with shared fixture decode
+tests and drift tests** while the OpenAPI/KMP generation path remains the target architecture.
+The shared fixtures live in [`fixtures/`](fixtures/) and cover the first DTO wave:
+`MobileAltitudeHome`, `ForYouItem`, `ActivityEvent`, and `PatientOperationalContext`.
 
 If the org rejects the shared-KMP approach, **this contract + the conformance spec becomes
 the binding agreement** that keeps two fully-separate native apps behaving identically. Either
@@ -66,7 +78,8 @@ openapi-generator-cli generate -i hummingbird-bff.v1.yaml -g kotlin -o ../../../
 
 ## Status / TODO
 
-- [ ] Add OR safety-notes / milestones / case-transport request bodies (P2).
-- [ ] Add Staffing + ED-signals + PI/PDSA paths (P3/P4) as their backends land.
+- [ ] Add OR safety-notes / milestones / case-transport request bodies.
+- [x] Add Staffing + PI/PDSA paths that are currently implemented in the mobile BFF.
+- [ ] Add ED-signal paths when the backend lands.
 - [ ] Add the `links.web` target map per WEB-deferred surface.
 - [ ] Pin error codes enum + retry semantics; finalize pagination cursors.

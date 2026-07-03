@@ -1,7 +1,7 @@
 # Hummingbird — Persona Screens: Design + Build/Test/Validate Plan
 
 **Status:** Shipped baseline, incomplete relative to Altitude 2.0 · **Created:** 2026-06-30 · **Owner:** mobile
-**Relationship to existing docs:** This is the *concrete buildout* that operationalizes the
+**Relationship to existing docs:** This is the _concrete buildout_ that operationalizes the
 already-approved persona specification in
 [`reference/02-core-functionality-by-role.md`](reference/02-core-functionality-by-role.md),
 sequenced against [`reference/01-feature-parity-matrix.md`](reference/01-feature-parity-matrix.md)
@@ -23,17 +23,17 @@ activity ledger, or Eddy event-awareness contract.
 Every role-specific screen is built, compiles, and was **validated live on the iOS Simulator**
 against the running BFF + fixed Summit Healthcare demo data:
 
-| Persona | Home | BFF | Live-validated |
-|---|---|---|:--:|
-| P1 Transporter | My Trips (claim→run→handoff) | `/transport/*` | ✅ |
-| P2 EVS Tech | Bed Turns (claim→start→complete + iso SOP) | `/evs/*` | ✅ |
-| P5 Bed Manager | House Capacity + placement review | `/rtdc/house·bed-requests·decision` | ✅ |
-| P4 OR Nurse / P7 Periop Mgr | OR Board (live rooms, cases) | `/or/board` | ✅ |
-| P6 Capacity Lead | Capacity & Demand + approvals inbox | `/command/house` + `/ops/inbox·decision` | ✅ |
-| P9 Executive | House Brief (strain 0–4 + KPIs) | `/command/house` | ✅ |
-| P10 Staffing Coord | Staffing gaps + fill | `/staffing/overview·fill` | ✅ |
-| P8 PI/Quality Lead | Improvement (PDSA + opportunities) | `/improvement/pdsa·opportunities` | ✅ |
-| P3 Charge / bedside / hospitalist / intensivist / supervisor | Tailored census homes (unit-focused / critical-care / house) + cross-domain For-You w/ inline Resolve | `/rtdc/census·house·barriers/resolve`, `/for-you` | ✅ |
+| Persona                                                      | Home                                                                                                  | BFF                                               | Live-validated |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------- | :------------: |
+| P1 Transporter                                               | My Trips (claim→run→handoff)                                                                          | `/transport/*`                                    |       ✅       |
+| P2 EVS Tech                                                  | Bed Turns (claim→start→complete + iso SOP)                                                            | `/evs/*`                                          |       ✅       |
+| P5 Bed Manager                                               | House Capacity + placement review                                                                     | `/rtdc/house·bed-requests·decision`               |       ✅       |
+| P4 OR Nurse / P7 Periop Mgr                                  | OR Board (live rooms, cases)                                                                          | `/or/board`                                       |       ✅       |
+| P6 Capacity Lead                                             | Capacity & Demand + approvals inbox                                                                   | `/command/house` + `/ops/inbox·decision`          |       ✅       |
+| P9 Executive                                                 | House Brief (strain 0–4 + KPIs)                                                                       | `/command/house`                                  |       ✅       |
+| P10 Staffing Coord                                           | Staffing gaps + fill                                                                                  | `/staffing/overview·fill`                         |       ✅       |
+| P8 PI/Quality Lead                                           | Improvement (PDSA + opportunities)                                                                    | `/improvement/pdsa·opportunities`                 |       ✅       |
+| P3 Charge / bedside / hospitalist / intensivist / supervisor | Tailored census homes (unit-focused / critical-care / house) + cross-domain For-You w/ inline Resolve | `/rtdc/census·house·barriers/resolve`, `/for-you` |       ✅       |
 
 **Demo data hardened** (all reversible SQL): 88% house occupancy, ED beds/stray-encounters fixed,
 transport/EVS SLAs refreshed to near-now, today's staffing plans with gaps (MICU critical, SICU/6E/
@@ -45,8 +45,11 @@ occupancy, today's staffing gaps, near-now SLAs, clean ED beds, varied OR surgeo
 conformance tests live in `tests/Feature/MobileBffTest.php`; the **full Feature suite is green
 (270 passed, 2371 assertions)**.
 
-The remaining work is **Android parity** (no role layer yet) and optional polish (a bespoke P3
-charge-nurse unit board and the `/command/brief` narrative). The section below is the design plan.
+Android now has a real `MobileRoleCatalog`, `AltitudeViewModel`, and Compose altitude screens for
+A0/A1/A2/A2P, activity, patient context, and Eddy context calls. The remaining Android work is
+**role-package UX parity** with iOS (final per-role home routing, bespoke feature packages, and
+onboarding/persona-switching polish), plus optional polish such as a bespoke P3 charge-nurse unit
+board. The section below is the design plan.
 
 ---
 
@@ -54,27 +57,29 @@ charge-nurse unit board and the `/command/brief` narrative). The section below i
 
 Hummingbird ships today at **Phase 0 / early Phase 1**:
 
-- **Two screens only** — `Home` (RTDC census glance) and `For You` (a 3-source queue: bed
-  requests + barriers + at-capacity units).
-- **Persona awareness is cosmetic.** `Role.swift` enumerates 8 personas and
-  `RoleExperience.swift` re-titles the Home, re-scopes the census, and re-filters the queue —
-  but **every persona still sees the same two screens**. A transporter, an OR nurse, a CMO, and
-  an EVS tech all land on the same census list. The persona's actual *job* (claim a trip, watch
-  the OR board, read the strain index, clean the next dirty bed) has no surface.
-- **The BFF serves only three domains** — `rtdc/census`, `for-you`, `eddy/*`. The richer pillar
-  data (OR, transport, EVS, staffing, command center, PI) is **live in the web backend** but not
-  yet reshaped onto `/api/mobile/v1/*`.
+- **The original two-screen shell is no longer the whole app.** iOS has role-aware feature homes,
+  and Android now has an altitude shell (`AltitudeViewModel` + `ui/altitude/AltitudeScreens.kt`) that can switch
+  among all 14 mobile personas and call A0/A1/A2/A2P, activity, patient-context, and Eddy context
+  endpoints. Android still needs the final role-package UX parity: the bespoke transport/EVS/OR/
+  staffing/improvement homes, detail flows, and onboarding/persona-switching polish.
+- **Persona awareness is implemented but not fully even across platforms.** iOS `Role.swift` and
+  `RoleExperience.swift` enumerate all 14 personas and map them to `HomeKind` values. Android
+  `MobileRoleCatalog` also has all 14 role ids, but it is currently a lighter altitude-domain
+  selector rather than a full `RoleExperience`/feature-package router.
+- **The BFF now covers the high-value implemented domains.** `/api/mobile/v1/*` includes
+  altitude, patient operational context, activity, RTDC census/house/placements, transport, EVS,
+  OR board, command house, ops inbox/approvals, staffing overview/fill, improvement reads,
+  realtime config, and Eddy. Deferred surfaces remain explicit: OR writes/performance,
+  `/command/brief`, generic ops action transitions, ED signals, and PDSA write/advance.
 
 Meanwhile, the **demo seeders already populate every pillar** with realistic, deterministic data
 (named surgeons, OR rooms running cases, 6 open discharge barriers, 2 staffing gaps, 8 transport
-jobs, 6 EVS turns, 5 active PDSA cycles). The data exists; the persona screens to *show* it do
+jobs, 6 EVS turns, 5 active PDSA cycles). The data exists; the persona screens to _show_ it do
 not. **This plan builds those screens.**
 
-> The OpenAPI contract already drafts most of the paths we need (`/or/board`,
-> `/transport/queue`, `/evs/queue`, `/ops/inbox`, `/command/brief`, `/rtdc/house`,
-> `/rtdc/bed-requests`, `/rtdc/barriers`). The work is **wiring them to existing live services
-> and building the screens**, not net-new architecture — except ED-actions and PI/PDSA, which
-> are net-new backend on the web too and land last.
+> The OpenAPI contract now matches the implemented mobile BFF route inventory. The remaining work
+> is composing real persona screens on top of those implemented routes, then adding explicitly
+> deferred routes only when their backend write/read surfaces land.
 
 ---
 
@@ -87,7 +92,7 @@ Every persona screen obeys the project non-negotiables ([`CLAUDE.md`](../../CLAU
    device. The BFF reshapes existing web services; it never re-implements them.
 2. **Role-aware Home = the altitude's single most important truth, glanceable in 3 s.** Dark by
    default, `tabular-nums` on every metric, status never by color alone (arrow/icon/label).
-3. **The For-You queue stays the universal primitive.** New domains *feed* it (transport STAT,
+3. **The For-You queue stays the universal primitive.** New domains _feed_ it (transport STAT,
    EVS isolation turn, safety-note SLA, approval pending) and are tier-ranked by earned urgency.
    The queue component is unchanged; only its sources grow.
 4. **Primary action inline.** The common verb (Claim, Resolve, Approve, Acknowledge, Start,
@@ -135,7 +140,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P1 — Transporter / Porter  ·  *Frontline mobile · `transport`*
+#### P1 — Transporter / Porter · _Frontline mobile · `transport`_
 
 **Home — "My Trips"** (claimed jobs as a timeline + Available Jobs sorted by priority):
 
@@ -155,13 +160,13 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 ```
 
 - **Feature screens:** Job detail with the lifecycle stepper (`dispatched → arrived →
-  picked_up → en_route → arrived → handoff`), one big primary button per state; **Structured
+picked_up → en_route → arrived → handoff`), one big primary button per state; **Structured
   handoff** sheet (`handoff_to`, summary, `outstanding_risks[]` → Complete).
 - **Demo data:** `prod.transport_requests` — **8 active** (mixed `inpatient/transfer/discharge/
-  ems/care_transition`, some `stat`/overdue), 14 historical for "completed today" count;
+ems/care_transition`, some `stat`/overdue), 14 historical for "completed today" count;
   `transport_events` drive the stepper.
 - **BFF:** `GET /transport/queue` (WIRE → `TransportOperationsService`), `POST
-  /transport/requests/{id}/status`, `POST /transport/requests/{id}/handoff`.
+/transport/requests/{id}/status`, `POST /transport/requests/{id}/handoff`.
 - **For-You feed:** STAT/at-risk jobs assigned or offered to me.
 - **Deep-link:** `/transport/dispatch`.
 - **Acceptance:** with the seed, Home shows ≥1 STAT banner, 7–8 available jobs, ≥1 overdue
@@ -170,7 +175,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P2 — EVS Technician  ·  *Frontline mobile · `evs`*
+#### P2 — EVS Technician · _Frontline mobile · `evs`_
 
 **Home — "Bed Turns" / Next Dirty Bed** (queue sorted by SLA, isolation badged):
 
@@ -190,7 +195,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 ```
 
 - **Feature screens:** Turn detail with the `Claim → Start (stamps started_at, shows isolation
-  SOP/PPE) → Complete (stamps completed_at)` flow; completing **notifies the bed manager** (the
+SOP/PPE) → Complete (stamps completed_at)` flow; completing **notifies the bed manager** (the
   bed becomes placeable).
 - **Demo data:** `prod.evs_requests` — **6 requests** (`discharge_turnover`, `isolation_clean`,
   `terminal_clean`, `bed_clean`), **2 overdue**, ≥1 `isolation_required` driving the PPE prompt.
@@ -203,7 +208,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P3 — Bedside / Charge Nurse  ·  *Frontline unit · `charge_nurse` / `bedside_nurse`*
+#### P3 — Bedside / Charge Nurse · _Frontline unit · `charge_nurse` / `bedside_nurse`_
 
 **Home — "Your Unit"** (the pinned unit, full; the rest of house as quiet context):
 
@@ -228,7 +233,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
   medical/logistical/placement/social); `prod.bed_requests` inbound to the unit;
   `prod.staffing_plans` for the unit (6E is a seeded `gap`: 4/6 RN).
 - **BFF:** `GET /rtdc/census` + `GET /rtdc/house` (WIRE — exist), `GET /rtdc/barriers`, `POST
-  /rtdc/barriers/{id}/resolve`, `POST /rtdc/bed-requests`.
+/rtdc/barriers/{id}/resolve`, `POST /rtdc/bed-requests`.
 - **For-You feed:** aging barriers on my unit, incoming transports, bed-turn completions
   (bed ready), unit tipping into deficit.
 - **Deep-link:** `/rtdc/unit-huddle`.
@@ -237,7 +242,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P5 — Nursing Supervisor / Bed Manager  ·  *Ops leader · `bed_manager` / `house_supervisor`*
+#### P5 — Nursing Supervisor / Bed Manager · _Ops leader · `bed_manager` / `house_supervisor`_
 
 **Home — "House Capacity"** (net bed-need roll-up + pending placements + house heat):
 
@@ -255,14 +260,14 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 ```
 
 - **Feature screens:** House heat grid (all 25 units, status-stripe + label); Placement worklist
-  → **Bed Placement decision** screen with the *transparent score + rationale* and Accept / Edit
+  → **Bed Placement decision** screen with the _transparent score + rationale_ and Accept / Edit
   / Reject; Barriers-across-units triage.
 - **Demo data:** house roll-up from `census_snapshots` + `rtdc_predictions` (`by_2pm` /
   `by_midnight` horizons, `bed_need`); `prod.bed_requests` (6 pending) + `bed_placement_decisions`
   (recommended/chosen bed, ~45–65 min median latency); ED boarding count (5) via `ed_visits`
   where `bed_assigned_at IS NULL`.
 - **BFF:** `GET /rtdc/house` (WIRE), `GET /rtdc/bed-requests`, `POST
-  /rtdc/bed-requests/{id}/decision`, `GET /rtdc/barriers`.
+/rtdc/bed-requests/{id}/decision`, `GET /rtdc/barriers`.
 - **For-You feed:** pending bed requests, placement contention, new/aging barriers house-wide,
   capacity breach, EVS bed-turn completed (placeable now).
 - **Deep-link:** `/rtdc/bed-placement`, `/rtdc/global-huddle`.
@@ -275,7 +280,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P4 — OR Circulating / Charge Nurse  ·  *Frontline OR · NEW role `or_nurse`*
+#### P4 — OR Circulating / Charge Nurse · _Frontline OR · NEW role `or_nurse`_
 
 **Home — "OR Board"** (live room status for OR-1..4 + My Cases Today):
 
@@ -294,7 +299,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 ```
 
 - **Feature screens:** Case detail with the wheels-clock timeline (`or_in → procedure_start →
-  procedure_end → or_out`) and progress %; advance case status; **safety note** create/ack
+procedure_end → or_out`) and progress %; advance case status; **safety note** create/ack
   (SLA: Crit 15m / High 30m / Med 60m / Low 120m); pre-op milestone ack (H&P/Consent/Labs);
   case-transport ready/complete.
 - **Demo data:** `prod.or_cases` for **today** across **OR-1..OR-4** in "Main OR Suite" (MOR),
@@ -303,22 +308,22 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
   procedures from the 15-name catalog (CABG, Craniotomy, TKA, Lap Chole…). Today's mix is
   seeded as completed / in-progress / scheduled by clock, with **1 same-day cancellation** and
   **FCOTS 75%** (3 of 4 first cases on time).
-- **BFF:** `GET /or/board` (WIRE **+OR-FIX**), `POST /or/cases/{id}/status`, plus safety-note /
-  milestone / transport bodies (contract TODO item).
+- **BFF:** `GET /or/board` is implemented. `POST /or/cases/{id}/status`, OR performance, and
+  safety-note/milestone/transport bodies are deferred contract/backend work.
 - **For-You feed:** safety-note SLA breaches, "you're up next," pre-op milestone incomplete.
 - **Deep-link:** `/operations/room-status`, `/operations/cases`.
 - **Acceptance:** Board renders 4 rooms with the correct derived state from the wheels clock at
   the current hour; an in-progress case shows live elapsed/remaining; the seeded overdue safety
   note appears coral in For-You with an inline **Ack**.
 
-> **Blocking backend fixes (parity matrix B, must land before P4):** `ORCaseController@store`
-> writes string `status` not `status_id`; analytics SQL references non-existent
-> `actual_start/end_time` (route via `orlog` + `case_metrics`); reference endpoints filter
-> `is_active` but the column is `active_status`. Track these as Wave-2 backend tasks.
+> **Backend note:** the earlier OR bug audit has been partially superseded. Appendix B of
+> `IMPLEMENTATION-PLAN.md` records `status_id` and `active_status` fixes as done, and the
+> `actual_start/end_time` claim as a false positive. Remaining OR mobile work is the write/
+> performance contract and feature UX, not those fixed backend bugs.
 
 ---
 
-#### P7 — Perioperative Manager  ·  *Ops leader · NEW role `periop_manager`*
+#### P7 — Perioperative Manager · _Ops leader · NEW role `periop_manager`_
 
 **Home — "OR Today"** (manager lens over the same board data):
 
@@ -342,8 +347,8 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 - **Demo data:** `case_metrics` (turnover, late-start, prime-time), `block_utilization`
   (scheduled vs actual, 70–95%/room/day), `or_cases` (today's done/remaining, 1 cancel), FCOTS
   75% from the latest seeded day.
-- **BFF:** `GET /or/board` (shared) + `GET /or/performance` (NEW small reshape of `case_metrics`
-  + `block_utilization`; add to contract).
+- **BFF:** `GET /or/board` is implemented and shared. `GET /or/performance` remains deferred as a
+  small reshape of `case_metrics` + `block_utilization`.
 - **For-You feed:** first-case late starts, cancellations, turnover breaches, OR staffing gaps.
 - **Deep-link:** `/analytics/block-utilization`, `/analytics/turnover-times`,
   `/analytics/or-utilization`.
@@ -352,7 +357,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P6 — Patient-Flow / Capacity Lead  ·  *Ops leader · NEW role `capacity_lead`*
+#### P6 — Patient-Flow / Capacity Lead · _Ops leader · NEW role `capacity_lead`_
 
 **Home — "Capacity & Demand"** (strain + demand-vs-supply + approvals inbox):
 
@@ -376,9 +381,9 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 - **Demo data:** `rtdc_predictions` (demand sources, weighted discharges), `census` roll-up for
   strain; Eddy/`ops` recommendations + operational actions seeded by `EddySeeder` /
   `CommandCenterDemoSeeder`; `diversion_events` (2 historical → "no active diversion").
-- **BFF:** `GET /command/house` (strain + demand), `GET /ops/inbox`, `POST
-  /ops/approvals/{id}/decision`, `POST /ops/actions/{id}/{transition}` (all WIRE — contract
-  exists, reuses `OperationalActionLifecycleService` verbatim).
+- **BFF:** `GET /command/house`, `GET /ops/inbox`, and
+  `POST /ops/approvals/{uuid}/decision` are implemented. Generic
+  `POST /ops/actions/{id}/{transition}` remains deferred.
 - **For-You feed:** actions awaiting my approval ★, surge alert, huddle to facilitate, stale-feed
   qualified metrics.
 - **Deep-link:** `/ops/agent-inbox`, `/rtdc/global-huddle`.
@@ -387,7 +392,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P9 — Executive (CMO / COO / CNO)  ·  *Executive · NEW role `executive`*
+#### P9 — Executive (CMO / COO / CNO) · _Executive · NEW role `executive`_
 
 **Home — "House Brief"** (one quiet screen; loud only on escalation):
 
@@ -413,7 +418,8 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 - **Demo data:** Command Center strain + hero KPIs + 24h forecast (`CommandCenterController`);
   the server-composed brief from the Executive Briefing agent (`EddySeeder` corpus); "the one
   thing" = the single most material breach (seeded MICU critical-gap + at-capacity).
-- **BFF:** `GET /command/house`, `GET /command/brief` (WIRE — contract exists).
+- **BFF:** `GET /command/house` is implemented. `GET /command/brief` remains deferred narrative
+  work.
 - **For-You feed:** house-status escalation, the single most material breach, "morning brief
   ready" (sparse, high-bar).
 - **Deep-link:** `/dashboard` (Command Center, `?role=executive`), `/ops/executive-brief`.
@@ -427,7 +433,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 
 ---
 
-#### P10 — Staffing Coordinator  ·  *Ops leader · NEW role `staffing_coordinator`*
+#### P10 — Staffing Coordinator · _Ops leader · NEW role `staffing_coordinator`_
 
 **Home — "Staffing"** (open requests + units below minimum-safe):
 
@@ -449,8 +455,8 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
   create/source/assign/fill.
 - **Demo data:** `prod.staffing_plans` (MICU `critical_gap` 3/5 RN, 6E `gap` 4/6 RN),
   `prod.staffing_requests` (2: one stat, one urgent), `staffing_events`.
-- **BFF:** `GET /staffing/plans`, `GET /staffing/requests`, `POST /staffing/requests/{id}/...`
-  (NEW BFF paths → live `/api/staffing/*`; add to contract).
+- **BFF:** `GET /staffing/overview`, `POST /staffing/requests/{id}/fill` (implemented mobile
+  BFF paths that reshape/delegate to the live staffing services).
 - **For-You feed:** new gap below safe minimum, unfilled/escalated requests.
 - **Deep-link:** `/staffing` (Staffing Office).
 - **Acceptance:** Home shows the 2 seeded gaps with min-safe context and arrows; an Assign action
@@ -461,7 +467,7 @@ services. `RoleExperience` already stubs `transport`, `evs`, `charge_nurse`, `be
 #### ED signals (glance for `charge_nurse` (ED), `capacity_lead`, `executive`)
 
 Not a standalone persona screen — an **ED signals strip/tile** injected into the house/exec
-homes and the For-You queue. ED *actions* (triage, disposition) are net-new backend and deferred
+homes and the For-You queue. ED _actions_ (triage, disposition) are net-new backend and deferred
 to Wave 4.
 
 - **Demo data:** `ed_visits` — boarding count (5, `bed_assigned_at IS NULL`), LWBS rate
@@ -477,7 +483,7 @@ to Wave 4.
 
 ---
 
-#### P8 — PI / Quality Lead  ·  *Ops leader · NEW role `pi_lead`*
+#### P8 — PI / Quality Lead · _Ops leader · NEW role `pi_lead`_
 
 **Home — "Improvement"** (my PDSA cycles + opportunity portfolio + barrier trend):
 
@@ -505,7 +511,7 @@ to Wave 4.
   `prod.improvement_opportunities` (6, impact 88→41), `prod.improvement_resources` (6),
   `prod.barriers` trend by category.
 - **BFF:** `GET /improvement/pdsa`, `GET /improvement/opportunities`, `POST
-  /improvement/pdsa/{id}/advance` (**NEW** — requires building the PDSA write API on the web
+/improvement/pdsa/{id}/advance` (**NEW** — requires building the PDSA write API on the web
   first; model exists, routes do not).
 - **For-You feed:** PDSA stage due, barrier assigned to me, intervention metric moved.
 - **Deep-link:** `/improvement/pdsa`, `/improvement/opportunities`, `/improvement/bottlenecks`.
@@ -516,21 +522,22 @@ to Wave 4.
 
 ### Coverage map (persona × wave × backend readiness)
 
-| # | Persona | Role id | Home | Wave | Backend |
-|---|---------|---------|------|:----:|---------|
-| P1 | Transporter | `transport` | My Trips | 1 | LIVE (WIRE) |
-| P2 | EVS Tech | `evs` | Bed Turns | 1 | LIVE (WIRE) |
-| P3 | Charge/Bedside RN | `charge_nurse`/`bedside_nurse` | Your Unit | 1 | LIVE (WIRE) |
-| P5 | Bed Manager/Supervisor | `bed_manager`/`house_supervisor` | House Capacity | 1 | LIVE (WIRE) |
-| P4 | OR Nurse | `or_nurse` ⊕ | OR Board | 2 | LIVE +OR-FIX |
-| P7 | Periop Manager | `periop_manager` ⊕ | OR Today | 2 | LIVE +OR-FIX |
-| P6 | Capacity Lead | `capacity_lead` ⊕ | Capacity & Demand | 2 | LIVE (WIRE) |
-| P9 | Executive | `executive` ⊕ | House Brief | 2 | LIVE (WIRE) |
-| P10 | Staffing Coord | `staffing_coordinator` ⊕ | Staffing | 3 | LIVE (new BFF path) |
-| — | ED signals | (folded) | tile/strip | 3 | LIVE via Command Center |
-| P8 | PI/Quality Lead | `pi_lead` ⊕ | Improvement | 4 | NEW (PDSA API) |
+| #   | Persona                | Role id                          | Home              | Wave | Backend                                                             |
+| --- | ---------------------- | -------------------------------- | ----------------- | :--: | ------------------------------------------------------------------- |
+| P1  | Transporter            | `transport`                      | My Trips          |  1   | LIVE (WIRE)                                                         |
+| P2  | EVS Tech               | `evs`                            | Bed Turns         |  1   | LIVE (WIRE)                                                         |
+| P3  | Charge/Bedside RN      | `charge_nurse`/`bedside_nurse`   | Your Unit         |  1   | LIVE (WIRE)                                                         |
+| P5  | Bed Manager/Supervisor | `bed_manager`/`house_supervisor` | House Capacity    |  1   | LIVE (WIRE)                                                         |
+| P4  | OR Nurse               | `or_nurse`                       | OR Board          |  2   | BFF read implemented; writes deferred                               |
+| P7  | Periop Manager         | `periop_manager`                 | OR Today          |  2   | BFF read implemented; performance deferred                          |
+| P6  | Capacity Lead          | `capacity_lead`                  | Capacity & Demand |  2   | Inbox/approval BFF implemented; generic action transitions deferred |
+| P9  | Executive              | `executive`                      | House Brief       |  2   | `/command/house` implemented; `/command/brief` deferred             |
+| P10 | Staffing Coord         | `staffing_coordinator`           | Staffing          |  3   | BFF overview/fill implemented                                       |
+| —   | ED signals             | (folded)                         | tile/strip        |  3   | LIVE via Command Center                                             |
+| P8  | PI/Quality Lead        | `pi_lead`                        | Improvement       |  4   | BFF reads implemented; PDSA write deferred                          |
 
-⊕ = role id **not yet in `Role.swift`** — add to the catalog (and Android twin) in its wave.
+All role ids above exist in iOS `Role.swift` and Android `MobileRoleCatalog`; remaining parity is
+feature-package routing and UX depth, not catalog vocabulary.
 
 ---
 
@@ -540,36 +547,35 @@ The contract already drafts the Wave-1/2 paths; they need **route wiring + a con
 reshapes the live service into the envelope**. Add Wave-3/4 paths to the contract as their
 backends land. All require `auth:sanctum` + `ability:mobile:read`; mutations add `mobile:act`.
 
-| Endpoint | Method | Reshapes | Status | Wave |
-|----------|--------|----------|--------|:----:|
-| `/transport/queue` | GET | `TransportOperationsService` | WIRE | 1 |
-| `/transport/requests/{id}/status` | POST | same | WIRE (act) | 1 |
-| `/transport/requests/{id}/handoff` | POST | same | WIRE (act) | 1 |
-| `/evs/queue` | GET | `EvsOperationsService` | WIRE | 1 |
-| `/evs/requests/{id}/status` | POST | same | WIRE (act) | 1 |
-| `/rtdc/house` | GET | census roll-up + `RtdcPrediction` | WIRE | 1 |
-| `/rtdc/bed-requests` | GET | `BedRequest` + `BedPlacementDecision` | WIRE | 1 |
-| `/rtdc/bed-requests/{id}/decision` | POST | RTDC engine | WIRE (act) | 1 |
-| `/rtdc/barriers` | GET | `Barrier` | WIRE | 1 |
-| `/rtdc/barriers/{id}/resolve` | POST | RTDC engine | WIRE (act) | 1 |
-| `/or/board` | GET | `ORCase`+`ORLog`+`Room` | WIRE +OR-FIX | 2 |
-| `/or/cases/{id}/status` | POST | case lifecycle | WIRE +OR-FIX (act) | 2 |
-| `/or/performance` | GET | `CaseMetrics`+`BlockUtilization` | NEW reshape | 2 |
-| `/command/house` | GET | `CommandCenterController` | WIRE | 2 |
-| `/command/brief` | GET | Executive Brief | WIRE | 2 |
-| `/ops/inbox` | GET | `Ops/*` recommendations+actions | WIRE | 2 |
-| `/ops/approvals/{id}/decision` | POST | `OperationalActionLifecycleService` | WIRE (act) | 2 |
-| `/ops/actions/{id}/{transition}` | POST | same | WIRE (act) | 2 |
-| `/staffing/plans`, `/staffing/requests` | GET | `StaffingPlan/Request` | NEW path | 3 |
-| `/staffing/requests/{id}/...` | POST | staffing service | NEW path (act) | 3 |
-| `/ed/signals` (optional) | GET | Command Center / analytics | WIRE | 3 |
-| `/improvement/pdsa`, `/improvement/opportunities` | GET | `PdsaCycle`/`ImprovementOpportunity` | **NEW backend** | 4 |
-| `/improvement/pdsa/{id}/advance` | POST | **NEW** PDSA write API | **NEW backend** | 4 |
+| Endpoint                                          | Method | Reshapes                              | Status                    | Wave |
+| ------------------------------------------------- | ------ | ------------------------------------- | ------------------------- | :--: |
+| `/transport/queue`                                | GET    | `TransportOperationsService`          | Implemented               |  1   |
+| `/transport/requests/{id}/status`                 | POST   | same                                  | Implemented (act)         |  1   |
+| `/transport/requests/{id}/handoff`                | POST   | same                                  | Implemented (act)         |  1   |
+| `/evs/queue`                                      | GET    | `EvsOperationsService`                | Implemented               |  1   |
+| `/evs/requests/{id}/status`                       | POST   | same                                  | Implemented (act)         |  1   |
+| `/rtdc/house`                                     | GET    | census roll-up + `RtdcPrediction`     | Implemented               |  1   |
+| `/rtdc/bed-requests`                              | GET    | `BedRequest` + `BedPlacementDecision` | Implemented               |  1   |
+| `/rtdc/bed-requests/{id}/recommendations`         | GET    | RTDC placement engine                 | Implemented               |  1   |
+| `/rtdc/bed-requests/{id}/decision`                | POST   | RTDC engine                           | Implemented (act)         |  1   |
+| `/rtdc/barriers/{id}/resolve`                     | POST   | RTDC engine                           | Implemented (act)         |  1   |
+| `/or/board`                                       | GET    | `ORCase`+`ORLog`+`Room`               | Implemented read          |  2   |
+| `/or/cases/{id}/status`                           | POST   | case lifecycle                        | Deferred                  |  2   |
+| `/or/performance`                                 | GET    | `CaseMetrics`+`BlockUtilization`      | Deferred                  |  2   |
+| `/command/house`                                  | GET    | `CommandCenterController`             | Implemented               |  2   |
+| `/command/brief`                                  | GET    | Executive Brief                       | Deferred                  |  2   |
+| `/ops/inbox`                                      | GET    | `Ops/*` recommendations+actions       | Implemented               |  2   |
+| `/ops/approvals/{uuid}/decision`                  | POST   | `OperationalActionLifecycleService`   | Implemented (act)         |  2   |
+| `/ops/actions/{id}/{transition}`                  | POST   | same                                  | Deferred                  |  2   |
+| `/staffing/overview`                              | GET    | `StaffingOperationsService`           | Implemented               |  3   |
+| `/staffing/requests/{id}/fill`                    | POST   | staffing service                      | Implemented (act)         |  3   |
+| `/ed/signals` (optional)                          | GET    | Command Center / analytics            | WIRE                      |  3   |
+| `/improvement/pdsa`, `/improvement/opportunities` | GET    | `PdsaCycle`/`ImprovementOpportunity`  | Implemented reads         |  4   |
+| `/improvement/pdsa/{id}/advance`                  | POST   | PDSA write API                        | Deferred web/backend work |  4   |
 
-**Naming reconciliation (do first):** the live route is `/for-you` but the contract says
-`/foryou`; pick one (recommend `/foryou` to match the contract + add `/foryou/{itemId}/ack`) and
-update the iOS/Android clients. Likewise confirm `/me` returns `roles[]` rich enough to
-pre-select the new roles.
+**Naming reconciliation:** `/for-you` is the canonical implemented mobile path and the OpenAPI
+contract now matches it. Continue to confirm `/me` returns `roles[]` rich enough to pre-select the
+new roles.
 
 Every list endpoint: PHI-minimized, `{ data, meta:{as_of,stale,version}, links:{web} }`
 envelope, `updated_since`+`cursor` support, and a `links.web` deep-link target.
@@ -595,9 +601,9 @@ fixed **before** their wave ships:
    2026-06-30. `RtdcController::census` returns `staffed_bed_count`, `occupied`, `available`,
    `blocked`, **`can_admit` (separate)**, and a `status` derived from `occupied / staffed`;
    the iOS `CensusRollup` likewise computes `occupied / staffedBedCount`. The "6E 500% / ED No
-   data" symptom in `DATA-PLAUSIBILITY.md` was a *remote*-DB audit (db `zephyrus` on
+   data" symptom in `DATA-PLAUSIBILITY.md` was a _remote_-DB audit (db `zephyrus` on
    192.168.1.58) that predates the current code. No code change needed; the residual ED/encounter
-   issues below are pure *data*.
+   issues below are pure _data_.
 5. **Unit type labels (#4, minor).** PICU/NICU typed `med_surg` won't show in critical-care
    scopes; Behavioral Health mislabeled. Adjust `units.type` if intensivist/critical-care scoping
    matters.
@@ -612,13 +618,18 @@ Deliverable: a `seed-and-verify` checklist run (the read-only diagnostic queries
 The architecture is persona-ready; the integration points are small and known.
 
 ### 6.1 Extend the role catalog
+
 - **iOS** `Features/Onboarding/Role.swift`: add `or_nurse`, `periop_manager`, `capacity_lead`,
   `executive`, `staffing_coordinator`, `pi_lead` (id, title, subtitle, SF Symbol, `unitBound`).
   Keep `matching(serverRoles:)` mapping server role names → ids.
-- **Android:** mirror in the role catalog used by `AuthViewModel`/onboarding (Android role
-  routing is currently partial — bring it to iOS parity in Wave 1).
+- **Android:** `data/Models.kt` now contains `MobileRoleCatalog` with all 14 role ids, and
+  `AltitudeViewModel`/`ui/altitude/AltitudeScreens.kt` use it to select persona/domain for altitude,
+  activity, patient-context, and Eddy context calls. Remaining work: map that catalog into the
+  same final role-package UX as iOS (`RoleExperience`/`HomeKind` equivalent plus onboarding and
+  feature-package routing).
 
-### 6.2 Make `RoleExperience` route to a *feature package*, not just census scope
+### 6.2 Make `RoleExperience` route to a _feature package_, not just census scope
+
 Today `RoleExperience` returns `{ homeTitle, homeFocus, censusScope, queueFilter }`. Extend it
 with a **`home: HomeKind`** and **`featureTab: FeatureRoute?`** so a role selects which screen
 package renders, e.g.:
@@ -639,21 +650,23 @@ role with a distinct workspace (transport, EVS, OR, staffing, PI) gets that as i
 census glance demoted to a tile/secondary. House/ops/exec roles keep census-style homes.
 
 ### 6.3 Build feature screens (new folders, mirror both platforms)
-| Package | iOS | Android |
-|---------|-----|---------|
-| Transport | `Features/Transport/{TransportJobsView, JobDetailView, HandoffSheet}` | `ui/transport/{TransportJobsScreen, JobDetailScreen, HandoffSheet}.kt` |
-| EVS | `Features/EVS/{BedTurnsView, TurnDetailView}` | `ui/evs/{BedTurnsScreen, TurnDetailScreen}.kt` |
-| OR | `Features/OR/{RoomBoardView, CaseDetailView, SafetyNoteSheet}` | `ui/or/{RoomBoardScreen, CaseDetailScreen}.kt` |
-| Capacity/Ops | `Features/Capacity/{CapacityDemandView, ApprovalsInboxView, ApprovalDetailView}` | `ui/capacity/*` |
-| Executive | `Features/Executive/{HouseBriefView, StrainDetailView}` | `ui/executive/*` |
-| Staffing | `Features/Staffing/{StaffingView, RequestDetailView}` | `ui/staffing/*` |
-| Improvement | `Features/Improvement/{ImprovementView, PdsaDetailView}` | `ui/improvement/*` |
+
+| Package      | iOS                                                                              | Android                                                                |
+| ------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Transport    | `Features/Transport/{TransportJobsView, JobDetailView, HandoffSheet}`            | `ui/transport/{TransportJobsScreen, JobDetailScreen, HandoffSheet}.kt` |
+| EVS          | `Features/EVS/{BedTurnsView, TurnDetailView}`                                    | `ui/evs/{BedTurnsScreen, TurnDetailScreen}.kt`                         |
+| OR           | `Features/OR/{RoomBoardView, CaseDetailView, SafetyNoteSheet}`                   | `ui/or/{RoomBoardScreen, CaseDetailScreen}.kt`                         |
+| Capacity/Ops | `Features/Capacity/{CapacityDemandView, ApprovalsInboxView, ApprovalDetailView}` | `ui/capacity/*`                                                        |
+| Executive    | `Features/Executive/{HouseBriefView, StrainDetailView}`                          | `ui/executive/*`                                                       |
+| Staffing     | `Features/Staffing/{StaffingView, RequestDetailView}`                            | `ui/staffing/*`                                                        |
+| Improvement  | `Features/Improvement/{ImprovementView, PdsaDetailView}`                         | `ui/improvement/*`                                                     |
 
 Reuse the existing design-system components (`KpiTile`, `Panel`, `StatusChip`,
 `RetryableMessage`) — no new primitives. Each screen: one BFF call, `RetryableMessage` on error,
 `meta.stale` → a "stale" chip, `links.web` → an "Open in Zephyrus" row.
 
 ### 6.4 Networking + models
+
 - Add DTOs to `Networking/Models.swift` (iOS) / `data/Models.kt` (Android) for each new envelope
   (`TransportJob`, `EvsTurn`, `ORRoom`, `ORCase`, `Approval`, `StrainBrief`, `StaffingPlan`,
   `PdsaCycle`). Add `APIClient`/`ApiClient` methods per endpoint.
@@ -663,6 +676,7 @@ Reuse the existing design-system components (`KpiTile`, `Panel`, `StatusChip`,
   doesn't replay); keep the 15 s poll fallback.
 
 ### 6.5 For-You feed growth (backend, one place)
+
 Extend `ForYouController` to compose the new domains (transport STAT, EVS isolation/overdue,
 safety-note SLA, approval pending, staffing gap, PDSA-stage-due), each tier-ranked by earned
 urgency and carrying an inline action verb. The client queue component is unchanged.
@@ -672,28 +686,32 @@ urgency and carrying an inline action verb. The client queue component is unchan
 ## 7. Phased TODO (checklist)
 
 ### Wave 0 — foundations & data (do once, blocks everything)
+
 - [x] **Add the 6 missing roles** (`or_nurse`, `capacity_lead`, `periop_manager`,
       `staffing_coordinator`, `pi_lead`, `executive`) to `Role.swift` + tailored `RoleExperience`
       cases (honest census/queue proxies per the `transport`/`evs` precedent). **iOS build
       passes.** 2026-06-30.
 - [x] **Census display semantics** — verified already correct in this branch (see §5.4); no change.
-- [ ] **Android role parity** — Android has *no* role layer yet (no `Role.kt`/`RoleExperience.kt`);
-      port the iOS role catalog + experience mapping + onboarding/persona-switcher.
+- [ ] **Android role-package parity** — Android now has `MobileRoleCatalog`,
+      `AltitudeViewModel`, `ui/altitude/AltitudeScreens.kt`, and altitude/patient-context/activity/Eddy client
+      calls. It still needs the final iOS-parity role experience mapping, onboarding/persona
+      switcher polish, and bespoke per-role feature packages.
 - [ ] **`HomeKind`/`featureTab`** — land per-wave with the first bespoke Home (Wave 1 Transport),
       not as speculative scaffolding now.
-- [ ] ⛔ **Re-seed demo DB + DB fixes** — *blocked on environment.* `.env` points at the **shared
+- [ ] ⛔ **Re-seed demo DB + DB fixes** — _blocked on environment._ `.env` points at the **shared
       remote** `zephyrus` (192.168.1.58), not a disposable local `zephyrus_dev`, and Docker is
       down. Do **not** `migrate:fresh`/mutate here. **Decision needed:** spin up a local Docker
       `zephyrus_dev` to seed+fix against, or explicitly authorize re-seeding the shared DB.
 - [ ] **ED bed inventory + stray active encounters** (data fixes) — gated on the above.
-- [ ] **Reconcile `/for-you` ↔ `/foryou`** path naming (low priority; recommend updating the
-      contract to `/for-you` to match the working client rather than churning two apps).
+- [x] **Reconcile `/for-you` ↔ `/foryou`** path naming — `/for-you` is canonical in Laravel,
+      OpenAPI, iOS, and Android.
 - [ ] **Persona test harness:** confirm `HB_ROLE=<id>` (iOS) auto-selects each new persona for
       simulator validation (needs a reachable backend — see env decision above).
 
 ### Wave 1 — Transport, EVS, Charge RN, Bed Manager (all live)
+
 - [x] **Transport (P1) — BFF + iOS built, compiles.** `MobileTransportController` (`/transport/
-      queue` read; `/transport/requests/{id}/status` + `…/handoff` mobile:act) reshaping
+queue` read; `/transport/requests/{id}/status` + `…/handoff` mobile:act) reshaping
       `TransportOperationsService`, PHI-minimized. iOS: `TransportJob` DTOs, APIClient methods,
       `RoleExperience.HomeKind` (`transport → .transportJobs`), role-adaptive `MainTabView` first
       tab, `TransportJobsView` (My Trips + metrics + STAT banner) + `JobDetailView`
@@ -706,45 +724,52 @@ urgency and carrying an inline action verb. The client queue component is unchan
       callout). **iOS BUILD SUCCEEDED** and **✅ validated live on the simulator** (2026-06-30) —
       6 turns / 1 isolation / 2 overdue render correctly with the ISO badge.
 - [x] **RTDC actions + Bed Manager (P5) — done + simulator-validated.** `/rtdc/barriers/{id}/
-      resolve` (one-tap inline Resolve in For-You) **plus** `/rtdc/house` (roll-up), `/rtdc/
-      bed-requests` (pending placements), `…/{id}/recommendations` (ranked beds + transparent
+resolve` (one-tap inline Resolve in For-You) **plus** `/rtdc/house` (roll-up), `/rtdc/
+bed-requests` (pending placements), `…/{id}/recommendations` (ranked beds + transparent
       score/safety chips), `…/{id}/decision` (mobile:act → `BedPlacementService`, server
       re-validates safety). iOS: `HomeKind.houseCapacity` → `HouseCapacityView` (roll-up +
       placements + pressured units) + `PlacementDetailView` (recommendation review → Place/Reject).
       **iOS BUILD SUCCEEDED + validated live** (77% occupancy, 12 placements render). Still pending:
       bespoke **Charge Nurse (P3)** home (unit board with barriers + inbound + staffing — currently
       rides the census proxy).
-- [ ] Android: port the role layer (no `Role.kt` yet) + the Transport/EVS packages at parity.
+- [ ] Android: extend the existing `MobileRoleCatalog` + altitude shell into full role-package UX
+      parity, then add the Transport/EVS packages at parity.
 - [x] **For-You enriched** — now cross-domain: pending bed requests + open barriers + at-capacity
       units **+ STAT/at-risk transport + overdue/isolation bed-turns**, tier-ranked, with the
       inline barrier Resolve action. iOS build ✅.
 - [ ] Validate each persona on simulator **and** emulator against the seed (see §8).
 
 ### Wave 2 — OR board, Capacity Lead, Executive (live; OR fixes first)
+
 - [ ] Backend: land the 3 perioperative fixes (`store` status_id; analytics columns; reference
       `active_status`).
 - [ ] BFF: `/or/board|cases/{id}/status|performance`, `/command/house|brief`, `/ops/inbox|
-      approvals/{id}/decision|actions/{id}/{transition}`.
+approvals/{id}/decision|actions/{id}/{transition}`.
 - [ ] iOS + Android: OR (P4/P7), Capacity/Ops approvals (P6), Executive brief (P9) packages; add
       `or_nurse`/`periop_manager`/`capacity_lead`/`executive` roles.
 - [ ] For-You: safety-note SLA, approval-pending, OR delay/cancellation sources.
 - [ ] Validate (incl. an induced breach for the exec "one thing").
 
 ### Wave 3 — Staffing + ED signals + huddles
-- [ ] BFF: add `/staffing/*` (+ `/ed/signals` if dedicated); add to contract.
+
+- [x] BFF: `/staffing/overview` + `/staffing/requests/{id}/fill`; add to contract.
+- [ ] BFF: add `/ed/signals` if a dedicated mobile ED signal endpoint is still needed.
 - [ ] iOS + Android: Staffing (P10) package + `staffing_coordinator` role; ED-signals tile in
       house/exec homes.
 - [ ] (P2) RTDC huddle action-items if pulled forward.
 - [ ] Validate against seeded 2 gaps / 2 requests / 5 ED boarding.
 
 ### Wave 4 — PI / PDSA (net-new backend)
-- [ ] Backend: build the PDSA read+write API on the web (model exists, routes don't).
-- [ ] BFF: `/improvement/pdsa|opportunities|pdsa/{id}/advance`; add to contract.
+
+- [x] BFF: `/improvement/pdsa` + `/improvement/opportunities`; add to contract.
+- [ ] Backend/BFF: build the PDSA write/advance API (`/improvement/pdsa/{id}/advance`) if mobile
+      stage advancement remains in scope.
 - [ ] iOS + Android: Improvement (P8) package + `pi_lead` role.
 - [ ] For-You: PDSA-stage-due, barrier-assigned sources.
 - [ ] Validate against 5 active cycles / 6 opportunities.
 
 ### Cross-cutting (every wave)
+
 - [ ] OpenAPI conformance test passes for new paths (envelope, 409, error enum).
 - [ ] `php artisan test --testsuite=Feature` green (BFF controllers + policies).
 - [ ] Notifications: map each new top-tier For-You item to an actionable push category.
@@ -756,14 +781,17 @@ urgency and carrying an inline action verb. The client queue component is unchan
 ## 8. Test & validation strategy
 
 ### 8.1 Backend / BFF (fast, deterministic)
+
 - **Conformance:** lint + validate against `hummingbird-bff.v1.yaml`; every new path returns the
   envelope, honors `mobile:read`/`mobile:act` abilities, returns 409 on stale `meta.version`.
-- **Feature tests:** one `Feature` test per endpoint asserting the **seeded** shape (e.g.
-  `/transport/queue` returns 8 active with ≥1 STAT; `/or/board` returns 4 rooms with derived
-  states; `/staffing/plans` returns MICU `critical_gap`). Deterministic seed → exact assertions.
+- **Feature tests:** one `Feature` test per high-value endpoint asserting the **seeded** shape
+  (e.g. `/transport/queue` returns active jobs with a STAT/at-risk case, `/or/board` returns room
+  metrics, `/staffing/overview` returns open staffing requests). Deterministic seed → exact
+  assertions.
 - **PHI guard test:** assert no patient identifiers/free-text in any list payload or push body.
 
 ### 8.2 Client (per-persona, on a visible simulator + emulator)
+
 Per the project rule, **run the iOS Simulator and Android emulator visibly on screen, never
 headless** (see memory `run-simulators-visibly`). For each persona:
 
@@ -782,7 +810,9 @@ headless** (see memory `run-simulators-visibly`). For each persona:
    `persona-<id>-loop.gif`).
 
 ### 8.3 Acceptance gates (per wave)
+
 A wave is "done + validated" when, against a freshly re-seeded demo DB:
+
 - every persona in the wave passes its §3 **Acceptance** line on **both** platforms,
 - the BFF conformance + Feature tests are green,
 - the `DATA-PLAUSIBILITY` diagnostics for that wave's screens return clean,
@@ -790,6 +820,7 @@ A wave is "done + validated" when, against a freshly re-seeded demo DB:
 - the For-You queue tier-ranks the wave's new sources correctly (most-urgent first).
 
 ### 8.4 Regression
+
 - Re-run the existing 214 `Feature` tests + the Home/For-You persona-filter tests each wave.
 - Snapshot/visual diff the two original screens to confirm no regression as `HomeKind` routing
   lands.
@@ -800,12 +831,13 @@ A wave is "done + validated" when, against a freshly re-seeded demo DB:
 
 - **OR backend fixes are a hard gate for Wave 2.** The three `ORCase`/analytics/reference bugs
   must land first or the board renders garbage. Sequence them as the first Wave-2 backend tasks.
-- **PI/PDSA is genuinely net-new** (web routes don't exist). It's correctly last; don't let its
-  novelty pull it forward and stall the live-data waves.
+- **PI/PDSA writes are genuinely net-new.** The mobile BFF now exposes PDSA/opportunity reads;
+  stage advancement remains backend-led and should stay behind the live-data waves.
 - **Reverb edge proxy.** Production Reverb (`:8080`) isn't proxied at the Apache edge today, so
   realtime falls back to 15 s polling. New live-board screens (OR, capacity) feel best on WS —
   decide whether to fix the proxy in Wave 2 or accept polling for the demo.
-- **Android role routing parity.** iOS `RoleExperience` is ahead; Wave 0 must bring Android to
+- **Android role-package parity.** Android has the role catalog and altitude shell, but iOS
+  `RoleExperience` is still ahead for final feature-package routing. Wave 0/1 must finish that
   parity so personas are validated on both platforms, not iOS-only.
 - **Server role vocabulary.** `/me.roles[]` must carry enough signal to pre-select the 6 new
   roles; confirm the web role names map cleanly via `matching(serverRoles:)`, or add an explicit
@@ -817,9 +849,9 @@ A wave is "done + validated" when, against a freshly re-seeded demo DB:
 
 ## 10. One-paragraph summary
 
-Hummingbird already has the *skeleton* for persona-driven mobile (role catalog, `RoleExperience`,
+Hummingbird already has the _skeleton_ for persona-driven mobile (role catalog, `RoleExperience`,
 a uniform PHI-minimized BFF envelope, a universal For-You queue) and the web backend already has
-*live, seeded data* for every pillar — but only 2 of 10 personas have real screens, and the BFF
+_live, seeded data_ for every pillar — but only 2 of 10 personas have real screens, and the BFF
 exposes only census + queue + Eddy. This plan builds the missing 8 persona **packages** (Home +
 feature screens + For-You feed + deep-links), wiring the **already-contracted** BFF paths to
 existing live services in four readiness-ordered waves (frontline RTDC/transport/EVS → OR +

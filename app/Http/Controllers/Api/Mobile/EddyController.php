@@ -108,7 +108,7 @@ class EddyController extends Controller
             'title' => $conversation->title,
             'surface' => $conversation->surface,
             'messages' => $messages,
-        ]);
+        ], links: ['web' => url('/dashboard')]);
     }
 
     /**
@@ -152,7 +152,7 @@ class EddyController extends Controller
             'runner_up' => $recommendation->evidence['runner_up'] ?? null,
             'params' => $params,                                  // operational (unit codes/counts), not patient PHI
             'preview' => $this->previewDescriptor((string) $action->action_type, $params),
-        ]);
+        ], links: ['web' => url('/dashboard')]);
     }
 
     /**

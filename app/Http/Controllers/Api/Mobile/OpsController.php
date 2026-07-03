@@ -41,6 +41,11 @@ class OpsController extends Controller
             ->get()
             ->map(function (Approval $a) {
                 $rec = $a->action?->recommendation;
+                $visualStatus = match ($rec?->risk_level) {
+                    'critical' => 'critical',
+                    'high' => 'warning',
+                    default => 'info',
+                };
 
                 return [
                     'approval_uuid' => $a->approval_uuid,
@@ -48,11 +53,8 @@ class OpsController extends Controller
                     'rationale' => $rec?->rationale,
                     'type' => $rec?->recommendation_type,
                     'risk' => $rec?->risk_level,
-                    'tier' => match ($rec?->risk_level) {
-                        'critical' => 'critical',
-                        'high' => 'warning',
-                        default => 'info',
-                    },
+                    'tier' => $visualStatus,
+                    'visual_status' => $visualStatus,
                     'owner' => $a->action?->owner_name,
                     'requested_at' => optional($a->requested_at)->toIso8601String(),
                 ];

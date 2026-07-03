@@ -1,0 +1,52 @@
+{
+    "data": [
+        {
+            "event_uuid": "22222222-2222-4222-8222-222222222222",
+            "event_type": "transport.progressed",
+            "occurred_at": "2026-07-02T14:02:00Z",
+            "actor_user_id": 11,
+            "actor_role": "transport",
+            "source_surface": "hummingbird",
+            "domain": "transport",
+            "scope": {
+                "transport_request_id": 17,
+                "origin": "ED Bay 12",
+                "destination": "6 East"
+            },
+            "patient_context_ref": "ptok_transport_17",
+            "status": {
+                "previous": "assigned",
+                "current": "in_progress",
+                "severity": "warning",
+                "label": "At risk"
+            },
+            "recommendation": null,
+            "relay": {
+                "will_notify_roles": ["charge_nurse"],
+                "activity_roles": ["bed_manager", "house_supervisor"]
+            },
+            "phi_policy": {
+                "list_safe": true,
+                "push_safe": true,
+                "requires_detail_auth": true
+            },
+            "entities": [
+                {
+                    "entity_type": "transport_request",
+                    "entity_ref": "17",
+                    "patient_context_ref": "ptok_transport_17",
+                    "encounter_ref": null
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "as_of": "2026-07-02T14:02:00Z",
+        "stale": false,
+        "version": 1,
+        "next_cursor": null
+    },
+    "links": {
+        "web": "http://localhost/dashboard"
+    }
+}

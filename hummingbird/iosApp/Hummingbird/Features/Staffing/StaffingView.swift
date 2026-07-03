@@ -128,6 +128,14 @@ struct StaffingView: View {
                         .foregroundStyle((r.sla.minutesUntilDue ?? 0) < 0 ? Z.status(.critical) : Z.inkMuted)
                 }
                 Text("\(r.roleLabel ?? "Staff") · \(r.unitLabel ?? "—")").font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                NavigationLink {
+                    DrillDetailView(itemUuid: "staffing-\(r.id)")
+                } label: {
+                    Label("Explain staffing signal", systemImage: "info.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Z.primary)
+                }
+                .buttonStyle(.plain)
                 Button {
                     Task { await vm.fill(r, bearer: auth.accessToken ?? "") }
                 } label: {

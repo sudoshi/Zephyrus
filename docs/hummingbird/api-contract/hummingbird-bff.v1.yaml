@@ -19,7 +19,6 @@ security:
 tags:
   - { name: auth }
   - { name: me }
-  - { name: home }
   - { name: altitude }
   - { name: for-you }
   - { name: rtdc }
@@ -30,6 +29,8 @@ tags:
   - { name: command }
   - { name: transport }
   - { name: evs }
+  - { name: staffing }
+  - { name: improvement }
   - { name: realtime }
   - { name: eddy }
 
@@ -38,6 +39,13 @@ paths:
     post:
       tags: [auth]
       security: []
+      servers:
+        [
+          {
+            url: "https://{host}/api",
+            variables: { host: { default: zephyrus.example.org } },
+          },
+        ]
       summary: Exchange credentials (or OIDC code) for tokens. Honors must_change_password.
       requestBody:
         required: true
@@ -45,317 +53,1187 @@ paths:
           application/json:
             schema:
               oneOf:
-                - { $ref: '#/components/schemas/PasswordGrant' }
-                - { $ref: '#/components/schemas/OidcCodeGrant' }
+                - { $ref: "#/components/schemas/PasswordGrant" }
+                - { $ref: "#/components/schemas/OidcCodeGrant" }
       responses:
-        '200':
+        "200":
           description: Tokens issued (or a password-change challenge).
           content:
             application/json:
               schema:
                 oneOf:
-                  - { $ref: '#/components/schemas/TokenResponse' }
-                  - { $ref: '#/components/schemas/PasswordChangeChallenge' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+                  - { $ref: "#/components/schemas/TokenResponse" }
+                  - { $ref: "#/components/schemas/PasswordChangeChallenge" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/token/refresh:
-    post: { tags: [auth], security: [], summary: Rotate refresh → new access token., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } } } }
+    post:
+      tags: [auth]
+      servers:
+        [
+          {
+            url: "https://{host}/api",
+            variables: { host: { default: zephyrus.example.org } },
+          },
+        ]
+      security: []
+      summary: Rotate refresh → new access token.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/TokenResponse" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/token/revoke:
-    post: { tags: [auth], summary: Revoke this device's tokens (logout / remote-wipe support)., responses: { '204': { description: Revoked } } }
+    post:
+      tags: [auth]
+      servers:
+        [
+          {
+            url: "https://{host}/api",
+            variables: { host: { default: zephyrus.example.org } },
+          },
+        ]
+      summary: Revoke this device's tokens (logout / remote-wipe support).
+      responses:
+        "204": { description: Revoked }
+        "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/change-password:
     post:
       tags: [auth]
+      servers:
+        [
+          {
+            url: "https://{host}/api",
+            variables: { host: { default: zephyrus.example.org } },
+          },
+        ]
       summary: Forced/normal password change (mirrors the locked web flow; does not replace it).
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePassword' } } } }
-      responses: { '200': { description: Changed; tokens issued, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/ChangePassword" } },
+            },
+        }
+      responses:
+        "200":
+          {
+            description: Changed; tokens issued,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/TokenResponse" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
 
   /me:
     get:
       tags: [me]
       summary: Profile, role, workflow_preference, prefs.
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MeEnvelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/MeEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /me/preferences:
     put:
       tags: [me]
       summary: Notification tiers, quiet hours, theme, default workflow.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
-      responses: { '200': { description: Updated } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/Preferences" } },
+            },
+        }
+      responses:
+        "200": { description: Updated }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /devices:
     post:
       tags: [me]
       summary: Register an APNs/FCM push token for this device.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceRegistration' } } } }
-      responses: { '201': { description: Registered } }
-
-  /home:
-    get:
-      tags: [home]
-      summary: Role-aware home composition (one call). Tiles + For-You head + status glance.
-      parameters: [{ name: workflow, in: query, schema: { $ref: '#/components/schemas/Workflow' }, description: Override the user's default workflow view. }]
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/HomeEnvelope' } } } } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/DeviceRegistration" } },
+            },
+        }
+      responses:
+        "201": { description: Registered }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+  /devices/{device}:
+    delete:
+      tags: [me]
+      summary: Revoke a registered mobile device token.
+      parameters:
+        [{ name: device, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          {
+            description: Revoked,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /altitude/home:
     get:
       tags: [altitude]
       summary: A0 Persona Glance composed from the shared operational snapshot.
-      parameters: [{ name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' }, description: Confirmed shift role; defaults from the token/user when absent. }]
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+      parameters:
+        [
+          {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+            description: Confirmed shift role; defaults from the token/user when absent.,
+          },
+        ]
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MobileAltitudeHomeEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /altitude/workspace/{domain}:
     get:
       tags: [altitude]
       summary: A1 Live Workspace for a domain queue or board.
       parameters:
-        - { name: domain, in: path, required: true, schema: { type: string, enum: [rtdc, capacity, transport, evs, staffing, ops, approvals] } }
-        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+        - {
+            name: domain,
+            in: path,
+            required: true,
+            schema:
+              {
+                type: string,
+                enum:
+                  [rtdc, capacity, transport, evs, staffing, ops, approvals],
+              },
+          }
+        - {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+          }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MobileAltitudeWorkspaceEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /drills/{itemUuid}:
     get:
       tags: [altitude]
       summary: A2 drill for a For You item, alert, queue row, or operational event.
       parameters:
         - { name: itemUuid, in: path, required: true, schema: { type: string } }
-        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/MobileAltitudeEnvelope' } } } } }
+        - {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+          }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MobileAltitudeDrillEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /patients/{contextRef}/operational-context:
     get:
       tags: [patients]
       summary: A2P Patient/Encounter Lens for authorized operational detail entry.
       parameters:
-        - { name: contextRef, in: path, required: true, schema: { type: string }, description: Opaque patient_context_ref issued by A2 drill/list surfaces. Raw patient identifiers are rejected. }
-        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PatientOperationalContextEnvelope' } } } } }
+        - {
+            name: contextRef,
+            in: path,
+            required: true,
+            schema: { type: string },
+            description: Opaque patient_context_ref issued by A2 drill/list surfaces. Raw patient identifiers are rejected.,
+          }
+        - {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+          }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/PatientOperationalContextEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /activity:
     get:
       tags: [activity]
       summary: Role-filtered cross-persona operational event feed.
       parameters:
-        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
+        - {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+          }
         - { name: cursor, in: query, schema: { type: string } }
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ActivityFeedEnvelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/ActivityFeedEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /activity/{eventUuid}/ack:
     post:
       tags: [activity]
       summary: Acknowledge that an event was seen without mutating the operational object.
-      parameters: [{ name: eventUuid, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: Acknowledged, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+      parameters:
+        [
+          {
+            name: eventUuid,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          },
+        ]
+      responses:
+        "200":
+          {
+            description: Acknowledged,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /for-you:
     get:
       tags: [for-you]
       summary: The unified, ranked, cross-domain action queue for this worker.
       parameters:
-        - { name: persona, in: query, schema: { $ref: '#/components/schemas/MobilePersonaId' } }
-        - { name: updated_since, in: query, schema: { type: string, format: date-time }, description: Delta sync. }
+        - {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+          }
+        - {
+            name: updated_since,
+            in: query,
+            schema: { type: string, format: date-time },
+            description: Delta sync.,
+          }
         - { name: cursor, in: query, schema: { type: string } }
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ForYouEnvelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ForYouEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /rtdc/census:
     get:
       tags: [rtdc]
       summary: Live unit census + acuity-adjusted safe capacity (mirrors Reverb CensusUpdated).
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CensusEnvelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/CensusEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /rtdc/house:
-    get: { tags: [rtdc], summary: Hospital bed-need roll-up (net/deficit per unit + total)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+    get:
+      tags: [rtdc]
+      summary: Hospital bed-need roll-up (net/deficit per unit + total).
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/HouseRollupEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /rtdc/bed-requests:
-    get: { tags: [rtdc], summary: Pending bed requests (role-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BedRequestListEnvelope' } } } } } }
+    get:
+      tags: [rtdc]
+      summary: Pending bed requests (role-scoped).
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/BedRequestListEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /rtdc/bed-requests/{id}/recommendations:
+    get:
+      tags: [rtdc]
+      summary: Ranked bed recommendations for a pending placement.
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/PlacementRecommendationsEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /rtdc/bed-requests/{id}/decision:
     post:
       tags: [rtdc]
       summary: Accept or reject a placement decision. Delegates to the placement service.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PlacementDecision' } } } }
-      responses: { '200': { description: Decided }, '409': { $ref: '#/components/responses/Conflict' } }
-  /rtdc/barriers:
-    get: { tags: [rtdc], summary: Discharge barriers (role/unit-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/PlacementDecision" } },
+            },
+        }
+      responses:
+        "200": { description: Decided }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /rtdc/barriers/{id}/resolve:
     post:
       tags: [rtdc]
       summary: Resolve a discharge barrier.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      responses: { '200': { description: Resolved } }
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Resolved }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /ops/inbox:
-    get: { tags: [ops], summary: Approvals/actions summary (pending/active/assigned/overdue)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
-  /ops/approvals/{id}/decision:
+    get:
+      tags: [ops]
+      summary: Approvals/actions summary (pending/active/assigned/overdue).
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/OpsInboxEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /ops/approvals/{uuid}/decision:
     post:
       tags: [ops]
       summary: Approve / reject a recommendation's action. Delegates to OperationalActionLifecycleService.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalDecision' } } } }
-      responses: { '200': { description: Decided }, '409': { $ref: '#/components/responses/Conflict' } }
-  /ops/actions/{id}/{transition}:
-    post:
-      tags: [ops]
-      summary: Action lifecycle transition (assign|start|complete|override|expire).
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-        - { name: transition, in: path, required: true, schema: { type: string, enum: [assign, start, complete, override, expire] } }
-      responses: { '200': { description: Transitioned }, '409': { $ref: '#/components/responses/Conflict' } }
+        [
+          {
+            name: uuid,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          },
+        ]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/ApprovalDecision" } },
+            },
+        }
+      responses:
+        "200": { description: Decided }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
 
   /or/board:
-    get: { tags: [or], summary: Live OR room-status board (Available/In-Progress/Turnover from the wheels clock)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
-  /or/cases/{id}/status:
-    post:
+    get:
       tags: [or]
-      summary: Advance case status (Scheduled→In-Progress→Delayed→Completed).
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { type: object, properties: { status_id: { type: integer } }, required: [status_id] } } } }
-      responses: { '200': { description: Advanced } }
+      summary: Live OR room-status board (Available/In-Progress/Turnover from the wheels clock).
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/ORBoardEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /command/house:
-    get: { tags: [command], summary: House strain/surge index (0–4) + hero KPIs + 24h forecast., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
-  /command/brief:
-    get: { tags: [command], summary: Server-composed Executive Brief (situation/plan/impact/confidence)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+    get:
+      tags: [command]
+      summary: House strain/surge index (0-4) + hero KPIs + 24h forecast.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: "#/components/schemas/HouseBriefEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /transport/queue:
-    get: { tags: [transport], summary: My queue + available transport jobs (role-scoped)., responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+    get:
+      tags: [transport]
+      summary: My queue + available transport jobs (role-scoped).
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/TransportQueueEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /transport/requests/{id}/status:
     post:
       tags: [transport]
       summary: Progress a transport request through its 17-status lifecycle. Delegates to TransportOperationsService.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusTransition' } } } }
-      responses: { '200': { description: Progressed }, '409': { $ref: '#/components/responses/Conflict' } }
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/StatusTransition" } },
+            },
+        }
+      responses:
+        "200": { description: Progressed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /transport/requests/{id}/handoff:
     post:
       tags: [transport]
       summary: Structured handoff (handoff_to, summary, documents[], outstanding_risks[]).
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Handoff' } } } }
-      responses: { '200': { description: Handed off } }
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/Handoff" } },
+            },
+        }
+      responses:
+        "200": { description: Handed off }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
 
   /evs/queue:
-    get: { tags: [evs], summary: "Next dirty bed + my bed-turns (turn_type, isolation badged).", responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } } }
+    get:
+      tags: [evs]
+      summary: "Next dirty bed + my bed-turns (turn_type, isolation badged)."
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/EvsQueueEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /evs/requests/{id}/status:
     post:
       tags: [evs]
       summary: Progress a bed-turn (claim→start→complete). Delegates to EvsOperationsService.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusTransition' } } } }
-      responses: { '200': { description: Progressed } }
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/StatusTransition" } },
+            },
+        }
+      responses:
+        "200": { description: Progressed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+
+  /staffing/overview:
+    get:
+      tags: [staffing]
+      summary: "Staffing coordinator overview: coverage, units at risk, role gaps, and active queue."
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/StaffingOverviewEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /staffing/requests/{id}/fill:
+    post:
+      tags: [staffing]
+      summary: Assign a source and mark a staffing request filled. Requires mobile:act.
+      parameters:
+        [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/StaffingFill" } },
+            },
+        }
+      responses:
+        "200":
+          {
+            description: Filled,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/StaffingRequestEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+
+  /improvement/pdsa:
+    get:
+      tags: [improvement]
+      summary: PDSA cycles for the PI / quality lead role.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/PdsaCycleListEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /improvement/opportunities:
+    get:
+      tags: [improvement]
+      summary: Improvement opportunities ordered by priority and estimated impact.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/ImprovementOpportunityListEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /realtime/config:
     get:
       tags: [realtime]
       summary: Reverb host/key + the PHI-free channels this user should subscribe to.
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RealtimeConfig' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/RealtimeConfigEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   # ---- Eddy — process-aware AI agent (Phase 5 mobile embed) ----
   /eddy/chat:
     post:
       tags: [eddy]
       summary: Send a turn to Eddy. Stateless service; Laravel persists the conversation (origin=hummingbird).
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatRequest' } } } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/EddyChatRequest" } },
+            },
+        }
       responses:
-        '200': { description: Assistant reply., content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatEnvelope' } } } }
-        '503':
+        "200":
+          {
+            description: Assistant reply.,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/EddyChatEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503":
           description: Eddy unreachable. envelope.meta.stale=true; data.message is a notice string.
   /eddy/chat/stream:
     post:
       tags: [eddy]
       summary: SSE token stream. Frames - conversation_id, then token, a terminal persisted (with proposed_action), then [DONE].
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyChatRequest' } } } }
-      responses: { '200': { description: text/event-stream, content: { text/event-stream: { schema: { type: string } } } } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/EddyChatRequest" } },
+            },
+        }
+      responses:
+        "200":
+          {
+            description: text/event-stream,
+            content: { text/event-stream: { schema: { type: string } } },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /eddy/conversations:
     get:
       tags: [eddy]
       summary: The user's recent Eddy conversations (most recent first).
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /eddy/conversations/{uuid}:
     get:
       tags: [eddy]
       summary: One conversation with its messages (user-scoped).
-      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } } }
+      parameters:
+        [
+          {
+            name: uuid,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          },
+        ]
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /eddy/approvals:
     get:
       tags: [eddy]
       summary: Pending Eddy-proposed approvals the user may act on (the doorbell deep-links here). PHI-minimized.
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalListEnvelope' } } } } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/EddyApprovalListEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /eddy/approvals/{uuid}:
     get:
       tags: [eddy]
       summary: Fetch-on-open dry-run preview for one pending approval (operational params only — no patient PHI).
-      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalPreviewEnvelope' } } } } }
+      parameters:
+        [
+          {
+            name: uuid,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          },
+        ]
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyApprovalPreviewEnvelope",
+                      },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /eddy/approvals/{uuid}/decision:
     post:
       tags: [eddy]
       summary: Approve/reject a pending Eddy approval. Requires the mobile:act scope (a human decision; never the agent). Block offline.
-      parameters: [{ name: uuid, in: path, required: true, schema: { type: string, format: uuid } }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EddyApprovalDecision' } } } }
+      parameters:
+        [
+          {
+            name: uuid,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          },
+        ]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: "#/components/schemas/EddyApprovalDecision" },
+                },
+            },
+        }
       responses:
-        '200': { description: Decided., content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
-        '403': { description: Token lacks mobile:act. }
-        '422': { description: Illegal transition (already decided)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "200":
+          {
+            description: Decided.,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /eddy/context/{scopeRef}:
     get:
       tags: [eddy]
       summary: Eddy-safe context packet for a drill, patient lens, event, or scope.
-      parameters: [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
-      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/EddyContextEnvelope' } } } } }
+      parameters:
+        [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: "#/components/schemas/EddyContextEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: Sanctum-PAT }
 
   responses:
-    Unauthorized: { description: Missing/invalid token., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized:
+      {
+        description: Missing/invalid token.,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/Error" } },
+          },
+      }
+    Forbidden:
+      {
+        description: Token is valid but lacks the required ability or persona.,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/Error" } },
+          },
+      }
+    NotFound:
+      {
+        description: Entity or detail was not found.,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/Error" } },
+          },
+      }
     Conflict:
       description: State changed since load (optimistic-concurrency / illegal transition). Client should re-fetch and surface "changed since you loaded".
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    InvalidBody:
+      {
+        description: Request body failed validation.,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/Error" } },
+          },
+      }
 
   schemas:
     # ---- Uniform envelope ----
     Meta:
       type: object
       properties:
-        as_of: { type: string, format: date-time, description: When this data was current. }
-        stale: { type: boolean, description: True if served from a degraded/cached path. }
-        version: { type: string, description: ETag/version for optimistic concurrency. }
-      required: [as_of]
+        as_of:
+          {
+            type: string,
+            format: date-time,
+            description: When this data was current.,
+          }
+        stale:
+          {
+            type: boolean,
+            description: True if served from a degraded/cached path.,
+          }
+        version:
+          {
+            oneOf: [{ type: string }, { type: "null" }],
+            description: ETag/version for optimistic concurrency.,
+          }
+      required: [as_of, stale, version]
     Links:
       type: object
-      properties: { web: { type: string, format: uri, description: Deep link to the equivalent web surface. } }
+      properties:
+        {
+          web:
+            {
+              type: string,
+              format: uri,
+              description: Deep link to the equivalent web surface.,
+            },
+        }
     Envelope:
       type: object
       properties:
         data: {}
-        meta: { $ref: '#/components/schemas/Meta' }
-        links: { $ref: '#/components/schemas/Links' }
-      required: [data, meta]
+        meta: { $ref: "#/components/schemas/Meta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
     Error:
       type: object
       properties:
-        error: { type: object, properties: { code: { type: string }, message: { type: string }, retryable: { type: boolean } }, required: [code, message] }
+        error:
+          {
+            type: object,
+            properties:
+              {
+                code: { type: string },
+                message: { type: string },
+                retryable: { type: boolean },
+              },
+            required: [code, message],
+          }
+      required: [error]
 
     # ---- Auth ----
-    PasswordGrant: { type: object, properties: { grant_type: { type: string, const: password }, username: { type: string }, password: { type: string }, device: { $ref: '#/components/schemas/DeviceRegistration' } }, required: [grant_type, username, password] }
-    OidcCodeGrant: { type: object, properties: { grant_type: { type: string, const: oidc_code }, code: { type: string }, code_verifier: { type: string }, redirect_uri: { type: string } }, required: [grant_type, code, code_verifier] }
+    PasswordGrant:
+      {
+        type: object,
+        properties:
+          {
+            grant_type: { type: string, const: password },
+            username: { type: string },
+            password: { type: string },
+            device: { $ref: "#/components/schemas/DeviceRegistration" },
+          },
+        required: [grant_type, username, password],
+      }
+    OidcCodeGrant:
+      {
+        type: object,
+        properties:
+          {
+            grant_type: { type: string, const: oidc_code },
+            code: { type: string },
+            code_verifier: { type: string },
+            redirect_uri: { type: string },
+          },
+        required: [grant_type, code, code_verifier],
+      }
     TokenResponse:
       type: object
       properties:
         access_token: { type: string }
         refresh_token: { type: string }
         token_type: { type: string, const: Bearer }
-        expires_in: { type: integer, description: Access-token lifetime (seconds). }
-        abilities: { type: array, items: { type: string }, description: Token scopes matching the user's role. }
+        expires_in:
+          { type: integer, description: Access-token lifetime (seconds). }
+        abilities:
+          {
+            type: array,
+            items: { type: string },
+            description: Token scopes matching the user's role.,
+          }
       required: [access_token, refresh_token, token_type, expires_in]
     PasswordChangeChallenge:
       type: object
       description: Returned when must_change_password is true. Scoped token is valid ONLY for /auth/change-password.
-      properties: { password_change_required: { type: boolean, const: true }, change_token: { type: string } }
+      properties:
+        {
+          password_change_required: { type: boolean, const: true },
+          change_token: { type: string },
+        }
       required: [password_change_required, change_token]
-    ChangePassword: { type: object, properties: { current_password: { type: string }, new_password: { type: string, minLength: 8 } }, required: [new_password] }
+    ChangePassword:
+      {
+        type: object,
+        properties:
+          {
+            current_password: { type: string },
+            new_password: { type: string, minLength: 8 },
+          },
+        required: [new_password],
+      }
 
     # ---- Me / prefs / devices ----
-    Workflow: { type: string, enum: [superuser, rtdc, perioperative, emergency, improvement, transport] }
+    Workflow:
+      {
+        type: string,
+        enum:
+          [superuser, rtdc, perioperative, emergency, improvement, transport],
+      }
     MobilePersonaId:
       type: string
-      enum: [charge_nurse, bedside_nurse, bed_manager, house_supervisor, hospitalist, intensivist, evs, transport, or_nurse, capacity_lead, periop_manager, staffing_coordinator, pi_lead, executive]
+      enum:
+        [
+          charge_nurse,
+          bedside_nurse,
+          bed_manager,
+          house_supervisor,
+          hospitalist,
+          intensivist,
+          evs,
+          transport,
+          or_nurse,
+          capacity_lead,
+          periop_manager,
+          staffing_coordinator,
+          pi_lead,
+          executive,
+        ]
+    StatusValue:
+      type: string
+      enum: [success, warning, critical, info]
     OperationalStatus:
       type: object
       properties:
-        value: { type: string, enum: [success, warning, critical, info, neutral] }
+        value: { $ref: "#/components/schemas/StatusValue" }
         glyph: { type: string, enum: [check, triangle, octagon, circle] }
         label: { type: string }
         generated_at: { type: string, format: date-time }
@@ -363,7 +1241,7 @@ components:
     MobilePersona:
       type: object
       properties:
-        role_id: { $ref: '#/components/schemas/MobilePersonaId' }
+        role_id: { $ref: "#/components/schemas/MobilePersonaId" }
         title: { type: string }
         assignment_scope: { type: string, enum: [unit, house] }
         home: { type: string }
@@ -372,7 +1250,7 @@ components:
       required: [role_id, title, assignment_scope]
     MeEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
@@ -382,16 +1260,35 @@ components:
                 name: { type: string }
                 roles: { type: array, items: { type: string } }
                 is_admin: { type: boolean }
-                workflow_preference: { $ref: '#/components/schemas/Workflow' }
+                workflow_preference: { $ref: "#/components/schemas/Workflow" }
                 must_change_password: { type: boolean }
-                units: { type: array, items: { type: string }, description: Units this user is associated with (from user_unit). }
+                units:
+                  {
+                    type: array,
+                    items: { type: string },
+                    description: Units this user is associated with (from user_unit).,
+                  }
     Preferences:
       type: object
       properties:
-        default_workflow: { $ref: '#/components/schemas/Workflow' }
+        default_workflow: { $ref: "#/components/schemas/Workflow" }
         theme: { type: string, enum: [dark, light, system], default: dark }
-        notification_tiers: { type: object, additionalProperties: { type: boolean }, description: Per-tier opt-in (T1 discouraged off). }
-        quiet_hours: { type: object, properties: { start: { type: string }, end: { type: string }, tz: { type: string } } }
+        notification_tiers:
+          {
+            type: object,
+            additionalProperties: { type: boolean },
+            description: Per-tier opt-in (T1 discouraged off).,
+          }
+        quiet_hours:
+          {
+            type: object,
+            properties:
+              {
+                start: { type: string },
+                end: { type: string },
+                tz: { type: string },
+              },
+          }
     DeviceRegistration:
       type: object
       properties:
@@ -404,15 +1301,24 @@ components:
     # ---- Home / For-You ----
     HomeEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
               type: object
               properties:
-                workflow: { $ref: '#/components/schemas/Workflow' }
-                tiles: { type: array, items: { $ref: '#/components/schemas/KpiTile' } }
-                for_you_head: { type: array, items: { $ref: '#/components/schemas/ForYouItem' }, description: Top N For-You items inline. }
+                workflow: { $ref: "#/components/schemas/Workflow" }
+                tiles:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/KpiTile" },
+                  }
+                for_you_head:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/ForYouItem" },
+                    description: Top N For-You items inline.,
+                  }
     KpiTile:
       type: object
       description: A glanceable metric. status is ALWAYS paired with a trend/label (never color alone).
@@ -420,10 +1326,11 @@ components:
         key: { type: string }
         label: { type: string, description: UPPERCASE functional label. }
         value: { type: string, description: "Pre-formatted, tabular." }
-        status: { type: string, enum: [success, warning, critical, info, neutral] }
+        status: { $ref: "#/components/schemas/StatusValue" }
         trend: { type: string, enum: [up, down, flat] }
         target: { type: string }
-        trust: { type: string, description: Provenance/source-trust badge text. }
+        trust:
+          { type: string, description: Provenance/source-trust badge text. }
         deep_link: { type: string, format: uri }
       required: [key, label, value, status]
     ForYouItem:
@@ -431,81 +1338,253 @@ components:
       description: One actionable/awareness item, PHI-minimized. The inline primary action is the common response.
       properties:
         id: { type: string }
-        domain: { type: string, enum: [rtdc, ops, or, transport, evs, staffing, ed, pi, command] }
-        tier: { type: string, enum: [T1, T2, T3, T4] }
+        type:
+          type: string
+          description: Server item class, for example bed_request, barrier, capacity, transport, or evs.
+        altitude: { type: string, enum: [A2] }
+        domain:
+          {
+            type: string,
+            enum:
+              [rtdc, ops, or, transport, evs, staffing, improvement, command],
+          }
+        tier:
+          {
+            $ref: "#/components/schemas/StatusValue",
+            description: Legacy visual-status alias; prefer visual_status.,
+          }
+        visual_status: { $ref: "#/components/schemas/StatusValue" }
         title: { type: string, description: PHI-free. }
         subtitle: { type: string }
-        status: { type: string, enum: [success, warning, critical, info, neutral] }
-        primary_action: { $ref: '#/components/schemas/Action' }
-        created_at: { type: string, format: date-time }
+        unit: { oneOf: [{ type: string }, { type: "null" }] }
+        at: { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        status: { $ref: "#/components/schemas/StatusValue" }
+        status_detail: { $ref: "#/components/schemas/OperationalStatus" }
+        primary_action: { $ref: "#/components/schemas/Action" }
+        recommended_actions:
+          { type: array, items: { $ref: "#/components/schemas/Action" } }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        dependencies:
+          { type: array, items: { type: object, additionalProperties: true } }
+        activity:
+          { type: array, items: { $ref: "#/components/schemas/ActivityEvent" } }
+        provenance: { type: object, additionalProperties: true }
         deep_link: { type: string, format: uri }
-      required: [id, domain, tier, title]
+      required: [id, domain, visual_status, tier, title]
     Action:
       type: object
       properties:
-        kind: { type: string, enum: [approve, reject, claim, start, complete, resolve, acknowledge, place, view] }
-        endpoint: { type: string, description: BFF path to POST when invoked (also usable from a notification action). }
+        kind:
+          {
+            type: string,
+            enum:
+              [
+                approve,
+                reject,
+                claim,
+                start,
+                complete,
+                resolve,
+                acknowledge,
+                place,
+                view,
+                progress_transport,
+                progress_turn,
+              ],
+          }
+        label: { type: string }
+        endpoint:
+          {
+            type: string,
+            description: BFF path to POST when invoked (also usable from a notification action).,
+          }
         method: { type: string, default: POST }
-      required: [kind, endpoint]
+        requires_online: { type: boolean, default: true }
+      required: [kind]
     ForYouEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
-            data: { type: array, items: { $ref: '#/components/schemas/ForYouItem' } }
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/ForYouItem" },
+              }
             next_cursor: { type: string }
 
     MobileAltitudeEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
               type: object
               properties:
                 altitude: { type: string, enum: [A0, A1, A2, A2P, A3] }
-                persona: { $ref: '#/components/schemas/MobilePersona' }
-                status: { $ref: '#/components/schemas/OperationalStatus' }
+                persona: { $ref: "#/components/schemas/MobilePersona" }
+                status: { $ref: "#/components/schemas/OperationalStatus" }
                 generated_at: { type: string, format: date-time }
-                patient_context_ref: { type: string, nullable: true }
+                patient_context_ref:
+                  { oneOf: [{ type: string }, { type: "null" }] }
                 provenance: { type: object, additionalProperties: true }
-                dependencies: { type: array, items: { type: object, additionalProperties: true } }
-                activity: { type: array, items: { $ref: '#/components/schemas/ActivityEvent' } }
+                dependencies:
+                  {
+                    type: array,
+                    items: { type: object, additionalProperties: true },
+                  }
+                activity:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/ActivityEvent" },
+                  }
               required: [altitude, persona, generated_at]
-    PatientOperationalContextEnvelope:
+    MobileAltitudeHomeEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
-            data: { $ref: '#/components/schemas/PatientOperationalContext' }
+            data: { $ref: "#/components/schemas/MobileAltitudeHome" }
+    MobileAltitudeHome:
+      type: object
+      properties:
+        altitude: { type: string, const: A0 }
+        persona: { $ref: "#/components/schemas/MobilePersona" }
+        status: { $ref: "#/components/schemas/OperationalStatus" }
+        generated_at: { type: string, format: date-time }
+        glance_question: { type: string }
+        tiles: { type: array, items: { $ref: "#/components/schemas/KpiTile" } }
+        for_you_head:
+          { type: array, items: { $ref: "#/components/schemas/ForYouItem" } }
+        activity:
+          { type: array, items: { $ref: "#/components/schemas/ActivityEvent" } }
+        subscriptions: { type: object, additionalProperties: true }
+        web: { type: object, additionalProperties: true }
+      required:
+        [altitude, persona, status, generated_at, glance_question, tiles]
+    MobileAltitudeWorkspaceEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/MobileAltitudeWorkspace" }
+    MobileAltitudeWorkspace:
+      type: object
+      properties:
+        altitude: { type: string, const: A1 }
+        persona: { $ref: "#/components/schemas/MobilePersona" }
+        domain: { type: string }
+        generated_at: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/OperationalStatus" }
+        workspace:
+          type: object
+          properties:
+            summary:
+              {
+                type: object,
+                properties:
+                  { label: { type: string }, count: { type: integer } },
+              }
+            items:
+              {
+                type: array,
+                items: { type: object, additionalProperties: true },
+              }
+        activity:
+          { type: array, items: { $ref: "#/components/schemas/ActivityEvent" } }
+        web: { type: object, additionalProperties: true }
+      required: [altitude, persona, domain, generated_at, status, workspace]
+    MobileAltitudeDrillEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/MobileAltitudeDrill" }
+    MobileAltitudeDrill:
+      type: object
+      properties:
+        altitude: { type: string, const: A2 }
+        persona: { $ref: "#/components/schemas/MobilePersona" }
+        item_uuid: { type: string }
+        domain: { type: string }
+        generated_at: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/OperationalStatus" }
+        explanation: { type: string }
+        dependencies:
+          { type: array, items: { type: object, additionalProperties: true } }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        activity:
+          { type: array, items: { $ref: "#/components/schemas/ActivityEvent" } }
+        actions: { type: array, items: { $ref: "#/components/schemas/Action" } }
+        web: { type: object, additionalProperties: true }
+      required:
+        [
+          altitude,
+          persona,
+          item_uuid,
+          generated_at,
+          domain,
+          status,
+          explanation,
+        ]
+    PatientOperationalContextEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/PatientOperationalContext" }
     PatientOperationalContext:
       type: object
       properties:
         altitude: { type: string, const: A2P }
-        persona: { $ref: '#/components/schemas/MobilePersona' }
-        patient: { type: object, properties: { patient_context_ref: { type: string }, display: { type: string }, detail_authorized: { type: boolean }, phi_minimized: { type: boolean } } }
+        persona: { $ref: "#/components/schemas/MobilePersona" }
+        patient:
+          {
+            type: object,
+            properties:
+              {
+                patient_context_ref: { type: string },
+                display: { type: string },
+                detail_authorized: { type: boolean },
+                phi_minimized: { type: boolean },
+              },
+          }
         header: { type: object, additionalProperties: true }
-        status_spine: { type: array, items: { type: object, additionalProperties: true } }
-        timeline: { type: array, items: { type: object, additionalProperties: true } }
-        dependencies: { type: array, items: { type: object, additionalProperties: true } }
-        recommendations: { type: array, items: { type: object, additionalProperties: true } }
-        actions: { type: array, items: { $ref: '#/components/schemas/Action' } }
+        status_spine:
+          { type: array, items: { type: object, additionalProperties: true } }
+        timeline:
+          { type: array, items: { type: object, additionalProperties: true } }
+        dependencies:
+          { type: array, items: { type: object, additionalProperties: true } }
+        recommendations:
+          { type: array, items: { type: object, additionalProperties: true } }
+        actions: { type: array, items: { $ref: "#/components/schemas/Action" } }
         relay: { type: object, additionalProperties: true }
         web: { type: object, additionalProperties: true }
         phi_policy: { type: object, additionalProperties: true }
-      required: [altitude, persona, patient, header, status_spine, timeline, dependencies, phi_policy]
+      required:
+        [
+          altitude,
+          persona,
+          patient,
+          header,
+          status_spine,
+          timeline,
+          dependencies,
+          phi_policy,
+        ]
     ActivityEvent:
       type: object
       properties:
         event_uuid: { type: string, format: uuid }
         event_type: { type: string }
         occurred_at: { type: string, format: date-time }
-        actor_user_id: { type: integer, nullable: true }
-        actor_role: { type: string, nullable: true }
+        actor_user_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        actor_role: { oneOf: [{ type: string }, { type: "null" }] }
         source_surface: { type: string }
         domain: { type: string }
         scope: { type: object, additionalProperties: true }
-        patient_context_ref: { type: string, nullable: true }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
         status: { type: object, additionalProperties: true }
         recommendation: { type: object, additionalProperties: true }
         relay: { type: object, additionalProperties: true }
@@ -513,73 +1592,411 @@ components:
       required: [event_uuid, event_type, occurred_at, domain]
     ActivityFeedEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
-            data: { type: array, items: { $ref: '#/components/schemas/ActivityEvent' } }
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/ActivityEvent" },
+              }
     EddyContextEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
-            data:
-              type: object
-              properties:
-                scope_ref: { type: string }
-                scope_type: { type: string }
-                generated_at: { type: string, format: date-time }
-                persona: { $ref: '#/components/schemas/MobilePersona' }
-                phi_policy: { type: object, additionalProperties: true }
-                context: { type: object, additionalProperties: true }
-                questions_supported: { type: array, items: { type: string } }
+            data: { $ref: "#/components/schemas/EddyContextPacket" }
+    EddyContextPacket:
+      type: object
+      properties:
+        scope_ref: { type: string }
+        scope_type: { type: string }
+        generated_at: { type: string, format: date-time }
+        persona: { $ref: "#/components/schemas/MobilePersona" }
+        phi_policy: { type: object, additionalProperties: true }
+        context: { type: object, additionalProperties: true }
+        questions_supported: { type: array, items: { type: string } }
+      required:
+        [scope_ref, scope_type, generated_at, persona, phi_policy, context]
 
     # ---- RTDC ----
+    CensusUnit:
+      type: object
+      properties:
+        unit_id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        staffed_bed_count: { type: integer }
+        occupied: { type: integer }
+        available: { type: integer }
+        blocked: { type: integer }
+        can_admit:
+          {
+            type: integer,
+            description: Acuity-adjusted beds that can be safely admitted now.,
+          }
+        bed_need: { type: integer, description: ">0 = deficit." }
+        status: { $ref: "#/components/schemas/StatusValue" }
+      required:
+        [
+          unit_id,
+          name,
+          staffed_bed_count,
+          occupied,
+          available,
+          blocked,
+          can_admit,
+          bed_need,
+          status,
+        ]
     CensusEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
-              type: array
-              items:
-                type: object
-                properties:
-                  unit_id: { type: integer }
-                  name: { type: string }
-                  type: { type: string }
-                  staffed_bed_count: { type: integer }
-                  occupied: { type: integer }
-                  available: { type: integer }
-                  blocked: { type: integer }
-                  can_admit: { type: integer, description: Acuity-adjusted beds that can be safely admitted now. }
-                  bed_need: { type: integer, description: ">0 = deficit." }
-                  status: { type: string, enum: [success, warning, critical, info] }
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/CensusUnit" },
+              }
+    HouseRollupEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/HouseRollup" }
+    HouseRollup:
+      type: object
+      properties:
+        occupancy:
+          type: object
+          properties:
+            occupied: { type: integer }
+            staffed: { type: integer }
+            percent: { type: integer }
+          required: [occupied, staffed, percent]
+        net_bed_need: { type: integer }
+        pending_placements: { type: integer }
+        ed_boarding: { type: integer }
+        units:
+          { type: array, items: { $ref: "#/components/schemas/CensusUnit" } }
+      required:
+        [occupancy, net_bed_need, pending_placements, ed_boarding, units]
+    BedRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        source: { oneOf: [{ type: string }, { type: "null" }] }
+        service: { oneOf: [{ type: string }, { type: "null" }] }
+        acuity_tier: { oneOf: [{ type: integer }, { type: "null" }] }
+        tier:
+          {
+            $ref: "#/components/schemas/StatusValue",
+            description: Legacy visual-status alias; prefer visual_status.,
+          }
+        visual_status: { $ref: "#/components/schemas/StatusValue" }
+        isolation_required:
+          { oneOf: [{ type: string }, { type: boolean }, { type: "null" }] }
+        required_unit_type: { oneOf: [{ type: string }, { type: "null" }] }
+        at: { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+      required: [id, visual_status, tier]
     BedRequestListEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
-              type: array
-              items:
-                type: object
-                properties:
-                  id: { type: string }
-                  source: { type: string }
-                  service: { type: string }
-                  acuity_tier: { type: integer }
-                  isolation_required: { oneOf: [{ type: string }, { type: boolean }, { type: 'null' }] }
-                  required_unit_type: { type: string }
-                  status: { type: string }
-                  requested_at: { type: string, format: date-time }
-                  placement_score: { type: number, description: Transparent score for the recommended bed. }
-    PlacementDecision: { type: object, properties: { action: { type: string, enum: [accepted, rejected] }, chosen_bed_id: { type: integer }, reason: { type: string } }, required: [action] }
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/BedRequest" },
+              }
+    PlacementRecommendationsEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/PlacementRecommendations" }
+    PlacementRecommendations:
+      type: object
+      properties:
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              bed_id: { type: integer }
+              bed_label: { type: string }
+              unit_name: { type: string }
+              score: { type: number }
+              chips:
+                {
+                  type: array,
+                  items:
+                    {
+                      type: object,
+                      properties:
+                        { label: { type: string }, ok: { type: boolean } },
+                    },
+                }
+            required: [bed_id, bed_label, unit_name, score, chips]
+        runner_up_delta: { oneOf: [{ type: integer }, { type: "null" }] }
+      required: [recommendations]
+    PlacementDecision:
+      {
+        type: object,
+        properties:
+          {
+            action: { type: string, enum: [accepted, rejected] },
+            chosen_bed_id: { type: integer },
+            reason: { type: string },
+          },
+        required: [action],
+      }
 
-    # ---- Ops ----
-    ApprovalDecision: { type: object, properties: { decision: { type: string, enum: [approved, rejected] }, reason: { type: string } }, required: [decision] }
+    # ---- Command / OR / Ops ----
+    HouseBriefEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/HouseBrief" }
+    HouseBrief:
+      type: object
+      properties:
+        strain: { type: object, additionalProperties: true }
+        hero:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              display: { type: string }
+              value: {}
+              status: { $ref: "#/components/schemas/StatusValue" }
+              target_display: { oneOf: [{ type: string }, { type: "null" }] }
+              trajectory:
+                {
+                  oneOf:
+                    [
+                      { type: object, additionalProperties: true },
+                      { type: "null" },
+                    ],
+                }
+        generated_at: { type: string, format: date-time }
+      required: [strain, hero, generated_at]
+    ORBoardEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/ORBoard" }
+    ORBoard:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              status:
+                {
+                  type: string,
+                  enum: [available, in_progress, turnover, delayed],
+                }
+              tier:
+                {
+                  $ref: "#/components/schemas/StatusValue",
+                  description: Legacy visual-status alias; prefer visual_status.,
+                }
+              visual_status: { $ref: "#/components/schemas/StatusValue" }
+              time_remaining: { oneOf: [{ type: integer }, { type: "null" }] }
+              turnover_min: { oneOf: [{ type: integer }, { type: "null" }] }
+              current:
+                {
+                  oneOf:
+                    [
+                      { type: object, additionalProperties: true },
+                      { type: "null" },
+                    ],
+                }
+              next:
+                {
+                  oneOf:
+                    [
+                      { type: object, additionalProperties: true },
+                      { type: "null" },
+                    ],
+                }
+            required: [id, name, status, visual_status, tier]
+        metrics:
+          type: object
+          properties:
+            running: { type: integer }
+            turnover: { type: integer }
+            available: { type: integer }
+            total: { type: integer }
+            avg_turnover_min: { type: integer }
+          required: [running, turnover, available, total, avg_turnover_min]
+      required: [rooms, metrics]
+    OpsInboxEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/OpsApproval" },
+              }
+    OpsApproval:
+      type: object
+      properties:
+        approval_uuid: { type: string, format: uuid }
+        title: { type: string }
+        rationale: { oneOf: [{ type: string }, { type: "null" }] }
+        type: { oneOf: [{ type: string }, { type: "null" }] }
+        risk: { oneOf: [{ type: string }, { type: "null" }] }
+        tier:
+          {
+            $ref: "#/components/schemas/StatusValue",
+            description: Legacy visual-status alias; prefer visual_status.,
+          }
+        visual_status: { $ref: "#/components/schemas/StatusValue" }
+        owner: { oneOf: [{ type: string }, { type: "null" }] }
+        requested_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+      required: [approval_uuid, title, visual_status, tier]
+    ApprovalDecision:
+      {
+        type: object,
+        properties:
+          {
+            decision: { type: string, enum: [approved, rejected] },
+            reason: { type: string },
+          },
+        required: [decision],
+      }
 
     # ---- Transport / EVS ----
-    StatusTransition: { type: object, properties: { status: { type: string }, assigned_team: { type: string }, note: { type: string }, version: { type: string, description: Optimistic-concurrency token. } }, required: [status] }
+    Sla:
+      type: object
+      properties:
+        minutes_until_due:
+          { oneOf: [{ type: integer }, { type: number }, { type: "null" }] }
+        at_risk: { type: boolean }
+        label: { type: string }
+      required: [at_risk, label]
+    TransportQueueEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/TransportQueue" }
+    TransportQueue:
+      type: object
+      properties:
+        metrics:
+          type: object
+          properties:
+            active: { type: integer }
+            stat: { type: integer }
+            at_risk: { type: integer }
+            completed_today: { type: integer }
+          required: [active, stat, at_risk, completed_today]
+        jobs:
+          { type: array, items: { $ref: "#/components/schemas/TransportJob" } }
+      required: [metrics, jobs]
+    TransportJob:
+      type: object
+      properties:
+        id: { type: integer }
+        uuid: { oneOf: [{ type: string, format: uuid }, { type: "null" }] }
+        type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        tier:
+          {
+            $ref: "#/components/schemas/StatusValue",
+            description: Legacy visual-status alias; prefer visual_status.,
+          }
+        visual_status: { $ref: "#/components/schemas/StatusValue" }
+        origin: { oneOf: [{ type: string }, { type: "null" }] }
+        destination: { oneOf: [{ type: string }, { type: "null" }] }
+        mode: { oneOf: [{ type: string }, { type: "null" }] }
+        needed_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        sla: { $ref: "#/components/schemas/Sla" }
+      required: [id, type, priority, status, visual_status, tier, sla]
+    EvsQueueEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EvsQueue" }
+    EvsQueue:
+      type: object
+      properties:
+        metrics:
+          type: object
+          properties:
+            pending: { type: integer }
+            overdue: { type: integer }
+            isolation: { type: integer }
+            completed_today: { type: integer }
+          required: [pending, overdue, isolation, completed_today]
+        turns: { type: array, items: { $ref: "#/components/schemas/EvsTurn" } }
+      required: [metrics, turns]
+    EvsTurn:
+      type: object
+      properties:
+        id: { type: integer }
+        uuid: { oneOf: [{ type: string, format: uuid }, { type: "null" }] }
+        request_type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        tier:
+          {
+            $ref: "#/components/schemas/StatusValue",
+            description: Legacy visual-status alias; prefer visual_status.,
+          }
+        visual_status: { $ref: "#/components/schemas/StatusValue" }
+        location_label: { oneOf: [{ type: string }, { type: "null" }] }
+        unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        turn_type: { oneOf: [{ type: string }, { type: "null" }] }
+        isolation_required: { type: boolean }
+        needed_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        sla: { $ref: "#/components/schemas/Sla" }
+      required:
+        [
+          id,
+          request_type,
+          priority,
+          status,
+          visual_status,
+          tier,
+          isolation_required,
+          sla,
+        ]
+    StatusTransition:
+      {
+        type: object,
+        properties:
+          {
+            status: { type: string },
+            assigned_team: { type: string },
+            note: { type: string },
+            version:
+              { type: string, description: Optimistic-concurrency token. },
+          },
+        required: [status],
+      }
     Handoff:
       type: object
       properties:
@@ -589,6 +2006,132 @@ components:
         outstanding_risks: { type: array, items: { type: string } }
       required: [handoff_to]
 
+    # ---- Staffing / Improvement ----
+    StaffingOverviewEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/StaffingOverview" }
+    StaffingOverview:
+      type: object
+      properties:
+        metrics:
+          type: object
+          properties:
+            open_requests: { type: integer }
+            at_risk_units: { type: integer }
+            critical_gaps: { type: integer }
+            unfilled_requests: { type: integer }
+            total_gap_headcount: { type: integer }
+            coverage_pct: { type: integer }
+            stat_requests: { type: integer }
+          required:
+            [
+              open_requests,
+              at_risk_units,
+              critical_gaps,
+              total_gap_headcount,
+              coverage_pct,
+              stat_requests,
+            ]
+        coverage: { type: object, additionalProperties: true }
+        units_at_risk:
+          { type: array, items: { type: object, additionalProperties: true } }
+        by_role:
+          { type: array, items: { type: object, additionalProperties: true } }
+        queue:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/StaffingRequest" },
+          }
+        resource_options:
+          { type: array, items: { type: object, additionalProperties: true } }
+      required:
+        [metrics, coverage, units_at_risk, by_role, queue, resource_options]
+    StaffingFill:
+      type: object
+      properties:
+        assigned_source: { type: string, maxLength: 120 }
+        owner_name:
+          { oneOf: [{ type: string, maxLength: 120 }, { type: "null" }] }
+      required: [assigned_source]
+    StaffingRequestEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/StaffingRequest" }
+    StaffingRequest:
+      type: object
+      properties:
+        staffing_request_id: { type: integer }
+        request_uuid: { type: string, format: uuid }
+        unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        unit_label: { oneOf: [{ type: string }, { type: "null" }] }
+        staffing_plan_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        role: { type: string }
+        role_label: { type: string }
+        shift_date:
+          { oneOf: [{ type: string, format: date }, { type: "null" }] }
+        shift: { oneOf: [{ type: string }, { type: "null" }] }
+        request_type: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        headcount_needed: { oneOf: [{ type: integer }, { type: "null" }] }
+        hours_needed: { oneOf: [{ type: number }, { type: "null" }] }
+        needed_by:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        assigned_source: { oneOf: [{ type: string }, { type: "null" }] }
+        owner_name: { oneOf: [{ type: string }, { type: "null" }] }
+        risk_flags: { type: array, items: { type: string } }
+        resolution_payload: { type: object, additionalProperties: true }
+        metadata: { type: object, additionalProperties: true }
+        sla: { $ref: "#/components/schemas/Sla" }
+      required: [staffing_request_id, role, role_label, priority, status, sla]
+    PdsaCycleListEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              { type: array, items: { $ref: "#/components/schemas/PdsaCycle" } }
+    PdsaCycle:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { type: string }
+        owner: { oneOf: [{ type: string }, { type: "null" }] }
+        objective: { oneOf: [{ type: string }, { type: "null" }] }
+        unit: { oneOf: [{ type: string }, { type: "null" }] }
+        started_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        target_date:
+          { oneOf: [{ type: string, format: date }, { type: "null" }] }
+      required: [id, title, status]
+    ImprovementOpportunityListEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/ImprovementOpportunity" },
+              }
+    ImprovementOpportunity:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { oneOf: [{ type: string }, { type: "null" }] }
+        department: { oneOf: [{ type: string }, { type: "null" }] }
+        priority: { type: string }
+        status: { type: string }
+        impact: { oneOf: [{ type: number }, { type: "null" }] }
+      required: [id, title, priority, status]
+
     # ---- Realtime ----
     RealtimeConfig:
       type: object
@@ -597,28 +2140,79 @@ components:
         host: { type: string }
         port: { type: integer }
         key: { type: string }
-        channels: { type: array, items: { type: string }, description: "PHI-free public channels (e.g. unit.{id}, hospital.beds)." }
-        note: { type: string, description: Reverb does not replay — re-snapshot tracked queries on every (re)connect. }
+        channels:
+          {
+            type: array,
+            items: { type: string },
+            description: "PHI-free public channels (e.g. unit.{id}, hospital.beds).",
+          }
+        note:
+          {
+            type: string,
+            description: Reverb does not replay — re-snapshot tracked queries on every (re)connect.,
+          }
+    RealtimeConfigEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - {
+            type: object,
+            properties:
+              { data: { $ref: "#/components/schemas/RealtimeConfig" } },
+          }
 
     # ---- Eddy (process-aware AI agent) ----
     EddyChatRequest:
       type: object
       properties:
         message: { type: string, maxLength: 8000 }
-        surface: { type: string, description: "ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat", default: chat }
-        conversation_id: { type: string, format: uuid, description: Continue an existing conversation; omit to start a new one. }
-        page_context: { type: string, description: The mobile screen Eddy is invoked from (process-awareness hint). }
+        surface:
+          {
+            type: string,
+            description: "ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat",
+            default: chat,
+          }
+        conversation_id:
+          {
+            type: string,
+            format: uuid,
+            description: Continue an existing conversation; omit to start a new one.,
+          }
+        page_context:
+          {
+            type: string,
+            description: The mobile screen Eddy is invoked from (process-awareness hint).,
+          }
       required: [message]
     EddyProposedAction:
       type: object
       description: A DRAFT for human approval — Eddy never executes. Render the approval sheet from this.
       properties:
-        action_type: { type: string, enum: [flag_barrier, propose_huddle_action, propose_transport_dispatch, propose_bed_placement, propose_surge_plan] }
+        action_type:
+          {
+            type: string,
+            enum:
+              [
+                flag_barrier,
+                propose_huddle_action,
+                propose_transport_dispatch,
+                propose_bed_placement,
+                propose_surge_plan,
+              ],
+          }
         title: { type: string }
-        params: { type: object, additionalProperties: true, description: Operational params (unit codes/counts) — not patient PHI. }
+        params:
+          {
+            type: object,
+            additionalProperties: true,
+            description: Operational params (unit codes/counts) — not patient PHI.,
+          }
         rationale: { type: string }
-        runner_up: { type: string, description: The defensible alternative Eddy weighed. }
-        tier: { type: string, enum: [T1, T2, T3] }
+        runner_up:
+          {
+            type: string,
+            description: The defensible alternative Eddy weighed.,
+          }
+        tier: { type: string, enum: [T1, T2, T3, T4] }
         risk: { type: string, enum: [low, medium, high, critical] }
         label: { type: string }
     EddyMessage:
@@ -627,11 +2221,22 @@ components:
         id: { type: integer }
         role: { type: string, enum: [user, assistant] }
         content: { type: string }
-        provider: { type: string, description: "ollama|anthropic — the model that answered." }
-        proposed_action: { oneOf: [{ $ref: '#/components/schemas/EddyProposedAction' }, { type: 'null' }] }
+        provider:
+          {
+            type: string,
+            description: "ollama|anthropic — the model that answered.",
+          }
+        proposed_action:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/EddyProposedAction" },
+                { type: "null" },
+              ],
+          }
     EddyChatEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
@@ -641,8 +2246,11 @@ components:
                 status: { type: string, enum: [success, error] }
                 message:
                   oneOf:
-                    - { $ref: '#/components/schemas/EddyMessage' }
-                    - { type: string, description: A notice string on hard failure (status=error). }
+                    - { $ref: "#/components/schemas/EddyMessage" }
+                    - {
+                        type: string,
+                        description: A notice string on hard failure (status=error).,
+                      }
     EddyApprovalSummary:
       type: object
       description: PHI-free summary the doorbell deep-links into. Tier is server-derived from the action catalog.
@@ -652,30 +2260,43 @@ components:
         action_type: { type: string }
         title: { type: string }
         surface: { type: string }
-        tier: { type: string, enum: [T1, T2, T3] }
+        tier: { type: string, enum: [T1, T2, T3, T4] }
         risk: { type: string, enum: [low, medium, high, critical] }
         requested_at: { type: string, format: date-time }
       required: [approval_uuid, action_type, tier]
     EddyApprovalListEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
-            data: { type: array, items: { $ref: '#/components/schemas/EddyApprovalSummary' } }
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/EddyApprovalSummary" },
+              }
     EddyApprovalPreviewEnvelope:
       allOf:
-        - { $ref: '#/components/schemas/Envelope' }
+        - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
             data:
               allOf:
-                - { $ref: '#/components/schemas/EddyApprovalSummary' }
+                - { $ref: "#/components/schemas/EddyApprovalSummary" }
                 - type: object
                   properties:
                     rationale: { type: string }
                     runner_up: { type: string }
-                    params: { type: object, additionalProperties: true, description: Operational params only — no patient PHI. }
-                    preview: { type: string, description: Human-readable "would do X" dry-run descriptor. }
+                    params:
+                      {
+                        type: object,
+                        additionalProperties: true,
+                        description: Operational params only — no patient PHI.,
+                      }
+                    preview:
+                      {
+                        type: string,
+                        description: Human-readable "would do X" dry-run descriptor.,
+                      }
     EddyApprovalDecision:
       type: object
       properties:

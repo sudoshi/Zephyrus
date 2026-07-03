@@ -5,9 +5,12 @@ namespace App\Services\Mobile;
 use App\Models\Barrier;
 use App\Models\BedRequest;
 use App\Models\Evs\EvsRequest;
+use App\Models\Ops\Approval;
+use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Services\AcuityService;
+use App\Services\Staffing\StaffingOperationsService;
 use Illuminate\Support\Collection;
 
 class MobileForYouService
@@ -124,6 +127,56 @@ class MobileForYouService
             ]));
         }
 
+        foreach (Approval::query()->where('status', 'pending')->with('action.recommendation')->orderByDesc('requested_at')->get() as $approval) {
+            $recommendation = $approval->action?->recommendation;
+            $tier = match ($recommendation?->risk_level) {
+                'critical' => 'critical',
+                'high' => 'warning',
+                default => 'info',
+            };
+
+            $items->push($this->item([
+                'id' => 'ops-approval-'.$approval->approval_uuid,
+                'type' => 'ops_approval',
+                'domain' => 'ops',
+                'tier' => $tier,
+                'title' => $recommendation?->title ?? 'Operational approval',
+                'subtitle' => collect([$recommendation?->recommendation_type, $approval->action?->owner_name, $recommendation?->risk_level])
+                    ->filter()
+                    ->join(' · '),
+                'unit' => null,
+                'at' => optional($approval->requested_at)->toIso8601String(),
+                'dependencies' => [['type' => 'ops_approval', 'owner_role' => 'capacity_lead', 'status' => $approval->status]],
+                'provenance' => ['source_service' => 'Approval', 'metric_key' => 'ops.pending_approval', 'stale' => false],
+            ]));
+        }
+
+        foreach (StaffingRequest::active()->orderByRaw("CASE priority WHEN 'stat' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END")->orderByRaw('needed_by NULLS LAST')->get() as $request) {
+            $tier = match ($request->priority) {
+                'stat' => 'critical',
+                'urgent' => 'warning',
+                default => 'info',
+            };
+            $roleLabel = StaffingOperationsService::ROLE_LABELS[$request->role] ?? $request->role;
+
+            $items->push($this->item([
+                'id' => 'staffing-'.$request->staffing_request_id,
+                'type' => 'staffing_request',
+                'domain' => 'staffing',
+                'tier' => $tier,
+                'title' => 'Staffing gap: '.$roleLabel,
+                'subtitle' => collect([
+                    $request->unit_label,
+                    $request->headcount_needed ? $request->headcount_needed.' needed' : null,
+                    $request->shift,
+                ])->filter()->join(' · '),
+                'unit' => $request->unit_label,
+                'at' => optional($request->needed_by)->toIso8601String(),
+                'dependencies' => [['type' => 'staffing_request', 'owner_role' => 'staffing_coordinator', 'status' => $request->status]],
+                'provenance' => ['source_service' => 'StaffingRequest', 'metric_key' => 'staffing.active_request', 'stale' => false],
+            ]));
+        }
+
         $rank = ['critical' => 0, 'warning' => 1, 'info' => 2, 'success' => 3];
 
         return $items
@@ -138,6 +191,8 @@ class MobileForYouService
 
         return array_merge([
             'altitude' => 'A2',
+            'tier' => $tier,
+            'visual_status' => $tier,
             'status' => $tier,
             'status_detail' => [
                 'value' => $tier,

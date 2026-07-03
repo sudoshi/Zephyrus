@@ -166,7 +166,7 @@ struct ActivityEventRow: View {
                     NavigationLink {
                         PatientOperationalContextView(contextRef: ref)
                     } label: {
-                        Label("Open patient context", systemImage: "person.text.rectangle")
+                        Label("Open operational patient context", systemImage: "person.text.rectangle")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Z.primary)
                     }
@@ -192,7 +192,7 @@ struct ActivityEventRow: View {
 
 struct PatientContextLink: View {
     let contextRef: String
-    var title = "Open patient context"
+    var title = "Open operational patient context"
 
     var body: some View {
         NavigationLink {
@@ -203,11 +203,10 @@ struct PatientContextLink: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Z.primary)
                 Spacer()
-                Text(contextRef)
+                Text("Authorized context")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Z.inkMuted)
                     .lineLimit(1)
-                    .truncationMode(.middle)
             }
             .padding(Z.s3)
             .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))

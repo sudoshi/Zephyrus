@@ -198,7 +198,7 @@ class MobileBackendSafetyTest extends TestCase
         $this->assertSame('requested', $transport->fresh()->status);
     }
 
-    public function test_activity_and_for_you_payloads_do_not_leak_raw_patient_refs(): void
+    public function test_mobile_list_payloads_do_not_leak_raw_patient_refs(): void
     {
         $this->actingAsMobile(['mobile:read']);
         $rawPatientRef = 'SECRET-MRN-ACTIVITY-1';
@@ -210,6 +210,16 @@ class MobileBackendSafetyTest extends TestCase
             'service' => 'Medicine',
             'acuity_tier' => 1,
             'status' => 'pending',
+        ]);
+        $this->transportRequest([
+            'patient_ref' => $rawPatientRef,
+            'encounter_ref' => $rawEncounterRef,
+            'priority' => 'stat',
+        ]);
+        $this->evsRequest([
+            'patient_ref' => $rawPatientRef,
+            'encounter_ref' => $rawEncounterRef,
+            'needed_at' => now()->subMinutes(10),
         ]);
 
         app(OperationalActivityLedger::class)->record('transport.progressed', [
@@ -238,11 +248,20 @@ class MobileBackendSafetyTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.patient_context_ref', fn (?string $ref): bool => str_starts_with((string) $ref, 'ptok_'))
             ->getContent();
+        $listBodies = [
+            'activity' => $activityBody,
+            'for-you' => $forYouBody,
+            'rtdc-bed-requests' => $this->getJson('/api/mobile/v1/rtdc/bed-requests')->assertOk()->getContent(),
+            'transport-queue' => $this->getJson('/api/mobile/v1/transport/queue')->assertOk()->getContent(),
+            'evs-queue' => $this->getJson('/api/mobile/v1/evs/queue')->assertOk()->getContent(),
+            'altitude-home' => $this->getJson('/api/mobile/v1/altitude/home?persona=bed_manager')->assertOk()->getContent(),
+            'altitude-workspace' => $this->getJson('/api/mobile/v1/altitude/workspace/rtdc?persona=bed_manager')->assertOk()->getContent(),
+        ];
 
-        $this->assertStringNotContainsString($rawPatientRef, $activityBody);
-        $this->assertStringNotContainsString($rawEncounterRef, $activityBody);
-        $this->assertStringNotContainsString($rawPatientRef, $forYouBody);
-        $this->assertStringNotContainsString($rawEncounterRef, $forYouBody);
+        foreach ($listBodies as $surface => $body) {
+            $this->assertStringNotContainsString($rawPatientRef, $body, "{$surface} leaked a raw patient ref.");
+            $this->assertStringNotContainsString($rawEncounterRef, $body, "{$surface} leaked a raw encounter ref.");
+        }
     }
 
     public function test_eddy_context_packets_are_phi_minimized_and_do_not_grant_ops_approve(): void
