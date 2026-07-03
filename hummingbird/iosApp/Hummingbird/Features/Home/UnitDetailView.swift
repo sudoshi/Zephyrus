@@ -21,7 +21,6 @@ struct UnitDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Z.s5) {
-                AltitudeBreadcrumbView(current: .a1)
                 gauge
                 StatusChip(status: status)
 
@@ -114,7 +113,7 @@ struct UnitDetailView: View {
                     Text("\(pct)%")
                         .font(.system(size: 44, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.ink)
-                    Text("\(unit.occupied) / \(unit.staffedBedCount) staffed")
+                    Text("\(unit.occupied) / \(unit.staffedBedCount) staffed").monospacedDigit()
                         .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
                 }
             } else {

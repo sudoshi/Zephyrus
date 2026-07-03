@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -49,6 +51,7 @@ import net.acumenus.hummingbird.data.EvsSla
 import net.acumenus.hummingbird.data.StaffingMetrics
 import net.acumenus.hummingbird.data.StaffingReq
 import net.acumenus.hummingbird.data.UnitAtRisk
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
@@ -97,8 +100,13 @@ fun StaffingScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.load(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -134,6 +142,7 @@ fun StaffingScreen(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -217,7 +226,7 @@ private fun StaffingMetricsRow(metrics: StaffingMetrics) {
 }
 
 @Composable
-private fun StaffingMetricCell(value: String, label: String, tone: CapacityStatus) {
+private fun RowScope.StaffingMetricCell(value: String, label: String, tone: CapacityStatus) {
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, color = tone.color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
         Text(label, color = Z.inkMuted, fontSize = 11.sp, maxLines = 1)

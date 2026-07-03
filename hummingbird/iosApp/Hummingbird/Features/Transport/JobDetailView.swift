@@ -34,7 +34,7 @@ struct JobDetailView: View {
                     DrillDetailView(itemUuid: "transport-\(job.id)")
                 } label: {
                     HStack {
-                        Label("Explain trip signal", systemImage: "questionmark.circle")
+                        Label("Why this trip?", systemImage: "questionmark.circle")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Z.primary)
                         Spacer()
@@ -55,12 +55,14 @@ struct JobDetailView: View {
         .navigationTitle("Trip")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { primaryBar }
+        .sensoryFeedback(.success, trigger: status)
         .sheet(isPresented: $showHandoff) {
             HandoffSheet { to, summary in
                 Task {
                     working = true
                     await handoff(job.id, to, summary)
                     status = "handoff_complete"
+                    syncActivity("handoff_complete")
                     working = false
                     showHandoff = false
                 }
@@ -74,7 +76,6 @@ struct JobDetailView: View {
     private var routeCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
-                AltitudeBreadcrumbView(current: .a2, includesPatient: job.patientContextRef != nil)
                 HStack {
                     JobPriorityChip(job: job)
                     Spacer()
@@ -135,37 +136,24 @@ struct JobDetailView: View {
     @ViewBuilder
     private var primaryBar: some View {
         if let n = nextAction(after: status) {
-            Button {
-                if n.status == handoffSentinel {
-                    showHandoff = true
-                } else {
-                    Task {
-                        working = true
-                        await advance(job.id, n.status)
-                        status = n.status
-                        working = false
-                        if n.status == "completed" { dismiss() }
+            HBActionBar {
+                HBPrimaryActionButton(title: n.label, working: working) {
+                    if n.status == handoffSentinel {
+                        showHandoff = true
+                    } else {
+                        Task {
+                            working = true
+                            await advance(job.id, n.status)
+                            status = n.status
+                            syncActivity(n.status)
+                            working = false
+                            if n.status == "completed" { dismiss() }
+                        }
                     }
                 }
-            } label: {
-                HStack(spacing: Z.s2) {
-                    if working { ProgressView().tint(.white) }
-                    Text(n.label).font(.system(size: 17, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity).padding(.vertical, Z.s3)
-                .foregroundStyle(.white)
-                .background(RoundedRectangle(cornerRadius: 12).fill(working ? Z.primary.opacity(0.5) : Z.primary))
             }
-            .disabled(working)
-            .padding(Z.s4)
-            .background(.ultraThinMaterial)
         } else {
-            HStack(spacing: Z.s2) {
-                Image(systemName: "checkmark.seal.fill").foregroundStyle(Z.status(.success))
-                Text("Trip complete").font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
-            }
-            .frame(maxWidth: .infinity).padding(Z.s4)
-            .background(.ultraThinMaterial)
+            HBCompletionBanner(icon: "checkmark.seal.fill", text: "Trip complete")
         }
     }
 
@@ -211,6 +199,16 @@ struct JobDetailView: View {
 
     private let handoffSentinel = "__handoff__"
 
+    /// Mirror this trip onto the lock screen / Dynamic Island after each lifecycle tap.
+    private func syncActivity(_ newStatus: String) {
+        JobActivityController.sync(
+            kind: "transport", id: job.id,
+            title: job.priority == "stat" ? "STAT transport" : "Transport trip",
+            detail: "\(job.origin ?? "—") → \(job.destination ?? "—")",
+            isStat: job.priority == "stat",
+            statusRaw: newStatus, statusLabel: statusLabel(newStatus))
+    }
+
     private func nextAction(after s: String) -> (label: String, status: String)? {
         switch s {
         case "requested", "accepted", "queued": return ("Claim this trip", "assigned")
@@ -233,6 +231,7 @@ struct HandoffSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var handoffTo = ""
     @State private var summary = ""
+    @FocusState private var focusedField: String?
 
     var body: some View {
         NavigationStack {
@@ -267,10 +266,13 @@ struct HandoffSheet: View {
         VStack(alignment: .leading, spacing: Z.s2) {
             Text(label).font(.system(size: 11, weight: .semibold)).tracking(0.5).foregroundStyle(Z.inkMuted)
             TextField(placeholder, text: text, axis: .vertical)
+                .focused($focusedField, equals: label)
                 .font(.system(size: 16)).foregroundStyle(Z.ink)
                 .padding(Z.s3)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Z.surface))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(focusedField == label ? Z.gold : Z.border, lineWidth: focusedField == label ? 1.5 : 1))
+                .animation(.easeOut(duration: 0.15), value: focusedField)
         }
     }
 }

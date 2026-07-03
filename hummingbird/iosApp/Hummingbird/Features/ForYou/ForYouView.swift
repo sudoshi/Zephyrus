@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 @MainActor
 final class ForYouViewModel: ObservableObject {
@@ -44,6 +45,12 @@ final class ForYouViewModel: ObservableObject {
         do {
             items = try await api.forYou(bearer: bearer)
             errorMessage = nil
+            // Feed the For You count widget (counts only — no item content leaves the app).
+            ForYouGlanceCache.save(ForYouGlanceSnapshot(
+                pending: items.count,
+                critical: items.filter { $0.tier == "critical" }.count,
+                updatedAt: Date()))
+            WidgetCenter.shared.reloadTimelines(ofKind: ForYouGlanceCache.widgetKind)
         } catch let error as APIError {
             errorMessage = error.message
         } catch {
@@ -76,6 +83,7 @@ struct ForYouView: View {
     @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm = ForYouViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var path = NavigationPath()
+    @State private var showProfile = false
 
     private var role: RoleExperience { RoleExperience.of(profile.roleId) }
 
@@ -87,7 +95,7 @@ struct ForYouView: View {
                     header(count: items.count)
                     AltitudeContextCard(domain: roleAltitudeDomain)
                     if vm.items.isEmpty && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.items.isEmpty && vm.errorMessage != nil {
                         // A failed load must never read as "All clear".
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load your queue",
@@ -115,6 +123,15 @@ struct ForYouView: View {
             .background(Z.bg)
             .navigationTitle("For You")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: {
+                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                    }
+                    .accessibilityLabel("Profile and settings")
+                }
+            }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .navigationDestination(for: Int.self) { unitId in
                 if let unit = vm.unitsById[unitId] {
                     UnitDetailView(unit: unit, webLink: vm.webLink)
@@ -154,7 +171,7 @@ struct ForYouView: View {
                 .font(.system(size: 22, weight: .semibold)).foregroundStyle(Z.ink)
             // Suppress the count when we have nothing because the load failed (it's unknown, not 0).
             if !(vm.items.isEmpty && vm.errorMessage != nil) {
-                Text("\(count) item\(count == 1 ? "" : "s") to action")
+                Text("\(count) item\(count == 1 ? "" : "s") to action").monospacedDigit()
                     .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
             }
         }
@@ -211,8 +228,10 @@ struct ForYouRow: View {
             HStack(spacing: Z.s3) {
                 Image(systemName: icon)
                     .font(.system(size: 18)).foregroundStyle(Z.status(status)).frame(width: 26)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                        .accessibilityLabel("\(status.label): \(item.title)")
                     Text(item.subtitle).font(.system(size: 13)).foregroundStyle(Z.inkMuted).lineLimit(2)
                     if let meta = metaLine {
                         Text(meta).font(.system(size: 11)).foregroundStyle(Z.inkMuted)
@@ -237,6 +256,7 @@ struct ForYouRow: View {
                 } else if navigable {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.inkMuted)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(Z.s3)

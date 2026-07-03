@@ -36,18 +36,18 @@ struct AltitudeContextCard: View {
         if vm.home != nil || vm.workspace != nil {
             Panel {
                 VStack(alignment: .leading, spacing: Z.s3) {
-                    HStack(alignment: .top) {
-                        AltitudeBreadcrumbView(current: .a1)
-                        Spacer()
+                    // The worker's question leads; the model's coordinates stay backstage.
+                    HStack(alignment: .top, spacing: Z.s2) {
+                        if let question = vm.home?.glanceQuestion {
+                            Text(question)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Z.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: Z.s2)
                         if let status = vm.home?.status {
                             StatusChip(status: status.capacity)
                         }
-                    }
-
-                    if let question = vm.home?.glanceQuestion {
-                        Text(question)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Z.ink)
                     }
 
                     if let summary = vm.workspace?.workspace?.summary {

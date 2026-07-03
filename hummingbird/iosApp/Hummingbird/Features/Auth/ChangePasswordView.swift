@@ -129,7 +129,9 @@ struct ChangePasswordView: View {
                 .foregroundStyle(Z.ink)
                 .padding(Z.s3)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Z.bg))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(focused == field ? Z.gold : Z.border, lineWidth: focused == field ? 1.5 : 1))
+                .animation(.easeOut(duration: 0.15), value: focused)
         }
     }
 }

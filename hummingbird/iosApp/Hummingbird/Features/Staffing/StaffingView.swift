@@ -46,7 +46,7 @@ struct StaffingView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "staffing")
                     if vm.overview == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.overview == nil, let e = vm.errorMessage {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load staffing",
                                          message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
@@ -68,7 +68,7 @@ struct StaffingView: View {
             .navigationTitle("Staffing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }
+                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
             } }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
@@ -110,7 +110,7 @@ struct StaffingView: View {
                 Rectangle().fill(Z.status(u.capacity)).frame(width: 4).cornerRadius(2)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(u.unitLabel).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink).lineLimit(1)
-                    Text("\(u.worstRoleLabel) · short \(u.gapHeadcount)").font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    Text("\(u.worstRoleLabel) · short \(u.gapHeadcount)").monospacedDigit().font(.system(size: 12)).foregroundStyle(Z.inkMuted)
                 }.padding(.leading, Z.s3)
                 Spacer()
                 StatusChip(status: u.capacity)
@@ -131,7 +131,7 @@ struct StaffingView: View {
                 NavigationLink {
                     DrillDetailView(itemUuid: "staffing-\(r.id)")
                 } label: {
-                    Label("Explain staffing signal", systemImage: "info.circle")
+                    Label("Why this gap?", systemImage: "info.circle")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Z.primary)
                 }

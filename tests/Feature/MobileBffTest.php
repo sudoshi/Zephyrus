@@ -234,6 +234,35 @@ class MobileBffTest extends TestCase
             ->assertJsonStructure(['data' => [['event_uuid', 'event_type', 'occurred_at', 'domain', 'phi_policy']]]);
     }
 
+    /**
+     * Every surface must read the same occupancy. With no census_snapshots rows (fresh
+     * dataset / snapshot pipeline not running), the executive brief must fall back to the
+     * live bed board instead of reporting 0% while /rtdc/house reports the real number.
+     */
+    public function test_command_house_occupancy_matches_the_live_census_when_snapshots_are_absent(): void
+    {
+        $this->seed(RtdcSeeder::class); // units + beds spine, deliberately no census_snapshots
+        Sanctum::actingAs($this->user(), ['mobile:read']);
+
+        // Occupy some beds so 0% (empty house) can't trivially satisfy the comparison.
+        DB::table('prod.beds')->whereIn(
+            'bed_id',
+            DB::table('prod.beds')->where('is_deleted', false)->limit(40)->pluck('bed_id')
+        )->update(['status' => 'occupied']);
+
+        $livePercent = $this->getJson('/api/mobile/v1/rtdc/house')
+            ->assertOk()
+            ->json('data.occupancy.percent');
+
+        $hero = collect($this->getJson('/api/mobile/v1/command/house')->assertOk()->json('data.hero'));
+        $occupancy = $hero->firstWhere('key', 'occupancy');
+
+        $this->assertNotNull($occupancy, 'command/house hero metrics must include occupancy');
+        $this->assertGreaterThan(0, $livePercent, 'seeded census should not be empty');
+        $this->assertSame($livePercent, $occupancy['value'],
+            'executive occupancy must agree with the live RTDC census');
+    }
+
     private function user(): User
     {
         $user = new User;

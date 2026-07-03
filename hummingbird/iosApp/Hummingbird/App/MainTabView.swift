@@ -40,6 +40,7 @@ struct MainTabView: View {
                 .tabItem { Label("Activity", systemImage: "waveform.path.ecg.rectangle") }
         }
         .tint(Z.primary)
+        .hbScrollEdge()
         .onChange(of: push.deeplinkTab) { _, tab in
             // A tapped push routes here: For You by default, House if specified.
             guard let tab else { return }

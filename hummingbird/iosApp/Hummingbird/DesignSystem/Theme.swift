@@ -4,8 +4,15 @@
 // UI can honor "status never by color alone."
 
 import SwiftUI
+import UIKit
 
 enum Z {
+    /// Dynamic-Type-aware system font: scales the base point size with the user's text-size
+    /// setting (body metrics). Use for all reader-facing text in shared components.
+    static func scaledFont(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        .system(size: UIFontMetrics(forTextStyle: .body).scaledValue(for: size), weight: weight)
+    }
+
     // Operational surfaces & ink
     static let bg = ZephyrusColors.operationalSurfaceBaseDark
     static let surface = ZephyrusColors.operationalSurfaceRaisedDark

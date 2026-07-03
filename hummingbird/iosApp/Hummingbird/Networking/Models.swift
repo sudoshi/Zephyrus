@@ -570,6 +570,31 @@ struct ActivityEvent: Decodable, Identifiable {
     let phiPolicy: [String: JSONValue]?
     let entities: [ActivityEntity]?
 
+    enum CodingKeys: String, CodingKey {
+        case eventUuid, eventType, occurredAt, actorUserId, actorRole, sourceSurface,
+             domain, scope, patientContextRef, status, recommendation, relay, phiPolicy, entities
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        eventUuid = try c.decode(String.self, forKey: .eventUuid)
+        eventType = try c.decode(String.self, forKey: .eventType)
+        occurredAt = try? c.decodeIfPresent(String.self, forKey: .occurredAt)
+        actorUserId = try? c.decodeIfPresent(Int.self, forKey: .actorUserId)
+        actorRole = try? c.decodeIfPresent(String.self, forKey: .actorRole)
+        sourceSurface = try? c.decodeIfPresent(String.self, forKey: .sourceSurface)
+        domain = try? c.decodeIfPresent(String.self, forKey: .domain)
+        patientContextRef = try? c.decodeIfPresent(String.self, forKey: .patientContextRef)
+        // Map fields decode leniently: a legacy backend can emit [] (PHP's empty array)
+        // where the contract says object — one odd event must not kill the whole feed.
+        scope = try? c.decodeIfPresent([String: JSONValue].self, forKey: .scope)
+        status = try? c.decodeIfPresent([String: JSONValue].self, forKey: .status)
+        recommendation = try? c.decodeIfPresent([String: JSONValue].self, forKey: .recommendation)
+        relay = try? c.decodeIfPresent([String: JSONValue].self, forKey: .relay)
+        phiPolicy = try? c.decodeIfPresent([String: JSONValue].self, forKey: .phiPolicy)
+        entities = try? c.decodeIfPresent([ActivityEntity].self, forKey: .entities)
+    }
+
     var id: String { eventUuid }
 
     var severity: CapacityStatus {

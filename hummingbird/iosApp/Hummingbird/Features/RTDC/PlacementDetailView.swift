@@ -15,6 +15,7 @@ struct PlacementDetailView: View {
     @State private var loading = true
     @State private var error: String?
     @State private var working = false
+    @State private var decided = 0
 
     var body: some View {
         ScrollView {
@@ -24,7 +25,7 @@ struct PlacementDetailView: View {
                     DrillDetailView(itemUuid: "bedreq-\(placement.id)")
                 } label: {
                     HStack {
-                        Label("Explain placement signal", systemImage: "questionmark.circle")
+                        Label("Why this placement?", systemImage: "questionmark.circle")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Z.primary)
                         Spacer()
@@ -59,6 +60,8 @@ struct PlacementDetailView: View {
         .navigationTitle("Placement")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { actionBar }
+        .sensoryFeedback(.success, trigger: decided)
+        .sensoryFeedback(trigger: error) { _, new in new == nil ? nil : .error }
         .task { await loadRecs() }
         .tint(Z.primary)
     }
@@ -68,7 +71,6 @@ struct PlacementDetailView: View {
     private var requestCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
-                AltitudeBreadcrumbView(current: .a2, includesPatient: placement.patientContextRef != nil)
                 HStack(spacing: Z.s2) {
                     StatusChip(status: placement.capacity)
                     if placement.needsIsolation { IsolationBadge() }
@@ -116,24 +118,10 @@ struct PlacementDetailView: View {
     @ViewBuilder
     private var actionBar: some View {
         if let top = recs.first {
-            VStack(spacing: Z.s2) {
-                Button { place(top) } label: {
-                    HStack(spacing: Z.s2) {
-                        if working { ProgressView().tint(.white) }
-                        Text("Place in \(top.bedLabel)").font(.system(size: 17, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, Z.s3)
-                    .foregroundStyle(.white)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(working ? Z.primary.opacity(0.5) : Z.primary))
-                }
-                .disabled(working)
-                Button { reject() } label: {
-                    Text("Reject request").font(.system(size: 15, weight: .medium)).foregroundStyle(Z.status(.critical))
-                }
-                .disabled(working)
+            HBActionBar {
+                HBPrimaryActionButton(title: "Place in \(top.bedLabel)", working: working) { place(top) }
+                HBSecondaryActionButton(title: "Reject request", tint: Z.status(.critical), working: working) { reject() }
             }
-            .padding(Z.s4)
-            .background(.ultraThinMaterial)
         }
     }
 
@@ -153,6 +141,7 @@ struct PlacementDetailView: View {
             working = true
             do {
                 try await api.placeBed(id: placement.id, action: "accepted", chosenBedId: rec.bedId, bearer: bearer)
+                decided += 1
                 await onDone()
                 dismiss()
             } catch let e as APIError { error = e.message }
@@ -165,6 +154,7 @@ struct PlacementDetailView: View {
         Task {
             working = true
             try? await api.placeBed(id: placement.id, action: "rejected", chosenBedId: nil, bearer: bearer)
+            decided += 1
             await onDone()
             working = false
             dismiss()

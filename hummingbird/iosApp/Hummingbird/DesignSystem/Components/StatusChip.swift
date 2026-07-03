@@ -7,9 +7,9 @@ struct StatusChip: View {
     var body: some View {
         HStack(spacing: Z.s1) {
             Image(systemName: status.symbol)
-                .font(.system(size: 11, weight: .semibold))
+                .font(Z.scaledFont(11, weight: .semibold))
             Text(status.label.uppercased())
-                .font(.system(size: 11, weight: .semibold))
+                .font(Z.scaledFont(11, weight: .semibold))
                 .tracking(0.4)
         }
         .foregroundStyle(Z.status(status))

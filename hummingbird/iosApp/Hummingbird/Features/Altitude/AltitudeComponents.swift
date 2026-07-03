@@ -1,67 +1,10 @@
 import SwiftUI
 
-enum AltitudeLevel: String, CaseIterable {
-    case a0 = "A0"
-    case a1 = "A1"
-    case a2 = "A2"
-    case a2p = "A2P"
-    case a3 = "A3"
-
-    var label: String {
-        switch self {
-        case .a0: return "Glance"
-        case .a1: return "Workspace"
-        case .a2: return "Drill"
-        case .a2p: return "Patient"
-        case .a3: return "Study"
-        }
-    }
-
-    var rank: Int {
-        Self.allCases.firstIndex(of: self) ?? 0
-    }
-}
-
-struct AltitudeBreadcrumbView: View {
-    let current: AltitudeLevel
-    var includesPatient: Bool = false
-
-    private var levels: [AltitudeLevel] {
-        includesPatient ? [.a0, .a1, .a2, .a2p, .a3] : [.a0, .a1, .a2, .a3]
-    }
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Z.s2) {
-                ForEach(levels, id: \.rawValue) { level in
-                    levelChip(level)
-                    if level != levels.last {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Z.inkMuted)
-                    }
-                }
-            }
-        }
-        .accessibilityLabel("Altitude \(current.rawValue), \(current.label)")
-    }
-
-    private func levelChip(_ level: AltitudeLevel) -> some View {
-        let active = level == current
-        let reached = level.rank < current.rank
-        return HStack(spacing: 4) {
-            Text(level.rawValue)
-                .font(.system(size: 10, weight: .semibold))
-            Text(level.label)
-                .font(.system(size: 10, weight: .medium))
-        }
-        .foregroundStyle(active ? .white : (reached ? Z.primary : Z.inkMuted))
-        .padding(.horizontal, Z.s2)
-        .padding(.vertical, Z.s1)
-        .background(Capsule().fill(active ? Z.primary : Z.surface))
-        .overlay(Capsule().strokeBorder(active ? Z.primary : Z.border, lineWidth: 1))
-    }
-}
+// The Altitude model (A0 glance → A1 workspace → A2 drill → A2P patient → A3 study) is
+// the internal information-architecture discipline: it decides how much context each
+// surface carries. It is deliberately INVISIBLE to end users — screens speak the
+// worker's language (trips, turns, placements, "why this?"), never the model's
+// coordinates. The A0–A3 vocabulary lives only in code, docs, and debug tooling.
 
 struct DependencyListView: View {
     let dependencies: [OperationalDependency]

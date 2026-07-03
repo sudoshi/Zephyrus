@@ -74,6 +74,11 @@ struct RootView: View {
             // Test affordance: SIMCTL_CHILD_HB_LOCK=1 engages the lock screen for QA/screenshots
             // even without enrolled biometrics (pair with HB_NO_AUTOUNLOCK=1). No-op in production.
             if env["HB_LOCK"] == "1", isLoggedIn { lock.isLocked = true }
+            #if DEBUG
+            // Test affordance: SIMCTL_CHILD_HB_DEMO_LIVE_ACTIVITY=1 starts a demo trip Live
+            // Activity so the island/lock-screen UI can be screenshot-verified.
+            JobActivityController.startDemoIfRequested()
+            #endif
 
             // Push: register the APNs token with the BFF once it arrives and we have a session.
             push.onToken = { token in

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -51,6 +52,7 @@ import net.acumenus.hummingbird.data.ForYouViewModel
 import net.acumenus.hummingbird.data.MobileRole
 import net.acumenus.hummingbird.data.MobileRoleCatalog
 import net.acumenus.hummingbird.data.QueueFilter
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
@@ -103,8 +105,13 @@ fun ForYouScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.load(bearer, selectedRole) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -169,6 +176,7 @@ fun ForYouScreen(
                     )
                 }
             }
+        }
         }
     }
 }

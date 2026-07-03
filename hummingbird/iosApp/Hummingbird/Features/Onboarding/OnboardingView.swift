@@ -25,6 +25,8 @@ struct OnboardingView: View {
             footer
         }
         .background(Z.bg.ignoresSafeArea())
+        .sensoryFeedback(.selection, trigger: selectedRole?.id)
+        .sensoryFeedback(.selection, trigger: selectedUnit?.unitId)
         .task {
             if selectedRole == nil, let roles = me?.roles, !roles.isEmpty {
                 selectedRole = Role.matching(serverRoles: roles)

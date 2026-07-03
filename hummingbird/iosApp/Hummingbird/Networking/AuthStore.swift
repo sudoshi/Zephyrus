@@ -116,6 +116,8 @@ final class AuthStore: ObservableObject {
         me = nil
         errorMessage = nil
         phase = .loggedOut
+        // A signed-out device must not keep operational state on the lock screen.
+        JobActivityController.endAll()
     }
 
     private func clearTokens() {

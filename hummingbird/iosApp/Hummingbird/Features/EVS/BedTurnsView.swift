@@ -65,7 +65,7 @@ struct BedTurnsView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "evs")
                     if vm.queue == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.queue == nil && vm.errorMessage != nil {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load turns",
                                          message: vm.errorMessage ?? "", tone: .warning) {
@@ -159,7 +159,7 @@ struct BedTurnsView: View {
     private func overdueBanner(_ overdue: Int) -> some View {
         HStack(spacing: Z.s2) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Z.status(.critical))
-            Text("\(overdue) turn\(overdue == 1 ? "" : "s") past due — beds waiting to open")
+            Text("\(overdue) turn\(overdue == 1 ? "" : "s") past due — beds waiting to open").monospacedDigit()
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(Z.ink)
             Spacer()
         }

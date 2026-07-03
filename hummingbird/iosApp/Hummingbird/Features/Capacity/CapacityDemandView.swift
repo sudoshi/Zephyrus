@@ -57,7 +57,7 @@ struct CapacityDemandView: View {
                     AltitudeContextCard(domain: "ops")
                     if let s = vm.strain { strainHeader(s) }
                     if vm.approvals.isEmpty && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s5)
+                        SkeletonRows()
                     } else if vm.approvals.isEmpty && vm.errorMessage != nil {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load approvals",
                                          message: vm.errorMessage ?? "", tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
@@ -75,7 +75,7 @@ struct CapacityDemandView: View {
             .navigationTitle("Capacity & Demand")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }
+                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
             } }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
@@ -93,7 +93,7 @@ struct CapacityDemandView: View {
             HStack(spacing: Z.s3) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("HOUSE STRAIN").font(.system(size: 11, weight: .semibold)).tracking(0.5).foregroundStyle(Z.inkMuted)
-                    Text("\(s.label) · \(s.level)/4").font(.system(size: 17, weight: .semibold)).foregroundStyle(Z.ink)
+                    Text("\(s.label) · \(s.level)/4").monospacedDigit().font(.system(size: 17, weight: .semibold)).foregroundStyle(Z.ink)
                 }
                 Spacer()
                 StatusChip(status: s.capacity)
@@ -114,7 +114,7 @@ struct CapacityDemandView: View {
                 NavigationLink {
                     DrillDetailView(itemUuid: "ops-approval-\(a.approvalUuid)")
                 } label: {
-                    Label("Explain approval signal", systemImage: "info.circle")
+                    Label("Why this approval?", systemImage: "info.circle")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Z.primary)
                 }

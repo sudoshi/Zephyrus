@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -48,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +60,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.TransportJob
 import net.acumenus.hummingbird.data.TransportMetrics
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
+import net.acumenus.hummingbird.ui.components.hbConfirmHaptic
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
@@ -73,6 +77,7 @@ fun TransportJobsScreen(
 ) {
     val vm: TransportViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    val view = LocalView.current
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -105,8 +110,13 @@ fun TransportJobsScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.load(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -152,6 +162,7 @@ fun TransportJobsScreen(
                                 job = job,
                                 onClick = { onOpenJob(job, queue.webLink) },
                                 inlineAction = TransportInlineAction("Claim", vm.workingJobId == job.id) {
+                                    view.hbConfirmHaptic()
                                     vm.claim(bearer, job.id)
                                 },
                             )
@@ -159,6 +170,7 @@ fun TransportJobsScreen(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -431,6 +443,7 @@ private fun TransportStepRow(step: TransportStep, status: String) {
 @Composable
 private fun TransportPrimaryActionBar(status: String, working: Boolean, onAdvance: (String) -> Unit) {
     val next = nextTransportAction(status)
+    val view = LocalView.current
     Column(Modifier.fillMaxWidth().background(Z.surface).padding(16.dp)) {
         if (next == null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -440,7 +453,10 @@ private fun TransportPrimaryActionBar(status: String, working: Boolean, onAdvanc
             }
         } else {
             Button(
-                onClick = { onAdvance(next.status) },
+                onClick = {
+                    view.hbConfirmHaptic()
+                    onAdvance(next.status)
+                },
                 enabled = !working,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = if (working) Z.primary.copy(alpha = 0.55f) else Z.primary),

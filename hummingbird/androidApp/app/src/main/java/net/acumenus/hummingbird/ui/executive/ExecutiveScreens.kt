@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -49,6 +50,7 @@ import net.acumenus.hummingbird.data.ExecStrain
 import net.acumenus.hummingbird.data.HeroKpi
 import net.acumenus.hummingbird.data.HouseBrief
 import net.acumenus.hummingbird.data.StrainDriver
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
@@ -98,8 +100,13 @@ fun HouseBriefScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.load(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -119,7 +126,8 @@ fun HouseBriefScreen(
                 vm.brief?.let { brief ->
                     item { ExecutiveStrainCard(brief.strain) { onOpenStrain(brief) } }
                     item {
-                        materialDriver(brief.strain)?.let(::ExecutiveOneThing) ?: ExecutiveCalmState()
+                        val one = materialDriver(brief.strain)
+                        if (one != null) ExecutiveOneThing(one) else ExecutiveCalmState()
                     }
                     if (brief.hero.isNotEmpty()) {
                         item { ExecutiveSectionLabel("HOUSE KPIS") }
@@ -136,6 +144,7 @@ fun HouseBriefScreen(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -172,7 +181,10 @@ fun StrainDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { ExecutiveStrainCard(brief.strain) {} }
-            item { materialDriver(brief.strain)?.let(::ExecutiveOneThing) ?: ExecutiveCalmState() }
+            item {
+                val one = materialDriver(brief.strain)
+                if (one != null) ExecutiveOneThing(one) else ExecutiveCalmState()
+            }
             item {
                 Column(Modifier.fillMaxWidth().panel().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Executive brief", color = Z.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)

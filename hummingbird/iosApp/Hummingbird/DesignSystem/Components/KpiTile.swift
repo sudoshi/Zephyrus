@@ -19,10 +19,10 @@ struct KpiTile: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(unit.name)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(Z.scaledFont(16, weight: .semibold))
                             .foregroundStyle(Z.ink)
                         Text(unit.type.replacingOccurrences(of: "_", with: " ").uppercased())
-                            .font(.system(size: 10, weight: .medium))
+                            .font(Z.scaledFont(10, weight: .medium))
                             .tracking(0.5)
                             .foregroundStyle(Z.inkMuted)
                     }
@@ -32,17 +32,17 @@ struct KpiTile: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: Z.s2) {
                     Text("\(unit.occupied)")
-                        .font(.system(size: 34, weight: .semibold))
+                        .font(Z.scaledFont(34, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Z.ink)
                     Text("/ \(unit.staffedBedCount) staffed beds")
-                        .font(.system(size: 13, weight: .regular))
+                        .font(Z.scaledFont(13, weight: .regular)).monospacedDigit()
                         .foregroundStyle(Z.inkMuted)
                     Spacer()
                     // "Over" only when occupancy exceeds staffed beds (bed_need > 0).
                     if unit.bedNeed > 0 && unit.staffedBedCount > 0 {
                         Label("\(unit.bedNeed) over", systemImage: "arrow.up")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Z.scaledFont(12, weight: .semibold))
                             .foregroundStyle(Z.status(.critical))
                             .labelStyle(.titleAndIcon)
                     }
@@ -79,8 +79,8 @@ struct KpiTile: View {
 
     private func metric(_ value: String, _ label: String) -> some View {
         HStack(spacing: Z.s1) {
-            Text(value).font(.system(size: 14, weight: .semibold)).monospacedDigit().foregroundStyle(Z.ink)
-            Text(label).font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+            Text(value).font(Z.scaledFont(14, weight: .semibold)).monospacedDigit().foregroundStyle(Z.ink)
+            Text(label).font(Z.scaledFont(12)).foregroundStyle(Z.inkMuted)
         }
     }
 }

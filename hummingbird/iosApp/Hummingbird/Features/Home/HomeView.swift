@@ -29,7 +29,7 @@ struct HomeView: View {
                     greeting
                     AltitudeContextCard(domain: "rtdc")
                     if vm.units.isEmpty && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.units.isEmpty && vm.errorMessage != nil {
                         // Hard failure with nothing cached — don't render a misleading 0/0 rollup.
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the census",

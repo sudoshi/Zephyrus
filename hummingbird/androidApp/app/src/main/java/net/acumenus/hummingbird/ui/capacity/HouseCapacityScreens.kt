@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +58,8 @@ import net.acumenus.hummingbird.data.PlacementChip
 import net.acumenus.hummingbird.data.PlacementRecommendation
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
+import net.acumenus.hummingbird.ui.components.hbConfirmHaptic
+import net.acumenus.hummingbird.ui.components.hbRejectHaptic
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
@@ -412,16 +415,27 @@ private fun PlacementActionBar(
     onPlace: () -> Unit,
     onReject: () -> Unit,
 ) {
+    val view = LocalView.current
     Column(Modifier.fillMaxWidth().background(Z.surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(
-            onClick = onPlace,
+            onClick = {
+                view.hbConfirmHaptic()
+                onPlace()
+            },
             enabled = !working,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = if (working) Z.primary.copy(alpha = 0.55f) else Z.primary),
         ) {
             Text("Place in ${top.bedLabel}", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }
-        TextButton(onClick = onReject, enabled = !working, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        TextButton(
+            onClick = {
+                view.hbRejectHaptic()
+                onReject()
+            },
+            enabled = !working,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
             Text("Reject request", color = CapacityStatus.CRITICAL.color, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
     }

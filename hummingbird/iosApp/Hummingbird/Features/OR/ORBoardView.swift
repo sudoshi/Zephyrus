@@ -40,7 +40,7 @@ struct ORBoardView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "or")
                     if vm.board == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.board == nil, let e = vm.errorMessage {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the OR board",
                                          message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
@@ -56,7 +56,7 @@ struct ORBoardView: View {
             .navigationTitle("OR Board")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }
+                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
             } }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }

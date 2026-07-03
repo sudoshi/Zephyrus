@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// P5 — the bed manager's "House Capacity" home: the house roll-up (occupancy, net bed-need,
 /// pending placements, ED boarding), the pending-placement worklist, and the pressured units.
@@ -31,6 +32,7 @@ final class HouseCapacityViewModel: ObservableObject {
             webLink = env.links?["web"]
             stale = env.meta?.stale ?? false
             errorMessage = nil
+            cacheGlance(env.data)
         } catch let error as APIError {
             if error.statusCode == 401 { needsReauth = true }
             errorMessage = error.message
@@ -41,12 +43,29 @@ final class HouseCapacityViewModel: ObservableObject {
         }
         if let p = try? await api.placements(bearer: bearer) { placements = p.data }
     }
+
+    /// Feed the home-screen glance widget from every fresh rollup (App-Group cache; the
+    /// widget itself has no network or token).
+    private func cacheGlance(_ h: HouseRollup) {
+        let status = h.occupancy.percent >= 100 ? "critical" : (h.occupancy.percent >= 90 ? "warning" : "success")
+        HouseGlanceCache.save(HouseGlanceSnapshot(
+            occupancyPercent: h.occupancy.percent,
+            occupied: h.occupancy.occupied,
+            staffed: h.occupancy.staffed,
+            pendingPlacements: h.pendingPlacements,
+            statusRaw: status,
+            updatedAt: Date()))
+        WidgetCenter.shared.reloadTimelines(ofKind: HouseGlanceCache.widgetKind)
+    }
 }
 
 struct HouseCapacityView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm: HouseCapacityViewModel
     @State private var showProfile = false
+    @State private var autoOpenPlacement = false
+    @State private var autoPlacementIndex = 0
+    @State private var didAutoOpen = false
 
     private let refreshInterval: Duration = .seconds(20)
 
@@ -60,7 +79,7 @@ struct HouseCapacityView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "rtdc")
                     if vm.house == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.house == nil && vm.errorMessage != nil {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load capacity",
                                          message: vm.errorMessage ?? "", tone: .warning) {
@@ -94,6 +113,25 @@ struct HouseCapacityView: View {
             }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
+            }
+            // Test/demo affordance: SIMCTL_CHILD_HB_OPEN_PLACEMENT=<n> drills into the nth
+            // (1-based) pending placement so screenshot runs can reach the decision screen.
+            .navigationDestination(isPresented: $autoOpenPlacement) {
+                if vm.placements.indices.contains(autoPlacementIndex) {
+                    PlacementDetailView(placement: vm.placements[autoPlacementIndex],
+                                        api: vm.api, bearer: auth.accessToken ?? "") {
+                        await vm.load(bearer: auth.accessToken ?? "")
+                    }
+                }
+            }
+            .onChange(of: vm.placements.isEmpty) { _, empty in
+                if !empty, !didAutoOpen,
+                   let raw = ProcessInfo.processInfo.environment["HB_OPEN_PLACEMENT"],
+                   let n = Int(raw), vm.placements.indices.contains(n - 1) {
+                    didAutoOpen = true
+                    autoPlacementIndex = n - 1
+                    autoOpenPlacement = true
+                }
             }
         }
         .tint(Z.primary)
@@ -138,7 +176,7 @@ struct HouseCapacityView: View {
                         .foregroundStyle(Z.status(occStatus))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("HOUSE OCCUPANCY").font(.system(size: 11, weight: .semibold)).tracking(0.4).foregroundStyle(Z.inkMuted)
-                        Text("\(h.occupancy.occupied) / \(h.occupancy.staffed) staffed beds").font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+                        Text("\(h.occupancy.occupied) / \(h.occupancy.staffed) staffed beds").monospacedDigit().font(.system(size: 13)).foregroundStyle(Z.inkMuted)
                     }
                     Spacer()
                 }
@@ -195,10 +233,14 @@ struct HouseCapacityView: View {
 
     private func unitRow(_ u: CensusUnit) -> some View {
         HStack(spacing: Z.s3) {
-            Text(u.name).font(.system(size: 14, weight: .medium)).foregroundStyle(Z.ink).lineLimit(1)
-            Spacer()
+            Text(u.name).font(.system(size: 14, weight: .medium)).foregroundStyle(Z.ink)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Z.s2)
             Text("\(u.occupied)/\(u.staffedBedCount)").font(.system(size: 13)).monospacedDigit().foregroundStyle(Z.inkMuted)
+                .layoutPriority(1)
             StatusChip(status: u.capacity)
+                .layoutPriority(1)
         }
         .padding(.vertical, Z.s2).padding(.horizontal, Z.s3)
         .background(RoundedRectangle(cornerRadius: 10).fill(Z.surface))

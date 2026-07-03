@@ -86,7 +86,7 @@ struct DrillDetailView: View {
             .padding(Z.s4)
         }
         .background(Z.bg)
-        .navigationTitle("Drill")
+        .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(itemUuid)|\(profile.roleId ?? "")") {
             await vm.load(persona: profile.roleId, bearer: auth.accessToken ?? "")
@@ -99,7 +99,6 @@ struct DrillDetailView: View {
             Panel {
                 VStack(alignment: .leading, spacing: Z.s3) {
                     HStack(alignment: .top) {
-                        AltitudeBreadcrumbView(current: .a2, includesPatient: drill.patientContextRef != nil)
                         Spacer()
                         if let status = drill.status {
                             StatusChip(status: status.capacity)

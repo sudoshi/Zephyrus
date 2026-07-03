@@ -74,7 +74,7 @@ struct TransportJobsView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "transport")
                     if vm.queue == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.queue == nil && vm.errorMessage != nil {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load trips",
                                          message: vm.errorMessage ?? "", tone: .warning) {

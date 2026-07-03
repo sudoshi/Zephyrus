@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -61,6 +62,7 @@ import net.acumenus.hummingbird.data.MobileRole
 import net.acumenus.hummingbird.data.MobileRoleCatalog
 import net.acumenus.hummingbird.data.PatientListRow
 import net.acumenus.hummingbird.data.PatientOperationalContext
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
@@ -121,8 +123,13 @@ fun AltitudeHomeScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.loadHome(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -147,7 +154,7 @@ fun AltitudeHomeScreen(
                 item { LoadingPanel() }
             } else if (home != null) {
                 item { PersonaGlance(home) }
-                item { SectionTitle("Glance") }
+                item { SectionTitle("Right now") }
                 items(home.tiles, key = { it.key }) { tile -> TileRow(tile) }
                 item { SectionTitle("For You") }
                 if (home.forYouHead.isEmpty()) {
@@ -160,7 +167,7 @@ fun AltitudeHomeScreen(
                         onOpenPatient = onOpenPatient,
                     )
                 }
-                item { SectionTitle("Recent relay activity") }
+                item { SectionTitle("Recent team activity") }
                 if (home.activity.isEmpty()) {
                     item { EmptyPanel("No recent activity for this role.") }
                 }
@@ -179,6 +186,7 @@ fun AltitudeHomeScreen(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -250,9 +258,9 @@ fun DebugAltitudeExplorerScreen(
                         onOpenPatient = onOpenPatient,
                     )
                 }
-                item { SectionTitle("Workspace activity") }
+                item { SectionTitle("Recent team activity") }
                 if (workspace.activity.isEmpty()) {
-                    item { EmptyPanel("No relay activity for this workspace.") }
+                    item { EmptyPanel("No recent team activity here.") }
                 }
                 items(workspace.activity, key = { it.eventUuid }) { event ->
                     ActivityRow(
@@ -382,7 +390,7 @@ fun DrillDetailScreen(
 
     Scaffold(
         containerColor = Z.bg,
-        topBar = { DetailTopBar("Drill detail", onBack) },
+        topBar = { DetailTopBar("Details", onBack) },
     ) { inner ->
         LazyColumn(
             modifier = Modifier.padding(inner),
@@ -621,7 +629,7 @@ private fun ActivityDayHeader(label: String, count: Int) {
 @Composable
 private fun PersonaGlance(home: AltitudeHome) {
     Column(Modifier.fillMaxWidth().panel().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(home.persona.title, color = Z.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 Text(home.glanceQuestion, color = Z.inkMuted, fontSize = 13.sp)
@@ -639,10 +647,11 @@ private fun PersonaGlance(home: AltitudeHome) {
 @Composable
 private fun WorkspaceHeader(workspace: AltitudeWorkspace) {
     Column(Modifier.fillMaxWidth().panel().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(workspace.summary.label, color = Z.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                Text("${workspace.altitude} / ${workspace.persona.title} / ${humanizeLocal(workspace.domain)}", color = Z.inkMuted, fontSize = 12.sp)
+                // Worker language only — the altitude coordinate stays out of the pixels.
+                Text("${workspace.persona.title} · ${humanizeLocal(workspace.domain)}", color = Z.inkMuted, fontSize = 12.sp)
             }
             StatusChip(workspace.status.capacity)
         }
@@ -699,8 +708,12 @@ private fun TileRow(tile: AltitudeTile) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(tile.capacity.color))
         Column(Modifier.weight(1f).padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(tile.label, color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            if (tile.provenance.isNotEmpty()) {
-                Text(tile.provenance.joinToString(" / ") { "${it.label}: ${it.value}" }, color = Z.inkMuted, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            // Provenance metadata stays backstage (it lives in the drill); the glance only
+            // speaks up when the number can't be trusted.
+            val stale = tile.provenance.firstOrNull { it.label.equals("Stale", ignoreCase = true) }
+                ?.value?.equals("No", ignoreCase = true) == false
+            if (stale) {
+                Text("Data may be stale", color = Z.statusWarning, fontSize = 11.sp)
             }
         }
         Text(tile.value, color = tile.capacity.color, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(end = 14.dp))

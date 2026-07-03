@@ -559,7 +559,9 @@ class MobileRoleCatalogParityTest extends TestCase
             $this->assertStringContainsString($copy, $executiveScreen);
         }
 
-        $this->assertStringContainsString('materialDriver(brief.strain)?.let(::ExecutiveOneThing) ?: ExecutiveCalmState()', $executiveScreen);
+        // Composable calls can't be function references inside ?.let — pinned as explicit branches.
+        $this->assertStringContainsString('val one = materialDriver(brief.strain)', $executiveScreen);
+        $this->assertStringContainsString('if (one != null) ExecutiveOneThing(one) else ExecutiveCalmState()', $executiveScreen);
         $this->assertStringContainsString('/command/brief is available on mobile', $executiveScreen);
         $this->assertStringContainsString('GET /api/mobile/v1/command/house', $commandController);
         $this->assertStringContainsString("links: ['web' => url('/dashboard')]", $commandController);
@@ -906,7 +908,8 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('Text(humanizeLocal(kind), color = Z.inkMuted', $altitudeScreens);
         $this->assertStringNotContainsString('ActionRow(action.label, action.kind, action.endpoint)', $altitudeScreens);
         $this->assertStringNotContainsString('Text(endpoint ?: humanizeLocal(kind)', $altitudeScreens);
-        $this->assertStringContainsString('DetailTopBar("Drill detail"', $altitudeScreens);
+        // Altitude invisibility: user-facing copy says "Details", never the model's "Drill".
+        $this->assertStringContainsString('DetailTopBar("Details"', $altitudeScreens);
         $this->assertStringContainsString('DetailTopBar("Patient context"', $altitudeScreens);
         $this->assertStringContainsString('Text("Open patient context")', $altitudeScreens);
         $this->assertStringContainsString('onOpenDrill = { detail = AltitudeDetail.Drill(it) }', $mainScreen);
@@ -960,14 +963,14 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringNotContainsString('return "context \(ref)"', $forYou);
 
         $this->assertStringContainsString('DrillDetailView(itemUuid: "ops-approval-\(a.approvalUuid)")', $capacityDemand);
-        $this->assertStringContainsString('Label("Explain approval signal", systemImage: "info.circle")', $capacityDemand);
+        $this->assertStringContainsString('Label("Why this approval?", systemImage: "info.circle")', $capacityDemand);
         $this->assertStringContainsString('api.opsDecide(uuid: a.approvalUuid, decision: decision, bearer: bearer)', $capacityDemand);
         $this->assertStringContainsString('await vm.reject(a, bearer: auth.accessToken ?? "")', $capacityDemand);
 
         $this->assertStringContainsString('DrillDetailView(itemUuid: "staffing-\(r.id)")', $staffing);
-        $this->assertStringContainsString('Label("Explain staffing signal", systemImage: "info.circle")', $staffing);
+        $this->assertStringContainsString('Label("Why this gap?", systemImage: "info.circle")', $staffing);
         $this->assertStringContainsString('DrillDetailView(itemUuid: "improvement-\(o.id)")', $improvement);
-        $this->assertStringContainsString('Label("Explain improvement signal", systemImage: "info.circle")', $improvement);
+        $this->assertStringContainsString('Label("Why this opportunity?", systemImage: "info.circle")', $improvement);
 
         $this->assertStringContainsString('Label("Open operational patient context", systemImage: "person.text.rectangle")', $altitudeComponents);
         $this->assertStringContainsString('Text("Authorized context")', $altitudeComponents);

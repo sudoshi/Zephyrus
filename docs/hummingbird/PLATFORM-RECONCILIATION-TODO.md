@@ -899,6 +899,9 @@ Every Hummingbird PR must answer:
 - [ ] Does this add a mobile write?
 - [ ] If it adds a mobile write, where is the activity-ledger event recorded?
 - [ ] If it adds a notification source, what earned-urgency tier and budget apply?
+- [ ] Does any user-facing copy leak model vocabulary? (Altitude/A0–A3, "glance",
+      "workspace", "drill", "relay", persona ids, snake_case keys — the model is
+      architecture, not UI copy; screens speak the worker's language.)
 - [ ] Are screenshots/GIFs captured for each affected persona on both platforms?
 
 ### P8.2 No-Go Rules

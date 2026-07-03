@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -46,6 +48,7 @@ import net.acumenus.hummingbird.data.ApiClient
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.Opportunity
 import net.acumenus.hummingbird.data.PdsaCycle
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
@@ -94,8 +97,13 @@ fun ImprovementScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = vm.loading,
+            onRefresh = { vm.load(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -125,6 +133,7 @@ fun ImprovementScreen(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -232,7 +241,7 @@ private fun ImprovementSummary(activeCycles: Int, opportunities: Int) {
 }
 
 @Composable
-private fun ImprovementMetricCell(value: String, label: String) {
+private fun RowScope.ImprovementMetricCell(value: String, label: String) {
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, color = Z.ink, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
         Text(label, color = Z.inkMuted, fontSize = 11.sp)

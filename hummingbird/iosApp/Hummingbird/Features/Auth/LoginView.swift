@@ -50,39 +50,14 @@ struct LoginView: View {
                         }
                         .padding(.top, Z.s3)
 
-                        Panel {
-                            VStack(alignment: .leading, spacing: Z.s4) {
-                                field("Username or email", text: $username, field: .username, secure: false)
-                                field("Password", text: $password, field: .password, secure: true)
+                        formCard
 
-                                if let error = auth.errorMessage {
-                                    HStack(spacing: Z.s2) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                        Text(error).font(.system(size: 13))
-                                    }
-                                    .foregroundStyle(Z.status(.critical))
-                                }
-
-                                Button(action: submit) {
-                                    HStack {
-                                        if auth.isBusy { ProgressView().tint(.white) }
-                                        Text(auth.isBusy ? "Signing in…" : "Sign in")
-                                            .font(.system(size: 16, weight: .semibold))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, Z.s3)
-                                    .background(RoundedRectangle(cornerRadius: 10).fill(Z.primary))
-                                    .foregroundStyle(Color.white)
-                                }
-                                .disabled(auth.isBusy || username.isEmpty || password.isEmpty)
-                                .opacity(auth.isBusy || username.isEmpty || password.isEmpty ? 0.6 : 1)
-                            }
-                        }
-
+                        #if DEBUG
                         Text("Connected to \(AppConfig.baseURL)")
                             .font(.system(size: 11))
                             .foregroundStyle(Z.inkMuted)
                             .padding(.bottom, Z.s3)
+                        #endif
                     }
                     .frame(maxWidth: 430)
                     .frame(maxWidth: .infinity)
@@ -98,6 +73,48 @@ struct LoginView: View {
             withAnimation(.easeInOut(duration: 1.6)) {
                 slideIndex = (slideIndex + 1) % Self.slides.count
             }
+        }
+        .sensoryFeedback(trigger: auth.errorMessage) { _, new in new == nil ? nil : .error }
+        #if DEBUG
+        // Test hook (matches HB_AUTOLOGIN/HB_OPEN_PLACEMENT): HB_FOCUS=1 focuses the
+        // username field on launch so focus styling can be screenshot-verified.
+        .onAppear {
+            if ProcessInfo.processInfo.environment["HB_FOCUS"] == "1" { focused = .username }
+        }
+        #endif
+    }
+
+    /// The sign-in form floats as Liquid Glass over the artwork on iOS 26 (the auth
+    /// atmosphere is the one sanctioned glass surface); earlier OSes keep the solid Panel.
+    @ViewBuilder
+    private var formCard: some View {
+        if #available(iOS 26.0, *) {
+            formContent
+                .padding(Z.s4)
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        } else {
+            Panel { formContent }
+        }
+    }
+
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: Z.s4) {
+            field("Username or email", text: $username, field: .username, secure: false)
+            field("Password", text: $password, field: .password, secure: true)
+
+            if let error = auth.errorMessage {
+                HStack(spacing: Z.s2) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text(error).font(.system(size: 13))
+                }
+                .foregroundStyle(Z.status(.critical))
+            }
+
+            HBPrimaryActionButton(title: auth.isBusy ? "Signing in…" : "Sign in",
+                                  working: auth.isBusy,
+                                  action: submit)
+                .disabled(username.isEmpty || password.isEmpty)
+                .opacity(username.isEmpty || password.isEmpty ? 0.6 : 1)
         }
     }
 
@@ -127,7 +144,10 @@ struct LoginView: View {
             .foregroundStyle(Z.ink)
             .padding(Z.s3)
             .background(RoundedRectangle(cornerRadius: 10).fill(Z.bg))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))
+            // Gold marks focus (the Acumenus focus layer) — never status, never interaction blue.
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(focused == field ? Z.gold : Z.border, lineWidth: focused == field ? 1.5 : 1))
+            .animation(.easeOut(duration: 0.15), value: focused)
         }
     }
 }

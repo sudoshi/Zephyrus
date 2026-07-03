@@ -39,6 +39,7 @@ struct ProfileView: View {
             .background(Z.bg)
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .sensoryFeedback(.success, trigger: profile.roleId)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }.tint(Z.primary)

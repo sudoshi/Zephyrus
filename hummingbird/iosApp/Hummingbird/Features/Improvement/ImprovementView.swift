@@ -43,7 +43,7 @@ struct ImprovementView: View {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     AltitudeContextCard(domain: "ops")
                     if !vm.loaded && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if !vm.loaded, let e = vm.errorMessage {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load improvement",
                                          message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
@@ -65,7 +65,7 @@ struct ImprovementView: View {
             .navigationTitle("Improvement")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }
+                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
             } }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
@@ -130,7 +130,7 @@ struct ImprovementView: View {
                 NavigationLink {
                     DrillDetailView(itemUuid: "improvement-\(o.id)")
                 } label: {
-                    Label("Explain improvement signal", systemImage: "info.circle")
+                    Label("Why this opportunity?", systemImage: "info.circle")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Z.primary)
                 }

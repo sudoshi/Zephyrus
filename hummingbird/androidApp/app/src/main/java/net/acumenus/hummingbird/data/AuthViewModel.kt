@@ -13,11 +13,11 @@ enum class AuthPhase { LOADING, LOGGED_OUT, NEEDS_PASSWORD_CHANGE, LOGGED_IN }
 
 /**
  * Owns auth state + tokens. Token-based, honoring the backend's must_change_password
- * challenge. Tokens persist in SharedPreferences for v1; Keystore/EncryptedSharedPreferences
- * + biometric gating are a later (platform expect/actual) phase per the architecture.
+ * challenge. Tokens persist in Keystore-backed EncryptedSharedPreferences (see SecurePrefs;
+ * legacy plain-prefs tokens migrate on first read) — parity with the iOS Keychain posture.
  */
 class AuthViewModel(app: Application) : AndroidViewModel(app) {
-    private val prefs = app.getSharedPreferences("hb", Context.MODE_PRIVATE)
+    private val prefs = SecurePrefs.get(app)
     private val api = ApiClient()
 
     var phase by mutableStateOf(AuthPhase.LOADING); private set

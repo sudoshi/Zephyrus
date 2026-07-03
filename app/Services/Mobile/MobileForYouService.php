@@ -38,8 +38,8 @@ class MobileForYouService
                 'domain' => 'rtdc',
                 'tier' => $tier,
                 'title' => 'Bed placement needed',
-                'subtitle' => trim(($request->service ?: 'Unassigned').' · needs '.($request->required_unit_type ?: 'any unit')
-                    .($request->isolation_required && $request->isolation_required !== 'none' ? ' · '.$request->isolation_required.' isolation' : '')),
+                'subtitle' => trim(($request->service ?: 'Unassigned').' · needs '.($this->humanize($request->required_unit_type, capitalize: false) ?: 'any unit')
+                    .($request->isolation_required && $request->isolation_required !== 'none' ? ' · '.$this->humanize($request->isolation_required, capitalize: false).' isolation' : '')),
                 'unit' => null,
                 'at' => optional($request->created_at)->toIso8601String(),
                 'patient_context_ref' => $this->patients->contextRefFor($request->patient_ref),
@@ -55,7 +55,7 @@ class MobileForYouService
                 'domain' => 'rtdc',
                 'tier' => in_array($barrier->category, ['placement', 'medical'], true) ? 'warning' : 'info',
                 'title' => ucfirst($barrier->category ?: 'Discharge').' barrier',
-                'subtitle' => $barrier->reason_code ?: 'Open barrier to clear',
+                'subtitle' => $this->humanize($barrier->reason_code) ?: 'Open barrier to clear',
                 'unit' => $barrier->unit?->name,
                 'at' => optional($barrier->opened_at)->toIso8601String(),
                 'dependencies' => [['type' => 'barrier', 'owner_role' => $barrier->owner ?: 'charge_nurse', 'status' => $barrier->status]],
@@ -97,7 +97,7 @@ class MobileForYouService
                 'domain' => 'transport',
                 'tier' => $request->priority === 'stat' ? 'critical' : 'warning',
                 'title' => $request->priority === 'stat' ? 'STAT transport' : 'Transport past due',
-                'subtitle' => trim(($request->origin ?: '-').' -> '.($request->destination ?: '-')),
+                'subtitle' => trim(($request->origin ?: '-').' → '.($request->destination ?: '-')),
                 'unit' => null,
                 'at' => optional($request->needed_at ?? $request->requested_at)->toIso8601String(),
                 'patient_context_ref' => $this->patients->contextRefFor($request->patient_ref),
@@ -118,7 +118,7 @@ class MobileForYouService
                 'domain' => 'evs',
                 'tier' => $overdue ? 'warning' : 'info',
                 'title' => $request->isolation_required ? 'Isolation bed-turn' : 'Bed-turn past due',
-                'subtitle' => trim(($request->location_label ?: 'Bed').' · '.str_replace('_', ' ', (string) ($request->turn_type ?: $request->request_type))),
+                'subtitle' => trim(($request->location_label ?: 'Bed').' · '.$this->humanize((string) ($request->turn_type ?: $request->request_type), capitalize: false)),
                 'unit' => null,
                 'at' => optional($request->needed_at ?? $request->requested_at)->toIso8601String(),
                 'patient_context_ref' => $this->patients->contextRefFor($request->patient_ref),
@@ -141,9 +141,11 @@ class MobileForYouService
                 'domain' => 'ops',
                 'tier' => $tier,
                 'title' => $recommendation?->title ?? 'Operational approval',
-                'subtitle' => collect([$recommendation?->recommendation_type, $approval->action?->owner_name, $recommendation?->risk_level])
-                    ->filter()
-                    ->join(' · '),
+                'subtitle' => collect([
+                    $this->humanize($recommendation?->recommendation_type),
+                    $approval->action?->owner_name,
+                    $recommendation?->risk_level ? ucfirst($recommendation->risk_level).' risk' : null,
+                ])->filter()->join(' · '),
                 'unit' => null,
                 'at' => optional($approval->requested_at)->toIso8601String(),
                 'dependencies' => [['type' => 'ops_approval', 'owner_role' => 'capacity_lead', 'status' => $approval->status]],
@@ -157,7 +159,7 @@ class MobileForYouService
                 'urgent' => 'warning',
                 default => 'info',
             };
-            $roleLabel = StaffingOperationsService::ROLE_LABELS[$request->role] ?? $request->role;
+            $roleLabel = StaffingOperationsService::ROLE_LABELS[$request->role] ?? $this->humanize($request->role);
 
             $items->push($this->item([
                 'id' => 'staffing-'.$request->staffing_request_id,
@@ -168,7 +170,7 @@ class MobileForYouService
                 'subtitle' => collect([
                     $request->unit_label,
                     $request->headcount_needed ? $request->headcount_needed.' needed' : null,
-                    $request->shift,
+                    $this->humanize($request->shift),
                 ])->filter()->join(' · '),
                 'unit' => $request->unit_label,
                 'at' => optional($request->needed_by)->toIso8601String(),
@@ -182,6 +184,26 @@ class MobileForYouService
         return $items
             ->sortBy(fn (array $item): string => sprintf('%d-%s', $rank[$item['tier']] ?? 9, $item['at'] ?? ''))
             ->values();
+    }
+
+    /**
+     * Machine keys ("blocked_beds", "med_surg") must never reach a worker's screen raw —
+     * subtitles are prose the clients render verbatim, so they get worker language here.
+     */
+    private function humanize(?string $key, bool $capitalize = true): ?string
+    {
+        if ($key === null || trim($key) === '') {
+            return $key;
+        }
+
+        $acronyms = ['evs' => 'EVS', 'ed' => 'ED', 'or' => 'OR', 'icu' => 'ICU', 'rtdc' => 'RTDC', 'stat' => 'STAT', 'pacu' => 'PACU'];
+
+        $sentence = collect(preg_split('/[_.\s]+/', trim($key)) ?: [])
+            ->filter()
+            ->map(fn (string $word): string => $acronyms[strtolower($word)] ?? strtolower($word))
+            ->join(' ');
+
+        return $capitalize ? ucfirst($sentence) : $sentence;
     }
 
     /** @param array<string, mixed> $item @return array<string, mixed> */

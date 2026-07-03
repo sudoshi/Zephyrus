@@ -13,6 +13,8 @@ targets:
     platform: iOS
     sources:
       - Hummingbird
+    dependencies:
+      - target: HummingbirdWidgets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird
@@ -49,3 +51,33 @@ targets:
           - UIInterfaceOrientationPortrait
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Live Activities (locally driven: trips + bed turns update per lifecycle tap).
+        NSSupportsLiveActivities: true
+
+  HummingbirdWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - HummingbirdWidgets
+      # Shared Live Activity contract (attributes + palette + step order) and the
+      # App-Group snapshot cache the glance widget reads.
+      - Hummingbird/LiveActivity/JobActivityAttributes.swift
+      - Hummingbird/LiveActivity/HouseGlanceCache.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.HummingbirdWidgets
+        GENERATE_INFOPLIST_FILE: "NO"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: TKXPY255A2
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: "YES"
+        CODE_SIGN_ENTITLEMENTS: HummingbirdWidgets/HummingbirdWidgets.entitlements
+    info:
+      path: HummingbirdWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Hummingbird
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

@@ -124,10 +124,9 @@ struct PatientOperationalContextView: View {
     private func header(_ context: PatientOperationalContext) -> some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
-                AltitudeBreadcrumbView(current: .a2p, includesPatient: true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(context.patient.display ?? "Authorized operational patient context")
+                    Text(context.patient.display ?? "Operational patient context")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Z.ink)
                     Text(context.patient.patientContextRef ?? contextRef)

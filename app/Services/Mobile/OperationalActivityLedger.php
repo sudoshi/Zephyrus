@@ -200,12 +200,14 @@ class OperationalActivityLedger
             'actor_role' => $event->actor_role,
             'source_surface' => $event->source_surface,
             'domain' => $event->domain,
-            'scope' => $scope,
+            // Map-shaped fields serialize as null when empty: a bare PHP [] JSON-encodes
+            // as a list ([]), which strict clients (Swift Decodable) reject for objects.
+            'scope' => $scope ?: null,
             'patient_context_ref' => $patientRef ? $this->patientContextRef($patientRef) : null,
-            'status' => $event->status ?? [],
-            'recommendation' => $event->recommendation ?? [],
-            'relay' => $event->relay ?? [],
-            'phi_policy' => $event->phi_policy ?? [],
+            'status' => ($event->status ?? []) ?: null,
+            'recommendation' => ($event->recommendation ?? []) ?: null,
+            'relay' => ($event->relay ?? []) ?: null,
+            'phi_policy' => ($event->phi_policy ?? []) ?: null,
             'entities' => $event->relationLoaded('entities') ? $event->entities->map(fn ($entity): array => [
                 'entity_type' => $entity->entity_type,
                 'entity_ref' => $this->entityRefForPayload($entity->entity_type, $entity->entity_ref),

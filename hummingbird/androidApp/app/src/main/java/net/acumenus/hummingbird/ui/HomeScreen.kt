@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.HomeViewModel
+import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.KpiTile
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
@@ -101,8 +103,13 @@ fun HomeScreen(auth: AuthViewModel) {
             )
         },
     ) { inner ->
-        LazyColumn(
+        HbRefreshable(
+            refreshing = home.loading,
+            onRefresh = { home.load(bearer) },
             modifier = Modifier.padding(inner),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -119,6 +126,7 @@ fun HomeScreen(auth: AuthViewModel) {
             items(home.units, key = { it.unitId }) { unit ->
                 KpiTile(unit, onClick = { selectedUnitId = unit.unitId })
             }
+        }
         }
     }
 }

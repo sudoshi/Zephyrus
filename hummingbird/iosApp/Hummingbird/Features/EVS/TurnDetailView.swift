@@ -28,7 +28,7 @@ struct TurnDetailView: View {
                     DrillDetailView(itemUuid: "evs-\(turn.id)")
                 } label: {
                     HStack {
-                        Label("Explain turn signal", systemImage: "questionmark.circle")
+                        Label("Why this turn?", systemImage: "questionmark.circle")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Z.primary)
                         Spacer()
@@ -50,13 +50,13 @@ struct TurnDetailView: View {
         .navigationTitle("Bed Turn")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { primaryBar }
+        .sensoryFeedback(.success, trigger: status)
         .tint(Z.primary)
     }
 
     private var locationCard: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
-                AltitudeBreadcrumbView(current: .a2, includesPatient: turn.patientContextRef != nil)
                 HStack(spacing: Z.s2) {
                     TurnPriorityChip(turn: turn)
                     if turn.isolationRequired { IsolationBadge() }
@@ -127,33 +127,20 @@ struct TurnDetailView: View {
     @ViewBuilder
     private var primaryBar: some View {
         if let n = nextAction(after: status) {
-            Button {
-                Task {
-                    working = true
-                    await advance(turn.id, n.status)
-                    status = n.status
-                    working = false
-                    if n.status == "completed" { dismiss() }
+            HBActionBar {
+                HBPrimaryActionButton(title: n.label, working: working) {
+                    Task {
+                        working = true
+                        await advance(turn.id, n.status)
+                        status = n.status
+                        syncActivity(n.status)
+                        working = false
+                        if n.status == "completed" { dismiss() }
+                    }
                 }
-            } label: {
-                HStack(spacing: Z.s2) {
-                    if working { ProgressView().tint(.white) }
-                    Text(n.label).font(.system(size: 17, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity).padding(.vertical, Z.s3)
-                .foregroundStyle(.white)
-                .background(RoundedRectangle(cornerRadius: 12).fill(working ? Z.primary.opacity(0.5) : Z.primary))
             }
-            .disabled(working)
-            .padding(Z.s4)
-            .background(.ultraThinMaterial)
         } else {
-            HStack(spacing: Z.s2) {
-                Image(systemName: "checkmark.seal.fill").foregroundStyle(Z.status(.success))
-                Text("Bed turned — ready to place").font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
-            }
-            .frame(maxWidth: .infinity).padding(Z.s4)
-            .background(.ultraThinMaterial)
+            HBCompletionBanner(icon: "checkmark.seal.fill", text: "Bed turned — ready to place")
         }
     }
 
@@ -194,5 +181,15 @@ struct TurnDetailView: View {
         case "in_progress": return ("Mark complete", "completed")
         default: return nil
         }
+    }
+
+    /// Mirror this turn onto the lock screen / Dynamic Island after each lifecycle tap.
+    private func syncActivity(_ newStatus: String) {
+        JobActivityController.sync(
+            kind: "evs", id: turn.id,
+            title: turn.isolationRequired ? "Isolation bed-turn" : "Bed turn",
+            detail: turn.locationLabel ?? "Bed",
+            isStat: turn.priority == "stat",
+            statusRaw: newStatus, statusLabel: statusLabel(newStatus))
     }
 }

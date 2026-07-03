@@ -41,7 +41,7 @@ struct ExecutiveHomeView: View {
                     AltitudeContextCard(domain: "ops")
                     EddyContextButton(scopeRef: "house")
                     if vm.brief == nil && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.brief == nil, let e = vm.errorMessage {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the brief",
                                          message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
@@ -62,7 +62,7 @@ struct ExecutiveHomeView: View {
             .navigationTitle("House Brief")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }
+                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
             } }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
@@ -83,15 +83,25 @@ struct ExecutiveHomeView: View {
                     Spacer()
                     StatusChip(status: s.capacity)
                 }
+                // A gauge track, not blocks: filled segments carry the status color; empty
+                // segments are outlined so surge 0 reads as "instrument at rest", not
+                // unloaded content.
                 HStack(spacing: Z.s2) {
                     ForEach(0..<4, id: \.self) { i in
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(i < s.level ? Z.status(s.capacity) : Z.border)
-                            .frame(height: 26)
+                        Group {
+                            if i < s.level {
+                                RoundedRectangle(cornerRadius: 3).fill(Z.status(s.capacity))
+                            } else {
+                                RoundedRectangle(cornerRadius: 3).strokeBorder(Z.border, lineWidth: 1)
+                            }
+                        }
+                        .frame(height: 10)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Surge level \(s.level) of 4")
                 Text("\(s.label) · \(s.level) / 4")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                    .font(.system(size: 15, weight: .semibold)).monospacedDigit().foregroundStyle(Z.ink)
                 Divider().overlay(Z.border)
                 ForEach(s.drivers) { d in
                     HStack {

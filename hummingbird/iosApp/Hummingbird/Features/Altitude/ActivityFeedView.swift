@@ -43,6 +43,7 @@ struct ActivityFeedView: View {
     @EnvironmentObject var auth: AuthStore
     @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm = ActivityFeedViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
+    @State private var showProfile = false
 
     private let refreshInterval: Duration = .seconds(25)
 
@@ -53,15 +54,15 @@ struct ActivityFeedView: View {
                     header
 
                     if vm.events.isEmpty && vm.isLoading {
-                        ProgressView().tint(Z.primary).frame(maxWidth: .infinity).padding(.top, Z.s6)
+                        SkeletonRows()
                     } else if vm.events.isEmpty, let error = vm.errorMessage {
                         RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load activity",
                                          message: error, tone: .warning) {
                             Task { await vm.load(persona: profile.roleId, bearer: auth.accessToken ?? "") }
                         }
                     } else if vm.events.isEmpty {
-                        RetryableMessage(symbol: "tray", title: "No relay events",
-                                         message: "Role-filtered activity will appear here as the team acts.", tone: .info)
+                        RetryableMessage(symbol: "tray", title: "No team activity yet",
+                                         message: "Updates relevant to your role appear here as the team acts.", tone: .info)
                     } else {
                         ForEach(vm.events) { event in
                             eventCard(event)
@@ -73,6 +74,15 @@ struct ActivityFeedView: View {
             .background(Z.bg)
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: {
+                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                    }
+                    .accessibilityLabel("Profile and settings")
+                }
+            }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .refreshable { await vm.load(persona: profile.roleId, bearer: auth.accessToken ?? "") }
             .task(id: profile.roleId ?? "") {
                 let token = auth.accessToken ?? ""
@@ -88,8 +98,7 @@ struct ActivityFeedView: View {
     private var header: some View {
         Panel {
             VStack(alignment: .leading, spacing: Z.s3) {
-                AltitudeBreadcrumbView(current: .a1, includesPatient: true)
-                Text("Cross-persona relay")
+                Text("Team activity")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Z.ink)
                 Text("Patient identifiers stay out of the feed. Rows carry a context token only when detail entry is authorized.")

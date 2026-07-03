@@ -21,19 +21,19 @@ struct RetryableMessage: View {
     var body: some View {
         VStack(spacing: Z.s3) {
             Image(systemName: symbol)
-                .font(.system(size: 40))
+                .font(Z.scaledFont(40))
                 .foregroundStyle(Z.status(tone))
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .font(Z.scaledFont(18, weight: .semibold))
                 .foregroundStyle(Z.ink)
             Text(message)
-                .font(.system(size: 13))
+                .font(Z.scaledFont(13))
                 .foregroundStyle(Z.inkMuted)
                 .multilineTextAlignment(.center)
             if let retry {
                 Button(action: retry) {
                     Label("Try again", systemImage: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(Z.scaledFont(15, weight: .semibold))
                         .padding(.horizontal, Z.s4).padding(.vertical, Z.s2)
                         .foregroundStyle(Z.primary)
                         .background(RoundedRectangle(cornerRadius: 10).strokeBorder(Z.border, lineWidth: 1))

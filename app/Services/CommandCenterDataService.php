@@ -479,7 +479,26 @@ class CommandCenterDataService
              ORDER BY cs.unit_id, cs.captured_at DESC'
         );
 
-        return $rows;
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        // No census snapshots (fresh dataset, or the snapshot pipeline isn't running):
+        // fall back to the live bed board so every surface reads the same occupancy —
+        // the executive brief must never say 0% while the RTDC census says 86%.
+        return DB::select(
+            'SELECT u.unit_id,
+                    u.staffed_bed_count AS staffed_beds,
+                    COUNT(b.bed_id) FILTER (WHERE b.status = \'occupied\') AS occupied,
+                    COUNT(b.bed_id) FILTER (WHERE b.status = \'available\') AS available,
+                    COUNT(b.bed_id) FILTER (WHERE b.status IN (\'blocked\', \'dirty\')) AS blocked,
+                    NULL::int AS acuity_adjusted_capacity,
+                    u.name AS unit_name, u.type AS unit_type, u.abbreviation
+             FROM prod.units u
+             LEFT JOIN prod.beds b ON b.unit_id = u.unit_id AND b.is_deleted = false
+             WHERE u.is_deleted = false
+             GROUP BY u.unit_id, u.staffed_bed_count, u.name, u.type, u.abbreviation'
+        );
     }
 
     // -----------------------------------------------------------------------

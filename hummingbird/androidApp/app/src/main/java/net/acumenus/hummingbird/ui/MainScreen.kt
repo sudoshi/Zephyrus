@@ -34,6 +34,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -46,12 +48,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AltitudeViewModel
+import net.acumenus.hummingbird.data.AppLock
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.CensusUnit
 import net.acumenus.hummingbird.data.EvsTurn
@@ -482,6 +486,34 @@ private fun ProfileSettingsScreen(
                         color = Z.inkMuted,
                         fontSize = 13.sp,
                     )
+                }
+            }
+            item {
+                ProfileSection("Security") {
+                    val context = LocalContext.current
+                    if (AppLock.isAvailable(context)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Require unlock", color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    "Biometric or device credential when returning to the app.",
+                                    color = Z.inkMuted,
+                                    fontSize = 12.sp,
+                                )
+                            }
+                            Switch(
+                                checked = AppLock.enabled,
+                                onCheckedChange = { AppLock.setLockEnabled(it) },
+                                colors = SwitchDefaults.colors(checkedTrackColor = Z.primary),
+                            )
+                        }
+                    } else {
+                        Text(
+                            "Set up a screen lock or biometric on this device to enable the app lock.",
+                            color = Z.inkMuted,
+                            fontSize = 13.sp,
+                        )
+                    }
                 }
             }
             item {
