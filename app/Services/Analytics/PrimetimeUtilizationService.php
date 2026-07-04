@@ -64,6 +64,30 @@ class PrimetimeUtilizationService
         'noData' => ['color' => '#e6e6e6'],
     ];
 
+    /**
+     * The authoritative prime-time utilization scalar (Zephyrus 2.0 P5).
+     *
+     * ONE formula: window average of prod.block_utilization.prime_time_percentage.
+     * PerioperativeMetricsService::primetimeUtilizationPct() delegates here so
+     * the OR Manager card and this dashboard can never diverge on denominator.
+     * The monthly/minutes-weighted series inside build() remain chart-shaping
+     * of the same source column, not competing authorities.
+     */
+    public function primeTimePct(?string $from, ?string $to): float
+    {
+        if ($from === null || $to === null) {
+            return 0.0;
+        }
+
+        $row = DB::table('prod.block_utilization')
+            ->where('is_deleted', false)
+            ->whereBetween('date', [$from, $to])
+            ->selectRaw('AVG(prime_time_percentage) AS avg_prime')
+            ->first();
+
+        return round((float) ($row->avg_prime ?? 0), 1);
+    }
+
     /** @return array<string,mixed> */
     public function build(): array
     {

@@ -2,9 +2,11 @@
 
 namespace App\Services\Analytics;
 
+use App\Services\Cockpit\StatusEngine;
 use App\Services\Ops\InterventionAttributionService;
 use App\Services\Ops\OperationsRecommendationService;
 use App\Services\Ops\OperationsSimulationService;
+use App\Services\Rtdc\HouseCensusService;
 use App\Services\Transport\TransportOperationsService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +20,8 @@ class OperationsAnalyticsService
         private readonly OperationsRecommendationService $recommendations,
         private readonly OperationsSimulationService $simulations,
         private readonly InterventionAttributionService $attribution,
+        private readonly HouseCensusService $houseCensus,
+        private readonly StatusEngine $statusEngine,
     ) {}
 
     public function overview(): array
@@ -441,22 +445,15 @@ class OperationsAnalyticsService
 
     private function houseCapacity(): array
     {
-        $rows = DB::select(
-            'SELECT DISTINCT ON (cs.unit_id)
-                cs.unit_id, cs.captured_at, cs.staffed_beds, cs.occupied,
-                cs.available, cs.blocked, cs.acuity_adjusted_capacity,
-                u.name AS unit_name, u.type AS unit_type, u.abbreviation
-             FROM prod.census_snapshots cs
-             JOIN prod.units u ON u.unit_id = cs.unit_id
-             WHERE u.is_deleted = false
-             ORDER BY cs.unit_id, cs.captured_at DESC'
-        );
-        $staffed = (int) array_sum(array_map(fn ($row): int => (int) $row->staffed_beds, $rows));
-        $occupied = (int) array_sum(array_map(fn ($row): int => (int) $row->occupied, $rows));
-        $available = (int) array_sum(array_map(fn ($row): int => (int) $row->available, $rows));
-        $blocked = (int) array_sum(array_map(fn ($row): int => (int) $row->blocked, $rows));
+        // P5: rows come from the ONE house-census read (incl. the bed-board
+        // fallback CommandCenterDataService always had) — the exec brief can
+        // no longer read 0% while the cockpit says 86% on a fresh dataset.
+        $rows = $this->houseCensus->latestPerUnit();
+        $totals = $this->houseCensus->houseTotals();
         $latest = collect($rows)
-            ->map(fn ($row): Carbon => Carbon::parse($row->captured_at))
+            ->pluck('captured_at')
+            ->filter()
+            ->map(fn ($at): Carbon => Carbon::parse($at))
             ->sortDesc()
             ->first();
         $units = array_values(array_map(function ($row): array {
@@ -478,11 +475,11 @@ class OperationsAnalyticsService
         }, $rows));
 
         return [
-            'staffedBeds' => $staffed,
-            'occupied' => $occupied,
-            'available' => $available,
-            'blocked' => $blocked,
-            'occupancyPct' => $staffed > 0 ? (int) round($occupied / $staffed * 100) : 0,
+            'staffedBeds' => $totals['staffedBeds'],
+            'occupied' => $totals['occupied'],
+            'available' => $totals['available'],
+            'blocked' => $totals['blocked'],
+            'occupancyPct' => $totals['occupancyPct'],
             'latestCensusAtIso' => $latest?->toIso8601String(),
             'units' => $units,
         ];
@@ -733,28 +730,19 @@ class OperationsAnalyticsService
         return 'critical';
     }
 
+    // P5: threshold→status resolution delegates to the ONE StatusEngine —
+    // the second copy of the band logic is retired. canon() maps onto the
+    // exact legacy strings ('critical'/'warning'/'success'), so a tile that
+    // is crit at A0 is crit in its A3 trend by construction.
+
     private function completenessStatus(int $pct): string
     {
-        if ($pct >= 90) {
-            return 'success';
-        }
-        if ($pct >= 75) {
-            return 'warning';
-        }
-
-        return 'critical';
+        return $this->statusEngine->lowBad($pct, 90, 75)->canon();
     }
 
     private function bandHighBad(float|int $value, float|int $critical, float|int $warning): string
     {
-        if ($value >= $critical) {
-            return 'critical';
-        }
-        if ($value >= $warning) {
-            return 'warning';
-        }
-
-        return 'success';
+        return $this->statusEngine->highBad($value, $critical, $warning)->canon();
     }
 
     private function medianMinutes(string $sql, array $bindings): int

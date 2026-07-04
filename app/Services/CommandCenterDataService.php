@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Services\Analytics\MetricLineageService;
 use App\Services\Cockpit\StatusEngine;
+use App\Services\Rtdc\HouseCensusService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -457,37 +458,9 @@ class CommandCenterDataService
     /** @return array<int,object> */
     private function latestCensusPerUnit(): array
     {
-        $rows = DB::select(
-            'SELECT DISTINCT ON (cs.unit_id)
-                cs.unit_id, cs.staffed_beds, cs.occupied, cs.available,
-                cs.blocked, cs.acuity_adjusted_capacity,
-                u.name AS unit_name, u.type AS unit_type, u.abbreviation
-             FROM prod.census_snapshots cs
-             JOIN prod.units u ON u.unit_id = cs.unit_id
-             WHERE u.is_deleted = false
-             ORDER BY cs.unit_id, cs.captured_at DESC'
-        );
-
-        if ($rows !== []) {
-            return $rows;
-        }
-
-        // No census snapshots (fresh dataset, or the snapshot pipeline isn't running):
-        // fall back to the live bed board so every surface reads the same occupancy —
-        // the executive brief must never say 0% while the RTDC census says 86%.
-        return DB::select(
-            'SELECT u.unit_id,
-                    u.staffed_bed_count AS staffed_beds,
-                    COUNT(b.bed_id) FILTER (WHERE b.status = \'occupied\') AS occupied,
-                    COUNT(b.bed_id) FILTER (WHERE b.status = \'available\') AS available,
-                    COUNT(b.bed_id) FILTER (WHERE b.status IN (\'blocked\', \'dirty\')) AS blocked,
-                    NULL::int AS acuity_adjusted_capacity,
-                    u.name AS unit_name, u.type AS unit_type, u.abbreviation
-             FROM prod.units u
-             LEFT JOIN prod.beds b ON b.unit_id = u.unit_id AND b.is_deleted = false
-             WHERE u.is_deleted = false
-             GROUP BY u.unit_id, u.staffed_bed_count, u.name, u.type, u.abbreviation'
-        );
+        // P5: the query (and its bed-board fallback) moved to HouseCensusService —
+        // the ONE house-census read shared with OperationsAnalyticsService.
+        return app(HouseCensusService::class)->latestPerUnit();
     }
 
     // -----------------------------------------------------------------------

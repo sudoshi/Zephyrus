@@ -2,6 +2,7 @@
 
 namespace App\Services\Dashboard;
 
+use App\Services\Analytics\PrimetimeUtilizationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -716,17 +717,9 @@ class PerioperativeMetricsService
 
     private function primetimeUtilizationPct(?string $from, ?string $to): float
     {
-        if ($from === null || $to === null) {
-            return 0.0;
-        }
-
-        $row = DB::table('prod.block_utilization')
-            ->where('is_deleted', false)
-            ->whereBetween('date', [$from, $to])
-            ->selectRaw('AVG(prime_time_percentage) AS avg_prime')
-            ->first();
-
-        return round((float) ($row->avg_prime ?? 0), 1);
+        // P5: delegate to the ONE prime-time authority so this card and the
+        // Primetime Utilization dashboard can never diverge on denominator.
+        return app(PrimetimeUtilizationService::class)->primeTimePct($from, $to);
     }
 
     // -----------------------------------------------------------------------
