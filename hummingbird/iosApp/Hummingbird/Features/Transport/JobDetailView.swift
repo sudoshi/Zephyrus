@@ -206,7 +206,8 @@ struct JobDetailView: View {
             title: job.priority == "stat" ? "STAT transport" : "Transport trip",
             detail: "\(job.origin ?? "—") → \(job.destination ?? "—")",
             isStat: job.priority == "stat",
-            statusRaw: newStatus, statusLabel: statusLabel(newStatus))
+            statusRaw: newStatus, statusLabel: statusLabel(newStatus),
+            slaDeadline: FlowTime.parse(job.neededAt))
     }
 
     private func nextAction(after s: String) -> (label: String, status: String)? {

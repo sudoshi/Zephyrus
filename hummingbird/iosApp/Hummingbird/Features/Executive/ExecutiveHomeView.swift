@@ -33,46 +33,70 @@ struct ExecutiveHomeView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = ExecutiveHomeViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "ops")
-                    EddyContextButton(scopeRef: "house")
-                    if vm.brief == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.brief == nil, let e = vm.errorMessage {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the brief",
-                                         message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
-                    } else if let b = vm.brief {
-                        strainCard(b.strain)
-                        if let one = b.strain.drivers.first(where: { $0.status != "success" }) {
-                            theOneThing(one)
-                        }
-                        sectionLabel("HOUSE KPIS")
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Z.s3) {
-                            ForEach(b.hero) { kpiTile($0) }
-                        }
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — the executive time-lapse brief (P9): the house
+                    // breathes through the last 24h, then shows tomorrow's band. House
+                    // scope, aggregate heat only — the lens never serves patient detail.
+                    FlowMapView(persona: "executive", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("House Brief")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
-            } }
-            .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(30)) }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .onChange(of: vm.needsReauth) { _, n in if n { Task { await auth.logout() } } }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "ops")
+                EddyContextButton(scopeRef: "house")
+                if vm.brief == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.brief == nil, let e = vm.errorMessage {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the brief",
+                                     message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
+                } else if let b = vm.brief {
+                    strainCard(b.strain)
+                    if let one = b.strain.drivers.first(where: { $0.status != "success" }) {
+                        theOneThing(one)
+                    }
+                    sectionLabel("HOUSE KPIS")
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Z.s3) {
+                        ForEach(b.hero) { kpiTile($0) }
+                    }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(30)) }
+        }
     }
 
     private func strainCard(_ s: ExecStrain) -> some View {

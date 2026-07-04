@@ -116,8 +116,14 @@ final class AuthStore: ObservableObject {
         me = nil
         errorMessage = nil
         phase = .loggedOut
-        // A signed-out device must not keep operational state on the lock screen.
+        // A signed-out device must not keep operational state on the lock screen or in a
+        // cache that could outlive the session — end activities, drop the offline flow cache
+        // (also the belt-and-braces guard against ever serving another user's window), and
+        // clear the App-Group glance snapshots.
         JobActivityController.endAll()
+        FlowWindowCache.clearAll()
+        HouseGlanceCache.clear()
+        ForYouGlanceCache.clear()
     }
 
     private func clearTokens() {

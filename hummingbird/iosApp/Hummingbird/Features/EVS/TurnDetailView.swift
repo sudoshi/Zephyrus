@@ -190,6 +190,7 @@ struct TurnDetailView: View {
             title: turn.isolationRequired ? "Isolation bed-turn" : "Bed turn",
             detail: turn.locationLabel ?? "Bed",
             isStat: turn.priority == "stat",
-            statusRaw: newStatus, statusLabel: statusLabel(newStatus))
+            statusRaw: newStatus, statusLabel: statusLabel(newStatus),
+            slaDeadline: FlowTime.parse(turn.neededAt))
     }
 }

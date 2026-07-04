@@ -52,6 +52,7 @@ struct BedTurnsView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm: EvsTurnsViewModel
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     private let refreshInterval: Duration = .seconds(20)
 
@@ -61,26 +62,27 @@ struct BedTurnsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "evs")
-                    if vm.queue == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.queue == nil && vm.errorMessage != nil {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load turns",
-                                         message: vm.errorMessage ?? "", tone: .warning) {
-                            Task { await vm.load(bearer: auth.accessToken ?? "") }
-                        }
-                    } else if let q = vm.queue {
-                        content(q)
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — "the turn map": house heat first; tapping a floor
+                    // descends and lights bed states + turn markers at floor scope.
+                    FlowMapView(persona: "evs", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("Bed Turns")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
                         Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
@@ -89,19 +91,38 @@ struct BedTurnsView: View {
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled {
-                    await vm.load(bearer: token)
-                    try? await Task.sleep(for: refreshInterval)
-                }
-            }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
             }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "evs")
+                if vm.queue == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.queue == nil && vm.errorMessage != nil {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load turns",
+                                     message: vm.errorMessage ?? "", tone: .warning) {
+                        Task { await vm.load(bearer: auth.accessToken ?? "") }
+                    }
+                } else if let q = vm.queue {
+                    content(q)
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled {
+                await vm.load(bearer: token)
+                try? await Task.sleep(for: refreshInterval)
+            }
+        }
     }
 
     @ViewBuilder

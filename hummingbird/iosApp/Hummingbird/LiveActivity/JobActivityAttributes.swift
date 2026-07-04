@@ -12,6 +12,9 @@ struct HBJobActivityAttributes: ActivityAttributes {
         /// Worker-language label, e.g. "En route".
         var statusLabel: String
         var updatedAt: Date
+        /// SLA deadline (transport `needed_at` / EVS due). When it is still ahead, the island
+        /// and lock screen render a live `Text(timerInterval:)` countdown; nil / past hides it.
+        var slaDeadline: Date? = nil
     }
 
     /// "transport" | "evs"

@@ -39,46 +39,69 @@ struct StaffingView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = StaffingViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "staffing")
-                    if vm.overview == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.overview == nil, let e = vm.errorMessage {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load staffing",
-                                         message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
-                    } else if let o = vm.overview {
-                        metrics(o.metrics)
-                        if !o.unitsAtRisk.isEmpty {
-                            sectionLabel("BELOW MINIMUM-SAFE (\(o.unitsAtRisk.count))")
-                            ForEach(o.unitsAtRisk) { unitRow($0) }
-                        }
-                        if !o.queue.isEmpty {
-                            sectionLabel("OPEN REQUESTS (\(o.queue.count))")
-                            ForEach(o.queue) { requestRow($0) }
-                        }
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — "coverage vs the curve" (P10): predicted census
+                    // against staffing-gap steps at shift boundaries; floors tinted by gap.
+                    FlowMapView(persona: "staffing_coordinator", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("Staffing")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
-            } }
-            .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .onChange(of: vm.needsReauth) { _, n in if n { Task { await auth.logout() } } }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "staffing")
+                if vm.overview == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.overview == nil, let e = vm.errorMessage {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load staffing",
+                                     message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
+                } else if let o = vm.overview {
+                    metrics(o.metrics)
+                    if !o.unitsAtRisk.isEmpty {
+                        sectionLabel("BELOW MINIMUM-SAFE (\(o.unitsAtRisk.count))")
+                        ForEach(o.unitsAtRisk) { unitRow($0) }
+                    }
+                    if !o.queue.isEmpty {
+                        sectionLabel("OPEN REQUESTS (\(o.queue.count))")
+                        ForEach(o.queue) { requestRow($0) }
+                    }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+        }
     }
 
     private func metrics(_ m: StaffingMetrics) -> some View {

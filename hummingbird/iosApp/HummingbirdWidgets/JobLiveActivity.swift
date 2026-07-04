@@ -32,11 +32,14 @@ struct JobLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.state.statusLabel)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(tint(context))
-                        .lineLimit(1)
-                        .padding(.trailing, 4)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(context.state.statusLabel)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(tint(context))
+                            .lineLimit(1)
+                        SLACountdown(deadline: context.state.slaDeadline, compact: true)
+                    }
+                    .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     JobProgressTrack(context: context)
@@ -96,9 +99,35 @@ private struct LockScreenJobView: View {
                     .background(Capsule().fill(tint.opacity(0.16)))
                     .lineLimit(1)
             }
-            JobProgressTrack(context: context)
+            HStack(spacing: 10) {
+                JobProgressTrack(context: context)
+                SLACountdown(deadline: context.state.slaDeadline)
+            }
         }
         .padding(14)
+    }
+}
+
+/// Live SLA countdown, shown only while the deadline is still ahead. `Text(timerInterval:)`
+/// ticks on its own — the app never has to push an update just to move the clock. Rendered
+/// calm (muted ink, not coral): a running countdown is urgency, not yet a breach.
+private struct SLACountdown: View {
+    let deadline: Date?
+    var compact: Bool = false
+
+    var body: some View {
+        if let deadline, deadline > .now {
+            HStack(spacing: 3) {
+                Image(systemName: "timer")
+                    .font(.system(size: compact ? 10 : 11, weight: .semibold))
+                Text(timerInterval: Date.now...deadline, countsDown: true)
+                    .font(.system(size: compact ? 11 : 12, weight: .semibold))
+                    .monospacedDigit()
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: compact ? 46 : 54)
+            }
+            .foregroundStyle(HBActivityPalette.inkMuted)
+        }
     }
 }
 

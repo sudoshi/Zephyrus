@@ -56,6 +56,7 @@ struct FlowWindowData: Decodable, Equatable {
     let snapshots: [FlowSnapshot]
     let events: [FlowTimelineEvent]
     let projections: [FlowProjection]
+    let bedStatuses: [FlowBedStatus]
 
     // The server omits any layer the lens excludes (the executive lens has
     // no `events` at all), so every layer decodes as absent-means-empty.
@@ -68,21 +69,86 @@ struct FlowWindowData: Decodable, Equatable {
         snapshots = try container.decodeIfPresent([FlowSnapshot].self, forKey: .snapshots) ?? []
         events = try container.decodeIfPresent([FlowTimelineEvent].self, forKey: .events) ?? []
         projections = try container.decodeIfPresent([FlowProjection].self, forKey: .projections) ?? []
+        bedStatuses = try container.decodeIfPresent([FlowBedStatus].self, forKey: .bedStatuses) ?? []
+    }
+
+    /// Memberwise initializer used to assemble a merged window from a `?since=` delta
+    /// response (the Decodable init only builds from the wire).
+    init(window: FlowWindow, lens: FlowLens, scope: FlowScope, spaces: FlowSpaces?,
+         snapshots: [FlowSnapshot], events: [FlowTimelineEvent],
+         projections: [FlowProjection], bedStatuses: [FlowBedStatus]) {
+        self.window = window
+        self.lens = lens
+        self.scope = scope
+        self.spaces = spaces
+        self.snapshots = snapshots
+        self.events = events
+        self.projections = projections
+        self.bedStatuses = bedStatuses
     }
 
     private enum CodingKeys: String, CodingKey {
-        case window, lens, scope, spaces, snapshots, events, projections
+        case window, lens, scope, spaces, snapshots, events, projections, bedStatuses
     }
+}
+
+extension FlowWindowData {
+    /// Client merge for a `?since=` delta response (the delta carries only `events`/`snapshots`
+    /// with t > since; `projections`, `spaces`, and `bed_statuses` come back full):
+    /// append the new events (dedupe by t·kind·entity.ref·label) and snapshots (dedupe by
+    /// t·unit_id), then REPLACE projections, bed_statuses, spaces, and the window frame
+    /// wholesale. The caller keeps the user's scrub position and selection — this rebuilds
+    /// data only.
+    func merged(delta: FlowWindowData) -> FlowWindowData {
+        var mergedEvents = events
+        var eventKeys = Set(events.map(Self.eventDedupeKey))
+        for event in delta.events where eventKeys.insert(Self.eventDedupeKey(event)).inserted {
+            mergedEvents.append(event)
+        }
+        var mergedSnapshots = snapshots
+        var snapshotKeys = Set(snapshots.map(Self.snapshotDedupeKey))
+        for snapshot in delta.snapshots where snapshotKeys.insert(Self.snapshotDedupeKey(snapshot)).inserted {
+            mergedSnapshots.append(snapshot)
+        }
+        return FlowWindowData(
+            window: delta.window, lens: delta.lens, scope: delta.scope,
+            spaces: delta.spaces ?? spaces,
+            snapshots: mergedSnapshots, events: mergedEvents,
+            projections: delta.projections, bedStatuses: delta.bedStatuses)
+    }
+
+    private static func eventDedupeKey(_ event: FlowTimelineEvent) -> String {
+        [event.t, event.kind, event.entity?.ref ?? "", event.label ?? ""].joined(separator: "\u{01}")
+    }
+
+    private static func snapshotDedupeKey(_ snapshot: FlowSnapshot) -> String {
+        "\(snapshot.t)\u{01}\(snapshot.unitId.map(String.init) ?? "")"
+    }
+}
+
+/// Strictly-current bed state for the turn map. The server sends `bed_statuses` only at
+/// floor/unit scope for lenses whose event kinds include `bed_status` (evs) — absent
+/// everywhere else, so it decodes as absent-means-empty.
+struct FlowBedStatus: Decodable, Equatable, Identifiable {
+    let bedId: Int
+    let unitId: Int
+    let label: String?
+    let status: String // available | occupied | blocked | dirty
+
+    var id: Int { bedId }
 }
 
 struct FlowWindow: Decodable, Equatable {
     let from: String
     let to: String
     let now: String
+    /// Echo of the parsed `?since=` the server applied (nullable; nil on full loads).
+    let since: String?
 
     var fromDate: Date? { FlowTime.parse(from) }
     var toDate: Date? { FlowTime.parse(to) }
     var nowDate: Date? { FlowTime.parse(now) }
+    var sinceDate: Date? { FlowTime.parse(since) }
 }
 
 /// The role lens the server applied: which scopes/layers/kinds this persona may see.
@@ -207,6 +273,8 @@ struct FlowProjection: Decodable, Equatable, Identifiable {
     let confidence: String
     let unitId: Int?
     let bedId: Int?
+    /// OR room name ("OR 3") on `scheduled_or_case`; null on every other kind.
+    let room: String?
     let entity: FlowEntityRef?
     let patientContextRef: String?
     let label: String?
@@ -223,6 +291,17 @@ struct FlowProjection: Decodable, Equatable, Identifiable {
 
     var time: Date? { FlowTime.parse(t) }
     var confidenceLevel: FlowConfidence { FlowConfidence(apiValue: confidence) }
+}
+
+extension FlowProjection {
+    /// `staffing_shift_gap` → the gap as needed headcount. The two sources encode it
+    /// differently: staffing *requests* carry `headcount_needed` (positive = gap), staffing
+    /// *plans* carry `scheduled − minimum_safe` (negative = below safe). Nil for other kinds.
+    var gapHeadcount: Int? {
+        guard kind == "staffing_shift_gap", let value else { return nil }
+        let raw = Int(value)
+        return entity?.type == "staffing_plan" ? max(0, -raw) : max(0, raw)
+    }
 }
 
 struct FlowProjectionProvenance: Decodable, Equatable {
