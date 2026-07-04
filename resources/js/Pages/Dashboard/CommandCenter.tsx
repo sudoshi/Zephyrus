@@ -27,6 +27,7 @@ import {
 } from '@/types/cockpit';
 import { useEddyStore } from '@/stores/eddyStore';
 import { COCKPIT_REFRESH_MS, useCockpitSnapshot } from '@/features/cockpit/hooks';
+import { useLiveCockpit } from '@/features/cockpit/live';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
@@ -75,6 +76,9 @@ export default function CommandCenter({
   cockpitEnabled?: boolean;
 }) {
   const query = useCockpitSnapshot(data, payloadTimestampMs(data));
+  // P6 WS-7: Reverb reload ping — a fresh snapshot invalidates the poll cache
+  // so the wall updates within seconds instead of at the next 45s tick.
+  useLiveCockpit();
   const raw = query.data ?? data;
 
   const parsed = useMemo(() => safeParseCommandCenterData(raw), [raw]);

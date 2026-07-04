@@ -126,6 +126,18 @@ class SnapshotBuilder
             Log::warning('cockpit.snapshot.metric_values_write_failed', ['error' => $e->getMessage()]);
         }
 
+        // P6 WS-7: PHI-free reload ping on hospital.cockpit — clients refetch
+        // the snapshot over their own session. Broadcast trouble (Reverb down,
+        // BROADCAST_CONNECTION=null) must never fail the refresh itself.
+        try {
+            \App\Events\Cockpit\CockpitSnapshotUpdated::dispatch(
+                $facilityKey,
+                (string) ($payload['asOf'] ?? now()->toIso8601String()),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('cockpit.snapshot.broadcast_failed', ['error' => $e->getMessage()]);
+        }
+
         return $payload;
     }
 

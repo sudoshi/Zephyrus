@@ -13,6 +13,10 @@
 | operational counts (occupied/available/blocked beds, weighted discharge counts,
 | net bed-need) — there is nothing patient-identifying on the wire.
 |
+| P6 adds `hospital.cockpit` under the same doctrine: `CockpitSnapshotUpdated`
+| is a {facility_key, generated_at} reload-PING only — clients refetch the
+| snapshot over their authenticated session; no metric values ride the wire.
+|
 | Because these are public channels, Pusher/Reverb never invokes a
 | `Broadcast::channel(...)` authorization callback for them. Any such callback
 | would be inert dead code, so none is defined here. If a future channel needs to
