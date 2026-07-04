@@ -172,6 +172,13 @@ class CommandCenterDemoSeeder extends Seeder
         //     tune the 6 canonical units.
         // ----------------------------------------------------------------
         $this->tuneCommandCenterBusyState($units, $edUnit);
+
+        // ----------------------------------------------------------------
+        // 11. Zephyrus 2.0 cockpit KPI catalog — every Appendix-A key with
+        //     literature-aligned band edges (standalone seeder so prod can
+        //     refresh the catalog without the demo data).
+        // ----------------------------------------------------------------
+        $this->call(CockpitKpiDefinitionSeeder::class);
     }
 
     // ====================================================================
