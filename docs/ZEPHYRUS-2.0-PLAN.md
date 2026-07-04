@@ -382,6 +382,40 @@ pruner ship in the same commit, never separately. Still open in P1: Metrics deco
 DrillBuilder + Cell grammar, `/cockpit/stream` SSE, Appendix-A seed catalog + demo stubs
 (D5 provenance badges), remaining 4 domains + 7-OKR expansion.
 
+**P1 execution notes, second slice (2026-07-04).** The Metrics decomposition shipped:
+`app/Domain/Cockpit/Metrics/*` (9 providers) + `SnapshotContext`, with SnapshotBuilder
+assembling the §3.2 sections (facility / capacityStatus / census[8] / okrs[9] /
+domains{8} with `provenance` + `gaugeKey` / derived alerts) ADDITIVELY on the frozen
+legacy payload. Deliberate deltas from the chapter text, all verified live on the seeded
+dev DB (5 simultaneous crit-first alerts, NEDOCS 142 demo-badged):
+1. **Providers read the legacy payload first** (via SnapshotContext), running their own
+   queries only for cockpit-only values — any number shared with `/dashboard` is the same
+   computed value (this is how the bed-board occupancy fallback is preserved, Part II.3 #6),
+   and per-minute query cost stays flat. Domain services are wrapped where the value
+   doesn't already exist (StaffingOperationsService, Transport/Evs, PerioperativeMetrics,
+   DemandForecast by_midnight for `okr.occupancy_midnight`).
+2. **Alerts are template-gated:** only warn/crit values whose kpi_definition carries an
+   `alert_template` enter the ticker (crit-first). Template presence is the Earned-Red
+   ration — MTD ledger measures change color on the wall but never page. P6's AlertEngine
+   inherits this gate.
+3. **StatusEngine order corrected to crit→warn→ok→watch→normal** (spec §4): an explicitly
+   earned ok_edge beats the watch band, otherwise the catalog's ok==warn seeds could never
+   show rationed green. Watch still fires without ok_edge and in the gap below a higher one.
+4. **The embedded Eddy capacity document moved to `capacitySnapshot`** — slice 1 had it on
+   `capacity`, silently clobbering the legacy Zod contract's capacity band in the persisted
+   payload. `AgentToolRegistry` reads the new key; nothing user-facing had consumed it yet.
+5. **The writer + 90-day pruner shipped together** as decided: `MetricValueWriter` appends
+   every snapshot's scalars to `ops.metric_values` (grain='snapshot', definition-linked,
+   provenance-tagged, ~70 rows/min) and `PruneCockpitMetricValues` (dailyAt 03:40) deletes
+   only that grain past `COCKPIT_METRIC_VALUES_RETENTION_DAYS` (90).
+6. The **OKR scorecard is the 9 registry cards** (spec §2.1 rows), not 7 — the plan's
+   "okrs[7]" undercounted the registry; owners + objectives ride on the definition rows.
+Catalog: `CockpitKpiDefinitionSeeder` (standalone, prod-safe, updateOrCreate by key; also
+step 11 of CommandCenterDemoSeeder) seeds all 71 Appendix-A keys; edges match legacy
+/dashboard band constants wherever the same number renders in both places (e.g. readmit
+warn 11/crit 13, D2P warn 20/crit 30). Still open in P1: DrillBuilder + Cell grammar over
+CommandCenterDrilldownService, `/cockpit/stream` SSE fallback.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
