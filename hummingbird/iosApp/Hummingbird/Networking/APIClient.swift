@@ -214,6 +214,26 @@ struct APIClient {
                            body: ["status": status], bearer: bearer)
     }
 
+    // MARK: Flow Window (48h spatiotemporal lens)
+
+    /// GET /api/mobile/v1/flow/window?persona=&scope= — the persona-lensed 48h window
+    /// (snapshots + events + projections + per-floor rollups) for a scope the lens allows.
+    func flowWindow(persona: String?, scope: String?, bearer: String) async throws -> Envelope<FlowWindowData> {
+        var path = withPersona("/api/mobile/v1/flow/window", persona)
+        if let scope, !scope.isEmpty {
+            let separator = path.contains("?") ? "&" : "?"
+            path += "\(separator)scope=\(Self.queryValue(scope))"
+        }
+        return try await getEnvelope(path: path, bearer: bearer, as: FlowWindowData.self)
+    }
+
+    /// GET /api/mobile/v1/flow/floors — the versioned floor-plates asset (plan-view rects).
+    /// Server-side it is ETag-cacheable; the client re-fetches per session, which is cheap
+    /// enough at < 60 KB gzipped per floor.
+    func flowFloors(bearer: String) async throws -> Envelope<FlowFloorsDocument> {
+        try await getEnvelope(path: "/api/mobile/v1/flow/floors", bearer: bearer, as: FlowFloorsDocument.self)
+    }
+
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.
     func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
                         deviceName: String?, bearer: String) async throws {

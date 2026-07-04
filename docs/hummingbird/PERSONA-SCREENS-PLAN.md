@@ -51,6 +51,12 @@ A0/A1/A2/A2P, activity, patient context, and Eddy context calls. The remaining A
 onboarding/persona-switching polish), plus optional polish such as a bespoke P3 charge-nurse unit
 board. The section below is the design plan.
 
+> **2026-07-03 update:** the P3 charge-nurse unit board shipped *spatially* on both
+> platforms as the Flow Window Map segment (FLOW-WINDOW-PLAN Phase 1) — unit floor
+> plate + 48h Chronobar + start-of-shift replay, entered via List ⇄ Map on the census
+> home. bed_manager / house_supervisor got the house lens (HouseStack + floor descent)
+> the same way.
+
 ---
 
 ## 1. The gap this plan closes

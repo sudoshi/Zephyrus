@@ -140,6 +140,10 @@ Verification bar for checking an item: builds clean, behavior confirmed in the r
 - [ ] Finish tiered push: real APNs sends for T1/T2 via existing `PushNotifier` seam (needs .p8
       key in env), Android FCM registration + channels (T1 high, T2 default, T3 low, T4 digest).
 - [ ] Start-of-shift moment: 2-second "your shift at a glance" summary after role confirm.
+      *Partially landed 2026-07-03 via the Flow Window (FLOW-WINDOW-PLAN Phase 1): the
+      charge-nurse Map segment auto-replays the unit from the last 07:00/19:00 shift
+      boundary to now on first open (both platforms). The list-home summary variant
+      after role confirm is still open.*
 
 ## Wave 4 — Accessibility & defensibility
 

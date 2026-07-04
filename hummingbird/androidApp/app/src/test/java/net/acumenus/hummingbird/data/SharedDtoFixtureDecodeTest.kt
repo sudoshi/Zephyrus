@@ -58,6 +58,43 @@ class SharedDtoFixtureDecodeTest {
         assertEquals(1, context.actions.size)
     }
 
+    @Test
+    fun decodesFlowWindowFixture() {
+        val window = api.parseFlowWindow(fixture("mobile-flow-window.json"))
+
+        assertEquals("bed_manager", window.lens.roleId)
+        assertEquals("house", window.scope.type)
+        assertTrue(window.spacesFloors.isNotEmpty())
+        assertEquals(11, window.spacesFloors.size)
+        assertEquals("MICU", window.spacesFloors.first { it.floor == 3 }.units.first().abbr)
+        assertEquals("admit", window.events.first().kind)
+        assertEquals("prod.operational_events", window.events.first().provenanceSource)
+        assertTrue(window.projections.isNotEmpty())
+        assertTrue(window.projections.all { it.confidence.isNotBlank() })
+        assertTrue(window.projections.all { it.provenanceService.isNotBlank() })
+        val surge = window.projections.first { it.kind == "surge_probability" }
+        assertEquals("probable", surge.confidence)
+        assertEquals(0.8, surge.provenanceReliability!!, 1e-9)
+        val census = window.projections.first { it.kind == "predicted_census" }
+        assertEquals(0, census.bandLower)
+        assertEquals(2, census.bandUpper)
+    }
+
+    @Test
+    fun decodesFlowFloorsFixture() {
+        val doc = api.parseFlowFloors(fixture("mobile-flow-floors.json"))
+
+        assertTrue(doc.floors.isNotEmpty())
+        assertEquals("v1-346c77a48494", doc.version)
+        val floor3 = doc.floors.first { it.floor == 3 }
+        assertEquals(4, floor3.bounds.size)
+        assertEquals(4, floor3.spaces.size)
+        val bed = floor3.spaces.first { it.category == "bed" }
+        assertEquals(693, bed.bedId)
+        assertEquals(26, bed.unitId)
+        assertEquals(4, bed.rect.size)
+    }
+
     private fun fixture(filename: String): JSONObject =
         JSONObject(File(repoRoot(), "docs/hummingbird/api-contract/fixtures/$filename").readText())
 

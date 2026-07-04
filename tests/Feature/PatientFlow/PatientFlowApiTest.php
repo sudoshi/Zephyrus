@@ -57,7 +57,9 @@ class PatientFlowApiTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $user = User::factory()->create();
+        // Patient-level endpoints are persona-lensed (FLOW-WINDOW-PLAN §6.4):
+        // this user's `role` grants the bed_manager lens (patient_dots: full).
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $this->actingAs($user)
             ->getJson('/api/patient-flow/summary')
@@ -119,5 +121,33 @@ class PatientFlowApiTest extends TestCase
     public function test_patient_flow_api_requires_authentication(): void
     {
         $this->getJson('/api/patient-flow/summary')->assertUnauthorized();
+    }
+
+    public function test_patient_level_flow_endpoints_require_a_patient_capable_lens(): void
+    {
+        // No Hummingbird persona at all → explicit 403 unauthorized state.
+        $rolelessUser = User::factory()->create(['role' => 'user']);
+        foreach (['/api/patient-flow/events', '/api/patient-flow/tracks', '/api/patient-flow/state', '/api/patient-flow/fhir/bundle?event_id=x'] as $path) {
+            $this->actingAs($rolelessUser)
+                ->getJson($path)
+                ->assertForbidden()
+                ->assertJsonPath('error.unauthorized_state', true);
+        }
+
+        // patient_dots: none personas (executive) are equally shut out …
+        $executive = User::factory()->create(['role' => 'executive']);
+        $this->actingAs($executive)
+            ->getJson('/api/patient-flow/state')
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'flow_lens_forbidden');
+
+        // … but aggregate endpoints stay open to any authenticated user.
+        $this->actingAs($rolelessUser)->getJson('/api/patient-flow/summary')->assertOk();
+
+        // And the executive lens still gets the (aggregate) projection stream.
+        $this->actingAs($executive)
+            ->getJson('/api/patient-flow/projections')
+            ->assertOk()
+            ->assertJsonPath('lens.patient_dots', 'none');
     }
 }

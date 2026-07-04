@@ -27,6 +27,19 @@ struct Meta: Decodable {
     let version: Int?
     let count: Int?
     let nextCursor: String?
+
+    enum CodingKeys: String, CodingKey { case asOf, stale, version, count, nextCursor }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        asOf = try? c.decodeIfPresent(String.self, forKey: .asOf)
+        stale = try? c.decodeIfPresent(Bool.self, forKey: .stale)
+        // meta.version is an Int on most payloads but a string tag ("v1-…") on the flow
+        // floors asset — decode leniently so one shape doesn't break the other envelope.
+        version = try? c.decodeIfPresent(Int.self, forKey: .version)
+        count = try? c.decodeIfPresent(Int.self, forKey: .count)
+        nextCursor = try? c.decodeIfPresent(String.self, forKey: .nextCursor)
+    }
 }
 
 /// Lossless-enough JSON value for open-ended BFF fields (`scope`, `relay`, `phi_policy`,

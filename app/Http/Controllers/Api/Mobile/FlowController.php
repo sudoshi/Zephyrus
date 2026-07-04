@@ -1,0 +1,249 @@
+<?php
+
+namespace App\Http\Controllers\Api\Mobile;
+
+use App\Http\Concerns\RendersMobileEnvelope;
+use App\Http\Controllers\Controller;
+use App\Models\CensusSnapshot;
+use App\Models\Evs\EvsRequest;
+use App\Models\Transport\TransportRequest;
+use App\Services\Flow\FloorPlateAssetService;
+use App\Services\Flow\FloorRollupService;
+use App\Services\Flow\FlowLensService;
+use App\Services\Flow\ForwardProjectionService;
+use App\Services\Flow\OperationalTimelineService;
+use App\Services\Mobile\MobilePersonaCatalog;
+use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+/**
+ * The 48-hour Flow Window — FLOW-WINDOW-PLAN §6.4 (W4, D1).
+ *
+ *   GET /api/mobile/v1/flow/floors   (mobile:read) — versioned 2D plate asset,
+ *       strong ETag; geometry only, no live state, aggressively cacheable.
+ *   GET /api/mobile/v1/flow/window   (mobile:read) — snapshots + events +
+ *       projections for one persona-lensed scope, clipped to ≤48h centered
+ *       on now.
+ *
+ * Everything is clamped server-side by FlowLensService (config/hummingbird/
+ * flow_lens.php). Unauthorized scopes are an explicit 403 state, and
+ * patient identity appears only as ptok_ context refs — and only at the
+ * depth the role's A2P matrix already grants. Payloads for patient_dots:
+ * 'none' roles contain no patient entities at all.
+ */
+class FlowController extends Controller
+{
+    use RendersMobileEnvelope;
+
+    private const MAX_WINDOW_HOURS = 48;
+
+    /** @var list<array<string, mixed>>|null one FloorRollupService pass per request */
+    private ?array $floorRollup = null;
+
+    public function __construct(
+        private readonly MobilePersonaCatalog $personas,
+        private readonly FlowLensService $lens,
+        private readonly FloorPlateAssetService $plates,
+        private readonly FloorRollupService $floors,
+        private readonly OperationalTimelineService $timeline,
+        private readonly ForwardProjectionService $projections,
+    ) {}
+
+    public function floors(Request $request): JsonResponse
+    {
+        $document = $this->plates->load();
+        $etag = '"'.$document['version'].'"';
+
+        if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
+            return response()->json(null, 304)->withHeaders(['ETag' => $etag]);
+        }
+
+        return $this->envelope(
+            $document,
+            meta: ['version' => $document['version']],
+            links: ['web' => url('/rtdc/patient-flow-navigator')],
+        )->withHeaders([
+            'ETag' => $etag,
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
+    }
+
+    public function window(Request $request): JsonResponse
+    {
+        try {
+            $roleId = $this->personas->fromRequest($request);
+            $lens = $this->lens->lensFor($roleId);
+            $scope = $this->lens->resolveScope($lens, $request->query('scope'), $request->user());
+        } catch (AuthorizationException $exception) {
+            return $this->forbidden($exception->getMessage());
+        }
+
+        $now = CarbonImmutable::now();
+        [$from, $to] = $this->clampWindow($request, $now);
+        $layers = $this->lens->clampLayers($lens, $request->query('layers'));
+        $depth = $this->lens->effectivePatientDepth($lens, $scope, $request->user());
+        $taskRefs = $depth === 'task' ? $this->taskPatientRefs($roleId) : [];
+
+        $payload = [
+            'window' => [
+                'from' => $from->toIso8601String(),
+                'to' => $to->toIso8601String(),
+                'now' => $now->toIso8601String(),
+            ],
+            'lens' => [
+                'role_id' => $roleId,
+                'scope_default' => $lens['scope_default'],
+                'scopes_allowed' => $lens['scopes_allowed'],
+                'layers' => $lens['layers'],
+                'event_kinds' => $lens['event_kinds'],
+                'projection_kinds' => $lens['projection_kinds'],
+                'patient_dots' => $depth,
+                'actions' => $lens['actions'],
+                'default_zoom_hours' => $lens['default_zoom_hours'],
+            ],
+            'scope' => [
+                'type' => $scope['type'],
+                'floor' => $scope['floor'],
+                'unit_id' => $scope['unit_id'],
+                'patient_context_ref' => $scope['patient_context_ref'],
+                'label' => $scope['label'],
+            ],
+        ];
+
+        if (in_array('spaces', $layers, true)) {
+            $payload['spaces'] = [
+                'plates_version' => $this->plates->load()['version'],
+                'floors' => $this->floorRollup(),
+            ];
+        }
+
+        if (in_array('snapshots', $layers, true)) {
+            $payload['snapshots'] = $this->snapshots($from, $to, $scope);
+        }
+
+        if (in_array('events', $layers, true)) {
+            $payload['events'] = array_map(
+                fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs),
+                $this->timeline->events($from, $to->min($now), $scope, $lens['event_kinds']),
+            );
+        }
+
+        if (in_array('projections', $layers, true)) {
+            $payload['projections'] = array_map(
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                $this->projections->projections($from->max($now), $to, $scope, $lens['projection_kinds']),
+            );
+        }
+
+        return $this->envelope(
+            $payload,
+            meta: [
+                'count' => count($payload['events'] ?? []) + count($payload['projections'] ?? []),
+            ],
+            links: ['web' => url('/rtdc/patient-flow-navigator')
+                .'?persona='.$roleId
+                .'&scope='.urlencode($this->lens->scopeString($scope))
+                .'&t='.urlencode($now->toIso8601String()), ],
+        );
+    }
+
+    /** @return array{0: CarbonImmutable, 1: CarbonImmutable} */
+    private function clampWindow(Request $request, CarbonImmutable $now): array
+    {
+        $earliest = $now->subHours(self::MAX_WINDOW_HOURS / 2);
+        $latest = $now->addHours(self::MAX_WINDOW_HOURS / 2);
+
+        $from = $this->parseTime($request->query('from')) ?? $earliest;
+        $to = $this->parseTime($request->query('to')) ?? $latest;
+
+        $from = $from->max($earliest)->min($latest);
+        $to = $to->max($earliest)->min($latest);
+        if ($to->lte($from)) {
+            [$from, $to] = [$earliest, $latest];
+        }
+
+        return [$from, $to];
+    }
+
+    private function parseTime(?string $value): ?CarbonImmutable
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @return list<array<string, mixed>> census checkpoints in scope */
+    private function snapshots(CarbonImmutable $from, CarbonImmutable $to, array $scope): array
+    {
+        $query = CensusSnapshot::query()
+            ->whereBetween('captured_at', [$from, $to])
+            ->orderBy('captured_at');
+
+        if ($scope['type'] === 'unit' || $scope['type'] === 'patient') {
+            if ($scope['unit_id'] !== null) {
+                $query->where('unit_id', $scope['unit_id']);
+            }
+        } elseif ($scope['type'] === 'floor') {
+            $unitIds = collect($this->floorRollup())
+                ->firstWhere('floor', $scope['floor'])['units'] ?? [];
+            $query->whereIn('unit_id', array_values(array_filter(array_column($unitIds, 'unit_id'))));
+        } else {
+            // House scope: only the active roster — retired/soft-deleted
+            // units may still own historical checkpoint rows.
+            $query->whereIn('unit_id', collect($this->floorRollup())
+                ->flatMap(fn (array $floor): array => array_column($floor['units'], 'unit_id'))
+                ->filter()
+                ->all());
+        }
+
+        return $query->limit(5000)->get()
+            ->map(fn (CensusSnapshot $snapshot): array => [
+                't' => $snapshot->captured_at->toIso8601String(),
+                'unit_id' => (int) $snapshot->unit_id,
+                'staffed' => $snapshot->staffed_beds,
+                'occupied' => $snapshot->occupied,
+                'available' => $snapshot->available,
+                'blocked' => $snapshot->blocked,
+            ])
+            ->all();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function floorRollup(): array
+    {
+        return $this->floorRollup ??= $this->floors->floors();
+    }
+
+    /** @return list<string> patient refs visible to a task-scoped role */
+    private function taskPatientRefs(string $roleId): array
+    {
+        return match ($roleId) {
+            'transport' => TransportRequest::query()
+                ->where('is_deleted', false)->whereNotNull('patient_ref')
+                ->distinct()->pluck('patient_ref')->all(),
+            'evs' => EvsRequest::query()
+                ->where('is_deleted', false)->whereNotNull('patient_ref')
+                ->distinct()->pluck('patient_ref')->all(),
+            default => [],
+        };
+    }
+
+    private function forbidden(string $reason): JsonResponse
+    {
+        return response()->json([
+            'error' => [
+                'code' => 'flow_lens_forbidden',
+                'message' => $reason,
+                'unauthorized_state' => true,
+            ],
+        ], 403);
+    }
+}

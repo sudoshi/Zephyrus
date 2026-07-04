@@ -33,5 +33,7 @@ return $builder
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new \App\Jobs\ReconcileRtdcPredictions)->dailyAt('02:00');
+        // Flow Window hourly checkpoints (census + per-space occupancy) — W2.
+        $schedule->command('flow:snapshot')->hourly();
     })
     ->create();

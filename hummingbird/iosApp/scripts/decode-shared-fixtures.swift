@@ -40,7 +40,28 @@ enum DecodeSharedFixtures {
         try require(patient.data.statusSpine.count == 2, "Patient status spine fixture count drifted.")
         try require(patient.data.dependencies.count == 2, "Patient dependency fixture count drifted.")
 
-        print("Decoded 4 shared Hummingbird DTO fixtures.")
+        let flowWindow = try decode("mobile-flow-window.json", as: Envelope<FlowWindowData>.self, root: root, decoder: decoder)
+        try require(flowWindow.data.lens.roleId == "bed_manager", "Flow window fixture decoded the wrong lens role.")
+        try require(flowWindow.data.lens.patientDots == "full", "Flow window lens patient_dots drifted.")
+        try require(flowWindow.data.scope.type == "house", "Flow window fixture scope drifted.")
+        try require(flowWindow.data.spaces?.floors.count == 11, "Flow window floor rollup count drifted.")
+        try require(flowWindow.data.events.count == 2, "Flow window event count drifted.")
+        try require(flowWindow.data.events.first?.kind == "admit", "Flow window first event kind drifted.")
+        try require(flowWindow.data.projections.first?.kind == "surge_probability", "Flow window first projection kind drifted.")
+        try require(flowWindow.data.projections.contains { $0.derived == true && $0.kind == "transport_due" },
+                    "Flow window derived transport ghost missing.")
+        try require(flowWindow.data.projections.allSatisfy { ["definite", "probable", "possible"].contains($0.confidence) },
+                    "Flow window projection confidence vocabulary drifted.")
+        try require(FlowTime.parse(flowWindow.data.window.now) != nil, "Flow window `now` timestamp failed ISO-8601 parse.")
+
+        let flowFloors = try decode("mobile-flow-floors.json", as: Envelope<FlowFloorsDocument>.self, root: root, decoder: decoder)
+        try require(flowFloors.data.version == "v1-346c77a48494", "Flow floors plates version drifted.")
+        try require(flowFloors.data.floors.first?.spaces.count == 4, "Flow floors plate count drifted.")
+        try require(flowFloors.data.floors.first?.bounds.count == 4, "Flow floors bounds shape drifted.")
+        try require(flowFloors.data.floors.contains { floor in floor.spaces.contains { $0.bedId == 693 && $0.rect.count == 4 } },
+                    "Flow floors bed plate bridge (bed_id + rect) drifted.")
+
+        print("Decoded 6 shared Hummingbird DTO fixtures.")
     }
 
     private static func decode<T: Decodable>(

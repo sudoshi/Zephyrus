@@ -100,6 +100,43 @@ class PatientFlowController extends Controller
         return response()->json($this->ambientSignals->summary($this->facilityCode()));
     }
 
+    /**
+     * The +24h projection stream for the web Navigator's ghost layer —
+     * FLOW-WINDOW-PLAN §6.4/§7.3. Same ForwardProjectionService and the same
+     * persona lens as the mobile window (EnforceFlowLens attaches both), so
+     * ghosts render identically in 3D and on the mobile plates.
+     */
+    public function projections(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $lens */
+        $lens = $request->attributes->get('flow_lens');
+        $roleId = (string) $request->attributes->get('flow_role_id');
+
+        $now = \Carbon\CarbonImmutable::now();
+        $to = $now->addHours(24);
+        $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
+
+        $items = app(\App\Services\Flow\ForwardProjectionService::class)
+            ->projections($now, $to, $scope, $lens['projection_kinds']);
+
+        // Same redaction implementation as the mobile window. At house scope
+        // only `full` keeps identity — unit/task depths collapse to none here
+        // (the web ghost layer is aggregate for those roles).
+        $depth = $lens['patient_dots'] === 'full' ? 'full' : 'none';
+        $lensService = app(\App\Services\Flow\FlowLensService::class);
+        $items = array_map(
+            fn (array $item): array => $lensService->redactRow($item, $depth, $scope),
+            $items,
+        );
+
+        return response()->json([
+            'window' => ['from' => $now->toIso8601String(), 'to' => $to->toIso8601String()],
+            'lens' => ['role_id' => $roleId, 'projection_kinds' => $lens['projection_kinds'], 'patient_dots' => $lens['patient_dots']],
+            'projections' => $items,
+            'generated_at' => now()->toJSON(),
+        ]);
+    }
+
     public function fhirBundle(Request $request): JsonResponse
     {
         $eventId = $request->query('event_id');

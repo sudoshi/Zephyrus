@@ -120,3 +120,22 @@ WHERE status='active' AND is_deleted=false GROUP BY acuity_tier ORDER BY acuity_
 **Bottom line:** the only true *data* problems are **ED's bed inventory (#1)** and **stray active encounters (#2)**
 (plus minor type labels #4). The 500% / "No data" gauges (#3) are a units-of-measure mismatch in the census
 and want a small code change, not a DB edit — happy to implement option (a) or (b) on request.
+
+## Flow Window spatial gate (added 2026-07-03, FLOW-WINDOW-PLAN W1)
+
+Every **staffed bed must map to a facility space** (`prod.beds.facility_space_id`),
+or it cannot render on the mobile floor plates. Check with:
+
+```bash
+php artisan facility:export-plates --check
+```
+
+```sql
+-- Staffed beds with no mapped space (should return 0 rows)
+SELECT b.bed_id, b.unit_id, b.label
+FROM prod.beds b
+WHERE b.is_deleted = false AND b.facility_space_id IS NULL;
+```
+
+Fix by re-running `facility:import-catalog … --map-operational` (or mapping the
+stragglers through `hosp_space.operational_space_maps`).

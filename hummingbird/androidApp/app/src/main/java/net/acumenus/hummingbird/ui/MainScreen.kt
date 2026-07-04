@@ -211,6 +211,7 @@ fun MainScreen(
                         HomeKind.HouseCapacity -> HouseCapacityScreen(
                             auth = auth,
                             forceError = launchConfig.forceError,
+                            personaId = selectedRole.id,
                             onOpenProfile = { detail = AltitudeDetail.Profile },
                             onOpenPlacement = { placement -> detail = AltitudeDetail.PlacementDecision(placement) },
                         )

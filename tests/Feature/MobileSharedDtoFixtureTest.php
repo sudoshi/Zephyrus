@@ -17,6 +17,8 @@ class MobileSharedDtoFixtureTest extends TestCase
         'mobile-for-you.json',
         'mobile-activity-feed.json',
         'mobile-patient-operational-context.json',
+        'mobile-flow-window.json',
+        'mobile-flow-floors.json',
     ];
 
     public function test_shared_dto_fixtures_are_valid_uniform_envelopes(): void
@@ -65,10 +67,14 @@ class MobileSharedDtoFixtureTest extends TestCase
         $this->assertStringContainsString('Envelope<[ForYouItem]>', $ios);
         $this->assertStringContainsString('Envelope<[ActivityEvent]>', $ios);
         $this->assertStringContainsString('Envelope<PatientOperationalContext>', $ios);
+        $this->assertStringContainsString('Envelope<FlowWindowData>', $ios);
+        $this->assertStringContainsString('Envelope<FlowFloorsDocument>', $ios);
         $this->assertStringContainsString('parseAltitudeHome', $android);
         $this->assertStringContainsString('parseForYouItem', $android);
         $this->assertStringContainsString('parseActivityEvent', $android);
         $this->assertStringContainsString('parsePatientContext', $android);
+        $this->assertStringContainsString('parseFlowWindow', $android);
+        $this->assertStringContainsString('parseFlowFloors', $android);
     }
 
     /**

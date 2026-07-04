@@ -407,7 +407,10 @@ class CommandCenterDemoSeeder extends Seeder
 
     private function seedRtdcPredictions($nonEdUnits): void
     {
-        $today = now()->toDateString();
+        // Today AND tomorrow — the Flow Window's +24h half crosses midnight
+        // (FLOW-WINDOW-PLAN §6.5 W5), so the prediction vocabulary must exist
+        // for both service dates or the forward stream goes dark at 00:00.
+        $serviceDates = [now()->toDateString(), now()->addDay()->toDateString()];
 
         foreach ($nonEdUnits as $unit) {
             // Pull latest available count from census_snapshots.
@@ -418,47 +421,54 @@ class CommandCenterDemoSeeder extends Seeder
 
             $capacityNow = $latestSnap ? $latestSnap->available : (int) ($unit->staffed_bed_count * 0.15);
 
-            foreach (['by_2pm', 'by_midnight'] as $horizon) {
-                // Deterministic random values per unit+horizon.
-                $seed = $unit->unit_id * 100 + ($horizon === 'by_2pm' ? 1 : 2);
-                $def = $this->seededRand($seed, 1, 4);
-                $prob = $this->seededRand($seed + 10, 2, 6);
-                $poss = $this->seededRand($seed + 20, 1, 4);
-                $wt = round($def + $prob * 0.7 + $poss * 0.3, 2);
-
-                $demEd = $this->seededRand($seed + 30, 1, 5);
-                $demOr = $this->seededRand($seed + 40, 0, 3);
-                $demTransfer = $this->seededRand($seed + 50, 0, 2);
-                $demDirect = $this->seededRand($seed + 60, 0, 2);
-                $demExpected = $demEd + $demOr + $demTransfer + $demDirect;
-
-                $bedNeed = max(0, $demExpected - ($capacityNow + (int) $wt));
-
-                RtdcPrediction::updateOrCreate(
-                    [
-                        'unit_id' => $unit->unit_id,
-                        'service_date' => $today,
-                        'horizon' => $horizon,
-                    ],
-                    [
-                        'discharges_definite' => $def,
-                        'discharges_probable' => $prob,
-                        'discharges_possible' => $poss,
-                        'discharges_weighted' => $wt,
-                        'demand_ed' => $demEd,
-                        'demand_or' => $demOr,
-                        'demand_transfer' => $demTransfer,
-                        'demand_direct' => $demDirect,
-                        'demand_expected' => $demExpected,
-                        'capacity_now' => $capacityNow,
-                        'bed_need' => $bedNeed,
-                        'status' => 'open',
-                        'created_by' => 'seeder',
-                        'modified_by' => 'seeder',
-                        'is_deleted' => false,
-                    ]
-                );
+            foreach ($serviceDates as $dayOffset => $serviceDate) {
+                $this->seedRtdcPredictionDay($unit, $serviceDate, $dayOffset, $capacityNow);
             }
+        }
+    }
+
+    private function seedRtdcPredictionDay($unit, string $serviceDate, int $dayOffset, int $capacityNow): void
+    {
+        foreach (['by_2pm', 'by_midnight'] as $horizon) {
+            // Deterministic random values per unit+horizon+day.
+            $seed = $unit->unit_id * 100 + ($horizon === 'by_2pm' ? 1 : 2) + $dayOffset * 1000;
+            $def = $this->seededRand($seed, 1, 4);
+            $prob = $this->seededRand($seed + 10, 2, 6);
+            $poss = $this->seededRand($seed + 20, 1, 4);
+            $wt = round($def + $prob * 0.7 + $poss * 0.3, 2);
+
+            $demEd = $this->seededRand($seed + 30, 1, 5);
+            $demOr = $this->seededRand($seed + 40, 0, 3);
+            $demTransfer = $this->seededRand($seed + 50, 0, 2);
+            $demDirect = $this->seededRand($seed + 60, 0, 2);
+            $demExpected = $demEd + $demOr + $demTransfer + $demDirect;
+
+            $bedNeed = max(0, $demExpected - ($capacityNow + (int) $wt));
+
+            RtdcPrediction::updateOrCreate(
+                [
+                    'unit_id' => $unit->unit_id,
+                    'service_date' => $serviceDate,
+                    'horizon' => $horizon,
+                ],
+                [
+                    'discharges_definite' => $def,
+                    'discharges_probable' => $prob,
+                    'discharges_possible' => $poss,
+                    'discharges_weighted' => $wt,
+                    'demand_ed' => $demEd,
+                    'demand_or' => $demOr,
+                    'demand_transfer' => $demTransfer,
+                    'demand_direct' => $demDirect,
+                    'demand_expected' => $demExpected,
+                    'capacity_now' => $capacityNow,
+                    'bed_need' => $bedNeed,
+                    'status' => 'open',
+                    'created_by' => 'seeder',
+                    'modified_by' => 'seeder',
+                    'is_deleted' => false,
+                ]
+            );
         }
     }
 
@@ -1918,13 +1928,19 @@ class CommandCenterDemoSeeder extends Seeder
     private function seedHistoricalEncounters($nonEdUnits): void
     {
         // Idempotent delete of all three sim-hx/sim-td/sim-ra cohorts.
-        DB::table('prod.encounters')
-            ->where(function ($q) {
-                $q->where('patient_ref', 'like', 'sim-hx-%')
-                    ->orWhere('patient_ref', 'like', 'sim-td-%')
-                    ->orWhere('patient_ref', 'like', 'sim-ra-%');
-            })
-            ->delete();
+        // Barriers FK these encounters (DemoTuningSeeder adds them on earlier
+        // runs) — remove those first or the re-run dies on the constraint;
+        // DemoTuningSeeder recreates barriers against the fresh cohort.
+        $simCohort = fn ($q) => $q->where('patient_ref', 'like', 'sim-hx-%')
+            ->orWhere('patient_ref', 'like', 'sim-td-%')
+            ->orWhere('patient_ref', 'like', 'sim-ra-%');
+
+        DB::table('prod.barriers')->whereIn(
+            'encounter_id',
+            DB::table('prod.encounters')->where($simCohort)->pluck('encounter_id'),
+        )->delete();
+
+        DB::table('prod.encounters')->where($simCohort)->delete();
 
         // GMLOS lookup keyed by unit type.
         $gmlosMap = [

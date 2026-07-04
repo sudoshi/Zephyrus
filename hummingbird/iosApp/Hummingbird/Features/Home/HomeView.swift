@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var pulse = false
     @State private var path = NavigationPath()
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     /// Poll cadence — now just the fallback safety net; live updates arrive over the Reverb
     /// websocket (architecture: push-first / WS-when-foregrounded / poll-fallback).
@@ -24,31 +25,28 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    greeting
-                    AltitudeContextCard(domain: "rtdc")
-                    if vm.units.isEmpty && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.units.isEmpty && vm.errorMessage != nil {
-                        // Hard failure with nothing cached — don't render a misleading 0/0 rollup.
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the census",
-                                         message: vm.errorMessage ?? "", tone: .warning) {
-                            Task { await vm.load(bearer: auth.accessToken ?? "") }
-                        }
-                    } else if vm.units.isEmpty {
-                        RetryableMessage(symbol: "building.2", title: "No units reporting",
-                                         message: "No units are reporting a census right now.")
-                    } else {
-                        roleContent
-                    }
+            Group {
+                if viewMode == .map, let mapScope {
+                    // The Flow Window map — a presentation mode of this home, not a new tab.
+                    FlowMapView(persona: profile.roleId ?? "", scope: mapScope)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle(role.homeTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if mapScope != nil {
+                    ToolbarItem(placement: .principal) {
+                        Picker("View", selection: $viewMode) {
+                            Text("List").tag(FlowHomeMode.list)
+                            Text("Map").tag(FlowHomeMode.map)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 160)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
                         Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
@@ -57,30 +55,6 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                // Open the live websocket; keep the poll loop as a fallback. Both auto-stop
-                // when the view goes away.
-                let token = auth.accessToken ?? ""
-                vm.startLive(bearer: token)
-                defer { vm.stopLive() }
-                var first = true
-                while !Task.isCancelled {
-                    await vm.load(bearer: token)
-                    if first {
-                        first = false
-                        // Deep-link test affordance: SIMCTL_CHILD_HB_OPEN_UNIT=<id> opens a unit.
-                        if let s = ProcessInfo.processInfo.environment["HB_OPEN_UNIT"], let id = Int(s) {
-                            path.append(id)
-                        }
-                        // Test affordance: SIMCTL_CHILD_HB_PROFILE=1 opens the profile sheet.
-                        if ProcessInfo.processInfo.environment["HB_PROFILE"] == "1" {
-                            showProfile = true
-                        }
-                    }
-                    try? await Task.sleep(for: refreshInterval)
-                }
-            }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
             }
@@ -93,6 +67,67 @@ struct HomeView: View {
             }
         }
         .tint(Z.primary)
+    }
+
+    /// The personas whose census home offers the spatial Flow Window, and at which scope
+    /// (charge nurse → own unit's floor board; house supervisor → the whole house).
+    private var mapScope: FlowScopeRequest? {
+        switch profile.roleId {
+        case "charge_nurse":
+            return profile.unitId.map { FlowScopeRequest.unit($0) } ?? .house
+        case "house_supervisor":
+            return .house
+        default:
+            return nil
+        }
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                greeting
+                AltitudeContextCard(domain: "rtdc")
+                if vm.units.isEmpty && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.units.isEmpty && vm.errorMessage != nil {
+                    // Hard failure with nothing cached — don't render a misleading 0/0 rollup.
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the census",
+                                     message: vm.errorMessage ?? "", tone: .warning) {
+                        Task { await vm.load(bearer: auth.accessToken ?? "") }
+                    }
+                } else if vm.units.isEmpty {
+                    RetryableMessage(symbol: "building.2", title: "No units reporting",
+                                     message: "No units are reporting a census right now.")
+                } else {
+                    roleContent
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            // Open the live websocket; keep the poll loop as a fallback. Both auto-stop
+            // when the view goes away.
+            let token = auth.accessToken ?? ""
+            vm.startLive(bearer: token)
+            defer { vm.stopLive() }
+            var first = true
+            while !Task.isCancelled {
+                await vm.load(bearer: token)
+                if first {
+                    first = false
+                    // Deep-link test affordance: SIMCTL_CHILD_HB_OPEN_UNIT=<id> opens a unit.
+                    if let s = ProcessInfo.processInfo.environment["HB_OPEN_UNIT"], let id = Int(s) {
+                        path.append(id)
+                    }
+                    // Test affordance: SIMCTL_CHILD_HB_PROFILE=1 opens the profile sheet.
+                    if ProcessInfo.processInfo.environment["HB_PROFILE"] == "1" {
+                        showProfile = true
+                    }
+                }
+                try? await Task.sleep(for: refreshInterval)
+            }
+        }
     }
 
     // MARK: Role-scoped content

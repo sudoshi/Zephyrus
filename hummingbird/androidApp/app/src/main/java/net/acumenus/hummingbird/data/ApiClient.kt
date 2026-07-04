@@ -243,6 +243,20 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
+    suspend fun flowWindow(bearer: String, persona: String, scope: String? = null): FlowWindowData = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append(withPersona("/api/mobile/v1/flow/window", persona))
+            if (!scope.isNullOrBlank()) {
+                append(if (contains('?')) '&' else '?').append("scope=").append(urlPart(scope))
+            }
+        }
+        parseFlowWindow(getEnvelope(path, bearer))
+    }
+
+    suspend fun flowFloors(bearer: String): FlowFloorsDocument = withContext(Dispatchers.IO) {
+        parseFlowFloors(getEnvelope("/api/mobile/v1/flow/floors", bearer))
+    }
+
     suspend fun revoke(bearer: String) = withContext(Dispatchers.IO) {
         runCatching { send("POST", "/api/auth/token/revoke", "{}", bearer) }
         Unit
@@ -728,6 +742,132 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         impact = o.optIntOrNull("impact"),
     )
 
+    internal fun parseFlowWindow(root: JSONObject): FlowWindowData {
+        val data = root.getJSONObject("data")
+        val window = data.optJSONObject("window") ?: JSONObject()
+        val lens = data.optJSONObject("lens") ?: JSONObject()
+        val scope = data.optJSONObject("scope") ?: JSONObject()
+        val spaces = data.optJSONObject("spaces")
+
+        return FlowWindowData(
+            window = FlowWindowRange(
+                from = window.optString("from"),
+                to = window.optString("to"),
+                now = window.optString("now"),
+            ),
+            lens = FlowLens(
+                roleId = lens.optString("role_id"),
+                scopesAllowed = lens.optJSONArray("scopes_allowed").strings(),
+                layers = lens.optJSONArray("layers").strings(),
+                eventKinds = lens.optJSONArray("event_kinds").strings(),
+                projectionKinds = lens.optJSONArray("projection_kinds").strings(),
+                patientDots = lens.optString("patient_dots", "none"),
+                actions = lens.optJSONArray("actions").strings(),
+                defaultZoomHours = lens.optInt("default_zoom_hours", 48),
+            ),
+            scope = FlowScope(
+                type = scope.optString("type", "house"),
+                floor = scope.optIntOrNull("floor"),
+                unitId = scope.optIntOrNull("unit_id"),
+                patientContextRef = scope.optStringOrNull("patient_context_ref"),
+                label = scope.optStringOrNull("label") ?: "House",
+            ),
+            spacesFloors = spaces?.optJSONArray("floors").objects().map(::parseFlowFloorRollup),
+            snapshots = data.optJSONArray("snapshots").objects().map(::parseFlowSnapshot),
+            events = data.optJSONArray("events").objects().map(::parseFlowTimelineEvent),
+            projections = data.optJSONArray("projections").objects().map(::parseFlowProjection),
+        )
+    }
+
+    private fun parseFlowFloorRollup(o: JSONObject): FlowFloorRollup = FlowFloorRollup(
+        floor = o.optInt("floor"),
+        label = o.optStringOrNull("label") ?: "Floor ${o.optInt("floor")}",
+        staffed = o.optInt("staffed"),
+        occupied = o.optInt("occupied"),
+        occupancyPct = o.optInt("occupancy_pct"),
+        units = o.optJSONArray("units").objects().map(::parseFlowUnitRollup),
+    )
+
+    private fun parseFlowUnitRollup(o: JSONObject): FlowUnitRollup = FlowUnitRollup(
+        unitId = o.optInt("unit_id"),
+        abbr = o.optStringOrNull("abbr") ?: "",
+        name = o.optStringOrNull("name") ?: "Unit",
+        staffed = o.optInt("staffed"),
+        occupied = o.optInt("occupied"),
+        available = o.optInt("available"),
+        blocked = o.optInt("blocked"),
+        occupancyPct = o.optInt("occupancy_pct"),
+    )
+
+    private fun parseFlowSnapshot(o: JSONObject): FlowSnapshot = FlowSnapshot(
+        t = o.optString("t"),
+        unitId = o.optInt("unit_id"),
+        staffed = o.optInt("staffed"),
+        occupied = o.optInt("occupied"),
+        available = o.optInt("available"),
+        blocked = o.optInt("blocked"),
+    )
+
+    private fun parseFlowTimelineEvent(o: JSONObject): FlowTimelineEvent = FlowTimelineEvent(
+        t = o.optString("t"),
+        kind = o.optString("kind"),
+        label = o.optStringOrNull("label") ?: humanize(o.optString("kind", "event")),
+        tier = o.optStringOrNull("tier") ?: "info",
+        unitId = o.optIntOrNull("unit_id"),
+        fromSpace = o.optStringOrNull("from_space"),
+        toSpace = o.optStringOrNull("to_space"),
+        patientContextRef = o.optStringOrNull("patient_context_ref"),
+        provenanceSource = o.optJSONObject("provenance")?.optStringOrNull("source") ?: "",
+    )
+
+    private fun parseFlowProjection(o: JSONObject): FlowProjection {
+        val band = o.optJSONObject("band")
+        val provenance = o.optJSONObject("provenance")
+        return FlowProjection(
+            t = o.optString("t"),
+            kind = o.optString("kind"),
+            confidence = o.optStringOrNull("confidence") ?: "possible",
+            label = o.optStringOrNull("label") ?: humanize(o.optString("kind", "projection")),
+            unitId = o.optIntOrNull("unit_id"),
+            bedId = o.optIntOrNull("bed_id"),
+            value = o.optIntOrNull("value"),
+            bandLower = band?.optIntOrNull("lower"),
+            bandUpper = band?.optIntOrNull("upper"),
+            endsAt = o.optStringOrNull("ends_at"),
+            derived = o.optBoolean("derived", false),
+            patientContextRef = o.optStringOrNull("patient_context_ref"),
+            provenanceService = provenance?.optStringOrNull("service") ?: "",
+            provenanceReliability = provenance?.optDoubleOrNull("reliability"),
+        )
+    }
+
+    internal fun parseFlowFloors(root: JSONObject): FlowFloorsDocument {
+        val data = root.getJSONObject("data")
+        return FlowFloorsDocument(
+            version = data.optStringOrNull("version")
+                ?: root.optJSONObject("meta")?.optStringOrNull("version")
+                ?: "",
+            floors = data.optJSONArray("floors").objects().map(::parseFlowFloor),
+        )
+    }
+
+    private fun parseFlowFloor(o: JSONObject): FlowFloor = FlowFloor(
+        floor = o.optInt("floor"),
+        label = o.optStringOrNull("label") ?: "Floor ${o.optInt("floor")}",
+        bounds = o.optJSONArray("bounds").doubles(),
+        spaces = o.optJSONArray("spaces").objects().map(::parseFlowPlate),
+    )
+
+    private fun parseFlowPlate(o: JSONObject): FlowPlate = FlowPlate(
+        id = o.optInt("id"),
+        code = o.optString("code"),
+        category = o.optStringOrNull("category") ?: "room",
+        label = o.optStringOrNull("label") ?: o.optString("code"),
+        rect = o.optJSONArray("rect").doubles(),
+        unitId = o.optIntOrNull("unit_id"),
+        bedId = o.optIntOrNull("bed_id"),
+    )
+
     internal fun parseHouseRollup(root: JSONObject): HouseRollup {
         val data = root.getJSONObject("data")
         val occupancy = data.optJSONObject("occupancy") ?: JSONObject()
@@ -818,6 +958,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         val status = o.optJSONObject("status")
         val statusValue = normalizeStatus(
             status?.optStringOrNull("value")
+                ?: status?.optStringOrNull("severity")
                 ?: status?.optStringOrNull("status_after")
                 ?: status?.optStringOrNull("current")
                 ?: status?.optStringOrNull("status"),
@@ -1006,6 +1147,9 @@ private fun JSONObject.optStringOrNull(key: String): String? =
 private fun JSONObject.optIntOrNull(key: String): Int? =
     if (isNull(key) || !has(key)) null else optInt(key)
 
+private fun JSONObject.optDoubleOrNull(key: String): Double? =
+    if (isNull(key) || !has(key)) null else optDouble(key)
+
 private fun JSONObject.optIsolation(key: String): String? {
     if (isNull(key) || !has(key)) return null
     val raw = opt(key)
@@ -1024,4 +1168,9 @@ private fun JSONArray?.objects(): List<JSONObject> {
 private fun JSONArray?.strings(): List<String> {
     if (this == null) return emptyList()
     return List(length()) { i -> optString(i) }.filter { it.isNotBlank() }
+}
+
+private fun JSONArray?.doubles(): List<Double> {
+    if (this == null) return emptyList()
+    return List(length()) { i -> optDouble(i, 0.0) }
 }

@@ -29,6 +29,8 @@ npx @redocly/cli lint docs/hummingbird/api-contract/hummingbird-bff.v1.yaml
 | GET    | `/eddy/conversations`                        |
 | GET    | `/eddy/conversations/{uuid}`                 |
 | GET    | `/evs/queue`                                 |
+| GET    | `/flow/floors`                               |
+| GET    | `/flow/window`                               |
 | GET    | `/for-you`                                   |
 | GET    | `/improvement/opportunities`                 |
 | GET    | `/improvement/pdsa`                          |

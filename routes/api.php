@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Mobile\DeviceController as MobileDeviceController;
 use App\Http\Controllers\Api\Mobile\EddyContextController as MobileEddyContextController;
 use App\Http\Controllers\Api\Mobile\EddyController as MobileEddyController;
 use App\Http\Controllers\Api\Mobile\EvsController as MobileEvsController;
+use App\Http\Controllers\Api\Mobile\FlowController as MobileFlowController;
 use App\Http\Controllers\Api\Mobile\ForYouController as MobileForYouController;
 use App\Http\Controllers\Api\Mobile\ImprovementController as MobileImprovementController;
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
@@ -87,14 +88,27 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('facility')->group(f
 
 // Patient Flow 4D navigator (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->group(function () {
+    // Aggregate reads — any authenticated user.
     Route::get('/summary', [PatientFlowController::class, 'summary']);
     Route::get('/locations', [PatientFlowController::class, 'locations']);
-    Route::get('/events', [PatientFlowController::class, 'events']);
-    Route::get('/tracks', [PatientFlowController::class, 'tracks']);
-    Route::get('/state', [PatientFlowController::class, 'state']);
     Route::get('/ambient', [PatientFlowController::class, 'ambient']);
-    Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
-    Route::get('/stream/adt', PatientFlowStreamController::class);
+
+    // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
+    // requires a flow lens whose patient_dots policy is not `none`.
+    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')->group(function () {
+        Route::get('/events', [PatientFlowController::class, 'events']);
+        Route::get('/tracks', [PatientFlowController::class, 'tracks']);
+        Route::get('/state', [PatientFlowController::class, 'state']);
+        Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
+        Route::get('/stream/adt', PatientFlowStreamController::class);
+    });
+
+    // The +24h projection stream (Flow Window prediction half) — lensed,
+    // aggregate-safe: items are persona-clamped and identity-redacted by
+    // the same lens the mobile window uses.
+    Route::get('/projections', [PatientFlowController::class, 'projections'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
+
     Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
 });
 
@@ -404,6 +418,16 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
         ->middleware(CheckForAnyAbility::class.':mobile:act');
 
     Route::get('/for-you', [MobileForYouController::class, 'index']);
+
+    // Flow Window (FLOW-WINDOW-PLAN §6.4) — the persona-lensed 48h
+    // spatiotemporal surface. /floors is the versioned plate asset (ETag);
+    // /window serves snapshots + events + projections clamped by the
+    // caller's lens (config/hummingbird/flow_lens.php). Server-side RBAC —
+    // patient identity never exceeds the caller's A2P matrix depth.
+    Route::prefix('flow')->group(function () {
+        Route::get('/floors', [MobileFlowController::class, 'floors']);
+        Route::get('/window', [MobileFlowController::class, 'window']);
+    });
 
     // Transport (P1) — the frontline claim-and-run queue. Reads PHI-minimized; the lifecycle
     // writes (status transition + structured handoff) additionally require mobile:act.

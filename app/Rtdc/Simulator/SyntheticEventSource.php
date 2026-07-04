@@ -21,12 +21,13 @@ class SyntheticEventSource implements EventSource
     public function __construct(
         private readonly SimulatorConfig $config,
         private readonly int $seed = 0,
+        private readonly ?\Carbon\CarbonInterface $startAt = null,
     ) {}
 
     public function pull(): iterable
     {
         mt_srand($this->seed);
-        $now = now()->startOfDay()->addHours(6);
+        $now = ($this->startAt?->copy() ?? now()->startOfDay()->addHours(6));
 
         // Seed initial occupancy.
         foreach (Unit::all() as $unit) {

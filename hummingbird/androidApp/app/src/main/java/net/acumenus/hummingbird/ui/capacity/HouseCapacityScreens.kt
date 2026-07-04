@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -41,6 +42,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -61,6 +66,9 @@ import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.hbConfirmHaptic
 import net.acumenus.hummingbird.ui.components.hbRejectHaptic
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 import java.time.Duration
@@ -72,11 +80,13 @@ import java.time.OffsetDateTime
 fun HouseCapacityScreen(
     auth: AuthViewModel,
     forceError: Boolean = false,
+    personaId: String = "bed_manager",
     onOpenProfile: () -> Unit = {},
     onOpenPlacement: (Placement) -> Unit,
 ) {
     val vm: HouseCapacityViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -109,8 +119,21 @@ fun HouseCapacityScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            FlowMapScreen(
+                auth = auth,
+                persona = personaId,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         LazyColumn(
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -150,6 +173,8 @@ fun HouseCapacityScreen(
                     items(pressured, key = { it.unitId }) { unit -> PressuredUnitRow(unit) }
                 }
             }
+        }
+        }
         }
     }
 }

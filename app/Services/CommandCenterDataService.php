@@ -1123,14 +1123,16 @@ class CommandCenterDataService
             ->selectRaw('AVG(reliability_score) AS avg_rel')
             ->first()?->avg_rel ?? 0.8);
 
-        // Surge probability heuristic (documented, not a trained model).
-        $occupancyPressure = max(0, (int) round(($occupancyPct - 80) * 4));
-        $bedPressure = max(0, -$netBeds * 5);
-        $demandPressure = max(0, (int) round(max(0, $predAdmissions - $sumWtDc) * 2));
-        $reliabilityPressure = max(0, (int) round((1 - $avgReliability) * 20));
-        $surgePct = (int) max(0, min(95,
-            $occupancyPressure + $bedPressure + $demandPressure + $reliabilityPressure
-        ));
+        // Surge probability heuristic (documented, not a trained model) —
+        // shared with the Flow Window projections via SurgeHeuristic.
+        $pressures = \App\Support\SurgeHeuristic::pressures(
+            $occupancyPct, $netBeds, $predAdmissions, $sumWtDc, $avgReliability
+        );
+        $occupancyPressure = $pressures['occupancy_pressure'];
+        $bedPressure = $pressures['bed_pressure'];
+        $demandPressure = $pressures['demand_pressure'];
+        $reliabilityPressure = $pressures['reliability_pressure'];
+        $surgePct = $pressures['surge_pct'];
         $surgeDetail = $this->detail(
             '24h surge model drivers',
             [

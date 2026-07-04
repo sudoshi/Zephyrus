@@ -423,6 +423,78 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /flow/floors:
+    get:
+      tags: [flow]
+      summary:
+        Versioned, simplified 2D floor-plate asset (geometry + unit/bed
+        bridges, no live state). Strong ETag; clients revalidate with
+        If-None-Match and render from cache on 304.
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+          description: "Previously returned ETag (the plates version)."
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: "#/components/schemas/FlowFloorsEnvelope" },
+                  },
+              },
+          }
+        "304": { description: Not modified — render the cached plates. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /flow/window:
+    get:
+      tags: [flow]
+      summary:
+        The persona-lensed 48h Flow Window — census checkpoints (review),
+        normalized events (review), and typed projections with confidence +
+        provenance (prediction), for one scope. Layers, kinds, scope, and
+        patient depth are clamped server-side by the caller's flow lens;
+        an out-of-lens scope is an explicit 403 unauthorized state.
+      parameters:
+        - name: persona
+          in: query
+          schema: { $ref: "#/components/schemas/MobilePersonaId" }
+        - name: scope
+          in: query
+          schema: { type: string }
+          description: "house | floor:{n} | unit:{id|abbr} | patient:{ptok_…} (default: the lens' scope_default)."
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+          description: "Window start; clamped into [now-24h, now+24h]."
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+          description: "Window end; clamped into [now-24h, now+24h]."
+        - name: layers
+          in: query
+          schema: { type: string }
+          description: "Comma list of snapshots,events,projections,spaces (intersected with the lens)."
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: "#/components/schemas/FlowWindowEnvelope" },
+                  },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /rtdc/census:
     get:
       tags: [rtdc]
@@ -1649,6 +1721,262 @@ components:
           bed_need,
           status,
         ]
+    # ------------------------------------------------------------------
+    # Flow Window (FLOW-WINDOW-PLAN) — the persona-lensed 48h surface
+    # ------------------------------------------------------------------
+
+    FlowPlate:
+      type: object
+      description: One simplified plan-view shape (feet; rect = [x, y, w, h]).
+      required: [id, code, category, label, rect]
+      properties:
+        id: { type: integer, description: facility_space_id }
+        code: { type: string }
+        category:
+          {
+            type: string,
+            enum:
+              [
+                zone,
+                unit,
+                room,
+                bay,
+                bed,
+                corridor,
+                vertical_transport,
+                procedure_room,
+                imaging,
+              ],
+          }
+        label: { type: string }
+        rect:
+          {
+            type: array,
+            items: { type: number },
+            minItems: 4,
+            maxItems: 4,
+          }
+        unit_id: { type: integer }
+        bed_id: { type: integer }
+
+    FlowFloorsEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [version, facility, floors]
+              properties:
+                version: { type: string }
+                units: { type: string, description: Geometry unit contract note. }
+                facility:
+                  type: object
+                  properties:
+                    code: { type: string }
+                    cad_code: { type: string }
+                    name: { type: string }
+                floors:
+                  type: array
+                  items:
+                    type: object
+                    required: [floor, label, bounds, spaces]
+                    properties:
+                      floor: { type: integer }
+                      label: { type: string }
+                      bounds:
+                        {
+                          type: array,
+                          items: { type: number },
+                          minItems: 4,
+                          maxItems: 4,
+                        }
+                      shape_count: { type: integer }
+                      spaces:
+                        {
+                          type: array,
+                          items: { $ref: "#/components/schemas/FlowPlate" },
+                        }
+
+    FlowTimelineEvent:
+      type: object
+      description:
+        One normalized review-half event. Patient identity appears ONLY as
+        patient_context_ref (ptok), and only at the lens' depth — payloads
+        for patient_dots:none personas carry neither tokens nor patient
+        entities.
+      required: [t, kind, label, tier, provenance]
+      properties:
+        t: { type: string, format: date-time }
+        kind:
+          {
+            type: string,
+            enum:
+              [
+                admit,
+                transfer,
+                discharge,
+                bed_status,
+                acuity_changed,
+                ed_arrival,
+                ed_admit_decision,
+                bed_request,
+                placement,
+                transport_status,
+                evs_status,
+                barrier_opened,
+                barrier_resolved,
+                staffing_fill,
+                or_milestone,
+              ],
+          }
+        entity:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                type: { type: string }
+                ref: { oneOf: [{ type: string }, { type: "null" }] }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        from_space: { oneOf: [{ type: string }, { type: "null" }] }
+        to_space: { oneOf: [{ type: string }, { type: "null" }] }
+        unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        label: { type: string }
+        tier: { type: string, enum: [info, warning, critical] }
+        provenance:
+          type: object
+          properties:
+            source: { type: string }
+
+    FlowProjection:
+      type: object
+      description:
+        One prediction-half item. Rendered as a ghost — dashed, translucent,
+        confidence-mapped opacity, never a status color. Every item carries
+        provenance (source service + unit reliability where applicable).
+      required: [t, kind, confidence, label, provenance]
+      properties:
+        t: { type: string, format: date-time }
+        kind:
+          {
+            type: string,
+            enum:
+              [
+                expected_discharge,
+                predicted_census,
+                predicted_arrivals,
+                scheduled_or_case,
+                transport_due,
+                evs_due,
+                staffing_shift_gap,
+                surge_probability,
+              ],
+          }
+        confidence: { type: string, enum: [definite, probable, possible] }
+        unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        bed_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        entity:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                type: { type: string }
+                ref: { oneOf: [{ type: string }, { type: "null" }] }
+        patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        label: { type: string }
+        value: { oneOf: [{ type: integer }, { type: "null" }] }
+        band:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                lower: { type: integer }
+                upper: { type: integer }
+        ends_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        derived:
+          {
+            type: boolean,
+            description: True for chain ghosts (discharge → transport → turn).,
+          }
+        provenance:
+          type: object
+          properties:
+            service: { type: string }
+            reliability:
+              {
+                oneOf: [{ type: number }, { type: "null" }],
+                description: Unit 14-day prediction-vs-actual score (0…1).,
+              }
+
+    FlowWindowEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [window, lens, scope]
+              properties:
+                window:
+                  type: object
+                  required: [from, to, now]
+                  properties:
+                    from: { type: string, format: date-time }
+                    to: { type: string, format: date-time }
+                    now: { type: string, format: date-time }
+                lens:
+                  type: object
+                  properties:
+                    role_id: { $ref: "#/components/schemas/MobilePersonaId" }
+                    scope_default: { type: string }
+                    scopes_allowed:
+                      { type: array, items: { type: string } }
+                    layers: { type: array, items: { type: string } }
+                    event_kinds: { type: array, items: { type: string } }
+                    projection_kinds:
+                      { type: array, items: { type: string } }
+                    patient_dots:
+                      { type: string, enum: [full, unit, task, none] }
+                    actions: { type: array, items: { type: string } }
+                    default_zoom_hours: { type: integer }
+                scope:
+                  type: object
+                  properties:
+                    type:
+                      { type: string, enum: [house, floor, unit, patient] }
+                    floor: { oneOf: [{ type: integer }, { type: "null" }] }
+                    unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
+                    patient_context_ref:
+                      { oneOf: [{ type: string }, { type: "null" }] }
+                    label: { type: string }
+                spaces:
+                  type: object
+                  description: Live per-floor rollups + plates version (layer `spaces`).
+                snapshots:
+                  type: array
+                  description: Hourly census checkpoints (layer `snapshots`).
+                  items:
+                    type: object
+                    properties:
+                      t: { type: string, format: date-time }
+                      unit_id: { type: integer }
+                      staffed: { type: integer }
+                      occupied: { type: integer }
+                      available: { type: integer }
+                      blocked: { type: integer }
+                events:
+                  {
+                    type: array,
+                    items:
+                      { $ref: "#/components/schemas/FlowTimelineEvent" },
+                  }
+                projections:
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/FlowProjection" },
+                  }
+
     CensusEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }

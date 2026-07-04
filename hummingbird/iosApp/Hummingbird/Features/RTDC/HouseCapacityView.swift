@@ -61,11 +61,13 @@ final class HouseCapacityViewModel: ObservableObject {
 
 struct HouseCapacityView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm: HouseCapacityViewModel
     @State private var showProfile = false
     @State private var autoOpenPlacement = false
     @State private var autoPlacementIndex = 0
     @State private var didAutoOpen = false
+    @State private var viewMode: FlowHomeMode = .list
 
     private let refreshInterval: Duration = .seconds(20)
 
@@ -75,26 +77,26 @@ struct HouseCapacityView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "rtdc")
-                    if vm.house == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.house == nil && vm.errorMessage != nil {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load capacity",
-                                         message: vm.errorMessage ?? "", tone: .warning) {
-                            Task { await vm.load(bearer: auth.accessToken ?? "") }
-                        }
-                    } else if let h = vm.house {
-                        content(h)
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window at house scope — the bed manager's whole board, in time.
+                    FlowMapView(persona: profile.roleId ?? "bed_manager", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("House Capacity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
                         Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
@@ -103,14 +105,6 @@ struct HouseCapacityView: View {
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled {
-                    await vm.load(bearer: token)
-                    try? await Task.sleep(for: refreshInterval)
-                }
-            }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
             }
@@ -135,6 +129,33 @@ struct HouseCapacityView: View {
             }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "rtdc")
+                if vm.house == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.house == nil && vm.errorMessage != nil {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load capacity",
+                                     message: vm.errorMessage ?? "", tone: .warning) {
+                        Task { await vm.load(bearer: auth.accessToken ?? "") }
+                    }
+                } else if let h = vm.house {
+                    content(h)
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled {
+                await vm.load(bearer: token)
+                try? await Task.sleep(for: refreshInterval)
+            }
+        }
     }
 
     @ViewBuilder

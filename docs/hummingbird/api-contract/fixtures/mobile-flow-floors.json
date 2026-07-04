@@ -1,0 +1,110 @@
+{
+    "data": {
+        "facility": {
+            "code": "HOSP1",
+            "cad_code": "ZEPHYRUS-500",
+            "name": "Summit Regional Medical Center"
+        },
+        "units": "plan-view feet, top-left origin per rect [x, y, w, h]",
+        "floors": [
+            {
+                "floor": 3,
+                "label": "Floor 3",
+                "bounds": [
+                    -215,
+                    -135,
+                    430,
+                    270
+                ],
+                "shape_count": 4,
+                "spaces": [
+                    {
+                        "id": 36,
+                        "code": "ZEPHYRUS-500:L3-icu_patient-01",
+                        "category": "corridor",
+                        "label": "L3 ICU patient corridor segment 01",
+                        "rect": [
+                            -68,
+                            -47,
+                            96,
+                            10
+                        ]
+                    },
+                    {
+                        "id": 35,
+                        "code": "ZEPHYRUS-500:TICU-B001",
+                        "category": "bed",
+                        "label": "Test Surgical Trauma ICU bed 001",
+                        "rect": [
+                            -77.6,
+                            34.9,
+                            6.8,
+                            3.2
+                        ],
+                        "bed_id": 693,
+                        "unit_id": 26
+                    },
+                    {
+                        "id": 34,
+                        "code": "ZEPHYRUS-500:TICU-R001",
+                        "category": "room",
+                        "label": "Test Surgical Trauma ICU patient room 001",
+                        "rect": [
+                            -81,
+                            27,
+                            18,
+                            22
+                        ]
+                    },
+                    {
+                        "id": 33,
+                        "code": "ZEPHYRUS-500:UNIT-TICU",
+                        "category": "unit",
+                        "label": "Test Surgical Trauma ICU",
+                        "rect": [
+                            -114,
+                            -52,
+                            128,
+                            104
+                        ],
+                        "unit_id": 26
+                    }
+                ]
+            },
+            {
+                "floor": 99,
+                "label": "Floor 99",
+                "bounds": [
+                    -13.3,
+                    -79.8,
+                    10.5,
+                    11.5
+                ],
+                "shape_count": 1,
+                "spaces": [
+                    {
+                        "id": 37,
+                        "code": "ZEPHYRUS-500:TRM-01",
+                        "category": "vertical_transport",
+                        "label": "Trauma priority elevator 01",
+                        "rect": [
+                            -13.3,
+                            -79.8,
+                            10.5,
+                            11.5
+                        ]
+                    }
+                ]
+            }
+        ],
+        "version": "v1-346c77a48494"
+    },
+    "meta": {
+        "as_of": "2026-07-04T01:27:05.400748Z",
+        "stale": false,
+        "version": "v1-346c77a48494"
+    },
+    "links": {
+        "web": "http://localhost/rtdc/patient-flow-navigator"
+    }
+}

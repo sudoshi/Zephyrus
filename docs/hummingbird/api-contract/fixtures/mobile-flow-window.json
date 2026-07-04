@@ -1,0 +1,1623 @@
+{
+    "data": {
+        "window": {
+            "from": "2026-07-03T01:27:05+00:00",
+            "to": "2026-07-05T01:27:05+00:00",
+            "now": "2026-07-04T01:27:05+00:00"
+        },
+        "lens": {
+            "role_id": "bed_manager",
+            "scope_default": "house",
+            "scopes_allowed": [
+                "house",
+                "floor",
+                "unit",
+                "patient"
+            ],
+            "layers": [
+                "snapshots",
+                "events",
+                "projections",
+                "spaces"
+            ],
+            "event_kinds": [
+                "admit",
+                "transfer",
+                "discharge",
+                "bed_status",
+                "acuity_changed",
+                "ed_arrival",
+                "ed_admit_decision",
+                "bed_request",
+                "placement",
+                "transport_status",
+                "evs_status",
+                "barrier_opened",
+                "barrier_resolved"
+            ],
+            "projection_kinds": [
+                "expected_discharge",
+                "predicted_census",
+                "predicted_arrivals",
+                "scheduled_or_case",
+                "transport_due",
+                "evs_due",
+                "surge_probability"
+            ],
+            "patient_dots": "full",
+            "actions": [
+                "place_bed",
+                "open_patient"
+            ],
+            "default_zoom_hours": 48
+        },
+        "scope": {
+            "type": "house",
+            "floor": null,
+            "unit_id": null,
+            "patient_context_ref": null,
+            "label": "House"
+        },
+        "spaces": {
+            "plates_version": "v1-346c77a48494",
+            "floors": [
+                {
+                    "floor": 1,
+                    "label": "Floor 1",
+                    "units": [
+                        {
+                            "unit_id": 24,
+                            "abbr": "ED",
+                            "name": "1 \u2014 Emergency Department",
+                            "type": "ed",
+                            "service_line": "emergency",
+                            "acuity": "emergency",
+                            "cad_code": "ED",
+                            "facility_space_id": null,
+                            "staffed": 148,
+                            "occupied": 0,
+                            "available": 148,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 148,
+                    "occupied": 0,
+                    "available": 148,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 2,
+                    "label": "Floor 2",
+                    "units": [
+                        {
+                            "unit_id": 6,
+                            "abbr": "BHU",
+                            "name": "2 \u2014 Inpatient Behavioral Health (Secure)",
+                            "type": "med_surg",
+                            "service_line": "behavioral_health",
+                            "acuity": "behavioral",
+                            "cad_code": "BHU2",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 25,
+                            "abbr": "OR",
+                            "name": "2 \u2014 Perioperative / Procedural Platform",
+                            "type": "periop",
+                            "service_line": "perioperative",
+                            "acuity": "procedural",
+                            "cad_code": "PERIOP",
+                            "facility_space_id": null,
+                            "staffed": 44,
+                            "occupied": 0,
+                            "available": 44,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 68,
+                    "occupied": 0,
+                    "available": 68,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 3,
+                    "label": "Floor 3",
+                    "units": [
+                        {
+                            "unit_id": 1,
+                            "abbr": "MICU",
+                            "name": "3 West \u2014 Medical ICU (MICU)",
+                            "type": "icu",
+                            "service_line": "critical_care",
+                            "acuity": "icu",
+                            "cad_code": "MICU3",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 1,
+                            "available": 23,
+                            "blocked": 0,
+                            "occupancy_pct": 4,
+                            "evs_open": 1,
+                            "transport_active": 1,
+                            "barriers_open": 1,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 2,
+                            "abbr": "SICU",
+                            "name": "3 East \u2014 Surgical/Trauma ICU (SICU)",
+                            "type": "icu",
+                            "service_line": "trauma_surgery",
+                            "acuity": "icu",
+                            "cad_code": "SICU3",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 3,
+                            "abbr": "NSICU",
+                            "name": "3 South \u2014 Neuroscience ICU (NSICU)",
+                            "type": "icu",
+                            "service_line": "neurosciences",
+                            "acuity": "icu",
+                            "cad_code": "NSICU3",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 4,
+                            "abbr": "CVICU",
+                            "name": "3 North \u2014 Cardiovascular ICU (CVICU)",
+                            "type": "icu",
+                            "service_line": "cardiovascular",
+                            "acuity": "icu",
+                            "cad_code": "CVICU3",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 5,
+                            "abbr": "BURN",
+                            "name": "3 Central \u2014 Burn ICU",
+                            "type": "icu",
+                            "service_line": "burn",
+                            "acuity": "burn_icu",
+                            "cad_code": "BURN3",
+                            "facility_space_id": null,
+                            "staffed": 8,
+                            "occupied": 0,
+                            "available": 8,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 96,
+                    "occupied": 1,
+                    "available": 95,
+                    "blocked": 0,
+                    "occupancy_pct": 1,
+                    "evs_open": 1,
+                    "transport_active": 1,
+                    "barriers_open": 1
+                },
+                {
+                    "floor": 4,
+                    "label": "Floor 4",
+                    "units": [
+                        {
+                            "unit_id": 7,
+                            "abbr": "4W",
+                            "name": "4 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS4A",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 8,
+                            "abbr": "4E",
+                            "name": "4 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS4B",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 56,
+                    "occupied": 0,
+                    "available": 56,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 5,
+                    "label": "Floor 5",
+                    "units": [
+                        {
+                            "unit_id": 9,
+                            "abbr": "5W",
+                            "name": "5 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS5A",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 10,
+                            "abbr": "5E",
+                            "name": "5 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS5B",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 56,
+                    "occupied": 0,
+                    "available": 56,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 6,
+                    "label": "Floor 6",
+                    "units": [
+                        {
+                            "unit_id": 11,
+                            "abbr": "6W",
+                            "name": "6 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS6A",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 12,
+                            "abbr": "6E",
+                            "name": "6 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS6B",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 7,
+                    "label": "Floor 7",
+                    "units": [
+                        {
+                            "unit_id": 13,
+                            "abbr": "7E",
+                            "name": "7 East \u2014 Telemetry & Cardiology",
+                            "type": "step_down",
+                            "service_line": "cardiology",
+                            "acuity": "telemetry",
+                            "cad_code": "TEL7A",
+                            "facility_space_id": null,
+                            "staffed": 32,
+                            "occupied": 0,
+                            "available": 32,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 14,
+                            "abbr": "7W",
+                            "name": "7 West \u2014 Telemetry & Stepdown",
+                            "type": "step_down",
+                            "service_line": "medicine",
+                            "acuity": "telemetry",
+                            "cad_code": "TEL7B",
+                            "facility_space_id": null,
+                            "staffed": 32,
+                            "occupied": 0,
+                            "available": 32,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 64,
+                    "occupied": 0,
+                    "available": 64,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 8,
+                    "label": "Floor 8",
+                    "units": [
+                        {
+                            "unit_id": 15,
+                            "abbr": "ANT",
+                            "name": "8 \u2014 Antepartum (High-Risk OB)",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "ANT8",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 16,
+                            "abbr": "PP",
+                            "name": "8 \u2014 Postpartum / Mother-Baby",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "PP8",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 17,
+                            "abbr": "GYN",
+                            "name": "8 \u2014 Gynecology Surgery",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "GYN8",
+                            "facility_space_id": null,
+                            "staffed": 8,
+                            "occupied": 0,
+                            "available": 8,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 9,
+                    "label": "Floor 9",
+                    "units": [
+                        {
+                            "unit_id": 18,
+                            "abbr": "PED",
+                            "name": "9 \u2014 Pediatric Acute Care",
+                            "type": "med_surg",
+                            "service_line": "pediatrics",
+                            "acuity": "pediatrics",
+                            "cad_code": "PED9",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 19,
+                            "abbr": "PICU",
+                            "name": "9 \u2014 Pediatric ICU (PICU)",
+                            "type": "med_surg",
+                            "service_line": "pediatrics",
+                            "acuity": "pediatrics",
+                            "cad_code": "PICU9",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 20,
+                            "abbr": "NICU",
+                            "name": "9 \u2014 Neonatal ICU (NICU)",
+                            "type": "med_surg",
+                            "service_line": "neonatology",
+                            "acuity": "pediatrics",
+                            "cad_code": "NICU9",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 10,
+                    "label": "Floor 10",
+                    "units": [
+                        {
+                            "unit_id": 21,
+                            "abbr": "ONC",
+                            "name": "10 \u2014 Oncology / Hematology",
+                            "type": "med_surg",
+                            "service_line": "oncology",
+                            "acuity": "oncology",
+                            "cad_code": "ONC10",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 22,
+                            "abbr": "BMT",
+                            "name": "10 \u2014 Bone Marrow Transplant / Cellular Therapy",
+                            "type": "med_surg",
+                            "service_line": "oncology",
+                            "acuity": "oncology",
+                            "cad_code": "BMT10",
+                            "facility_space_id": null,
+                            "staffed": 16,
+                            "occupied": 0,
+                            "available": 16,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 40,
+                    "occupied": 0,
+                    "available": 40,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 11,
+                    "label": "Floor 11",
+                    "units": [
+                        {
+                            "unit_id": 23,
+                            "abbr": "AIR",
+                            "name": "11 \u2014 Acute Inpatient Rehabilitation",
+                            "type": "med_surg",
+                            "service_line": "rehabilitation",
+                            "acuity": "rehab",
+                            "cad_code": "AIR11",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 20,
+                    "occupied": 0,
+                    "available": 20,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                }
+            ]
+        },
+        "snapshots": [],
+        "events": [
+            {
+                "t": "2026-07-03T19:27:05+00:00",
+                "kind": "admit",
+                "entity": {
+                    "type": "patient",
+                    "ref": "ptok_8d4a9ae0c199bcb8aa2dba8e"
+                },
+                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
+                "from_space": null,
+                "to_space": "MICU",
+                "unit_id": 1,
+                "label": "Admitted to MICU",
+                "tier": "info",
+                "provenance": {
+                    "source": "prod.operational_events"
+                }
+            },
+            {
+                "t": "2026-07-03T21:27:05+00:00",
+                "kind": "barrier_opened",
+                "entity": {
+                    "type": "barrier",
+                    "ref": "1"
+                },
+                "patient_context_ref": null,
+                "from_space": null,
+                "to_space": "MICU",
+                "unit_id": 1,
+                "label": "Barrier \u00b7 Awaiting ride",
+                "tier": "warning",
+                "provenance": {
+                    "source": "prod.barriers"
+                }
+            }
+        ],
+        "projections": [
+            {
+                "t": "2026-07-04T01:27:05+00:00",
+                "kind": "surge_probability",
+                "confidence": "probable",
+                "unit_id": null,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Surge probability \u00b7 next 24h",
+                "value": 4,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "command_center_surge_heuristic",
+                    "reliability": 0.8
+                }
+            },
+            {
+                "t": "2026-07-04T02:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T02:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 3
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T02:27:05+00:00",
+                "kind": "evs_due",
+                "confidence": "definite",
+                "unit_id": 1,
+                "bed_id": 1,
+                "entity": {
+                    "type": "evs",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_dcf6bf35b952bc96d48730ad",
+                "label": "Turn due \u00b7 MICU-01",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "evs_requests",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T03:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 3
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T03:27:05+00:00",
+                "kind": "transport_due",
+                "confidence": "definite",
+                "unit_id": null,
+                "bed_id": null,
+                "entity": {
+                    "type": "transport",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_d28278b3880c212d359d8919",
+                "label": "Transport due \u00b7 MICU \u2192 Imaging",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "transport_requests",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T04:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T04:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 3
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T05:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 3
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T06:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T06:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T07:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "probable",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T08:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T08:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T09:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T10:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T10:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T11:00:00+00:00",
+                "kind": "expected_discharge",
+                "confidence": "definite",
+                "unit_id": 1,
+                "bed_id": 1,
+                "entity": {
+                    "type": "encounter",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
+                "label": "Expected discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "rtdc_predictions \u00d7 encounter EDD",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T11:00:00+00:00",
+                "kind": "transport_due",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": 1,
+                "entity": {
+                    "type": "encounter",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
+                "label": "Likely discharge transport",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": true,
+                "provenance": {
+                    "service": "derived \u00b7 expected_discharge",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T11:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T11:20:00+00:00",
+                "kind": "evs_due",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": 1,
+                "entity": {
+                    "type": "bed",
+                    "ref": "1"
+                },
+                "patient_context_ref": null,
+                "label": "Bed turn after discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": true,
+                "provenance": {
+                    "service": "derived \u00b7 expected_discharge",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T12:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 0,
+                "band": {
+                    "lower": 0,
+                    "upper": 1
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T12:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T13:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T14:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 0,
+                "band": {
+                    "lower": 0,
+                    "upper": 1
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T14:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T15:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T16:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 0,
+                "band": {
+                    "lower": 0,
+                    "upper": 1
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T16:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T17:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T18:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 0,
+                "band": {
+                    "lower": 0,
+                    "upper": 1
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T18:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T19:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T20:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T20:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T21:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T22:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T22:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-04T23:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T00:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast (extrapolated past midnight)",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T00:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T01:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            }
+        ]
+    },
+    "meta": {
+        "as_of": "2026-07-04T01:27:05.396694Z",
+        "stale": false,
+        "version": null,
+        "count": 44
+    },
+    "links": {
+        "web": "http://localhost/rtdc/patient-flow-navigator?persona=bed_manager&scope=house&t=2026-07-04T01%3A27%3A05%2B00%3A00"
+    }
+}
