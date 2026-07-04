@@ -505,6 +505,45 @@ PHPUnit cockpit 44 + parity/RouteSmoke 18 (no backend changes — DrillBuilder a
 the endpoint shipped in P1), tsc + vite + canon green; all 9 dev drill payloads
 verified against the §3.3 key set. P3 acceptance met in full.
 
+**P4a execution notes (2026-07-04).** One home, one descent path, one nav SSOT. The
+five legacy overviews are permanent 302s into the drill layer
+(`/dashboard/{rtdc|perioperative|emergency|improvement|transport}` →
+`/dashboard?drill={rtdc|periop|ed|quality|flow}`), route names preserved for the
+internal resolvers (`/improvement/overview`, `setPreference`); `/home` hard-deleted
+(the only one, as scoped). `navigationConfig.ts` restructured into the four altitude
+sections (`NAV_SECTIONS` + `visibleSections`; `NAVIGATION` stays derived for the
+palette/active-state consumers); TopNavbar renders them as labelled groups with
+separators and hosts the RoleSwitcher as persistent chrome (the `?role=` URL sync
+shipped with the P2 store — no new state work was needed). `DashboardContext.tsx`
+and its `Providers` mount deleted, grep-clean. Deviations & findings:
+1. **Rollback flag (gap pin resolved):** `COCKPIT_OVERVIEW_REDIRECTS` in
+   `config/cockpit.php` re-registers the original overview controllers when false —
+   the redirect map and the legacy actions live in one `$legacyOverviews` table in
+   `routes/web.php`. Needs a route-cache rebuild to flip.
+2. **Palette dedup order inverted:** repointed `dashboardHref`s now collide with
+   their own page items, and dashboard-entry-first dedup would have swallowed
+   descriptive labels ('Bed Tracking'). `flattenNavigation` now pushes group items
+   before each domain header; cmdk still matches domains via group headings.
+3. **Patient Flow is a new (sixth) workspace domain** — key `flow`, matching the
+   cockpit drill domain; its pages are cross-listed from RTDC/Transport (4D
+   navigator, bed placement, care transitions), deduped in the palette. Staffing
+   got a header-only panel (`groups: []` — the workspace IS the page).
+4. **Mobile deep links repointed in the same commit** (drift addendum II.3#5):
+   `house_supervisor` → `/dashboard?drill=rtdc` in BOTH `MobilePersonaCatalog` and
+   the `role-catalog.v1.json` parity fixture; found and fixed `pi_lead` →
+   `/improvement/pdsa-cycles`, a 404 since day one (real route: `/improvement/pdsa`).
+5. **Legacy PHP `drillHref`s left as-is on purpose:** the `/dashboard/emergency`
+   values inside `CommandCenterDataService` belong to the frozen legacy contract and
+   now resolve correctly through the redirects; P7 retires that surface. Orphaned
+   page components (`Pages/Dashboard/Improvement.jsx`, `Pages/Transport/Dashboard.tsx`
+   etc.) also stay until the redirects prove out — only their routes are gone.
+**Prod state:** deployed 2026-07-04. Gates: full PHPUnit 421 passed / 1 pre-existing
+skip (RouteSmoke 81 routes — 82 minus `/home`; new `LegacyOverviewRedirectTest`
+covers the D4 map + route names + `/home` 404), Vitest 224/224, tsc + vite + canon
+green (ratchet ≤134 holds). E2E `navigation.spec.ts` updated to assert the redirect
+targets. `ChangePasswordModal` app-wide is NOT claimed — that acceptance line
+belongs to P4b's shell convergence. P4a acceptance otherwise met in full.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
