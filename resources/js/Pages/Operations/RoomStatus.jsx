@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
+import { StudyLink } from '@/Components/Common/StudyLink';
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import RoomStatusCard from '@/Components/RoomStatus/RoomStatusCard';
 import RoomDetailsModal from '@/Components/RoomStatus/RoomDetailsModal';
@@ -88,6 +89,7 @@ const RoomStatus = ({ roomStatus = null }) => {
             <PageContentLayout
                 title="Room Status"
                 subtitle="Monitor real-time operating room status and activities"
+                headerContent={<StudyLink href="/analytics/or-utilization" label="Surgical deep dives" />}
             >
                 <div className="flex flex-col gap-5">
                     {/* Filter Panel */}

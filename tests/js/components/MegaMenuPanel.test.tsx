@@ -16,8 +16,9 @@ describe('MegaMenuPanel', () => {
       '/rtdc/bed-tracking',
     );
     expect(screen.getByText('Operations')).toBeInTheDocument();
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getByText('Predictions')).toBeInTheDocument();
+    // P5: the RTDC Analytics group re-homed to the Study altitude.
+    expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
   });
 
   it('renders each item as a link with the correct href', () => {

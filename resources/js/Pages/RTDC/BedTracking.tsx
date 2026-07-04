@@ -1,4 +1,5 @@
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
+import { StudyLink } from '@/Components/Common/StudyLink';
 import { Section, MetricGrid, UnitHeatStrip, metric } from '@/Components/system';
 import type { KpiMetric, UnitCensus } from '@/Components/system';
 
@@ -99,7 +100,11 @@ export default function BedTracking({ bedMetrics, unitCensus }: BedTrackingProps
   const occupiedBeds = bedMetrics?.['occupied'] ?? OCCUPIED;
   const openBeds = units.reduce((n, u) => n + u.available, 0);
   return (
-    <RTDCPageLayout title="Bed Tracking" subtitle="Real-time bed status and capacity management">
+    <RTDCPageLayout
+      title="Bed Tracking"
+      subtitle="Real-time bed status and capacity management"
+      headerContent={<StudyLink href="/rtdc/analytics/trends" label="View trends" />}
+    >
       <div className="flex flex-col gap-5">
         <Section
           title="Capacity"

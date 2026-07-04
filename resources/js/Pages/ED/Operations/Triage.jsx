@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
+import { StudyLink } from '@/Components/Common/StudyLink';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 
 // ED Triage rebuilt on the gold-standard design system: the KPI wall is one
@@ -175,6 +176,7 @@ export default function Triage({
             <PageContentLayout
                 title="ED Triage"
                 subtitle="Live triage queue, acuity mix, and patient prioritization"
+                headerContent={<StudyLink href="/ed/analytics/wait-time" label="View trends" />}
             >
                 <div className="flex flex-col gap-5">
                     <Section title="Triage overview" icon="heroicons:user-group"

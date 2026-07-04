@@ -71,6 +71,9 @@ export interface NavDomain {
   readonly dashboardLabel?: string;
   /** URL path prefixes that mark this domain active. */
   readonly matchPrefixes: readonly string[];
+  /** Prefixes carved OUT of matchPrefixes — pages re-homed to another
+   *  altitude (P5: workspace trend pages glow Study, not their old domain). */
+  readonly excludePrefixes?: readonly string[];
   readonly groups: readonly NavGroup[];
   readonly adminOnly?: boolean;
 }
@@ -93,6 +96,8 @@ const RTDC: NavDomain = {
   dashboardHref: '/rtdc/bed-tracking',
   dashboardLabel: 'Bed Tracking Board',
   matchPrefixes: ['/rtdc'],
+  // P5: /rtdc/analytics/* re-homed to the Study altitude (Analytics domain).
+  excludePrefixes: ['/rtdc/analytics'],
   groups: [
     {
       title: 'Operations',
@@ -104,15 +109,6 @@ const RTDC: NavDomain = {
         { label: 'Global Huddle', href: '/rtdc/global-huddle', icon: Users },
         { label: 'Unit Huddle', href: '/rtdc/unit-huddle', icon: Users },
         { label: 'Service Huddle', href: '/rtdc/service-huddle', icon: Users },
-      ],
-    },
-    {
-      title: 'Analytics',
-      items: [
-        { label: 'Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
-        { label: 'Performance', href: '/rtdc/analytics/performance', icon: LineChart },
-        { label: 'Resources', href: '/rtdc/analytics/resources', icon: Boxes },
-        { label: 'Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
       ],
     },
     {
@@ -134,6 +130,9 @@ const EMERGENCY: NavDomain = {
   dashboardHref: '/ed/operations/triage',
   dashboardLabel: 'ED Triage Board',
   matchPrefixes: ['/ed'],
+  // P5: the two retrospective ED pages re-homed to Study; /ed/analytics/flow
+  // stays — it is the live 4D navigator (a "now" surface despite its URL).
+  excludePrefixes: ['/ed/analytics/wait-time', '/ed/analytics/resources'],
   groups: [
     {
       title: 'Operations',
@@ -141,14 +140,7 @@ const EMERGENCY: NavDomain = {
         { label: 'Triage', href: '/ed/operations/triage', icon: ListChecks },
         { label: 'Treatment', href: '/ed/operations/treatment', icon: HeartPulse },
         { label: 'Resources', href: '/ed/operations/resources', icon: Boxes },
-      ],
-    },
-    {
-      title: 'Analytics',
-      items: [
-        { label: 'Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
         { label: 'Patient Flow', href: '/ed/analytics/flow', icon: Workflow },
-        { label: 'Resources', href: '/ed/analytics/resources', icon: Boxes },
       ],
     },
     {
@@ -178,16 +170,9 @@ const PERIOPERATIVE: NavDomain = {
         { label: 'Case Management', href: '/operations/cases', icon: ClipboardList },
       ],
     },
-    {
-      title: 'Analytics',
-      items: [
-        { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
-        { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
-        { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
-        { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
-        { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
-      ],
-    },
+    // P5: the 5 surgical deep-dives live ONLY under Study (Analytics domain) —
+    // the workspace reaches them via the in-page "deep dive" affordance, never
+    // a duplicated nav leaf.
     {
       title: 'Predictions',
       items: [
@@ -206,6 +191,9 @@ const TRANSPORT: NavDomain = {
   dashboardHref: '/transport/dispatch',
   dashboardLabel: 'Dispatch Board',
   matchPrefixes: ['/transport'],
+  // P5: /transport/analytics re-homed to Study (TransportLayout keeps its
+  // Analytics tab as the in-workspace affordance).
+  excludePrefixes: ['/transport/analytics'],
   groups: [
     {
       title: 'Operations',
@@ -223,7 +211,6 @@ const TRANSPORT: NavDomain = {
       title: 'Control',
       items: [
         { label: 'Resources', href: '/transport/resources', icon: MapPinned },
-        { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
         { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
       ],
     },
@@ -269,7 +256,15 @@ const ANALYTICS: NavDomain = {
   icon: BarChart3,
   dashboardHref: '/analytics',
   dashboardLabel: 'Operations Intelligence',
-  matchPrefixes: ['/analytics', '/ops'],
+  matchPrefixes: [
+    '/analytics',
+    '/ops',
+    // P5: per-domain trend pages re-homed from their workspaces.
+    '/rtdc/analytics',
+    '/ed/analytics/wait-time',
+    '/ed/analytics/resources',
+    '/transport/analytics',
+  ],
   groups: [
     {
       title: 'Control',
@@ -314,6 +309,20 @@ const ANALYTICS: NavDomain = {
         { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
         { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
         { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
+      ],
+    },
+    // P5: per-domain retrospective pages, re-homed from their workspaces —
+    // the temporal split ("now" = workspace, "over time" = Study).
+    {
+      title: 'Domain Trends',
+      items: [
+        { label: 'RTDC Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
+        { label: 'RTDC Performance', href: '/rtdc/analytics/performance', icon: LineChart },
+        { label: 'RTDC Resources', href: '/rtdc/analytics/resources', icon: Boxes },
+        { label: 'RTDC Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
+        { label: 'ED Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
+        { label: 'ED Resources', href: '/ed/analytics/resources', icon: Boxes },
+        { label: 'Transport Analytics', href: '/transport/analytics', icon: BarChart3 },
       ],
     },
   ],
@@ -382,7 +391,9 @@ export const NAVIGATION: readonly NavDomain[] = NAV_SECTIONS.flatMap((s) => s.do
 
 export function isDomainActive(domain: NavDomain, url: string): boolean {
   const path = (url || '').split('?')[0].split('#')[0];
-  return domain.matchPrefixes.some((p) => path === p || path.startsWith(`${p}/`));
+  const hits = (p: string): boolean => path === p || path.startsWith(`${p}/`);
+  if (domain.excludePrefixes?.some(hits)) return false;
+  return domain.matchPrefixes.some(hits);
 }
 
 export function visibleDomains(isAdmin: boolean): readonly NavDomain[] {

@@ -96,6 +96,73 @@ describe('navigationConfig', () => {
     expect(isDomainActive(rtdc, '/analytics/or-utilization')).toBe(false);
   });
 
+  it('re-homed trend pages glow Study, not their old workspace (P5)', () => {
+    const rtdc = NAVIGATION.find((d) => d.key === 'rtdc')!;
+    const emergency = NAVIGATION.find((d) => d.key === 'emergency')!;
+    const transport = NAVIGATION.find((d) => d.key === 'transport')!;
+    const analytics = NAVIGATION.find((d) => d.key === 'analytics')!;
+
+    for (const url of [
+      '/rtdc/analytics/utilization',
+      '/ed/analytics/wait-time',
+      '/ed/analytics/resources',
+      '/transport/analytics',
+    ]) {
+      expect(isDomainActive(analytics, url)).toBe(true);
+    }
+    expect(isDomainActive(rtdc, '/rtdc/analytics/utilization')).toBe(false);
+    expect(isDomainActive(emergency, '/ed/analytics/wait-time')).toBe(false);
+    expect(isDomainActive(transport, '/transport/analytics')).toBe(false);
+    // The live 4D navigator stays an Emergency "now" surface despite its URL.
+    expect(isDomainActive(emergency, '/ed/analytics/flow')).toBe(true);
+    expect(isDomainActive(analytics, '/ed/analytics/flow')).toBe(false);
+    // Non-analytics workspace pages still glow their own domain.
+    expect(isDomainActive(rtdc, '/rtdc/bed-tracking')).toBe(true);
+    expect(isDomainActive(transport, '/transport/dispatch')).toBe(true);
+  });
+
+  it('surgical deep-dives appear exactly once across all nav domains (P5)', () => {
+    const surgical = [
+      '/analytics/block-utilization',
+      '/analytics/or-utilization',
+      '/analytics/primetime-utilization',
+      '/analytics/room-running',
+      '/analytics/turnover-times',
+    ];
+    const allHrefs = NAVIGATION.flatMap((d) =>
+      d.groups.flatMap((g) => g.items.map((i) => i.href)),
+    );
+    for (const href of surgical) {
+      expect(allHrefs.filter((h) => h === href)).toHaveLength(1);
+    }
+    // ...and their one home is the Study-altitude Analytics domain.
+    const analytics = NAVIGATION.find((d) => d.key === 'analytics')!;
+    const analyticsHrefs = analytics.groups.flatMap((g) => g.items.map((i) => i.href));
+    for (const href of surgical) {
+      expect(analyticsHrefs).toContain(href);
+    }
+  });
+
+  it('per-domain trend pages live only under the Analytics domain (P5)', () => {
+    const rehomed = [
+      '/rtdc/analytics/utilization',
+      '/rtdc/analytics/performance',
+      '/rtdc/analytics/resources',
+      '/rtdc/analytics/trends',
+      '/ed/analytics/wait-time',
+      '/ed/analytics/resources',
+      '/transport/analytics',
+    ];
+    const analytics = NAVIGATION.find((d) => d.key === 'analytics')!;
+    const analyticsHrefs = analytics.groups.flatMap((g) => g.items.map((i) => i.href));
+    const workspaceHrefs = NAV_SECTIONS.find((s) => s.key === 'workspaces')!
+      .domains.flatMap((d) => d.groups.flatMap((g) => g.items.map((i) => i.href)));
+    for (const href of rehomed) {
+      expect(analyticsHrefs).toContain(href);
+      expect(workspaceHrefs).not.toContain(href);
+    }
+  });
+
   it('hides the admin domain and section for non-admins', () => {
     expect(visibleDomains(false).map((d) => d.key)).not.toContain('admin');
     expect(visibleDomains(true).map((d) => d.key)).toContain('admin');
