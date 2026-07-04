@@ -31,6 +31,9 @@ import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView'
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
+import { ActionInboxModal } from '@/Components/cockpit/ActionInboxModal';
+import { ExecutiveBriefPanel } from '@/Components/cockpit/ExecutiveBriefPanel';
+import { useAgentInbox } from '@/features/ops/hooks';
 import { useCommandCenterStore } from '@/stores/commandCenterStore';
 
 const REFRESH_MS = COCKPIT_REFRESH_MS;
@@ -134,6 +137,12 @@ export default function CommandCenter({
     [openWithPrefill],
   );
 
+  // P6 WS-5: the governed action queue in the cockpit — one fetch per mount
+  // (no polling; the useDecideApproval mutation invalidates on decisions).
+  const inbox = useAgentInbox();
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const pendingApprovals = inbox.data?.summary.pendingApprovals ?? 0;
+
   const cockpitActive =
     sections.ok && (cockpitParam === '1' || (cockpitParam !== '0' && cockpitEnabled));
 
@@ -174,10 +183,15 @@ export default function CommandCenter({
               onDrillChange={handleDrillChange}
               wall={wall}
               onAlertEngage={eddyEnabled ? handleAlertEngage : undefined}
+              onOpenInbox={() => setInboxOpen(true)}
+              inboxCount={pendingApprovals}
+              briefPanel={role === 'executive' ? <ExecutiveBriefPanel /> : undefined}
             />
             {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
                 deep links; closing (ESC, backdrop, ×) clears the URL param. */}
             <DrillModal domain={drill} onClose={() => handleDrillChange(null)} />
+            {/* P6 WS-5: the AgentInbox queue as an in-cockpit modal. */}
+            <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
           </ErrorBoundary>
         ) : parsed.ok ? (
           <ErrorBoundary

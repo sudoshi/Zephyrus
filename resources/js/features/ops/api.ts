@@ -142,3 +142,13 @@ export async function runAgent(agentKey: string): Promise<AgentRun> {
   const res = await axios.post(endpoint);
   return envelope(runSchema).parse(res.data).data;
 }
+
+// P6 WS-5: the cockpit ActionInboxModal decides approvals through the SAME
+// OperationalActionLifecycleService FSM as the standalone /ops/agent-inbox.
+export async function decideApproval(
+  approvalId: number,
+  decision: 'approved' | 'rejected',
+  reason?: string,
+): Promise<void> {
+  await axios.post(`/api/ops/approvals/${approvalId}/decision`, { decision, reason });
+}

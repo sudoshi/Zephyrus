@@ -32,3 +32,6 @@ export { OkrScorecard, okrProgressPct } from './OkrScorecard';
 export { CockpitOverview } from './CockpitOverview';
 // P3 — the A2 drill surface.
 export { DrillModal, type DrillModalProps } from './DrillModal';
+// P6 — the silo pages reconciled into the cockpit (WS-5).
+export { ActionInboxModal } from './ActionInboxModal';
+export { ExecutiveBriefPanel } from './ExecutiveBriefPanel';

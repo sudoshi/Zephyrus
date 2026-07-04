@@ -9,6 +9,7 @@
 // persona reads Outcomes-first (OKR scorecard above the domain grid); command
 // reads operations-first. Same information either way — arrangement, not
 // content, changes (PRODUCT.md: density with clarity).
+import type { ReactNode } from 'react';
 import type { CockpitAlert, CockpitDrillDomain, CockpitSnapshotSections } from '@/types/cockpit';
 import type { CommandRole } from '@/stores/commandCenterStore';
 import { Icon } from '@iconify/react';
@@ -35,6 +36,11 @@ interface CockpitOverviewProps {
   wall?: boolean;
   /** P6 WS-4: ticker → EddyDock hand-off (wired by the page when Eddy is on). */
   onAlertEngage?: (alert: CockpitAlert) => void;
+  /** P6 WS-5: CommandBar affordance for the in-cockpit action inbox. */
+  onOpenInbox?: () => void;
+  inboxCount?: number;
+  /** P6 WS-5: executive-role brief panel, slotted below the OKR scorecard. */
+  briefPanel?: ReactNode;
 }
 
 function Legend({ asOf }: { asOf: string }) {
@@ -72,6 +78,9 @@ export function CockpitOverview({
   onDrillChange,
   wall = false,
   onAlertEngage,
+  onOpenInbox,
+  inboxCount,
+  briefPanel,
 }: CockpitOverviewProps) {
   const okrsFirst = role === 'executive';
   const scorecard = <OkrScorecard okrs={sections.okrs} onDrill={onDrillChange} />;
@@ -92,6 +101,8 @@ export function CockpitOverview({
         aging={aging}
         stale={stale}
         onRefresh={onRefresh}
+        onOpenInbox={onOpenInbox}
+        inboxCount={inboxCount}
       />
 
       {/* Stale signal: same loud contract as the classic view — when the
@@ -116,6 +127,9 @@ export function CockpitOverview({
       <CensusStrip census={sections.census} />
 
       {okrsFirst ? scorecard : grid}
+      {/* P6 WS-5: the executive persona reads the narrative brief right after
+          its Outcomes scorecard; other roles never mount the panel. */}
+      {okrsFirst && briefPanel}
       {okrsFirst ? grid : scorecard}
 
       <Legend asOf={sections.asOf} />

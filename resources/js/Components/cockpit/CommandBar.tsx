@@ -17,6 +17,10 @@ interface CommandBarProps {
   aging: boolean;
   stale: boolean;
   onRefresh: () => void;
+  /** P6 WS-5: opens the in-cockpit ActionInboxModal (governed action queue). */
+  onOpenInbox?: () => void;
+  /** Pending-approval count for the inbox affordance (amber only when > 0). */
+  inboxCount?: number;
 }
 
 function LiveBadge({ aging, stale }: { aging: boolean; stale: boolean }) {
@@ -71,6 +75,8 @@ export function CommandBar({
   aging,
   stale,
   onRefresh,
+  onOpenInbox,
+  inboxCount,
 }: CommandBarProps) {
   const pill = cockpitStatusStyle(capacityStatus.status);
   const facilitySub = [
@@ -104,6 +110,26 @@ export function CommandBar({
       </span>
 
       <span className="ml-auto flex shrink-0 items-center gap-3">
+        {onOpenInbox && (
+          <button
+            type="button"
+            onClick={onOpenInbox}
+            data-testid="cockpit-inbox-button"
+            aria-label={`Open action inbox${inboxCount ? ` — ${inboxCount} pending approvals` : ''}`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-healthcare-border dark:border-healthcare-border-dark
+                       bg-healthcare-surface dark:bg-healthcare-surface-dark
+                       px-2 py-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
+                       shadow-sm transition-colors duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark"
+          >
+            Inbox
+            {typeof inboxCount === 'number' && inboxCount > 0 && (
+              <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-healthcare-warning dark:text-healthcare-warning-dark">
+                <span role="img" aria-label="Warning" className="leading-none">▲</span>
+                {inboxCount}
+              </span>
+            )}
+          </button>
+        )}
         <LiveBadge aging={aging} stale={stale} />
         <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           Updated {updatedLabel}
