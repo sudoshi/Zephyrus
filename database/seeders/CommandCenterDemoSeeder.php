@@ -1492,11 +1492,12 @@ class CommandCenterDemoSeeder extends Seeder
         }
 
         // P7: a crowding cohort so the LIVE NEDOCS composite lands in the
-        // severe band (~142, matching the retired demo constant). 26 patients
+        // severe band (~150). Sized against the FIXED 500-bed hospital
+        // denominator (Weiss), so 5 boarders against 500 beds contribute
+        // little and the crowding term must carry the score: 34 patients
         // currently in the department (none admitted → boarders unchanged),
-        // 8 still waiting for a provider, 4 on ventilators. These raise the
-        // total-patients and ventilator NEDOCS terms from real rows.
-        for ($k = 1; $k <= 26; $k++) {
+        // 8 still waiting for a provider, 4 on ventilators.
+        for ($k = 1; $k <= 34; $k++) {
             $seed = 20260701 + $k * 17;
             $arrivedAt = now()->subMinutes($this->seededRand($seed, 20, 360));
             $waiting = $k <= 8; // first 8 have no provider yet

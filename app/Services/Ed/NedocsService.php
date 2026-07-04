@@ -161,13 +161,23 @@ class NedocsService
 
     private function hospitalBedCapacity(): int
     {
+        // Weiss "number of hospital beds" is the facility's FIXED bed capacity,
+        // not the live staffed census — the census fluctuates and can exceed
+        // licensed beds when snapshot data double-counts, which silently
+        // deflates the admits term. Use the manifest's licensed count; only
+        // fall back to the census read if the manifest is somehow missing it.
+        $licensed = (int) ($this->manifest->facility()['licensed_beds'] ?? 0);
+
+        if ($licensed > 0) {
+            return $licensed;
+        }
+
         try {
             $staffed = (int) ($this->house->houseTotals()['staffedBeds'] ?? 0);
         } catch (\Throwable) {
             $staffed = 0;
         }
 
-        // Fall back to the manifest's licensed count if the census read is cold.
-        return $staffed > 0 ? $staffed : (int) ($this->manifest->facility()['licensed_beds'] ?? 500);
+        return $staffed > 0 ? $staffed : 500;
     }
 }
