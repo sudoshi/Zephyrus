@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -40,6 +41,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -56,6 +61,9 @@ import net.acumenus.hummingbird.data.ORNextInfo
 import net.acumenus.hummingbird.data.ORRoom
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 
@@ -64,11 +72,16 @@ import net.acumenus.hummingbird.ui.theme.Z
 fun ORBoardScreen(
     auth: AuthViewModel,
     forceError: Boolean = false,
+    personaId: String = "or_nurse",
     onOpenProfile: () -> Unit = {},
     onOpenRoom: (ORRoom, String?) -> Unit,
 ) {
     val vm: ORViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
+    // The flow lens persona comes from the confirmed profile role; only the
+    // two OR lenses are valid here.
+    val flowPersona = if (personaId == "periop_manager") "periop_manager" else "or_nurse"
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -101,8 +114,21 @@ fun ORBoardScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            FlowMapScreen(
+                auth = auth,
+                persona = flowPersona,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         LazyColumn(
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -132,6 +158,8 @@ fun ORBoardScreen(
                     }
                 }
             }
+        }
+        }
         }
     }
 }

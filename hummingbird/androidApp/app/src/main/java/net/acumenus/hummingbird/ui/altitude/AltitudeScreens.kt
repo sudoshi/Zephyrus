@@ -143,6 +143,9 @@ fun AltitudeHomeScreen(
                 auth = auth,
                 persona = vm.selectedRole.id,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
+                // Discharge-leverage lane rows (hospitalist/intensivist) drill
+                // into the existing A2P patient context.
+                onOpenPatient = onOpenPatient,
             )
         } else {
         HbRefreshable(

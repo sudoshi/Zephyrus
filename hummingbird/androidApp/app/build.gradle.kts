@@ -53,6 +53,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0") // Reverb (Pusher-protocol) websocket
+    // Phase-5 house-glance widget. Glance pulls glance-core + datastore + work-runtime
+    // transitively; the widget is app-driven only (updateAll after a foreground load) —
+    // no background WorkManager networking is scheduled.
+    implementation("androidx.glance:glance-appwidget:1.1.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     debugImplementation("androidx.compose.ui:ui-tooling")

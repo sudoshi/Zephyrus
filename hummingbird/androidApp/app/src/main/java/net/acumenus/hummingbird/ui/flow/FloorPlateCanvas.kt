@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -31,8 +32,11 @@ import kotlin.math.min
 internal fun occupancyAlpha(occupancyPct: Int): Float =
     0.10f + 0.35f * (occupancyPct.coerceIn(0, 100) / 100f)
 
+/** Canvas padding shared by FloorPlateCanvas and any overlay drawn on top of it. */
+internal val floorPlatePad = 12.dp
+
 /** Maps plan-view feet → canvas px for one floor (uniform scale, centered). */
-private class PlateTransform(bounds: List<Double>, canvas: Size, padPx: Float) {
+internal class FlowPlanTransform(bounds: List<Double>, canvas: Size, padPx: Float) {
     private val bx = bounds.getOrElse(0) { 0.0 }.toFloat()
     private val by = bounds.getOrElse(1) { 0.0 }.toFloat()
     private val bw = max(bounds.getOrElse(2) { 1.0 }.toFloat(), 0.001f)
@@ -48,7 +52,12 @@ private class PlateTransform(bounds: List<Double>, canvas: Size, padPx: Float) {
         val h = r.getOrElse(3) { 0.0 }.toFloat()
         return Rect(ox + x * scale, oy + y * scale, ox + (x + w) * scale, oy + (y + h) * scale)
     }
+
+    fun center(r: List<Double>): Offset = rect(r).center
 }
+
+/** Per-bed treatment for the EVS turn map — fill under the hairline, outline over it. */
+data class FlowBedPaint(val fill: Color?, val outline: Color?)
 
 /** Inflate a plate's rect to at least the minimum touch target, centered. */
 private fun Rect.expandedToTarget(minPx: Float): Rect {
@@ -58,7 +67,7 @@ private fun Rect.expandedToTarget(minPx: Float): Rect {
 }
 
 /** Smallest plate whose ≥44dp effective target contains the tap — beds win over rooms over units. */
-private fun hitTestPlate(pos: Offset, plates: List<FlowPlate>, transform: PlateTransform, minTargetPx: Float): FlowPlate? =
+private fun hitTestPlate(pos: Offset, plates: List<FlowPlate>, transform: FlowPlanTransform, minTargetPx: Float): FlowPlate? =
     plates
         .filter { transform.rect(it.rect).expandedToTarget(minTargetPx).contains(pos) }
         .minByOrNull { transform.rect(it.rect).let { r -> r.width * r.height } }
@@ -77,10 +86,11 @@ fun FloorPlateCanvas(
     selectedPlateId: Int?,
     onSelectPlate: (FlowPlate?) -> Unit,
     modifier: Modifier = Modifier,
+    bedPaints: Map<Int, FlowBedPaint> = emptyMap(),
 ) {
     val density = LocalDensity.current
     val minTargetPx = with(density) { 44.dp.toPx() }
-    val padPx = with(density) { 12.dp.toPx() }
+    val padPx = with(density) { floorPlatePad.toPx() }
     val occupancyByUnit = rollup?.units?.associate { it.unitId to it.occupancyPct } ?: emptyMap()
     val plates by rememberUpdatedState(floor.spaces)
     val bounds by rememberUpdatedState(floor.bounds)
@@ -91,12 +101,12 @@ fun FloorPlateCanvas(
             .fillMaxSize()
             .pointerInput(floor.floor) {
                 detectTapGestures { pos ->
-                    val transform = PlateTransform(bounds, Size(size.width.toFloat(), size.height.toFloat()), padPx)
+                    val transform = FlowPlanTransform(bounds, Size(size.width.toFloat(), size.height.toFloat()), padPx)
                     select(hitTestPlate(pos, plates, transform, minTargetPx))
                 }
             },
     ) {
-        val transform = PlateTransform(floor.bounds, size, padPx)
+        val transform = FlowPlanTransform(floor.bounds, size, padPx)
         val corner = CornerRadius(3.dp.toPx())
         val hairline = Stroke(width = 1.dp.toPx())
 
@@ -149,11 +159,21 @@ fun FloorPlateCanvas(
             )
         }
 
-        // 4. Beds — small outlined rects.
+        // 4. Beds — small outlined rects; the EVS lens paints current bed state
+        //    under/over the hairline (dirty/blocked/occupied/available).
         floor.spaces.filter { it.category == "bed" }.forEach { plate ->
             val r = transform.rect(plate.rect)
+            val paint = plate.bedId?.let { bedPaints[it] }
+            paint?.fill?.let { fill ->
+                drawRoundRect(
+                    color = fill,
+                    topLeft = r.topLeft,
+                    size = r.size,
+                    cornerRadius = CornerRadius(2.dp.toPx()),
+                )
+            }
             drawRoundRect(
-                color = Z.inkMuted,
+                color = paint?.outline ?: Z.inkMuted,
                 topLeft = r.topLeft,
                 size = r.size,
                 cornerRadius = CornerRadius(2.dp.toPx()),

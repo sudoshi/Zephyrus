@@ -63,6 +63,9 @@ import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.hbConfirmHaptic
 import net.acumenus.hummingbird.ui.components.hbRejectHaptic
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 
@@ -76,6 +79,7 @@ fun BedTurnsScreen(
 ) {
     val vm: EvsViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -108,10 +112,23 @@ fun BedTurnsScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            FlowMapScreen(
+                auth = auth,
+                persona = "evs",
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         HbRefreshable(
             refreshing = vm.loading,
             onRefresh = { vm.load(bearer) },
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
         ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -147,6 +164,8 @@ fun BedTurnsScreen(
                     }
                 }
             }
+        }
+        }
         }
         }
     }

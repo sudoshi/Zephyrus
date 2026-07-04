@@ -17,7 +17,12 @@ import net.acumenus.hummingbird.data.FlowPlate
 import net.acumenus.hummingbird.data.FlowProjection
 import net.acumenus.hummingbird.data.FlowSnapshot
 import net.acumenus.hummingbird.data.FlowTimelineEvent
+import net.acumenus.hummingbird.data.FlowWindowCache
 import net.acumenus.hummingbird.data.FlowWindowData
+import net.acumenus.hummingbird.data.mergeFlowWindow
+import net.acumenus.hummingbird.data.newestLoadedSinceIso
+import net.acumenus.hummingbird.widget.HouseGlanceStore
+import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId
 
@@ -35,12 +40,16 @@ sealed interface FlowSelection {
  */
 class FlowViewModel(app: Application) : AndroidViewModel(app) {
     private val api = ApiClient()
+    private val cache = FlowWindowCache(app)
 
     var window by mutableStateOf<FlowWindowData?>(null); private set
     var floors by mutableStateOf<FlowFloorsDocument?>(null); private set
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var needsReauth by mutableStateOf(false); private set
+
+    /** When non-null, the shown window came from the offline cache; value = when it was cached. */
+    var offlineAsOfMs by mutableStateOf<Long?>(null); private set
 
     /** Scrub time t, epoch millis, clamped to [window.from, window.to]. */
     var scrubT by mutableStateOf(0L); private set
@@ -51,28 +60,83 @@ class FlowViewModel(app: Application) : AndroidViewModel(app) {
     private var playbackJob: Job? = null
     private var shiftReplayDone = false
 
-    fun load(bearer: String, persona: String, scope: String? = null) {
+    /** The (persona, scope) the current window belongs to — gates whether a refresh can delta. */
+    private var loadedKey: String? = null
+    private var floorsRaw: String? = null
+
+    /**
+     * Load or refresh the window. When a window is already loaded for the same persona+scope
+     * (the 20s poll / re-snapshot / foreground-return path), sends `since=<newest loaded
+     * event/snapshot t>` and merges the delta per the contract; falls back to a full load on
+     * HTTP 422 (invalid_since) or a parse failure. On a hard load failure, serves the offline
+     * cache for this user with a staleness caption. [userId] keys the cache; null ⇒ no caching.
+     */
+    fun load(bearer: String, persona: String, scope: String? = null, userId: Int? = null) {
         loading = true
         viewModelScope.launch {
+            val key = "$persona|${scope ?: ""}"
+            val current = window
+            val canDelta = current != null && loadedKey == key
+            val since = if (canDelta) newestLoadedSinceIso(current!!) else null
             try {
-                val win = api.flowWindow(bearer, persona, scope)
-                if (floors == null) floors = api.flowFloors(bearer)
-                val firstLoad = window == null
-                window = win
-                scrubT = if (firstLoad || scrubT == 0L) {
-                    win.nowMs
-                } else {
-                    scrubT.coerceIn(win.fromMs, win.toMs)
+                if (floors == null) {
+                    val (doc, raw) = api.flowFloorsRaw(bearer)
+                    floors = doc
+                    floorsRaw = raw
                 }
+                val fetch = try {
+                    api.flowWindowRaw(bearer, persona, scope, since)
+                } catch (e: ApiException) {
+                    // Delta rejected (stale cursor) ⇒ retry once as a full load.
+                    if (since != null && (e.statusCode == 422 || e.errorCode == "invalid_since")) {
+                        api.flowWindowRaw(bearer, persona, scope, null)
+                    } else {
+                        throw e
+                    }
+                }
+                val fresh = fetch.data
+                val isDelta = since != null && fresh.window.since != null
+                val firstLoad = window == null
+                window = if (isDelta && current != null) mergeFlowWindow(current, fresh) else fresh
+                loadedKey = key
+                offlineAsOfMs = null
+                // Cache only FULL (non-delta) payloads, keyed by the authenticated user.
+                if (!isDelta && userId != null) {
+                    cache.putWindow(userId, persona, scope, fetch.raw, floorsRaw)
+                }
+                val win = window!!
+                scrubT = if (firstLoad || scrubT == 0L) win.nowMs else scrubT.coerceIn(win.fromMs, win.toMs)
                 error = null
+                writeGlance(win)
             } catch (e: ApiException) {
                 if (e.statusCode == 401) needsReauth = true
-                error = e.message
+                if (!serveFromCache(persona, scope, userId)) error = e.message
             } catch (e: Exception) {
-                error = e.message
+                if (!serveFromCache(persona, scope, userId)) error = e.message
             }
             loading = false
         }
+    }
+
+    /** Present the last cached FULL window for this user; returns true on a cache hit. */
+    private fun serveFromCache(persona: String, scope: String?, userId: Int?): Boolean {
+        if (window != null) return true // keep what's already shown rather than downgrade
+        if (userId == null) return false
+        val cached = cache.readWindow(userId, persona, scope) ?: return false
+        val doc = runCatching { api.parseFlowWindow(JSONObject(cached.windowRaw)) }.getOrNull() ?: return false
+        if (floors == null) {
+            cached.floorsRaw?.let { raw -> runCatching { api.parseFlowFloors(JSONObject(raw)) }.getOrNull()?.let { floors = it } }
+        }
+        window = doc
+        loadedKey = "$persona|${scope ?: ""}"
+        offlineAsOfMs = cached.updatedAtMs
+        scrubT = if (scrubT == 0L) doc.nowMs else scrubT.coerceIn(doc.fromMs, doc.toMs)
+        error = null
+        return true
+    }
+
+    private fun writeGlance(win: FlowWindowData) {
+        viewModelScope.launch { runCatching { HouseGlanceStore.updateFromFlow(getApplication<android.app.Application>(), win) } }
     }
 
     // MARK: time model helpers

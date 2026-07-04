@@ -64,6 +64,9 @@ import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.hbConfirmHaptic
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 
@@ -78,6 +81,7 @@ fun TransportJobsScreen(
     val vm: TransportViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
     val view = LocalView.current
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -110,10 +114,23 @@ fun TransportJobsScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            FlowMapScreen(
+                auth = auth,
+                persona = "transport",
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         HbRefreshable(
             refreshing = vm.loading,
             onRefresh = { vm.load(bearer) },
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
         ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -170,6 +187,8 @@ fun TransportJobsScreen(
                     }
                 }
             }
+        }
+        }
         }
         }
     }

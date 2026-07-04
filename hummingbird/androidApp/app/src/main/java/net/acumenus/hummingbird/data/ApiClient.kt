@@ -243,18 +243,44 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
-    suspend fun flowWindow(bearer: String, persona: String, scope: String? = null): FlowWindowData = withContext(Dispatchers.IO) {
+    suspend fun flowWindow(
+        bearer: String,
+        persona: String,
+        scope: String? = null,
+        since: String? = null,
+    ): FlowWindowData = flowWindowRaw(bearer, persona, scope, since).data
+
+    /**
+     * Flow window with the raw envelope text retained so the caller can persist the last
+     * FULL payload to the offline cache without re-serializing the hand-parsed DTOs.
+     * `since` (ISO8601) requests a delta: events/snapshots trimmed to t > since; projections,
+     * spaces and bed_statuses stay full. Out-of-range/malformed `since` ⇒ HTTP 422.
+     */
+    suspend fun flowWindowRaw(
+        bearer: String,
+        persona: String,
+        scope: String? = null,
+        since: String? = null,
+    ): FlowWindowFetch = withContext(Dispatchers.IO) {
         val path = buildString {
             append(withPersona("/api/mobile/v1/flow/window", persona))
             if (!scope.isNullOrBlank()) {
                 append(if (contains('?')) '&' else '?').append("scope=").append(urlPart(scope))
             }
+            if (!since.isNullOrBlank()) {
+                append(if (contains('?')) '&' else '?').append("since=").append(urlPart(since))
+            }
         }
-        parseFlowWindow(getEnvelope(path, bearer))
+        val (root, raw) = getEnvelopeRaw(path, bearer)
+        FlowWindowFetch(parseFlowWindow(root), raw)
     }
 
-    suspend fun flowFloors(bearer: String): FlowFloorsDocument = withContext(Dispatchers.IO) {
-        parseFlowFloors(getEnvelope("/api/mobile/v1/flow/floors", bearer))
+    suspend fun flowFloors(bearer: String): FlowFloorsDocument = flowFloorsRaw(bearer).first
+
+    /** Floors document with its raw envelope text retained for the offline cache. */
+    suspend fun flowFloorsRaw(bearer: String): Pair<FlowFloorsDocument, String> = withContext(Dispatchers.IO) {
+        val (root, raw) = getEnvelopeRaw("/api/mobile/v1/flow/floors", bearer)
+        parseFlowFloors(root) to raw
     }
 
     suspend fun revoke(bearer: String) = withContext(Dispatchers.IO) {
@@ -264,10 +290,13 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
 
     // MARK: plumbing
 
-    private fun getEnvelope(path: String, bearer: String): JSONObject {
+    private fun getEnvelope(path: String, bearer: String): JSONObject = getEnvelopeRaw(path, bearer).first
+
+    /** Like [getEnvelope] but also returns the raw response body (for the offline cache). */
+    private fun getEnvelopeRaw(path: String, bearer: String): Pair<JSONObject, String> {
         val (code, text) = send("GET", path, null, bearer)
-        if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
-        return JSONObject(text)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        return JSONObject(text) to text
     }
 
     private fun getData(path: String, bearer: String): JSONObject {
@@ -298,6 +327,11 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             conn.disconnect()
         }
     }
+
+    /** The envelope's `error.code` (e.g. "invalid_since"), when present. */
+    private fun errorCode(text: String): String? = runCatching {
+        JSONObject(text).optJSONObject("error")?.optStringOrNull("code")
+    }.getOrNull()
 
     private fun errorMessage(text: String, code: Int): String {
         runCatching {
@@ -754,6 +788,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
                 from = window.optString("from"),
                 to = window.optString("to"),
                 now = window.optString("now"),
+                since = window.optStringOrNull("since"),
             ),
             lens = FlowLens(
                 roleId = lens.optString("role_id"),
@@ -776,8 +811,18 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             snapshots = data.optJSONArray("snapshots").objects().map(::parseFlowSnapshot),
             events = data.optJSONArray("events").objects().map(::parseFlowTimelineEvent),
             projections = data.optJSONArray("projections").objects().map(::parseFlowProjection),
+            // Optional turn-map layer — absent unless scope is floor/unit and the lens allows it.
+            bedStatuses = data.optJSONArray("bed_statuses").objects().map(::parseFlowBedStatus),
+            webLink = root.optJSONObject("links")?.optStringOrNull("web"),
         )
     }
+
+    private fun parseFlowBedStatus(o: JSONObject): FlowBedStatus = FlowBedStatus(
+        bedId = o.optInt("bed_id"),
+        unitId = o.optIntOrNull("unit_id"),
+        label = o.optStringOrNull("label") ?: "Bed ${o.optInt("bed_id")}",
+        status = o.optStringOrNull("status") ?: "occupied",
+    )
 
     private fun parseFlowFloorRollup(o: JSONObject): FlowFloorRollup = FlowFloorRollup(
         floor = o.optInt("floor"),
@@ -818,6 +863,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         toSpace = o.optStringOrNull("to_space"),
         patientContextRef = o.optStringOrNull("patient_context_ref"),
         provenanceSource = o.optJSONObject("provenance")?.optStringOrNull("source") ?: "",
+        entityRef = o.optJSONObject("entity")?.optStringOrNull("ref"),
     )
 
     private fun parseFlowProjection(o: JSONObject): FlowProjection {
@@ -830,6 +876,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             label = o.optStringOrNull("label") ?: humanize(o.optString("kind", "projection")),
             unitId = o.optIntOrNull("unit_id"),
             bedId = o.optIntOrNull("bed_id"),
+            room = o.optStringOrNull("room"),
             value = o.optIntOrNull("value"),
             bandLower = band?.optIntOrNull("lower"),
             bandUpper = band?.optIntOrNull("upper"),

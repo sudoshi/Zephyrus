@@ -78,6 +78,29 @@ class SharedDtoFixtureDecodeTest {
         val census = window.projections.first { it.kind == "predicted_census" }
         assertEquals(0, census.bandLower)
         assertEquals(2, census.bandUpper)
+
+        // Phase 2: scheduled_or_case carries its room; other kinds stay roomless.
+        val orCase = window.projections.first { it.kind == "scheduled_or_case" }
+        assertEquals("OR 3", orCase.room)
+        assertTrue(window.projections.filter { it.kind != "scheduled_or_case" }.all { it.room == null })
+        // bed_statuses is absent at house scope — the parser must tolerate that.
+        assertTrue(window.bedStatuses.isEmpty())
+        // Phase 3: links.web feeds the PI clip deep link.
+        assertTrue(window.webLink!!.contains("/rtdc/patient-flow-navigator"))
+    }
+
+    @Test
+    fun decodesEvsFlowWindowFixtureWithBedStatuses() {
+        val window = api.parseFlowWindow(fixture("mobile-flow-window-evs.json"))
+
+        assertEquals("evs", window.lens.roleId)
+        assertEquals("floor", window.scope.type)
+        assertTrue(window.bedStatuses.isNotEmpty())
+        val first = window.bedStatuses.first()
+        assertEquals("MICU-01", first.label)
+        assertEquals("occupied", first.status)
+        assertTrue(window.bedStatuses.all { it.status in setOf("available", "occupied", "blocked", "dirty") })
+        assertTrue(window.projections.any { it.kind == "evs_due" && it.bedId != null })
     }
 
     @Test
@@ -85,7 +108,7 @@ class SharedDtoFixtureDecodeTest {
         val doc = api.parseFlowFloors(fixture("mobile-flow-floors.json"))
 
         assertTrue(doc.floors.isNotEmpty())
-        assertEquals("v1-346c77a48494", doc.version)
+        assertEquals("v1-2b3e9f90ad5d", doc.version)
         val floor3 = doc.floors.first { it.floor == 3 }
         assertEquals(4, floor3.bounds.size)
         assertEquals(4, floor3.spaces.size)
