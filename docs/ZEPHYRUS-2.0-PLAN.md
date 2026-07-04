@@ -472,6 +472,39 @@ PHPUnit cockpit 44 (incl. new CockpitDashboardPageTest), RouteSmoke 82/82, tsc +
 vite + canon + Pint green. P2 acceptance met except the soak-period flag (see #2);
 role switcher swap, stale banner, and census/domain/OKR assembly all live.
 
+**P3 execution notes (2026-07-04).** All 9 drills (8 domains + OKR) open from panel
+headers and the OKR scorecard header via `cockpit/DrillModal` — Radix `ui/dialog`
+(ESC + backdrop + focus-trap/restore + `aria-modal` for free) on the solid scrim,
+accent bar earned from the worst KPI, `Tile` KPI strip, `DataTable` Cell-grammar
+detail tables, max-w 1280px / max-h 88vh with internal scroll. `?drill={domain}`
+auto-opens on mount and closing clears the param, so Back/ESC/× walk one history —
+the P4a redirect target is now build-ready. Deviations & findings:
+1. **Data path:** `useCockpitDrill` (TanStack, keyed per domain, 30 s staleTime)
+   against `/api/cockpit/drill/{domain}`, parsed by `drillPayloadSchema`; fetch or
+   contract failure degrades to an in-modal error card with retry — never a crash
+   over the cockpit. The `parseCommandCenterDrilldown` deep-timeline path was NOT
+   wired: each payload still carries `drilldownHref` as the recorded seam, and the
+   synthetic timeline/opportunity detail adds nothing the Cell tables don't show.
+2. **`dialog.d.ts` added** beside the untyped `dialog.jsx` so TS consumers get real
+   prop checking (tsc rejected the inferred `forwardRef<any>` signatures).
+3. **The "two Math.random() modals" were really one file with two broken modes:**
+   `Dashboard/DrillDownModal.jsx` fabricated its body AND ignored the
+   title/children its four RTDC consumers passed (an "undefined Details" shell),
+   while the periop `LastMonthSection` looked up `data[drillKey]` with keys that
+   never matched (modal always got `undefined`). Rewritten with two honest modes
+   (children passthrough; the tile's own KpiMetric with a real previous→current
+   trend via `cockpit/Sparkline`); LastMonthSection trajectories are now honest
+   two-point series, and primetime (no prior-period value) shows no trend.
+4. **Glassmorphism fixed on contact — plus one:** `Components/Modal.jsx`,
+   `RTDC/StatusUpdateModal`, `RTDC/TrendsModal`, AND `ui/CommandPalette.tsx` (the
+   fourth blur file the canon script had pinned to P3) all sit on
+   `.modal-backdrop`/`.modal-surface`. Canon gate tightened: the three P3
+   grandfathered blur entries removed; raw-palette ratchet 135 → 134.
+**Prod state:** deployed 2026-07-04. Gates: DrillModal Vitest 5 new (218 total),
+PHPUnit cockpit 44 + parity/RouteSmoke 18 (no backend changes — DrillBuilder and
+the endpoint shipped in P1), tsc + vite + canon green; all 9 dev drill payloads
+verified against the §3.3 key set. P3 acceptance met in full.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
