@@ -123,11 +123,11 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
-            <div className="fixed inset-0 backdrop-blur-sm bg-black/30 transition-opacity" />
+            <div className="modal-backdrop transition-opacity" aria-hidden="true" />
 
             {/* Modal */}
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className="relative w-full max-w-6xl bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-xl shadow-2xl transform transition-all">
+                <div className="modal-surface relative w-full max-w-6xl transform transition-all">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                         <div className="flex items-center justify-between">

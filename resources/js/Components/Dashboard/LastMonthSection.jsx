@@ -21,100 +21,90 @@ const LastMonthSection = ({ data: dataProp }) => {
     const data = dataProp ?? syntheticData.lastMonth;
     const [selectedMetric, setSelectedMetric] = useState(null);
 
-    // Real sparkline series (oldest→newest) for each tile; passed as trajectory.
-    const generateSparklineData = (base, variance) => {
-        return Array(24).fill(0).map(() => base + (Math.random() - 0.5) * variance);
-    };
-
-    const handleMetricClick = (metricKey) => {
-        setSelectedMetric(metricKey);
-    };
+    // Honest two-point trend: previous calendar month → this month. The old
+    // 24-point Math.random() series fabricated movement that never happened
+    // (retired in Zephyrus 2.0 P3).
+    const trend = (entry) => [entry.previousValue, entry.value];
 
     const tiles = [
         {
-            drillKey: 'ontime',
             metric: metric({
                 key: 'firstCaseOnTime',
                 label: 'First Case On Time Starts',
                 value: data.firstCaseOnTime.value,
                 unit: '%',
                 status: statusFor(data.firstCaseOnTime.value, { warning: 80, critical: 70 }),
-                trajectory: generateSparklineData(data.firstCaseOnTime.value, 20),
+                trajectory: trend(data.firstCaseOnTime),
                 caption: `${data.firstCaseOnTime.date} · from ${data.firstCaseOnTime.previousValue}% · 156 cases · 23 delayed`,
                 definition: 'Displays the percentage of cases that were on time and took place within the previous calendar month.',
             }),
         },
         {
-            drillKey: 'turnover',
             metric: metric({
                 key: 'avgTurnover',
                 label: 'Average Room Turnover',
                 value: data.avgTurnover.value,
                 status: statusFor(data.avgTurnover.value, { warning: 45, critical: 60 }),
-                trajectory: generateSparklineData(data.avgTurnover.value, 10),
+                trajectory: trend(data.avgTurnover),
                 caption: `${data.avgTurnover.date} · from ${data.avgTurnover.previousValue} min · min 22m · max 68m`,
                 definition: 'Displays the average room and procedure turnover for cases that took place within the previous calendar month.',
             }),
         },
         {
-            drillKey: 'accuracy',
             metric: metric({
                 key: 'caseLengthAccuracy',
                 label: 'Case Length Accuracy',
                 value: data.caseLengthAccuracy.value,
                 unit: '%',
                 status: statusFor(data.caseLengthAccuracy.value, { warning: 75, critical: 65 }),
-                trajectory: generateSparklineData(data.caseLengthAccuracy.value, 15),
+                trajectory: trend(data.caseLengthAccuracy),
                 caption: `${data.caseLengthAccuracy.date} · from ${data.caseLengthAccuracy.previousValue}% · 12% under · 15% over`,
                 definition: 'Displays the percentage of cases performed within the previous calendar month that were accurately scheduled.',
             }),
         },
         {
-            drillKey: 'cases',
             metric: metric({
                 key: 'performedCases',
                 label: 'Performed Cases',
                 value: data.performedCases.value,
                 status: statusFor(data.performedCases.value, { warning: 300, critical: 250 }),
-                trajectory: generateSparklineData(data.performedCases.value, 50),
+                trajectory: trend(data.performedCases),
                 caption: `${data.performedCases.date} · from ${data.performedCases.previousValue} · 45 emergency · 278 elective`,
                 definition: 'Displays the volume of cases that were performed within the previous calendar month.',
             }),
         },
         {
-            drillKey: 'cancellations',
             metric: metric({
                 key: 'doSCancellations',
                 label: 'DoS Cancellations',
                 value: data.doSCancellations.value,
                 status: statusFor(data.doSCancellations.value, { warning: 15, critical: 25 }),
-                trajectory: generateSparklineData(data.doSCancellations.value, 8),
+                trajectory: trend(data.doSCancellations),
                 caption: `${data.doSCancellations.date} · from ${data.doSCancellations.previousValue} · 8 patient · 4 facility`,
                 definition: 'Displays the number of cases from the previous calendar month that were canceled, rescheduled, or for which no procedure was performed on the day of surgery.',
             }),
         },
         {
-            drillKey: 'utilization',
             metric: metric({
                 key: 'blockUtilization',
                 label: 'Block Utilization',
                 value: data.blockUtilization.value,
                 unit: '%',
                 status: statusFor(data.blockUtilization.value, { warning: 75, critical: 65 }),
-                trajectory: generateSparklineData(data.blockUtilization.value, 12),
+                trajectory: trend(data.blockUtilization),
                 caption: `${data.blockUtilization.date} · from ${data.blockUtilization.previousValue}% · 12% released · 8% unused`,
                 definition: 'Displays a high-level summary of OR block utilization data for your OR locations. The data is only refreshed when utilization batch jobs are run.',
             }),
         },
         {
-            drillKey: 'primetime',
             metric: metric({
                 key: 'primetimeUtilization',
                 label: 'Primetime Utilization',
                 value: data.primetimeUtilization.staffed,
                 unit: '%',
                 status: statusFor(data.primetimeUtilization.staffed, { warning: 80, critical: 70 }),
-                trajectory: generateSparklineData(data.primetimeUtilization.staffed, 10),
+                // No prior-period value exists for primetime — no trend shown.
+                trajectory: null,
                 caption: `${data.primetimeUtilization.date} · ${data.primetimeUtilization.unstaffed}% unstaffed · 82% in room · 18% setup`,
                 definition: "Displays the total in-room and setup/cleanup minutes over the available primetime minutes from the previous calendar month. The Primetime Room Utilization percentage includes rooms closed due to staff being unavailable, and cases only count against open available time for the room they are performed in. The Primetime Staffed Room Utilization percentage does not include rooms closed due to staff being unavailable in the denominator, but cases will 'float' across rooms to be in the numerator of the percentage.",
             }),
@@ -166,11 +156,11 @@ const LastMonthSection = ({ data: dataProp }) => {
                     className="grid gap-2"
                     style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(184px, 1fr))' }}
                 >
-                    {tiles.map(({ drillKey, metric: m }) => (
+                    {tiles.map(({ metric: m }) => (
                         <button
                             key={m.key}
                             type="button"
-                            onClick={() => handleMetricClick(drillKey)}
+                            onClick={() => setSelectedMetric(m)}
                             className="block h-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-healthcare-primary dark:focus-visible:ring-healthcare-primary-dark rounded-lg"
                         >
                             <KpiTile metric={m} detailed />
@@ -179,13 +169,13 @@ const LastMonthSection = ({ data: dataProp }) => {
                 </div>
             </Section>
 
-            {/* Drill Down Modal */}
+            {/* Drill Down Modal — receives the SAME metric object the tile
+                renders, so the drill can never disagree with its tile. */}
             {selectedMetric && (
                 <DrillDownModal
                     isOpen={!!selectedMetric}
                     onClose={() => setSelectedMetric(null)}
                     metric={selectedMetric}
-                    data={data[selectedMetric]}
                 />
             )}
         </section>

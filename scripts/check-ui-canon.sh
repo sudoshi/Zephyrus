@@ -58,11 +58,9 @@ fi
 
 # 5) Glassmorphism: backdrop-blur is banned outside the sanctioned Auth surfaces.
 #    Grandfathered legacy files below are pinned to their 2.0 fix phases
-#    (P3: modals; P5: analytics/process) — REMOVE each entry when fixed, never add.
+#    (P5: analytics/process; the P3 modal entries were fixed in P3) — REMOVE
+#    each entry when fixed, never add.
 BLUR_GRANDFATHERED=(
-  "resources/js/Components/RTDC/StatusUpdateModal.jsx"        # P3
-  "resources/js/Components/RTDC/TrendsModal.jsx"              # P3
-  "resources/js/components/ui/CommandPalette.tsx"             # P3
   "resources/js/Components/Analytics/PrimetimeUtilization/Views/DayOfWeekView.jsx" # P5
   "resources/js/Components/Process/Intelligence/ResourceAnalysis/ResourceStressAnalysis.jsx" # P5
 )
@@ -88,10 +86,11 @@ if [ -n "$blur" ]; then
 fi
 
 # 6) Raw Tailwind palette RATCHET: bg/text/border-(gray|red|blue|green|amber|
-#    indigo|slate)-N outside Design/Auth. The 2026-07-03 baseline is 135; the
-#    count may only go DOWN (2.0 success metric C4). Lower the baseline as
-#    violations are fixed; a rising count fails the gate.
-RAW_PALETTE_BASELINE=135
+#    indigo|slate)-N outside Design/Auth. The 2026-07-04 baseline is 134
+#    (P3 fixed Components/Modal.jsx's bg-gray-500/75 scrim); the count may only
+#    go DOWN (2.0 success metric C4). Lower the baseline as violations are
+#    fixed; a rising count fails the gate.
+RAW_PALETTE_BASELINE=134
 raw_count=$(grep -rnE '\b(bg|text|border)-(gray|red|blue|green|amber|indigo|slate)-[0-9]' resources/js --include=*.jsx --include=*.tsx 2>/dev/null \
   | grep -v "/Design/" \
   | grep -v "/Auth/" \

@@ -122,8 +122,9 @@ describe('CommandPalette', () => {
 
       const { container } = render(React.createElement(CommandPalette));
 
-      // Click the backdrop overlay
-      const backdrop = container.querySelector('.bg-black\\/50');
+      // Click the backdrop overlay (solid scrim — P3 replaced the
+      // glassmorphism bg-black/50 backdrop-blur with .modal-backdrop)
+      const backdrop = container.querySelector('.modal-backdrop');
       if (backdrop) {
         fireEvent.click(backdrop);
       }

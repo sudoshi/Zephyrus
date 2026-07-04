@@ -16,11 +16,9 @@ import DischargeReadinessScore from '@/Components/RTDC/DischargeReadinessScore';
 import DischargeChecklistTimeline from '@/Components/RTDC/DischargeChecklistTimeline';
 import PostDischargeRequirements from '@/Components/RTDC/PostDischargeRequirements';
 import DischargePathwaysSection from '@/Components/RTDC/DischargePathwaysSection';
-import  { useDarkMode } from '@/hooks/useDarkMode';
 import { UNIT_ABBRS } from '@/constants/summitHospital';
 
 const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
-    const [isDarkMode] = useDarkMode();
     const [activeTab, setActiveTab] = useState('overview');
     const [tasks, setTasks] = useState([]);
     const [newTask, setNewTask] = useState('');
@@ -151,11 +149,11 @@ const StatusUpdateModal = ({ isOpen, onClose, patient, onSave }) => {
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             {/* Backdrop */}
-            <div className="fixed inset-0 backdrop-blur-sm bg-black/30 transition-opacity" />
+            <div className="modal-backdrop transition-opacity" aria-hidden="true" />
 
             {/* Modal */}
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className={`relative w-full max-w-6xl ${isDarkMode ? 'bg-healthcare-surface-dark' : 'bg-healthcare-surface'} rounded-xl shadow-2xl transform transition-all`}>
+                <div className="modal-surface relative w-full max-w-6xl transform transition-all">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-healthcare-border dark:border-healthcare-border-dark">
                         <div className="flex items-center justify-between">

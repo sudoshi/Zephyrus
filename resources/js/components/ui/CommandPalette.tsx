@@ -33,7 +33,7 @@ export function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="modal-backdrop" aria-hidden="true" onClick={() => setOpen(false)} />
       <div className="fixed top-[20%] left-1/2 w-full max-w-lg -translate-x-1/2">
         <Command className="rounded-xl border border-gray-700 bg-gray-900 shadow-2xl" label="Command Palette">
           <Command.Input
