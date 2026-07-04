@@ -54,6 +54,14 @@ tokens. The **impeccable design hook** flags violations on every edit — keep i
   gallery); categorical chart palettes / Nivo schemes / reactflow handle ports /
   dynamic `bg-${…}` classes (data-driven, not status). The RTDC status CSS-vars
   (`var(--critical)` etc.) are fine — they resolve to the same tokens.
+  **Zephyrus 2.0 wall mode:** `text-[11px]` micro-captions are sanctioned ONLY inside
+  `Components/cockpit/` (dense wall-display captions — see docs/ZEPHYRUS-2.0-PLAN.md
+  Part IV §2); everywhere else the `text-xs` floor holds.
+- **Scripted floor:** `scripts/check-ui-canon.sh` hard-fails on faux-bold,
+  `text-[Npx]` (outside the cockpit exception), `oklch(`, and any NEW
+  `backdrop-blur` file; the raw-palette count is a ratchet (baseline may only go
+  down). The cockpit reference prototype's tokens (IBM Plex, OKLCH, cyan, a fifth
+  green) NEVER enter the codebase — philosophy adopted, tokens rejected.
 
 Run `/impeccable <command>` (craft, critique, audit, polish, live, …) for design
 work; every command reads PRODUCT.md + DESIGN.md first.
