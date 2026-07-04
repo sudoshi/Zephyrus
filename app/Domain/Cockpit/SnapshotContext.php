@@ -29,12 +29,31 @@ class SnapshotContext
     /**
      * @param  array<string, mixed>  $legacy  the CommandCenterDataService payload
      * @param  Collection<string, MetricDefinition>  $definitions  keyed by metric_key
+     * @param  array<string, list<float>>  $trends  real metric history (P7 WS-6),
+     *                                              keyed by metric_key
      */
     public function __construct(
         public readonly array $legacy,
         public readonly Collection $definitions,
         public readonly string $nowIso,
+        private readonly array $trends = [],
     ) {}
+
+    /**
+     * The real sparkline for a metric from ops.metric_values history — null
+     * when too little history has accrued to be worth showing (the provider
+     * then keeps its synthetic/legacy fallback trend). P7 WS-6.
+     *
+     * @return list<float>|null
+     */
+    public function trendFor(string $key): ?array
+    {
+        $trend = $this->trends[$key] ?? null;
+
+        return is_array($trend) && count($trend) >= \App\Services\Cockpit\MetricTrendReader::MIN_POINTS
+            ? $trend
+            : null;
+    }
 
     public function definition(string $key): ?MetricDefinition
     {

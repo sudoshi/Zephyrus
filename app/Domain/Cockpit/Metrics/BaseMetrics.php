@@ -41,6 +41,9 @@ abstract class BaseMetrics
         }
 
         $overrides['updatedAt'] ??= $ctx->nowIso;
+        // P7 WS-6: prefer the real sparkline from ops.metric_values history;
+        // an explicit override (e.g. fromLegacy) still wins if already set.
+        $overrides['trend'] ??= $ctx->trendFor($key) ?? [];
 
         return $ctx->remember(MetricValue::fromDefinition($value, $definition, $this->engine, $overrides));
     }
@@ -80,7 +83,9 @@ abstract class BaseMetrics
             return null;
         }
 
-        $overrides['trend'] ??= $ctx->legacyTrend($legacyKey);
+        // P7 WS-6: real history first, the legacy synthetic trajectory as the
+        // fallback until enough snapshots have accrued for this key.
+        $overrides['trend'] ??= $ctx->trendFor($key) ?? $ctx->legacyTrend($legacyKey);
 
         return $this->fromKey($ctx, $key, $value, $overrides);
     }

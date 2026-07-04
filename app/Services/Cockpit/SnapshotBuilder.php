@@ -75,6 +75,7 @@ class SnapshotBuilder
         private readonly HospitalManifest $manifest,
         private readonly MetricValueWriter $writer,
         private readonly AlertEngine $alerts,
+        private readonly MetricTrendReader $trends,
     ) {}
 
     /** @return array<string, mixed> */
@@ -187,7 +188,7 @@ class SnapshotBuilder
             ->get()
             ->keyBy('metric_key');
 
-        $ctx = new SnapshotContext($payload, $definitions, now()->toIso8601String());
+        $ctx = new SnapshotContext($payload, $definitions, now()->toIso8601String(), $this->safeTrends());
 
         $domains = [];
         $okrs = [];
@@ -397,6 +398,24 @@ class SnapshotBuilder
             'code' => $code,
             'status' => $status,
         ];
+    }
+
+    /**
+     * Real metric sparklines from ops.metric_values history (P7 WS-6).
+     * Fail-open: a trend-read hiccup must never blank the snapshot — the
+     * providers just fall back to their synthetic trends.
+     *
+     * @return array<string, list<float>>
+     */
+    private function safeTrends(): array
+    {
+        try {
+            return $this->trends->recent();
+        } catch (\Throwable $e) {
+            Log::warning('cockpit.snapshot.trends_unavailable', ['error' => $e->getMessage()]);
+
+            return [];
+        }
     }
 
     /**
