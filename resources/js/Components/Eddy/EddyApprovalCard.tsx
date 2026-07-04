@@ -18,6 +18,9 @@ export function EddyApprovalCard({ message, surface }: EddyApprovalCardProps) {
   const action = message.proposedAction;
   const state = message.proposalState ?? 'pending';
   const setProposalState = useEddyStore((s) => s.setProposalState);
+  // P6: when the dock was opened from a cockpit alert, the approved proposal
+  // records which alert spawned it (Recommendation evidence.alert_key).
+  const alertKey = useEddyStore((s) => s.alertKey);
   const [busy, setBusy] = useState(false);
 
   if (!action) return null;
@@ -33,6 +36,7 @@ export function EddyApprovalCard({ message, surface }: EddyApprovalCardProps) {
         params: action.params,
         rationale: action.rationale,
         runner_up: action.runner_up,
+        alert_key: alertKey ?? undefined,
         approve: true,
       });
       setProposalState(message.id, 'approved');

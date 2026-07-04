@@ -1,6 +1,6 @@
 // tests/js/cockpit/AlertTicker.test.tsx
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { AlertTicker } from '@/Components/cockpit/AlertTicker';
 import type { CockpitAlert } from '@/types/cockpit';
 
@@ -38,5 +38,28 @@ describe('AlertTicker', () => {
   it('does not marquee when the strip fits (jsdom: zero overflow)', () => {
     render(<AlertTicker alerts={alerts} />);
     expect(document.querySelector('.cockpit-marquee-track')).toBeNull();
+  });
+
+  // P6 WS-4 — the Eddy hand-off.
+  it('entries become buttons only when an engage handler is wired', () => {
+    const { rerender } = render(<AlertTicker alerts={alerts} />);
+    expect(screen.queryByRole('button')).toBeNull();
+
+    const onEngage = vi.fn();
+    rerender(<AlertTicker alerts={alerts} onEngage={onEngage} />);
+    fireEvent.click(screen.getByTestId('cockpit-alert-ed.nedocs'));
+    expect(onEngage).toHaveBeenCalledTimes(1);
+    expect(onEngage.mock.calls[0][0].key).toBe('ed.nedocs');
+  });
+
+  it('shows how long an alert has been open when the damped openedAt is present', () => {
+    const opened: CockpitAlert[] = [{
+      key: 'ed.nedocs',
+      status: 'crit',
+      text: 'ED OVERCROWDED — NEDOCS 142',
+      openedAt: new Date(Date.now() - 25 * 60_000).toISOString(),
+    }];
+    render(<AlertTicker alerts={opened} />);
+    expect(screen.getByText('25m')).toBeInTheDocument();
   });
 });

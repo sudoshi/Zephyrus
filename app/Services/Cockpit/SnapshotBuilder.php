@@ -101,6 +101,18 @@ class SnapshotBuilder
         // keeps the raw derivation.
         $payload['alerts'] = $this->alerts->reconcile($facilityKey, $payload['alerts']);
 
+        // P6 WS-4: each open alert carries its matching catalog action so the
+        // ticker can hand off to the EddyDock pre-seeded (client stays
+        // presentation-only; the mapping lives server-side).
+        $payload['alerts'] = array_map(function (array $alert): array {
+            $action = \App\Services\Eddy\EddyActionService::actionForAlert($alert['key'], $alert['status']);
+
+            return $alert + [
+                'action' => $action,
+                'actionLabel' => \App\Services\Eddy\EddyActionService::CATALOG[$action]['label'],
+            ];
+        }, $payload['alerts']);
+
         CockpitSnapshot::query()->updateOrCreate(
             ['facility_key' => $facilityKey],
             ['payload' => $payload, 'generated_at' => now()],

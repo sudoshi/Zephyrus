@@ -9,7 +9,7 @@
 // persona reads Outcomes-first (OKR scorecard above the domain grid); command
 // reads operations-first. Same information either way — arrangement, not
 // content, changes (PRODUCT.md: density with clarity).
-import type { CockpitDrillDomain, CockpitSnapshotSections } from '@/types/cockpit';
+import type { CockpitAlert, CockpitDrillDomain, CockpitSnapshotSections } from '@/types/cockpit';
 import type { CommandRole } from '@/stores/commandCenterStore';
 import { Icon } from '@iconify/react';
 import { statusLevels } from '@/types/commandCenter';
@@ -33,6 +33,8 @@ interface CockpitOverviewProps {
   onDrillChange: (domain: CockpitDrillDomain | null) => void;
   /** D2: ?display=wall — P2 wires the flag; P8 builds full wall mode on it. */
   wall?: boolean;
+  /** P6 WS-4: ticker → EddyDock hand-off (wired by the page when Eddy is on). */
+  onAlertEngage?: (alert: CockpitAlert) => void;
 }
 
 function Legend({ asOf }: { asOf: string }) {
@@ -69,6 +71,7 @@ export function CockpitOverview({
   activeDrill,
   onDrillChange,
   wall = false,
+  onAlertEngage,
 }: CockpitOverviewProps) {
   const okrsFirst = role === 'executive';
   const scorecard = <OkrScorecard okrs={sections.okrs} onDrill={onDrillChange} />;
@@ -109,7 +112,7 @@ export function CockpitOverview({
         </div>
       )}
 
-      <AlertTicker alerts={sections.alerts} />
+      <AlertTicker alerts={sections.alerts} onEngage={onAlertEngage} />
       <CensusStrip census={sections.census} />
 
       {okrsFirst ? scorecard : grid}

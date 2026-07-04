@@ -21,11 +21,23 @@ interface EddyState {
   conversationId: string | null;
   messages: EddyChatMessage[];
   isSending: boolean;
+  /** P6: composer prefill consumed (and cleared) by EddySlideOver on open. */
+  draft: string | null;
+  /** P6: the cockpit alert that opened the dock — proposal provenance. */
+  alertKey: string | null;
 
   open: () => void;
   close: () => void;
   toggle: () => void;
   reset: () => void;
+  /**
+   * P6 WS-4 — the AlertTicker hand-off. Pre-seeds the composer with the
+   * alert context and remembers the alert key so an approved proposal
+   * carries its provenance. The human still reviews and sends — advice,
+   * not autopilot.
+   */
+  openWithPrefill: (draft: string, alertKey?: string) => void;
+  clearDraft: () => void;
   pushUser: (content: string) => void;
   pushAssistant: (message: EddyChatMessage) => void;
   setSending: (sending: boolean) => void;
@@ -43,11 +55,15 @@ export const useEddyStore = create<EddyState>((set) => ({
   conversationId: null,
   messages: [],
   isSending: false,
+  draft: null,
+  alertKey: null,
 
   open: () => set({ isOpen: true }),
-  close: () => set({ isOpen: false }),
+  close: () => set({ isOpen: false, draft: null, alertKey: null }),
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
-  reset: () => set({ conversationId: null, messages: [], isSending: false }),
+  reset: () => set({ conversationId: null, messages: [], isSending: false, draft: null, alertKey: null }),
+  openWithPrefill: (draft, alertKey) => set({ isOpen: true, draft, alertKey: alertKey ?? null }),
+  clearDraft: () => set({ draft: null }),
   pushUser: (content) =>
     set((state) => ({
       messages: [...state.messages, { id: crypto.randomUUID(), role: 'user', content }],

@@ -20,7 +20,7 @@ const SURFACE_LABEL: Record<string, string> = {
 };
 
 export function EddySlideOver() {
-  const { close, messages, pushUser, pushAssistant, appendAssistant, finalizeAssistant, setSending, isSending, conversationId, setConversationId } = useEddyStore();
+  const { close, messages, pushUser, pushAssistant, appendAssistant, finalizeAssistant, setSending, isSending, conversationId, setConversationId, draft, clearDraft } = useEddyStore();
   const ctx = useEddyContext();
   const [text, setText] = useState('');
 
@@ -31,6 +31,15 @@ export function EddySlideOver() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [close]);
+
+  // P6: an AlertTicker hand-off pre-seeds the composer. The operator still
+  // reviews and sends — the dock never auto-submits on their behalf.
+  useEffect(() => {
+    if (draft !== null) {
+      setText(draft);
+      clearDraft();
+    }
+  }, [draft, clearDraft]);
 
   const send = async () => {
     const message = text.trim();

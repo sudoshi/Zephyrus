@@ -38,6 +38,8 @@ export interface ProposeActionInput {
   params?: Record<string, unknown>;
   rationale?: string | null;
   runner_up?: string | null;
+  /** P6: provenance — the cockpit alert key that spawned this proposal. */
+  alert_key?: string;
   approve?: boolean;
 }
 

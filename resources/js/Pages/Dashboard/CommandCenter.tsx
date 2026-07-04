@@ -14,7 +14,7 @@
 // close it through the same handler. ?display=wall is wired through to the
 // overview (P8 builds full wall mode on it).
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import ErrorBoundary from '@/Components/ErrorBoundary';
@@ -22,8 +22,10 @@ import { safeParseCommandCenterData } from '@/types/commandCenter';
 import {
   isCockpitDrillDomain,
   safeParseCockpitSections,
+  type CockpitAlert,
   type CockpitDrillDomain,
 } from '@/types/cockpit';
+import { useEddyStore } from '@/stores/eddyStore';
 import { COCKPIT_REFRESH_MS, useCockpitSnapshot } from '@/features/cockpit/hooks';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
@@ -112,6 +114,26 @@ export default function CommandCenter({
     void query.refetch();
   }, [query]);
 
+  // P6 WS-4: ticker → EddyDock hand-off. The dock opens pre-seeded with the
+  // alert context + its server-resolved catalog action; the operator reviews
+  // and sends (advice, not autopilot). Only wired when the dock exists.
+  const eddyEnabled = Boolean(
+    (usePage().props as { eddy?: { enabled?: boolean } }).eddy?.enabled,
+  );
+  const openWithPrefill = useEddyStore((s) => s.openWithPrefill);
+  const handleAlertEngage = useCallback(
+    (alert: CockpitAlert) => {
+      const ask = alert.actionLabel
+        ? `Draft a "${alert.actionLabel}" proposal for my review.`
+        : 'What is the recommended action?';
+      openWithPrefill(
+        `Cockpit alert ${alert.key} (${alert.status.toUpperCase()}): ${alert.text}. ${ask}`,
+        alert.key,
+      );
+    },
+    [openWithPrefill],
+  );
+
   const cockpitActive =
     sections.ok && (cockpitParam === '1' || (cockpitParam !== '0' && cockpitEnabled));
 
@@ -151,6 +173,7 @@ export default function CommandCenter({
               activeDrill={drill}
               onDrillChange={handleDrillChange}
               wall={wall}
+              onAlertEngage={eddyEnabled ? handleAlertEngage : undefined}
             />
             {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
                 deep links; closing (ESC, backdrop, ×) clears the URL param. */}

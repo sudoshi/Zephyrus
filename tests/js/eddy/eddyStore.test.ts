@@ -33,4 +33,28 @@ describe('eddyStore', () => {
     expect(useEddyStore.getState().conversationId).toBeNull();
     expect(useEddyStore.getState().messages).toHaveLength(0);
   });
+
+  // P6 WS-4 — the AlertTicker hand-off.
+  it('openWithPrefill opens the dock with a draft and remembers the alert provenance', () => {
+    useEddyStore.getState().openWithPrefill('Cockpit alert ed.nedocs (CRIT): …', 'ed.nedocs');
+    const s = useEddyStore.getState();
+    expect(s.isOpen).toBe(true);
+    expect(s.draft).toBe('Cockpit alert ed.nedocs (CRIT): …');
+    expect(s.alertKey).toBe('ed.nedocs');
+
+    // The composer consumes the draft exactly once…
+    useEddyStore.getState().clearDraft();
+    expect(useEddyStore.getState().draft).toBeNull();
+    // …but the provenance survives until the dock closes.
+    expect(useEddyStore.getState().alertKey).toBe('ed.nedocs');
+  });
+
+  it('close clears both the draft and the alert provenance', () => {
+    useEddyStore.getState().openWithPrefill('draft', 'ed.nedocs');
+    useEddyStore.getState().close();
+    const s = useEddyStore.getState();
+    expect(s.isOpen).toBe(false);
+    expect(s.draft).toBeNull();
+    expect(s.alertKey).toBeNull();
+  });
 });

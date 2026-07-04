@@ -17,11 +17,30 @@ import { Surface } from '@/Components/ui/Surface';
 import { cockpitStatusStyle } from './statusStyle';
 import { ProvenanceBadge } from './ProvenanceBadge';
 
-function AlertItem({ alert }: { alert: CockpitAlert }) {
-  const s = cockpitStatusStyle(alert.status);
+// Coarse relative age (P6): the ticker shows how long an alert has been OPEN
+// (the AlertEngine's damped opened_at), not this snapshot's time.
+function ageLabel(openedAt: string | null | undefined): string | null {
+  if (!openedAt) return null;
+  const mins = Math.floor((Date.now() - Date.parse(openedAt)) / 60_000);
+  if (Number.isNaN(mins) || mins < 1) return null;
+  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
 
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1.5" data-testid={`cockpit-alert-${alert.key}`}>
+function AlertItem({
+  alert,
+  onEngage,
+  interactive = true,
+}: {
+  alert: CockpitAlert;
+  onEngage?: (alert: CockpitAlert) => void;
+  /** false inside the aria-hidden marquee duplicate — never focusable there. */
+  interactive?: boolean;
+}) {
+  const s = cockpitStatusStyle(alert.status);
+  const age = ageLabel(alert.openedAt);
+
+  const body = (
+    <>
       <span
         role="img"
         aria-label={s.label}
@@ -33,12 +52,50 @@ function AlertItem({ alert }: { alert: CockpitAlert }) {
       <span className="whitespace-nowrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         {alert.text}
       </span>
+      {age !== null && (
+        <span className="whitespace-nowrap text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          {age}
+        </span>
+      )}
       {alert.provenance === 'demo' && <ProvenanceBadge />}
+    </>
+  );
+
+  // P6 WS-4: with a hand-off wired, each entry opens the EddyDock pre-seeded
+  // with this alert's matching catalog action. Plain span otherwise.
+  if (onEngage && interactive) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEngage(alert)}
+        data-testid={`cockpit-alert-${alert.key}`}
+        title={alert.actionLabel ? `Ask Eddy — ${alert.actionLabel}` : 'Ask Eddy'}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors duration-200
+                   hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark"
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1.5 px-1 py-0.5"
+      data-testid={interactive ? `cockpit-alert-${alert.key}` : undefined}
+    >
+      {body}
     </span>
   );
 }
 
-export function AlertTicker({ alerts }: { alerts: CockpitAlert[] }) {
+export function AlertTicker({
+  alerts,
+  onEngage,
+}: {
+  alerts: CockpitAlert[];
+  /** P6 WS-4: opens the EddyDock pre-seeded with the clicked alert. */
+  onEngage?: (alert: CockpitAlert) => void;
+}) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
 
@@ -70,7 +127,14 @@ export function AlertTicker({ alerts }: { alerts: CockpitAlert[] }) {
 
   const strip = (
     <span className="inline-flex items-center gap-6 pr-6">
-      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} />)}
+      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} onEngage={onEngage} />)}
+    </span>
+  );
+
+  // The aria-hidden marquee duplicate must never contain focusable buttons.
+  const stripInert = (
+    <span className="inline-flex items-center gap-6 pr-6">
+      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} interactive={false} />)}
     </span>
   );
 
@@ -85,7 +149,7 @@ export function AlertTicker({ alerts }: { alerts: CockpitAlert[] }) {
           <div className="cockpit-marquee-track inline-flex w-max items-center" style={marqueeStyle}>
             {strip}
             {/* Duplicate strip = seamless loop; hidden from the a11y tree. */}
-            <span aria-hidden="true">{strip}</span>
+            <span aria-hidden="true">{stripInert}</span>
           </div>
         ) : (
           <div className="inline-flex w-max items-center">{strip}</div>

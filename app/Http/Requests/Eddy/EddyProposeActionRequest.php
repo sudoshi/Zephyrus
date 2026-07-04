@@ -25,6 +25,7 @@ class EddyProposeActionRequest extends FormRequest
             'scope_key' => ['nullable', 'string', 'max:160'],
             'rationale' => ['nullable', 'string', 'max:2000'],
             'runner_up' => ['nullable', 'string', 'max:1000'],
+            'alert_key' => ['nullable', 'string', 'max:160'],
             'params' => ['nullable', 'array'],
             'expected_impact' => ['nullable', 'array'],
             'approve' => ['nullable', 'boolean'],

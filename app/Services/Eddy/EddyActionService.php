@@ -23,17 +23,45 @@ class EddyActionService
 {
     /**
      * The allowlist of proposable action types. Each is a GOVERNANCE proposal
-     * (a draft for human review), not a direct domain mutation.
+     * (a draft for human review), not a direct domain mutation. alert_key (P6)
+     * is the provenance hint: the cockpit alert-key PREFIX family this action
+     * canonically answers — actionForAlert() is the one place that resolves an
+     * opened alert onto a catalog entry.
      *
-     * @var array<string, array{tier:string, risk:string, label:string, recommendation_type:string}>
+     * @var array<string, array{tier:string, risk:string, label:string, recommendation_type:string, alert_key:?string}>
      */
     public const CATALOG = [
-        'flag_barrier' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Flag a throughput/discharge barrier', 'recommendation_type' => 'eddy_barrier'],
-        'propose_huddle_action' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Propose a huddle action item', 'recommendation_type' => 'eddy_huddle_action'],
-        'propose_transport_dispatch' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose a transport dispatch', 'recommendation_type' => 'eddy_transport'],
-        'propose_bed_placement' => ['tier' => 'T3', 'risk' => 'high', 'label' => 'Propose a bed placement', 'recommendation_type' => 'eddy_bed_placement'],
-        'propose_surge_plan' => ['tier' => 'T3', 'risk' => 'critical', 'label' => 'Propose a surge / red-stretch plan', 'recommendation_type' => 'eddy_surge'],
+        'flag_barrier' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Flag a throughput/discharge barrier', 'recommendation_type' => 'eddy_barrier', 'alert_key' => null],
+        'propose_huddle_action' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Propose a huddle action item', 'recommendation_type' => 'eddy_huddle_action', 'alert_key' => 'staffing.'],
+        'propose_transport_dispatch' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose a transport dispatch', 'recommendation_type' => 'eddy_transport', 'alert_key' => 'flow.'],
+        'propose_bed_placement' => ['tier' => 'T3', 'risk' => 'high', 'label' => 'Propose a bed placement', 'recommendation_type' => 'eddy_bed_placement', 'alert_key' => 'rtdc.'],
+        'propose_surge_plan' => ['tier' => 'T3', 'risk' => 'critical', 'label' => 'Propose a surge / red-stretch plan', 'recommendation_type' => 'eddy_surge', 'alert_key' => 'ed.'],
     ];
+
+    /**
+     * P6 workstream 4 — resolve an opened cockpit alert onto the catalog
+     * action the EddyDock pre-seeds with. Deterministic and severity-aware:
+     * crit alerts in a domain with a heavyweight response map to it (the
+     * acceptance case: a crit ED alert → propose_surge_plan); warns and
+     * unmapped domains fall back to the low-risk barrier flag — never
+     * escalate a proposal past what the alert earns.
+     */
+    public static function actionForAlert(string $alertKey, string $status): string
+    {
+        if ($status === 'crit') {
+            foreach (self::CATALOG as $actionType => $spec) {
+                if ($spec['alert_key'] !== null && str_starts_with($alertKey, $spec['alert_key'])) {
+                    return $actionType;
+                }
+            }
+        }
+
+        if (str_starts_with($alertKey, 'staffing.')) {
+            return 'propose_huddle_action';
+        }
+
+        return 'flag_barrier';
+    }
 
     public function __construct(
         private readonly OperationalActionLifecycleService $lifecycle,
@@ -88,6 +116,9 @@ class EddyActionService
                     'runner_up' => $proposal['runner_up'] ?? null,
                     'tier' => $spec['tier'],
                     'proposed_by' => 'eddy',
+                    // P6: which cockpit alert spawned this proposal (null when
+                    // the operator opened Eddy without an alert hand-off).
+                    'alert_key' => $proposal['alert_key'] ?? null,
                 ],
             ]);
 

@@ -44,6 +44,35 @@ class EddyActionTest extends TestCase
         $this->assertSame('pending', Approval::firstOrFail()->status);   // awaiting a human
     }
 
+    public function test_alert_spawned_proposal_records_its_provenance(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(
+            '/api/eddy/actions/propose',
+            $this->barrierProposal(['alert_key' => 'ed.nedocs']),
+        );
+
+        $response->assertCreated();
+        $this->assertSame('ed.nedocs', Recommendation::firstOrFail()->evidence['alert_key'] ?? null);
+    }
+
+    public function test_action_for_alert_resolves_the_p6_preseed_mapping(): void
+    {
+        // The acceptance case: a crit ED alert pre-seeds the surge plan.
+        $this->assertSame('propose_surge_plan', \App\Services\Eddy\EddyActionService::actionForAlert('ed.nedocs', 'crit'));
+        $this->assertSame('propose_bed_placement', \App\Services\Eddy\EddyActionService::actionForAlert('rtdc.occupancy', 'crit'));
+        $this->assertSame('propose_transport_dispatch', \App\Services\Eddy\EddyActionService::actionForAlert('flow.transport_wait', 'crit'));
+        $this->assertSame('propose_huddle_action', \App\Services\Eddy\EddyActionService::actionForAlert('staffing.callouts', 'crit'));
+
+        // Warns never escalate past the low-risk responses.
+        $this->assertSame('flag_barrier', \App\Services\Eddy\EddyActionService::actionForAlert('ed.los_admit', 'warn'));
+        $this->assertSame('propose_huddle_action', \App\Services\Eddy\EddyActionService::actionForAlert('staffing.overtime', 'warn'));
+
+        // Unmapped domains fall back to the barrier flag.
+        $this->assertSame('flag_barrier', \App\Services\Eddy\EddyActionService::actionForAlert('quality.cdiff', 'crit'));
+    }
+
     public function test_human_can_propose_and_approve_in_one_step(): void
     {
         $user = User::factory()->create();
