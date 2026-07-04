@@ -69,3 +69,6 @@ __pycache__/
 *.pyc
 /eddy/.venv/
 /eddy/.impeccable/
+
+# Local plan-document exports (user-authored docx/pdf, never deployed)
+/zephyrus_build/
