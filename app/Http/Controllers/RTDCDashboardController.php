@@ -9,6 +9,8 @@ use Inertia\Response as InertiaResponse;
 
 class RTDCDashboardController extends Controller
 {
+    use \App\Http\Controllers\Concerns\ResolvesFlowLens;
+
     public function __construct(
         private readonly RtdcService $rtdcService,
     ) {}
@@ -49,6 +51,8 @@ class RTDCDashboardController extends Controller
         return Inertia::render('RTDC/PatientFlowNavigator', [
             'workflow' => 'rtdc',
             'facilityCode' => config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500'),
+            'flowLens' => $this->resolveFlowLens($request),
+            'flowUnits' => $this->flowUnits(),
         ]);
     }
 

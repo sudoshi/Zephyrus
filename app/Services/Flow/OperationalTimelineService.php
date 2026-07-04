@@ -405,8 +405,8 @@ class OperationalTimelineService
     /** @return Collection<int, array<string, mixed>> */
     private function orEvents(CarbonImmutable $from, CarbonImmutable $to, array $kinds): Collection
     {
-        if (! in_array('or_milestone', $kinds, true)
-            || ! \Illuminate\Support\Facades\Schema::hasTable('prod.orlog')) {
+        $table = $this->orlogTable();
+        if (! in_array('or_milestone', $kinds, true) || $table === null) {
             return collect(); // periop import is optional; degrade to an empty lane
         }
 
@@ -421,12 +421,15 @@ class OperationalTimelineService
 
         $events = collect();
         $logs = \App\Models\ORLog::query()
+            ->from($table)
+            ->with('case.room') // ORLog→case→room: OR-side milestones land in a named room
             ->where('is_deleted', false)
             ->whereBetween('tracking_date', [$from->toDateString(), $to->toDateString()])
             ->limit(5000)
             ->get();
 
         foreach ($logs as $log) {
+            $room = $log->case?->room?->name;
             foreach ($milestones as $column => $label) {
                 $at = $this->orMilestoneAt($log, $column);
                 if ($at === null || ! $at->betweenIncluded($from, $to)) {
@@ -438,16 +441,32 @@ class OperationalTimelineService
                     entity: ['type' => 'or_case', 'ref' => (string) $log->case_id],
                     patientRef: null,
                     fromSpace: null,
-                    toSpace: str_starts_with($column, 'pacu') ? 'PACU' : 'OR',
+                    toSpace: str_starts_with($column, 'pacu') ? 'PACU' : ($room ?? 'OR'),
                     unitId: null,
                     label: $label.($log->primary_procedure ? ' · '.$log->primary_procedure : ''),
                     tier: 'info',
-                    source: 'prod.orlog',
+                    source: $table,
                 ));
             }
         }
 
         return $events;
+    }
+
+    /**
+     * Legacy ETL deployments carry the milestone log as prod.orlog; the
+     * migration path (and CommandCenterDemoSeeder + every periop SQL surface)
+     * uses prod.or_logs. Read whichever exists so or_milestone works on both.
+     */
+    private function orlogTable(): ?string
+    {
+        foreach (['prod.orlog', 'prod.or_logs'] as $table) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                return $table;
+            }
+        }
+
+        return null;
     }
 
     // -------------------------------------------------------------------

@@ -56,7 +56,22 @@ class FlowFixtureRegenerationTest extends TestCase
             ->assertOk()
             ->json();
 
-        foreach (['mobile-flow-window.json' => $window, 'mobile-flow-floors.json' => $floors] as $name => $payload) {
+        // The turn map: an EVS tech at floor scope is the one lens/scope combo
+        // that exercises bed_statuses (+ task-depth redaction) in a fixture.
+        $evsUser = User::factory()->create(['role' => 'evs', 'must_change_password' => false, 'is_active' => true]);
+        Sanctum::actingAs($evsUser, ['mobile:read']);
+        $micuFloor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+        $evsWindow = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$micuFloor)
+            ->assertOk()
+            ->json();
+        $this->assertArrayHasKey('bed_statuses', $evsWindow['data'], 'the EVS floor capture must include the turn map');
+
+        $fixtures = [
+            'mobile-flow-window.json' => $window,
+            'mobile-flow-floors.json' => $floors,
+            'mobile-flow-window-evs.json' => $evsWindow,
+        ];
+        foreach ($fixtures as $name => $payload) {
             file_put_contents(
                 base_path(self::FIXTURE_DIR.'/'.$name),
                 json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n",

@@ -18,6 +18,7 @@ class MobileSharedDtoFixtureTest extends TestCase
         'mobile-activity-feed.json',
         'mobile-patient-operational-context.json',
         'mobile-flow-window.json',
+        'mobile-flow-window-evs.json',
         'mobile-flow-floors.json',
     ];
 

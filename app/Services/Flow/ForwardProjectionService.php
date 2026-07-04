@@ -394,6 +394,7 @@ class ForwardProjectionService
                 service: 'or_schedule',
                 reliability: null,
                 endsAt: $ends,
+                room: $case->room?->name,
             );
         })->filter()->values();
     }
@@ -574,6 +575,7 @@ class ForwardProjectionService
         ?array $band = null,
         ?CarbonImmutable $endsAt = null,
         bool $derived = false,
+        ?string $room = null,
     ): array {
         $ptok = $patientRef !== null ? $this->patientContext->contextRefFor($patientRef) : null;
 
@@ -583,6 +585,7 @@ class ForwardProjectionService
             'confidence' => $confidence,
             'unit_id' => $unitId,
             'bed_id' => $bedId,
+            'room' => $room, // OR room name on scheduled_or_case; null elsewhere
             'entity' => $entity,
             'patient_context_ref' => $ptok,
             '_patient_ref' => $patientRef, // internal; stripped by the controller

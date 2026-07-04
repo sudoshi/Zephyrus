@@ -480,6 +480,17 @@ paths:
           in: query
           schema: { type: string }
           description: "Comma list of snapshots,events,projections,spaces (intersected with the lens)."
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+          description:
+            "Delta refresh cursor. When present, `events` and `snapshots`
+            contain only items with t > since, while `projections`, `spaces`,
+            and `bed_statuses` are always recomputed and served in full.
+            Everything else (lens clamping, scope resolution, redaction)
+            behaves exactly like a full request, and the parsed value is
+            echoed back as `window.since`. Must parse as ISO8601 and lie
+            within [window.from, window.to); anything else is a 422."
       responses:
         "200":
           {
@@ -494,6 +505,13 @@ paths:
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description:
+            Invalid `since` — not parseable as ISO8601, or outside
+            [window.from, window.to).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 
   /rtdc/census:
     get:
@@ -1875,6 +1893,13 @@ components:
         confidence: { type: string, enum: [definite, probable, possible] }
         unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
         bed_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        room:
+          {
+            oneOf: [{ type: string }, { type: "null" }],
+            description:
+              OR room name (e.g. "OR 3") on scheduled_or_case items; null for
+              every other kind.,
+          }
         entity:
           oneOf:
             - type: "null"
@@ -1920,11 +1945,21 @@ components:
               properties:
                 window:
                   type: object
-                  required: [from, to, now]
+                  required: [from, to, now, since]
                   properties:
                     from: { type: string, format: date-time }
                     to: { type: string, format: date-time }
                     now: { type: string, format: date-time }
+                    since:
+                      oneOf:
+                        - { type: string, format: date-time }
+                        - { type: "null" }
+                      description:
+                        Echo of the parsed `since` delta cursor (null on a
+                        full request). When non-null, `events` and
+                        `snapshots` were filtered to t > since;
+                        `projections`, `spaces`, and `bed_statuses` are
+                        always full.
                 lens:
                   type: object
                   properties:
@@ -1976,6 +2011,27 @@ components:
                     type: array,
                     items: { $ref: "#/components/schemas/FlowProjection" },
                   }
+                bed_statuses:
+                  type: array
+                  description:
+                    Current bed state for the turn map — strictly "now", never
+                    historical or projected (past turns live in events,
+                    upcoming ones in projections). Present only when the
+                    requested scope is floor or unit AND the caller's lens
+                    event_kinds include bed_status; absent for every other
+                    lens/scope combination.
+                  items:
+                    type: object
+                    required: [bed_id, unit_id, status]
+                    properties:
+                      bed_id: { type: integer }
+                      unit_id: { type: integer }
+                      label: { oneOf: [{ type: string }, { type: "null" }] }
+                      status:
+                        {
+                          type: string,
+                          enum: [available, occupied, blocked, dirty],
+                        }
 
     CensusEnvelope:
       allOf:
