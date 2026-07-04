@@ -146,3 +146,30 @@ export const cockpitSnapshotSectionsSchema = z.object({
   domains: z.record(z.string(), cockpitDomainSchema),
 });
 export type CockpitSnapshotSections = z.infer<typeof cockpitSnapshotSectionsSchema>;
+
+// The drillable domain registry (server: DrillBuilder::DOMAINS). ?drill= values
+// outside this list are ignored on read, so a mangled deep link degrades to the
+// bare cockpit instead of holding junk state.
+export const cockpitDrillDomains = [
+  'rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial', 'okr',
+] as const;
+export type CockpitDrillDomain = (typeof cockpitDrillDomains)[number];
+
+export function isCockpitDrillDomain(value: string | null): value is CockpitDrillDomain {
+  return value !== null && (cockpitDrillDomains as readonly string[]).includes(value);
+}
+
+export type SafeCockpitSections =
+  | { ok: true; data: CockpitSnapshotSections }
+  | { ok: false; error: string };
+
+// Mirror of safeParseCommandCenterData: the cockpit grammar renders only from
+// a payload that parses cleanly; anything else degrades to the classic view
+// (never white-screen — the legacy contract is the deeper fallback).
+export function safeParseCockpitSections(input: unknown): SafeCockpitSections {
+  const result = cockpitSnapshotSectionsSchema.safeParse(input);
+  if (result.success) return { ok: true, data: result.data };
+  const first = result.error.issues[0];
+  const where = first?.path?.length ? ` (at ${first.path.join('.')})` : '';
+  return { ok: false, error: `${first?.message ?? 'Invalid cockpit sections payload'}${where}` };
+}

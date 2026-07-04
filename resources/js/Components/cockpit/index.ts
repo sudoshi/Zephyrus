@@ -19,3 +19,12 @@ export { StatusChip, type StatusChipProps } from './StatusChip';
 export { CensusChip, type CensusChipProps } from './CensusChip';
 export { Panel, type PanelProps } from './Panel';
 export { DataTable, type DataTableProps } from './DataTable';
+// P2 — the cockpit overview grammar.
+export { Tile, MetricRow, type TileProps, type MetricRowProps } from './Tile';
+export { ProvenanceBadge } from './ProvenanceBadge';
+export { CommandBar } from './CommandBar';
+export { CensusStrip } from './CensusStrip';
+export { AlertTicker } from './AlertTicker';
+export { DomainGrid } from './DomainGrid';
+export { OkrScorecard, okrProgressPct } from './OkrScorecard';
+export { CockpitOverview } from './CockpitOverview';

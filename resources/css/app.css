@@ -240,3 +240,21 @@
     @apply transition-all duration-300;
   }
 }
+
+/* Zephyrus 2.0 cockpit — AlertTicker marquee (P2). The track holds the alert
+   strip twice and slides one strip-width, so the loop is seamless. Motion is
+   opt-out: reduced-motion users get a static, horizontally scrollable row. */
+@keyframes cockpit-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.cockpit-marquee-track {
+  animation: cockpit-marquee var(--cockpit-marquee-duration, 40s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-marquee-track {
+    animation: none;
+  }
+}

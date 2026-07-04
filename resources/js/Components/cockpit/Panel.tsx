@@ -16,13 +16,15 @@ export interface PanelProps {
   /** Optional status accent — renders the state glyph beside the title. */
   accent?: StatusLevel;
   timestamp?: string;
+  /** Optional header-right adornment (e.g. a ProvenanceBadge) — P2. */
+  meta?: ReactNode;
   /** When set, the header becomes the drill-open button. */
   onDrill?: () => void;
   children: ReactNode;
   className?: string;
 }
 
-export function Panel({ title, accent, timestamp, onDrill, children, className = '' }: PanelProps) {
+export function Panel({ title, accent, timestamp, meta, onDrill, children, className = '' }: PanelProps) {
   const accentStyle = accent ? statusStyle(accent) : null;
   const header = (
     <div className="flex w-full items-center justify-between gap-2">
@@ -37,6 +39,7 @@ export function Panel({ title, accent, timestamp, onDrill, children, className =
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-2">
+        {meta}
         {timestamp && (
           <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             {timestamp}
