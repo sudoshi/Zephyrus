@@ -158,11 +158,14 @@ class RoomStatusService
     {
         $base = [
             'number' => (int) $room->room_id,
+            // P7: the human room label (e.g. "OR 4 — Cardiac"), not just the id.
+            'suiteName' => $room->name !== null ? (string) $room->name : ('OR '.$room->room_id),
             'status' => 'available',
             'currentCase' => null,
             'nextCase' => null,
             'timeRemaining' => null,
             'turnoverTime' => null,
+            'delayMin' => null,
         ];
 
         if ($roomCases->isEmpty()) {
@@ -203,6 +206,8 @@ class RoomStatusService
 
         $base['status'] = $delayed ? 'delayed' : 'in_progress';
         $base['timeRemaining'] = $remaining;
+        // P7: minutes past the scheduled duration, surfaced only when delayed.
+        $base['delayMin'] = $delayed ? max(0, $elapsed - $dur) : null;
         $base['currentCase'] = [
             'patient' => (string) $current->patient_id,
             'procedure' => (string) $current->primary_procedure,

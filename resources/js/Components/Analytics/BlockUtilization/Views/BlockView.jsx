@@ -103,7 +103,7 @@ const BlockView = ({ filters, data }) => {
           title="Release Rate" 
           value={formatPercentage(metrics.releaseRate)} 
           icon="arrow-up-right"
-          iconColor="text-purple-500"
+          iconColor="text-healthcare-info dark:text-healthcare-info-dark"
           isSubpanel={true}
         />
       </div>

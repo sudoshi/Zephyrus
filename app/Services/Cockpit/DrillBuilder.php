@@ -109,7 +109,7 @@ class DrillBuilder
             return match ($domain) {
                 'rtdc' => [$this->unitCapacityBoard($snapshot)],
                 'ed' => $this->edTables(),
-                'periop' => [$this->orRoomBoard()],
+                'periop' => array_values(array_filter([$this->orRoomBoard(), $this->pacuBayBoard()])),
                 'staffing' => [$this->unitCoverage()],
                 'flow' => $this->flowTables(),
                 'okr' => [$this->okrTable($tiles)],
@@ -307,8 +307,10 @@ class DrillBuilder
 
         foreach (array_slice($this->rooms->build()['rooms'] ?? [], 0, 18) as $room) {
             $case = $room['currentCase'];
+            $delay = $room['delayMin'] ?? null;
             $rows[] = [
-                'room' => ['v' => 'OR '.$room['number'], 'strong' => true],
+                // P7: the human suite label from prod.rooms.name, not just the id.
+                'room' => ['v' => (string) ($room['suiteName'] ?? ('OR '.$room['number'])), 'strong' => true],
                 'state' => ['tag' => [
                     'text' => str_replace('_', ' ', (string) $room['status']),
                     'status' => $statusTone[$room['status']] ?? 'neutral',
@@ -317,6 +319,10 @@ class DrillBuilder
                 'surgeon' => ['v' => $case['provider'] ?? '—', 'dim' => true],
                 'start' => $case['startTime'] ?? ($room['nextCase']['startTime'] ?? '—'),
                 'elapsed' => $case !== null ? $case['elapsed'].'m' : ($room['turnoverTime'] !== null ? $room['turnoverTime'].'m turn' : '—'),
+                // P7: minutes over the scheduled duration, only when delayed.
+                'delay' => $delay !== null && $delay > 0
+                    ? ['v' => '+'.$delay.'m', 'status' => 'critical', 'strong' => true]
+                    : ['v' => '—', 'dim' => true],
             ];
         }
 
@@ -329,6 +335,74 @@ class DrillBuilder
                 ['key' => 'surgeon', 'header' => 'Surgeon', 'align' => 'left'],
                 ['key' => 'start', 'header' => 'Start', 'align' => 'right'],
                 ['key' => 'elapsed', 'header' => 'Elapsed', 'align' => 'right'],
+                ['key' => 'delay', 'header' => 'Delay', 'align' => 'right'],
+            ],
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * P7 — the PACU bay board: patients recovering in PACU, with a boarding
+     * flag for any held past the 75-minute threshold awaiting an inpatient
+     * bed (the same convention InterventionAttributionService::pacuHoldsAt()
+     * scores). Empty (null → no table) when no PACU times are recorded.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function pacuBayBoard(): ?array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('prod.or_logs')) {
+            return null;
+        }
+
+        $holdThreshold = \Illuminate\Support\Carbon::now()->subMinutes(75)->toDateTimeString();
+        $now = \Illuminate\Support\Carbon::now()->toDateTimeString();
+
+        $bays = \Illuminate\Support\Facades\DB::select(
+            'SELECT
+                 c.patient_id,
+                 l.primary_procedure,
+                 l.pacu_in_time,
+                 ROUND(EXTRACT(EPOCH FROM (?::timestamp - l.pacu_in_time)) / 60) AS mins_in_pacu
+             FROM prod.or_logs l
+             JOIN prod.or_cases c ON c.case_id = l.case_id
+             WHERE l.is_deleted = false
+               AND c.is_deleted = false
+               AND l.pacu_in_time IS NOT NULL
+               AND l.pacu_out_time IS NULL
+             ORDER BY l.pacu_in_time
+             LIMIT 18',
+            [$now]
+        );
+
+        if ($bays === []) {
+            return null;
+        }
+
+        $rows = [];
+        foreach ($bays as $i => $bay) {
+            $mins = (int) $bay->mins_in_pacu;
+            $held = $bay->pacu_in_time <= $holdThreshold;
+            $rows[] = [
+                'bay' => ['v' => 'PACU '.($i + 1), 'strong' => true],
+                'patient' => ['v' => (string) $bay->patient_id, 'dim' => true],
+                'procedure' => (string) $bay->primary_procedure,
+                'dwell' => ['v' => $mins.'m', 'status' => $held ? 'critical' : 'neutral'],
+                'state' => ['tag' => [
+                    'text' => $held ? 'boarding' : 'recovering',
+                    'status' => $held ? 'critical' : 'success',
+                ]],
+            ];
+        }
+
+        return [
+            'caption' => 'PACU bay board',
+            'columns' => [
+                ['key' => 'bay', 'header' => 'Bay', 'align' => 'left'],
+                ['key' => 'patient', 'header' => 'Patient', 'align' => 'left'],
+                ['key' => 'procedure', 'header' => 'Procedure', 'align' => 'left'],
+                ['key' => 'dwell', 'header' => 'In PACU', 'align' => 'right', 'note' => 'held >75m = boarding'],
+                ['key' => 'state', 'header' => 'Status', 'align' => 'right'],
             ],
             'rows' => $rows,
         ];

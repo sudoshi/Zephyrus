@@ -69,7 +69,7 @@ const NonPrimeView = ({ filters, data }) => {
           trend="-0.7%" 
           trendDirection="down"
           icon="clock"
-          iconColor="text-purple-500"
+          iconColor="text-healthcare-info dark:text-healthcare-info-dark"
           isSubpanel={true}
         />
         <MetricCard 
@@ -318,7 +318,7 @@ const NonPrimeView = ({ filters, data }) => {
             <Panel title="Non-Prime Recommendations" isSubpanel={true} dropLightIntensity="subtle">
               <ul className="space-y-3">
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-purple-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
@@ -328,7 +328,7 @@ const NonPrimeView = ({ filters, data }) => {
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-purple-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
@@ -338,7 +338,7 @@ const NonPrimeView = ({ filters, data }) => {
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-purple-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
@@ -348,7 +348,7 @@ const NonPrimeView = ({ filters, data }) => {
                   </p>
                 </li>
                 <li className="flex items-start">
-                  <div className="flex-shrink-0 h-5 w-5 text-purple-500">
+                  <div className="flex-shrink-0 h-5 w-5 text-healthcare-info dark:text-healthcare-info-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>

@@ -213,7 +213,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                   <Icon icon="heroicons:shield-check" className="h-4 w-4 mr-2" />
                   Add Safety Note
                 </button>
-                <button className="w-full bg-healthcare-purple-light dark:bg-healthcare-purple-dark/20 hover:bg-healthcare-purple-light/80 dark:hover:bg-healthcare-purple-dark/30 text-healthcare-purple dark:text-healthcare-purple-dark py-2 px-4 rounded-lg text-sm transition-colors duration-150 flex items-center justify-center">
+                <button className="w-full bg-healthcare-info-light dark:bg-healthcare-info-dark/20 hover:bg-healthcare-info-light/80 dark:hover:bg-healthcare-info-dark/30 text-healthcare-info dark:text-healthcare-info-dark py-2 px-4 rounded-lg text-sm transition-colors duration-150 flex items-center justify-center">
                   <Icon icon="heroicons:bell" className="h-4 w-4 mr-2" />
                   Add Barrier
                 </button>
@@ -249,10 +249,10 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
 
         {/* Right Panel */}
         <div className="md:col-span-3 bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow">
-          <div className="border-t-4 border-healthcare-purple dark:border-healthcare-purple-dark p-4">
+          <div className="border-t-4 border-healthcare-info dark:border-healthcare-info-dark p-4">
             <h2 className="font-semibold text-lg mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Post-Procedure
-              <span className="ml-2 px-2 py-1 bg-healthcare-purple-light dark:bg-healthcare-purple-dark/20 rounded-full text-xs text-healthcare-purple dark:text-healthcare-purple-dark">
+              <span className="ml-2 px-2 py-1 bg-healthcare-info-light dark:bg-healthcare-info-dark/20 rounded-full text-xs text-healthcare-info dark:text-healthcare-info-dark">
                 Monitoring
               </span>
             </h2>

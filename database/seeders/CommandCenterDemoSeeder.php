@@ -1642,6 +1642,14 @@ class CommandCenterDemoSeeder extends Seeder
         $currentHour = (int) now()->format('G');
 
         $allCaseIds = [];
+        // P7: exactly 4 patients currently held in PACU (pacu_out NULL, dwell
+        // >75m) so periop.pacu_holds lands in the warn band and the PACU bay
+        // drill is non-empty. Keyed to the MOST RECENT OR day (the RoomStatus
+        // anchor = MAX(surgery_date)) so the holds exist even when the real
+        // "today" is a weekend with no scheduled cases; pacu_in is stamped
+        // relative to now() so they read as current recovery-bay boarders.
+        $pacuHoldsSeeded = 0;
+        $anchorDayIdx = count($weekdays) - 1;
 
         foreach ($weekdays as $dayIdx => $day) {
             foreach ($roomIds as $roomIdx => $roomId) {
@@ -1761,6 +1769,24 @@ class CommandCenterDemoSeeder extends Seeder
                             $orOutTime = $procEnd->copy()->addMinutes($this->seededRand($seed + 6, 10, 25));
                         }
 
+                        // P7 PACU chain. Completed cases recover in PACU after
+                        // OR-out; most are discharged (pacu_out in the past),
+                        // but the first 4 of today's completed cases stay held
+                        // (pacu_out NULL, pacu_in 90–150m ago) to demo the
+                        // recovery-bay boarding backlog.
+                        $pacuIn = null;
+                        $pacuOut = null;
+                        if ($statusId === $statusCompleted && $orOutTime !== null) {
+                            if ($dayIdx === $anchorDayIdx && $pacuHoldsSeeded < 4) {
+                                $pacuIn = now()->copy()->subMinutes(90 + $pacuHoldsSeeded * 20);
+                                $pacuOut = null; // still boarding in PACU
+                                $pacuHoldsSeeded++;
+                            } else {
+                                $pacuIn = $orOutTime->copy()->addMinutes($this->seededRand($seed + 8, 5, 15));
+                                $pacuOut = $pacuIn->copy()->addMinutes($this->seededRand($seed + 9, 55, 95));
+                            }
+                        }
+
                         DB::table('prod.or_logs')->insertGetId([
                             'case_id' => $caseId,
                             'tracking_date' => $day->toDateString(),
@@ -1768,6 +1794,8 @@ class CommandCenterDemoSeeder extends Seeder
                             'procedure_start_time' => $procStart,
                             'procedure_end_time' => $procEnd,
                             'or_out_time' => $orOutTime,
+                            'pacu_in_time' => $pacuIn,
+                            'pacu_out_time' => $pacuOut,
                             'primary_procedure' => $procedure,
                             'created_by' => 'seeder',
                             'modified_by' => 'seeder',

@@ -93,7 +93,7 @@ const LocationView = ({ filters, data }) => {
           title="Highest Location" 
           value={`${metrics.highestLocation.name} (${formatPercentage(metrics.highestLocation.utilization)})`} 
           icon="arrow-up-right"
-          iconColor="text-purple-500"
+          iconColor="text-healthcare-info dark:text-healthcare-info-dark"
           isSubpanel={true}
         />
       </div>

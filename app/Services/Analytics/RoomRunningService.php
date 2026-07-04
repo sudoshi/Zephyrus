@@ -518,11 +518,14 @@ class RoomRunningService
                 'weekday' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
                 'metricToShow' => 'Max Staffing',
             ],
+            // P7: categorical series colors aligned to the healthcare token
+            // hexes (primary / warning / critical / teal) instead of raw web
+            // colors, so this chart stays inside the Two-System palette.
             'dataSeries' => [
-                'maxStaffing' => ['id' => 'Max Staffing', 'color' => '#4169E1', 'data' => $maxStaffing],
-                'idealStaffing' => ['id' => 'Ideal Staffing', 'color' => '#FFA500', 'data' => $idealStaffing],
-                'avgTotalOccupied' => ['id' => 'Avg_TotalOccupied', 'color' => '#FF4500', 'data' => $avgOccupied],
-                'maxOccupied' => ['id' => 'Max Occupied', 'color' => '#20B2AA', 'data' => $maxOccupied],
+                'maxStaffing' => ['id' => 'Max Staffing', 'color' => '#2563EB', 'data' => $maxStaffing],
+                'idealStaffing' => ['id' => 'Ideal Staffing', 'color' => '#D97706', 'data' => $idealStaffing],
+                'avgTotalOccupied' => ['id' => 'Avg_TotalOccupied', 'color' => '#DC2626', 'data' => $avgOccupied],
+                'maxOccupied' => ['id' => 'Max Occupied', 'color' => '#0D9488', 'data' => $maxOccupied],
             ],
             'statistics' => [
                 'timeOfDay' => '18:30',

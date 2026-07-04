@@ -100,7 +100,7 @@ const ServiceView = ({ filters, data }) => {
           trend="-0.7%" 
           trendDirection="down"
           icon="clock"
-          iconColor="text-purple-500"
+          iconColor="text-healthcare-info dark:text-healthcare-info-dark"
           isSubpanel={true}
         />
       </div>
