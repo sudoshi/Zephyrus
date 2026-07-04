@@ -636,6 +636,63 @@ OutcomeAttribution chain — neither is in P5's acceptance list; both are
 follow-ups (hub drills fit P8's single-screen work; the attribution surface is
 a small standalone slice). P5 acceptance otherwise met in full.
 
+**P6 execution notes (2026-07-04).** Eddy loop + alerting fan-out in five
+sequential commits (1f900c2 WS-1 AlertEngine, f126769 WS-3+6 fan-out +
+tier↔state, 22e507f WS-4 Eddy pre-seed, 9c57e6a WS-5 silo reconciliation,
+a9fbd47 WS-7 Reverb ping). No migrations (hold_count shipped in P1) and no
+seeder changes. Deviations / findings:
+1. **AlertEngine state machine:** the pre-open accumulator is a row with
+   `status='pending'` (cleared_at NULL, hold_count counting up) — the schema's
+   NOT-NULL opened_at is re-stamped at the true open. Sub-K flaps DELETE the
+   pending row so history (cleared rows) only ever contains alerts that truly
+   fired. Warn↔crit moves update the open row in place (escalation is
+   immediate, no open/clear strobe). A `Cache::add` burst guard
+   (COCKPIT_ALERT_RECONCILE_INTERVAL, 30s) stops job+serve-path rebuild bursts
+   from collapsing the K-consecutive window. Defaults: open after 2, clear
+   after 3 (clears damp harder). `refresh()` serves the DAMPED set;
+   `build()` keeps raw candidates (tests/preview unchanged).
+2. **Fan-out:** fires on the open TRANSITION only. Policy in AlertFanout:
+   crit always, warn only via kpi metadata.page_on_warn. Lanes both inert by
+   default — PushAlertChannel (EDDY_PUSH_ENABLED, doorbell-not-letter, active
+   admins only until a subscription policy exists) + TeamsAlertChannel
+   (TEAMS_ALERT_WEBHOOK_URL). Adding a lane = adding an AlertChannel binding
+   in AppServiceProvider, engine untouched.
+3. **One tier↔state mapping:** `EddyApprovalNotifier::statusForRisk` (PHP) ↔
+   `riskStatus.ts` (TS): critical→crit ◆, high→warn ▲, medium→watch ●,
+   low→ok; unknown→watch (never escalate on uncertainty). EddyApprovalCard
+   dropped its private TIER_TONE for the shared mapping.
+4. **Pre-seed loop:** damped alerts carry server-resolved `action` +
+   `actionLabel` (`EddyActionService::actionForAlert`, static; CATALOG gained
+   the `alert_key` provenance field). Ticker entries become buttons only when
+   the page wires `onAlertEngage` (gated on eddy.enabled);
+   `eddyStore.openWithPrefill(draft, alertKey)` pre-fills the composer — the
+   operator still SENDS (advice-not-autopilot preserved); approve posts
+   `alert_key` → `Recommendation.evidence.alert_key`. Acceptance case pinned:
+   crit `ed.*` → propose_surge_plan.
+5. **Silo reconciliation:** ExecutiveBriefPanel is executive-role-only and
+   composes ON DEMAND (never on the 45s poll); ActionInboxModal decides
+   through the existing POST /api/ops/approvals/{id}/decision FSM; both /ops
+   pages remain as deep-links. CommandBar gained the Inbox affordance (amber
+   count only when pending > 0).
+6. **Real-time:** CockpitSnapshotUpdated on PUBLIC `hospital.cockpit`
+   ({facility_key, generated_at} reload-ping only, channels.php doctrine
+   extended); dispatched guarded from refresh(). `useLiveCockpit()` lives in
+   features/cockpit/live.ts — NOT hooks.ts — because importing lib/echo
+   constructs the socket at import time (it broke DrillModal's test suite
+   when co-located; keep socket imports out of pure query-hook modules). Prod
+   already ran BROADCAST_CONNECTION=reverb + QUEUE_CONNECTION=sync → inline
+   broadcast, zero broadcast_failed after deploy; dev stays on the log driver
+   (45s poll fallback).
+7. **Prod verify:** scheduler cron (installed 2026-07-04) had already opened
+   the NEDOCS alert organically before manual verification — engine live
+   end-to-end; prod shows 1 open alert vs dev's 6 (aged prod demo data, same
+   P5 condition; `zephyrus:demo-seed` refresh would light the rest).
+P6 acceptance met: derivation-only alerts, oscillation test green, ticker
+amber/coral only, crit ED alert pre-seeds propose_surge_plan, proposals land
+pending → human approves via existing FSM, EDDY_ENABLED=false still
+suppresses the dock, reverb confirmed in prod env, Pint + canon (≤76) +
+builds green.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
