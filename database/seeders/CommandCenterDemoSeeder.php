@@ -107,6 +107,14 @@ class CommandCenterDemoSeeder extends Seeder
         $this->seedStaffingPlans($nonEdUnits);
 
         // ----------------------------------------------------------------
+        // 4b-ii. Workforce actuals (P7) — the time-and-attendance day fact.
+        //        Today feeds the live staffing tiles (OT% / agency / callouts
+        //        / sitters / productivity); the trailing 30 days feed the MTD
+        //        cost-center productivity MV (WS-5).
+        // ----------------------------------------------------------------
+        $this->seedWorkforceActuals($nonEdUnits);
+
+        // ----------------------------------------------------------------
         // 4c. EVS backlog — several pending/in-progress turns with a couple
         //     overdue so the "EVS turnaround is behind" demo signal is real.
         // ----------------------------------------------------------------
@@ -688,6 +696,97 @@ class CommandCenterDemoSeeder extends Seeder
                 $this->insertStaffingRequest($unit, 'rn', $today, $rnGap, $isIcu ? 'stat' : 'urgent', $rnStatus);
             }
         }
+    }
+
+    /**
+     * P7 (Staffing + Financial) — the prod.workforce_actuals day fact.
+     *
+     * Per-unit worked hours are constant so the aggregate OT% and productivity%
+     * are exact regardless of unit count; count metrics (callouts/sitters/
+     * agency RNs) and today's premium/agency dollars are distributed to hit the
+     * intended demo totals (callouts 9 → warn, OT 5.2% → warn, premium $182k,
+     * contract $96k). Today runs at 96% productivity (pressured); the trailing
+     * 30 days sit at 97% so the MTD financial productivity reads ~97.
+     */
+    private function seedWorkforceActuals($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.workforce_actuals') || $nonEdUnits->isEmpty()) {
+            return;
+        }
+
+        $units = $nonEdUnits->values();
+        $count = $units->count();
+
+        $windowStart = now()->subDays(31)->toDateString();
+        DB::table('prod.workforce_actuals')->where('work_date', '>=', $windowStart)->delete();
+
+        // Today's exact totals for the count + dollar tiles.
+        $calloutsToday = $this->distributeInt(9, $count);
+        $sittersToday = $this->distributeInt(7, $count);
+        $agencyToday = $this->distributeInt(14, $count);
+        $premiumToday = $this->distributeInt(182_000, $count);
+        $agencyCostToday = $this->distributeInt(96_000, $count);
+
+        $workedPerUnit = 240.0;
+        $rate = 68.0; // blended $/hr → labor_cost
+        $rows = [];
+
+        foreach (range(0, 30) as $daysAgo) {
+            $date = now()->subDays($daysAgo)->toDateString();
+            $isToday = $daysAgo === 0;
+            $prodPct = $isToday ? 0.96 : 0.97;
+
+            foreach ($units as $i => $unit) {
+                $rows[] = [
+                    'actual_uuid' => (string) Str::uuid(),
+                    'unit_id' => $unit->unit_id,
+                    'cost_center' => $unit->abbreviation,
+                    'cost_center_label' => $unit->name ?? $unit->abbreviation,
+                    'work_date' => $date,
+                    'worked_hours' => $workedPerUnit,
+                    'overtime_hours' => round($workedPerUnit * 0.052, 2),
+                    'agency_hours' => $isToday ? ($agencyToday[$i] * 12.0) : (($i % 3 === 0) ? 12.0 : 0.0),
+                    'agency_rn_headcount' => $isToday ? $agencyToday[$i] : (($i % 3 === 0) ? 1 : 0),
+                    'callouts' => $isToday ? $calloutsToday[$i] : ((($i + $daysAgo) % 4 === 0) ? 1 : 0),
+                    'sitters' => $isToday ? $sittersToday[$i] : ((($i + $daysAgo) % 5 === 0) ? 1 : 0),
+                    'census_days' => round($workedPerUnit / 1.04, 2),
+                    'target_hours' => round($workedPerUnit * $prodPct, 2),
+                    'labor_cost' => round($workedPerUnit * $rate, 2),
+                    'premium_cost' => $isToday ? (float) $premiumToday[$i] : round(140_000 / max(1, $count), 2),
+                    'agency_cost' => $isToday ? (float) $agencyCostToday[$i] : round(80_000 / max(1, $count), 2),
+                    'is_deleted' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        foreach (array_chunk($rows, 200) as $chunk) {
+            DB::table('prod.workforce_actuals')->insert($chunk);
+        }
+    }
+
+    /**
+     * Split $total into $buckets non-negative integers summing exactly to
+     * $total (remainder spread across the leading buckets). Deterministic.
+     *
+     * @return list<int>
+     */
+    private function distributeInt(int $total, int $buckets): array
+    {
+        if ($buckets <= 0) {
+            return [];
+        }
+
+        $base = intdiv($total, $buckets);
+        $remainder = $total % $buckets;
+
+        $out = [];
+        for ($i = 0; $i < $buckets; $i++) {
+            $out[] = $base + ($i < $remainder ? 1 : 0);
+        }
+
+        return $out;
     }
 
     /**

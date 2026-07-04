@@ -69,12 +69,6 @@ return [
         'ed.nedocs' => 142.0,          // severe band (141–180) — the marquee crit
         'ed.los_admit' => 302.0,       // minutes; just past the 300 warn edge
 
-        'staffing.overtime' => 5.2,    // % — warn (target ≤4)
-        'staffing.agency' => 14.0,     // active agency/contract RNs
-        'staffing.callouts' => 9.0,    // warn
-        'staffing.sitters' => 7.0,
-        'staffing.productivity' => 96.0,
-
         'quality.sepsis_3hr' => 87.0,  // warn (<90)
         'quality.sepsis_6hr' => 92.0,
         'quality.hand_hygiene' => 91.0, // ok (rationed green — explicitly on target)
