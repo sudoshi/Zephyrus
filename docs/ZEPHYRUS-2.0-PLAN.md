@@ -416,6 +416,23 @@ step 11 of CommandCenterDemoSeeder) seeds all 71 Appendix-A keys; edges match le
 warn 11/crit 13, D2P warn 20/crit 30). Still open in P1: DrillBuilder + Cell grammar over
 CommandCenterDrilldownService, `/cockpit/stream` SSE fallback.
 
+**P1 CLOSED (2026-07-04, third slice + prod deploy).** `DrillBuilder` +
+`GET /api/cockpit/drill/{domain}` shipped for all 9 registry domains: KPI tiles from the
+CACHED snapshot (single-snapshot discipline), detail tables from the live domain boards
+(RTDC unit board / ED track board + acuity / OR room board / staffing coverage /
+transport measures + EVS queue; mocked domains get a demo-tagged measure ledger), Cell
+grammar in CANON tokens. One deliberate deviation: DrillBuilder v1 does NOT call
+`CommandCenterDrilldownService` (that would re-run the whole dashboard build per drill);
+each payload carries `drilldownHref` so P3's modal wires the deep timeline/opportunity
+detail through the existing endpoint instead. `GET /api/cockpit/stream` (SSE) emits
+PHI-free reload pings on snapshot advance, bounded cycles, EventSource reconnects.
+**Prod state:** deployed 2026-07-04 (user-approved); both migrations applied via
+`--path`, catalog seeded (108 definitions), snapshot row live (NEDOCS 142 crit alert,
+68 history rows), endpoint auth-gated. **Prod has NO Laravel scheduler** (pre-existing —
+flow:snapshot/ReconcileRtdcPredictions were never firing either); installing the
+www-data `schedule:run` cron was permission-blocked and is the ONE remaining P1
+operational step. P1 acceptance otherwise met.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
