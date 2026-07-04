@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cockpit\CockpitSnapshot;
 use App\Models\Ops\MetricDefinition;
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
@@ -30,26 +29,20 @@ class CockpitController extends Controller
     {
         $facilityKey = $this->manifest->facilityCode();
 
-        $snapshot = CockpitSnapshot::query()->find($facilityKey);
+        // current() resolves cache → fresh row → inline refresh, covering both
+        // the cold start (fresh deploy) and a dead scheduler (P2: staleness is
+        // bounded at SERVE_MAX_AGE_SECONDS even with no cron installed).
+        $payload = $this->builder->current($facilityKey);
 
-        // Cold start (fresh deploy, scheduler not yet fired): compute once
-        // synchronously so the first client never sees an empty cockpit.
-        if ($snapshot === null) {
-            $this->builder->refresh($facilityKey);
-            $snapshot = CockpitSnapshot::query()->find($facilityKey);
-        }
-
-        if ($snapshot === null) {
-            return response()->json(['message' => 'Snapshot unavailable'], 503);
-        }
-
-        $etag = '"'.sha1($facilityKey.'|'.$snapshot->generated_at->toIso8601String()).'"';
+        // asOf is constant per built payload, so it is the correct 304 pivot —
+        // the ETag changes exactly when the numbers can have changed.
+        $etag = '"'.sha1($facilityKey.'|'.(string) ($payload['asOf'] ?? '')).'"';
 
         if ($request->headers->get('If-None-Match') === $etag) {
             return response('', 304)->withHeaders(['ETag' => $etag]);
         }
 
-        return response()->json($snapshot->payload)
+        return response()->json($payload)
             ->withHeaders(['ETag' => $etag, 'Cache-Control' => 'private, no-cache']);
     }
 

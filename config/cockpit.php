@@ -15,6 +15,12 @@
 
 return [
 
+    // P2: /dashboard renders the cockpit overview grammar (CommandBar, census
+    // strip, alert ticker, 8-domain grid, OKR scorecard). Setting this false —
+    // or loading /dashboard?cockpit=0 — falls back to the pre-2.0 four-band
+    // layout, kept as the rollback path for one release (plan P2 chief risk).
+    'overview_enabled' => filter_var(env('COCKPIT_OVERVIEW_ENABLED', true), FILTER_VALIDATE_BOOL),
+
     // D5: mocked domains (Quality / Service Lines / Financial) are VISIBLE by
     // default with a metadata.provenance='demo' badge so the Summit demo wall
     // lights up. A real (non-demo) deployment sets this true to hide any

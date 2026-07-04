@@ -49,6 +49,15 @@ class SnapshotBuilder
     /** Slightly over the 60s refresh cadence so a slow job never leaves a gap. */
     public const CACHE_TTL_SECONDS = 90;
 
+    /**
+     * Serve-path staleness ceiling (P2): current() rebuilds inline when the
+     * persisted row is older than two refresh cadences. On a host without the
+     * scheduler cron this bounds /dashboard staleness at ~2 minutes instead of
+     * forever — one full build per 2 minutes max, cheaper than the pre-2.0
+     * build-per-request controller it replaces.
+     */
+    public const SERVE_MAX_AGE_SECONDS = 120;
+
     private const CENSUS_STRIP = [
         'rtdc.census', 'rtdc.available', 'rtdc.pending_admits', 'rtdc.pending_dc',
         'rtdc.boarders', 'rtdc.icu_occupancy', 'rtdc.blocked_beds', 'rtdc.occupancy',
@@ -99,6 +108,35 @@ class SnapshotBuilder
         }
 
         return $payload;
+    }
+
+    /**
+     * The serve path (P2): cache hit → fresh-enough persisted row → inline
+     * refresh. Every reader of "the current snapshot" (the /dashboard page,
+     * /api/cockpit/snapshot, and through them the drills and Eddy) resolves
+     * through here so they can never disagree.
+     *
+     * @return array<string, mixed>
+     */
+    public function current(?string $facilityKey = null): array
+    {
+        $facilityKey ??= $this->manifest->facilityCode();
+
+        $cached = Cache::get(self::CACHE_KEY);
+
+        if (is_array($cached) && ($cached['facilityKey'] ?? null) === $facilityKey) {
+            return $cached;
+        }
+
+        $row = CockpitSnapshot::query()->find($facilityKey);
+
+        if ($row !== null && $row->generated_at->gt(now()->subSeconds(self::SERVE_MAX_AGE_SECONDS))) {
+            Cache::put(self::CACHE_KEY, $row->payload, self::CACHE_TTL_SECONDS);
+
+            return $row->payload;
+        }
+
+        return $this->refresh($facilityKey);
     }
 
     /** @return array{payload: array<string, mixed>, context: SnapshotContext} */

@@ -4,7 +4,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\CommandCenterDataService;
+use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\CommandCenterDrilldownService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,19 +14,25 @@ use Inertia\Response as InertiaResponse;
 class CommandCenterController extends Controller
 {
     public function __construct(
-        private readonly CommandCenterDataService $dataService,
+        private readonly SnapshotBuilder $snapshots,
         private readonly CommandCenterDrilldownService $drilldownService,
     ) {}
 
     /**
      * Display the Hospital Operations Command Center (main dashboard).
+     *
+     * P2: the page serves the ONE cockpit snapshot — the legacy Zod contract
+     * plus the additive §3.2 sections — via SnapshotBuilder::current(), so the
+     * Inertia initial render, the TanStack refresh (/api/cockpit/snapshot),
+     * the drills, and Eddy all read the same cached payload.
      */
     public function index(Request $request): InertiaResponse
     {
         $request->session()->put('workflow', 'superuser');
 
         return Inertia::render('Dashboard/CommandCenter', [
-            'data' => $this->dataService->build(),
+            'data' => $this->snapshots->current(),
+            'cockpitEnabled' => (bool) config('cockpit.overview_enabled'),
         ]);
     }
 
