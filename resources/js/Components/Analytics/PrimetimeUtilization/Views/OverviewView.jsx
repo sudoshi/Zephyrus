@@ -4,7 +4,7 @@ import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 import PrimeTimeCapacityReview from '../PrimeTimeCapacityReview';
 
 const OverviewView = ({ filters, data = defaultPrimetime }) => {

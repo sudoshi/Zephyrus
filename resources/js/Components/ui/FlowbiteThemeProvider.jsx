@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Flowbite } from 'flowbite-react';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 
 // Create a light theme configuration
 const lightTheme = {

@@ -5,7 +5,7 @@ import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
 import { Icon } from '@iconify/react';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 
 const PrimeTimeCapacityReview = ({ site = 'MARH OR' }) => {
   const [selectedSite, setSelectedSite] = useState(site);

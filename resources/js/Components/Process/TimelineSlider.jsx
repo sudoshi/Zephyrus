@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 import { Icon } from '@iconify/react';
 import PropTypes from 'prop-types';
 // Import the shared chart theme utility

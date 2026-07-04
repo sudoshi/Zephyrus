@@ -8,7 +8,7 @@ export {
 } from './NivoThemeProvider';
 
 // Export dark mode context and hook from AuthenticatedLayout
-export { DarkModeContext, useDarkMode } from '@/Layouts/AuthenticatedLayout';
+export { DarkModeContext, useDarkMode } from '@/Contexts/DarkModeContext';
 
 // Export UI components
 export { default as MetricCard } from './MetricCard';

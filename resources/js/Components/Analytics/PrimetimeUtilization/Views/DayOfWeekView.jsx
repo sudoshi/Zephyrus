@@ -3,7 +3,7 @@ import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-d
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import { Icon } from '@iconify/react';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 import getChartTheme from '@/utils/chartTheme';
 
 // Create a custom heatmap component to avoid defaultProps warnings

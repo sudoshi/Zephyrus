@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import Panel from '@/Components/ui/Panel';
 import TabNavigation from '@/Components/ui/TabNavigation';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 import { getChartTheme } from '@/utils/chartTheme';
 import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 

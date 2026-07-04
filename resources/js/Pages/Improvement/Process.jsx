@@ -8,7 +8,7 @@ import { Section, Panel } from '@/Components/system';
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 import { AnalyticsProvider } from '@/Contexts/AnalyticsContext';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 import ProcessFilters from '@/Components/Process/ProcessFilters';
 import TimelineSlider from '@/Components/Process/TimelineSlider';
 import { workflows } from '@/Components/Process/ProcessSelector';

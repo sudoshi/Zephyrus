@@ -4,7 +4,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 
 const LocationComparisonView = ({ filters, data = defaultPrimetime }) => {
   // Extract filter values

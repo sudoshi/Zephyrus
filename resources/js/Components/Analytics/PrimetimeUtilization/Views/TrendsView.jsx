@@ -3,7 +3,7 @@ import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-d
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 
 const TrendsView = ({ filters, data = defaultPrimetime }) => {
   // Extract filter values

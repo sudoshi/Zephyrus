@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { ThemeProvider } from '@nivo/core';
-import { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import { useDarkMode } from '@/Contexts/DarkModeContext';
 
 // Define a theme that matches our healthcare light theme
 const nivoLightTheme = {
