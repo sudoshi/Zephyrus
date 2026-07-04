@@ -282,7 +282,7 @@
             "default_domain": "rtdc",
             "queue_filter": "escalations",
             "glance_question": "What is threatening the house right now?",
-            "web_deeplink": "/dashboard/rtdc",
+            "web_deeplink": "/dashboard?drill=rtdc",
             "ios_icon": "building.2.fill",
             "android_icon": "apartment"
         },
@@ -399,7 +399,7 @@
             "default_domain": "ops",
             "queue_filter": "escalations",
             "glance_question": "Which improvement work is tied to today's operational pain?",
-            "web_deeplink": "/improvement/pdsa-cycles",
+            "web_deeplink": "/improvement/pdsa",
             "ios_icon": "arrow.triangle.2.circlepath",
             "android_icon": "sync"
         },

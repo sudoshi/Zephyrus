@@ -21,6 +21,12 @@ return [
     // layout, kept as the rollback path for one release (plan P2 chief risk).
     'overview_enabled' => filter_var(env('COCKPIT_OVERVIEW_ENABLED', true), FILTER_VALIDATE_BOOL),
 
+    // P4a (D4): the five legacy /dashboard/* overviews are permanent redirects
+    // into the cockpit drill layer (?drill={domain}). This flag is the rollback
+    // lever only — setting it false re-registers the original overview pages
+    // without a code revert. Requires a route-cache rebuild to take effect.
+    'overview_redirects_enabled' => filter_var(env('COCKPIT_OVERVIEW_REDIRECTS', true), FILTER_VALIDATE_BOOL),
+
     // D5: mocked domains (Quality / Service Lines / Financial) are VISIBLE by
     // default with a metadata.provenance='demo' badge so the Summit demo wall
     // lights up. A real (non-demo) deployment sets this true to hide any

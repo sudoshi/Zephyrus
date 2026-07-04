@@ -29,7 +29,7 @@ class MobilePersonaCatalog
         'charge_nurse' => ['title' => 'Charge Nurse', 'home' => 'census', 'focus' => 'Placements, barriers, staffing', 'question' => 'Is my unit safe to receive and discharge?', 'web' => '/rtdc/bed-tracking'],
         'bedside_nurse' => ['title' => 'Bedside / Duty Nurse', 'home' => 'census', 'focus' => 'Patients needing operational action', 'question' => 'Which of my patients need operational action?', 'web' => '/rtdc/bed-tracking'],
         'bed_manager' => ['title' => 'Bed Manager / Flow', 'home' => 'houseCapacity', 'focus' => 'House capacity and placement', 'question' => 'Can the house absorb demand?', 'web' => '/rtdc/bed-placement'],
-        'house_supervisor' => ['title' => 'House Supervisor', 'home' => 'census', 'focus' => 'House status and escalations', 'question' => 'What is threatening the house right now?', 'web' => '/dashboard/rtdc'],
+        'house_supervisor' => ['title' => 'House Supervisor', 'home' => 'census', 'focus' => 'House status and escalations', 'question' => 'What is threatening the house right now?', 'web' => '/dashboard?drill=rtdc'],
         'hospitalist' => ['title' => 'Hospitalist', 'home' => 'census', 'focus' => 'Service discharges and barriers', 'question' => 'Which patients are blocking flow or need a discharge decision?', 'web' => '/rtdc/barriers'],
         'intensivist' => ['title' => 'Intensivist', 'home' => 'census', 'focus' => 'Critical-care capacity', 'question' => 'Which critical-care decisions affect capacity and safety?', 'web' => '/rtdc/bed-tracking'],
         'evs' => ['title' => 'EVS', 'home' => 'evsTurns', 'focus' => 'Bed turns unlocking care', 'question' => 'Which bed turn unlocks care next?', 'web' => '/rtdc/bed-tracking'],
@@ -38,7 +38,7 @@ class MobilePersonaCatalog
         'capacity_lead' => ['title' => 'Capacity Lead', 'home' => 'capacityDemand', 'focus' => 'Forecast, approvals, huddles', 'question' => 'What decisions will change the next four hours?', 'web' => '/ops/agent-inbox'],
         'periop_manager' => ['title' => 'Perioperative Manager', 'home' => 'orBoard', 'focus' => 'OR day drift', 'question' => 'Is the OR day drifting?', 'web' => '/analytics/or-utilization'],
         'staffing_coordinator' => ['title' => 'Staffing Coordinator', 'home' => 'staffing', 'focus' => 'Safe coverage gaps', 'question' => 'Where are we below safe coverage?', 'web' => '/staffing'],
-        'pi_lead' => ['title' => 'PI / Quality Lead', 'home' => 'improvement', 'focus' => 'PDSA and recurring barriers', 'question' => 'Which improvement work is tied to today\'s operational pain?', 'web' => '/improvement/pdsa-cycles'],
+        'pi_lead' => ['title' => 'PI / Quality Lead', 'home' => 'improvement', 'focus' => 'PDSA and recurring barriers', 'question' => 'Which improvement work is tied to today\'s operational pain?', 'web' => '/improvement/pdsa'],
         'executive' => ['title' => 'Executive', 'home' => 'houseBrief', 'focus' => 'House brief and material breaches', 'question' => 'Is the hospital OK?', 'web' => '/dashboard'],
     ];
 

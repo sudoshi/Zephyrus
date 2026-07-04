@@ -33,25 +33,32 @@ Route::get('/', function (Request $request) {
 // Authenticated routes
 Route::middleware(['auth'])
     ->group(function () {
-        // Home Route
-        Route::get('/home', function () {
-            return Inertia::render('Home/Home', [
-                'workflow' => 'home',
-            ]);
-        })->name('home');
-
         // RTDC Routes
         Route::prefix('rtdc')->group(function () {
             Route::get('/global-huddle', [RTDCController::class, 'globalHuddle'])->name('rtdc.global-huddle');
             Route::post('/update-red-stretch-plan', [RTDCController::class, 'updateRedStretchPlan'])->name('rtdc.update-red-stretch-plan');
         });
 
-        // Dashboard Routes
-        Route::get('/dashboard/rtdc', [RTDCDashboardController::class, 'index'])->name('dashboard.rtdc');
-        Route::get('/dashboard/perioperative', [DashboardController::class, 'index'])->name('dashboard.perioperative');
-        Route::get('/dashboard/emergency', [EDDashboardController::class, 'index'])->name('dashboard.emergency');
-        Route::get('/dashboard/improvement', [DashboardController::class, 'improvement'])->name('dashboard.improvement');
-        Route::get('/dashboard/transport', [TransportDashboardController::class, 'dashboard'])->name('dashboard.transport');
+        // Dashboard Routes — Zephyrus 2.0 P4a (D4, permanent): the five legacy
+        // overviews redirect into the cockpit drill layer so every old bookmark
+        // opens the matching DrillModal over /dashboard. Route names survive
+        // because /improvement/overview and setPreference() resolve them. The
+        // config flag is the rollback lever: COCKPIT_OVERVIEW_REDIRECTS=false
+        // re-serves the original overview pages without a code revert.
+        $legacyOverviews = [
+            'dashboard.rtdc' => ['/dashboard/rtdc', 'rtdc', [RTDCDashboardController::class, 'index']],
+            'dashboard.perioperative' => ['/dashboard/perioperative', 'periop', [DashboardController::class, 'index']],
+            'dashboard.emergency' => ['/dashboard/emergency', 'ed', [EDDashboardController::class, 'index']],
+            'dashboard.improvement' => ['/dashboard/improvement', 'quality', [DashboardController::class, 'improvement']],
+            'dashboard.transport' => ['/dashboard/transport', 'flow', [TransportDashboardController::class, 'dashboard']],
+        ];
+        foreach ($legacyOverviews as $name => [$uri, $drillDomain, $legacyAction]) {
+            if (config('cockpit.overview_redirects_enabled')) {
+                Route::get($uri, fn () => redirect("/dashboard?drill={$drillDomain}"))->name($name);
+            } else {
+                Route::get($uri, $legacyAction)->name($name);
+            }
+        }
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
 
         // Improvement Routes
