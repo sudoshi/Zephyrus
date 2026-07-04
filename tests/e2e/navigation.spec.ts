@@ -22,28 +22,30 @@ test.describe('Sidebar Navigation', () => {
     await expect(sidebar).toBeVisible();
   });
 
-  test('navigates to perioperative dashboard', async ({ page }) => {
+  // P4a (D4): the legacy overview bookmarks are permanent redirects into the
+  // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
+  test('legacy perioperative overview redirects into the periop drill', async ({ page }) => {
     await page.goto('/dashboard/perioperative');
 
-    await expect(page).toHaveURL(/\/dashboard\/perioperative/);
+    await expect(page).toHaveURL(/\/dashboard\?drill=periop/);
   });
 
-  test('navigates to RTDC dashboard', async ({ page }) => {
+  test('legacy RTDC overview redirects into the rtdc drill', async ({ page }) => {
     await page.goto('/dashboard/rtdc');
 
-    await expect(page).toHaveURL(/\/dashboard\/rtdc/);
+    await expect(page).toHaveURL(/\/dashboard\?drill=rtdc/);
   });
 
-  test('navigates to emergency dashboard', async ({ page }) => {
+  test('legacy emergency overview redirects into the ed drill', async ({ page }) => {
     await page.goto('/dashboard/emergency');
 
-    await expect(page).toHaveURL(/\/dashboard\/emergency/);
+    await expect(page).toHaveURL(/\/dashboard\?drill=ed/);
   });
 
-  test('navigates to improvement dashboard', async ({ page }) => {
+  test('legacy improvement overview redirects into the quality drill', async ({ page }) => {
     await page.goto('/dashboard/improvement');
 
-    await expect(page).toHaveURL(/\/dashboard\/improvement/);
+    await expect(page).toHaveURL(/\/dashboard\?drill=quality/);
   });
 });
 

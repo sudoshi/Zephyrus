@@ -21,14 +21,39 @@ function mockPage(overrides: Record<string, unknown>) {
 describe('TopNavbar', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders the Zephyrus dashboard brand link and the six non-admin domain triggers', () => {
+  it('renders the brand link, the Cockpit home link, and the non-admin domain triggers', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
     expect(screen.getByRole('link', { name: /^Zephyrus$/ })).toHaveAttribute('href', '/dashboard');
-    expect(screen.queryByRole('link', { name: /^Dashboard$/ })).not.toBeInTheDocument();
-    for (const label of ['RTDC', 'Transport', 'Perioperative', 'Emergency', 'Improvement', 'Analytics']) {
-      expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument();
+    // COCKPIT is a plain link (the one home), not a dropdown trigger.
+    expect(screen.getByRole('link', { name: /Cockpit/ })).toHaveAttribute('href', '/dashboard');
+    for (const label of [
+      'RTDC',
+      'Emergency',
+      'Perioperative',
+      'Transport',
+      'Staffing',
+      'Patient Flow',
+      'Analytics',
+      'Improvement',
+    ]) {
+      expect(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') })).toBeInTheDocument();
     }
+  });
+
+  it('renders the four altitude sections as labelled groups (P4a)', () => {
+    mockPage({ is_admin: true });
+    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    for (const section of ['Cockpit', 'Workspaces', 'Study', 'Admin']) {
+      expect(screen.getByRole('group', { name: section })).toBeInTheDocument();
+    }
+  });
+
+  it('renders the RoleSwitcher as persistent chrome (P4a)', () => {
+    mockPage({ is_admin: false });
+    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    expect(screen.getByRole('tablist', { name: /view/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Executive/ })).toBeInTheDocument();
   });
 
   it('hides the Admin trigger for non-admins', () => {

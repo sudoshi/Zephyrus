@@ -143,20 +143,20 @@ describe('CommandPalette', () => {
       expect(items.length).toBeGreaterThan(0);
     });
 
-    it('includes Dashboard in navigation items', () => {
+    it('includes the Cockpit home in navigation items', () => {
       useUIStore.setState({ commandPaletteOpen: true });
 
       render(React.createElement(CommandPalette));
 
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Cockpit')).toBeInTheDocument();
     });
 
-    it('includes RTDC in navigation items', () => {
+    it('groups RTDC pages under the domain heading', () => {
       useUIStore.setState({ commandPaletteOpen: true });
 
       render(React.createElement(CommandPalette));
 
-      expect(screen.getByText('RTDC')).toBeInTheDocument();
+      expect(screen.getByTestId('command-group-RTDC Operations')).toBeInTheDocument();
     });
 
     it('includes config-driven sub-pages like Bed Tracking', () => {

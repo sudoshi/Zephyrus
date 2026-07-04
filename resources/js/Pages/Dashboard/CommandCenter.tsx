@@ -27,7 +27,6 @@ import {
 import { COCKPIT_REFRESH_MS, useCockpitSnapshot } from '@/features/cockpit/hooks';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
-import { RoleSwitcher } from '@/Components/CommandCenter/RoleSwitcher';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { useCommandCenterStore } from '@/stores/commandCenterStore';
@@ -128,10 +127,12 @@ export default function CommandCenter({
   return (
     <DashboardLayout>
       <Head title="Operations Command Center · Zephyrus" />
+      {/* P4a: the RoleSwitcher moved to persistent app chrome (TopNavbar) —
+          it is no longer page-local header content. */}
       <PageContentLayout
         title="Hospital Operations Command Center"
         subtitle="House-wide demand, capacity, flow & forecast"
-        headerContent={<RoleSwitcher />}
+        headerContent={null}
       >
         {cockpitActive ? (
           <ErrorBoundary

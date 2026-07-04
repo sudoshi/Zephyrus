@@ -44,7 +44,7 @@ const flow = [
     definition: 'Internal unit-to-unit moves awaiting a destination bed.' }),
   metric({ key: 'ed-boarding', label: 'ED boarding', value: 9, status: 'critical', goodWhenDown: true,
     trajectory: [3, 5, 6, 8, 9, 9], target: 2,
-    definition: 'Admitted patients held in the ED for >2h waiting on an inpatient bed.', drillHref: '/dashboard/emergency' }),
+    definition: 'Admitted patients held in the ED for >2h waiting on an inpatient bed.', drillHref: '/dashboard?drill=ed' }),
   metric({ key: 'net-position', label: 'Net bed position · 4h', value: 5, status: 'success',
     display: '+5', trajectory: [-2, 0, 1, 3, 4, 5],
     definition: 'Projected discharges minus admissions over the next 4 hours.', drillHref: '/rtdc/predictions/demand' }),

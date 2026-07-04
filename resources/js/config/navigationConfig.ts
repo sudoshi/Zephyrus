@@ -1,3 +1,12 @@
+// resources/js/config/navigationConfig.ts
+//
+// The navigation SSOT (navbar + command palette). Zephyrus 2.0 P4a shapes it
+// around the Altitude model: COCKPIT (the one home, /dashboard, no submenu),
+// WORKSPACES (the "now" surfaces — each domain's header link points at its
+// primary live workspace, never a retired /dashboard/* overview), STUDY (the
+// retrospective altitude — Analytics + Improvement, merged fully in P5), and
+// ADMIN. Legacy /dashboard/* overview URLs live on as server-side redirects
+// into the cockpit drill layer (routes/web.php) but are never linked here.
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -66,263 +75,310 @@ export interface NavDomain {
   readonly adminOnly?: boolean;
 }
 
-export const TOP_LEVEL_DASHBOARD = { label: 'Dashboard', href: '/dashboard' } as const;
+/** One of the four altitude sections the top bar renders. */
+export interface NavSection {
+  readonly key: string;
+  readonly title: string;
+  /** COCKPIT only: a plain home link with no dropdown domains. */
+  readonly homeHref?: string;
+  readonly domains: readonly NavDomain[];
+}
 
-export const NAVIGATION: readonly NavDomain[] = [
+export const TOP_LEVEL_DASHBOARD = { label: 'Cockpit', href: '/dashboard' } as const;
+
+const RTDC: NavDomain = {
+  key: 'rtdc',
+  label: 'RTDC',
+  icon: BedDouble,
+  dashboardHref: '/rtdc/bed-tracking',
+  dashboardLabel: 'Bed Tracking Board',
+  matchPrefixes: ['/rtdc'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Bed Tracking', href: '/rtdc/bed-tracking', icon: Activity },
+        { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
+        { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
+        { label: 'Ancillary Services', href: '/rtdc/ancillary-services', icon: Boxes },
+        { label: 'Global Huddle', href: '/rtdc/global-huddle', icon: Users },
+        { label: 'Unit Huddle', href: '/rtdc/unit-huddle', icon: Users },
+        { label: 'Service Huddle', href: '/rtdc/service-huddle', icon: Users },
+      ],
+    },
+    {
+      title: 'Analytics',
+      items: [
+        { label: 'Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
+        { label: 'Performance', href: '/rtdc/analytics/performance', icon: LineChart },
+        { label: 'Resources', href: '/rtdc/analytics/resources', icon: Boxes },
+        { label: 'Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
+      ],
+    },
+    {
+      title: 'Predictions',
+      items: [
+        { label: 'Demand', href: '/rtdc/predictions/demand', icon: PieChart },
+        { label: 'Resources', href: '/rtdc/predictions/resources', icon: Boxes },
+        { label: 'Discharge', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
+        { label: 'Risk Assessment', href: '/rtdc/predictions/risk', icon: AlertCircle },
+      ],
+    },
+  ],
+};
+
+const EMERGENCY: NavDomain = {
+  key: 'emergency',
+  label: 'Emergency',
+  icon: Siren,
+  dashboardHref: '/ed/operations/triage',
+  dashboardLabel: 'ED Triage Board',
+  matchPrefixes: ['/ed'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Triage', href: '/ed/operations/triage', icon: ListChecks },
+        { label: 'Treatment', href: '/ed/operations/treatment', icon: HeartPulse },
+        { label: 'Resources', href: '/ed/operations/resources', icon: Boxes },
+      ],
+    },
+    {
+      title: 'Analytics',
+      items: [
+        { label: 'Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
+        { label: 'Patient Flow', href: '/ed/analytics/flow', icon: Workflow },
+        { label: 'Resources', href: '/ed/analytics/resources', icon: Boxes },
+      ],
+    },
+    {
+      title: 'Predictions',
+      items: [
+        { label: 'Arrival', href: '/ed/predictions/arrival', icon: Ambulance },
+        { label: 'Acuity', href: '/ed/predictions/acuity', icon: Activity },
+        { label: 'Resources', href: '/ed/predictions/resources', icon: Boxes },
+      ],
+    },
+  ],
+};
+
+const PERIOPERATIVE: NavDomain = {
+  key: 'perioperative',
+  label: 'Perioperative',
+  icon: Stethoscope,
+  dashboardHref: '/operations/room-status',
+  dashboardLabel: 'OR Room Status',
+  matchPrefixes: ['/operations', '/predictions'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Room Status', href: '/operations/room-status', icon: DoorOpen },
+        { label: 'Block Schedule', href: '/operations/block-schedule', icon: CalendarClock },
+        { label: 'Case Management', href: '/operations/cases', icon: ClipboardList },
+      ],
+    },
+    {
+      title: 'Analytics',
+      items: [
+        { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
+        { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
+        { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
+        { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
+        { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
+      ],
+    },
+    {
+      title: 'Predictions',
+      items: [
+        { label: 'Utilization Forecast', href: '/predictions/forecast', icon: LineChart },
+        { label: 'Demand Analysis', href: '/predictions/demand', icon: PieChart },
+        { label: 'Resource Planning', href: '/predictions/resources', icon: Boxes },
+      ],
+    },
+  ],
+};
+
+const TRANSPORT: NavDomain = {
+  key: 'transport',
+  label: 'Transport',
+  icon: Truck,
+  dashboardHref: '/transport/dispatch',
+  dashboardLabel: 'Dispatch Board',
+  matchPrefixes: ['/transport'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Requests', href: '/transport/requests', icon: ClipboardList },
+        { label: 'Dispatch', href: '/transport/dispatch', icon: Route },
+        { label: 'Inpatient', href: '/transport/inpatient', icon: BedDouble },
+        { label: 'Transfers', href: '/transport/transfers', icon: Building2 },
+        { label: 'Discharge', href: '/transport/discharge', icon: Send },
+        { label: 'EMS', href: '/transport/ems', icon: Ambulance },
+        { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
+      ],
+    },
+    {
+      title: 'Control',
+      items: [
+        { label: 'Resources', href: '/transport/resources', icon: MapPinned },
+        { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
+        { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
+      ],
+    },
+  ],
+};
+
+const STAFFING: NavDomain = {
+  key: 'staffing',
+  label: 'Staffing',
+  icon: UserCog,
+  dashboardHref: '/staffing',
+  dashboardLabel: 'Staffing Office',
+  matchPrefixes: ['/staffing'],
+  // The workspace IS the single page — the panel is just its header link.
+  groups: [],
+};
+
+// The house-wide flow workspace (cockpit domain 'flow'): the pages that answer
+// "is the house moving?" — cross-listed from RTDC/Transport, deduped in the
+// palette by flattenNavigation.
+const PATIENT_FLOW: NavDomain = {
+  key: 'flow',
+  label: 'Patient Flow',
+  icon: Workflow,
+  dashboardHref: '/rtdc/patient-flow-navigator',
+  dashboardLabel: 'Patient Flow 4D',
+  matchPrefixes: ['/rtdc/patient-flow-navigator', '/transport/care-transitions'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
+        { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
+        { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
+      ],
+    },
+  ],
+};
+
+const ANALYTICS: NavDomain = {
+  key: 'analytics',
+  label: 'Analytics',
+  icon: BarChart3,
+  dashboardHref: '/analytics',
+  dashboardLabel: 'Operations Intelligence',
+  matchPrefixes: ['/analytics', '/ops'],
+  groups: [
+    {
+      title: 'Control',
+      items: [
+        { label: 'Intelligence Hub', href: '/analytics', icon: BarChart3 },
+        { label: 'Live Signals', href: '/analytics/live', icon: Activity },
+        { label: 'Data Quality', href: '/analytics/data-quality', icon: Shield },
+      ],
+    },
+    {
+      title: 'Operations Console',
+      items: [
+        { label: 'Agent Inbox', href: '/ops/agent-inbox', icon: Bot },
+        { label: 'Executive Brief', href: '/ops/executive-brief', icon: FileText },
+      ],
+    },
+    {
+      title: 'Patterns',
+      items: [
+        { label: 'Retrospective Review', href: '/analytics/retrospective', icon: TrendingUp },
+        { label: 'Process Intelligence', href: '/analytics/process-intelligence', icon: Workflow },
+      ],
+    },
+    {
+      title: 'Forecast',
+      items: [
+        { label: 'Predictive Planning', href: '/analytics/predictive', icon: LineChart },
+        { label: 'Scenario Workbench', href: '/analytics/workbench', icon: Search },
+      ],
+    },
+    {
+      title: 'Improve',
+      items: [
+        { label: 'Opportunity Portfolio', href: '/analytics/opportunities', icon: AlertCircle },
+      ],
+    },
+    {
+      title: 'Surgical Deep Dives',
+      items: [
+        { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
+        { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
+        { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
+        { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
+        { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
+      ],
+    },
+  ],
+};
+
+const IMPROVEMENT: NavDomain = {
+  key: 'improvement',
+  label: 'Improvement',
+  icon: TrendingUp,
+  dashboardHref: '/improvement/active',
+  dashboardLabel: 'Active Cycles',
+  matchPrefixes: ['/improvement'],
+  groups: [
+    {
+      title: 'Diagnose',
+      items: [
+        { label: 'Bottlenecks', href: '/improvement/bottlenecks', icon: AlertCircle },
+        { label: 'Process Analysis', href: '/improvement/process', icon: GitBranch },
+        { label: 'Root Cause', href: '/improvement/root-cause', icon: Search },
+      ],
+    },
+    {
+      title: 'Improve',
+      items: [
+        { label: 'Active Cycles', href: '/improvement/active', icon: RefreshCcw },
+        { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: Repeat },
+        { label: 'Library', href: '/improvement/library', icon: BookOpen },
+      ],
+    },
+  ],
+};
+
+const ADMIN: NavDomain = {
+  key: 'admin',
+  label: 'Admin',
+  icon: Shield,
+  adminOnly: true,
+  matchPrefixes: ['/users', '/admin'],
+  groups: [
+    {
+      title: '',
+      items: [
+        { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
+        // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
+        // is a JSON API endpoint with no Inertia page, so a nav link would break
+        // navigation. Re-add once a real OIDC admin Inertia page exists.
+      ],
+    },
+  ],
+};
+
+/** The four altitude sections (P4a). Order is the top-bar render order. */
+export const NAV_SECTIONS: readonly NavSection[] = [
+  { key: 'cockpit', title: 'Cockpit', homeHref: TOP_LEVEL_DASHBOARD.href, domains: [] },
   {
-    key: 'rtdc',
-    label: 'RTDC',
-    icon: BedDouble,
-    dashboardHref: '/dashboard/rtdc',
-    dashboardLabel: 'RTDC Dashboard',
-    matchPrefixes: ['/rtdc', '/dashboard/rtdc'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Bed Tracking', href: '/rtdc/bed-tracking', icon: Activity },
-          { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
-          { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
-          { label: 'Ancillary Services', href: '/rtdc/ancillary-services', icon: Boxes },
-          { label: 'Global Huddle', href: '/rtdc/global-huddle', icon: Users },
-          { label: 'Unit Huddle', href: '/rtdc/unit-huddle', icon: Users },
-          { label: 'Service Huddle', href: '/rtdc/service-huddle', icon: Users },
-        ],
-      },
-      {
-        title: 'Analytics',
-        items: [
-          { label: 'Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
-          { label: 'Performance', href: '/rtdc/analytics/performance', icon: LineChart },
-          { label: 'Resources', href: '/rtdc/analytics/resources', icon: Boxes },
-          { label: 'Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
-        ],
-      },
-      {
-        title: 'Predictions',
-        items: [
-          { label: 'Demand', href: '/rtdc/predictions/demand', icon: PieChart },
-          { label: 'Resources', href: '/rtdc/predictions/resources', icon: Boxes },
-          { label: 'Discharge', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
-          { label: 'Risk Assessment', href: '/rtdc/predictions/risk', icon: AlertCircle },
-        ],
-      },
-    ],
+    key: 'workspaces',
+    title: 'Workspaces',
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, TRANSPORT, STAFFING, PATIENT_FLOW],
   },
-  {
-    key: 'transport',
-    label: 'Transport',
-    icon: Truck,
-    dashboardHref: '/dashboard/transport',
-    dashboardLabel: 'Transport Command Center',
-    matchPrefixes: ['/transport', '/dashboard/transport'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Requests', href: '/transport/requests', icon: ClipboardList },
-          { label: 'Dispatch', href: '/transport/dispatch', icon: Route },
-          { label: 'Inpatient', href: '/transport/inpatient', icon: BedDouble },
-          { label: 'Transfers', href: '/transport/transfers', icon: Building2 },
-          { label: 'Discharge', href: '/transport/discharge', icon: Send },
-          { label: 'EMS', href: '/transport/ems', icon: Ambulance },
-          { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
-        ],
-      },
-      {
-        title: 'Control',
-        items: [
-          { label: 'Resources', href: '/transport/resources', icon: MapPinned },
-          { label: 'Analytics', href: '/transport/analytics', icon: BarChart3 },
-          { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'staffing',
-    label: 'Staffing',
-    icon: UserCog,
-    matchPrefixes: ['/staffing'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Staffing Office', href: '/staffing', icon: UserCog },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'perioperative',
-    label: 'Perioperative',
-    icon: Stethoscope,
-    dashboardHref: '/dashboard/perioperative',
-    dashboardLabel: 'Perioperative Dashboard',
-    matchPrefixes: ['/operations', '/predictions', '/dashboard/perioperative'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Room Status', href: '/operations/room-status', icon: DoorOpen },
-          { label: 'Block Schedule', href: '/operations/block-schedule', icon: CalendarClock },
-          { label: 'Case Management', href: '/operations/cases', icon: ClipboardList },
-        ],
-      },
-      {
-        title: 'Analytics',
-        items: [
-          { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
-          { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
-          { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
-          { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
-          { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
-        ],
-      },
-      {
-        title: 'Predictions',
-        items: [
-          { label: 'Utilization Forecast', href: '/predictions/forecast', icon: LineChart },
-          { label: 'Demand Analysis', href: '/predictions/demand', icon: PieChart },
-          { label: 'Resource Planning', href: '/predictions/resources', icon: Boxes },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'emergency',
-    label: 'Emergency',
-    icon: Siren,
-    dashboardHref: '/dashboard/emergency',
-    dashboardLabel: 'Emergency Dashboard',
-    matchPrefixes: ['/ed', '/dashboard/emergency'],
-    groups: [
-      {
-        title: 'Operations',
-        items: [
-          { label: 'Triage', href: '/ed/operations/triage', icon: ListChecks },
-          { label: 'Treatment', href: '/ed/operations/treatment', icon: HeartPulse },
-          { label: 'Resources', href: '/ed/operations/resources', icon: Boxes },
-        ],
-      },
-      {
-        title: 'Analytics',
-        items: [
-          { label: 'Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
-          { label: 'Patient Flow', href: '/ed/analytics/flow', icon: Workflow },
-          { label: 'Resources', href: '/ed/analytics/resources', icon: Boxes },
-        ],
-      },
-      {
-        title: 'Predictions',
-        items: [
-          { label: 'Arrival', href: '/ed/predictions/arrival', icon: Ambulance },
-          { label: 'Acuity', href: '/ed/predictions/acuity', icon: Activity },
-          { label: 'Resources', href: '/ed/predictions/resources', icon: Boxes },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'improvement',
-    label: 'Improvement',
-    icon: TrendingUp,
-    dashboardHref: '/dashboard/improvement',
-    dashboardLabel: 'Improvement Dashboard',
-    matchPrefixes: ['/improvement', '/dashboard/improvement'],
-    groups: [
-      {
-        title: 'Diagnose',
-        items: [
-          { label: 'Bottlenecks', href: '/improvement/bottlenecks', icon: AlertCircle },
-          { label: 'Process Analysis', href: '/improvement/process', icon: GitBranch },
-          { label: 'Root Cause', href: '/improvement/root-cause', icon: Search },
-        ],
-      },
-      {
-        title: 'Improve',
-        items: [
-          { label: 'Active Cycles', href: '/improvement/active', icon: RefreshCcw },
-          { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: Repeat },
-          { label: 'Library', href: '/improvement/library', icon: BookOpen },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'analytics',
-    label: 'Analytics',
-    icon: BarChart3,
-    dashboardHref: '/analytics',
-    dashboardLabel: 'Operations Intelligence',
-    matchPrefixes: ['/analytics', '/ops'],
-    groups: [
-      {
-        title: 'Control',
-        items: [
-          { label: 'Intelligence Hub', href: '/analytics', icon: BarChart3 },
-          { label: 'Live Signals', href: '/analytics/live', icon: Activity },
-          { label: 'Data Quality', href: '/analytics/data-quality', icon: Shield },
-        ],
-      },
-      {
-        title: 'Operations Console',
-        items: [
-          { label: 'Agent Inbox', href: '/ops/agent-inbox', icon: Bot },
-          { label: 'Executive Brief', href: '/ops/executive-brief', icon: FileText },
-        ],
-      },
-      {
-        title: 'Patterns',
-        items: [
-          { label: 'Retrospective Review', href: '/analytics/retrospective', icon: TrendingUp },
-          { label: 'Process Intelligence', href: '/analytics/process-intelligence', icon: Workflow },
-        ],
-      },
-      {
-        title: 'Forecast',
-        items: [
-          { label: 'Predictive Planning', href: '/analytics/predictive', icon: LineChart },
-          { label: 'Scenario Workbench', href: '/analytics/workbench', icon: Search },
-        ],
-      },
-      {
-        title: 'Improve',
-        items: [
-          { label: 'Opportunity Portfolio', href: '/analytics/opportunities', icon: AlertCircle },
-        ],
-      },
-      {
-        title: 'Surgical Deep Dives',
-        items: [
-          { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
-          { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
-          { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
-          { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
-          { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'admin',
-    label: 'Admin',
-    icon: Shield,
-    adminOnly: true,
-    matchPrefixes: ['/users', '/admin'],
-    groups: [
-      {
-        title: '',
-        items: [
-          { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
-          // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
-          // is a JSON API endpoint with no Inertia page, so a nav link would break
-          // navigation. Re-add once a real OIDC admin Inertia page exists.
-        ],
-      },
-    ],
-  },
+  { key: 'study', title: 'Study', domains: [ANALYTICS, IMPROVEMENT] },
+  { key: 'admin', title: 'Admin', domains: [ADMIN] },
 ];
+
+/** Flat domain list, section order preserved (palette + active-state checks). */
+export const NAVIGATION: readonly NavDomain[] = NAV_SECTIONS.flatMap((s) => s.domains);
 
 export function isDomainActive(domain: NavDomain, url: string): boolean {
   const path = (url || '').split('?')[0].split('#')[0];
@@ -333,6 +389,15 @@ export function visibleDomains(isAdmin: boolean): readonly NavDomain[] {
   return NAVIGATION.filter((d) => !d.adminOnly || isAdmin);
 }
 
+/** Sections with admin-gated domains filtered; empty domain sections drop
+ *  (the COCKPIT section survives on its homeHref). */
+export function visibleSections(isAdmin: boolean): readonly NavSection[] {
+  return NAV_SECTIONS.map((section) => ({
+    ...section,
+    domains: section.domains.filter((d) => !d.adminOnly || isAdmin),
+  })).filter((section) => section.homeHref !== undefined || section.domains.length > 0);
+}
+
 export interface FlatNavEntry {
   readonly label: string;
   readonly href: string;
@@ -340,8 +405,10 @@ export interface FlatNavEntry {
 }
 
 /** Flatten the config for the command palette, respecting admin gating.
- *  Deduplicates by href (first occurrence wins) because some pages (the
- *  /analytics/* set) are intentionally surfaced under more than one domain.
+ *  Deduplicates by href (first occurrence wins) because pages are intentionally
+ *  cross-listed (the /analytics/* set, the Patient Flow workspace). Group items
+ *  are pushed before each domain's header link so the descriptive page labels
+ *  win the dedup — a repointed dashboardHref never eats its page's entry.
  */
 export function flattenNavigation(isAdmin: boolean): readonly FlatNavEntry[] {
   const seen = new Set<string>();
@@ -356,15 +423,15 @@ export function flattenNavigation(isAdmin: boolean): readonly FlatNavEntry[] {
   push({ label: TOP_LEVEL_DASHBOARD.label, href: TOP_LEVEL_DASHBOARD.href, group: 'Navigation' });
 
   for (const domain of visibleDomains(isAdmin)) {
-    if (domain.dashboardHref) {
-      push({ label: domain.label, href: domain.dashboardHref, group: 'Navigation' });
-    }
     for (const group of domain.groups) {
       const groupLabel = group.title ? `${domain.label} ${group.title}` : domain.label;
       for (const item of group.items) {
         if (item.adminOnly && !isAdmin) continue;
         push({ label: item.label, href: item.href, group: groupLabel });
       }
+    }
+    if (domain.dashboardHref) {
+      push({ label: domain.label, href: domain.dashboardHref, group: 'Navigation' });
     }
   }
 

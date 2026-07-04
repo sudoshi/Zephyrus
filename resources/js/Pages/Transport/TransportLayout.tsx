@@ -4,7 +4,8 @@ import { Head, Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
 const tabs = [
-  { label: 'Command', href: '/dashboard/transport' },
+  // P4a: the transport overview is a cockpit drill now — link it hop-free.
+  { label: 'Command', href: '/dashboard?drill=flow' },
   { label: 'Requests', href: '/transport/requests' },
   { label: 'Dispatch', href: '/transport/dispatch' },
   { label: 'Inpatient', href: '/transport/inpatient' },

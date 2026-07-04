@@ -10,7 +10,11 @@ const admin = NAVIGATION.find((d) => d.key === 'admin')!;
 describe('MegaMenuPanel', () => {
   it('renders the dashboard header link and every group title', () => {
     render(<MegaMenuPanel domain={rtdc} isAdmin={false} />);
-    expect(screen.getByText('RTDC Dashboard')).toBeInTheDocument();
+    // P4a: the header link is the primary live workspace, not a dead overview.
+    expect(screen.getByText('Bed Tracking Board').closest('a')).toHaveAttribute(
+      'href',
+      '/rtdc/bed-tracking',
+    );
     expect(screen.getByText('Operations')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getByText('Predictions')).toBeInTheDocument();
