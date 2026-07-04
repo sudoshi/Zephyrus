@@ -12,6 +12,8 @@ export {
   type StatusStyle,
   type StatusGlyph,
 } from './statusStyle';
+// P6 — the one tier↔state severity mapping (Eddy risk → cockpit state).
+export { RISK_TO_STATUS, statusForRisk } from './riskStatus';
 export { Sparkline, type SparklineProps } from './Sparkline';
 export { MeterBar, type MeterBarProps } from './MeterBar';
 export { RadialGauge, type RadialGaugeProps, type RadialGaugeBand } from './RadialGauge';

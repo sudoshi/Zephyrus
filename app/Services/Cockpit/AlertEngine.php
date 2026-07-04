@@ -34,6 +34,8 @@ class AlertEngine
     /** Cache::add guard so burst rebuilds (job + serve-path) can't double-count holds. */
     public const RECONCILE_LOCK_KEY = 'cockpit.alerts.reconcile_lock';
 
+    public function __construct(private readonly AlertFanout $fanout) {}
+
     /**
      * Reconcile this snapshot's candidates and return the damped OPEN set for
      * the payload ticker: crit-first, newest-open first.
@@ -87,6 +89,9 @@ class AlertEngine
                         'opened_at' => now(),
                         'hold_count' => 0,
                     ]);
+                    // Fan-out fires on the open TRANSITION only — held and
+                    // cleared snapshots never page (WS-3 Earned-Urgency).
+                    $this->fanout->alertOpened($row);
                 } else {
                     $row->update(['hold_count' => $row->hold_count + 1, 'text' => $candidate['text']]);
                 }
@@ -117,14 +122,14 @@ class AlertEngine
             }
 
             if ($openHolds <= 1) {
-                CockpitAlert::create([
+                $this->fanout->alertOpened(CockpitAlert::create([
                     'facility_key' => $facilityKey,
                     'key' => $key,
                     'status' => $candidate['status'],
                     'text' => $candidate['text'],
                     'opened_at' => now(),
                     'hold_count' => 0,
-                ]);
+                ]));
 
                 continue;
             }

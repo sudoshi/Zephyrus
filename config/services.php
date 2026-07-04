@@ -28,6 +28,11 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    // P6 cockpit alert fan-out — Teams lane. Empty = channel inert.
+    'teams' => [
+        'alert_webhook_url' => env('TEAMS_ALERT_WEBHOOK_URL', ''),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

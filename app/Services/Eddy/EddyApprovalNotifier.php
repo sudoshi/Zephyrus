@@ -3,6 +3,7 @@
 namespace App\Services\Eddy;
 
 use App\Contracts\PushNotifier;
+use App\Enums\CockpitStatus;
 use App\Models\Ops\Approval;
 use App\Models\User;
 
@@ -64,6 +65,7 @@ class EddyApprovalNotifier
                 'action_type' => $actionType,
                 'surface' => $surface,
                 'tier' => $this->tierForRisk($risk),
+                'status' => $this->statusForRisk($risk)->value,
                 'deep_link' => (string) config('eddy.push.deep_link'),
             ],
         );
@@ -78,6 +80,24 @@ class EddyApprovalNotifier
         $map = (array) config('eddy.push.tier_by_risk', []);
 
         return (string) ($map[$risk] ?? 'tier_3');
+    }
+
+    /**
+     * The ONE tier↔state mapping (P6 workstream 6): catalog risk → cockpit
+     * status, so EddyApprovalCard and the AlertTicker encode identical
+     * severity with identical shape+color. Mirrored by RISK_TO_STATUS in
+     * Components/cockpit/riskStatus.ts — keep the two in lockstep.
+     * Unknown risk → WATCH (never escalate on uncertainty).
+     */
+    public function statusForRisk(string $risk): CockpitStatus
+    {
+        return match ($risk) {
+            'critical' => CockpitStatus::CRIT,
+            'high' => CockpitStatus::WARN,
+            'medium' => CockpitStatus::WATCH,
+            'low' => CockpitStatus::OK,
+            default => CockpitStatus::WATCH,
+        };
     }
 
     /** Generic, PHI-free body copy keyed to the tier. */

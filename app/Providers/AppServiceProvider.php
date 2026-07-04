@@ -48,6 +48,14 @@ class AppServiceProvider extends ServiceProvider
 
             return $registry;
         });
+
+        // P6: the alert fan-out lanes. Both are inert by default (push gated
+        // by EDDY_PUSH_ENABLED, Teams by TEAMS_ALERT_WEBHOOK_URL) — adding a
+        // lane means adding an AlertChannel here, not touching the engine.
+        $this->app->singleton(\App\Services\Cockpit\AlertFanout::class, fn ($app) => new \App\Services\Cockpit\AlertFanout([
+            $app->make(\App\Services\Cockpit\Channels\PushAlertChannel::class),
+            $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
+        ]));
     }
 
     /**

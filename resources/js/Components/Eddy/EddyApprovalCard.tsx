@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import { proposeEddyAction } from '@/features/eddy/api';
+import { cockpitStatusStyle } from '@/Components/cockpit/statusStyle';
+import { statusForRisk } from '@/Components/cockpit/riskStatus';
 import { useEddyStore, type EddyChatMessage } from '@/stores/eddyStore';
 
 interface EddyApprovalCardProps {
   message: EddyChatMessage;
   surface?: string;
 }
-
-const TIER_TONE: Record<string, string> = {
-  T1: 'border-healthcare-info/40 text-healthcare-info dark:text-healthcare-info-dark',
-  T2: 'border-healthcare-warning/40 text-healthcare-warning dark:text-healthcare-warning-dark',
-  T3: 'border-healthcare-critical/40 text-healthcare-critical dark:text-healthcare-critical-dark',
-};
 
 /**
  * The literal "advice, not autopilot" surface. Eddy proposed a DRAFT action; a
@@ -47,13 +43,18 @@ export function EddyApprovalCard({ message, surface }: EddyApprovalCardProps) {
     }
   };
 
-  const tone = TIER_TONE[action.tier] ?? TIER_TONE.T2;
+  // WS-6: severity encodes through the SAME shape+color vocabulary as the
+  // AlertTicker (riskStatus → cockpitStatusStyle) — one mapping, two surfaces.
+  const severity = cockpitStatusStyle(statusForRisk(action.risk));
 
   return (
     <div className="mt-2 rounded-lg border border-healthcare-border bg-healthcare-surface p-3 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
       <div className="flex items-center justify-between gap-2">
-        <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs ${tone}`}>
-          <span aria-hidden="true">◆</span>
+        <span
+          className="inline-flex items-center gap-1 rounded border border-healthcare-border px-1.5 py-0.5 text-xs dark:border-healthcare-border-dark"
+          style={{ color: severity.color }}
+        >
+          <span role="img" aria-label={severity.label}>{severity.glyph}</span>
           {action.tier} · {action.risk}
         </span>
         <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Proposed action</span>
