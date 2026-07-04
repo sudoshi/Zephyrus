@@ -5,6 +5,7 @@
 namespace App\Services;
 
 use App\Services\Analytics\MetricLineageService;
+use App\Services\Cockpit\StatusEngine;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -411,8 +412,17 @@ class CommandCenterDataService
     }
 
     // -----------------------------------------------------------------------
-    // Centralised status-banding helper — single source of truth for thresholds
+    // Status banding — delegates to the ONE StatusEngine (Zephyrus 2.0 P0).
+    // The legacy 3-state contract is preserved byte-for-byte via ->canon();
+    // OperationsAnalyticsService's duplicate copy converges in P5.
     // -----------------------------------------------------------------------
+
+    private ?StatusEngine $statusEngine = null;
+
+    private function statusEngine(): StatusEngine
+    {
+        return $this->statusEngine ??= new StatusEngine;
+    }
 
     /**
      * Occupancy-style banding: high values are bad.
@@ -420,14 +430,7 @@ class CommandCenterDataService
      */
     private function bandHighBad(float|int $value, float|int $critThreshold, float|int $warnThreshold): string
     {
-        if ($value >= $critThreshold) {
-            return 'critical';
-        }
-        if ($value >= $warnThreshold) {
-            return 'warning';
-        }
-
-        return 'success';
+        return $this->statusEngine()->highBad($value, $critThreshold, $warnThreshold)->canon();
     }
 
     /**
@@ -436,14 +439,7 @@ class CommandCenterDataService
      */
     private function bandLowBad(float|int $value, float|int $goodThreshold, float|int $warnThreshold): string
     {
-        if ($value >= $goodThreshold) {
-            return 'success';
-        }
-        if ($value >= $warnThreshold) {
-            return 'warning';
-        }
-
-        return 'critical';
+        return $this->statusEngine()->lowBad($value, $goodThreshold, $warnThreshold)->canon();
     }
 
     /**
@@ -451,14 +447,7 @@ class CommandCenterDataService
      */
     private function bandProgress(int $pct): string
     {
-        if ($pct >= 80) {
-            return 'success';
-        }
-        if ($pct >= 40) {
-            return 'warning';
-        }
-
-        return 'critical';
+        return $this->statusEngine()->progress($pct)->canon();
     }
 
     // -----------------------------------------------------------------------
