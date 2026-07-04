@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { utilizationRanges } from '../../../mock-data/block-utilization';
+import { utilizationRanges } from './utilizationRanges';
 import { ProviderMetricsPropType } from './types';
 
 const ProviderDetails = ({ providerData }) => {

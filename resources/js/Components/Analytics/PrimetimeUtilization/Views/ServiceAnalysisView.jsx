@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-data/primetime-utilization';
 import Panel from '../../../ui/Panel';
 
-const ServiceAnalysisView = ({ filters, data = defaultPrimetime }) => {
+const ServiceAnalysisView = ({ filters, data }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   // Live payload (prop) with the bundled mock as the default fallback.

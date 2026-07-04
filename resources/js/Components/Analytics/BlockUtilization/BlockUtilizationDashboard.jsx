@@ -14,10 +14,9 @@ import BlockView from './Views/BlockView';
 import DetailsView from './Views/DetailsView';
 import NonPrimeView from './Views/NonPrimeView';
 
-// Import mock data
-import { mockBlockUtilization } from '@/mock-data/block-utilization';
-
-const BlockUtilizationDashboard = ({ activeView: initialActiveView, data = mockBlockUtilization }) => {
+// P5: the bundled mock fallback is gone — this dashboard renders live
+// controller data only, with an honest empty state when the period is bare.
+const BlockUtilizationDashboard = ({ activeView: initialActiveView, data }) => {
   const { url } = usePage();
   
   // Use the provided activeView prop if available, otherwise use the URL parameter
@@ -52,6 +51,15 @@ const BlockUtilizationDashboard = ({ activeView: initialActiveView, data = mockB
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
+
+  // Honest empty state — never fabricate utilization numbers.
+  if (!data || !data.sites || Object.keys(data.sites).length === 0) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No block utilization data is available for this period.
+      </div>
+    );
+  }
 
   // Get the appropriate view component based on activeView
   const getViewComponent = () => {

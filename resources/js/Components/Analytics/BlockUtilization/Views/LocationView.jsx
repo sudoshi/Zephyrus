@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
-import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { MetricCard, Panel } from '@/Components/ui';
 
-const LocationView = ({ filters, data = mockBlockUtilization }) => {
+const LocationView = ({ filters, data }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   

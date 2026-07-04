@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
-import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { ResponsiveLine } from '@nivo/line';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
 
-const TrendView = ({ filters, data = mockBlockUtilization }) => {
+const TrendView = ({ filters, data }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   

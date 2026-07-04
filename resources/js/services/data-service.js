@@ -3,7 +3,6 @@ import { mockPerformanceMetrics } from '@/mock-data/analytics';
 import { mockBlockSchedule } from '@/mock-data/block-schedule';
 import { mockCases } from '@/mock-data/cases';
 import { mockRoomStatus } from '@/mock-data/room-status';
-import { mockProviderAnalytics } from '@/mock-data/provider-analytics';
 import { mockBlockTemplates, mockBlockUtilization, mockServices } from '@/mock-data/block-templates';
 import { useMode } from '@/Contexts/ModeContext';
 
@@ -41,16 +40,6 @@ class DataService {
             return Promise.resolve(mockRoomStatus);
         }
         const response = await axios.get('/api/room-status');
-        return response.data;
-    }
-
-    async getProviderPerformance(startDate, endDate) {
-        if (this.mode === 'dev') {
-            return Promise.resolve(mockProviderAnalytics);
-        }
-        const response = await axios.get('/api/provider-performance', {
-            params: { startDate, endDate }
-        });
         return response.data;
     }
 
@@ -98,8 +87,6 @@ class DataService {
             getBlockSchedule: () => dataService.getBlockSchedule(),
             getCases: () => dataService.getCases(),
             getRoomStatus: () => dataService.getRoomStatus(),
-            getProviderPerformance: (startDate, endDate) =>
-                dataService.getProviderPerformance(startDate, endDate),
             getCapacityAnalysis: () => dataService.getCapacityAnalysis(),
             getBlockTemplates: () => dataService.getBlockTemplates(),
             getBlockUtilization: (date) => dataService.getBlockUtilization(date),

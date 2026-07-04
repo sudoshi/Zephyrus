@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { mockTurnoverTimes as mockTurnoverTimesFallback } from '@/mock-data/turnover-times';
 // NOTE: Explicit .js extension is required here for CI/CD build compatibility
 // This is an exception to our standard import pattern (no extensions)
 import { useAnalyticsData } from '@/Hooks/useAnalyticsData.js';
@@ -14,9 +13,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import ErrorBoundary from '@/Components/ErrorBoundary';
 
 export default function TurnoverTimesDashboard({ activeView = 'overview', data = null }) {
-  // Live data from the controller (Inertia prop); fall back to the bundled mock
-  // when absent (empty DB / standalone render) so the surface always renders.
-  const mockTurnoverTimes = (data && Object.keys(data).length > 0) ? data : mockTurnoverTimesFallback;
+  // P5: live payload only (TurnoverService via the controller) — the bundled
+  // mock fallback is gone; an empty period gets an honest empty state.
+  const mockTurnoverTimes = data;
   // State for filters
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -29,6 +28,15 @@ export default function TurnoverTimesDashboard({ activeView = 'overview', data =
     compStartDate: new Date(new Date().setDate(new Date().getDate() - 60)),
     compEndDate: new Date(new Date().setDate(new Date().getDate() - 30))
   });
+
+  // Honest empty state — never fabricate turnover numbers.
+  if (!mockTurnoverTimes || !mockTurnoverTimes.sites || Object.keys(mockTurnoverTimes.sites).length === 0) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No turnover data is available for this period.
+      </div>
+    );
+  }
 
   // Format locations data for HierarchicalFilters
   const formatLocationsData = () => {

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-data/primetime-utilization';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '../../../ui/Panel';
 import { Icon } from '@iconify/react';
@@ -133,7 +132,7 @@ const CustomHeatMap = ({
   );
 };
 
-const DayOfWeekView = ({ filters, data = defaultPrimetime }) => {
+const DayOfWeekView = ({ filters, data }) => {
   // Live payload (prop) with the bundled mock as the default fallback.
   const mockPrimetimeUtilization = data;
   // State for modal

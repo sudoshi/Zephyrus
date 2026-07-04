@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockRoomRunning as defaultRoomRunning } from '@/mock-data/room-running';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import { useDarkMode } from '@/Contexts/DarkModeContext';
 import getChartTheme from '@/utils/chartTheme';
 
-const OverviewView = ({ filters, data = defaultRoomRunning }) => {
+const OverviewView = ({ filters, data }) => {
   const mockRoomRunning = data;
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;

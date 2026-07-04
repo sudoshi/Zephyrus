@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { mockBlockUtilization } from '@/mock-data/block-utilization';
 import { Icon } from '@iconify/react';
 import Panel from '@/Components/ui/Panel';
 
-const DetailsView = ({ filters, data = mockBlockUtilization }) => {
+const DetailsView = ({ filters, data }) => {
   // Extract filter values from the new filter structure
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   

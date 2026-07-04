@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { mockPrimetimeUtilization } from '../../../mock-data/primetime-utilization';
 import HierarchicalFilters from '../HierarchicalFilters';
 import { motion } from 'framer-motion';
 
@@ -13,9 +12,9 @@ import ProviderAnalysisView from './Views/ProviderAnalysisView';
 import ServiceAnalysisView from './Views/ServiceAnalysisView';
 
 const PrimetimeUtilizationDashboard = ({ activeView = 'overview', primetime }) => {
-  // Live payload from the controller (App\Services\Analytics\PrimetimeUtilizationService);
-  // falls back to the bundled mock when the prop is absent (e.g. storybook / empty DB).
-  const data = primetime || mockPrimetimeUtilization;
+  // P5: live payload only (App\Services\Analytics\PrimetimeUtilizationService) —
+  // the bundled mock fallback is gone; an empty period gets an honest empty state.
+  const data = primetime;
   // State for filters
   const [filters, setFilters] = useState({
     selectedHospital: '',
@@ -31,6 +30,15 @@ const PrimetimeUtilizationDashboard = ({ activeView = 'overview', primetime }) =
       [filterType]: value
     }));
   };
+
+  // Honest empty state — never fabricate utilization numbers.
+  if (!data || !data.sites || Object.keys(data.sites).length === 0) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No prime-time utilization data is available for this period.
+      </div>
+    );
+  }
 
   // Get available hospitals, locations, and specialties from mock data
   const hospitals = ['MARH', 'MASH', 'MACH'];

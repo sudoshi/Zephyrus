@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { mockRoomRunning as defaultRoomRunning } from '@/mock-data/room-running';
 import HierarchicalFilters from '@/Components/Analytics/shared/HierarchicalFilters';
 import { motion } from 'framer-motion';
 import ErrorBoundary from '@/Components/ErrorBoundary';
@@ -16,9 +15,9 @@ import ServiceAnalysisView from './Views/ServiceAnalysisView';
  * Room Running Dashboard Component
  * Displays comprehensive room running metrics and visualizations
  */
-const RoomRunningDashboard = ({ activeView = 'overview', roomRunning = defaultRoomRunning }) => {
-  // Live payload from the controller (Analytics/RoomRunningService); falls back
-  // to the static mock when the prop is absent so existing usage keeps working.
+const RoomRunningDashboard = ({ activeView = 'overview', roomRunning }) => {
+  // P5: live payload only (Analytics/RoomRunningService) — the bundled mock
+  // fallback is gone; an empty period gets an honest empty state.
   const mockRoomRunning = roomRunning;
 
   // State for filters
@@ -42,6 +41,15 @@ const RoomRunningDashboard = ({ activeView = 'overview', roomRunning = defaultRo
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
+
+  // Honest empty state — never fabricate room-running numbers.
+  if (!mockRoomRunning || !mockRoomRunning.sites || Object.keys(mockRoomRunning.sites).length === 0) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No room running data is available for this period.
+      </div>
+    );
+  }
 
   // Format locations data for HierarchicalFilters
   const formatLocationsData = () => {

@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockTurnoverTimes as mockTurnoverTimesFallback } from '@/mock-data/turnover-times';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
@@ -9,7 +8,7 @@ const LocationComparisonView = ({ filters, data = null }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   const [isDarkMode] = useDarkMode();
-  const mockTurnoverTimes = (data && Object.keys(data).length > 0) ? data : mockTurnoverTimesFallback;
+  const mockTurnoverTimes = data;
   
   // Format location comparison data
   const locationComparisonData = useMemo(() => {

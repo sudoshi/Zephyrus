@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { mockRoomRunning as defaultRoomRunning } from '@/mock-data/room-running';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 
-const LocationComparisonView = ({ filters, data = defaultRoomRunning }) => {
+const LocationComparisonView = ({ filters, data }) => {
   const mockRoomRunning = data;
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;

@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
-import { mockPrimetimeUtilization as defaultPrimetime } from '../../../../mock-data/primetime-utilization';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '../../../ui/Panel';
 import getChartTheme from '@/utils/chartTheme';
 import { useDarkMode } from '@/Contexts/DarkModeContext';
 
-const TrendsView = ({ filters, data = defaultPrimetime }) => {
+const TrendsView = ({ filters, data }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   // Live payload (prop) with the bundled mock as the default fallback.
