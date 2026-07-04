@@ -6,6 +6,7 @@ use App\Domain\Cockpit\SnapshotContext;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
 use App\Services\Cockpit\StatusEngine;
+use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
@@ -24,6 +25,7 @@ class FlowMetrics extends BaseMetrics
         StatusEngine $engine,
         private readonly TransportOperationsService $transport,
         private readonly EvsOperationsService $evs,
+        private readonly DashboardService $dashboard,
     ) {
         parent::__construct($engine);
     }
@@ -42,6 +44,8 @@ class FlowMetrics extends BaseMetrics
             fn (): int => (int) ($this->evs->overview()['metrics']['dirty_bed_turnovers'] ?? 0)
         );
 
+        $bottlenecks = $this->bottleneckStats();
+
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
             $this->demo($ctx, 'flow.discharge_lounge', ['sub' => 'of 10 lounge chairs']),
@@ -49,7 +53,42 @@ class FlowMetrics extends BaseMetrics
             $transportWait === null ? null : $this->fromKey($ctx, 'flow.transport_wait', $transportWait),
             $this->fromKey($ctx, 'flow.bed_turnaround', $this->bedTurnaround()),
             $dirtyBeds === null ? null : $this->fromKey($ctx, 'flow.dirty_beds', (float) $dirtyBeds),
+            // P5: the PI crown jewel at A0 — the 5 live bottleneck signals
+            // (long-stay, OR turnover, blocked beds, at-risk transports,
+            // ED boarding) from prod.*, ranked by impact.
+            $bottlenecks === null ? null : $this->fromKey(
+                $ctx,
+                'flow.bottlenecks_active',
+                (float) $bottlenecks['active'],
+                ['sub' => "{$bottlenecks['patientImpact']} patients affected"],
+            ),
+            $bottlenecks === null ? null : $this->fromKey(
+                $ctx,
+                'flow.bottleneck_patients',
+                (float) $bottlenecks['patientImpact'],
+            ),
         ]);
+    }
+
+    /**
+     * The live bottleneck roll-up (DashboardService::getBottleneckStats —
+     * the Process-Improvement pipeline's only genuinely-live signal set).
+     *
+     * @return array{active:int,patientImpact:int}|null
+     */
+    private function bottleneckStats(): ?array
+    {
+        try {
+            $stats = $this->dashboard->getBottleneckStats()['stats'] ?? null;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! is_array($stats) || ! isset($stats['active'], $stats['patientImpact'])) {
+            return null;
+        }
+
+        return ['active' => (int) $stats['active'], 'patientImpact' => (int) $stats['patientImpact']];
     }
 
     /**

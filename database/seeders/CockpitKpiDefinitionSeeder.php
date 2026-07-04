@@ -122,6 +122,11 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'flow.bed_turnaround' => $this->kpi('Bed turnaround', 'Average EVS dirty-to-ready turnaround.', 'min', 'down', 45, 45, 60, 300,
                 'EVS turnaround {display} — beds returning slowly'),
             'flow.dirty_beds' => $this->kpi('Dirty beds', 'Beds awaiting or in EVS cleaning.', 'beds', 'down', null, 12, 20, 300),
+            // P5: the PI crown jewel promoted to A0 — live bottleneck signals
+            // from DashboardService::getBottleneckStats() (prod.* only).
+            'flow.bottlenecks_active' => $this->kpi('Active bottlenecks', 'Live flow constraint signals ranked by impact: long-stay, OR turnover, blocked beds, at-risk transports, ED boarding.', '', 'down', null, 3, 5, 300,
+                'Flow bottlenecks — {display} active constraint signals'),
+            'flow.bottleneck_patients' => $this->kpi('Bottleneck patients', 'Patients affected by the active bottleneck signals.', 'pts', 'down', null, 25, 50, 300),
 
             // ---------------- Quality & safety (spec §2.7) — refresh 1800s --
             'quality.sepsis_3hr' => $this->kpi('Sepsis 3-hr bundle', 'SEP-1 3-hour bundle compliance.', '%', 'up', 90, 90, 80, 1800, null, null, 90),
