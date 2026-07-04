@@ -193,6 +193,16 @@ class CommandCenterDemoSeeder extends Seeder
         //     refresh the catalog without the demo data).
         // ----------------------------------------------------------------
         $this->call(CockpitKpiDefinitionSeeder::class);
+
+        // ----------------------------------------------------------------
+        // 12. Quality / Service-Line / Financial MTD facts (P7 WS-5) — the
+        //     quality_events ledger and the discharge_facts DRG/cost ledger
+        //     that back the three MTD materialized views, then refresh the
+        //     views so the Quality/Service/Financial tiles light up live.
+        // ----------------------------------------------------------------
+        $this->seedQualityEvents($nonEdUnits);
+        $this->seedDischargeFacts($nonEdUnits);
+        $this->refreshCockpitMaterializedViews();
     }
 
     // ====================================================================
@@ -763,6 +773,135 @@ class CommandCenterDemoSeeder extends Seeder
 
         foreach (array_chunk($rows, 200) as $chunk) {
             DB::table('prod.workforce_actuals')->insert($chunk);
+        }
+    }
+
+    /**
+     * P7 (WS-5) — the quality_events ledger behind ops.mv_hai_ledger. Tuned so
+     * the MTD view reproduces the retired demo values: sepsis 87/92%, hand
+     * hygiene 91%, med rec 96%, falls 2.7/1000 pt-days, and the HAI/event
+     * counts (cdiff 2, clabsi/ssi/hapi 1, rapid-response 4, the rest 0).
+     */
+    private function seedQualityEvents($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.quality_events')) {
+            return;
+        }
+
+        DB::table('prod.quality_events')->where('metadata->source', 'demo-seeder')->delete();
+
+        $rows = [];
+        $add = function (string $type, int $num, int $den, int $pd) use (&$rows): void {
+            $rows[] = [
+                'event_uuid' => (string) Str::uuid(),
+                'event_type' => $type,
+                'unit_id' => null,
+                'occurred_at' => now()->subMinutes(count($rows)),
+                'numerator' => $num,
+                'denominator' => $den,
+                'patient_days' => $pd,
+                'metadata' => json_encode(['source' => 'demo-seeder']),
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        };
+
+        // Bundle/compliance % metrics: N eligible observations, PCT compliant.
+        foreach (['sepsis_3hr' => 87, 'sepsis_6hr' => 92, 'hand_hygiene' => 91, 'med_rec' => 96] as $type => $pct) {
+            for ($i = 0; $i < 100; $i++) {
+                $add($type, $i < $pct ? 1 : 0, 1, 0);
+            }
+        }
+
+        // Count metrics (SUM numerator MTD). Always emit at least one row —
+        // a num=0 sentinel — so a zero-count metric (e.g. CAUTI/MRSA/VAP with
+        // no infections this month) still surfaces as a "0" tile: zero HAI is
+        // the goal, not the absence of a signal.
+        foreach (['clabsi' => 1, 'cauti' => 0, 'cdiff' => 2, 'ssi' => 1, 'mrsa' => 0, 'vap' => 0, 'hapi' => 1, 'rapid_response' => 4] as $type => $count) {
+            for ($i = 0; $i < max(1, $count); $i++) {
+                $add($type, $i < $count ? 1 : 0, 0, 0);
+            }
+        }
+
+        // Falls: 27 events over a 10,000 patient-day exposure → 2.7 / 1000.
+        for ($i = 0; $i < 27; $i++) {
+            $add('fall', 1, 0, 0);
+        }
+        $add('fall', 0, 0, 10000);
+
+        foreach (array_chunk($rows, 300) as $chunk) {
+            DB::table('prod.quality_events')->insert($chunk);
+        }
+    }
+
+    /**
+     * P7 (WS-5) — the discharge_facts DRG/cost ledger behind
+     * ops.mv_service_line_los + the cost-per-case row of
+     * ops.mv_cost_center_productivity. 1,284 MTD discharges tuned to reproduce
+     * CMI 1.62, observation rate 12.4%, and cost/case $11.9k. Deliberately its
+     * OWN table (never prod.encounters) so live readmission / O:E LOS /
+     * discharge-before-noon are untouched.
+     */
+    private function seedDischargeFacts($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.discharge_facts')) {
+            return;
+        }
+
+        DB::table('prod.discharge_facts')->where('patient_ref', 'like', 'sim-df-%')->delete();
+
+        $serviceLines = ['medicine', 'cardiology', 'critical_care', 'trauma_surgery', 'neurosciences', 'orthopedics', 'oncology'];
+        $monthStart = now()->startOfMonth();
+        $elapsedDays = max(1, (int) $monthStart->diffInDays(now()));
+        $rows = [];
+
+        for ($i = 1; $i <= 1284; $i++) {
+            $seed = 70400 + $i;
+            $isObs = $i <= 159; // ≈12.4%
+            $drg = round(1.22 + $this->seededRand($seed, 0, 80) / 100, 3);   // mean ≈1.62
+            $cost = 8000 + $this->seededRand($seed + 1, 0, 7800);            // mean ≈11,900
+            $dischargedAt = $monthStart->copy()
+                ->addDays($this->seededRand($seed + 2, 0, $elapsedDays))
+                ->addHours($this->seededRand($seed + 3, 0, 23));
+            if ($dischargedAt->greaterThan(now())) {
+                $dischargedAt = now()->copy()->subHours(1);
+            }
+
+            $rows[] = [
+                'fact_uuid' => (string) Str::uuid(),
+                'patient_ref' => sprintf('sim-df-%05d', $i),
+                'unit_id' => null,
+                'service_line' => $serviceLines[$i % count($serviceLines)],
+                'drg_weight' => $drg,
+                'total_cost' => $cost,
+                'is_observation' => $isObs,
+                'discharged_at' => $dischargedAt,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::table('prod.discharge_facts')->insert($chunk);
+        }
+    }
+
+    /**
+     * P7 (WS-5) — populate the three MTD cockpit MVs after seeding their facts
+     * so the demo wall shows live Quality/Service/Financial immediately (the
+     * hourly job keeps them current thereafter). Plain REFRESH (not
+     * CONCURRENTLY) is safe inside a seeding transaction.
+     */
+    private function refreshCockpitMaterializedViews(): void
+    {
+        foreach (\App\Jobs\RefreshCockpitMaterializedViews::VIEWS as $view) {
+            try {
+                DB::statement("REFRESH MATERIALIZED VIEW {$view}");
+            } catch (\Throwable $e) {
+                // The MV may not exist yet on a partial migration — non-fatal.
+            }
         }
     }
 

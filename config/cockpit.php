@@ -56,47 +56,22 @@ return [
 
     /*
     |--------------------------------------------------------------------
-    | Demo values for mocked metrics (per plan P1 workstream 5)
+    | Demo values for the last remaining mocked metrics
     |--------------------------------------------------------------------
-    | Every value here surfaces with metadata.provenance='demo' and is
-    | tuned so the Summit demo fires multiple simultaneous alerts
-    | (NEDOCS 142 severe, staffing pressure, EVS slow) without lighting
-    | the whole wall red — Earned-Red discipline applies to demo data too.
-    | As of P7, ED / Staffing / Flow are fully live; only Quality / Service /
-    | Financial remain demo here until their fact tables + MVs land.
+    | As of P7 every operational domain is LIVE. Only two seeded fallbacks
+    | remain: ed.los_admit (used when no admitted ED patient has departed
+    | in the median window) and okr.hcahps (HCAHPS is an external survey
+    | with no operational source). Each still surfaces provenance='demo'.
     */
     'demo_values' => [
-        // ed.nedocs is LIVE as of P7 (NedocsService — Weiss composite).
-        'ed.los_admit' => 302.0,       // minutes; just past the 300 warn edge (fallback only)
-
-        'quality.sepsis_3hr' => 87.0,  // warn (<90)
-        'quality.sepsis_6hr' => 92.0,
-        'quality.hand_hygiene' => 91.0, // ok (rationed green — explicitly on target)
-        'quality.falls_rate' => 2.7,
-        'quality.rapid_response' => 4.0,
-        'quality.med_rec' => 96.0,
-        'quality.clabsi' => 1.0,
-        'quality.cauti' => 0.0,
-        'quality.cdiff' => 2.0,        // warn
-        'quality.ssi' => 1.0,
-        'quality.mrsa' => 0.0,
-        'quality.vap' => 0.0,
-        'quality.hapi' => 1.0,         // warn — stage 3+ pressure injury MTD
-
-        'service.cmi' => 1.62,
-        'service.observation_rate' => 12.4,
-        'service.discharges_mtd' => 1284.0,
-
-        'financial.worked_per_uos' => 1.04,  // warn (>1.00)
-        'financial.premium_pay' => 182.0,    // $k today
-        'financial.productivity' => 97.0,
-        'financial.cost_per_case' => 11.9,   // $k vs budget
-        'financial.contract_labor' => 96.0,  // $k today
-        'financial.overtime' => 5.2,
-
+        'ed.los_admit' => 302.0,       // minutes; median-admit-LOS fallback only
+        'okr.hcahps' => 74.0,          // warn (<76) — external survey, no live feed
+        // OKR fallbacks: the scorecard is a fixed 9-card registry, so these
+        // three reuse their now-live quality/financial source when present and
+        // fall back to these seeds when it is absent (keeps the card, never a
+        // hole). Live data always wins.
         'okr.sepsis_3hr' => 87.0,
         'okr.hand_hygiene' => 91.0,
         'okr.worked_per_uos' => 1.04,
-        'okr.hcahps' => 74.0,          // warn (<76) — realistic pressure point
     ],
 ];

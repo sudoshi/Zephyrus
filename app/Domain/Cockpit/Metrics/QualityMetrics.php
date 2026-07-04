@@ -3,12 +3,15 @@
 namespace App\Domain\Cockpit\Metrics;
 
 use App\Domain\Cockpit\SnapshotContext;
+use App\Services\Cockpit\MaterializedMetricsReader;
+use App\Services\Cockpit\StatusEngine;
 use App\Support\Cockpit\MetricValue;
 
 /**
- * Quality & safety (spec §2.7). ALL MOCK until the HAI/sepsis fact tables
- * land (P7) — every tile carries metadata.provenance='demo' behind the
- * identical MetricValue contract, so the P7 swap changes no shapes (D5).
+ * Quality & safety (spec §2.7). LIVE as of P7: every tile is the MTD value
+ * from ops.mv_hai_ledger (over prod.quality_events), read through
+ * MaterializedMetricsReader. A metric with no MV row this month yields a null
+ * tile (skipped) rather than a fabricated demo number.
  */
 class QualityMetrics extends BaseMetrics
 {
@@ -19,6 +22,13 @@ class QualityMetrics extends BaseMetrics
         'quality.mrsa', 'quality.vap', 'quality.hapi',
     ];
 
+    public function __construct(
+        StatusEngine $engine,
+        private readonly MaterializedMetricsReader $mv,
+    ) {
+        parent::__construct($engine);
+    }
+
     public function domain(): string
     {
         return 'quality';
@@ -27,9 +37,10 @@ class QualityMetrics extends BaseMetrics
     /** @return list<MetricValue> */
     public function metrics(SnapshotContext $ctx): array
     {
-        return $this->compact(array_map(
-            fn (string $key): ?MetricValue => $this->demo($ctx, $key),
-            self::KEYS,
-        ));
+        return $this->compact(array_map(function (string $key) use ($ctx): ?MetricValue {
+            $value = $this->mv->value($key);
+
+            return $value === null ? null : $this->fromKey($ctx, $key, $value);
+        }, self::KEYS));
     }
 }

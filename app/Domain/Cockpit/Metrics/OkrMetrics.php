@@ -32,15 +32,19 @@ class OkrMetrics extends BaseMetrics
     public function metrics(SnapshotContext $ctx): array
     {
         return $this->compact([
-            $this->demo($ctx, 'okr.sepsis_3hr'),
+            // P7: reuse the now-live quality/financial values, falling back to
+            // the seeded OKR constant when the live source is absent so the
+            // 9-card registry never shows a hole (okr.hcahps stays pure demo:
+            // HCAHPS is an external survey with no live source).
+            $this->reuse($ctx, 'okr.sepsis_3hr', 'quality.sepsis_3hr') ?? $this->demo($ctx, 'okr.sepsis_3hr'),
             $this->reuse($ctx, 'okr.ed_los_admit', 'ed.los_admit'),
             $this->fromLegacy($ctx, 'okr.dc_before_noon', 'dbn'),
             $this->fromKey($ctx, 'okr.occupancy_midnight', $this->midnightOccupancy($ctx), [
                 'sub' => 'projected at midnight',
             ]),
             $this->reuse($ctx, 'okr.open_shifts', 'staffing.open_shifts'),
-            $this->demo($ctx, 'okr.hand_hygiene'),
-            $this->demo($ctx, 'okr.worked_per_uos'),
+            $this->reuse($ctx, 'okr.hand_hygiene', 'quality.hand_hygiene') ?? $this->demo($ctx, 'okr.hand_hygiene'),
+            $this->reuse($ctx, 'okr.worked_per_uos', 'financial.worked_per_uos') ?? $this->demo($ctx, 'okr.worked_per_uos'),
             $this->demo($ctx, 'okr.hcahps'),
             $this->fromLegacy($ctx, 'okr.readmit_30d', 'readmission'),
         ]);

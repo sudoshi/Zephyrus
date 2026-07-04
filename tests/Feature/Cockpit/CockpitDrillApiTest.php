@@ -77,13 +77,15 @@ class CockpitDrillApiTest extends TestCase
         $this->actingAs($user)->getJson('/api/cockpit/drill/pharmacy')->assertStatus(404);
     }
 
-    public function test_hidden_demo_domains_have_no_drill(): void
+    public function test_live_domains_keep_their_drill_under_the_hide_demo_flag(): void
     {
+        // Post-P7 Quality is live (materialized-view backed), so the D5
+        // hide-demo flag no longer hides it — its drill stays reachable.
         config(['cockpit.hide_demo_domains' => true]);
 
         $user = User::factory()->create();
 
-        $this->actingAs($user)->getJson('/api/cockpit/drill/quality')->assertStatus(404);
+        $this->actingAs($user)->getJson('/api/cockpit/drill/quality')->assertOk();
         $this->actingAs($user)->getJson('/api/cockpit/drill/rtdc')->assertOk();
     }
 

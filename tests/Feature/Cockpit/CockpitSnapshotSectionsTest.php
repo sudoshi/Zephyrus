@@ -7,6 +7,7 @@ use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,53 @@ class CockpitSnapshotSectionsTest extends TestCase
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $this->seed(CockpitKpiDefinitionSeeder::class);
         $this->seedEdCrowding();
+        $this->seedMvFacts();
+    }
+
+    /**
+     * Minimal Quality/Service/Financial MTD facts + an MV refresh so the P7
+     * live domains have data (hand hygiene 91%, sepsis 87%, CMI 1.62, cost
+     * $11.9k, and the workforce ratios seeded below).
+     */
+    private function seedMvFacts(): void
+    {
+        $events = [];
+        foreach (['hand_hygiene' => 91, 'sepsis_3hr' => 87] as $type => $pct) {
+            for ($i = 0; $i < 100; $i++) {
+                $events[] = [
+                    'event_uuid' => (string) Str::uuid(), 'event_type' => $type, 'occurred_at' => now(),
+                    'numerator' => $i < $pct ? 1 : 0, 'denominator' => 1, 'patient_days' => 0,
+                    'is_deleted' => false, 'created_at' => now(), 'updated_at' => now(),
+                ];
+            }
+        }
+        DB::table('prod.quality_events')->insert($events);
+
+        $facts = [];
+        for ($i = 0; $i < 50; $i++) {
+            $facts[] = [
+                'fact_uuid' => (string) Str::uuid(), 'patient_ref' => 'test-df-'.$i,
+                'drg_weight' => 1.62, 'total_cost' => 11_900, 'is_observation' => $i < 6,
+                'discharged_at' => now()->subDays(1), 'is_deleted' => false,
+                'created_at' => now(), 'updated_at' => now(),
+            ];
+        }
+        DB::table('prod.discharge_facts')->insert($facts);
+
+        $workforce = [];
+        foreach (['ICU-A', 'MS-B'] as $cc) {
+            $workforce[] = [
+                'actual_uuid' => (string) Str::uuid(), 'cost_center' => $cc, 'work_date' => now()->toDateString(),
+                'worked_hours' => 250, 'overtime_hours' => 13, 'target_hours' => 242, 'census_days' => 240,
+                'premium_cost' => 91_000, 'agency_cost' => 48_000, 'is_deleted' => false,
+                'created_at' => now(), 'updated_at' => now(),
+            ];
+        }
+        DB::table('prod.workforce_actuals')->insert($workforce);
+
+        foreach (\App\Jobs\RefreshCockpitMaterializedViews::VIEWS as $view) {
+            DB::statement("REFRESH MATERIALIZED VIEW {$view}");
+        }
     }
 
     /**
@@ -120,20 +168,25 @@ class CockpitSnapshotSectionsTest extends TestCase
         $this->assertSame('Discharge before noon', $dbn['keyResult']);
     }
 
-    public function test_mocked_domains_carry_demo_provenance_on_every_tile(): void
+    public function test_quality_service_financial_are_live_after_p7(): void
     {
+        // With the MV facts seeded (setUp), the last three demo domains are now
+        // fully live off the materialized views — no tile carries demo
+        // provenance, so the domain rolls up as 'live'.
         $payload = app(SnapshotBuilder::class)->build();
 
-        foreach (['quality', 'financial'] as $domain) {
-            $this->assertSame('demo', $payload['domains'][$domain]['provenance']);
+        foreach (['quality', 'service', 'financial'] as $domain) {
+            $this->assertSame('live', $payload['domains'][$domain]['provenance'], $domain);
+            $this->assertNotEmpty($payload['domains'][$domain]['tiles'], $domain);
 
             foreach ($payload['domains'][$domain]['tiles'] as $tile) {
-                $this->assertSame('demo', $tile['metadata']['provenance'] ?? null, $tile['key']);
+                $this->assertNull($tile['metadata']['provenance'] ?? null, $tile['key']);
             }
         }
 
-        // Service lines mixes legacy-live O:E/readmit with demo CMI → partial.
-        $this->assertSame('partial', $payload['domains']['service']['provenance']);
+        // The live values match the seeded MV facts.
+        $cmi = collect($payload['domains']['service']['tiles'])->firstWhere('key', 'service.cmi');
+        $this->assertSame(1.62, $cmi['value']);
     }
 
     public function test_alerts_are_derived_template_gated_and_crit_first(): void
@@ -179,24 +232,19 @@ class CockpitSnapshotSectionsTest extends TestCase
         $this->assertNotNull($nedocs['openedAt'] ?? null);
     }
 
-    public function test_hide_demo_domains_flag_drops_all_demo_domains_only(): void
+    public function test_hide_demo_domains_flag_keeps_now_live_domains_visible(): void
     {
+        // Post-P7 every operational domain is live, so the D5 hide-demo flag
+        // (which only drops all-demo domains) has nothing to hide — the once-
+        // mocked Quality/Financial domains stay on the wall.
         config(['cockpit.hide_demo_domains' => true]);
 
         $payload = app(SnapshotBuilder::class)->build();
 
-        $this->assertArrayNotHasKey('quality', $payload['domains']);
-        $this->assertArrayNotHasKey('financial', $payload['domains']);
-        // Partial-live domains always stay visible.
+        $this->assertArrayHasKey('quality', $payload['domains']);
+        $this->assertArrayHasKey('financial', $payload['domains']);
         $this->assertArrayHasKey('service', $payload['domains']);
         $this->assertArrayHasKey('rtdc', $payload['domains']);
-
-        // Hidden domains fire no alerts either.
-        $alertKeys = array_column($payload['alerts'], 'key');
-        foreach ($alertKeys as $key) {
-            $this->assertFalse(str_starts_with($key, 'quality.'));
-            $this->assertFalse(str_starts_with($key, 'financial.'));
-        }
     }
 
     public function test_metric_status_is_resolved_through_the_seeded_edges(): void

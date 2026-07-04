@@ -39,10 +39,11 @@ class CockpitMetricValuesTest extends TestCase
         $this->assertNotNull($nedocs);
         $this->assertNotNull($nedocs->metric_definition_id);
 
-        // A still-demo metric carries provenance through to the history row.
-        $handHygiene = $rows->firstWhere('metric_key', 'quality.hand_hygiene');
-        $this->assertNotNull($handHygiene);
-        $this->assertSame('demo', json_decode($handHygiene->metadata ?? '{}', true)['provenance'] ?? null);
+        // okr.hcahps is the last surviving demo metric (external survey, no
+        // live feed) — its provenance flows through to the history row.
+        $hcahps = $rows->firstWhere('metric_key', 'okr.hcahps');
+        $this->assertNotNull($hcahps);
+        $this->assertSame('demo', json_decode($hcahps->metadata ?? '{}', true)['provenance'] ?? null);
 
         // A second refresh appends history, never replaces it.
         app(SnapshotBuilder::class)->refresh();
