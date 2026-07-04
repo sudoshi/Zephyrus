@@ -41,6 +41,19 @@ return [
     // rows older than this; other grains are never touched.
     'metric_values_retention_days' => (int) env('COCKPIT_METRIC_VALUES_RETENTION_DAYS', 90),
 
+    // P6: flap-damping for the derived alert lifecycle (AlertEngine). An
+    // alert candidate must hold for `open_holds` consecutive snapshots to
+    // OPEN and be absent for `clear_holds` consecutive snapshots to CLEAR —
+    // clears damp harder than opens so a metric hovering on a band edge
+    // reads as one continuous alert, not a strobe. min_reconcile_interval
+    // (seconds) stops burst rebuilds (scheduled job + serve-path inline
+    // refresh) from each counting as a "consecutive snapshot".
+    'alerts' => [
+        'open_holds' => (int) env('COCKPIT_ALERT_OPEN_HOLDS', 2),
+        'clear_holds' => (int) env('COCKPIT_ALERT_CLEAR_HOLDS', 3),
+        'min_reconcile_interval' => (int) env('COCKPIT_ALERT_RECONCILE_INTERVAL', 30),
+    ],
+
     /*
     |--------------------------------------------------------------------
     | Demo values for mocked metrics (per plan P1 workstream 5)

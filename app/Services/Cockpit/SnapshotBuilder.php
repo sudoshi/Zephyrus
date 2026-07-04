@@ -74,6 +74,7 @@ class SnapshotBuilder
         private readonly AgentToolRegistry $tools,
         private readonly HospitalManifest $manifest,
         private readonly MetricValueWriter $writer,
+        private readonly AlertEngine $alerts,
     ) {}
 
     /** @return array<string, mixed> */
@@ -93,6 +94,12 @@ class SnapshotBuilder
         $facilityKey ??= $this->manifest->facilityCode();
 
         ['payload' => $payload, 'context' => $ctx] = $this->buildWithContext($facilityKey);
+
+        // P6: the persisted/served payload carries the flap-DAMPED open set
+        // reconciled against cockpit_alerts, not the raw per-snapshot
+        // candidates — the ticker never strobes. build() (preview/tests)
+        // keeps the raw derivation.
+        $payload['alerts'] = $this->alerts->reconcile($facilityKey, $payload['alerts']);
 
         CockpitSnapshot::query()->updateOrCreate(
             ['facility_key' => $facilityKey],

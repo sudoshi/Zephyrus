@@ -108,6 +108,26 @@ class CockpitSnapshotSectionsTest extends TestCase
         }
     }
 
+    public function test_refresh_serves_the_flap_damped_alert_set(): void
+    {
+        config(['cockpit.alerts.open_holds' => 2, 'cockpit.alerts.min_reconcile_interval' => 0]);
+
+        $builder = app(SnapshotBuilder::class);
+
+        // First snapshot: the NEDOCS candidate is PENDING — the served payload
+        // must not strobe it into the ticker yet (P6 flap-damping).
+        $first = $builder->refresh();
+        $this->assertSame([], $first['alerts']);
+
+        // Second consecutive snapshot: the candidate held → it opens.
+        $second = $builder->refresh();
+        $nedocs = collect($second['alerts'])->firstWhere('key', 'ed.nedocs');
+        $this->assertNotNull($nedocs);
+        $this->assertSame('crit', $nedocs['status']);
+        $this->assertSame('demo', $nedocs['provenance'] ?? null);
+        $this->assertNotNull($nedocs['openedAt'] ?? null);
+    }
+
     public function test_hide_demo_domains_flag_drops_all_demo_domains_only(): void
     {
         config(['cockpit.hide_demo_domains' => true]);

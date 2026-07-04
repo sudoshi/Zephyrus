@@ -101,6 +101,9 @@ export const cockpitAlertSchema = z.object({
   status: z.enum(['warn', 'crit']),
   text: z.string(),
   provenance: z.literal('demo').optional(),
+  // P6: present once the AlertEngine persists the flap-damped lifecycle —
+  // the ISO instant the alert actually OPENED (not this snapshot's time).
+  openedAt: z.string().nullable().optional(),
 });
 export type CockpitAlert = z.infer<typeof cockpitAlertSchema>;
 
