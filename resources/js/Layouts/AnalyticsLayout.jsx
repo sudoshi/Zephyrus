@@ -1,77 +1,54 @@
+// resources/js/Layouts/AnalyticsLayout.jsx
+//
+// P4b: thin chrome wrapper over the unified DashboardLayout shell (same
+// pattern as RTDCPageLayout / TransportLayout). Keeps the Analytics-specific
+// chrome — page title + header buttons, the surface card, ErrorBoundary, and
+// the Flowbite/Nivo/Analytics providers. The theme providers read the
+// shell-level DarkModeContext themselves, so no local dark-mode plumbing.
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Head } from '@inertiajs/react';
-import AuthenticatedLayout, { useDarkMode } from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { FlowbiteThemeProvider, NivoThemeProvider } from '@/Components/ui';
 import ErrorBoundary from '@/Components/ErrorBoundary';
 import { AnalyticsProvider } from '@/Contexts/AnalyticsContext';
 
-export default function AnalyticsLayout({ children, auth, title, headerButtons }) {
+export default function AnalyticsLayout({ children, title, headerButtons }) {
   return (
-    <AuthenticatedLayout
-      user={auth.user}
-      header={
-        <div className="flex items-center justify-between w-full">
-          <div className="w-1/3">
-            {/* Left section - empty for balance */}
-          </div>
-          <h2 className="font-semibold text-xl text-healthcare-text-primary dark:text-healthcare-text-primary-dark leading-tight text-center w-1/3">
-            {title}
-          </h2>
-          <div className="flex flex-wrap gap-2 ml-auto w-1/3 justify-end">
-            {headerButtons}
-          </div>
-        </div>
-      }
-    >
+    <DashboardLayout>
       <Head title={title} />
-      
-      <div className="py-4">
-        <div className="max-w-full mx-auto px-4 sm:px-6">
-          <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-              <ErrorBoundary>
-                <AnalyticsLayoutContent>
-                  {children}
-                </AnalyticsLayoutContent>
-              </ErrorBoundary>
-            </div>
+      <PageContentLayout
+        title={title}
+        headerContent={
+          headerButtons ? (
+            <div className="flex flex-wrap gap-2 justify-end">{headerButtons}</div>
+          ) : null
+        }
+      >
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark overflow-hidden shadow-sm rounded-lg">
+          <div className="p-4 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <ErrorBoundary>
+              <FlowbiteThemeProvider>
+                <NivoThemeProvider>
+                  <AnalyticsProvider>
+                    {children}
+                  </AnalyticsProvider>
+                </NivoThemeProvider>
+              </FlowbiteThemeProvider>
+            </ErrorBoundary>
           </div>
         </div>
-      </div>
-    </AuthenticatedLayout>
+      </PageContentLayout>
+    </DashboardLayout>
   );
 }
-
-// This component uses the DarkModeContext from AuthenticatedLayout
-function AnalyticsLayoutContent({ children }) {
-  // Get dark mode state from context
-  const { isDarkMode } = useDarkMode();
-  
-  return (
-    <FlowbiteThemeProvider isDarkMode={isDarkMode}>
-      <NivoThemeProvider isDarkMode={isDarkMode}>
-        <AnalyticsProvider>
-          {children}
-        </AnalyticsProvider>
-      </NivoThemeProvider>
-    </FlowbiteThemeProvider>
-  );
-}
-
-AnalyticsLayoutContent.propTypes = {
-  children: PropTypes.node.isRequired,
-};
 
 AnalyticsLayout.propTypes = {
   children: PropTypes.node.isRequired,
-  auth: PropTypes.shape({
-    user: PropTypes.shape({
-      id: PropTypes.number,
-      name: PropTypes.string,
-      email: PropTypes.string,
-    }).isRequired,
-  }).isRequired,
+  // Accepted for page-signature compatibility; the unified shell reads auth
+  // from Inertia shared props itself.
+  auth: PropTypes.object,
   title: PropTypes.string.isRequired,
   headerButtons: PropTypes.node,
 };
