@@ -44,7 +44,7 @@ const PDSADashboard = ({ auth }) => {
       case 'do':
         return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
       case 'study':
-        return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
+        return 'text-healthcare-primary bg-healthcare-primary/10 dark:text-healthcare-primary-dark dark:bg-healthcare-primary-dark/20';
       case 'act':
         return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
       default:

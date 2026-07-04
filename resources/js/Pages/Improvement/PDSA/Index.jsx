@@ -20,7 +20,7 @@ const getStatusColor = (status) => {
     case 'do':
       return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
     case 'study':
-      return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
+      return 'text-healthcare-primary bg-healthcare-primary/10 dark:text-healthcare-primary-dark dark:bg-healthcare-primary-dark/20';
     case 'act':
       return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
     case 'in progress':
@@ -66,7 +66,7 @@ const Index = ({ auth, cycles = [] }) => {
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">PDSA Cycles</h2>
                 <Link href="/improvement/pdsa/create">
-                  <button className="healthcare-button-primary flex items-center gap-2">
+                  <button className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover">
                     <Plus className="h-4 w-4" />
                     New PDSA Cycle
                   </button>
@@ -132,7 +132,7 @@ const Index = ({ auth, cycles = [] }) => {
                         </div>
                       </div>
                       <Link href={`/improvement/pdsa/${cycle.id}`}>
-                        <button className="healthcare-button-secondary text-sm flex items-center gap-2">
+                        <button className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-4 py-2 text-sm font-medium text-healthcare-text-primary transition-colors duration-200 hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark">
                           View Details
                           <ArrowRight className="h-4 w-4" />
                         </button>

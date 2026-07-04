@@ -13,7 +13,7 @@ const Show = ({ auth, cycle }) => {
       case 'do':
         return 'text-healthcare-info bg-healthcare-info/10 dark:text-healthcare-info-dark dark:bg-healthcare-info-dark/20';
       case 'study':
-        return 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900';
+        return 'text-healthcare-primary bg-healthcare-primary/10 dark:text-healthcare-primary-dark dark:bg-healthcare-primary-dark/20';
       case 'act':
         return 'text-healthcare-success bg-healthcare-success/10 dark:text-healthcare-success-dark dark:bg-healthcare-success-dark/20';
       default:
@@ -37,12 +37,12 @@ const Show = ({ auth, cycle }) => {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <Link href="/improvement/pdsa">
-              <button className="healthcare-button-secondary flex items-center gap-2">
+              <button className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-4 py-2 text-sm font-medium text-healthcare-text-primary transition-colors duration-200 hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark">
                 <ArrowLeft className="h-4 w-4" />
                 Back to PDSA Cycles
               </button>
             </Link>
-            <button className="healthcare-button-primary flex items-center gap-2">
+            <button className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover">
               <Pencil className="h-4 w-4" />
               Edit Cycle
             </button>

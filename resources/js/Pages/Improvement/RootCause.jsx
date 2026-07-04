@@ -13,12 +13,12 @@ import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 // Process types with their respective colors
 const PROCESS_TYPES = {
   'Reported Barriers': {
-    color: 'bg-red-500',
-    textColor: 'text-red-500',
-    borderColor: 'border-red-500',
-    darkColor: 'dark:bg-red-600',
-    darkTextColor: 'dark:text-red-400',
-    darkBorderColor: 'dark:border-red-600',
+    color: 'bg-healthcare-critical',
+    textColor: 'text-healthcare-critical',
+    borderColor: 'border-healthcare-critical',
+    darkColor: 'dark:bg-healthcare-critical-dark',
+    darkTextColor: 'dark:text-healthcare-critical-dark',
+    darkBorderColor: 'dark:border-healthcare-critical-dark',
     examples: [
       'Medication Administration Delays',
       'Nurse Staffing Shortages',
@@ -28,12 +28,12 @@ const PROCESS_TYPES = {
     ]
   },
   'Admission Process': {
-    color: 'bg-blue-500',
-    textColor: 'text-blue-500',
-    borderColor: 'border-blue-500',
-    darkColor: 'dark:bg-blue-600',
-    darkTextColor: 'dark:text-blue-400',
-    darkBorderColor: 'dark:border-blue-600',
+    color: 'bg-healthcare-primary',
+    textColor: 'text-healthcare-primary',
+    borderColor: 'border-healthcare-primary',
+    darkColor: 'dark:bg-healthcare-primary-dark',
+    darkTextColor: 'dark:text-healthcare-primary-dark',
+    darkBorderColor: 'dark:border-healthcare-primary-dark',
     examples: [
       'ED to Inpatient Handoff',
       'Bed Assignment Delays',
@@ -43,12 +43,12 @@ const PROCESS_TYPES = {
     ]
   },
   'Discharge Process': {
-    color: 'bg-green-500',
-    textColor: 'text-green-500',
-    borderColor: 'border-green-500',
-    darkColor: 'dark:bg-green-600',
-    darkTextColor: 'dark:text-green-400',
-    darkBorderColor: 'dark:border-green-600',
+    color: 'bg-healthcare-success',
+    textColor: 'text-healthcare-success',
+    borderColor: 'border-healthcare-success',
+    darkColor: 'dark:bg-healthcare-success-dark',
+    darkTextColor: 'dark:text-healthcare-success-dark',
+    darkBorderColor: 'dark:border-healthcare-success-dark',
     examples: [
       'Discharge Medication Reconciliation',
       'Transportation Coordination',
@@ -58,12 +58,12 @@ const PROCESS_TYPES = {
     ]
   },
   'Perioperative Process': {
-    color: 'bg-purple-500',
-    textColor: 'text-purple-500',
-    borderColor: 'border-purple-500',
-    darkColor: 'dark:bg-purple-600',
-    darkTextColor: 'dark:text-purple-400',
-    darkBorderColor: 'dark:border-purple-600',
+    color: 'bg-healthcare-purple',
+    textColor: 'text-healthcare-purple',
+    borderColor: 'border-healthcare-purple',
+    darkColor: 'dark:bg-healthcare-purple-dark',
+    darkTextColor: 'dark:text-healthcare-purple-dark',
+    darkBorderColor: 'dark:border-healthcare-purple-dark',
     examples: [
       'OR Turnover Time',
       'Surgical Case Scheduling',
@@ -73,12 +73,12 @@ const PROCESS_TYPES = {
     ]
   },
   'Patient Flow': {
-    color: 'bg-amber-500',
-    textColor: 'text-amber-500',
-    borderColor: 'border-amber-500',
-    darkColor: 'dark:bg-amber-600',
-    darkTextColor: 'dark:text-amber-400',
-    darkBorderColor: 'dark:border-amber-600',
+    color: 'bg-healthcare-warning',
+    textColor: 'text-healthcare-warning',
+    borderColor: 'border-healthcare-warning',
+    darkColor: 'dark:bg-healthcare-warning-dark',
+    darkTextColor: 'dark:text-healthcare-warning-dark',
+    darkBorderColor: 'dark:border-healthcare-warning-dark',
     examples: [
       'ED Throughput Bottlenecks',
       'Inpatient Unit Transfers',
@@ -88,12 +88,12 @@ const PROCESS_TYPES = {
     ]
   },
   'Medication Process': {
-    color: 'bg-teal-500',
-    textColor: 'text-teal-500',
-    borderColor: 'border-teal-500',
-    darkColor: 'dark:bg-teal-600',
-    darkTextColor: 'dark:text-teal-400',
-    darkBorderColor: 'dark:border-teal-600',
+    color: 'bg-healthcare-teal',
+    textColor: 'text-healthcare-teal',
+    borderColor: 'border-healthcare-teal',
+    darkColor: 'dark:bg-healthcare-teal-dark',
+    darkTextColor: 'dark:text-healthcare-teal-dark',
+    darkBorderColor: 'dark:border-healthcare-teal-dark',
     examples: [
       'Medication Order to Administration',
       'High-Alert Medication Handling',

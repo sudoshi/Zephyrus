@@ -76,17 +76,17 @@ const nodeTypes = {
         )}
         
         {/* Metrics section */}
-        <div className="bg-gray-900 p-3 rounded-lg">
+        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-white opacity-70">Total:</span>
-            <span className="text-sm font-semibold text-white">{data.count || '-'} patients</span>
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">{data.count || '-'} patients</span>
           </div>
           
           {/* Average Duration */}
           <div className="flex justify-between items-center mt-1">
-            <span className="text-xs font-medium text-white opacity-70">Avg. Duration:</span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Duration:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
               {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
             </span>
           </div>
@@ -94,8 +94,8 @@ const nodeTypes = {
           {/* Time-based metrics - only show if available */}
           {((data.metrics && data.metrics.last24h) || data.last24h) && (
             <div className="flex justify-between items-center mt-1">
-              <span className="text-xs font-medium text-white opacity-70">Last 24h:</span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Last 24h:</span>
+              <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
                 {(data.metrics && data.metrics.last24h) || data.last24h || '-'} patients
               </span>
             </div>
@@ -103,8 +103,8 @@ const nodeTypes = {
           
           {((data.metrics && data.metrics.last7d) || data.last7d) && (
             <div className="flex justify-between items-center mt-1">
-              <span className="text-xs font-medium text-white opacity-70">Last 7d:</span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Last 7d:</span>
+              <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
                 {(data.metrics && data.metrics.last7d) || data.last7d || '-'} patients
               </span>
             </div>
@@ -139,25 +139,25 @@ const nodeTypes = {
         )}
         
         {/* Metrics section */}
-        <div className="bg-gray-900 p-3 rounded-lg">
+        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-white opacity-70">Cases:</span>
-            <span className="text-sm font-semibold text-white">{data.count || '-'}</span>
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cases:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">{data.count || '-'}</span>
           </div>
           
           {/* Avg Time row */}
           <div className="flex justify-between items-center mt-1">
-            <span className="text-xs font-medium text-white opacity-70">Avg. Time:</span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Time:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
               {data.avgDuration ? `${data.avgDuration} min` : ((data.metrics && data.metrics.avgTime) || data.avgTime || '10-30 min')}
             </span>
           </div>
           
           {/* Bottlenecks row */}
           <div className="flex justify-between items-center mt-1">
-            <span className="text-xs font-medium text-white opacity-70">Bottlenecks:</span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Bottlenecks:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
               {(data.metrics && data.metrics.bottlenecks) ? 
                 (typeof data.metrics.bottlenecks === 'number' ? 
                   (data.metrics.bottlenecks * 100).toFixed(0) + '%' : 
@@ -195,17 +195,17 @@ const nodeTypes = {
         )}
         
         {/* Metrics section */}
-        <div className="bg-gray-900 p-3 rounded-lg">
+        <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
           {/* Basic metrics */}
           <div className="flex justify-between items-center">
-            <span className="text-xs font-medium text-white opacity-70">Total Cases:</span>
-            <span className="text-sm font-semibold text-white">{data.count || '-'}</span>
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Total Cases:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">{data.count || '-'}</span>
           </div>
           
           {/* Average Duration */}
           <div className="flex justify-between items-center mt-1">
-            <span className="text-xs font-medium text-white opacity-70">Avg. Duration:</span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Duration:</span>
+            <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
               {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
             </span>
           </div>
@@ -213,8 +213,8 @@ const nodeTypes = {
           {/* Success Rate row - only show if available */}
           {((data.metrics && data.metrics.successRate) || data.successRate) && (
             <div className="flex justify-between items-center mt-1">
-              <span className="text-xs font-medium text-white opacity-70">Success Rate:</span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Success Rate:</span>
+              <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
                 {(data.metrics && data.metrics.successRate) ? 
                   (typeof data.metrics.successRate === 'number' ? 
                     (data.metrics.successRate * 100).toFixed(0) + '%' : 
@@ -227,8 +227,8 @@ const nodeTypes = {
           {/* Avg Total Time row - only show if available */}
           {((data.metrics && data.metrics.avgTotalTime) || data.avgTotalTime || (data.metrics && data.metrics.avgTime) || data.avgTime) && (
             <div className="flex justify-between items-center mt-1">
-              <span className="text-xs font-medium text-white opacity-70">Avg. Total Time:</span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Total Time:</span>
+              <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
                 {(data.metrics && data.metrics.avgTotalTime) || data.avgTotalTime || 
                 (data.metrics && data.metrics.avgTime) || data.avgTime}
               </span>

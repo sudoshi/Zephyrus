@@ -94,8 +94,8 @@ const Create = ({ auth }) => {
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-healthcare-border dark:border-healthcare-border-dark p-6">
-            <Link href="/improvement/pdsa" className="healthcare-button-secondary">Cancel</Link>
-            <button type="submit" disabled={processing} className="healthcare-button-primary disabled:opacity-60">
+            <Link href="/improvement/pdsa" className="inline-flex items-center gap-2 rounded-md border border-healthcare-border px-4 py-2 text-sm font-medium text-healthcare-text-primary transition-colors duration-200 hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark">Cancel</Link>
+            <button type="submit" disabled={processing} className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover disabled:opacity-60">
               {processing ? 'Creating…' : 'Create cycle'}
             </button>
           </div>

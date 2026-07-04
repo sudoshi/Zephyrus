@@ -37,9 +37,9 @@ const VariantsViewPanel = () => {
       percentage: 41.1,
       steps: [
         { name: "ED", color: "#3b82f6" }, 
-        { name: "Bed Request", color: "#93c5fd", timing: "38 min" }, 
-        { name: "Bed Assignment", color: "#93c5fd", timing: "42 min" }, 
-        { name: "Bedding", color: "#86efac" }
+        { name: "Bed Request", color: "var(--info)", timing: "38 min" }, 
+        { name: "Bed Assignment", color: "var(--info)", timing: "42 min" }, 
+        { name: "Bedding", color: "var(--success)" }
       ],
       timing: "80 min avg",
       isOutlier: false
@@ -48,10 +48,10 @@ const VariantsViewPanel = () => {
       traces: 68,
       percentage: 23.7,
       steps: [
-        { name: "Direct Admit", color: "#93c5fd" }, 
-        { name: "Bed Request", color: "#93c5fd", timing: "42 min" }, 
-        { name: "Bed Assignment", color: "#93c5fd", timing: "35 min" }, 
-        { name: "Bedding", color: "#86efac" }
+        { name: "Direct Admit", color: "var(--info)" }, 
+        { name: "Bed Request", color: "var(--info)", timing: "42 min" }, 
+        { name: "Bed Assignment", color: "var(--info)", timing: "35 min" }, 
+        { name: "Bedding", color: "var(--success)" }
       ],
       timing: "77 min avg",
       isOutlier: false
@@ -60,10 +60,10 @@ const VariantsViewPanel = () => {
       traces: 45,
       percentage: 15.7,
       steps: [
-        { name: "OR", color: "#93c5fd" }, 
-        { name: "Bed Request", color: "#93c5fd", timing: "25 min" }, 
-        { name: "Bed Assignment", color: "#93c5fd", timing: "30 min" }, 
-        { name: "Bedding", color: "#86efac" }
+        { name: "OR", color: "var(--info)" }, 
+        { name: "Bed Request", color: "var(--info)", timing: "25 min" }, 
+        { name: "Bed Assignment", color: "var(--info)", timing: "30 min" }, 
+        { name: "Bedding", color: "var(--success)" }
       ],
       timing: "55 min avg",
       isOutlier: false
@@ -72,10 +72,10 @@ const VariantsViewPanel = () => {
       traces: 39,
       percentage: 13.6,
       steps: [
-        { name: "Transfer", color: "#fbbf24" }, 
-        { name: "Bed Request", color: "#fbbf24", timing: "55 min" }, 
-        { name: "Bed Assignment", color: "#fbbf24", timing: "90 min" }, 
-        { name: "Bedding", color: "#fbbf24" }
+        { name: "Transfer", color: "var(--warning)" }, 
+        { name: "Bed Request", color: "var(--warning)", timing: "55 min" }, 
+        { name: "Bed Assignment", color: "var(--warning)", timing: "90 min" }, 
+        { name: "Bedding", color: "var(--warning)" }
       ],
       timing: "145 min avg",
       isOutlier: true
@@ -84,10 +84,10 @@ const VariantsViewPanel = () => {
       traces: 17,
       percentage: 5.9,
       steps: [
-        { name: "ED (ICU)", color: "#f87171" }, 
-        { name: "Bed Request", color: "#f87171", timing: "85 min" }, 
-        { name: "Bed Assignment", color: "#f87171", timing: "132 min" }, 
-        { name: "Bedding", color: "#f87171" }
+        { name: "ED (ICU)", color: "var(--critical)" }, 
+        { name: "Bed Request", color: "var(--critical)", timing: "85 min" }, 
+        { name: "Bed Assignment", color: "var(--critical)", timing: "132 min" }, 
+        { name: "Bedding", color: "var(--critical)" }
       ],
       timing: "217 min avg",
       isOutlier: true,
@@ -395,26 +395,26 @@ const VariantsViewPanel = () => {
                       } else if (variant.isOutlier) {
                         // Outlier pathway
                         if (stepIndex === 0) {
-                          bgColor = "#f59e0b"; // Amber for outlier source
+                          bgColor = "var(--warning)"; // Amber for outlier source
                         } else if (stepIndex === variant.steps.length - 1) {
-                          bgColor = "#f59e0b"; // Amber for outlier destination
+                          bgColor = "var(--warning)"; // Amber for outlier destination
                         } else {
-                          bgColor = "#fcd34d"; // Lighter amber for middle steps
+                          bgColor = "var(--warning)"; // Lighter amber for middle steps
                         }
                       } else {
                         // Normal pathway
                         if (stepIndex === 0) {
-                          // First step in each variant gets a distinct color by variant type
+                          // First step gets a distinct source-identity hue (categorical chart palette — sanctioned; status colors flow through the theme vars)
                           if (step.name.includes("ED")) bgColor = "#3b82f6";
                           else if (step.name.includes("Direct Admit")) bgColor = "#8b5cf6";
                           else if (step.name.includes("Transfer")) bgColor = "#ec4899";
                           else bgColor = step.color;
                         } else if (stepIndex === variant.steps.length - 1) {
                           // Last step in green to indicate completion
-                          bgColor = "#10b981";
+                          bgColor = "var(--success)";
                         } else {
                           // Middle steps in light blue
-                          bgColor = "#93c5fd";
+                          bgColor = "var(--info)";
                         }
                       }
                       
