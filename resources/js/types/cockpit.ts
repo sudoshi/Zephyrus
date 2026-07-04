@@ -81,3 +81,55 @@ export const drillTableSchema = z.object({
   rows: z.array(z.record(z.string(), cellSchema)),
 });
 export type DrillTable = z.infer<typeof drillTableSchema>;
+
+// ---------------------------------------------------------------------------
+// Spec §3.2 snapshot sections (P1). These are ADDITIVE keys on the existing
+// /api/cockpit/snapshot payload — the legacy commandCenter.ts contract keys
+// coexist untouched until P2 flips the page. Parse the sections with
+// cockpitSnapshotSectionsSchema; unknown extra keys are ignored by design.
+// ---------------------------------------------------------------------------
+
+export const capacityStatusSchema = z.object({
+  level: z.string(),
+  code: z.enum(['green', 'yellow', 'red']),
+  status: cockpitStateSchema,
+});
+export type CapacityStatus = z.infer<typeof capacityStatusSchema>;
+
+export const cockpitAlertSchema = z.object({
+  key: z.string(),
+  status: z.enum(['warn', 'crit']),
+  text: z.string(),
+  provenance: z.literal('demo').optional(),
+});
+export type CockpitAlert = z.infer<typeof cockpitAlertSchema>;
+
+export const okrCardSchema = cockpitMetricValueSchema.extend({
+  objective: z.string().nullable(),
+  keyResult: z.string(),
+  owner: z.string().nullable(),
+});
+export type OkrCard = z.infer<typeof okrCardSchema>;
+
+export const domainProvenances = ['live', 'partial', 'demo'] as const;
+export const cockpitDomainSchema = z.object({
+  provenance: z.enum(domainProvenances),
+  gaugeKey: z.string().nullable(),
+  tiles: z.array(cockpitMetricValueSchema),
+});
+export type CockpitDomain = z.infer<typeof cockpitDomainSchema>;
+
+export const cockpitSnapshotSectionsSchema = z.object({
+  asOf: z.string(),
+  facility: z.object({
+    name: z.string(),
+    licensedBeds: z.number().nullable(),
+    level: z.string().nullable(),
+  }),
+  capacityStatus: capacityStatusSchema,
+  census: z.array(cockpitMetricValueSchema),
+  alerts: z.array(cockpitAlertSchema),
+  okrs: z.array(okrCardSchema),
+  domains: z.record(z.string(), cockpitDomainSchema),
+});
+export type CockpitSnapshotSections = z.infer<typeof cockpitSnapshotSectionsSchema>;

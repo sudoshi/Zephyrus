@@ -76,7 +76,7 @@ class AgentToolRegistry
     private function cachedCapacitySnapshot(): array
     {
         $cached = Cache::get(\App\Services\Cockpit\SnapshotBuilder::CACHE_KEY);
-        $capacity = is_array($cached) ? ($cached['capacity'] ?? null) : null;
+        $capacity = is_array($cached) ? ($cached['capacitySnapshot'] ?? null) : null;
 
         if (is_array($capacity) && ($capacity['tool'] ?? null) === 'capacity.snapshot') {
             return $capacity;

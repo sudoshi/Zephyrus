@@ -39,7 +39,7 @@ class CockpitSnapshotApiTest extends TestCase
         $this->assertIsArray($row->payload);
         $this->assertSame('HOSP1', $row->payload['facilityKey']);
         $this->assertArrayHasKey('generatedAtIso', $row->payload);
-        $this->assertArrayHasKey('capacity', $row->payload);
+        $this->assertArrayHasKey('capacitySnapshot', $row->payload);
 
         $cached = Cache::get(SnapshotBuilder::CACHE_KEY);
         $this->assertIsArray($cached);
@@ -144,7 +144,7 @@ class CockpitSnapshotApiTest extends TestCase
         app(SnapshotBuilder::class)->refresh();
 
         $cached = Cache::get(SnapshotBuilder::CACHE_KEY);
-        $this->assertIsArray($cached['capacity'] ?? null, 'snapshot must embed the capacity document');
+        $this->assertIsArray($cached['capacitySnapshot'] ?? null, 'snapshot must embed the capacity document');
 
         $user = User::factory()->create();
         $toolResult = app(\App\Services\Ops\Agents\AgentToolRegistry::class)
@@ -152,6 +152,6 @@ class CockpitSnapshotApiTest extends TestCase
 
         // Same generatedAtIso ⇒ Eddy's worldview IS the cockpit snapshot,
         // not a second computation (the single-snapshot discipline).
-        $this->assertSame($cached['capacity']['generatedAtIso'], $toolResult['generatedAtIso']);
+        $this->assertSame($cached['capacitySnapshot']['generatedAtIso'], $toolResult['generatedAtIso']);
     }
 }

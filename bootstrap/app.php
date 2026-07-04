@@ -39,5 +39,8 @@ return $builder
         // /api/cockpit/snapshot becomes a pure cache lookup. Requires a
         // running queue worker + schedule runner in prod.
         $schedule->job(new \App\Jobs\RefreshCockpitSnapshot)->everyMinute()->withoutOverlapping();
+        // Retention for the snapshot scalars the refresh job writes — the
+        // writer and the pruner ship together (P1 execution notes).
+        $schedule->job(new \App\Jobs\PruneCockpitMetricValues)->dailyAt('03:40');
     })
     ->create();
