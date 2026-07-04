@@ -581,6 +581,61 @@ mount + skip link), RouteSmoke 81/81 after every batch, canon green with the
 raw-palette ratchet LOWERED 134 → 130 (migrations removed legacy gray/white
 surfaces). P4b acceptance met in full.
 
+**P5 execution notes (2026-07-04).** Study altitude consolidated in five
+sequential commits (097dfae WS-A nav, 8b526f4 WS-B one-authority, fd924ac WS-C
+mock-kill, 357d048 WS-D canon, f76b4d3 WS-E bottlenecks). Deviations / findings:
+1. **Nav:** new `excludePrefixes` on NavDomain — re-homed trend pages
+   (`/rtdc/analytics/*`, `/ed/analytics/{wait-time,resources}`,
+   `/transport/analytics`) glow Study, not their old workspace.
+   `/ed/analytics/flow` deliberately stays in Emergency Operations (it is the
+   live 4D navigator — a "now" surface despite its URL). The re-homed leaves
+   live in ONE consolidated 'Domain Trends' group (9 titled groups would
+   over-widen the mega-menu). Workspace → Study affordances: `StudyLink` on
+   Bed Tracking / ED Triage / OR Room Status; Transport keeps its native
+   Analytics tab. Tests pin deep-dives-exactly-once + glow semantics.
+2. **One authority (WS-B):** `Rtdc\HouseCensusService` owns the
+   latest-per-unit read INCLUDING the bed-board fallback — this FIXED a real
+   divergence (OperationsAnalyticsService had no fallback: exec brief read 0%
+   occupancy on fresh datasets while the cockpit fell back).
+   `PrimetimeUtilizationService::primeTimePct()` is the prime-time scalar;
+   PerioperativeMetricsService delegates. `bandHighBad`/`completenessStatus`
+   delegate to StatusEngine (`canon()` byte-identical); `StatusParityTest`
+   sweeps the edge pairs. Before/after dev diff: 180/157/19/4/87%/6 units,
+   prime-time 83.9 — identical.
+3. **Mock-kill (WS-C):** ~2,300 lines of fiction removed (7 mock-data files +
+   ORUtilization/mockData.js + useORUtilizationData's 290-line hardCodedData).
+   Fabricated-ONLY panels deleted, not "wired": PrimeTimeCapacityReview, OR
+   prev-year/day-of-week/time-of-day series, room turnover-benchmark + hourly
+   heatmap, specialty case-duration, mock opportunity charts (live derived
+   opportunity tiles stay). Every surgical dashboard now has an honest empty
+   state. Dead components deleted (PatientFlow subtree, Provider/Service
+   dashboards, TrendsOverview, PDSACycleManagementPage). GOTCHA:
+   `generate-service-huddle-data.js` looks orphaned but is consumed via a
+   RELATIVE import from rtdc-service-huddle.js — kept. Remaining mock-data
+   files (dashboard/rtdc/cases/ed/…) feed non-surgical surfaces = P7's
+   per-domain swaps.
+4. **Canon (WS-D):** ratchet 130 → 76. RootCause PROCESS_TYPES onto six
+   healthcare hues (incl. healthcare-purple/teal tokens); ProcessFlowDiagram's
+   three bg-gray-900+text-white wells (black slabs in light mode) are now
+   theme surfaces + tabular-nums (white-on-solid-fill node headers stay,
+   canon-legal); VariantsViewPanel status hexes → `var(--warning/critical/
+   success/info)`, 3 source-identity hues documented categorical. PDSA
+   `healthcare-button-primary/secondary` were UNDEFINED classes (unstyled
+   buttons since day one) → real token buttons; Study badge →
+   healthcare-primary. Light-mode pass held by construction (every touched
+   class carries a light+dark pair); a human eyeball of /improvement/* in
+   light mode remains worthwhile.
+5. **Bottlenecks at A0 (WS-E):** `flow.bottlenecks_active` (alert-templated,
+   warn 3/crit 5) + `flow.bottleneck_patients` (warn 25/crit 50) from
+   `DashboardService::getBottleneckStats()`; dev verified live (5 active /
+   109 patients, crit). **Prod post-deploy step: `php artisan db:seed
+   --class=CockpitKpiDefinitionSeeder`** (additive).
+**Deliberately deferred from workstream 5:** the Analytics-hub
+sections→modal-drills conversion and surfacing the PdsaCycle→Intervention→
+OutcomeAttribution chain — neither is in P5's acceptance list; both are
+follow-ups (hub drills fit P8's single-screen work; the attribution surface is
+a small standalone slice). P5 acceptance otherwise met in full.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
