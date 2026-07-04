@@ -433,6 +433,45 @@ flow:snapshot/ReconcileRtdcPredictions were never firing either); installing the
 www-data `schedule:run` cron was permission-blocked and is the ONE remaining P1
 operational step. P1 acceptance otherwise met.
 
+**P2 execution notes (2026-07-04).** `/dashboard` now renders the cockpit grammar —
+`CommandBar` (facility chip + capacity pill + LIVE badge + 1Hz clock), `AlertTicker`
+(crit-first, measured-overflow marquee, reduced-motion-safe, stable empty row),
+8-chip `CensusStrip`, the 8-domain `DomainGrid` (panel headers = drill entry points,
+NEDOCS `RadialGauge` scale-200, earned header accents), the 9-card `OkrScorecard`
+(direction-aware progress-to-target bars), and a glyph legend — assembled by
+`cockpit/CockpitOverview` from the §3.2 sections. Deviations & decisions, in the
+spirit of the recorded corrections:
+1. **Serve path unified:** new `SnapshotBuilder::current()` (cache → fresh row →
+   inline refresh, `SERVE_MAX_AGE_SECONDS=120`) feeds BOTH the Inertia initial render
+   and `/api/cockpit/snapshot`; the API's ETag now pivots on payload `asOf`. Side
+   effect: staleness is bounded at ~2 min even on a host with no scheduler cron —
+   /dashboard self-heals the P1 gap at lower cost than the old build-per-request.
+2. **Flag-then-flip compressed:** the cockpit grammar ships DEFAULT-ON
+   (`COCKPIT_OVERVIEW_ENABLED`, plus `?cockpit=0` / `?cockpit=1` overrides); the
+   pre-2.0 four-band view remains fully wired as the rollback path for one release.
+   Parity was proven by tests (CommandCenterLiveDataTest 15/15 untouched) instead of
+   a soak period — sequential-commits-on-main discipline.
+3. **A0 density:** domain panels render the gauge + top-6 slim `MetricRow`s
+   ("+N more in drill"), not full tile grids — the no-scroll budget wins.
+   `cockpit/Tile` (the deferred P0 promotion) IS shipped with the valuePrimary
+   grey-baseline discipline and is the card for P3's drill KPI strips; the legacy
+   `KpiTile`/`UnitHeatStrip`/`OkrScoreboard` were NOT refactored — they already sit
+   on the P0 primitives where it matters (MeterBar/Sparkline) and now live only on
+   the rollback path P4a deletes.
+4. **D2 wired:** the page reads `?drill=` (validated against the 9-domain registry,
+   pushState/popstate synced — Back works) and `?display=wall` (passed through as
+   `data-display`); panel/OKR headers call `onDrillChange` today, so until P3 lands
+   the DrillModal a drill click updates URL state only — deliberate seam, not a bug.
+5. **OKR scorecard is 9 cards** (the registry), superseding the chapter's "7".
+   Refresh is TanStack Query polling (45 s, `refetchIntervalInBackground`) against
+   the snapshot API — no Inertia prop round-trips; stale/aging thresholds unchanged.
+6. **NEDOCS arc is 4 reconciled bands** (≤60 calm-neutral / ≤100 watch / ≤140 warn /
+   ≤200 crit): the reference's green "not busy" band is rationed out per Part IV.
+**Prod state:** deployed 2026-07-04. Gates: cockpit Vitest 20 new (213 total),
+PHPUnit cockpit 44 (incl. new CockpitDashboardPageTest), RouteSmoke 82/82, tsc +
+vite + canon + Pint green. P2 acceptance met except the soak-period flag (see #2);
+role switcher swap, stale banner, and census/domain/OKR assembly all live.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
