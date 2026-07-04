@@ -80,14 +80,27 @@ class StatusEngineTest extends TestCase
         $this->assertSame(CockpitStatus::WARN, $this->engine->resolveStatus(40.0, $def));
     }
 
-    public function test_direction_up_watch_band_sits_just_above_the_warn_edge_and_precedes_ok(): void
+    public function test_direction_up_an_earned_ok_edge_beats_the_watch_band(): void
     {
+        // The catalog seeds ok_edge == warn_edge (e.g. dc_before_noon 40/40/30):
+        // anything clear of warn that meets ok_edge is confirmed on-target —
+        // ok resolves BEFORE watch (spec §4 order), else green would be
+        // unreachable inside the whole watch band.
         $def = $this->definition(['direction' => 'up', 'ok_edge' => 40, 'warn_edge' => 40, 'crit_edge' => 30]);
 
-        // Band = 4 → watch on (40, 44] — watch outranks ok in the resolution order.
-        $this->assertSame(CockpitStatus::WATCH, $this->engine->resolveStatus(42.0, $def));
-        $this->assertSame(CockpitStatus::WATCH, $this->engine->resolveStatus(44.0, $def));
+        $this->assertSame(CockpitStatus::OK, $this->engine->resolveStatus(42.0, $def));
         $this->assertSame(CockpitStatus::OK, $this->engine->resolveStatus(45.0, $def));
+    }
+
+    public function test_direction_up_watch_fills_the_gap_below_a_higher_ok_edge(): void
+    {
+        // ok_edge above warn_edge: the comfort margin between them is where
+        // "needs eyes" lives — watch fires there, ok only when comfortably clear.
+        $def = $this->definition(['direction' => 'up', 'ok_edge' => 50, 'warn_edge' => 40, 'crit_edge' => 30]);
+
+        $this->assertSame(CockpitStatus::WATCH, $this->engine->resolveStatus(42.0, $def)); // in band (40, 44]
+        $this->assertSame(CockpitStatus::NORMAL, $this->engine->resolveStatus(47.0, $def)); // past band, below ok
+        $this->assertSame(CockpitStatus::OK, $this->engine->resolveStatus(50.0, $def));
     }
 
     public function test_watch_band_pct_is_configurable_via_metadata(): void

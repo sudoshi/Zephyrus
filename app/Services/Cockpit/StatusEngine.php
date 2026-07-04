@@ -20,7 +20,7 @@ use App\Models\Ops\MetricDefinition;
  * Comparator semantics (spec §4): direction 'down' means lower is better
  * (a value AT or ABOVE an edge breaches it); direction 'up' means higher is
  * better (a value AT or BELOW an edge breaches it). Resolution order is
- * crit → warn → watch → ok → normal. The watch band — the tier the spec
+ * crit → warn → ok → watch → normal. The watch band — the tier the spec
  * under-specifies — fires when the value is within `metadata.watch_band_pct`
  * (default 10%) of the warn edge on the good side.
  */
@@ -48,15 +48,20 @@ class StatusEngine
             return CockpitStatus::WARN;
         }
 
-        if ($this->inWatchBand($value, $edges['warn'], $direction, $edges['watch_band_pct'])) {
-            return CockpitStatus::WATCH;
-        }
-
         // "ok" is RATIONED (decision D3): it fires only when a definition
         // explicitly sets ok_edge — a metric merely in-band stays NORMAL/grey.
+        // It resolves BEFORE watch (spec §4 order): an explicitly earned
+        // on-target beats "trending toward the threshold", otherwise the
+        // catalog's ok_edge == warn_edge seeds could never show green inside
+        // the watch band. Watch still fires for definitions without ok_edge
+        // and in the gap between the warn edge and a higher ok_edge.
         if ($edges['ok'] !== null
             && ($direction === 'down' ? $value <= $edges['ok'] : $value >= $edges['ok'])) {
             return CockpitStatus::OK;
+        }
+
+        if ($this->inWatchBand($value, $edges['warn'], $direction, $edges['watch_band_pct'])) {
+            return CockpitStatus::WATCH;
         }
 
         return CockpitStatus::NORMAL;
