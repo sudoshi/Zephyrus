@@ -10,8 +10,9 @@
 //
 // D2 deep links (load-bearing for P4a's redirects): ?drill={domain} is read on
 // mount, held in state, kept in sync with pushState/popstate so Back works —
-// P3 auto-opens the matching DrillModal from this state. ?display=wall is
-// wired through to the overview (P8 builds full wall mode on it).
+// the DrillModal (P3) auto-opens from this state, and ESC/backdrop/Back all
+// close it through the same handler. ?display=wall is wired through to the
+// overview (P8 builds full wall mode on it).
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
@@ -28,6 +29,7 @@ import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView'
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
 import { RoleSwitcher } from '@/Components/CommandCenter/RoleSwitcher';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
+import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { useCommandCenterStore } from '@/stores/commandCenterStore';
 
 const REFRESH_MS = COCKPIT_REFRESH_MS;
@@ -149,6 +151,9 @@ export default function CommandCenter({
               onDrillChange={handleDrillChange}
               wall={wall}
             />
+            {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
+                deep links; closing (ESC, backdrop, ×) clears the URL param. */}
+            <DrillModal domain={drill} onClose={() => handleDrillChange(null)} />
           </ErrorBoundary>
         ) : parsed.ok ? (
           <ErrorBoundary

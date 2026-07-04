@@ -28,3 +28,5 @@ export { AlertTicker } from './AlertTicker';
 export { DomainGrid } from './DomainGrid';
 export { OkrScorecard, okrProgressPct } from './OkrScorecard';
 export { CockpitOverview } from './CockpitOverview';
+// P3 — the A2 drill surface.
+export { DrillModal, type DrillModalProps } from './DrillModal';

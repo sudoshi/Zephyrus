@@ -12,3 +12,11 @@ export async function fetchCockpitSnapshot(): Promise<unknown> {
   const res = await axios.get('/api/cockpit/snapshot');
   return res.data;
 }
+
+// P3 — the per-domain A2 drill payload (spec §3.3). Same unknown-out
+// discipline: DrillModal parses with drillPayloadSchema and degrades to an
+// in-modal error card, never a crash over the cockpit.
+export async function fetchCockpitDrill(domain: string): Promise<unknown> {
+  const res = await axios.get(`/api/cockpit/drill/${encodeURIComponent(domain)}`);
+  return res.data;
+}
