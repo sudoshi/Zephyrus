@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/button';
 import Progress from '@/Components/ui/progress';
@@ -74,7 +74,7 @@ const PDSADashboard = ({ auth }) => {
   };
 
   return (
-    <AuthenticatedLayout user={auth.user}>
+    <DashboardLayout>
       <Head title="PDSA Management" />
       
       <div className="p-4">
@@ -235,7 +235,7 @@ const PDSADashboard = ({ auth }) => {
         open={showCareIssues} 
         onClose={() => setShowCareIssues(false)} 
       />
-    </AuthenticatedLayout>
+    </DashboardLayout>
   );
 };
 

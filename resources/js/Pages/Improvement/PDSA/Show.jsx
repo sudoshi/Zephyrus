@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Progress from '@/Components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/Components/ui/tabs';
 import { ArrowLeft, Pencil } from 'lucide-react';
@@ -30,7 +30,7 @@ const Show = ({ auth, cycle }) => {
   };
 
   return (
-    <AuthenticatedLayout user={auth.user}>
+    <DashboardLayout>
       <Head title={`PDSA Cycle - ${cycle.title}`} />
       
       <div className="p-4">
@@ -166,7 +166,7 @@ const Show = ({ auth, cycle }) => {
           </div>
         </div>
       </div>
-    </AuthenticatedLayout>
+    </DashboardLayout>
   );
 };
 

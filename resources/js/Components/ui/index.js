@@ -7,7 +7,7 @@ export {
   healthcareColorSchemesDark
 } from './NivoThemeProvider';
 
-// Export dark mode context and hook from AuthenticatedLayout
+// Export the shell-level dark mode context and hook
 export { DarkModeContext, useDarkMode } from '@/Contexts/DarkModeContext';
 
 // Export UI components

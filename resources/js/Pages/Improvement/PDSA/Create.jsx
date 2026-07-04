@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import { ArrowLeft, ClipboardList } from 'lucide-react';
 
 /**
@@ -30,7 +30,7 @@ const Create = ({ auth }) => {
   };
 
   return (
-    <AuthenticatedLayout user={auth?.user}>
+    <DashboardLayout>
       <Head title="New PDSA Cycle" />
 
       <div className="p-4">
@@ -101,7 +101,7 @@ const Create = ({ auth }) => {
           </div>
         </form>
       </div>
-    </AuthenticatedLayout>
+    </DashboardLayout>
   );
 };
 

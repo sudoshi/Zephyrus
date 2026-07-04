@@ -1,15 +1,12 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
 
 export default function Index({ auth, users }) {
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="text-xl font-semibold">User Management</h2>}
-        >
+        <DashboardLayout>
             <Head title="User Management" />
 
             <div className="p-4">
@@ -121,6 +118,6 @@ export default function Index({ auth, users }) {
                     </Card>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </DashboardLayout>
     );
 }

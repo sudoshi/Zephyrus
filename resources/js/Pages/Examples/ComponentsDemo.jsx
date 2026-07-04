@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import { FlowbiteThemeProvider, NivoThemeProvider } from '@/Components/ui';
 import { Card, Button, Tabs } from '@/Components/ui/flowbite';
 import { BarChart, LineChart, PieChart } from '@/Components/ui/charts';
@@ -39,10 +39,7 @@ export default function ComponentsDemo({ auth }) {
   );
 
   return (
-    <AuthenticatedLayout
-      user={auth.user}
-      header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Components Demo</h2>}
-    >
+    <DashboardLayout>
       <Head title="Components Demo" />
 
       {/* Wrap the content with the theme providers */}
@@ -185,6 +182,6 @@ export default function ComponentsDemo({ auth }) {
           </div>
         </NivoThemeProvider>
       </FlowbiteThemeProvider>
-    </AuthenticatedLayout>
+    </DashboardLayout>
   );
 }

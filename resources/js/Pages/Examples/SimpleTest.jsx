@@ -1,30 +1,26 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { FlowbiteThemeProvider } from '@/Components/ui';
 import { Card } from '@/Components/ui/flowbite';
 
-export default function SimpleTest({ auth }) {
+export default function SimpleTest() {
   return (
-    <AuthenticatedLayout
-      user={auth.user}
-      header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Simple Test</h2>}
-    >
+    <DashboardLayout>
       <Head title="Simple Test" />
 
-      <div className="py-6">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-            <div className="p-6 text-gray-900 dark:text-gray-100">
-              <FlowbiteThemeProvider>
-                <Card title="Test Card">
-                  <p>This is a test card to see if the Flowbite components are working correctly.</p>
-                </Card>
-              </FlowbiteThemeProvider>
-            </div>
+      <PageContentLayout title="Simple Test">
+        <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark overflow-hidden shadow-sm rounded-lg">
+          <div className="p-6 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            <FlowbiteThemeProvider>
+              <Card title="Test Card">
+                <p>This is a test card to see if the Flowbite components are working correctly.</p>
+              </Card>
+            </FlowbiteThemeProvider>
           </div>
         </div>
-      </div>
-    </AuthenticatedLayout>
+      </PageContentLayout>
+    </DashboardLayout>
   );
 }

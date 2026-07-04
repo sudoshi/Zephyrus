@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
 import InputError from '@/Components/InputError';
 
@@ -23,10 +23,7 @@ export default function Create({ auth }) {
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="text-xl font-semibold">Create User</h2>}
-        >
+        <DashboardLayout>
             <Head title="Create User" />
 
             <div className="p-4">
@@ -167,6 +164,6 @@ export default function Create({ auth }) {
                     </Card>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </DashboardLayout>
     );
 }

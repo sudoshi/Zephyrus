@@ -1,4 +1,5 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
+import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
@@ -6,16 +7,10 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                    Profile
-                </h2>
-            }
-        >
+        <DashboardLayout>
             <Head title="Profile" />
 
-            <div className="p-4">
+            <PageContentLayout title="Profile">
                 <div className="space-y-4">
                     <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm sm:rounded-lg sm:p-6">
                         <UpdateProfileInformationForm
@@ -33,7 +28,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <DeleteUserForm className="max-w-xl" />
                     </div>
                 </div>
-            </div>
-        </AuthenticatedLayout>
+            </PageContentLayout>
+        </DashboardLayout>
     );
 }

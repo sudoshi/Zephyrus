@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Progress from '@/Components/ui/progress';
 import { Plus, Search, ArrowRight } from 'lucide-react';
 
@@ -56,7 +56,7 @@ const Index = ({ auth, cycles = [] }) => {
     });
 
   return (
-    <AuthenticatedLayout user={auth.user}>
+    <DashboardLayout>
       <Head title="PDSA Cycles" />
       
       <div className="p-4">
@@ -169,7 +169,7 @@ const Index = ({ auth, cycles = [] }) => {
           </div>
         </div>
       </div>
-    </AuthenticatedLayout>
+    </DashboardLayout>
   );
 };
 

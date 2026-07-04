@@ -1,4 +1,4 @@
-import RTDCPageLayout from '../RTDCPageLayout';
+import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import DateRangeSelector from '@/Components/Common/DateRangeSelector';

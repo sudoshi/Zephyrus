@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
 import InputError from '@/Components/InputError';
 
@@ -21,10 +21,7 @@ export default function Edit({ auth, user }) {
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="text-xl font-semibold">Edit User</h2>}
-        >
+        <DashboardLayout>
             <Head title="Edit User" />
 
             <div className="p-4">
@@ -163,6 +160,6 @@ export default function Edit({ auth, user }) {
                     </Card>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </DashboardLayout>
     );
 }

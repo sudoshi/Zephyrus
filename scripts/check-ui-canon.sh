@@ -86,11 +86,11 @@ if [ -n "$blur" ]; then
 fi
 
 # 6) Raw Tailwind palette RATCHET: bg/text/border-(gray|red|blue|green|amber|
-#    indigo|slate)-N outside Design/Auth. The 2026-07-04 baseline is 134
+#    indigo|slate)-N outside Design/Auth. The 2026-07-04 baseline is 130
 #    (P3 fixed Components/Modal.jsx's bg-gray-500/75 scrim); the count may only
 #    go DOWN (2.0 success metric C4). Lower the baseline as violations are
 #    fixed; a rising count fails the gate.
-RAW_PALETTE_BASELINE=134
+RAW_PALETTE_BASELINE=130
 raw_count=$(grep -rnE '\b(bg|text|border)-(gray|red|blue|green|amber|indigo|slate)-[0-9]' resources/js --include=*.jsx --include=*.tsx 2>/dev/null \
   | grep -v "/Design/" \
   | grep -v "/Auth/" \

@@ -1,5 +1,4 @@
-import { Head } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import type { KpiMetric } from '@/Components/system';
 import { ShieldAlert, Activity } from 'lucide-react';
@@ -154,16 +153,11 @@ export default function RiskAssessment({
     : 'No active census scored yet';
 
   return (
-    <AuthenticatedLayout
-      header={
-        <h2 className="text-xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark leading-tight">
-          Risk Assessment
-        </h2>
-      }
+    <RTDCPageLayout
+      title="Risk Assessment"
+      subtitle="30-day discharge & readmission risk across the active census"
     >
-      <Head title="Risk Assessment" />
-
-      <div className="p-4 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <Panel className="p-4">
           <div className="flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 mt-0.5 text-healthcare-primary dark:text-healthcare-primary-dark" />
@@ -294,6 +288,6 @@ export default function RiskAssessment({
           </Section>
         </div>
       </div>
-    </AuthenticatedLayout>
+    </RTDCPageLayout>
   );
 }

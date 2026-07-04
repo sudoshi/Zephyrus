@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '@iconify/react';
-import RTDCPageLayout from './RTDCPageLayout';
+import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import generateMockDischargeData from '@/utils/generateMockDischargeData';
 
 const DischargePriorities = (props) => {
