@@ -4,6 +4,7 @@ import type { UnitCensus, StatusLevel } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
 import { EmptyState } from './states';
+import { MeterBar } from '@/Components/cockpit/MeterBar';
 
 // Non-color status cue (the Status-Never-Alone Rule): each level carries a
 // distinct icon shape AND a word, so the capacity read survives grayscale wall
@@ -56,11 +57,8 @@ export function UnitHeatStrip({ units }: { units: UnitCensus[] }) {
               </span>
             </div>
 
-            {/* Per-unit occupancy mini-bar */}
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-healthcare-border dark:bg-healthcare-border-dark">
-              <div className="h-full rounded-full transition-[width] duration-500 ease-out"
-                   style={{ width: `${pct}%`, background: color }} />
-            </div>
+            {/* Per-unit occupancy mini-bar (shared cockpit primitive) */}
+            <MeterBar pct={pct} status={u.status} />
 
             <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {u.occupied}/{u.staffed} beds {'·'} {u.available} open

@@ -4,59 +4,12 @@ import type { KpiMetric } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
 import { Gauge } from './Gauge';
+import { Sparkline } from '@/Components/cockpit/Sparkline';
 
 // All status color flows through STATUS_VAR (the canonical CSS-var palette) so a
 // tile shows exactly one coral, one amber, one teal — never a second near-match
-// from the Tailwind healthcare-* tokens.
-
-function Sparkline({
-  points, color, target, id,
-}: { points: number[]; color: string; target: number | null; id: string }) {
-  if (points.length < 2) return null;
-  const w = 168;
-  const h = 42;
-  const pad = 4;
-  const lo = Math.min(...points, ...(target != null ? [target] : []));
-  const hi = Math.max(...points, ...(target != null ? [target] : []));
-  const span = hi - lo || 1;
-  const project = (p: number, i: number): [number, number] => [
-    pad + (i / (points.length - 1)) * (w - 2 * pad),
-    pad + (1 - (p - lo) / span) * (h - 2 * pad),
-  ];
-  const pts = points.map(project);
-  const line = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const [firstX] = pts[0];
-  const [lastX, lastY] = pts[pts.length - 1];
-  const area = `${line} L${lastX.toFixed(1)},${h - pad} L${firstX.toFixed(1)},${h - pad} Z`;
-  const targetY = target != null ? pad + (1 - (target - lo) / span) * (h - 2 * pad) : null;
-
-  return (
-    <svg
-      className="h-10 w-full overflow-visible"
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      data-testid={`sparkline-${id}`}
-    >
-      <defs>
-        <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#spark-${id})`} stroke="none" />
-      {targetY != null && (
-        <line
-          x1={pad} y1={targetY} x2={w - pad} y2={targetY}
-          className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
-          stroke="currentColor" strokeWidth={1} strokeDasharray="3 2" opacity={0.5}
-        />
-      )}
-      <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={lastX} cy={lastY} r={2.8} fill={color} />
-    </svg>
-  );
-}
+// from the Tailwind healthcare-* tokens. The sparkline lives in the shared
+// cockpit library (Zephyrus 2.0 P0 extraction) — identical rendering.
 
 function DetailVisualization({ metric }: { metric: KpiMetric }) {
   if (!metric.detail) return null;
@@ -169,7 +122,7 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
             </div>
           </div>
           {detailed && metric.detail && metric.trajectory && (
-            <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
+            <Sparkline data={metric.trajectory.points} status={metric.status} target={metric.target} id={metric.key} />
           )}
           {detailed && <DetailVisualization metric={metric} />}
         </>
@@ -186,7 +139,7 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
             )}
           </div>
           {detailed && metric.trajectory && (
-            <Sparkline points={metric.trajectory.points} color={color} target={metric.target} id={metric.key} />
+            <Sparkline data={metric.trajectory.points} status={metric.status} target={metric.target} id={metric.key} />
           )}
           {targetRow}
           {detailed && <DetailVisualization metric={metric} />}

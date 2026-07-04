@@ -3,6 +3,7 @@ import type { Objective } from '@/types/commandCenter';
 import { STATUS_VAR } from './status';
 import { Panel } from './Panel';
 import { EmptyState } from './states';
+import { MeterBar } from '@/Components/cockpit/MeterBar';
 
 export function OkrScoreboard({ objectives }: { objectives: Objective[] }) {
   if (objectives.length === 0) {
@@ -22,10 +23,7 @@ export function OkrScoreboard({ objectives }: { objectives: Objective[] }) {
                     <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{kr.label}</span>
                     <span className="tabular-nums" style={{ color: STATUS_VAR[kr.status] }}>{kr.display}</span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-healthcare-border dark:bg-healthcare-border-dark">
-                    <div data-testid={`kr-progress-${kr.label}`} className="h-full rounded-full"
-                         style={{ width: `${pct}%`, background: STATUS_VAR[kr.status] }} />
-                  </div>
+                  <MeterBar pct={pct} status={kr.status} testId={`kr-progress-${kr.label}`} />
                 </li>
               );
             })}
