@@ -35,5 +35,9 @@ return $builder
         $schedule->job(new \App\Jobs\ReconcileRtdcPredictions)->dailyAt('02:00');
         // Flow Window hourly checkpoints (census + per-space occupancy) — W2.
         $schedule->command('flow:snapshot')->hourly();
+        // Zephyrus 2.0 P1: the ONE server-computed cockpit snapshot —
+        // /api/cockpit/snapshot becomes a pure cache lookup. Requires a
+        // running queue worker + schedule runner in prod.
+        $schedule->job(new \App\Jobs\RefreshCockpitSnapshot)->everyMinute()->withoutOverlapping();
     })
     ->create();

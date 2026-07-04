@@ -7,6 +7,7 @@ use App\Services\Analytics\OperationsAnalyticsService;
 use App\Services\Ops\InterventionAttributionService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -58,11 +59,30 @@ class AgentToolRegistry
         }
 
         return match ($toolKey) {
-            'capacity.snapshot' => $this->capacitySnapshot(),
+            'capacity.snapshot' => $this->cachedCapacitySnapshot(),
             'data_quality.summary' => $this->analytics->dataQuality(),
             'executive_brief.compose' => $this->executiveBrief(),
             default => throw new RuntimeException("Unhandled agent tool [{$toolKey}]."),
         };
+    }
+
+    /**
+     * Single-snapshot discipline (Zephyrus 2.0 P1): the cockpit SnapshotBuilder
+     * embeds this tool's document in the cached cockpit snapshot every minute;
+     * reading it back here means Eddy's worldview and the cockpit are the SAME
+     * numbers — a proposal can never cite stale figures against the alert that
+     * spawned it. Falls back to a live computation when the cache is cold.
+     */
+    private function cachedCapacitySnapshot(): array
+    {
+        $cached = Cache::get(\App\Services\Cockpit\SnapshotBuilder::CACHE_KEY);
+        $capacity = is_array($cached) ? ($cached['capacity'] ?? null) : null;
+
+        if (is_array($capacity) && ($capacity['tool'] ?? null) === 'capacity.snapshot') {
+            return $capacity;
+        }
+
+        return $this->capacitySnapshot();
     }
 
     public function redact(mixed $value): mixed
@@ -81,7 +101,8 @@ class AgentToolRegistry
     }
 
     /** @return array<string,mixed> */
-    private function capacitySnapshot(): array
+    /** Public for the cockpit SnapshotBuilder, which embeds this document. */
+    public function capacitySnapshot(): array
     {
         $capacity = $this->capacity();
         $pendingAdmits = $this->countRows('prod.bed_requests', fn (Builder $query) => $query
