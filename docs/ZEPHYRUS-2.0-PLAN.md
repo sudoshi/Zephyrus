@@ -326,6 +326,49 @@ tightened to reflect them.
 | **D6** | **Wall-mode theme** | **Hard dark-lock by default**, with a documented soft `?theme=` escape hatch for atypical bright-NOC deployments (not advertised in the UI). | Lands P8. |
 | **D7** | **Status enum** | **Add a `CockpitState` type alias** mapping onto the existing `StatusLevel` enum (`critical/warning/success/info/neutral`). **No physical rename** of the ~117 ad-hoc assignments or the 20+ Zod schemas. | Additive, zero-blast-radius. Lands P0. |
 
+## II.3 Post-plan drift (verified against the live tree, 2026-07-03)
+
+The plan was written 2026-06-28. The Hummingbird mobile merge (~32k lines, 280 files) and the
+Reverb/Eddy production enablement landed after it. All Part I–VIII citations were re-verified
+on 2026-07-03 and still hold (routes, band methods, `DashboardContext` mount, CATALOG, canon
+script scope; no P0 work had started). The following **supersede the corresponding passages**
+wherever they conflict:
+
+1. **R9 is resolved.** Prod runs `BROADCAST_CONNECTION=reverb`, proven end-to-end via the
+   Hummingbird realtime badge over `wss://zephyrus.acumenus.net`. Every "silent-drop footgun"
+   cutover item becomes a *verify* step, not a build step.
+2. **Eddy is ENABLED on prod** (`EDDY_ENABLED=true`, 2026-06-28). P6 modifies a live, enabled
+   agent surface — the "ships disabled" framing is stale; the flag remains the rollback lever.
+3. **Mobile paging is conditionally LIVE.** `HummingbirdServiceProvider` binds a real
+   `ApnsPushNotifier` when configured (falling back to `LogPushNotifier`); the approval
+   doorbell is proven on device. P6 alert fan-out will actually page phones → **flap-damping
+   is a hard prerequisite for enabling fan-out, not a P6 nice-to-have.**
+4. **The Altitude model is externally ratified.** `docs/hummingbird/ADR-2026-07-01-altitude-
+   patient-lens.md` accepts the four-altitude model as binding and adds **A2P** (patient/
+   encounter lens) as the deepest *mobile* drill leaf under A2. A shipped native client now
+   consumes the IA — altitude semantics changes have second-client blast radius.
+5. **The mobile BFF is a fifth snapshot consumer.** `MobileAltitudeService` computes its own
+   house rollup from `Barrier`/`BedRequest`/`EvsRequest`/`TransportRequest`/`StaffingRequest`/
+   `Approval` (14 personas in `MobilePersonaCatalog`). Success metric **C9 widens**: one cached
+   `cockpit_snapshots` row read by the Cockpit, Eddy, **and the mobile BFF** (repoint in/after
+   P1). `MobilePersonaCatalog` hardcodes web deep links incl. `house_supervisor →
+   /dashboard/rtdc` — P4a must repoint the catalog's `web` values in the same commit as the
+   redirects, and the P2/P3-before-P4a sequencing (II.1#2) is now load-bearing for a shipped app.
+6. **`CommandCenterDataService` gained a live-bed-board occupancy fallback** (empty census
+   snapshots → direct `prod.units`/`prod.beds` query, "every surface reads the same
+   occupancy"). The P1 `RtdcMetrics` decomposition must preserve this fallback.
+7. **P6 must reconcile with the OperationalEvent pipeline.** `Ops\OperationalEvent` +
+   `OperationalEventAcknowledgement`/`Entity`/`Target` models (over the rtdc operational-events
+   table) now carry an API surface and an acknowledgement flow. P6 must either extend that
+   pipeline or state the boundary explicitly (derived KPI-threshold alerts in `cockpit_alerts`
+   vs. discrete operational events) — never two parallel alert stores.
+
+**Gap pins** (Appendix-A items not folded in by II.1, now assigned): redirect-vs-original
+rollback flag → **P4a**; `CommandCenterDrilldownService` synthetic→real drill tables → **P3
+surfaces the `synthetic` flag, P7 owns the swap**; `ops.metric_values` retention/partition
+policy → **P1** (decide before the per-minute writes start); approver-routing policy
+(`resolveApprover` falls back to the proposing actor) → **P6, blocking for fan-out** given #3.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
