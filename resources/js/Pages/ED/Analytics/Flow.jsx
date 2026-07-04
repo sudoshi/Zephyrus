@@ -1,17 +1,17 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import { TopNavbar } from '@/Components/Navigation/TopNavbar';
+import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PatientFlowNavigator from '@/Components/PatientFlowNavigator/PatientFlowNavigator';
-import { useDarkMode } from '@/hooks/useDarkMode';
 
+// P4b: the hand-rolled TopNavbar shell converged onto the unified
+// DashboardLayout (fullBleed — the 4D navigator needs the uncapped width).
 export default function Flow() {
-    const [isDarkMode, setIsDarkMode] = useDarkMode();
-
     return (
-        <div className="min-h-screen bg-healthcare-background text-healthcare-text-primary dark:bg-healthcare-background-dark dark:text-healthcare-text-primary-dark">
+        <DashboardLayout fullBleed>
             <Head title="Patient Flow - Emergency" />
-            <TopNavbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-            <PatientFlowNavigator initialFloor="1" />
-        </div>
+            <div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                <PatientFlowNavigator initialFloor="1" />
+            </div>
+        </DashboardLayout>
     );
 }

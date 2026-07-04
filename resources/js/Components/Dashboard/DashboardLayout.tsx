@@ -18,7 +18,13 @@ import { TopNavbar } from '@/Components/Navigation/TopNavbar';
 import ChangePasswordModal from '@/Components/ChangePasswordModal';
 import type { PageProps } from '@/types';
 
-const DashboardLayout = ({ children }: { children: ReactNode }) => {
+interface DashboardLayoutProps {
+    children: ReactNode;
+    /** Skip the 1600px content cap — full-bleed surfaces only (4D navigator). */
+    fullBleed?: boolean;
+}
+
+const DashboardLayout = ({ children, fullBleed = false }: DashboardLayoutProps) => {
     const [isDarkMode, setIsDarkMode] = useDarkMode();
     const { auth } = usePage<PageProps>().props;
     const mustChangePassword = Boolean(auth?.user?.must_change_password);
@@ -38,7 +44,11 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                     gutter. Content is capped at --content-max-width (1600px). */}
                 <main
                     id="main-content"
-                    className="max-w-[var(--content-max-width)] mx-auto overflow-x-hidden transition-colors duration-300"
+                    className={
+                        fullBleed
+                            ? 'transition-colors duration-300'
+                            : 'max-w-[var(--content-max-width)] mx-auto overflow-x-hidden transition-colors duration-300'
+                    }
                 >
                     {children}
                 </main>
