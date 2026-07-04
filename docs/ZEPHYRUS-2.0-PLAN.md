@@ -369,6 +369,19 @@ surfaces the `synthetic` flag, P7 owns the swap**; `ops.metric_values` retention
 policy → **P1** (decide before the per-minute writes start); approver-routing policy
 (`resolveApprover` falls back to the proposing actor) → **P6, blocking for fan-out** given #3.
 
+**P1 execution notes (2026-07-04).** The serving layer shipped as SnapshotBuilder v1
+wrapping `CommandCenterDataService::build()` (the sanctioned transition seam — the
+Metrics-class decomposition lands on top without a contract change): `cockpit_snapshots` +
+`cockpit_alerts` (with `hold_count` from day one), `RefreshCockpitSnapshot` every minute,
+`GET /api/cockpit/snapshot` (ETag/304), kpi-definitions GET/PUT (admin-gated, audited), and
+the capacity.snapshot tool reading the shared `cockpit.snapshot` cache (Eddy = cockpit,
+proven by test). **Retention decision (gap pin resolved):** `ops.metric_values` per-minute
+writes have NOT started; they land with the Metrics decomposition, accompanied by a
+**90-day retention prune** (aligned to TREND_DAYS) scheduled daily — the writer and the
+pruner ship in the same commit, never separately. Still open in P1: Metrics decomposition,
+DrillBuilder + Cell grammar, `/cockpit/stream` SSE, Appendix-A seed catalog + demo stubs
+(D5 provenance badges), remaining 4 domains + 7-OKR expansion.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
