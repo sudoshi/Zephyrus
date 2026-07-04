@@ -693,6 +693,77 @@ pending → human approves via existing FSM, EDDY_ENABLED=false still
 suppresses the dock, reverb confirmed in prod env, Pint + canon (≤76) +
 builds green.
 
+**P7 execution notes (2026-07-04).** Every mock domain swapped to a live source
+in six sequential commits (fba4477 WS-1 Flow, cf6f494 WS-2 Staffing, cd24a6e
+WS-3 ED, 514329e WS-4 Periop, 6086396 WS-5 Quality/Service/Financial, e9b9356
+WS-6 sparklines). 4 additive migrations. The MetricValue contract is unchanged
+— zero frontend diff on the tiles. Deviations / findings:
+1. **Flow (WS-1):** `flow.discharge_lounge` had NO source anywhere — new
+   `prod.discharge_lounge_stays` (census = arrived, no departed_at; chair
+   capacity from the manifest, not a constant). `TransportOperationsService::
+   measures()` was an UNBOUNDED full-history event scan — bounded to a trailing
+   7 days + a new precomputed `request_to_pickup_min` end-to-end wait, so
+   `flow.transport_wait` is one real per-request average, not a sum of two
+   stage averages over different populations. `EvsOperationsService::
+   turnaroundStats()` adds avg + p90 dirty→ready.
+2. **Staffing (WS-2):** no time-and-attendance schema existed. New
+   `prod.workforce_actuals` (one row per cost-center per day) feeds BOTH the
+   staffing today-tiles (OT%/agency/callouts/sitters/productivity) AND the
+   WS-5 financial MTD MV — one fact, two altitudes, so hours never disagree.
+   Seed hits the former demo totals exactly (OT 5.2%, agency 14, callouts 9,
+   sitters 7, productivity 96%, premium $182k, contract $96k).
+3. **ED NEDOCS (WS-3):** the marquee was synthetic-until-P7. Now the Weiss
+   (2004) composite via `NedocsService`. The one genuinely-per-visit input is
+   `prod.ed_visits.is_ventilated`; longest-admit-hold + last-bed-time are
+   DERIVED from existing timestamps (storing house aggregates per row would be
+   a normalization error). **Denominator decision:** the manifest's ED
+   `staffed_bed_count=148` overstates physical bays and structurally caps the
+   score — added `nedocs_bed_capacity=50` (physical treatment bays) as the
+   crowding denominator. A 26-patient crowding cohort + 4 ventilated + one
+   active diversion lands the LIVE composite at 147/severe (≈ the demoed 142),
+   boarders unchanged at 5. **TZ footgun fixed:** SQL `now()` minus a naive
+   `timestamp` column skews by the DB session-TZ offset (surfaced as a 4h
+   error on the test connection, would bite prod) — bind PHP `now()` as
+   `?::timestamp` for all elapsed-time math (NedocsService + the drill).
+4. **Periop (WS-4):** `RoomStatusService` emits `suiteName` + `delayMin`; new
+   PACU bay board from or_logs joins (held >75m = boarding, the pacuHoldsAt
+   convention); seeder writes the PACU chain, 4 holds keyed to the ANCHOR OR
+   day (MAX surgery_date), not literal today, so the demo survives weekends.
+   Two-System token fixes on contact: CareJourneyCard purple → healthcare-info,
+   BlockUtilization `text-purple-500` → healthcare-info (6 files),
+   RoomRunningService raw web-color chart hexes → healthcare token hexes.
+5. **Quality/Service/Financial (WS-5):** new `prod.quality_events` +
+   `prod.discharge_facts` ledgers behind three MTD materialized views
+   (`ops.mv_hai_ledger` / `mv_service_line_los` / `mv_cost_center_productivity`),
+   each `(metric_key, value)` with a UNIQUE INDEX (mandatory for REFRESH
+   CONCURRENTLY). `RefreshCockpitMaterializedViews` refreshes hourly
+   (CONCURRENTLY, plain-refresh fallback). **discharge_facts is DELIBERATELY
+   its own table, not columns on prod.encounters** — encounters is the shared
+   census/outcomes spine (readmission, O:E LOS, discharge-before-noon all scan
+   it) and bulk-seeding 1,284 MTD discharges onto it would silently distort
+   those live tiles. Seed reproduces the demo numbers exactly (sepsis 87/92%,
+   hand-hygiene 91%, falls 2.7, CMI 1.62, obs 12.4%, cost/case $11.9k);
+   zero-count HAI metrics keep a 0-value sentinel row so "0 infections" still
+   shows. **D5 consequence:** post-P7 no operational domain is fully demo, so
+   `COCKPIT_HIDE_DEMO_DOMAINS` is now inert on the real domains (kept for a
+   future non-demo deployment; tests updated). Only `ed.los_admit` (fallback)
+   and `okr.hcahps` (external survey) remain demo.
+6. **Sparklines (WS-6):** `MetricTrendReader` builds real sparklines from the
+   `ops.metric_values` history the writer has appended every minute since P1,
+   hourly-DOWN-SAMPLED over an 18h window (raw minute-grain reads flat), capped
+   at 12 points, min 3. `SnapshotContext::trendFor` + BaseMetrics prefer real
+   history, falling back to the legacy synthetic trajectory until enough
+   accrues — strictly additive, retires the crc32+sin/cos sparklines as history
+   fills in. Fail-open (a trend-read hiccup never blanks the snapshot).
+P7 acceptance met on dev: all 8 domains provenance=live with full tile counts,
+NEDOCS 147 marquee crit from live inputs, demo numbers preserved, MVs refresh
+CONCURRENTLY, gates green (PHPUnit 459/1-skip, Vitest 243, tsc, vite, canon
+≤76). **Prod deploy PENDING explicit authorization** — 4 additive migrations
+(`--path` each, never bare `migrate --force`) + `zephyrus:demo-seed`
+(--skip-imports) to populate the new fact tables + refresh the MVs, then
+`systemctl restart php8.5-fpm` (deploy.sh restarts apache only). Without the
+seed the empty MVs would drop the Quality/Financial tiles on prod.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
