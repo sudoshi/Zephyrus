@@ -62,12 +62,12 @@ return [
     | tuned so the Summit demo fires multiple simultaneous alerts
     | (NEDOCS 142 severe, staffing pressure, EVS slow) without lighting
     | the whole wall red — Earned-Red discipline applies to demo data too.
-    | ed.nedocs is here because its input columns don't land on
-    | prod.ed_visits until P7 (Part II.1 #7).
+    | As of P7, ED / Staffing / Flow are fully live; only Quality / Service /
+    | Financial remain demo here until their fact tables + MVs land.
     */
     'demo_values' => [
-        'ed.nedocs' => 142.0,          // severe band (141–180) — the marquee crit
-        'ed.los_admit' => 302.0,       // minutes; just past the 300 warn edge
+        // ed.nedocs is LIVE as of P7 (NedocsService — Weiss composite).
+        'ed.los_admit' => 302.0,       // minutes; just past the 300 warn edge (fallback only)
 
         'quality.sepsis_3hr' => 87.0,  // warn (<90)
         'quality.sepsis_6hr' => 92.0,

@@ -168,6 +168,8 @@ class DrillBuilder
         $board = app(\App\Services\Ed\TreatmentService::class)->build();
         $rows = [];
 
+        $tables = [$this->edOvercrowdingTable()];
+
         foreach (array_slice($board['board'] ?? [], 0, 12) as $patient) {
             $esi = (int) $patient['esiLevel'];
             $rows[] = [
@@ -188,28 +190,108 @@ class DrillBuilder
             'count' => (int) $mix['count'],
         ], $board['acuityMix'] ?? []);
 
-        return [
+        $tables[] = [
+            'caption' => 'Active track board',
+            'columns' => [
+                ['key' => 'room', 'header' => 'Bed', 'align' => 'left'],
+                ['key' => 'complaint', 'header' => 'Chief complaint', 'align' => 'left'],
+                ['key' => 'esi', 'header' => 'ESI', 'align' => 'left'],
+                ['key' => 'los', 'header' => 'LOS', 'align' => 'right'],
+                ['key' => 'provider', 'header' => 'Provider', 'align' => 'left'],
+                ['key' => 'status', 'header' => 'Status', 'align' => 'right'],
+            ],
+            'rows' => $rows,
+        ];
+        $tables[] = [
+            'caption' => 'Acuity mix',
+            'columns' => [
+                ['key' => 'level', 'header' => 'ESI level', 'align' => 'left'],
+                ['key' => 'count', 'header' => 'Patients', 'align' => 'right'],
+            ],
+            'rows' => $acuityRows,
+        ];
+
+        return array_values(array_filter($tables));
+    }
+
+    /**
+     * P7 — the NEDOCS overcrowding board: the live composite + its Weiss
+     * inputs, the ambulance-diversion status chip, and the longest-boarding
+     * clock, so the crit gauge on the wall is explainable in one glance.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function edOvercrowdingTable(): ?array
+    {
+        $nedocs = app(\App\Services\Ed\NedocsService::class);
+        $inputs = $nedocs->inputs();
+
+        if ($inputs === null) {
+            return null;
+        }
+
+        $score = (float) $nedocs->score();
+        $onDiversion = \App\Models\DiversionEvent::query()
+            ->where('is_deleted', false)
+            ->where('started_at', '<', now())
+            ->whereNull('ended_at')
+            ->exists();
+        $longest = $inputs['longest_admit_hrs'];
+
+        $scoreStatus = $score >= 141 ? 'critical' : ($score >= 101 ? 'warning' : 'success');
+        $boardStatus = $longest >= 8 ? 'critical' : ($longest >= 4 ? 'warning' : 'neutral');
+
+        $rows = [
             [
-                'caption' => 'Active track board',
-                'columns' => [
-                    ['key' => 'room', 'header' => 'Bed', 'align' => 'left'],
-                    ['key' => 'complaint', 'header' => 'Chief complaint', 'align' => 'left'],
-                    ['key' => 'esi', 'header' => 'ESI', 'align' => 'left'],
-                    ['key' => 'los', 'header' => 'LOS', 'align' => 'right'],
-                    ['key' => 'provider', 'header' => 'Provider', 'align' => 'left'],
-                    ['key' => 'status', 'header' => 'Status', 'align' => 'right'],
-                ],
-                'rows' => $rows,
+                'signal' => ['v' => 'NEDOCS composite', 'strong' => true],
+                'value' => ['v' => number_format($score).' of 200'],
+                'state' => ['tag' => ['text' => strtolower($nedocs->band($score)), 'status' => $scoreStatus]],
             ],
             [
-                'caption' => 'Acuity mix',
-                'columns' => [
-                    ['key' => 'level', 'header' => 'ESI level', 'align' => 'left'],
-                    ['key' => 'count', 'header' => 'Patients', 'align' => 'right'],
-                ],
-                'rows' => $acuityRows,
+                'signal' => ['v' => 'Ambulance diversion'],
+                'value' => ['v' => $onDiversion ? 'ON' : 'OFF'],
+                'state' => ['tag' => [
+                    'text' => $onDiversion ? 'diverting' : 'accepting',
+                    'status' => $onDiversion ? 'critical' : 'success',
+                ]],
+            ],
+            [
+                'signal' => ['v' => 'Longest admit hold'],
+                'value' => ['v' => $this->hoursLabel($longest)],
+                'state' => ['tag' => [
+                    'text' => $longest >= 4 ? 'boarding' : 'clear',
+                    'status' => $boardStatus,
+                ]],
+            ],
+            [
+                'signal' => ['v' => 'Ventilated in ED'],
+                'value' => ['v' => (string) $inputs['ventilated']],
+            ],
+            [
+                'signal' => ['v' => 'Patients / treatment bays'],
+                'value' => ['v' => $inputs['total_patients'].' / '.$inputs['ed_beds'], 'dim' => true],
             ],
         ];
+
+        return [
+            'caption' => 'ED overcrowding — NEDOCS',
+            'columns' => [
+                ['key' => 'signal', 'header' => 'Signal', 'align' => 'left'],
+                ['key' => 'value', 'header' => 'Value', 'align' => 'right'],
+                ['key' => 'state', 'header' => 'Status', 'align' => 'right'],
+            ],
+            'rows' => $rows,
+        ];
+    }
+
+    /** Fractional hours → "Xh Ym" (or "Ym" under an hour). */
+    private function hoursLabel(float $hours): string
+    {
+        $totalMinutes = (int) round($hours * 60);
+        $h = intdiv($totalMinutes, 60);
+        $m = $totalMinutes % 60;
+
+        return $h > 0 ? "{$h}h {$m}m" : "{$m}m";
     }
 
     /** @return array<string, mixed> */

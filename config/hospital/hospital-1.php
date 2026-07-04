@@ -437,6 +437,11 @@ return [
             'acuity' => 'emergency',
             'type' => 'ed',
             'staffed_bed_count' => 148,
+            // P7: physical ED treatment bays — the NEDOCS crowding denominator.
+            // Distinct from staffed_bed_count (which counts total daily-throughput
+            // capacity, not simultaneous physical spaces); NEDOCS is patients ÷
+            // beds-that-exist-right-now, so it needs the smaller physical number.
+            'nedocs_bed_capacity' => 50,
             'nurse_ratio' => 4.0,
             'atlantic_careunit' => 'EMERGENCY',
             'inpatient' => false,

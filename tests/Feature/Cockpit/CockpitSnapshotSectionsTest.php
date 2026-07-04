@@ -6,6 +6,7 @@ use App\Services\Cockpit\SnapshotBuilder;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,55 @@ class CockpitSnapshotSectionsTest extends TestCase
         parent::setUp();
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $this->seed(CockpitKpiDefinitionSeeder::class);
+        $this->seedEdCrowding();
+    }
+
+    /**
+     * A crowded ED so the LIVE NEDOCS composite (P7 — no longer a demo
+     * constant) lands in the severe band and remains the marquee crit alert:
+     * 60 patients in a 50-bay ED, 4 ventilated, one 8h admit-hold boarder.
+     */
+    private function seedEdCrowding(): void
+    {
+        $cohort = [];
+        for ($i = 1; $i <= 60; $i++) {
+            $cohort[] = [
+                'patient_ref' => sprintf('test-ed-%03d', $i),
+                'arrived_at' => now()->subHours(3),
+                'esi_level' => $i <= 4 ? 1 : 3,
+                'is_ventilated' => $i <= 4,
+                'provider_seen_at' => now()->subHours(2),
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        DB::table('prod.ed_visits')->insert($cohort);
+
+        // One admitted patient still boarding (8h hold) → the admits + longest
+        // admit-hold NEDOCS terms; plus a recently bedded patient for last-bed.
+        DB::table('prod.ed_visits')->insert([
+            'patient_ref' => 'test-ed-boarder',
+            'arrived_at' => now()->subHours(9),
+            'esi_level' => 2,
+            'disposition' => 'admitted',
+            'admit_decision_at' => now()->subHours(8),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('prod.ed_visits')->insert([
+            'patient_ref' => 'test-ed-bedded',
+            'arrived_at' => now()->subHours(4),
+            'esi_level' => 3,
+            'disposition' => 'admitted',
+            'admit_decision_at' => now()->subHours(3),
+            'bed_assigned_at' => now()->subHours(2),
+            'departed_at' => now()->subHour(),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_snapshot_carries_all_spec_sections(): void
@@ -92,12 +142,13 @@ class CockpitSnapshotSectionsTest extends TestCase
 
         $this->assertNotEmpty($payload['alerts']);
 
-        // The seeded NEDOCS 142 demo crit is the marquee alert (Part II.1 #7).
+        // The LIVE NEDOCS composite (P7) is the marquee crit — computed from
+        // the crowded ED fixture, no longer a demo constant.
         $nedocs = collect($payload['alerts'])->firstWhere('key', 'ed.nedocs');
         $this->assertNotNull($nedocs);
         $this->assertSame('crit', $nedocs['status']);
-        $this->assertSame('ED OVERCROWDED — NEDOCS 142', $nedocs['text']);
-        $this->assertSame('demo', $nedocs['provenance'] ?? null);
+        $this->assertStringStartsWith('ED OVERCROWDED — NEDOCS ', $nedocs['text']);
+        $this->assertNull($nedocs['provenance'] ?? null);
 
         // crit-first ordering.
         $statuses = array_column($payload['alerts'], 'status');
@@ -124,7 +175,7 @@ class CockpitSnapshotSectionsTest extends TestCase
         $nedocs = collect($second['alerts'])->firstWhere('key', 'ed.nedocs');
         $this->assertNotNull($nedocs);
         $this->assertSame('crit', $nedocs['status']);
-        $this->assertSame('demo', $nedocs['provenance'] ?? null);
+        $this->assertNull($nedocs['provenance'] ?? null); // live now, not demo
         $this->assertNotNull($nedocs['openedAt'] ?? null);
     }
 
@@ -153,7 +204,7 @@ class CockpitSnapshotSectionsTest extends TestCase
         $payload = app(SnapshotBuilder::class)->build();
 
         $nedocs = collect($payload['domains']['ed']['tiles'])->firstWhere('key', 'ed.nedocs');
-        $this->assertSame('crit', $nedocs['status']); // 142 ≥ crit edge 141
+        $this->assertSame('crit', $nedocs['status']); // live composite ≥ crit edge 141
 
         $handHygiene = collect($payload['domains']['quality']['tiles'])->firstWhere('key', 'quality.hand_hygiene');
         $this->assertSame('ok', $handHygiene['status']); // 91 ≥ ok edge 90 (rationed green)

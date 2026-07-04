@@ -33,11 +33,16 @@ class CockpitMetricValuesTest extends TestCase
         $rows = DB::table('ops.metric_values')->where('grain', MetricValueWriter::GRAIN)->get();
         $this->assertGreaterThan(20, $rows->count());
 
+        // ed.nedocs is live as of P7 — assert it's written with its definition
+        // linkage (its value depends on live ED census, not a fixed constant).
         $nedocs = $rows->firstWhere('metric_key', 'ed.nedocs');
         $this->assertNotNull($nedocs);
-        $this->assertSame('crit', $nedocs->status);
         $this->assertNotNull($nedocs->metric_definition_id);
-        $this->assertSame('demo', json_decode($nedocs->metadata ?? '{}', true)['provenance'] ?? null);
+
+        // A still-demo metric carries provenance through to the history row.
+        $handHygiene = $rows->firstWhere('metric_key', 'quality.hand_hygiene');
+        $this->assertNotNull($handHygiene);
+        $this->assertSame('demo', json_decode($handHygiene->metadata ?? '{}', true)['provenance'] ?? null);
 
         // A second refresh appends history, never replaces it.
         app(SnapshotBuilder::class)->refresh();

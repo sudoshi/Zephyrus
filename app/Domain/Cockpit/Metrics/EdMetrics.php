@@ -3,14 +3,16 @@
 namespace App\Domain\Cockpit\Metrics;
 
 use App\Domain\Cockpit\SnapshotContext;
+use App\Services\Cockpit\StatusEngine;
+use App\Services\Ed\NedocsService;
 use App\Support\Cockpit\MetricValue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Emergency Department (spec §2.3). LIVE except ed.nedocs — its inputs
- * (vent_pts / longest_admit_wait / last_bed_time) don't exist on
- * prod.ed_visits until P7, so NEDOCS is a seeded demo value (Part II.1 #7).
+ * Emergency Department (spec §2.3). FULLY LIVE as of P7: ed.nedocs is the
+ * Weiss composite computed by NedocsService from live census + the manifest
+ * bed capacities + the is_ventilated flag (was a seeded demo constant).
  *
  * D2P / LWBS / boarders / LOS-discharged come from the legacy payload;
  * in-department, waiting, and admitted-LOS are one COUNT-FILTER query and
@@ -19,6 +21,13 @@ use Illuminate\Support\Facades\DB;
  */
 class EdMetrics extends BaseMetrics
 {
+    public function __construct(
+        StatusEngine $engine,
+        private readonly NedocsService $nedocs,
+    ) {
+        parent::__construct($engine);
+    }
+
     public function domain(): string
     {
         return 'ed';
@@ -63,9 +72,11 @@ class EdMetrics extends BaseMetrics
 
         $losAdmitMin = $losAdmit->med_min !== null ? (float) $losAdmit->med_min : null;
 
+        $nedocs = $this->nedocs->score();
+
         return $this->compact([
-            $this->demo($ctx, 'ed.nedocs', [
-                'sub' => '142 of 200 — severe',
+            $nedocs === null ? null : $this->fromKey($ctx, 'ed.nedocs', $nedocs, [
+                'sub' => number_format($nedocs).' of 200 — '.strtolower($this->nedocs->band($nedocs)),
             ]),
             $this->fromKey($ctx, 'ed.in_dept', (float) ($counts->in_dept ?? 0)),
             $this->fromKey($ctx, 'ed.waiting', (float) ($counts->waiting ?? 0)),

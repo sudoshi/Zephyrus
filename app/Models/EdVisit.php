@@ -21,6 +21,7 @@ class EdVisit extends Model
         'admit_decision_at' => 'datetime',
         'bed_assigned_at' => 'datetime',
         'departed_at' => 'datetime',
+        'is_ventilated' => 'boolean',
         'is_deleted' => 'boolean',
     ];
 

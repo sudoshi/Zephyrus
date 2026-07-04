@@ -1351,6 +1351,34 @@ class CommandCenterDemoSeeder extends Seeder
                 'is_deleted' => false,
             ]);
         }
+
+        // P7: a crowding cohort so the LIVE NEDOCS composite lands in the
+        // severe band (~142, matching the retired demo constant). 26 patients
+        // currently in the department (none admitted → boarders unchanged),
+        // 8 still waiting for a provider, 4 on ventilators. These raise the
+        // total-patients and ventilator NEDOCS terms from real rows.
+        for ($k = 1; $k <= 26; $k++) {
+            $seed = 20260701 + $k * 17;
+            $arrivedAt = now()->subMinutes($this->seededRand($seed, 20, 360));
+            $waiting = $k <= 8; // first 8 have no provider yet
+            $ventilated = $k <= 4; // 4 critical, on vents
+            $triagedAt = $arrivedAt->copy()->addMinutes($this->seededRand($seed + 1, 3, 10));
+
+            EdVisit::create([
+                'patient_ref' => sprintf('sim-ed-crowd-%02d', $k),
+                'arrived_at' => $arrivedAt,
+                'triaged_at' => $triagedAt,
+                'esi_level' => $ventilated ? 1 : ($waiting ? 3 : 2),
+                'is_ventilated' => $ventilated,
+                'provider_seen_at' => $waiting ? null : $triagedAt->copy()->addMinutes($this->seededRand($seed + 2, 5, 20)),
+                'disposition' => null, // still in ED, undispositioned
+                'admit_decision_at' => null,
+                'bed_assigned_at' => null,
+                'departed_at' => null,
+                'unit_id' => null,
+                'is_deleted' => false,
+            ]);
+        }
     }
 
     private function seedOrDomain(): void
@@ -1982,7 +2010,9 @@ class CommandCenterDemoSeeder extends Seeder
             return;
         }
 
-        // 2 historical events last week, both ended (no active diversions).
+        // 2 historical events last week (both ended) + 1 ACTIVE ED diversion
+        // (P7) so the live diversion chip lights and ed.diversion reads ON —
+        // consistent with the severe NEDOCS the crowding cohort produces.
         $events = [
             [
                 'started_at' => now()->subDays(6)->setTime(14, 30),
@@ -1993,6 +2023,11 @@ class CommandCenterDemoSeeder extends Seeder
                 'started_at' => now()->subDays(3)->setTime(20, 0),
                 'ended_at' => now()->subDays(3)->setTime(23, 30),
                 'reason' => 'sim: Trauma activation — capacity exceeded',
+            ],
+            [
+                'started_at' => now()->subHours(2)->subMinutes(20),
+                'ended_at' => null,
+                'reason' => 'sim: ED overcrowding — NEDOCS severe, no treatment spaces',
             ],
         ];
 
