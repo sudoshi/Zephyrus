@@ -544,6 +544,43 @@ green (ratchet ≤134 holds). E2E `navigation.spec.ts` updated to assert the red
 targets. `ChangePasswordModal` app-wide is NOT claimed — that acceptance line
 belongs to P4b's shell convergence. P4a acceptance otherwise met in full.
 
+**P4b execution notes (2026-07-04).** One shell renders every authenticated page;
+`ChangePasswordModal` is app-wide. Four smoke-gated batches on `main` (0bc34d1,
+99b51ca, 8278266, 0c434e1), each green on tsc + vite + Vitest + `RouteSmokeTest`
+before the next. Deviations / findings:
+1. **The shell map was better than feared:** `RTDCPageLayout` and `TransportLayout`
+   already delegated to `DashboardLayout`, so the real convergence was
+   AnalyticsLayout (5 pages) + AuthenticatedLayout (12 pages) + two hand-rolled
+   TopNavbar shells nobody had counted (`RTDC/PatientFlowNavigator`,
+   `ED/Analytics/Flow`). Final state: `DashboardLayout` (now `.tsx`, typed) is the
+   ONE shell; RTDC/Transport/Analytics layouts are thin chrome wrappers over it.
+2. **Shell-level ChangePasswordModal + latent dark-mode bug fixed together.**
+   The modal mounts in `DashboardLayout` gated on `must_change_password` (an
+   addition — AuthenticatedLayout is untouched per `.claude/rules/auth-system.md`,
+   it just has zero page consumers now). The `useDarkMode`/`DarkModeContext`
+   exported from AuthenticatedLayout had 13 importers (Flowbite/Nivo theme
+   providers, Process components) that rendered PROVIDER-LESS under
+   DashboardLayout and silently got `isDarkMode: false`; they now read the
+   shell-owned `Contexts/DarkModeContext.tsx`. Skip-to-content + `#main-content`
+   moved to the shell too — 50 pages gained the a11y chrome.
+3. **`fullBleed` shell variant** absorbs the two hand-rolled navigator shells
+   (they skip only the 1600px cap, keeping modal/skip-link/context). P8's wall
+   mode should extend the same prop pattern, not fork the shell.
+4. **Duplicate `Pages/RTDC/RTDCPageLayout.jsx` deleted** (near-identical twin of
+   `Components/RTDC/RTDCPageLayout.jsx`, 2 consumers repointed). RiskAssessment
+   joined its Predictions siblings on RTDCPageLayout; redundant per-page header
+   bands consolidated into page titles / PageContentLayout.
+5. **Known dead files left for P5** (its dead-component sweep):
+   `Improvement/PDSA/PDSACycleManagementPage.jsx` (unrouted, unimported);
+   AuthenticatedLayout's legacy Google-Fonts injection (Crimson Pro/IBM Plex —
+   canon-rejected) is now unreachable at runtime and dies if that file is ever
+   retired with user authorization.
+**Prod state:** deployed 2026-07-04. Gates: PHPUnit 421 passed / 1 pre-existing
+skip, Vitest 229/229 (new `DashboardLayout.test.tsx` pins the shell-level modal
+mount + skip link), RouteSmoke 81/81 after every batch, canon green with the
+raw-palette ratchet LOWERED 134 → 130 (migrations removed legacy gray/white
+surfaces). P4b acceptance met in full.
+
 ---
 
 # Part III — Product Cohesion & Information Architecture
