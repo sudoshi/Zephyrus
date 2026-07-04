@@ -119,6 +119,19 @@ export const cockpitDomainSchema = z.object({
 });
 export type CockpitDomain = z.infer<typeof cockpitDomainSchema>;
 
+// Spec §3.3 drill payload — what GET /api/cockpit/drill/{domain} returns and
+// the P3 DrillModal consumes. Tables are the §6.4 Cell grammar (DataTable).
+export const drillPayloadSchema = z.object({
+  domain: z.string(),
+  title: z.string(),
+  sub: z.string().nullable(),
+  asOf: z.string(),
+  kpis: z.array(cockpitMetricValueSchema),
+  tables: z.array(drillTableSchema),
+  drilldownHref: z.string(),
+});
+export type DrillPayload = z.infer<typeof drillPayloadSchema>;
+
 export const cockpitSnapshotSectionsSchema = z.object({
   asOf: z.string(),
   facility: z.object({

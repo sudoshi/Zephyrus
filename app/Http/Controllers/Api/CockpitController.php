@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cockpit\CockpitSnapshot;
 use App\Models\Ops\MetricDefinition;
+use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,22 @@ class CockpitController extends Controller
 
         return response()->json($snapshot->payload)
             ->withHeaders(['ETag' => $etag, 'Cache-Control' => 'private, no-cache']);
+    }
+
+    /**
+     * Per-domain drill payload (spec §3.3, §6.4 Cell grammar). 404 for an
+     * unknown domain or one hidden by COCKPIT_HIDE_DEMO_DOMAINS (D5).
+     */
+    public function drill(string $domain, DrillBuilder $drills): JsonResponse
+    {
+        $payload = $drills->build($domain);
+
+        if ($payload === null) {
+            return response()->json(['message' => 'Unknown cockpit domain'], 404);
+        }
+
+        return response()->json($payload)
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
     public function kpiDefinitions(): JsonResponse

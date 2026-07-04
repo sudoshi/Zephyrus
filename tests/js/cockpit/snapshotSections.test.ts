@@ -3,7 +3,7 @@
 // without fallback.
 import { describe, expect, it } from 'vitest';
 
-import { cockpitSnapshotSectionsSchema } from '@/types/cockpit';
+import { cockpitSnapshotSectionsSchema, drillPayloadSchema } from '@/types/cockpit';
 
 const metricValue = (key: string, status = 'normal', metadata?: Record<string, unknown>) => ({
   key,
@@ -78,5 +78,52 @@ describe('cockpitSnapshotSectionsSchema', () => {
     };
 
     expect(() => cockpitSnapshotSectionsSchema.parse(bad)).toThrow();
+  });
+});
+
+describe('drillPayloadSchema', () => {
+  it('parses a drill payload exercising every Cell shape', () => {
+    const drill = {
+      domain: 'rtdc',
+      title: 'Real-Time Demand & Capacity — Unit Capacity Board',
+      sub: 'House occupancy 87%',
+      asOf: '2026-07-04T12:00:00+00:00',
+      kpis: [metricValue('rtdc.occupancy', 'warn')],
+      drilldownHref: '/api/command-center/drilldown',
+      tables: [
+        {
+          caption: 'Unit capacity board',
+          columns: [
+            { key: 'unit', header: 'Unit', align: 'left' },
+            { key: 'occupancy', header: 'Occupancy' },
+            { key: 'status', header: '', align: 'right', note: 'worst status' },
+          ],
+          rows: [
+            {
+              unit: { v: 'ICU', strong: true },
+              type: { v: 'Critical', dim: true },
+              staffed: 20,
+              note: 'plain string cell',
+              occupancy: { bar: { pct: 90, status: 'critical', label: '90%' } },
+              esi: { tag: { text: 'ESI 1', status: 'critical' } },
+              status: { chip: 'warning' },
+            },
+          ],
+        },
+      ],
+    };
+
+    const parsed = drillPayloadSchema.parse(drill);
+    expect(parsed.tables[0].rows[0].occupancy).toEqual({ bar: { pct: 90, status: 'critical', label: '90%' } });
+  });
+
+  it('rejects a logical state inside a Cell — cells speak canon only', () => {
+    const bad = {
+      caption: 'x',
+      columns: [{ key: 'status', header: '' }],
+      rows: [{ status: { chip: 'crit' } }],
+    };
+
+    expect(() => drillPayloadSchema.shape.tables.element.parse(bad)).toThrow();
   });
 });
