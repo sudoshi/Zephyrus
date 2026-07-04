@@ -755,14 +755,24 @@ WS-6 sparklines). 4 additive migrations. The MetricValue contract is unchanged
    history, falling back to the legacy synthetic trajectory until enough
    accrues — strictly additive, retires the crc32+sin/cos sparklines as history
    fills in. Fail-open (a trend-read hiccup never blanks the snapshot).
-P7 acceptance met on dev: all 8 domains provenance=live with full tile counts,
-NEDOCS 147 marquee crit from live inputs, demo numbers preserved, MVs refresh
+P7 acceptance met: all 8 domains provenance=live with full tile counts, NEDOCS
+marquee crit from live inputs, demo numbers preserved, MVs refresh
 CONCURRENTLY, gates green (PHPUnit 459/1-skip, Vitest 243, tsc, vite, canon
-≤76). **Prod deploy PENDING explicit authorization** — 4 additive migrations
-(`--path` each, never bare `migrate --force`) + `zephyrus:demo-seed`
-(--skip-imports) to populate the new fact tables + refresh the MVs, then
-`systemctl restart php8.5-fpm` (deploy.sh restarts apache only). Without the
-seed the empty MVs would drop the Quality/Financial tiles on prod.
+≤76). **DEPLOYED TO PROD 2026-07-04** (user-approved): ./deploy.sh (×2, apache)
++ the 4 additive migrations each via `--path --force` (never bare `migrate
+--force`) + `zephyrus:demo-seed --skip-imports` (populated quality_events 440 /
+discharge_facts 1284 / workforce_actuals 744 + refreshed the 3 MVs) +
+`systemctl restart php8.5-fpm`. Prod verified in-process: all 8 domains live,
+NEDOCS 150/severe with the served alert carrying action=propose_surge_plan,
+`/dashboard` + `/api/cockpit/snapshot` + `/api/cockpit/drill/ed` all 200.
+**Post-deploy fix (b508df9):** NEDOCS first read 135/overcrowded on prod (vs
+147 on dev) because the `hospital_beds` term used the LIVE house-census staffed
+count, which on prod reported 648 (census data exceeding the 500 licensed beds)
+and deflated the admits ratio — the Weiss "number of hospital beds" is the
+facility's FIXED bed capacity, so NedocsService now uses manifest
+licensed_beds (500), stable across environments, and the crowding cohort grew
+26→34 to carry the score against the correct larger denominator (both land
+~150/severe). Re-deployed + re-seeded.
 
 ---
 
