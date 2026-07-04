@@ -75,8 +75,6 @@ return [
         'staffing.sitters' => 7.0,
         'staffing.productivity' => 96.0,
 
-        'flow.discharge_lounge' => 6.0, // occupied of 10
-
         'quality.sepsis_3hr' => 87.0,  // warn (<90)
         'quality.sepsis_6hr' => 92.0,
         'quality.hand_hygiene' => 91.0, // ok (rationed green — explicitly on target)

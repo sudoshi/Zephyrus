@@ -113,6 +113,12 @@ class CommandCenterDemoSeeder extends Seeder
         $this->seedEvsBacklog($nonEdUnits);
 
         // ----------------------------------------------------------------
+        // 4c-ii. Discharge-lounge stays (P7) — live census for the
+        //        flow.discharge_lounge tile: 6 in the lounge, 4 picked up.
+        // ----------------------------------------------------------------
+        $this->seedDischargeLoungeStays($nonEdUnits);
+
+        // ----------------------------------------------------------------
         // 4d. Transport backlog — several active moves with stat/overdue
         //     requests so the "transport queue is overloaded" demo signal,
         //     transport SLA-risk recommendation, and dispatch board are real.
@@ -840,6 +846,74 @@ class CommandCenterDemoSeeder extends Seeder
                 'source' => 'demo-seeder',
                 'occurred_at' => now()->subMinutes(90 - $i * 5),
                 'created_at' => now(),
+            ]);
+        }
+
+        // P7: completed bed turns earlier today — the live flow.bed_turnaround
+        // avg/p90 computes from these (avg ≈52 min lands in the warn band, so
+        // the "EVS turnaround is behind" signal is EARNED from data, not a
+        // demo constant). Spans are deterministic: 38..73 min stepping 5.
+        foreach (range(0, 7) as $i) {
+            $unit = $nonEdUnits->get($i % $nonEdUnits->count());
+            $spanMinutes = 38 + $i * 5;
+            $completedAt = now()->startOfDay()->addHours(6)->addMinutes($i * 85);
+
+            DB::table('prod.evs_requests')->insert([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => $i % 2 === 0 ? 'discharge_turnover' : 'bed_clean',
+                'priority' => 'routine',
+                'status' => 'completed',
+                'unit_id' => $unit->unit_id,
+                'location_label' => $unit->abbreviation.'-C'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT),
+                'turn_type' => 'standard',
+                'isolation_required' => false,
+                'requested_by' => 'demo-seeder',
+                'requested_at' => $completedAt->copy()->subMinutes($spanMinutes),
+                'needed_at' => $completedAt->copy()->subMinutes(max(5, $spanMinutes - 45)),
+                'assigned_at' => $completedAt->copy()->subMinutes($spanMinutes - 8),
+                'started_at' => $completedAt->copy()->subMinutes(max(10, $spanMinutes - 18)),
+                'completed_at' => $completedAt,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * P7 (Flow) — the discharge-lounge census source. Six patients currently
+     * in the lounge (of 10 chairs) plus a few picked up earlier today, so
+     * flow.discharge_lounge computes live from prod.discharge_lounge_stays.
+     */
+    private function seedDischargeLoungeStays($nonEdUnits): void
+    {
+        if (! Schema::hasTable('prod.discharge_lounge_stays') || $nonEdUnits->isEmpty()) {
+            return;
+        }
+
+        DB::table('prod.discharge_lounge_stays')->where('patient_ref', 'like', 'sim-lounge-%')->delete();
+
+        $modes = ['family_ride', 'medical_car', 'wheelchair_van', 'rideshare'];
+
+        foreach (range(0, 9) as $i) {
+            $unit = $nonEdUnits->get($i % $nonEdUnits->count());
+            $departed = $i >= 6; // rows 6..9 already picked up earlier today
+            $arrivedAt = $departed
+                ? now()->startOfDay()->addHours(8)->addMinutes($i * 40)
+                : now()->subMinutes(25 + $i * 30);
+
+            DB::table('prod.discharge_lounge_stays')->insert([
+                'stay_uuid' => (string) Str::uuid(),
+                'patient_ref' => sprintf('sim-lounge-%04d', $i + 1),
+                'unit_id' => $unit->unit_id,
+                'origin_unit_label' => $unit->abbreviation,
+                'arrived_at' => $arrivedAt,
+                'expected_pickup_at' => $arrivedAt->copy()->addMinutes(90),
+                'departed_at' => $departed ? $arrivedAt->copy()->addMinutes(55 + $i * 7) : null,
+                'departure_mode' => $departed ? $modes[$i % count($modes)] : null,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

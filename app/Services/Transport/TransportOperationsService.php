@@ -14,6 +14,9 @@ class TransportOperationsService
 {
     public function __construct(private readonly HospitalManifest $hospital) {}
 
+    /** Trailing window for measures() — operational averages, not archives. */
+    public const MEASURE_WINDOW_DAYS = 7;
+
     public const ACTIVE_STATUSES = [
         'requested',
         'accepted',
@@ -91,13 +94,21 @@ class TransportOperationsService
      * lifecycle, pivoted per transport_request_id. Deterministic and safe on
      * empty tables (every aggregate guards against division by zero / nulls).
      *
+     * P7: bounded to the trailing MEASURE_WINDOW_DAYS — these are operational
+     * "how are we running" measures, and an unbounded scan re-averaged the
+     * entire event history on every call (cost grows forever, and month-old
+     * transports have no business moving today's wait number).
+     *
      * @return list<array{key: string, label: string, value: float|int|null, unit: string, caption: string}>
      */
     public function measures(): array
     {
+        $windowStart = Carbon::now()->subDays(self::MEASURE_WINDOW_DAYS);
+
         $events = TransportEvent::query()
             ->whereIn('transport_request_id', TransportRequest::query()
                 ->where('is_deleted', false)
+                ->where('requested_at', '>=', $windowStart)
                 ->select('transport_request_id'))
             ->orderBy('occurred_at')
             ->get(['transport_request_id', 'event_type', 'payload', 'occurred_at']);
@@ -106,6 +117,7 @@ class TransportOperationsService
 
         $requestToAssign = [];
         $dispatchToPickup = [];
+        $requestToPickup = [];
         $pickupToDestination = [];
         $completedCount = 0;
         $completedWithNotReady = 0;
@@ -125,6 +137,13 @@ class TransportOperationsService
             if ($enRouteAt !== null && $arrivedAt !== null && $arrivedAt->gte($enRouteAt)) {
                 $dispatchToPickup[] = $enRouteAt->diffInMinutes($arrivedAt);
             }
+            // P7: the single end-to-end patient wait (request → porter at
+            // bedside), measured per request — NOT the sum of the two stage
+            // averages, which double-counts nothing but averages different
+            // request populations.
+            if ($requestedAt !== null && $arrivedAt !== null && $arrivedAt->gte($requestedAt)) {
+                $requestToPickup[] = $requestedAt->diffInMinutes($arrivedAt);
+            }
             if ($arrivedAt !== null && $completedAt !== null && $completedAt->gte($arrivedAt)) {
                 $pickupToDestination[] = $arrivedAt->diffInMinutes($completedAt);
             }
@@ -141,7 +160,10 @@ class TransportOperationsService
             }
         }
 
-        $nonDeleted = TransportRequest::query()->where('is_deleted', false)->get(['assigned_team', 'status']);
+        $nonDeleted = TransportRequest::query()
+            ->where('is_deleted', false)
+            ->where('requested_at', '>=', $windowStart)
+            ->get(['assigned_team', 'status']);
         $totalRequests = $nonDeleted->count();
         $vendorAssigned = $nonDeleted->filter(fn (TransportRequest $request) => $this->isVendorTeam($request->assigned_team))->count();
         $canceled = $nonDeleted->where('status', 'canceled')->count();
@@ -163,6 +185,13 @@ class TransportOperationsService
                 'value' => $this->avgMinutes($dispatchToPickup),
                 'unit' => 'min',
                 'caption' => count($dispatchToPickup).' en route',
+            ],
+            [
+                'key' => 'request_to_pickup_min',
+                'label' => 'Request-to-pickup minutes',
+                'value' => $this->avgMinutes($requestToPickup),
+                'unit' => 'min',
+                'caption' => count($requestToPickup).' picked up',
             ],
             [
                 'key' => 'pickup_to_destination_min',

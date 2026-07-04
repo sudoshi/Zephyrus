@@ -3,21 +3,21 @@
 namespace App\Domain\Cockpit\Metrics;
 
 use App\Domain\Cockpit\SnapshotContext;
-use App\Models\Evs\EvsRequest;
+use App\Models\Flow\DischargeLoungeStay;
 use App\Models\Transport\TransportRequest;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
-use Illuminate\Support\Carbon;
+use App\Support\Hospital\HospitalManifest;
 
 /**
- * Patient flow & transport (spec §2.6). PARTIAL-LIVE per the plan:
- * DBN from the legacy payload; queue depth / waits from
- * TransportOperationsService; dirty beds from EvsOperationsService; bed
- * turnaround from today's completed EVS bed turns; discharge lounge is demo
- * until a lounge source exists (P7).
+ * Patient flow & transport (spec §2.6). LIVE as of P7: DBN from the legacy
+ * payload (prod.encounters); queue depth / end-to-end wait from
+ * TransportOperationsService; dirty beds + bed turnaround (avg/p90) from
+ * EvsOperationsService; discharge lounge census from
+ * prod.discharge_lounge_stays (chair capacity from the hospital manifest).
  */
 class FlowMetrics extends BaseMetrics
 {
@@ -26,6 +26,7 @@ class FlowMetrics extends BaseMetrics
         private readonly TransportOperationsService $transport,
         private readonly EvsOperationsService $evs,
         private readonly DashboardService $dashboard,
+        private readonly HospitalManifest $manifest,
     ) {
         parent::__construct($engine);
     }
@@ -43,15 +44,22 @@ class FlowMetrics extends BaseMetrics
         $dirtyBeds = $this->count(
             fn (): int => (int) ($this->evs->overview()['metrics']['dirty_bed_turnovers'] ?? 0)
         );
+        $turnaround = $this->turnaround();
+        $lounge = $this->count(fn (): int => DischargeLoungeStay::active()->count());
+        $loungeChairs = $this->manifest->facility()['discharge_lounge_chairs'] ?? null;
 
         $bottlenecks = $this->bottleneckStats();
 
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
-            $this->demo($ctx, 'flow.discharge_lounge', ['sub' => 'of 10 lounge chairs']),
+            $lounge === null ? null : $this->fromKey($ctx, 'flow.discharge_lounge', (float) $lounge, [
+                'sub' => $loungeChairs !== null ? "of {$loungeChairs} lounge chairs" : null,
+            ]),
             $transportQueue === null ? null : $this->fromKey($ctx, 'flow.transport_queue', (float) $transportQueue),
             $transportWait === null ? null : $this->fromKey($ctx, 'flow.transport_wait', $transportWait),
-            $this->fromKey($ctx, 'flow.bed_turnaround', $this->bedTurnaround()),
+            $turnaround === null ? null : $this->fromKey($ctx, 'flow.bed_turnaround', $turnaround['avg'], [
+                'sub' => $turnaround['sub'],
+            ]),
             $dirtyBeds === null ? null : $this->fromKey($ctx, 'flow.dirty_beds', (float) $dirtyBeds),
             // P5: the PI crown jewel at A0 — the 5 live bottleneck signals
             // (long-stay, OR turnover, blocked beds, at-risk transports,
@@ -92,8 +100,8 @@ class FlowMetrics extends BaseMetrics
     }
 
     /**
-     * Request → pickup: the sum of the request-to-assign and
-     * dispatch-to-pickup measure averages (spec §2.6 definition).
+     * Request → pickup: the precomputed end-to-end elapsed measure (P7) —
+     * one average over real per-request waits, not a sum of stage averages.
      */
     private function transportWait(): ?float
     {
@@ -103,27 +111,35 @@ class FlowMetrics extends BaseMetrics
             return null;
         }
 
-        $toAssign = $measures->get('request_to_assign_min')['value'] ?? null;
-        $toPickup = $measures->get('dispatch_to_pickup_min')['value'] ?? null;
+        $wait = $measures->get('request_to_pickup_min')['value'] ?? null;
 
-        if ($toAssign === null && $toPickup === null) {
+        return $wait !== null ? round((float) $wait, 1) : null;
+    }
+
+    /**
+     * Today's completed bed-turn stats from the EVS service (P7): the tile
+     * shows the average, the sub carries the p90 tail.
+     *
+     * @return array{avg: float, sub: string|null}|null
+     */
+    private function turnaround(): ?array
+    {
+        try {
+            $stats = $this->evs->turnaroundStats();
+        } catch (\Throwable) {
             return null;
         }
 
-        return round((float) ($toAssign ?? 0) + (float) ($toPickup ?? 0), 1);
-    }
+        if ($stats['avg_min'] === null) {
+            return null;
+        }
 
-    /** Average dirty→ready minutes over today's completed bed turns. */
-    private function bedTurnaround(): ?float
-    {
-        $avg = EvsRequest::query()
-            ->whereIn('request_type', ['bed_clean', 'discharge_turnover'])
-            ->where('status', 'completed')
-            ->whereDate('completed_at', Carbon::today())
-            ->selectRaw('AVG(EXTRACT(EPOCH FROM completed_at - requested_at) / 60) AS avg_min')
-            ->value('avg_min');
-
-        return $avg !== null ? round((float) $avg) : null;
+        return [
+            'avg' => $stats['avg_min'],
+            'sub' => $stats['p90_min'] !== null
+                ? "p90 {$stats['p90_min']} min · {$stats['completed']} turns"
+                : null,
+        ];
     }
 
     private function count(callable $fn): ?int

@@ -22,6 +22,9 @@ return [
         'region' => 'Mid-Atlantic',
         'type' => 'Level I Trauma Academic Medical Center',
         'licensed_beds' => 500,
+        // P7: physical capacities the cockpit needs as denominators — the
+        // manifest owns the building, the fact tables own the patients.
+        'discharge_lounge_chairs' => 10,
         'cad_facility_code' => 'ZEPHYRUS-500',
         'tagline' => 'Operations Bridge',
     ],

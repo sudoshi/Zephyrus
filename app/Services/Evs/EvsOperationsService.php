@@ -71,6 +71,41 @@ class EvsOperationsService
         ];
     }
 
+    /**
+     * P7 (Flow) — dirty→ready bed-turnaround stats over today's completed bed
+     * turns. Clock runs request→completed (the bed is out of service the whole
+     * time, including the wait for EVS to arrive — that wait IS the problem
+     * the metric exists to surface). One aggregate query; p90 rides along so
+     * the cockpit tile can show the tail, not just the average.
+     *
+     * @return array{avg_min: float|null, p90_min: float|null, completed: int}
+     */
+    public function turnaroundStats(): array
+    {
+        $row = DB::selectOne(
+            "SELECT
+                 COUNT(*) AS completed,
+                 AVG(EXTRACT(EPOCH FROM completed_at - requested_at) / 60) AS avg_min,
+                 percentile_cont(0.9) WITHIN GROUP (
+                     ORDER BY EXTRACT(EPOCH FROM completed_at - requested_at) / 60
+                 ) AS p90_min
+             FROM prod.evs_requests
+             WHERE is_deleted = false
+               AND status = 'completed'
+               AND request_type IN ('bed_clean', 'discharge_turnover')
+               AND completed_at IS NOT NULL
+               AND completed_at >= ?
+               AND completed_at >= requested_at",
+            [Carbon::today()->toDateTimeString()]
+        );
+
+        return [
+            'avg_min' => $row->avg_min !== null ? round((float) $row->avg_min) : null,
+            'p90_min' => $row->p90_min !== null ? round((float) $row->p90_min) : null,
+            'completed' => (int) ($row->completed ?? 0),
+        ];
+    }
+
     public function create(array $data, ?int $actorUserId): EvsRequest
     {
         return DB::transaction(function () use ($data, $actorUserId): EvsRequest {
