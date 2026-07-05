@@ -170,6 +170,7 @@ export default function NavigatorToolbar({
             <input
               id={id}
               type="checkbox"
+              role="switch"
               checked={layers[key]}
               onChange={(event) => onLayerChange(key, event.target.checked)}
             />
