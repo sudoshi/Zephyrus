@@ -13,7 +13,7 @@
 // the DrillModal (P3) auto-opens from this state, and ESC/backdrop/Back all
 // close it through the same handler. ?display=wall is wired through to the
 // overview (P8 builds full wall mode on it).
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
@@ -28,7 +28,7 @@ import {
 } from '@/types/cockpit';
 import { isPatientContextRef } from '@/types/patientLens';
 import { useEddyStore } from '@/stores/eddyStore';
-import { COCKPIT_REFRESH_MS, useCockpitSnapshot } from '@/features/cockpit/hooks';
+import { COCKPIT_REFRESH_MS, useCockpitFace, useCockpitSnapshot } from '@/features/cockpit/hooks';
 import { useLiveCockpit } from '@/features/cockpit/live';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
@@ -119,6 +119,11 @@ export default function CommandCenter({
   // line). Read once like the other presentation params; an absent or 'house'
   // token keeps the default house overview (no scoped fetch, no behavior change).
   const [scopeToken] = useState(() => urlParam('scope'));
+  // P8 WS-6b: a scoped mount's visible surface is the face (fetched independently,
+  // deduped with ScopedFaceView), so the stale banner must track the FACE's own
+  // freshness — not the house snapshot's. null off a scoped mount ⇒ no fetch.
+  const scopedToken = isScopedMount(scopeToken) ? scopeToken : null;
+  const faceQuery = useCockpitFace(scopedToken);
   const [drill, setDrill] = useState<CockpitDrillDomain | null>(drillFromUrl);
   const [patient, setPatient] = useState<string | null>(patientFromUrl);
 
@@ -166,15 +171,20 @@ export default function CommandCenter({
   useIdleReset({
     enabled: wall,
     timeoutMs: WALL_IDLE_MS,
+    // Only walk back overlays that are actually open — a resting wall (nothing
+    // drilled) must not push history every idle tick. useIdleReset refs the latest
+    // onIdle, so drill/patient here are current.
     onIdle: () => {
-      handleDrillChange(null);
-      handlePatientChange(null);
+      if (drill) handleDrillChange(null);
+      if (patient) handlePatientChange(null);
     },
   });
 
   const handleRefresh = useCallback(() => {
     void query.refetch();
-  }, [query]);
+    // On a scoped mount the visible surface is the face — retry that too.
+    if (scopedToken !== null) void faceQuery.refetch();
+  }, [query, faceQuery, scopedToken]);
 
   // P6 WS-4: ticker → EddyDock hand-off. The dock opens pre-seeded with the
   // alert context + its server-resolved catalog action; the operator reviews
@@ -206,16 +216,35 @@ export default function CommandCenter({
     sections.ok && (cockpitParam === '1' || (cockpitParam !== '0' && cockpitEnabled));
   // A non-house mount renders the scoped altitude face instead of the house
   // grid; house (or no ?scope=) is the untouched overview path.
-  const scopedMount = cockpitActive && isScopedMount(scopeToken);
+  const scopedMount = cockpitActive && scopedToken !== null;
 
-  const generatedIso = sections.ok
+  const snapshotIso = sections.ok
     ? sections.data.asOf
     : parsed.ok ? parsed.data.generatedAtIso : null;
-  const ageMs = generatedIso !== null ? nowMs - Date.parse(generatedIso) : 0;
+  // The visible surface's last-known-good instant drives freshness: the scoped
+  // face's successful-fetch time on a ?scope= mount, else the house snapshot's own
+  // server timestamp — so a stalled face over a fresh snapshot still fires the banner.
+  const freshMs = scopedToken !== null
+    ? (faceQuery.dataUpdatedAt > 0 ? faceQuery.dataUpdatedAt : NaN)
+    : snapshotIso !== null ? Date.parse(snapshotIso) : NaN;
+  const ageMs = Number.isNaN(freshMs) ? 0 : nowMs - freshMs;
   const stale = ageMs > STALE_MS;
   const aging = !stale && ageMs > AGING_MS;
-  const updatedLabel = generatedIso !== null ? relativeTimeFrom(generatedIso, nowMs) : '—';
-  const refreshing = query.isFetching;
+  const updatedLabel = Number.isNaN(freshMs)
+    ? '—'
+    : relativeTimeFrom(new Date(freshMs).toISOString(), nowMs);
+  const refreshing = query.isFetching || (scopedToken !== null && faceQuery.isFetching);
+
+  // Recovery announcement, app-chrome-wide (P8 WS-6b): the loud StaleDataBanner
+  // announces stale ONSET on every mount but on recovery just un-renders; announce
+  // the stale → fresh transition here so screen-reader users on the cockpit + the
+  // scoped face hear it (previously only the classic rollback view did).
+  const wasStale = useRef(stale);
+  const [recoveryNote, setRecoveryNote] = useState('');
+  useEffect(() => {
+    if (wasStale.current && !stale) setRecoveryNote('Live updates resumed. Data is current.');
+    wasStale.current = stale;
+  }, [stale]);
 
   return (
     <DashboardLayout wall={wall}>
@@ -227,6 +256,11 @@ export default function CommandCenter({
         subtitle="House-wide demand, capacity, flow & forecast"
         headerContent={null}
       >
+        {/* P8 WS-6b: recovery announcement (stale → fresh) for SR users, app-wide.
+            The banner announces onset; this announces the recovery it can't. */}
+        <div className="sr-only" role="status" aria-live="polite" aria-label="Live update status">
+          {recoveryNote}
+        </div>
         {/* P8 WS-6b: the stale banner is app-chrome-wide so it fires at EVERY
             mount (house, scoped face, or wall) — never a silent stale screen.
             Self-hides when the data is fresh. */}

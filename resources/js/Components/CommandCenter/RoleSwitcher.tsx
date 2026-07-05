@@ -11,9 +11,11 @@ interface RoleOption {
 const ROLES: RoleOption[] = [
   { value: 'command', label: 'Command' },
   { value: 'executive', label: 'Executive' },
-  // P8 WS-5: the reserved service-line persona is now live (ops-first emphasis;
-  // the concrete line is picked via the mount scope picker, ?scope=service_line:*).
-  { value: 'service-line', label: 'Service Line' },
+  // Service line is a SCOPE, not a persona (P8 spec §P8: "activates it as a real
+  // scope"). The real, working mechanism is the mount scope picker's Service
+  // lines group (?scope=service_line:*) — a persona tab would only duplicate
+  // command's layout. The slot stays reserved here to keep the IA intact.
+  { value: 'service-line', label: 'Service Line', disabled: true },
 ];
 
 export function RoleSwitcher() {
@@ -66,7 +68,7 @@ export function RoleSwitcher() {
                   // Roving tabindex: only the active tab is in the tab order.
                   tabIndex={active ? 0 : -1}
                   onClick={() => !r.disabled && setRole(r.value)}
-                  title={r.disabled ? 'Service Line scoping — coming soon' : undefined}
+                  title={r.disabled ? 'Service line is a scope — mount one from the scope picker' : undefined}
                   className={[
                     'rounded px-3 py-1 text-xs transition-colors duration-300',
                     active

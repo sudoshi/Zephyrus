@@ -22,13 +22,13 @@ describe('RoleSwitcher', () => {
     expect(screen.getByRole('tab', { name: 'Executive' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('makes the service-line tab selectable (P8 WS-5 activated the reserved slot)', () => {
+  it('keeps the service-line tab reserved/disabled (it is a scope, not a persona)', () => {
     render(<RoleSwitcher />);
     const serviceLine = screen.getByRole('tab', { name: /Service Line/ });
-    expect(serviceLine).not.toBeDisabled();
-    expect(serviceLine).not.toHaveAttribute('aria-disabled', 'true');
+    expect(serviceLine).toBeDisabled();
+    expect(serviceLine).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(serviceLine);
-    expect(useCommandCenterStore.getState().role).toBe('service-line');
+    expect(useCommandCenterStore.getState().role).toBe('command'); // click is a no-op
   });
 
   it('applies a roving tabindex (only the active tab is tabbable)', () => {
@@ -37,14 +37,12 @@ describe('RoleSwitcher', () => {
     expect(screen.getByRole('tab', { name: 'Executive' })).toHaveAttribute('tabindex', '-1');
   });
 
-  it('moves selection with arrow keys across all three personas, wrapping', () => {
+  it('moves selection with arrow keys, wrapping past the disabled tab', () => {
     render(<RoleSwitcher />);
     const tablist = screen.getByRole('tablist');
     fireEvent.keyDown(tablist, { key: 'ArrowRight' });
     expect(useCommandCenterStore.getState().role).toBe('executive');
-    fireEvent.keyDown(tablist, { key: 'ArrowRight' });
-    expect(useCommandCenterStore.getState().role).toBe('service-line');
-    // Wraps back to command from the last (now-live) tab.
+    // ArrowRight again wraps back to command, skipping the disabled service-line.
     fireEvent.keyDown(tablist, { key: 'ArrowRight' });
     expect(useCommandCenterStore.getState().role).toBe('command');
   });

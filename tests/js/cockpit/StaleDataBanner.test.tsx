@@ -12,7 +12,7 @@ describe('StaleDataBanner', () => {
     const onRetry = vi.fn();
     render(<StaleDataBanner stale updatedLabel="4 min ago" onRetry={onRetry} />);
 
-    const banner = screen.getByRole('status', { name: /stale data warning/i });
+    const banner = screen.getByRole('alert');
     expect(banner).toHaveTextContent(/Live updates interrupted/i);
     expect(banner).toHaveTextContent('4 min ago');
     fireEvent.click(screen.getByRole('button', { name: /retry now/i }));

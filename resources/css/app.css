@@ -259,15 +259,13 @@
   }
 }
 
-/* P8 WS-6b — data-density multiplier (set on the shell by DashboardLayout).
-   tabular-nums is used pervasively across the cockpit, so digit-width reflow at
-   80–125% zoom is already handled; this offers a coarse per-mount tier — a wall
-   preset reads across a room, a compact tier packs a desk. Desk-normal is the
-   unset default (no rule), so nothing changes off a wall/compact mount. */
-[data-density='wall'] {
-  font-size: 1.125rem;
-}
-
-[data-density='compact'] {
-  font-size: 0.9375rem;
+/* P8 WS-5/6b — wall type-scale. The wall preset adds `.cockpit-wall` to the
+   document root (DashboardLayout), lifting the ROOT font-size so the rem-based
+   cockpit text (tiles, metrics, captions) genuinely enlarges for across-the-room
+   reading — a container-level font-size would not, since Tailwind text-* is
+   rem/root-relative. Paired with the pervasive tabular-nums (digit-width reflow
+   is already handled at 80–125% zoom), this is the real "wall-scale type". Only
+   the wall mounts it; desk/compact stay at the unset default. */
+html.cockpit-wall {
+  font-size: 112.5%;
 }

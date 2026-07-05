@@ -19,7 +19,17 @@ export function useLiveCockpit() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const refetch = () => qc.invalidateQueries({ queryKey: ['cockpit'] });
+    // Refresh only the LIVE surfaces on a snapshot ping — snapshot / face / drill
+    // / patient. The near-static catalogs (['cockpit','scopes'], ['cockpit',
+    // 'kpi-definitions']) are deliberately excluded so a per-minute ping doesn't
+    // defeat their 60s staleTime with a refetch storm.
+    const refetch = () =>
+      qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'cockpit' &&
+          q.queryKey[1] !== 'scopes' &&
+          q.queryKey[1] !== 'kpi-definitions',
+      });
 
     echo.channel('hospital.cockpit').listen('.cockpit.updated', refetch);
     echo.connector.pusher.connection.bind('connected', refetch);

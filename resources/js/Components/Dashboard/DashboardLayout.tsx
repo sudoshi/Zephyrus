@@ -44,9 +44,30 @@ const DashboardLayout = ({ children, fullBleed = false, wall = false }: Dashboar
     const { auth } = usePage<PageProps>().props;
     const mustChangePassword = Boolean(auth?.user?.must_change_password);
 
-    // Wall dark-lock: force dark unless the soft ?theme=light escape is present.
+    // Wall preset: authoritatively lock the theme (dark unless the soft
+    // ?theme=light escape) and apply the wall type-scale to the ROOT (so the
+    // rem-based cockpit text actually enlarges for across-the-room reading). We
+    // drive the theme through the persisted setter but SNAPSHOT the prior
+    // preference and restore it on unmount, so a transient wall visit never
+    // rewrites the operator's light/dark choice.
     useEffect(() => {
-        if (wall && !themeParamIsLight()) setIsDarkMode(true);
+        if (!wall) return;
+        const root = document.documentElement;
+        const priorPref =
+            typeof localStorage !== 'undefined' ? localStorage.getItem('darkMode') : null;
+
+        root.classList.add('cockpit-wall');
+        setIsDarkMode(!themeParamIsLight()); // dark-lock, or force light on the escape
+
+        return () => {
+            root.classList.remove('cockpit-wall');
+            if (typeof localStorage !== 'undefined') {
+                if (priorPref === null) localStorage.removeItem('darkMode');
+                else localStorage.setItem('darkMode', priorPref);
+            }
+            // Re-apply the restored preference (default dark, matching useDarkMode).
+            setIsDarkMode(priorPref === null ? true : priorPref !== 'false');
+        };
     }, [wall, setIsDarkMode]);
 
     return (
@@ -55,10 +76,7 @@ const DashboardLayout = ({ children, fullBleed = false, wall = false }: Dashboar
             <a href="#main-content" className="skip-to-content">
                 Skip to content
             </a>
-            <div
-                data-density={wall ? 'wall' : undefined}
-                className="min-h-screen bg-healthcare-background dark:bg-healthcare-background-dark transition-colors duration-300"
-            >
+            <div className="min-h-screen bg-healthcare-background dark:bg-healthcare-background-dark transition-colors duration-300">
                 {/* Force password change modal — preserved per auth-system rules
                     (a wall is authenticated; the gate still applies). */}
                 {mustChangePassword && <ChangePasswordModal />}

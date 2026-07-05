@@ -29,10 +29,11 @@ export function ScopePicker({ activeToken, className }: ScopePickerProps) {
   const query = useCockpitScopes(activeToken);
   const mergedClass = [SELECT_CLASS, className ?? ''].filter(Boolean).join(' ');
 
-  // Loading: query has not resolved and has not errored — a disabled stub.
-  if (query.data === undefined && !query.isError) {
+  // Loading: query has not resolved and has not errored — a disabled stub with
+  // its OWN label so it is queryable/announceable distinctly from the ready select.
+  if (query.isPending && !query.isError) {
     return (
-      <select aria-label="Mount scope" className={mergedClass} disabled value="">
+      <select aria-label="Loading mount scopes" aria-busy="true" className={mergedClass} disabled value="">
         <option value="">Loading mounts…</option>
       </select>
     );
@@ -42,7 +43,12 @@ export function ScopePicker({ activeToken, className }: ScopePickerProps) {
   if (query.isError) return null;
 
   const parsed = safeParseCockpitScopes(query.data);
-  if (!parsed.ok) return null;
+  if (!parsed.ok) {
+    // Fail quiet in the UI, but leave a breadcrumb — a contract-drifted catalog
+    // must be diagnosable in prod logs rather than vanishing silently.
+    console.warn('[ScopePicker] cockpit scopes payload broke contract:', parsed.error);
+    return null;
+  }
 
   const { active, catalog } = parsed.data;
   const myUnits = catalog.units.filter((u) => u.assigned === true);
@@ -51,9 +57,15 @@ export function ScopePicker({ activeToken, className }: ScopePickerProps) {
 
   const onChange = (e: ChangeEvent<HTMLSelectElement>): void => {
     const token = e.target.value;
-    window.location.assign(
-      token === 'house' ? '/dashboard' : '/dashboard?scope=' + encodeURIComponent(token),
-    );
+    // Preserve the rest of the mount profile (?role=, ?display=wall, ?theme=) and
+    // only swap the scope; the read-once drill/patient overlays reset on the remount.
+    const params = new URLSearchParams(window.location.search);
+    params.delete('drill');
+    params.delete('patient');
+    if (token === 'house') params.delete('scope');
+    else params.set('scope', token);
+    const qs = params.toString();
+    window.location.assign(qs ? `/dashboard?${qs}` : '/dashboard');
   };
 
   return (

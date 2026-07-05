@@ -25,9 +25,9 @@ describe('commandCenterStore role persistence', () => {
     expect(roleFromUrl()).toBe('executive');
   });
 
-  it('restores the service-line role from a ?role= deep link (P8 WS-5 activated it)', () => {
+  it('ignores service-line in the URL (it is a scope, not a selectable persona)', () => {
     window.history.replaceState({}, '', '/dashboard?role=service-line');
-    expect(roleFromUrl()).toBe('service-line');
+    expect(roleFromUrl()).toBe('command');
   });
 
   it('ignores an unknown role in the URL', () => {

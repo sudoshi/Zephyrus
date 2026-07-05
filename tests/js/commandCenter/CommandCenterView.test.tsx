@@ -102,13 +102,6 @@ describe('CommandCenterView', () => {
     expect(container.querySelector('[class*="bg-healthcare-warning"]')).not.toBeInTheDocument();
   });
 
-  it('announces recovery only on the stale → fresh transition, not on routine refresh', () => {
-    const { rerender } = render(
-      <CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="3 min ago" stale />,
-    );
-    const announcer = screen.getByRole('status', { name: /live update status/i });
-    expect(announcer).toHaveTextContent(''); // silent while stale and on first paint
-    rerender(<CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="just now" />);
-    expect(announcer).toHaveTextContent(/Live updates resumed/i);
-  });
+  // The stale→fresh recovery announcement moved to CommandCenter (app-chrome-wide,
+  // P8 WS-6b) so every mount announces it, not just this classic rollback view.
 });

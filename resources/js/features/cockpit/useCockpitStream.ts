@@ -69,7 +69,15 @@ export function useCockpitStream(enabled = true): void {
 
     const onSnapshot = () => {
       resetBackoff();
-      qc.invalidateQueries({ queryKey: ['cockpit'] });
+      // Refresh only the LIVE surfaces (snapshot / face / drill / patient), never
+      // the near-static ['cockpit','scopes'] / ['cockpit','kpi-definitions'] catalogs
+      // whose 60s staleTime a per-reconnect ping would otherwise defeat.
+      qc.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'cockpit' &&
+          q.queryKey[1] !== 'scopes' &&
+          q.queryKey[1] !== 'kpi-definitions',
+      });
     };
 
     const scheduleReconnect = () => {

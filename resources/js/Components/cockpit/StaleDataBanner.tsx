@@ -29,10 +29,12 @@ export function StaleDataBanner({
 }: StaleDataBannerProps) {
   if (stale) {
     return (
+      // A data-freshness FAILURE the operator must act on — role="alert" is
+      // assertive by default (interrupts the screen reader), unlike the polite
+      // aging cue below. The message text is the accessible name.
       <div
-        role="status"
-        aria-live="polite"
-        aria-label="Stale data warning"
+        role="alert"
+        aria-atomic="true"
         className={[
           'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white',
           'bg-healthcare-warning dark:bg-healthcare-warning-dark',

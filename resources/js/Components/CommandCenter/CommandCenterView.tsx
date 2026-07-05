@@ -1,5 +1,4 @@
 // resources/js/Components/CommandCenter/CommandCenterView.tsx
-import { useEffect, useRef, useState } from 'react';
 import type { CommandCenterData } from '@/types/commandCenter';
 import { useCommandCenterStore } from '@/stores/commandCenterStore';
 import { HeroWall } from './HeroWall';
@@ -26,15 +25,8 @@ export function CommandCenterView({
 }: CommandCenterViewProps) {
   const role = useCommandCenterStore((s) => s.role);
 
-  // Announce only the recovery transition (stale → fresh). The stale banner
-  // already announces onset; routine 45s refreshes are deliberately silent so
-  // screen-reader users aren't read a "data updated" line every cycle.
-  const wasStale = useRef(stale);
-  const [recoveryNote, setRecoveryNote] = useState('');
-  useEffect(() => {
-    if (wasStale.current && !stale) setRecoveryNote('Live updates resumed. Data is current.');
-    wasStale.current = stale;
-  }, [stale]);
+  // Stale onset + recovery are announced app-chrome-wide by CommandCenter now
+  // (P8 WS-6b) so every mount — house, scoped, wall — gets it, not just this view.
 
   // Adaptive emphasis by role re-orders the bands and toggles the unit heat
   // strip, but NEVER strips information: every tile shows its sparkline + detail
@@ -48,8 +40,6 @@ export function CommandCenterView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sr-only" role="status" aria-live="polite" aria-label="Live update status">{recoveryNote}</div>
-
       <div className="flex items-center justify-end gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         <span className="inline-flex items-center gap-1.5">
           {(aging || stale) && (
