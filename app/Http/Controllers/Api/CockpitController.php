@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ops\MetricDefinition;
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
+use App\Support\Cockpit\CockpitScopeResolver;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,24 @@ class CockpitController extends Controller
 
         return response()->json($payload)
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    /**
+     * The active mount scope + the catalog of scopes this user may mount (P8 WS-1).
+     * `?scope=` names the mount ('unit:MICU' | 'service_line:critical_care' |
+     * 'department:ed' | 'house'); absent/unknown resolves to the user's primary unit
+     * assignment, else house. Backs the mount picker and the scope-aware faces (WS-2).
+     */
+    public function scopes(Request $request, CockpitScopeResolver $resolver): JsonResponse
+    {
+        $user = $request->user();
+        $scope = $request->query('scope');
+        $active = $resolver->resolve(is_string($scope) ? $scope : null, $user);
+
+        return response()->json([
+            'active' => $active->toArray(),
+            'catalog' => $resolver->catalog($user),
+        ])->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
     public function kpiDefinitions(): JsonResponse

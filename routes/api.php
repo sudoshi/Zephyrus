@@ -85,6 +85,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->g
 // cached read of the single replaced cockpit_snapshots row (ETag/304).
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(function () {
     Route::get('/snapshot', [\App\Http\Controllers\Api\CockpitController::class, 'snapshot']);
+    Route::get('/scopes', [\App\Http\Controllers\Api\CockpitController::class, 'scopes']);
     Route::get('/drill/{domain}', [\App\Http\Controllers\Api\CockpitController::class, 'drill'])
         ->where('domain', '[a-z]+');
     Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
