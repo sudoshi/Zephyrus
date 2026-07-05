@@ -321,6 +321,7 @@ class MobileBffTest extends TestCase
             '/eddy/conversations/{uuid}' => "/api/mobile/v1/eddy/conversations/{$conversation->eddy_conversation_uuid}",
             '/evs/queue' => '/api/mobile/v1/evs/queue',
             '/flow/floors' => '/api/mobile/v1/flow/floors',
+            '/flow/spaces3d' => '/api/mobile/v1/flow/spaces3d',
             '/flow/window' => '/api/mobile/v1/flow/window?persona=bed_manager',
             '/for-you' => '/api/mobile/v1/for-you?persona=bed_manager',
             '/improvement/opportunities' => '/api/mobile/v1/improvement/opportunities',

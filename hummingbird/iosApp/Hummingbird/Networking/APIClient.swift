@@ -259,6 +259,13 @@ struct APIClient {
         return (try Self.decoder.decode(Envelope<FlowFloorsDocument>.self, from: data), data)
     }
 
+    /// GET /api/mobile/v1/flow/spaces3d — the versioned 3D space-anchor asset (per-space
+    /// metre centroids + unit/bed bridges) the native SceneKit scene places segments and
+    /// tokens by. ETag-cacheable; fetched once per session.
+    func flowSpaces3d(bearer: String) async throws -> Envelope<FlowSpaces3dDocument> {
+        try await getEnvelope(path: "/api/mobile/v1/flow/spaces3d", bearer: bearer, as: FlowSpaces3dDocument.self)
+    }
+
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.
     func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
                         deviceName: String?, bearer: String) async throws {

@@ -8,11 +8,13 @@ use App\Models\Bed;
 use App\Models\CensusSnapshot;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
+use App\Services\Flow\DutyProjectionService;
 use App\Services\Flow\FloorPlateAssetService;
 use App\Services\Flow\FloorRollupService;
 use App\Services\Flow\FlowLensService;
 use App\Services\Flow\ForwardProjectionService;
 use App\Services\Flow\OperationalTimelineService;
+use App\Services\Flow\Spaces3dAssetService;
 use App\Services\Mobile\MobilePersonaCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -51,11 +53,37 @@ class FlowController extends Controller
         private readonly FloorRollupService $floors,
         private readonly OperationalTimelineService $timeline,
         private readonly ForwardProjectionService $projections,
+        private readonly DutyProjectionService $dutyProjections,
+        private readonly Spaces3dAssetService $spaces3dAsset,
     ) {}
 
     public function floors(Request $request): JsonResponse
     {
         $document = $this->plates->load();
+        $etag = '"'.$document['version'].'"';
+
+        if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
+            return response()->json(null, 304)->withHeaders(['ETag' => $etag]);
+        }
+
+        return $this->envelope(
+            $document,
+            meta: ['version' => $document['version']],
+            links: ['web' => url('/rtdc/patient-flow-navigator')],
+        )->withHeaders([
+            'ETag' => $etag,
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
+    }
+
+    /**
+     * The 3D space-anchor asset (centroids + unit/bed bridges) the native
+     * SceneKit/Filament viewers use to place tokens + duty markers over the
+     * GLB shell. Geometry only, no live state — ETagged + aggressively cached.
+     */
+    public function spaces3d(Request $request): JsonResponse
+    {
+        $document = $this->spaces3dAsset->load();
         $etag = '"'.$document['version'].'"';
 
         if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
@@ -159,6 +187,17 @@ class FlowController extends Controller
             $payload['projections'] = array_map(
                 fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
                 $this->projections->projections($from->max($now), $to, $scope, $lens['projection_kinds']),
+            );
+        }
+
+        // Duties — the persona's actionable worklist, spatially anchored and
+        // due-dated (NATIVE-4D-VIEWER-PLAN §4 W1). Like projections: clamped to
+        // the lens `duty_kinds`, redacted per patient_dots, and served IN FULL
+        // even on a `?since=` delta (it is current worklist, not append-only).
+        if (in_array('duties', $layers, true)) {
+            $payload['duties'] = array_map(
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                $this->dutyProjections->duties($now, $lens['duty_kinds'] ?? [], $this->scopeUnitIds($scope)),
             );
         }
 
@@ -286,6 +325,19 @@ class FlowController extends Controller
                 'status' => (string) $bed->status,
             ])
             ->all();
+    }
+
+    /** @return list<int>|null  null = house/patient scope (no spatial duty filter) */
+    private function scopeUnitIds(array $scope): ?array
+    {
+        return match ($scope['type']) {
+            'unit' => $scope['unit_id'] !== null ? [(int) $scope['unit_id']] : [],
+            'floor' => array_values(array_filter(array_column(
+                collect($this->floorRollup())->firstWhere('floor', $scope['floor'])['units'] ?? [],
+                'unit_id',
+            ))),
+            default => null,
+        };
     }
 
     /** @return list<array<string, mixed>> */

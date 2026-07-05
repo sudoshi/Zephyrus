@@ -341,6 +341,106 @@ class FlowWindowTest extends TestCase
         $this->assertEquals(new \DateTimeImmutable($now), new \DateTimeImmutable($data['window']['since']));
     }
 
+    public function test_duties_are_clamped_to_each_personas_lens_duty_kinds(): void
+    {
+        foreach (MobilePersonaCatalog::ROLE_IDS as $roleId) {
+            $this->actingAsRole($roleId);
+            $allowed = config("hummingbird.flow_lens.{$roleId}.duty_kinds");
+
+            $duties = collect($this->getJson('/api/mobile/v1/flow/window?persona='.$roleId.'&layers=duties')
+                ->assertOk()->json('data.duties'));
+
+            foreach ($duties as $duty) {
+                $this->assertContains($duty['kind'], $allowed, "{$roleId} received an out-of-lens duty kind: {$duty['kind']}");
+            }
+            if ($allowed === []) {
+                $this->assertCount(0, $duties, "{$roleId} has no duty_kinds but its payload carried duties");
+            }
+        }
+    }
+
+    public function test_frontline_duties_carry_temporal_status_provenance_and_an_action(): void
+    {
+        $this->actingAsRole('transport');
+
+        $run = collect($this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.duties'))
+            ->firstWhere('kind', 'transport_run');
+
+        $this->assertNotNull($run, 'the seeded trip should surface as a transport_run duty');
+        $this->assertContains($run['window_status'], ['overdue', 'due', 'upcoming', null]);
+        $this->assertContains($run['tier'], ['critical', 'warning', 'info']);
+        $this->assertSame('duty_projection', $run['provenance']['service']);
+        $this->assertArrayHasKey('centroid_m', $run); // present (a 3D anchor or null when unmapped)
+        $this->assertNotNull($run['action'], 'a transport_run is actionable');
+        $this->assertStringContainsString('/transport/requests/', $run['action']['endpoint']);
+        $this->assertSame('POST', $run['action']['method']);
+
+        // The EVS turn and the EDD both surface as duties for their personas.
+        $this->actingAsRole('evs');
+        $this->assertNotNull(
+            collect($this->getJson('/api/mobile/v1/flow/window?persona=evs')->assertOk()->json('data.duties'))
+                ->firstWhere('kind', 'bed_turn'),
+            'the seeded isolation turn should surface as a bed_turn duty',
+        );
+    }
+
+    public function test_duties_honour_the_redaction_matrix(): void
+    {
+        foreach (MobilePersonaCatalog::ROLE_IDS as $roleId) {
+            $this->actingAsRole($roleId);
+            $duties = $this->getJson('/api/mobile/v1/flow/window?persona='.$roleId.'&layers=duties')
+                ->assertOk()->json('data.duties');
+            $json = json_encode($duties);
+
+            foreach (self::RAW_PATIENT_REFS as $raw) {
+                $this->assertStringNotContainsString($raw, $json, "{$roleId} duties leaked a raw patient ref");
+            }
+            $this->assertStringNotContainsString('_patient_ref', $json, "{$roleId} duties leaked the internal ref field");
+
+            if (config("hummingbird.flow_lens.{$roleId}.patient_dots") === 'none') {
+                foreach ($duties as $duty) {
+                    $this->assertNull($duty['patient_context_ref'] ?? null, "{$roleId} is patient_dots:none but a duty carried a token");
+                }
+            }
+        }
+    }
+
+    public function test_duties_survive_a_since_delta_in_full(): void
+    {
+        $this->actingAsRole('transport');
+        $now = $this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.window.now');
+
+        $full = $this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.duties');
+        $delta = $this->getJson('/api/mobile/v1/flow/window?persona=transport&since='.urlencode($now))
+            ->assertOk()->json('data.duties');
+
+        $this->assertNotEmpty($full);
+        $this->assertCount(count($full), $delta, 'duties are current worklist — always full, never narrowed by a delta');
+    }
+
+    public function test_spaces3d_asset_is_versioned_and_carries_3d_centroids(): void
+    {
+        $this->actingAsRole('bed_manager');
+
+        $res = $this->getJson('/api/mobile/v1/flow/spaces3d')->assertOk();
+        $etag = $res->headers->get('ETag');
+        $this->assertNotEmpty($etag);
+        $this->assertSame(trim($etag, '"'), $res->json('data.version'));
+
+        // The bare test DB has no CAD catalog imported (facility:import-catalog
+        // is a demo/deploy step), so `spaces` may be empty here; against a
+        // catalog-loaded DB every entry carries a {x, y, z} metre centroid.
+        $spaces = $res->json('data.spaces');
+        $this->assertIsArray($spaces);
+        foreach ($spaces as $space) {
+            $this->assertEqualsCanonicalizing(['x', 'y', 'z'], array_keys($space['centroid_m']));
+        }
+
+        $this->withHeaders(['If-None-Match' => $etag])
+            ->getJson('/api/mobile/v1/flow/spaces3d')
+            ->assertStatus(304);
+    }
+
     public function test_floors_asset_is_versioned_and_supports_conditional_requests(): void
     {
         $this->actingAsRole('bed_manager');

@@ -172,6 +172,8 @@ struct FlowMapView: View {
             capacityLayer
         } else if isStaffingLens {
             staffingLayer
+        } else if is3DLens, let spaces = store.spaces3d {
+            flow3DLayer(spaces: spaces)
         } else if scope == .house, store.selectedFloor == nil {
             houseLayer
             transportGutter
@@ -185,6 +187,22 @@ struct FlowMapView: View {
     /// snapshot series at the scrub time; everyone else sees the live rollup.
     private var displayFloorRollups: [FlowFloorRollup] {
         isReplayHeatLens ? store.floorRollups(at: store.t) : (store.window?.spaces?.floors ?? [])
+    }
+
+    /// Phase B (NATIVE-4D-VIEWER): bed_manager / house_supervisor render the native SceneKit
+    /// twin instead of the 2.5D stack. The 2.5D renderers are deleted in Phase D once every
+    /// persona reaches 3D parity; other lenses keep the 2.5D layer until then.
+    private var is3DLens: Bool { persona == "bed_manager" || persona == "house_supervisor" }
+
+    private func flow3DLayer(spaces: FlowSpaces3dDocument) -> some View {
+        Panel(padding: Z.s2) {
+            Flow3DView(spaces: spaces,
+                       bedStatuses: store.window?.bedStatuses ?? [],
+                       selectedFloor: store.selectedFloor)
+                .frame(height: 420)
+                .cornerRadius(12)
+                .accessibilityLabel("Native 3D hospital view")
+        }
     }
 
     private var houseLayer: some View {

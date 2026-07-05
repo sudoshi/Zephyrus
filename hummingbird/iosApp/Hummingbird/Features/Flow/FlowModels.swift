@@ -57,6 +57,7 @@ struct FlowWindowData: Decodable, Equatable {
     let events: [FlowTimelineEvent]
     let projections: [FlowProjection]
     let bedStatuses: [FlowBedStatus]
+    let duties: [FlowDuty]
 
     // The server omits any layer the lens excludes (the executive lens has
     // no `events` at all), so every layer decodes as absent-means-empty.
@@ -70,13 +71,14 @@ struct FlowWindowData: Decodable, Equatable {
         events = try container.decodeIfPresent([FlowTimelineEvent].self, forKey: .events) ?? []
         projections = try container.decodeIfPresent([FlowProjection].self, forKey: .projections) ?? []
         bedStatuses = try container.decodeIfPresent([FlowBedStatus].self, forKey: .bedStatuses) ?? []
+        duties = try container.decodeIfPresent([FlowDuty].self, forKey: .duties) ?? []
     }
 
     /// Memberwise initializer used to assemble a merged window from a `?since=` delta
     /// response (the Decodable init only builds from the wire).
     init(window: FlowWindow, lens: FlowLens, scope: FlowScope, spaces: FlowSpaces?,
          snapshots: [FlowSnapshot], events: [FlowTimelineEvent],
-         projections: [FlowProjection], bedStatuses: [FlowBedStatus]) {
+         projections: [FlowProjection], bedStatuses: [FlowBedStatus], duties: [FlowDuty]) {
         self.window = window
         self.lens = lens
         self.scope = scope
@@ -85,10 +87,11 @@ struct FlowWindowData: Decodable, Equatable {
         self.events = events
         self.projections = projections
         self.bedStatuses = bedStatuses
+        self.duties = duties
     }
 
     private enum CodingKeys: String, CodingKey {
-        case window, lens, scope, spaces, snapshots, events, projections, bedStatuses
+        case window, lens, scope, spaces, snapshots, events, projections, bedStatuses, duties
     }
 }
 
@@ -114,7 +117,8 @@ extension FlowWindowData {
             window: delta.window, lens: delta.lens, scope: delta.scope,
             spaces: delta.spaces ?? spaces,
             snapshots: mergedSnapshots, events: mergedEvents,
-            projections: delta.projections, bedStatuses: delta.bedStatuses)
+            projections: delta.projections, bedStatuses: delta.bedStatuses,
+            duties: delta.duties) // duties are current worklist — always full
     }
 
     private static func eventDedupeKey(_ event: FlowTimelineEvent) -> String {
@@ -136,6 +140,57 @@ struct FlowBedStatus: Decodable, Equatable, Identifiable {
     let status: String // available | occupied | blocked | dirty
 
     var id: Int { bedId }
+}
+
+/// A persona duty — an actionable worklist item, spatially anchored (centroidM)
+/// and due-dated (dueAt + windowStatus), with the governed BFF endpoint that
+/// actions it. The "what's due to me, where, when" the native 3D viewer renders.
+struct FlowDuty: Decodable, Equatable, Identifiable {
+    let id: String
+    let kind: String // transport_run|bed_turn|placement|barrier_resolve|staffing_fill|approval|discharge_leverage
+    let label: String
+    let spaceRef: String?
+    let unitId: Int?
+    let bedId: Int?
+    let centroidM: FlowCentroid3d?
+    let dueAt: String?
+    let windowStatus: String? // overdue | due | upcoming
+    let tier: String // critical | warning | info
+    let patientContextRef: String?
+    let action: FlowDutyAction?
+
+    var dueDate: Date? { FlowTime.parse(dueAt) }
+}
+
+struct FlowDutyAction: Decodable, Equatable {
+    let endpoint: String
+    let method: String
+    let label: String
+}
+
+struct FlowCentroid3d: Decodable, Equatable {
+    let x: Double
+    let y: Double
+    let z: Double
+}
+
+/// The 3D space-anchor asset (GET /flow/spaces3d): per-space centroids (metres,
+/// y is the vertical/floor axis) the native SceneKit/Filament scene places
+/// segments and tokens by. Geometry only, ETag-cached.
+struct FlowSpaces3dDocument: Decodable, Equatable {
+    let version: String
+    let spaces: [FlowSpace3d]
+}
+
+struct FlowSpace3d: Decodable, Equatable, Identifiable {
+    let spaceRef: String
+    let floor: Int
+    let category: String
+    let unitId: Int?
+    let bedId: Int?
+    let centroidM: FlowCentroid3d
+
+    var id: String { spaceRef }
 }
 
 struct FlowWindow: Decodable, Equatable {

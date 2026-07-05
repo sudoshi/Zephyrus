@@ -35,6 +35,8 @@ enum FlowScopeRequest: Equatable {
 final class FlowWindowStore: ObservableObject {
     @Published var window: FlowWindowData?
     @Published var floors: FlowFloorsDocument?
+    /// The 3D space-anchor asset — per-space metre centroids the native scene places by.
+    @Published var spaces3d: FlowSpaces3dDocument?
     @Published var t: Date = .now
     @Published var selectedFloor: Int?
     @Published var isPlaying = false
@@ -121,6 +123,10 @@ final class FlowWindowStore: ObservableObject {
         if floors == nil, let (env, data) = try? await api.flowFloorsRaw(bearer: bearerToken) {
             floors = env.data
             floorsRawData = data
+        }
+        // The 3D anchors are versioned + cacheable too; the native scene needs them once.
+        if spaces3d == nil, let env = try? await api.flowSpaces3d(bearer: bearerToken) {
+            spaces3d = env.data
         }
         do {
             let (env, data) = try await api.flowWindowRaw(persona: persona, scope: scopeValue, bearer: bearerToken)

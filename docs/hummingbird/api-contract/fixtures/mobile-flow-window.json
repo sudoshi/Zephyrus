@@ -1,9 +1,10 @@
 {
     "data": {
         "window": {
-            "from": "2026-07-03T19:36:22+00:00",
-            "to": "2026-07-05T19:36:22+00:00",
-            "now": "2026-07-04T19:36:22+00:00"
+            "from": "2026-07-04T03:05:15+00:00",
+            "to": "2026-07-06T03:05:15+00:00",
+            "now": "2026-07-05T03:05:15+00:00",
+            "since": null
         },
         "lens": {
             "role_id": "bed_manager",
@@ -18,7 +19,8 @@
                 "snapshots",
                 "events",
                 "projections",
-                "spaces"
+                "spaces",
+                "duties"
             ],
             "event_kinds": [
                 "admit",
@@ -59,7 +61,7 @@
             "label": "House"
         },
         "spaces": {
-            "plates_version": "v1-2b3e9f90ad5d",
+            "plates_version": "v1-a8f91dc9a9e4",
             "floors": [
                 {
                     "floor": 1,
@@ -695,7 +697,7 @@
         "snapshots": [],
         "events": [
             {
-                "t": "2026-07-04T13:36:22+00:00",
+                "t": "2026-07-04T21:05:14+00:00",
                 "kind": "admit",
                 "entity": {
                     "type": "patient",
@@ -712,7 +714,7 @@
                 }
             },
             {
-                "t": "2026-07-04T15:36:22+00:00",
+                "t": "2026-07-04T23:05:14+00:00",
                 "kind": "barrier_opened",
                 "entity": {
                     "type": "barrier",
@@ -729,7 +731,7 @@
                 }
             },
             {
-                "t": "2026-07-04T17:36:22+00:00",
+                "t": "2026-07-05T01:05:14+00:00",
                 "kind": "transport_status",
                 "entity": {
                     "type": "transport",
@@ -746,7 +748,7 @@
                 }
             },
             {
-                "t": "2026-07-04T18:36:22+00:00",
+                "t": "2026-07-05T02:05:14+00:00",
                 "kind": "transport_status",
                 "entity": {
                     "type": "transport",
@@ -763,7 +765,7 @@
                 }
             },
             {
-                "t": "2026-07-04T18:51:22+00:00",
+                "t": "2026-07-05T02:20:14+00:00",
                 "kind": "evs_status",
                 "entity": {
                     "type": "evs",
@@ -782,7 +784,7 @@
         ],
         "projections": [
             {
-                "t": "2026-07-04T18:36:22+00:00",
+                "t": "2026-07-05T02:05:14+00:00",
                 "kind": "scheduled_or_case",
                 "confidence": "definite",
                 "unit_id": null,
@@ -796,7 +798,7 @@
                 "label": "OR 3 \u00b7 General Surgery",
                 "value": null,
                 "band": null,
-                "ends_at": "2026-07-04T22:36:22+00:00",
+                "ends_at": "2026-07-05T06:05:14+00:00",
                 "derived": false,
                 "provenance": {
                     "service": "or_schedule",
@@ -804,7 +806,7 @@
                 }
             },
             {
-                "t": "2026-07-04T19:36:22+00:00",
+                "t": "2026-07-05T03:05:15+00:00",
                 "kind": "surge_probability",
                 "confidence": "probable",
                 "unit_id": null,
@@ -823,7 +825,7 @@
                 }
             },
             {
-                "t": "2026-07-04T20:00:00+00:00",
+                "t": "2026-07-05T04:00:00+00:00",
                 "kind": "predicted_census",
                 "confidence": "probable",
                 "unit_id": 1,
@@ -845,7 +847,7 @@
                 }
             },
             {
-                "t": "2026-07-04T20:00:00+00:00",
+                "t": "2026-07-05T04:00:00+00:00",
                 "kind": "predicted_arrivals",
                 "confidence": "probable",
                 "unit_id": 24,
@@ -854,10 +856,10 @@
                 "entity": null,
                 "patient_context_ref": null,
                 "label": "Predicted ED arrivals",
-                "value": 2,
+                "value": 1,
                 "band": {
                     "lower": 0,
-                    "upper": 5
+                    "upper": 3
                 },
                 "ends_at": null,
                 "derived": false,
@@ -867,73 +869,7 @@
                 }
             },
             {
-                "t": "2026-07-04T20:06:22+00:00",
-                "kind": "expected_discharge",
-                "confidence": "definite",
-                "unit_id": 1,
-                "bed_id": 1,
-                "room": null,
-                "entity": {
-                    "type": "encounter",
-                    "ref": "1"
-                },
-                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
-                "label": "Expected discharge",
-                "value": null,
-                "band": null,
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "rtdc_predictions \u00d7 encounter EDD",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-04T20:06:22+00:00",
-                "kind": "transport_due",
-                "confidence": "probable",
-                "unit_id": 1,
-                "bed_id": 1,
-                "room": null,
-                "entity": {
-                    "type": "encounter",
-                    "ref": "1"
-                },
-                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
-                "label": "Likely discharge transport",
-                "value": null,
-                "band": null,
-                "ends_at": null,
-                "derived": true,
-                "provenance": {
-                    "service": "derived \u00b7 expected_discharge",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-04T20:26:22+00:00",
-                "kind": "evs_due",
-                "confidence": "probable",
-                "unit_id": 1,
-                "bed_id": 1,
-                "room": null,
-                "entity": {
-                    "type": "bed",
-                    "ref": "1"
-                },
-                "patient_context_ref": null,
-                "label": "Bed turn after discharge",
-                "value": null,
-                "band": null,
-                "ends_at": null,
-                "derived": true,
-                "provenance": {
-                    "service": "derived \u00b7 expected_discharge",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-04T20:36:22+00:00",
+                "t": "2026-07-05T04:05:14+00:00",
                 "kind": "evs_due",
                 "confidence": "definite",
                 "unit_id": 1,
@@ -955,7 +891,7 @@
                 }
             },
             {
-                "t": "2026-07-04T21:00:00+00:00",
+                "t": "2026-07-05T05:00:00+00:00",
                 "kind": "predicted_arrivals",
                 "confidence": "probable",
                 "unit_id": 24,
@@ -964,10 +900,10 @@
                 "entity": null,
                 "patient_context_ref": null,
                 "label": "Predicted ED arrivals",
-                "value": 2,
+                "value": 1,
                 "band": {
                     "lower": 0,
-                    "upper": 4
+                    "upper": 3
                 },
                 "ends_at": null,
                 "derived": false,
@@ -977,7 +913,7 @@
                 }
             },
             {
-                "t": "2026-07-04T21:36:22+00:00",
+                "t": "2026-07-05T05:05:14+00:00",
                 "kind": "transport_due",
                 "confidence": "definite",
                 "unit_id": null,
@@ -999,7 +935,7 @@
                 }
             },
             {
-                "t": "2026-07-04T22:00:00+00:00",
+                "t": "2026-07-05T06:00:00+00:00",
                 "kind": "predicted_census",
                 "confidence": "probable",
                 "unit_id": 1,
@@ -1021,273 +957,9 @@
                 }
             },
             {
-                "t": "2026-07-04T22:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "probable",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 4
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-04T23:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "probable",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 4
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T00:00:00+00:00",
-                "kind": "predicted_census",
-                "confidence": "possible",
-                "unit_id": 1,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted census",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 2
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T00:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "probable",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T01:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "probable",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T02:00:00+00:00",
-                "kind": "predicted_census",
-                "confidence": "possible",
-                "unit_id": 1,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted census",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 2
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T02:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "possible",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T03:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "possible",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T04:00:00+00:00",
-                "kind": "predicted_census",
-                "confidence": "possible",
-                "unit_id": 1,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted census",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 2
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T04:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "possible",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T05:00:00+00:00",
-                "kind": "predicted_arrivals",
-                "confidence": "possible",
-                "unit_id": 24,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted ED arrivals",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 3
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "ed_arrival_prediction",
-                    "reliability": null
-                }
-            },
-            {
-                "t": "2026-07-05T06:00:00+00:00",
-                "kind": "predicted_census",
-                "confidence": "possible",
-                "unit_id": 1,
-                "bed_id": null,
-                "room": null,
-                "entity": null,
-                "patient_context_ref": null,
-                "label": "Predicted census",
-                "value": 1,
-                "band": {
-                    "lower": 0,
-                    "upper": 2
-                },
-                "ends_at": null,
-                "derived": false,
-                "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
-                    "reliability": null
-                }
-            },
-            {
                 "t": "2026-07-05T06:00:00+00:00",
                 "kind": "predicted_arrivals",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 24,
                 "bed_id": null,
                 "room": null,
@@ -1309,7 +981,7 @@
             {
                 "t": "2026-07-05T07:00:00+00:00",
                 "kind": "predicted_arrivals",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 24,
                 "bed_id": null,
                 "room": null,
@@ -1319,7 +991,7 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 5
+                    "upper": 4
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1331,7 +1003,7 @@
             {
                 "t": "2026-07-05T08:00:00+00:00",
                 "kind": "predicted_census",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 1,
                 "bed_id": null,
                 "room": null,
@@ -1346,14 +1018,14 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
             {
                 "t": "2026-07-05T08:00:00+00:00",
                 "kind": "predicted_arrivals",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 24,
                 "bed_id": null,
                 "room": null,
@@ -1375,7 +1047,7 @@
             {
                 "t": "2026-07-05T09:00:00+00:00",
                 "kind": "predicted_arrivals",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 24,
                 "bed_id": null,
                 "room": null,
@@ -1385,7 +1057,7 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 6
+                    "upper": 5
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1397,7 +1069,7 @@
             {
                 "t": "2026-07-05T10:00:00+00:00",
                 "kind": "predicted_census",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 1,
                 "bed_id": null,
                 "room": null,
@@ -1412,7 +1084,7 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
@@ -1440,6 +1112,50 @@
             },
             {
                 "t": "2026-07-05T11:00:00+00:00",
+                "kind": "expected_discharge",
+                "confidence": "definite",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "encounter",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
+                "label": "Expected discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "rtdc_predictions \u00d7 encounter EDD",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T11:00:00+00:00",
+                "kind": "transport_due",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "encounter",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_8d4a9ae0c199bcb8aa2dba8e",
+                "label": "Likely discharge transport",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": true,
+                "provenance": {
+                    "service": "derived \u00b7 expected_discharge",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T11:00:00+00:00",
                 "kind": "predicted_arrivals",
                 "confidence": "possible",
                 "unit_id": 24,
@@ -1451,7 +1167,7 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 7
+                    "upper": 6
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1461,9 +1177,31 @@
                 }
             },
             {
+                "t": "2026-07-05T11:20:00+00:00",
+                "kind": "evs_due",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "bed",
+                    "ref": "1"
+                },
+                "patient_context_ref": null,
+                "label": "Bed turn after discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": true,
+                "provenance": {
+                    "service": "derived \u00b7 expected_discharge",
+                    "reliability": null
+                }
+            },
+            {
                 "t": "2026-07-05T12:00:00+00:00",
                 "kind": "predicted_census",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 1,
                 "bed_id": null,
                 "room": null,
@@ -1478,7 +1216,7 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
@@ -1529,7 +1267,7 @@
             {
                 "t": "2026-07-05T14:00:00+00:00",
                 "kind": "predicted_census",
-                "confidence": "possible",
+                "confidence": "probable",
                 "unit_id": 1,
                 "bed_id": null,
                 "room": null,
@@ -1544,7 +1282,7 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
@@ -1610,7 +1348,7 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
@@ -1649,7 +1387,7 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 7
+                    "upper": 6
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1676,7 +1414,7 @@
                 "ends_at": null,
                 "derived": false,
                 "provenance": {
-                    "service": "demand_forecast (extrapolated past midnight)",
+                    "service": "demand_forecast",
                     "reliability": null
                 }
             },
@@ -1693,7 +1431,7 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 7
+                    "upper": 6
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1715,7 +1453,271 @@
                 "value": 2,
                 "band": {
                     "lower": 0,
-                    "upper": 7
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T20:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T20:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 6
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T21:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 2,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T22:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T22:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 5
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T23:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T00:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast (extrapolated past midnight)",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T00:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T01:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T02:00:00+00:00",
+                "kind": "predicted_census",
+                "confidence": "possible",
+                "unit_id": 1,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted census",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 2
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "demand_forecast (extrapolated past midnight)",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T02:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 4
+                },
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "ed_arrival_prediction",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-06T03:00:00+00:00",
+                "kind": "predicted_arrivals",
+                "confidence": "possible",
+                "unit_id": 24,
+                "bed_id": null,
+                "room": null,
+                "entity": null,
+                "patient_context_ref": null,
+                "label": "Predicted ED arrivals",
+                "value": 1,
+                "band": {
+                    "lower": 0,
+                    "upper": 3
                 },
                 "ends_at": null,
                 "derived": false,
@@ -1724,15 +1726,38 @@
                     "reliability": null
                 }
             }
+        ],
+        "duties": [
+            {
+                "id": "barrier-1",
+                "kind": "barrier_resolve",
+                "label": "Logistical barrier",
+                "space_ref": null,
+                "unit_id": null,
+                "bed_id": null,
+                "centroid_m": null,
+                "due_at": "2026-07-04T23:05:14+00:00",
+                "window_status": "upcoming",
+                "tier": "info",
+                "patient_context_ref": null,
+                "provenance": {
+                    "service": "duty_projection"
+                },
+                "action": {
+                    "endpoint": "/api/mobile/v1/rtdc/barriers/1/resolve",
+                    "method": "POST",
+                    "label": "Resolve"
+                }
+            }
         ]
     },
     "meta": {
-        "as_of": "2026-07-04T19:36:22.652282Z",
+        "as_of": "2026-07-05T03:05:15.381610Z",
         "stale": false,
         "version": null,
         "count": 48
     },
     "links": {
-        "web": "http://localhost/rtdc/patient-flow-navigator?persona=bed_manager&scope=house&t=2026-07-04T19%3A36%3A22%2B00%3A00"
+        "web": "http://localhost/rtdc/patient-flow-navigator?persona=bed_manager&scope=house&t=2026-07-05T03%3A05%3A15%2B00%3A00"
     }
 }

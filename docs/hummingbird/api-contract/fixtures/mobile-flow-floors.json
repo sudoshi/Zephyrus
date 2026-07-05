@@ -19,7 +19,7 @@
                 "shape_count": 4,
                 "spaces": [
                     {
-                        "id": 204,
+                        "id": 615,
                         "code": "ZEPHYRUS-500:L3-icu_patient-01",
                         "category": "corridor",
                         "label": "L3 ICU patient corridor segment 01",
@@ -31,7 +31,7 @@
                         ]
                     },
                     {
-                        "id": 203,
+                        "id": 614,
                         "code": "ZEPHYRUS-500:TICU-B001",
                         "category": "bed",
                         "label": "Test Surgical Trauma ICU bed 001",
@@ -45,7 +45,7 @@
                         "unit_id": 26
                     },
                     {
-                        "id": 202,
+                        "id": 613,
                         "code": "ZEPHYRUS-500:TICU-R001",
                         "category": "room",
                         "label": "Test Surgical Trauma ICU patient room 001",
@@ -57,7 +57,7 @@
                         ]
                     },
                     {
-                        "id": 201,
+                        "id": 612,
                         "code": "ZEPHYRUS-500:UNIT-TICU",
                         "category": "unit",
                         "label": "Test Surgical Trauma ICU",
@@ -83,7 +83,7 @@
                 "shape_count": 1,
                 "spaces": [
                     {
-                        "id": 205,
+                        "id": 616,
                         "code": "ZEPHYRUS-500:TRM-01",
                         "category": "vertical_transport",
                         "label": "Trauma priority elevator 01",
@@ -97,12 +97,12 @@
                 ]
             }
         ],
-        "version": "v1-2b3e9f90ad5d"
+        "version": "v1-a8f91dc9a9e4"
     },
     "meta": {
-        "as_of": "2026-07-04T19:36:22.656383Z",
+        "as_of": "2026-07-05T03:05:15.385660Z",
         "stale": false,
-        "version": "v1-2b3e9f90ad5d"
+        "version": "v1-a8f91dc9a9e4"
     },
     "links": {
         "web": "http://localhost/rtdc/patient-flow-navigator"

@@ -69,7 +69,7 @@ struct HouseCapacityView: View {
     @State private var autoOpenPlacement = false
     @State private var autoPlacementIndex = 0
     @State private var didAutoOpen = false
-    @State private var viewMode: FlowHomeMode = .list
+    @State private var viewMode: FlowHomeMode = ProcessInfo.processInfo.environment["HB_HOME_MODE"] == "map" ? .map : .list
 
     private let refreshInterval: Duration = .seconds(20)
 
