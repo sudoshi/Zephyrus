@@ -1967,6 +1967,43 @@ The cockpit north star is a **3-second read** ("is the house OK right now?"). Ac
 
 ---
 
+# Part X — Object-Centric Process Intelligence (the Patient-Flow Arena)
+
+> **Full specification: [ZEPHYRUS-2.0-PART-X.md](./ZEPHYRUS-2.0-PART-X.md)** — the
+> tracked companion volume. This section is the master-plan pointer + live status.
+
+Part X extends the cohesion thesis from *rendering* the state of the house to
+*understanding the processes that produce it*. It embeds current best-practice
+process science — **OCEL 2.0** object-centric event logs and **object-centric
+process mining (OCPM)** — behind a single AI-assisted workbench, the
+**Patient-Flow Arena** (a new surface at the Study/A3 altitude). It is the
+natural completion of Principle 7 ("One Truth, Computed Once"): the cockpit
+computes the *state* once, the Arena discovers the *process* once, both read the
+same events, both feed the same Eddy loop, both render in the same canon. It is
+**additive, flag-gated (`ARENA_ENABLED`, default off), PHI-safe by construction,
+and human-governed** — the copilot holds `ops:draft`, never `ops:approve`.
+
+The object-centric event log is a **projection of assets already on `main`**
+(RTDC event sourcing, `prod.*` fact tables, `flow_core.*`) — not a new
+data-collection program. It runs **parallel to the P-roadmap**, reusing its
+outputs (P1 serving cadence, P5 Study altitude, P2 cockpit, P6 Eddy/alerting).
+
+| Phase | Goal | Depends on | Ships behind | Status |
+|---|---|---|---|---|
+| **X0** | OCEL foundation — `ocel.*` schema + `OcelProjector` + `RefreshOcelLog`; validated OCEL-JSON export | P1 | — (data only) | **SHIPPED (dev) 2026-07-04** — `ef6c238` (+ conformance seed `b83f812`); reconciliation 1:1, idempotent, export valid + PHI-safe, tests green |
+| **X1** | Arena MVP — Python OCPM sidecar; auto-discovered OC-DFG maps in the Study | P5 | `ARENA_ENABLED` | pending (sidecar packaging decision) |
+| **X2** | OPerA object-centric bottlenecks → object-centric cockpit tiles | P2 | `ARENA_ENABLED` | pending |
+| **X3** | Conformance + safety guardrails (sepsis + surgical-safety) → cockpit → Eddy | P6 | `ARENA_ENABLED` | pending (data ready — X0 log carries the pathway corpus) |
+| **X4** | AI copilot — governed authoring, narratives, NL query, PDSA drafts; PM-LLM-Benchmark eval | P6 | `ARENA_AI_ENABLED` (off) | pending |
+
+Part X **retires the mostly-mock Process-Improvement surfaces** (the static-JSON
+process maps at `/improvement/process`, the hardcoded root-cause array, the
+modulo-synthesized PDSA stages) in favour of the discovered, live equivalents.
+The one live PI asset, `getBottleneckStats()`, is promoted to object-centric
+(X2). Full chapters (X.1–X.10 + reference base) are in the companion volume.
+
+---
+
 # Appendix A — Adversarial Critique (full, verbatim)
 
 ## Overall
