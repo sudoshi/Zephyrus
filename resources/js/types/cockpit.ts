@@ -166,6 +166,75 @@ export function isCockpitDrillDomain(value: string | null): value is CockpitDril
   return value !== null && (cockpitDrillDomains as readonly string[]).includes(value);
 }
 
+// ---------------------------------------------------------------------------
+// Spec P8 (WS-1/WS-2) — the Mount-Anywhere Cockpit. A mount scope is one of
+// four altitudes; GET /api/cockpit/face returns the altitude-APPROPRIATE face
+// for a resolved scope (App\Support\Cockpit\CockpitScope + ScopedFaceBuilder).
+// ---------------------------------------------------------------------------
+
+export const cockpitScopeLevels = ['house', 'service_line', 'department', 'unit'] as const;
+export const cockpitScopeRefSchema = z.object({
+  level: z.enum(cockpitScopeLevels),
+  key: z.string().nullable(),
+  label: z.string(),
+  token: z.string(),
+});
+export type CockpitScopeLevel = (typeof cockpitScopeLevels)[number];
+export type CockpitScopeRef = z.infer<typeof cockpitScopeRefSchema>;
+
+// The face is a discriminated union on `render`:
+//  - 'grid' → the mount resolved to house; the page keeps rendering the
+//             DomainGrid from the untouched snapshot (this variant carries no
+//             metrics — it is only a marker for which surface to mount).
+//  - 'face' → an altitude-appropriate face in the SAME drill grammar (kpis +
+//             §6.4 Cell tables), so the existing Tile / DataTable render every
+//             altitude. Reuse-first: a unit/dept mount is altitude-appropriate
+//             tiles, never the house grid shrunk.
+const cockpitGridFaceSchema = z.object({
+  scope: cockpitScopeRefSchema,
+  render: z.literal('grid'),
+  title: z.string(),
+  sub: z.string().nullable(),
+});
+const cockpitDetailFaceSchema = z.object({
+  scope: cockpitScopeRefSchema,
+  render: z.literal('face'),
+  title: z.string(),
+  sub: z.string().nullable(),
+  asOf: z.string(),
+  kpis: z.array(cockpitMetricValueSchema),
+  tables: z.array(drillTableSchema),
+  // Present only for a department face — it reuses the domain drill verbatim.
+  domain: z.string().optional(),
+  drilldownHref: z.string().optional(),
+});
+export const cockpitFaceSchema = z.discriminatedUnion('render', [
+  cockpitGridFaceSchema,
+  cockpitDetailFaceSchema,
+]);
+export type CockpitFace = z.infer<typeof cockpitFaceSchema>;
+export type CockpitDetailFace = z.infer<typeof cockpitDetailFaceSchema>;
+
+export type SafeCockpitFace =
+  | { ok: true; data: CockpitFace }
+  | { ok: false; error: string };
+
+export function safeParseCockpitFace(input: unknown): SafeCockpitFace {
+  const result = cockpitFaceSchema.safeParse(input);
+  if (result.success) return { ok: true, data: result.data };
+  const first = result.error.issues[0];
+  const where = first?.path?.length ? ` (at ${first.path.join('.')})` : '';
+  return { ok: false, error: `${first?.message ?? 'Invalid cockpit face payload'}${where}` };
+}
+
+// A non-house mount token ('unit:MICU' | 'service_line:*' | 'department:*').
+// The page only fetches /api/cockpit/face for these; an absent or 'house'
+// token keeps the default house overview with zero extra fetch — the default
+// /dashboard is unchanged.
+export function isScopedMount(token: string | null): token is string {
+  return token !== null && token.trim() !== '' && token !== 'house';
+}
+
 export type SafeCockpitSections =
   | { ok: true; data: CockpitSnapshotSections }
   | { ok: false; error: string };

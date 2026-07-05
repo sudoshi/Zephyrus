@@ -1,7 +1,7 @@
 // resources/js/features/cockpit/hooks.ts
 import { useQuery } from '@tanstack/react-query';
-import type { CockpitDrillDomain } from '@/types/cockpit';
-import { fetchCockpitDrill, fetchCockpitSnapshot } from './api';
+import { isScopedMount, type CockpitDrillDomain } from '@/types/cockpit';
+import { fetchCockpitDrill, fetchCockpitFace, fetchCockpitSnapshot } from './api';
 
 // 45s polling matches the pre-2.0 Inertia reload cadence the stale/aging
 // thresholds were tuned against (STALE = 2.5×, AGING = 1.4× in the page).
@@ -37,6 +37,23 @@ export function useCockpitDrill(domain: CockpitDrillDomain | null) {
     queryKey: ['cockpit', 'drill', domain],
     queryFn: () => fetchCockpitDrill(domain as CockpitDrillDomain),
     enabled: domain !== null,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * P8 WS-2 — the scoped mount face. Keyed by scope token so switching mounts
+ * re-serves from cache; enabled only for a real non-house mount (the house
+ * overview renders from the snapshot with no extra fetch). Polls on the same
+ * cadence as the snapshot so a wall-mounted unit/dept face stays live.
+ */
+export function useCockpitFace(scopeToken: string | null) {
+  return useQuery<unknown>({
+    queryKey: ['cockpit', 'face', scopeToken],
+    queryFn: () => fetchCockpitFace(scopeToken as string),
+    enabled: isScopedMount(scopeToken),
+    refetchInterval: COCKPIT_REFRESH_MS,
+    refetchIntervalInBackground: true,
     staleTime: 30_000,
   });
 }

@@ -21,6 +21,7 @@ import ErrorBoundary from '@/Components/ErrorBoundary';
 import { safeParseCommandCenterData } from '@/types/commandCenter';
 import {
   isCockpitDrillDomain,
+  isScopedMount,
   safeParseCockpitSections,
   type CockpitAlert,
   type CockpitDrillDomain,
@@ -31,6 +32,7 @@ import { useLiveCockpit } from '@/features/cockpit/live';
 import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView';
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
+import { ScopedFaceView } from '@/Components/cockpit/ScopedFaceView';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { ActionInboxModal } from '@/Components/cockpit/ActionInboxModal';
 import { ExecutiveBriefPanel } from '@/Components/cockpit/ExecutiveBriefPanel';
@@ -91,6 +93,10 @@ export default function CommandCenter({
   // ?cockpit=0 forces the classic rollback view regardless of the config flag.
   const [cockpitParam] = useState(() => urlParam('cockpit'));
   const [wall] = useState(() => urlParam('display') === 'wall');
+  // P8 WS-2b: ?scope= mounts a non-house altitude (unit / department / service
+  // line). Read once like the other presentation params; an absent or 'house'
+  // token keeps the default house overview (no scoped fetch, no behavior change).
+  const [scopeToken] = useState(() => urlParam('scope'));
   const [drill, setDrill] = useState<CockpitDrillDomain | null>(drillFromUrl);
 
   // Drill state ↔ URL: pushState on change so drills are shareable and the
@@ -149,6 +155,9 @@ export default function CommandCenter({
 
   const cockpitActive =
     sections.ok && (cockpitParam === '1' || (cockpitParam !== '0' && cockpitEnabled));
+  // A non-house mount renders the scoped altitude face instead of the house
+  // grid; house (or no ?scope=) is the untouched overview path.
+  const scopedMount = cockpitActive && isScopedMount(scopeToken);
 
   const generatedIso = sections.ok
     ? sections.data.asOf
@@ -175,27 +184,36 @@ export default function CommandCenter({
               <CommandCenterError detail={error?.message} onRetry={handleRefresh} />
             )}
           >
-            <CockpitOverview
-              sections={sections.data}
-              role={role}
-              updatedLabel={updatedLabel}
-              refreshing={refreshing}
-              aging={aging}
-              stale={stale}
-              onRefresh={handleRefresh}
-              activeDrill={drill}
-              onDrillChange={handleDrillChange}
-              wall={wall}
-              onAlertEngage={eddyEnabled ? handleAlertEngage : undefined}
-              onOpenInbox={() => setInboxOpen(true)}
-              inboxCount={pendingApprovals}
-              briefPanel={role === 'executive' ? <ExecutiveBriefPanel /> : undefined}
-            />
-            {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
-                deep links; closing (ESC, backdrop, ×) clears the URL param. */}
-            <DrillModal domain={drill} onClose={() => handleDrillChange(null)} />
-            {/* P6 WS-5: the AgentInbox queue as an in-cockpit modal. */}
-            <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
+            {scopedMount ? (
+              // P8 WS-2b: a non-house mount — the scope's own altitude face,
+              // fetched from /api/cockpit/face and rendered with the same
+              // Tile / DataTable primitives the house grid and drills use.
+              <ScopedFaceView scopeToken={scopeToken as string} />
+            ) : (
+              <>
+                <CockpitOverview
+                  sections={sections.data}
+                  role={role}
+                  updatedLabel={updatedLabel}
+                  refreshing={refreshing}
+                  aging={aging}
+                  stale={stale}
+                  onRefresh={handleRefresh}
+                  activeDrill={drill}
+                  onDrillChange={handleDrillChange}
+                  wall={wall}
+                  onAlertEngage={eddyEnabled ? handleAlertEngage : undefined}
+                  onOpenInbox={() => setInboxOpen(true)}
+                  inboxCount={pendingApprovals}
+                  briefPanel={role === 'executive' ? <ExecutiveBriefPanel /> : undefined}
+                />
+                {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
+                    deep links; closing (ESC, backdrop, ×) clears the URL param. */}
+                <DrillModal domain={drill} onClose={() => handleDrillChange(null)} />
+                {/* P6 WS-5: the AgentInbox queue as an in-cockpit modal. */}
+                <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
+              </>
+            )}
           </ErrorBoundary>
         ) : parsed.ok ? (
           <ErrorBoundary

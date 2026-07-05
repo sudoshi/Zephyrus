@@ -20,3 +20,11 @@ export async function fetchCockpitDrill(domain: string): Promise<unknown> {
   const res = await axios.get(`/api/cockpit/drill/${encodeURIComponent(domain)}`);
   return res.data;
 }
+
+// P8 WS-2 — the altitude-appropriate face for a mount scope (unit / department
+// / service_line). Same unknown-out discipline: ScopedFaceView parses with
+// cockpitFaceSchema and degrades to an in-place error card, never a crash.
+export async function fetchCockpitFace(scope: string): Promise<unknown> {
+  const res = await axios.get('/api/cockpit/face', { params: { scope } });
+  return res.data;
+}

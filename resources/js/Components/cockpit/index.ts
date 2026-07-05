@@ -32,6 +32,8 @@ export { OkrScorecard, okrProgressPct } from './OkrScorecard';
 export { CockpitOverview } from './CockpitOverview';
 // P3 — the A2 drill surface.
 export { DrillModal, type DrillModalProps } from './DrillModal';
+// P8 WS-2b — the mount-anywhere altitude face (unit / department / service line).
+export { ScopedFaceView, type ScopedFaceViewProps } from './ScopedFaceView';
 // P6 — the silo pages reconciled into the cockpit (WS-5).
 export { ActionInboxModal } from './ActionInboxModal';
 export { ExecutiveBriefPanel } from './ExecutiveBriefPanel';
