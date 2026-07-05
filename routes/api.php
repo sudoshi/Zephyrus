@@ -101,6 +101,16 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(fu
         ->middleware(\App\Http\Middleware\AdminMiddleware::class);
 });
 
+// Zephyrus 2.0 Part X (X1) — Arena OCPM serving layer. Laravel proxies to the
+// PHI-free OCPM sidecar and caches discovered maps in arena.maps. Gated by
+// EnsureArenaEnabled (ARENA_ENABLED, default off) so the group 404s while off.
+Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureArenaEnabled::class])
+    ->prefix('arena')->group(function () {
+        Route::get('/health', [\App\Http\Controllers\Api\ArenaController::class, 'health']);
+        Route::get('/summary', [\App\Http\Controllers\Api\ArenaController::class, 'summary']);
+        Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
+    });
+
 // Facility blueprint/digital twin model (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('facility')->group(function () {
     Route::get('/model/summary', [FacilityModelController::class, 'summary']);

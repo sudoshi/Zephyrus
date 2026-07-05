@@ -68,4 +68,15 @@ return [
         'callback_token' => env('EDDY_CALLBACK_TOKEN'), // bearer Eddy uses on non-user telemetry callbacks
     ],
 
+    // Arena — the Part X OCPM sidecar. The browser never calls it directly; the
+    // SPA calls Laravel /api/arena/*, and Laravel proxies here server-side,
+    // caching the discovered maps in arena.maps. The sidecar is stateless and
+    // PHI-free; it reads a de-identified OCEL export Laravel posts inline.
+    'arena' => [
+        'enabled' => filter_var(env('ARENA_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'url' => env('ARENA_BASE_URL', 'http://arena:8100'),
+        'timeout' => (int) env('ARENA_TIMEOUT_SECONDS', 60),
+        'cache_ttl' => (int) env('ARENA_CACHE_TTL_SECONDS', 900), // discovered-map cache lifetime
+    ],
+
 ];
