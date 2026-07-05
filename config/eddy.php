@@ -50,7 +50,9 @@ return [
         'chat_local' => env('EDDY_OLLAMA_MODEL', 'puyangwang/medgemma-27b-it:q4_0'),
         // Agent loop reaches Ollama only through an Anthropic-compatible proxy and
         // uses a tool-calling model (NOT MedGemma, which is not a reliable caller).
-        'agent_local' => env('EDDY_AGENT_LOCAL_MODEL', 'qwen2.5-coder:32b'),
+        // qwen3:8b validated 6/6 on the EddyActionService catalog (2026-07-05); small
+        // ~6GB footprint suits warm-swap on 24GB. See docs/EDDY-LOCAL-AGENT-PATH.md.
+        'agent_local' => env('EDDY_AGENT_LOCAL_MODEL', 'qwen3:8b'),
     ],
 
     // Scoped-token abilities minted to the Eddy agent. ops:approve is NEVER minted

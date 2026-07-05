@@ -37,6 +37,12 @@ Against that substrate, **~70% of Abby's code ports in shape** — the Claude Ag
 
 This document specifies all of it: the target architecture and a 1:1 Abby→Eddy component map (Part A); dual local/frontier provider enablement (Part B); the process-awareness model and full per-domain tool catalog (Part C); the action-taking, approval, memory, RAG and knowledge engines (Part D); the Inertia + Hummingbird UX/UI (Part E); and the data model, security/PHI/compliance posture, testing strategy, deployment, and the six-phase implementation roadmap (Part F).
 
+> **Phase 3 — local-provider execution:** the concrete todo for making the *local* agent
+> path functional (Anthropic-compatible proxy, `qwen3:8b`, VRAM/serving strategy) lives in
+> **[EDDY-LOCAL-AGENT-PATH.md](./EDDY-LOCAL-AGENT-PATH.md)**, together with the 2026-07-05
+> tool-call validation that resolves risk **R8** (which local model tool-calls reliably →
+> `qwen3:8b`, 6/6 on the `EddyActionService` catalog).
+
 ---
 
 ## 1. Vision & Design Principles
