@@ -26,6 +26,7 @@ import {
   type CockpitAlert,
   type CockpitDrillDomain,
 } from '@/types/cockpit';
+import { isPatientContextRef } from '@/types/patientLens';
 import { useEddyStore } from '@/stores/eddyStore';
 import { COCKPIT_REFRESH_MS, useCockpitSnapshot } from '@/features/cockpit/hooks';
 import { useLiveCockpit } from '@/features/cockpit/live';
@@ -34,6 +35,7 @@ import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { ScopedFaceView } from '@/Components/cockpit/ScopedFaceView';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
+import { PatientLensModal } from '@/Components/cockpit/PatientLensModal';
 import { ActionInboxModal } from '@/Components/cockpit/ActionInboxModal';
 import { ExecutiveBriefPanel } from '@/Components/cockpit/ExecutiveBriefPanel';
 import { useAgentInbox } from '@/features/ops/hooks';
@@ -56,6 +58,14 @@ function urlParam(name: string): string | null {
 function drillFromUrl(): CockpitDrillDomain | null {
   const param = urlParam('drill');
   return isCockpitDrillDomain(param) ? param : null;
+}
+
+// P8 WS-3: ?patient={ptok} opens the A2P patient lens OVER the current mount.
+// Like ?drill=, it is dynamic (pushState/popstate-synced) so a bed/board drill
+// (wired in WS-4) is shareable and Back-navigable; a non-ptok value is ignored.
+function patientFromUrl(): string | null {
+  const param = urlParam('patient');
+  return isPatientContextRef(param) ? param : null;
 }
 
 /** Seed TanStack's freshness clock from the payload's own timestamp. */
@@ -98,6 +108,7 @@ export default function CommandCenter({
   // token keeps the default house overview (no scoped fetch, no behavior change).
   const [scopeToken] = useState(() => urlParam('scope'));
   const [drill, setDrill] = useState<CockpitDrillDomain | null>(drillFromUrl);
+  const [patient, setPatient] = useState<string | null>(patientFromUrl);
 
   // Drill state ↔ URL: pushState on change so drills are shareable and the
   // browser Back button walks drill history (popstate syncs state back).
@@ -110,8 +121,22 @@ export default function CommandCenter({
     window.history.pushState(window.history.state, '', url);
   }, []);
 
+  // Patient lens ↔ URL: same pushState/popstate discipline as the drill, so the
+  // A2P descent is shareable and Back closes it (WS-4 sets this from a row).
+  const handlePatientChange = useCallback((contextRef: string | null) => {
+    setPatient(contextRef);
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (contextRef) url.searchParams.set('patient', contextRef);
+    else url.searchParams.delete('patient');
+    window.history.pushState(window.history.state, '', url);
+  }, []);
+
   useEffect(() => {
-    const onPopState = () => setDrill(drillFromUrl());
+    const onPopState = () => {
+      setDrill(drillFromUrl());
+      setPatient(patientFromUrl());
+    };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -214,6 +239,9 @@ export default function CommandCenter({
                 <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
               </>
             )}
+            {/* P8 WS-3: the A2P patient lens overlays ANY mount (house or
+                scoped) — ?patient={ptok} opens it; WS-4 wires bed/board rows. */}
+            <PatientLensModal contextRef={patient} onClose={() => handlePatientChange(null)} />
           </ErrorBoundary>
         ) : parsed.ok ? (
           <ErrorBoundary

@@ -28,3 +28,11 @@ export async function fetchCockpitFace(scope: string): Promise<unknown> {
   const res = await axios.get('/api/cockpit/face', { params: { scope } });
   return res.data;
 }
+
+// P8 WS-3 — the A2P patient lens for a context ref (ptok_…). Persona-gated
+// server-side (EnforceFlowLens:patients + service authorization); a 403 rejects
+// here and PatientLens renders the "access limited" state rather than crashing.
+export async function fetchCockpitPatient(contextRef: string): Promise<unknown> {
+  const res = await axios.get(`/api/cockpit/patient/${encodeURIComponent(contextRef)}`);
+  return res.data;
+}
