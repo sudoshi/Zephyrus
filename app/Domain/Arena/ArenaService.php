@@ -97,6 +97,24 @@ class ArenaService
         return $summary ?? ['available' => false, 'reason' => 'sidecar_unavailable'];
     }
 
+    /**
+     * Conformance of the current OCEL log against the reference care pathways
+     * (Part X §X.7). Uncached — a Study read, not a polled surface.
+     *
+     * @return array<string, mixed>
+     */
+    public function conformance(?string $pathway = null): array
+    {
+        $doc = $this->exporter->export();
+        $results = $this->client->conformance($doc, $pathway);
+
+        if ($results === null) {
+            return ['available' => false, 'reason' => 'sidecar_unavailable'];
+        }
+
+        return ['available' => true, 'pathways' => $results];
+    }
+
     /** A cheap fingerprint of the OCEL log; changes when the projection changes. */
     private function sourceSignature(): string
     {

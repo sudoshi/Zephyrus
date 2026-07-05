@@ -28,3 +28,10 @@ export async function fetchArenaSummary(): Promise<unknown> {
   const res = await axios.get('/api/arena/summary');
   return res.data;
 }
+
+export async function fetchArenaConformance(pathway?: string): Promise<unknown> {
+  const res = await axios.get('/api/arena/conformance', {
+    params: { pathway: pathway || undefined },
+  });
+  return res.data;
+}

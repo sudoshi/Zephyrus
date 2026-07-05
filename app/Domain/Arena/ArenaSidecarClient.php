@@ -70,8 +70,27 @@ class ArenaSidecarClient
     }
 
     /**
+     * Conformance of the de-identified OCEL log against the reference care
+     * pathways (Part X §X.7). Returns a list of per-pathway results, or null.
+     *
+     * @param  array<string, mixed>  $ocel
+     * @return array<int, array<string, mixed>>|null
+     */
+    public function conformance(array $ocel, ?string $pathway = null): ?array
+    {
+        $body = ['ocel' => $ocel];
+        if ($pathway !== null) {
+            $body['pathway'] = $pathway;
+        }
+        $result = $this->post('/conformance', $body);
+
+        // /conformance returns a JSON array; post() decodes it as a list.
+        return is_array($result) ? $result : null;
+    }
+
+    /**
      * @param  array<string, mixed>  $body
-     * @return array<string, mixed>|null
+     * @return array<mixed>|null
      */
     private function post(string $path, array $body): ?array
     {

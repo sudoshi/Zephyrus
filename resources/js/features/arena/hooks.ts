@@ -1,6 +1,6 @@
 // resources/js/features/arena/hooks.ts
 import { useQuery } from '@tanstack/react-query';
-import { fetchArenaMap, fetchArenaSummary, type ArenaMapParams } from './api';
+import { fetchArenaConformance, fetchArenaMap, fetchArenaSummary, type ArenaMapParams } from './api';
 
 // Discovered maps are server-cached in arena.maps; a 60s client staleTime keeps
 // the Study responsive to filter changes without re-hitting the sidecar on every
@@ -18,6 +18,14 @@ export function useArenaSummary() {
   return useQuery<unknown>({
     queryKey: ['arena', 'summary'],
     queryFn: fetchArenaSummary,
+    staleTime: 60_000,
+  });
+}
+
+export function useArenaConformance() {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'conformance'],
+    queryFn: () => fetchArenaConformance(),
     staleTime: 60_000,
   });
 }

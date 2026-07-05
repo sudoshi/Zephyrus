@@ -63,3 +63,32 @@ class SummaryResponse(BaseModel):
     objects: int
     object_types: dict[str, int]
     activities: dict[str, int]
+
+
+class ConformanceRequest(OcelSource):
+    pathway: str | None = Field(default=None, description="restrict to one pathway key (default: all)")
+
+
+class DeviationCount(BaseModel):
+    code: str
+    label: str
+    count: int
+
+
+class SampleDeviantCase(BaseModel):
+    case_id: str
+    deviations: list[str]
+
+
+class PathwayConformance(BaseModel):
+    pathway: str
+    label: str
+    version: int
+    owner: str
+    case_type: str
+    cases: int
+    conformant: int
+    deviant: int
+    conformance_rate: float | None
+    deviations: list[DeviationCount]
+    sample_deviant_cases: list[SampleDeviantCase]

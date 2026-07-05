@@ -30,6 +30,19 @@ class ArenaController extends Controller
     }
 
     /**
+     * Patient-safety conformance of the OCEL log against the reference care
+     * pathways (§X.7). Query param ?pathway=sepsis restricts to one pathway.
+     */
+    public function conformance(Request $request): JsonResponse
+    {
+        $pathway = $request->filled('pathway') ? (string) $request->query('pathway') : null;
+        $payload = $this->arena->conformance($pathway);
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
+    /**
      * A discovered object-centric map. Query params:
      *   ?types=Encounter,Bed   restrict to these object types
      *   ?min_freq=5            drop activities below this occurrence count

@@ -51,8 +51,40 @@ export const arenaSummarySchema = z.object({
   activities: z.record(z.string(), z.number()),
 });
 
+export const arenaDeviationSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  count: z.number(),
+});
+
+export const arenaSampleCaseSchema = z.object({
+  case_id: z.string(),
+  deviations: z.array(z.string()),
+});
+
+export const arenaPathwayConformanceSchema = z.object({
+  pathway: z.string(),
+  label: z.string(),
+  version: z.number(),
+  owner: z.string(),
+  case_type: z.string(),
+  cases: z.number(),
+  conformant: z.number(),
+  deviant: z.number(),
+  conformance_rate: z.number().nullable(),
+  deviations: z.array(arenaDeviationSchema),
+  sample_deviant_cases: z.array(arenaSampleCaseSchema),
+});
+
+export const arenaConformanceResponseSchema = z.union([
+  z.object({ available: z.literal(true), pathways: z.array(arenaPathwayConformanceSchema) }),
+  z.object({ available: z.literal(false), reason: z.string() }),
+]);
+
 export type ArenaNode = z.infer<typeof arenaNodeSchema>;
 export type ArenaEdge = z.infer<typeof arenaEdgeSchema>;
 export type ArenaOcdfg = z.infer<typeof arenaOcdfgSchema>;
 export type ArenaMapResponse = z.infer<typeof arenaMapResponseSchema>;
 export type ArenaSummary = z.infer<typeof arenaSummarySchema>;
+export type ArenaPathwayConformance = z.infer<typeof arenaPathwayConformanceSchema>;
+export type ArenaConformanceResponse = z.infer<typeof arenaConformanceResponseSchema>;

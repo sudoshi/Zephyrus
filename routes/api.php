@@ -109,6 +109,7 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
         Route::get('/health', [\App\Http\Controllers\Api\ArenaController::class, 'health']);
         Route::get('/summary', [\App\Http\Controllers\Api\ArenaController::class, 'summary']);
         Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
+        Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);
     });
 
 // Facility blueprint/digital twin model (web session auth)

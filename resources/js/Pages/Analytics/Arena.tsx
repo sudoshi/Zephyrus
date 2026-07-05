@@ -8,10 +8,18 @@
 import { useMemo, useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
+import { ConformancePane } from '@/Components/arena/ConformancePane';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
-import { useArenaMap, useArenaSummary } from '@/features/arena/hooks';
-import { arenaMapResponseSchema, arenaSummarySchema, type ArenaOcdfg, type ArenaSummary } from '@/features/arena/schema';
+import { useArenaConformance, useArenaMap, useArenaSummary } from '@/features/arena/hooks';
+import {
+  arenaConformanceResponseSchema,
+  arenaMapResponseSchema,
+  arenaSummarySchema,
+  type ArenaOcdfg,
+  type ArenaPathwayConformance,
+  type ArenaSummary,
+} from '@/features/arena/schema';
 
 function StatBlock({ label, value }: { label: string; value: string | number }) {
   return (
@@ -56,6 +64,14 @@ export default function Arena() {
   }, [mapQuery.data]);
 
   const ocdfg: ArenaOcdfg | null = mapResult && mapResult.available ? mapResult.map : null;
+
+  const conformanceQuery = useArenaConformance();
+  const conformancePathways = useMemo<ArenaPathwayConformance[] | null>(() => {
+    if (conformanceQuery.data === undefined) return null;
+    const parsed = arenaConformanceResponseSchema.safeParse(conformanceQuery.data);
+    if (!parsed.success || !parsed.data.available) return null;
+    return parsed.data.pathways;
+  }, [conformanceQuery.data]);
 
   // Stable, full object-type ordering (from the summary) so a colour never
   // shifts when the user filters the map to a subset of types.
@@ -265,6 +281,26 @@ export default function Arena() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Conformance pane (X3) — patient safety as conformance */}
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Patient-safety conformance
+            </h2>
+            <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Live adherence of the OCEL log to the reference care pathways. Every deviation is observed — derived from the
+              event sequence and timing — never predicted.
+            </p>
+          </div>
+          {conformancePathways ? (
+            <ConformancePane pathways={conformancePathways} />
+          ) : (
+            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-6 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
+              {conformanceQuery.isError ? 'Conformance unavailable — is the OCPM sidecar reachable?' : 'Checking pathway conformance…'}
+            </div>
+          )}
         </div>
       </div>
     </AnalyticsLayout>
