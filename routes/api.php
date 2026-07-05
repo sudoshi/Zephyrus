@@ -89,6 +89,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(fu
     Route::get('/face', [\App\Http\Controllers\Api\CockpitController::class, 'face']);
     Route::get('/drill/{domain}', [\App\Http\Controllers\Api\CockpitController::class, 'drill'])
         ->where('domain', '[a-z]+');
+    // P8 WS-3 — the A2P patient lens as an in-place cockpit drill. Persona-gated
+    // by EnforceFlowLens:patients (patient_dots=none personas get 403); the ptok
+    // constraint 404s any non-context ref before it reaches the service.
+    Route::get('/patient/{contextRef}', [\App\Http\Controllers\PatientLensController::class, 'show'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')
+        ->where('contextRef', 'ptok_[A-Za-z0-9]+');
     Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
     Route::get('/kpi-definitions', [\App\Http\Controllers\Api\CockpitController::class, 'kpiDefinitions']);
     Route::put('/kpi-definitions/{metricKey}', [\App\Http\Controllers\Api\CockpitController::class, 'updateKpiDefinition'])
