@@ -123,6 +123,9 @@ Route::middleware(['auth'])
         Route::get('/analytics/opportunities', [Analytics\AnalyticsController::class, 'opportunities'])->name('analytics.opportunities');
         Route::get('/analytics/workbench', [Analytics\AnalyticsController::class, 'workbench'])->name('analytics.workbench');
         Route::get('/analytics/data-quality', [Analytics\AnalyticsController::class, 'dataQuality'])->name('analytics.data-quality');
+        // Part X (X1) — Patient-Flow Arena Study surface. Gated by ARENA_ENABLED.
+        Route::get('/analytics/arena', [Analytics\AnalyticsController::class, 'arena'])->name('analytics.arena')
+            ->middleware(\App\Http\Middleware\EnsureArenaEnabled::class);
         Route::get('/analytics/block-utilization', [Analytics\BlockUtilizationController::class, 'index'])->name('analytics.block-utilization');
         Route::get('/analytics/or-utilization', [Analytics\ORUtilizationController::class, 'index'])->name('analytics.or-utilization');
         Route::get('/analytics/primetime-utilization', [Analytics\PrimetimeUtilizationController::class, 'index'])->name('analytics.primetime-utilization');

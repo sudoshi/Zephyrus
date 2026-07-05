@@ -286,6 +286,8 @@ const ANALYTICS: NavDomain = {
       items: [
         { label: 'Retrospective Review', href: '/analytics/retrospective', icon: TrendingUp },
         { label: 'Process Intelligence', href: '/analytics/process-intelligence', icon: Workflow },
+        // Part X (X1) — object-centric process maps discovered from the OCEL log.
+        { label: 'Patient-Flow Arena', href: '/analytics/arena', icon: GitBranch },
       ],
     },
     {

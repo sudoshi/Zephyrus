@@ -48,6 +48,16 @@ class AnalyticsController extends Controller
         return $this->renderSection('data-quality');
     }
 
+    /**
+     * Part X (X1) — the Patient-Flow Arena Study surface. Renders discovered
+     * object-centric process maps from /api/arena/map. The route is gated by
+     * EnsureArenaEnabled, so this 404s while ARENA_ENABLED is off.
+     */
+    public function arena(): Response
+    {
+        return Inertia::render('Analytics/Arena');
+    }
+
     private function renderSection(string $section): Response
     {
         return Inertia::render('Analytics', [
