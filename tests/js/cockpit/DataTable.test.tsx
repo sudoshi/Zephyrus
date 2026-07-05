@@ -1,6 +1,6 @@
 // tests/js/cockpit/DataTable.test.tsx
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { DataTable } from '@/Components/cockpit/DataTable';
 import type { Cell, Column } from '@/types/cockpit';
 
@@ -43,5 +43,28 @@ describe('DataTable', () => {
   it('renders an empty string for a missing cell instead of crashing', () => {
     render(<DataTable columns={columns} rows={[{ unit: 'PACU' }]} caption="sparse" />);
     expect(screen.getByText('PACU')).toBeInTheDocument();
+  });
+
+  // P8 WS-4 — the drill cell: a bed/board row descends to the A2P patient lens.
+  const drillColumns: Column[] = [{ key: 'bed', header: 'Bed' }, { key: 'complaint', header: 'Chief complaint' }];
+  const drillRows: Record<string, Cell>[] = [
+    { bed: { drill: { patientRef: 'ptok_abc123', text: 'Room 4', strong: true } }, complaint: 'Chest pain' },
+  ];
+
+  it('renders a drill cell as a patient-lens button and fires onRowDrill with its ptok', () => {
+    const onRowDrill = vi.fn();
+    render(<DataTable columns={drillColumns} rows={drillRows} caption="board" onRowDrill={onRowDrill} />);
+
+    const button = screen.getByRole('button', { name: 'Open patient lens for Room 4' });
+    expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+    fireEvent.click(button);
+    expect(onRowDrill).toHaveBeenCalledTimes(1);
+    expect(onRowDrill).toHaveBeenCalledWith('ptok_abc123');
+  });
+
+  it('renders a drill cell as plain text (no dead affordance) when no handler is given', () => {
+    render(<DataTable columns={drillColumns} rows={drillRows} caption="static board" />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('Room 4')).toBeInTheDocument();
   });
 });

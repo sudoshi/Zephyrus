@@ -52,9 +52,11 @@ type ParsedFace =
 export interface ScopedFaceViewProps {
   /** A non-house mount token ('unit:MICU' | 'service_line:*' | 'department:*'). */
   scopeToken: string;
+  /** P8 WS-4 — a bed/board row descends to the A2P patient lens with its ptok. */
+  onPatientDrill?: (patientRef: string) => void;
 }
 
-export function ScopedFaceView({ scopeToken }: ScopedFaceViewProps) {
+export function ScopedFaceView({ scopeToken, onPatientDrill }: ScopedFaceViewProps) {
   const query = useCockpitFace(scopeToken);
 
   const parsed = useMemo<ParsedFace>(() => {
@@ -98,7 +100,7 @@ export function ScopedFaceView({ scopeToken }: ScopedFaceViewProps) {
       )}
 
       {parsed.state === 'ready' && parsed.face.render === 'face' && (
-        <DetailFace face={parsed.face} />
+        <DetailFace face={parsed.face} onPatientDrill={onPatientDrill} />
       )}
     </div>
   );
@@ -129,7 +131,7 @@ function HouseBounce({ label }: { label: string }) {
   );
 }
 
-function DetailFace({ face }: { face: CockpitDetailFace }) {
+function DetailFace({ face, onPatientDrill }: { face: CockpitDetailFace; onPatientDrill?: (patientRef: string) => void }) {
   const accent = COCKPIT_STATE_TO_LEVEL[worstStatus(face.kpis)];
   const accentStyle = statusStyle(accent);
   const empty = face.kpis.length === 0 && face.tables.length === 0;
@@ -185,7 +187,7 @@ function DetailFace({ face }: { face: CockpitDetailFace }) {
               <h3 className="mb-1.5 text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 {table.caption}
               </h3>
-              <DataTable caption={table.caption} columns={table.columns} rows={table.rows} />
+              <DataTable caption={table.caption} columns={table.columns} rows={table.rows} onRowDrill={onPatientDrill} />
             </section>
           ))}
         </>

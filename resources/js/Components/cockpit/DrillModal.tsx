@@ -54,9 +54,11 @@ type ParsedDrill =
 export interface DrillModalProps {
   domain: CockpitDrillDomain | null;
   onClose: () => void;
+  /** P8 WS-4 — a bed/board row descends to the A2P patient lens with its ptok. */
+  onPatientDrill?: (patientRef: string) => void;
 }
 
-export function DrillModal({ domain, onClose }: DrillModalProps) {
+export function DrillModal({ domain, onClose, onPatientDrill }: DrillModalProps) {
   const query = useCockpitDrill(domain);
 
   const parsed = useMemo<ParsedDrill>(() => {
@@ -155,7 +157,7 @@ export function DrillModal({ domain, onClose }: DrillModalProps) {
                   <h3 className="mb-1.5 text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                     {table.caption}
                   </h3>
-                  <DataTable caption={table.caption} columns={table.columns} rows={table.rows} />
+                  <DataTable caption={table.caption} columns={table.columns} rows={table.rows} onRowDrill={onPatientDrill} />
                 </section>
               ))}
             </>

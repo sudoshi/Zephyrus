@@ -57,12 +57,26 @@ export const cellTextSchema = z.object({
   dim: z.boolean().optional(),
   status: z.enum(statusLevels).optional(),
 });
+// P8 WS-4 — the row-drill cell: a bed/board/patient row that descends to the
+// A2P patient lens (kills the old onDrill → no-op). `patientRef` is an opaque
+// ptok_ context token; DataTable renders it as a drill button when the table is
+// given an onRowDrill handler, else as plain text (graceful, static-safe). RBAC
+// is enforced at the destination (/cockpit/patient is EnforceFlowLens-gated), so
+// the token is safe to emit — the affordance never leaks patient data itself.
+export const cellDrillSchema = z.object({
+  drill: z.object({
+    patientRef: z.string(),
+    text: z.string(),
+    strong: z.boolean().optional(),
+  }),
+});
 export const cellSchema = z.union([
   z.string(),
   z.number(),
   cellBarSchema,
   cellChipSchema,
   cellTagSchema,
+  cellDrillSchema,
   cellTextSchema,
 ]);
 export type Cell = z.infer<typeof cellSchema>;

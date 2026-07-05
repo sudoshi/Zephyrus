@@ -76,14 +76,31 @@ const gridFace = {
   sub: 'House-wide operations overview',
 };
 
-function renderFace(scopeToken = 'unit:MICU') {
+function renderFace(scopeToken = 'unit:MICU', onPatientDrill?: (ref: string) => void) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ScopedFaceView scopeToken={scopeToken} />
+      <ScopedFaceView scopeToken={scopeToken} onPatientDrill={onPatientDrill} />
     </QueryClientProvider>,
   );
 }
+
+// P8 WS-4 — a face whose board carries a drill cell (a bed → patient descent).
+const drillFace = {
+  scope: { level: 'unit', key: 'MICU', label: 'Medical ICU', token: 'unit:MICU' },
+  render: 'face',
+  title: 'Medical ICU',
+  sub: 'icu census',
+  asOf: '2026-07-04T12:00:00+00:00',
+  kpis: [kpi('unit.occupancy')],
+  tables: [
+    {
+      caption: 'Patients',
+      columns: [{ key: 'bed', header: 'Bed', align: 'left' }],
+      rows: [{ bed: { drill: { patientRef: 'ptok_micu001', text: 'Bed 3', strong: true } } }],
+    },
+  ],
+};
 
 describe('ScopedFaceView', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -105,6 +122,17 @@ describe('ScopedFaceView', () => {
     expect(screen.getByText('MICU')).toBeInTheDocument();
     // Header accent = worst KPI (crit) — earned urgency.
     expect(screen.getByText('Medical ICU').closest('header')?.dataset.accent).toBe('critical');
+  });
+
+  it('descends a bed/board drill cell to the patient lens (kills the no-op)', async () => {
+    const onPatientDrill = vi.fn();
+    mockedFetch.mockResolvedValue(drillFace);
+    renderFace('unit:MICU', onPatientDrill);
+
+    const bed = await screen.findByRole('button', { name: 'Open patient lens for Bed 3' });
+    fireEvent.click(bed);
+    expect(onPatientDrill).toHaveBeenCalledTimes(1);
+    expect(onPatientDrill).toHaveBeenCalledWith('ptok_micu001');
   });
 
   it('shows the honest empty state when there is no live census (never fabricated)', async () => {

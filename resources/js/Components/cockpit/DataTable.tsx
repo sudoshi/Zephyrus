@@ -14,11 +14,38 @@ export interface DataTableProps {
   columns: Column[];
   rows: Record<string, Cell>[];
   caption: string;
+  /**
+   * P8 WS-4 — when set, a `drill` cell renders as a button that descends to the
+   * A2P patient lens with its ptok. Absent (the default) keeps drill cells as
+   * plain text, so a static / wall render never exposes a dead affordance.
+   */
+  onRowDrill?: (patientRef: string) => void;
 }
 
-function CellContent({ cell }: { cell: Cell }) {
+function CellContent({ cell, onRowDrill }: { cell: Cell; onRowDrill?: (patientRef: string) => void }) {
   if (typeof cell === 'string' || typeof cell === 'number') {
     return <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{cell}</span>;
+  }
+  if ('drill' in cell) {
+    const label = cell.drill.text;
+    if (!onRowDrill) {
+      return (
+        <span className={`text-healthcare-text-primary dark:text-healthcare-text-primary-dark ${cell.drill.strong ? 'font-semibold' : ''}`}>
+          {label}
+        </span>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => onRowDrill(cell.drill.patientRef)}
+        aria-haspopup="dialog"
+        aria-label={`Open patient lens for ${label}`}
+        className={`-mx-1 rounded px-1 text-left text-healthcare-primary underline-offset-2 hover:underline dark:text-healthcare-primary-dark ${cell.drill.strong ? 'font-semibold' : 'font-medium'}`}
+      >
+        {label}
+      </button>
+    );
   }
   if ('bar' in cell) {
     return (
@@ -74,7 +101,7 @@ function CellContent({ cell }: { cell: Cell }) {
   );
 }
 
-export function DataTable({ columns, rows, caption }: DataTableProps) {
+export function DataTable({ columns, rows, caption, onRowDrill }: DataTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -103,7 +130,7 @@ export function DataTable({ columns, rows, caption }: DataTableProps) {
                   key={col.key}
                   className={`px-2 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : ''}`}
                 >
-                  <CellContent cell={row[col.key] ?? ''} />
+                  <CellContent cell={row[col.key] ?? ''} onRowDrill={onRowDrill} />
                 </td>
               ))}
             </tr>

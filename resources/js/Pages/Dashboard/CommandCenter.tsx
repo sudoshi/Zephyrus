@@ -213,7 +213,7 @@ export default function CommandCenter({
               // P8 WS-2b: a non-house mount — the scope's own altitude face,
               // fetched from /api/cockpit/face and rendered with the same
               // Tile / DataTable primitives the house grid and drills use.
-              <ScopedFaceView scopeToken={scopeToken as string} />
+              <ScopedFaceView scopeToken={scopeToken as string} onPatientDrill={handlePatientChange} />
             ) : (
               <>
                 <CockpitOverview
@@ -234,7 +234,7 @@ export default function CommandCenter({
                 />
                 {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
                     deep links; closing (ESC, backdrop, ×) clears the URL param. */}
-                <DrillModal domain={drill} onClose={() => handleDrillChange(null)} />
+                <DrillModal domain={drill} onClose={() => handleDrillChange(null)} onPatientDrill={handlePatientChange} />
                 {/* P6 WS-5: the AgentInbox queue as an in-cockpit modal. */}
                 <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
               </>
