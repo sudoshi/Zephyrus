@@ -208,6 +208,12 @@ Route::middleware(['auth'])
         // User Management Routes - Only accessible to admins
         Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
             Route::resource('users', \App\Http\Controllers\UserController::class);
+
+            // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
+            // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,
+            // both AdminMiddleware-gated + audited.
+            Route::get('/admin/cockpit/thresholds', fn () => Inertia::render('Admin/CockpitThresholds'))
+                ->name('admin.cockpit.thresholds');
         });
 
         // User Preferences Route - Using GET with URL parameters

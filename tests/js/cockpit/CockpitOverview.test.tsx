@@ -127,11 +127,11 @@ describe('CockpitOverview', () => {
     expect(root.dataset.drill).toBe('rtdc');
   });
 
-  it('shows the stale banner with a retry affordance when the payload stops advancing', () => {
-    const onRefresh = vi.fn();
-    renderOverview({ stale: true, onRefresh });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Retry now' }));
-    expect(onRefresh).toHaveBeenCalled();
+  it('delegates the loud stale banner to app chrome (no longer inline)', () => {
+    // P8 WS-6b moved the loud stale banner up to CommandCenter (StaleDataBanner)
+    // so it fires at EVERY scope; the overview itself no longer renders it.
+    renderOverview({ stale: true });
+    expect(screen.queryByRole('button', { name: 'Retry now' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live updates interrupted/i)).not.toBeInTheDocument();
   });
 });

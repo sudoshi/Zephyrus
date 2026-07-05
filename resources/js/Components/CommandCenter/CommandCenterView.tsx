@@ -1,6 +1,5 @@
 // resources/js/Components/CommandCenter/CommandCenterView.tsx
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '@iconify/react';
 import type { CommandCenterData } from '@/types/commandCenter';
 import { useCommandCenterStore } from '@/stores/commandCenterStore';
 import { HeroWall } from './HeroWall';
@@ -70,23 +69,9 @@ export function CommandCenterView({
         </button>
       </div>
 
-      {/* Stale signal: when the payload stops advancing, say so loudly and stop
-          implying the numbers are live. role="status" announces it to SR users. */}
-      {stale && (
-        <div role="status" aria-live="polite" aria-label="Stale data warning"
-             className="flex items-center gap-2 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/20
-                        px-3 py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-          <Icon icon="heroicons:exclamation-triangle" aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-healthcare-warning dark:text-healthcare-warning-dark" />
-          <span className="min-w-0">
-            Live updates interrupted — showing last good data from {updatedLabel}.{' '}
-            <button type="button" onClick={onRefresh}
-                    className="font-medium underline underline-offset-2 hover:no-underline">
-              Retry now
-            </button>
-          </span>
-        </div>
-      )}
+      {/* The loud stale banner now lives app-chrome-wide (StaleDataBanner in
+          CommandCenter) so it fires at every scope. This view keeps the subtle
+          aging dot above and the sr-only recovery announcement. */}
 
       <HeroWall role={role} strain={data.strain} heroMetrics={data.heroMetrics}
                 objectives={data.objectives} detailed={detailed} />

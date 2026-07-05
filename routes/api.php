@@ -96,7 +96,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(fu
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')
         ->where('contextRef', 'ptok_[A-Za-z0-9]+');
     Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
-    Route::get('/kpi-definitions', [\App\Http\Controllers\Api\CockpitController::class, 'kpiDefinitions']);
+    // P8 WS-6b — the admin threshold editor's endpoints. Both admin-gated: the
+    // read backs the editor page, the write is the audited band-edge tune.
+    Route::get('/kpi-definitions', [\App\Http\Controllers\Api\CockpitController::class, 'kpiDefinitions'])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class);
     Route::put('/kpi-definitions/{metricKey}', [\App\Http\Controllers\Api\CockpitController::class, 'updateKpiDefinition'])
         ->middleware(\App\Http\Middleware\AdminMiddleware::class);
 });

@@ -73,21 +73,15 @@ describe('CommandCenterView', () => {
     expect(screen.getByText('Updated 3 min ago')).toBeInTheDocument();
   });
 
-  it('shows a stale live-region banner with a retry when data stops advancing', () => {
-    const onRefresh = vi.fn();
+  it('no longer renders the loud stale banner inline (delegated to app chrome)', () => {
+    // P8 WS-6b — StaleDataBanner in CommandCenter owns the loud banner
+    // app-chrome-wide now, so it fires at every scope. The classic view keeps
+    // only the subtle aging dot + the sr-only recovery announcement.
     render(
-      <CommandCenterView data={commandCenterFixture} onRefresh={onRefresh} updatedLabel="4 min ago" stale />,
+      <CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="4 min ago" stale />,
     );
-    const banner = screen.getByRole('status', { name: /stale data warning/i });
-    expect(banner).toHaveTextContent(/Live updates interrupted/i);
-    expect(banner).toHaveTextContent('4 min ago');
-    fireEvent.click(screen.getByRole('button', { name: /retry now/i }));
-    expect(onRefresh).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not show the stale banner when data is fresh', () => {
-    render(<CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="just now" />);
     expect(screen.queryByRole('status', { name: /stale data warning/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live updates interrupted/i)).not.toBeInTheDocument();
   });
 
   it('disables the refresh control while a refresh is in flight', () => {

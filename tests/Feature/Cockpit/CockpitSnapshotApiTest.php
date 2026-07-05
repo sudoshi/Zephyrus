@@ -91,7 +91,11 @@ class CockpitSnapshotApiTest extends TestCase
             'crit_edge' => 141,
         ]);
 
-        $response = $this->actingAs(User::factory()->create())
+        // GET is admin-gated (P8 WS-6b hardened it alongside the audited PUT).
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin)
             ->getJson('/api/cockpit/kpi-definitions');
 
         $response->assertOk();

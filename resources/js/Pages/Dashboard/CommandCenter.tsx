@@ -35,7 +35,9 @@ import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { ScopedFaceView } from '@/Components/cockpit/ScopedFaceView';
 import { ScopePicker } from '@/Components/cockpit/ScopePicker';
+import { StaleDataBanner } from '@/Components/cockpit/StaleDataBanner';
 import { useIdleReset } from '@/features/cockpit/useIdleReset';
+import { useCockpitStream } from '@/features/cockpit/useCockpitStream';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { PatientLensModal } from '@/Components/cockpit/PatientLensModal';
 import { ActionInboxModal } from '@/Components/cockpit/ActionInboxModal';
@@ -98,6 +100,9 @@ export default function CommandCenter({
   // P6 WS-7: Reverb reload ping — a fresh snapshot invalidates the poll cache
   // so the wall updates within seconds instead of at the next 45s tick.
   useLiveCockpit();
+  // P8 WS-6b: the SSE safety-floor path — keeps the cockpit live even when Reverb
+  // is down (BROADCAST_CONNECTION=null in prod). The 45s poll remains the fallback.
+  useCockpitStream();
   const raw = query.data ?? data;
 
   const parsed = useMemo(() => safeParseCommandCenterData(raw), [raw]);
@@ -222,6 +227,15 @@ export default function CommandCenter({
         subtitle="House-wide demand, capacity, flow & forecast"
         headerContent={null}
       >
+        {/* P8 WS-6b: the stale banner is app-chrome-wide so it fires at EVERY
+            mount (house, scoped face, or wall) — never a silent stale screen.
+            Self-hides when the data is fresh. */}
+        <StaleDataBanner
+          stale={stale}
+          updatedLabel={updatedLabel}
+          onRetry={handleRefresh}
+          className="mb-3"
+        />
         {/* P8 WS-5: the mount scope picker — switch altitude (house / unit /
             department / service line) from any mount. Hidden on a wall preset
             (a wall is pinned to its configured scope). */}

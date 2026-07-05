@@ -368,6 +368,8 @@ const ADMIN: NavDomain = {
       title: '',
       items: [
         { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
+        // P8 WS-6b — the cockpit threshold editor (band-edge tuning, audited).
+        { label: 'Cockpit Thresholds', href: '/admin/cockpit/thresholds', icon: Settings, adminOnly: true },
         // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
         // is a JSON API endpoint with no Inertia page, so a nav link would break
         // navigation. Re-add once a real OIDC admin Inertia page exists.

@@ -258,3 +258,16 @@
     animation: none;
   }
 }
+
+/* P8 WS-6b — data-density multiplier (set on the shell by DashboardLayout).
+   tabular-nums is used pervasively across the cockpit, so digit-width reflow at
+   80–125% zoom is already handled; this offers a coarse per-mount tier — a wall
+   preset reads across a room, a compact tier packs a desk. Desk-normal is the
+   unset default (no rule), so nothing changes off a wall/compact mount. */
+[data-density='wall'] {
+  font-size: 1.125rem;
+}
+
+[data-density='compact'] {
+  font-size: 0.9375rem;
+}

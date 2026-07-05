@@ -12,7 +12,6 @@
 import type { ReactNode } from 'react';
 import type { CockpitAlert, CockpitDrillDomain, CockpitSnapshotSections } from '@/types/cockpit';
 import type { CommandRole } from '@/stores/commandCenterStore';
-import { Icon } from '@iconify/react';
 import { statusLevels } from '@/types/commandCenter';
 import { statusStyle } from './statusStyle';
 import { CommandBar } from './CommandBar';
@@ -105,23 +104,9 @@ export function CockpitOverview({
         inboxCount={inboxCount}
       />
 
-      {/* Stale signal: same loud contract as the classic view — when the
-          payload stops advancing, stop implying the numbers are live. */}
-      {stale && (
-        <div role="status" aria-live="polite" aria-label="Stale data warning"
-             className="flex items-center gap-2 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/20
-                        px-3 py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-          <Icon icon="heroicons:exclamation-triangle" aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-healthcare-warning dark:text-healthcare-warning-dark" />
-          <span className="min-w-0">
-            Live updates interrupted — showing last good data from {updatedLabel}.{' '}
-            <button type="button" onClick={onRefresh}
-                    className="font-medium underline underline-offset-2 hover:no-underline">
-              Retry now
-            </button>
-          </span>
-        </div>
-      )}
+      {/* The loud stale banner now lives app-chrome-wide (StaleDataBanner in
+          CommandCenter) so it fires at every scope, not just the house overview.
+          CommandBar still carries the subtle aging/stale cue for this surface. */}
 
       <AlertTicker alerts={sections.alerts} onEngage={onAlertEngage} />
       <CensusStrip census={sections.census} />
