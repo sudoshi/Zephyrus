@@ -10,15 +10,19 @@ import { Head } from '@inertiajs/react';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import { ConformancePane } from '@/Components/arena/ConformancePane';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
+import { PerformancePane } from '@/Components/arena/PerformancePane';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
-import { useArenaConformance, useArenaMap, useArenaSummary } from '@/features/arena/hooks';
+import { useArenaConformance, useArenaMap, useArenaPerformance, useArenaSummary } from '@/features/arena/hooks';
 import {
   arenaConformanceResponseSchema,
   arenaMapResponseSchema,
+  arenaPerformanceResponseSchema,
   arenaSummarySchema,
+  type ArenaHandoff,
   type ArenaOcdfg,
   type ArenaPathwayConformance,
   type ArenaSummary,
+  type ArenaSyncWait,
 } from '@/features/arena/schema';
 
 function StatBlock({ label, value }: { label: string; value: string | number }) {
@@ -72,6 +76,14 @@ export default function Arena() {
     if (!parsed.success || !parsed.data.available) return null;
     return parsed.data.pathways;
   }, [conformanceQuery.data]);
+
+  const performanceQuery = useArenaPerformance();
+  const performance = useMemo<{ handoffs: ArenaHandoff[]; synchronization: ArenaSyncWait[] } | null>(() => {
+    if (performanceQuery.data === undefined) return null;
+    const parsed = arenaPerformanceResponseSchema.safeParse(performanceQuery.data);
+    if (!parsed.success || !parsed.data.available) return null;
+    return { handoffs: parsed.data.handoffs, synchronization: parsed.data.synchronization };
+  }, [performanceQuery.data]);
 
   // Stable, full object-type ordering (from the summary) so a colour never
   // shifts when the user filters the map to a subset of types.
@@ -281,6 +293,26 @@ export default function Arena() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Performance pane (X2) — object-centric bottlenecks */}
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Object-centric performance
+            </h2>
+            <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Where flow is lost — measured per object type (no convergence inflation) and at the hand-offs where lifecycles
+              synchronize, so a bottleneck is localized to the side that actually waits.
+            </p>
+          </div>
+          {performance ? (
+            <PerformancePane handoffs={performance.handoffs} synchronization={performance.synchronization} orderedTypes={orderedTypes} />
+          ) : (
+            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-6 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
+              {performanceQuery.isError ? 'Performance unavailable — is the OCPM sidecar reachable?' : 'Analyzing object-centric performance…'}
+            </div>
+          )}
         </div>
 
         {/* Conformance pane (X3) — patient safety as conformance */}

@@ -30,6 +30,23 @@ class ArenaController extends Controller
     }
 
     /**
+     * Object-centric performance (§X.6): slowest hand-offs + synchronization
+     * waits. Query params: ?types=Encounter,Bed  ?top=25
+     */
+    public function performance(Request $request): JsonResponse
+    {
+        $types = $request->filled('types')
+            ? array_filter(array_map('trim', explode(',', (string) $request->query('types'))))
+            : null;
+        $top = $request->filled('top') ? max(1, min(200, (int) $request->query('top'))) : 25;
+
+        $payload = $this->arena->performance($types, $top);
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
+    /**
      * Patient-safety conformance of the OCEL log against the reference care
      * pathways (§X.7). Query param ?pathway=sepsis restricts to one pathway.
      */

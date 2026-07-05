@@ -35,3 +35,13 @@ export async function fetchArenaConformance(pathway?: string): Promise<unknown> 
   });
   return res.data;
 }
+
+export async function fetchArenaPerformance(types?: string[], top?: number): Promise<unknown> {
+  const res = await axios.get('/api/arena/performance', {
+    params: {
+      types: types && types.length > 0 ? types.join(',') : undefined,
+      top,
+    },
+  });
+  return res.data;
+}

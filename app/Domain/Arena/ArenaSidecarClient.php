@@ -70,6 +70,24 @@ class ArenaSidecarClient
     }
 
     /**
+     * Object-centric performance (Part X §X.6): slowest lifecycle hand-offs +
+     * synchronization waits at object intersections.
+     *
+     * @param  array<string, mixed>  $ocel
+     * @param  array<int, string>|null  $objectTypes
+     * @return array<string, mixed>|null
+     */
+    public function performance(array $ocel, ?array $objectTypes = null, int $top = 25): ?array
+    {
+        $body = ['ocel' => $ocel, 'top' => $top];
+        if ($objectTypes !== null) {
+            $body['object_types'] = array_values($objectTypes);
+        }
+
+        return $this->post('/performance', $body);
+    }
+
+    /**
      * Conformance of the de-identified OCEL log against the reference care
      * pathways (Part X §X.7). Returns a list of per-pathway results, or null.
      *

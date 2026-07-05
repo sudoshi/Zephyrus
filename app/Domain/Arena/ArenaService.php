@@ -115,6 +115,25 @@ class ArenaService
         return ['available' => true, 'pathways' => $results];
     }
 
+    /**
+     * Object-centric performance of the current OCEL log (§X.6). Uncached — a
+     * Study read.
+     *
+     * @param  array<int, string>|null  $objectTypes
+     * @return array<string, mixed>
+     */
+    public function performance(?array $objectTypes = null, int $top = 25): array
+    {
+        $doc = $this->exporter->export();
+        $result = $this->client->performance($doc, $objectTypes, $top);
+
+        if ($result === null) {
+            return ['available' => false, 'reason' => 'sidecar_unavailable'];
+        }
+
+        return ['available' => true] + $result;
+    }
+
     /** A cheap fingerprint of the OCEL log; changes when the projection changes. */
     private function sourceSignature(): string
     {

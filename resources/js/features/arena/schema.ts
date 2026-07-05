@@ -81,6 +81,35 @@ export const arenaConformanceResponseSchema = z.union([
   z.object({ available: z.literal(false), reason: z.string() }),
 ]);
 
+export const arenaHandoffSchema = z.object({
+  object_type: z.string(),
+  source: z.string(),
+  target: z.string(),
+  count: z.number(),
+  median_sec: z.number(),
+  p90_sec: z.number(),
+  mean_sec: z.number(),
+});
+
+export const arenaSyncWaitSchema = z.object({
+  activity: z.string(),
+  object_type: z.string(),
+  count: z.number(),
+  median_wait_sec: z.number(),
+  p90_wait_sec: z.number(),
+});
+
+export const arenaPerformanceResponseSchema = z.union([
+  z.object({
+    available: z.literal(true),
+    handoffs: z.array(arenaHandoffSchema),
+    synchronization: z.array(arenaSyncWaitSchema),
+  }),
+  z.object({ available: z.literal(false), reason: z.string() }),
+]);
+
+export type ArenaHandoff = z.infer<typeof arenaHandoffSchema>;
+export type ArenaSyncWait = z.infer<typeof arenaSyncWaitSchema>;
 export type ArenaNode = z.infer<typeof arenaNodeSchema>;
 export type ArenaEdge = z.infer<typeof arenaEdgeSchema>;
 export type ArenaOcdfg = z.infer<typeof arenaOcdfgSchema>;

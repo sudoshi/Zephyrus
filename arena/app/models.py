@@ -65,6 +65,34 @@ class SummaryResponse(BaseModel):
     activities: dict[str, int]
 
 
+class PerformanceRequest(OcelSource):
+    object_types: list[str] | None = Field(default=None, description="restrict to these object types (default: all)")
+    top: int = Field(default=25, ge=1, le=200, description="cap the ranked rows returned")
+
+
+class HandoffDuration(BaseModel):
+    object_type: str
+    source: str
+    target: str
+    count: int
+    median_sec: float
+    p90_sec: float
+    mean_sec: float
+
+
+class SynchronizationWait(BaseModel):
+    activity: str
+    object_type: str
+    count: int
+    median_wait_sec: float
+    p90_wait_sec: float
+
+
+class PerformanceResponse(BaseModel):
+    handoffs: list[HandoffDuration]
+    synchronization: list[SynchronizationWait]
+
+
 class ConformanceRequest(OcelSource):
     pathway: str | None = Field(default=None, description="restrict to one pathway key (default: all)")
 

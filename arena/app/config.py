@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     arena_max_object_types: int = 12
     arena_default_activity_min_freq: int = 1
 
+    # Performance analytics trim: an intra-lifecycle gap beyond this is treated as
+    # a data artifact (e.g. a milestone with no real completion time), not a real
+    # hand-off, and excluded from the duration/synchronization stats.
+    arena_max_handoff_hours: int = 72
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
