@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Ops\MetricDefinition;
 use App\Services\Cockpit\DrillBuilder;
+use App\Services\Cockpit\ScopedFaceBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
 use App\Support\Cockpit\CockpitScopeResolver;
 use App\Support\Hospital\HospitalManifest;
@@ -79,6 +80,22 @@ class CockpitController extends Controller
             'active' => $active->toArray(),
             'catalog' => $resolver->catalog($user),
         ])->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    /**
+     * The altitude-appropriate face for a mount (P8 WS-2). `?scope=` resolves as
+     * in scopes(); the payload is the same {title, kpis[], tables[]} drill grammar
+     * so React renders every altitude with the existing primitives. house →
+     * 'render' => 'grid' (the frontend keeps the DomainGrid); department reuses the
+     * domain drill; unit / service_line render live-census faces.
+     */
+    public function face(Request $request, CockpitScopeResolver $resolver, ScopedFaceBuilder $faces): JsonResponse
+    {
+        $scope = $request->query('scope');
+        $resolved = $resolver->resolve(is_string($scope) ? $scope : null, $request->user());
+
+        return response()->json($faces->build($resolved))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
     public function kpiDefinitions(): JsonResponse
