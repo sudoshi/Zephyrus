@@ -4,6 +4,17 @@ use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
+use App\Http\Controllers\Api\Deployment\DeploymentReadinessController;
+use App\Http\Controllers\Api\Deployment\FacilityController as DeploymentFacilityController;
+use App\Http\Controllers\Api\Deployment\OrganizationController as DeploymentOrganizationController;
+use App\Http\Controllers\Api\Deployment\ServiceLineCatalogController;
+use App\Http\Controllers\Api\Deployment\Staffing\StaffCoverageController;
+use App\Http\Controllers\Api\Deployment\Staffing\StaffImportController;
+use App\Http\Controllers\Api\Deployment\Staffing\StaffingSourceController;
+use App\Http\Controllers\Api\Deployment\Staffing\StaffMappingRuleController;
+use App\Http\Controllers\Api\Deployment\Staffing\StaffReferenceController;
+use App\Http\Controllers\Api\Deployment\TransferRelationshipController;
 use App\Http\Controllers\Api\Eddy\EddyActionController;
 use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
@@ -237,6 +248,46 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('ops')->group(functi
     Route::post('/actions/{action}/override', [OperationalActionController::class, 'override']);
     Route::post('/actions/{action}/expire', [OperationalActionController::class, 'expire']);
     Route::post('/simulation-scenarios/{scenario}/promote', [SimulationController::class, 'promote']);
+});
+
+// Deployment taxonomy — IDN geography, capability matrix, transfer graph, readiness.
+// Read-gated by the viewDeploymentConsole ability (superuser/ops-leader/admin roles).
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewDeploymentConsole'])->prefix('deployment')->group(function () {
+    Route::get('/service-lines', [ServiceLineCatalogController::class, 'index']);
+    Route::get('/organizations', [DeploymentOrganizationController::class, 'index']);
+    Route::get('/organizations/{key}', [DeploymentOrganizationController::class, 'show']);
+    Route::get('/facilities', [DeploymentFacilityController::class, 'index']);
+    Route::get('/facilities/{facilityKey}', [DeploymentFacilityController::class, 'show']);
+    Route::get('/facilities/{facilityKey}/spaces', [DeploymentFacilityController::class, 'spaces']);
+    Route::get('/capability-matrix', [CapabilityMatrixController::class, 'index']);
+    Route::get('/transfers', [TransferRelationshipController::class, 'index']);
+    Route::get('/readiness/{facilityKey}', [DeploymentReadinessController::class, 'show']);
+});
+
+// Staffing Alignment Wizard — the write API (Phase 7 / §8). Gated by the narrower
+// manageDeploymentConfig ability (superuser/ops-leader — NOT plain admin). Connector
+// secrets are never accepted or returned; the shipped file/FHIR path uploads content
+// per request and stores none. All staff_assignments writes route through
+// StaffImportOrchestrator::commit; prod.users is only ever touched additively by
+// StaffProvisioningService.
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageDeploymentConfig'])->prefix('deployment/staffing')->group(function () {
+    Route::get('/sources', [StaffingSourceController::class, 'index']);
+    Route::post('/sources', [StaffingSourceController::class, 'store']);
+    Route::post('/sources/{source}/test', [StaffingSourceController::class, 'test']);
+    Route::post('/sources/{source}/discover', [StaffingSourceController::class, 'discover']);
+    Route::post('/sources/{source}/schedule', [StaffingSourceController::class, 'schedule']);
+
+    Route::post('/imports', [StaffImportController::class, 'store']);
+    Route::get('/imports/{run}', [StaffImportController::class, 'show']);
+    Route::post('/imports/{run}/resolve', [StaffImportController::class, 'resolve']);
+    Route::patch('/imports/{run}/reviews/{staffMember}', [StaffImportController::class, 'review']);
+    Route::post('/imports/{run}/commit', [StaffImportController::class, 'commit']);
+
+    Route::get('/rules', [StaffMappingRuleController::class, 'index']);
+    Route::post('/rules', [StaffMappingRuleController::class, 'store']);
+
+    Route::get('/reference', [StaffReferenceController::class, 'index']);
+    Route::get('/coverage', [StaffCoverageController::class, 'index']);
 });
 
 // Eddy — process-aware AI agent (web session auth). Read-only chat in Phase 1.

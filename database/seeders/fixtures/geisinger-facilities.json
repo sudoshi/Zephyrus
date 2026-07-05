@@ -1,0 +1,77 @@
+{
+    "organization": {
+        "key": "GEISINGER",
+        "name": "Geisinger",
+        "short_name": "Geisinger",
+        "kind": "idn",
+        "headquarters_state": "PA"
+    },
+    "markets": [
+        { "key": "CENTRAL_PA", "name": "Central Pennsylvania", "region": "Central", "state": "PA" }
+    ],
+    "facilities": [
+        {
+            "facility_key": "GEISINGER_GMC",
+            "facility_name": "Geisinger Medical Center",
+            "short_name": "GMC",
+            "market_key": "CENTRAL_PA",
+            "idn_role": "flagship_quaternary_hub",
+            "state": "PA",
+            "county": "Montour",
+            "licensed_beds": 560,
+            "trauma_level_adult": "Level I",
+            "stroke_level": "Comprehensive",
+            "transplant_center_status": "active",
+            "transplant_programs": ["kidney", "liver", "heart"],
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "GEISINGER_GWV",
+            "facility_name": "Geisinger Wyoming Valley Medical Center",
+            "short_name": "GWV",
+            "market_key": "CENTRAL_PA",
+            "idn_role": "regional_referral_hub",
+            "state": "PA",
+            "county": "Luzerne",
+            "licensed_beds": 300,
+            "trauma_level_adult": "Level I",
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "GEISINGER_GCMC",
+            "facility_name": "Geisinger Community Medical Center",
+            "short_name": "GCMC",
+            "market_key": "CENTRAL_PA",
+            "idn_role": "academic_tertiary_hub",
+            "state": "PA",
+            "county": "Lackawanna",
+            "licensed_beds": 280,
+            "trauma_level_adult": "Level II",
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "GEISINGER_MUNCY",
+            "facility_name": "Geisinger Muncy",
+            "short_name": "Muncy",
+            "market_key": "CENTRAL_PA",
+            "idn_role": "critical_access_or_rural_hospital",
+            "state": "PA",
+            "county": "Lycoming",
+            "licensed_beds": 25,
+            "trauma_level_adult": "Level IV",
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "GEISINGER_LEWISTOWN",
+            "facility_name": "Geisinger Lewistown",
+            "short_name": "Lewistown",
+            "market_key": "CENTRAL_PA",
+            "idn_role": "community_hospital",
+            "state": "PA",
+            "county": "Mifflin",
+            "licensed_beds": 123,
+            "trauma_level_adult": "Level IV",
+            "review_status": "assumed"
+        }
+    ]
+}

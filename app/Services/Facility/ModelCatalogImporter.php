@@ -2,20 +2,31 @@
 
 namespace App\Services\Facility;
 
+use App\Casts\PgTextArray;
 use App\Models\Bed;
 use App\Models\Facility\BlueprintImport;
 use App\Models\Facility\BlueprintObject;
 use App\Models\Facility\FacilitySpace;
 use App\Models\Unit;
+use App\Services\Deployment\CapabilityTagBackfiller;
+use App\Services\Deployment\ServiceLineNormalizer;
+use App\Services\Deployment\ServiceLineRegistrar;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use JsonException;
 use RuntimeException;
 
 class ModelCatalogImporter
 {
+    public function __construct(
+        private readonly ServiceLineNormalizer $normalizer,
+        private readonly ServiceLineRegistrar $registrar,
+        private readonly CapabilityTagBackfiller $tagBackfiller,
+    ) {}
+
     /**
-     * @return array{import_id:int, checksum:string, objects:int, spaces:int, units:int, beds:int, maps:int, conflicts:int}
+     * @return array{import_id:int, checksum:string, objects:int, spaces:int, service_lines:int, units:int, beds:int, maps:int, conflicts:int}
      *
      * @throws JsonException
      */
@@ -43,6 +54,12 @@ class ModelCatalogImporter
         $checksum = hash('sha256', $contents);
 
         return DB::transaction(function () use ($catalog, $objects, $path, $facilityCode, $facilityName, $sourceName, $mapOperational, $checksum): array {
+            // The service_line_code / location_role FKs (2026_07_04_000160) require the
+            // registry to exist, so make a catalog import self-sufficient. Idempotent.
+            $this->ensureRegistry();
+            $knownLocationRoles = $this->lookupCodes('hosp_ref.location_roles', 'code');
+            $knownPrograms = $this->lookupCodes('hosp_ref.programs', 'program_code');
+
             $import = $this->upsertImport($catalog, $path, $facilityCode, $facilityName, $sourceName, $checksum);
             $categories = $this->ensureCategories($objects);
             $floorLabels = $this->floorLabels($objects);
@@ -51,8 +68,9 @@ class ModelCatalogImporter
             $objectModels = $this->upsertObjects($import, $objects, $categories, $floorLabels);
             $this->assignObjectParents($objectModels, $objects, $floorLabels, $bedToRoom);
 
-            $spaces = $this->upsertSpaces($facilityCode, $objectModels, $objects, $categories, $floorLabels);
+            $spaces = $this->upsertSpaces($facilityCode, $objectModels, $objects, $categories, $floorLabels, $knownLocationRoles, $knownPrograms);
             $this->assignSpaceParents($spaces, $objects);
+            $bridgeCount = $this->syncSpaceServiceLines($spaces, $objects, $knownLocationRoles, $knownPrograms);
 
             $operational = $mapOperational
                 ? $this->mapOperationalUnitsAndBeds($facilityCode, $objects, $spaces)
@@ -68,6 +86,7 @@ class ModelCatalogImporter
                 'checksum' => $checksum,
                 'objects' => count($objectModels),
                 'spaces' => count($spaces),
+                'service_lines' => $bridgeCount,
                 'units' => $operational['units'],
                 'beds' => $operational['beds'],
                 'maps' => $operational['maps'],
@@ -281,9 +300,11 @@ class ModelCatalogImporter
     }
 
     /**
+     * @param  array<string, bool>  $knownLocationRoles
+     * @param  array<string, bool>  $knownPrograms
      * @return array<string, FacilitySpace>
      */
-    private function upsertSpaces(string $facilityCode, array $models, array $objects, array $categories, array $floorLabels): array
+    private function upsertSpaces(string $facilityCode, array $models, array $objects, array $categories, array $floorLabels, array $knownLocationRoles, array $knownPrograms): array
     {
         $spaces = [];
 
@@ -298,6 +319,20 @@ class ModelCatalogImporter
             $floorNumber = (int) ($object['floor'] ?? 0);
             $metadata = $object['metadata'] ?? [];
 
+            // Fold legacy codes to canonical; keep the raw value in attributes if it is
+            // not (yet) in the registry so an active FK never rejects a catalog import.
+            [$serviceLine, $unmappedServiceLine] = $this->resolveServiceLine($metadata['service_line'] ?? null);
+            $locationRole = $this->validCodeOrNull($metadata['location_role'] ?? null, $knownLocationRoles);
+            $programCode = $this->validCodeOrNull($metadata['program_code'] ?? $metadata['program'] ?? null, $knownPrograms);
+
+            $attributes = $metadata + [
+                'source_category' => $category,
+                'source_material' => $object['material'] ?? null,
+            ];
+            if ($unmappedServiceLine !== null) {
+                $attributes['unmapped_service_line'] = $unmappedServiceLine;
+            }
+
             $space = FacilitySpace::updateOrCreate(
                 ['space_code' => $this->spaceCode($facilityCode, $code)],
                 [
@@ -306,7 +341,9 @@ class ModelCatalogImporter
                     'space_category' => $this->facilitySpaceCategory($category, $canonicalCategory),
                     'floor_label' => $floorLabels[$floorNumber] ?? null,
                     'floor_number' => $floorNumber,
-                    'service_line_code' => $metadata['service_line'] ?? null,
+                    'service_line_code' => $serviceLine,
+                    'location_role' => $locationRole,
+                    'program_code' => $programCode,
                     'acuity_level' => $metadata['acuity'] ?? null,
                     'status' => 'planned',
                     'geometry' => [
@@ -316,19 +353,199 @@ class ModelCatalogImporter
                         'bounds_ft' => $models[$code]->bounds_ft,
                         'material' => $object['material'] ?? null,
                     ],
-                    'attributes' => $metadata + [
-                        'source_category' => $category,
-                        'source_material' => $object['material'] ?? null,
-                    ],
+                    'attributes' => $attributes,
                     'source_system' => 'model_catalog_json',
                     'source_confidence' => 0.98,
                 ],
             );
 
+            // capability_tags is a Postgres text[] — write it with an explicit ?::text[]
+            // cast (Eloquent binds arrays as text, which the driver won't coerce).
+            $tags = $metadata['capability_tags'] ?? null;
+            if (is_array($tags) && $tags !== []) {
+                DB::update(
+                    'UPDATE hosp_space.facility_spaces SET capability_tags = ?::text[], updated_at = now() WHERE facility_space_id = ?',
+                    [PgTextArray::literal(array_values(array_map('strval', $tags))), $space->facility_space_id]
+                );
+            }
+
             $spaces[$code] = $space;
         }
 
         return $spaces;
+    }
+
+    /**
+     * Seed the service-line registry so facility_spaces FKs onto hosp_ref have valid
+     * targets. Idempotent; skipped if the registry table has not been migrated yet.
+     */
+    private function ensureRegistry(): void
+    {
+        if (! Schema::hasTable('hosp_ref.service_lines')) {
+            return;
+        }
+
+        $this->registrar->seed();
+        ServiceLineNormalizer::flush();
+    }
+
+    /**
+     * @return array<string, bool> code => true, for O(1) membership tests
+     */
+    private function lookupCodes(string $table, string $column): array
+    {
+        if (! Schema::hasTable($table)) {
+            return [];
+        }
+
+        return DB::table($table)
+            ->pluck($column)
+            ->mapWithKeys(fn ($code): array => [(string) $code => true])
+            ->all();
+    }
+
+    /**
+     * Fold a raw service-line code to canonical.
+     *
+     * @return array{0: ?string, 1: ?string} [canonical-or-null, unmapped-raw-or-null]
+     */
+    private function resolveServiceLine(mixed $raw): array
+    {
+        $raw = is_string($raw) ? trim($raw) : '';
+        if ($raw === '') {
+            return [null, null];
+        }
+
+        $canonical = $this->normalizer->canonical($raw);
+
+        return $this->normalizer->isKnown($canonical) ? [$canonical, null] : [null, $raw];
+    }
+
+    /**
+     * @param  array<string, bool>  $known
+     */
+    private function validCodeOrNull(mixed $code, array $known): ?string
+    {
+        if (! is_string($code) || $code === '') {
+            return null;
+        }
+
+        return isset($known[$code]) ? $code : null;
+    }
+
+    /**
+     * Write Layer 4 bridge rows: one primary per space, plus any shared service lines
+     * the catalog declares in metadata.service_lines. Idempotent.
+     *
+     * @param  array<string, FacilitySpace>  $spaces
+     * @param  array<string, bool>  $knownLocationRoles
+     * @param  array<string, bool>  $knownPrograms
+     *
+     * @throws JsonException
+     */
+    private function syncSpaceServiceLines(array $spaces, array $objects, array $knownLocationRoles, array $knownPrograms): int
+    {
+        if (! Schema::hasTable('hosp_space.facility_space_service_lines')) {
+            return 0;
+        }
+
+        $written = 0;
+
+        foreach ($objects as $object) {
+            $code = (string) ($object['code'] ?? '');
+            $space = $spaces[$code] ?? null;
+            if (! $space) {
+                continue;
+            }
+
+            $metadata = $object['metadata'] ?? [];
+            [$primary] = $this->resolveServiceLine($metadata['service_line'] ?? null);
+            if ($primary === null) {
+                continue;
+            }
+
+            $locationRole = $this->validCodeOrNull($metadata['location_role'] ?? null, $knownLocationRoles);
+
+            $written += $this->upsertBridgeRow((int) $space->facility_space_id, $primary, null, $locationRole, true);
+
+            foreach ($this->sharedServiceLines($metadata, $primary) as $shared) {
+                $program = $this->validCodeOrNull($shared['program_code'] ?? null, $knownPrograms);
+                $written += $this->upsertBridgeRow((int) $space->facility_space_id, $shared['service_line_code'], $program, $locationRole, false);
+            }
+        }
+
+        return $written;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return list<array{service_line_code:string, program_code:?string}>
+     */
+    private function sharedServiceLines(array $metadata, string $primary): array
+    {
+        $out = [];
+
+        foreach (($metadata['service_lines'] ?? []) as $entry) {
+            if (is_string($entry)) {
+                $canonical = $this->normalizer->canonical($entry);
+                $programCode = null;
+            } elseif (is_array($entry)) {
+                $canonical = $this->normalizer->canonical((string) ($entry['service_line'] ?? $entry['service_line_code'] ?? ''));
+                $programCode = $entry['program_code'] ?? null;
+            } else {
+                continue;
+            }
+
+            if ($canonical === '' || $canonical === $primary || ! $this->normalizer->isKnown($canonical)) {
+                continue;
+            }
+
+            $out[] = ['service_line_code' => $canonical, 'program_code' => $programCode ? (string) $programCode : null];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Insert one bridge row if it does not already exist. Claims primary only when the
+     * space has no primary yet (respects uq_fssl_one_primary).
+     *
+     * @throws JsonException
+     */
+    private function upsertBridgeRow(int $facilitySpaceId, string $serviceLineCode, ?string $programCode, ?string $locationRole, bool $primary): int
+    {
+        $existing = DB::table('hosp_space.facility_space_service_lines')
+            ->where('facility_space_id', $facilitySpaceId)
+            ->where('service_line_code', $serviceLineCode)
+            ->when($programCode === null, fn ($q) => $q->whereNull('program_code'))
+            ->when($programCode !== null, fn ($q) => $q->where('program_code', $programCode))
+            ->exists();
+
+        if ($existing) {
+            return 0;
+        }
+
+        $primaryFlag = $primary && ! DB::table('hosp_space.facility_space_service_lines')
+            ->where('facility_space_id', $facilitySpaceId)
+            ->where('primary_flag', true)
+            ->exists();
+
+        DB::insert(
+            'INSERT INTO hosp_space.facility_space_service_lines
+                (facility_space_id, service_line_code, program_code, location_role, primary_flag, capability_tags, evidence, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?::text[], ?::jsonb, now())',
+            [
+                $facilitySpaceId,
+                $serviceLineCode,
+                $programCode,
+                $locationRole,
+                $primaryFlag,
+                '{}',
+                json_encode(['source' => 'model_catalog_json'], JSON_THROW_ON_ERROR),
+            ]
+        );
+
+        return 1;
     }
 
     private function assignSpaceParents(array $spaces, array $objects): void
@@ -459,6 +676,16 @@ class ModelCatalogImporter
                 'unit_code' => $unitCode,
                 'mapping_basis' => 'bed.unit_code_and_code',
             ]);
+
+            // Seed default capability tags for the bed (non-destructive; client roster overrides).
+            $this->tagBackfiller->applyToBed(
+                (int) $bed->bed_id,
+                $this->tagBackfiller->defaultBedTags(
+                    $metadata['acuity'] ?? null,
+                    $metadata['service_line'] ?? null,
+                    $this->bedType((string) ($metadata['acuity'] ?? ''))
+                )
+            );
         }
 
         return [

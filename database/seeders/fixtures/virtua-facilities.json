@@ -1,0 +1,51 @@
+{
+    "organization": {
+        "key": "VIRTUA",
+        "name": "Virtua Health",
+        "short_name": "Virtua",
+        "kind": "idn",
+        "headquarters_state": "NJ"
+    },
+    "markets": [
+        { "key": "SOUTH_JERSEY", "name": "South Jersey", "region": "South Jersey", "state": "NJ" }
+    ],
+    "facilities": [
+        {
+            "facility_key": "VIRTUA_OLOL",
+            "facility_name": "Virtua Our Lady of Lourdes Hospital",
+            "short_name": "OLOL",
+            "market_key": "SOUTH_JERSEY",
+            "idn_role": "academic_tertiary_hub",
+            "state": "NJ",
+            "county": "Camden",
+            "licensed_beds": 410,
+            "transplant_center_status": "active",
+            "transplant_programs": ["kidney"],
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "VIRTUA_VOORHEES",
+            "facility_name": "Virtua Voorhees Hospital",
+            "short_name": "Voorhees",
+            "market_key": "SOUTH_JERSEY",
+            "idn_role": "regional_referral_hub",
+            "state": "NJ",
+            "county": "Camden",
+            "licensed_beds": 380,
+            "maternal_level": "Regional Perinatal Center",
+            "neonatal_level": "Level III",
+            "review_status": "assumed"
+        },
+        {
+            "facility_key": "VIRTUA_MARLTON",
+            "facility_name": "Virtua Marlton Hospital",
+            "short_name": "Marlton",
+            "market_key": "SOUTH_JERSEY",
+            "idn_role": "community_hospital",
+            "state": "NJ",
+            "county": "Burlington",
+            "licensed_beds": 170,
+            "review_status": "assumed"
+        }
+    ]
+}

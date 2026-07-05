@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Bed;
 use App\Models\Unit;
+use App\Services\Deployment\CapabilityTagBackfiller;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Database\Seeder;
 
@@ -55,5 +56,9 @@ class RtdcSeeder extends Seeder
         Unit::whereNotIn('abbreviation', $manifestAbbrs)
             ->where('is_deleted', false)
             ->update(['is_deleted' => true]);
+
+        // Seed default capability tags onto the freshly-created beds from each unit's
+        // acuity/service line. Non-destructive: beds already carrying tags are untouched.
+        app(CapabilityTagBackfiller::class)->backfillFromManifest();
     }
 }

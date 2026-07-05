@@ -2,34 +2,79 @@
 
 namespace App\Support\Hospital;
 
+use RuntimeException;
+
 /**
- * Typed accessor for the Hospital 1 (Summit Regional Medical Center) manifest — the
- * single source of truth at config/hospital/hospital-1.php. Resolve from the container
- * (e.g. app(HospitalManifest::class)) or constructor-inject. Every seeder/service that
+ * Typed accessor for a hospital manifest. Summit Regional Medical Center
+ * (config/hospital/hospital-1.php) is the default and reference deployment, but the
+ * class is facility-parameterized (Phase 5): construct with a facility_key, or use
+ * HospitalManifest::forFacility('<KEY>'), to load any facility registered in
+ * config/hospital.php. Resolve from the container (e.g. app(HospitalManifest::class),
+ * which yields the default facility) or constructor-inject. Every seeder/service that
  * previously hardcoded unit names, provider/nurse pools, teams, vendors, post-acute
  * partners, or facility names MUST read them through this class instead.
  *
- * The underlying array is loaded once and statically cached for the process lifetime.
+ * Each facility's array is loaded once and statically cached (keyed by facility_key)
+ * for the process lifetime.
+ *
+ * Plan: docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md (Phase 5)
  */
 class HospitalManifest
 {
-    /** @var array<string,mixed>|null */
-    private static ?array $cache = null;
+    /** @var array<string,array<string,mixed>> keyed by facility_key */
+    private static array $cache = [];
+
+    private readonly string $facilityKey;
+
+    public function __construct(?string $facilityKey = null)
+    {
+        $this->facilityKey = $facilityKey
+            ?? (string) config('hospital.default_facility', 'SUMMIT_REGIONAL');
+    }
+
+    /** Build a manifest accessor for a specific facility_key. */
+    public static function forFacility(string $facilityKey): self
+    {
+        return new self($facilityKey);
+    }
+
+    /** The facility_key this instance reads. */
+    public function facilityKey(): string
+    {
+        return $this->facilityKey;
+    }
 
     /** @return array<string,mixed> */
     private function data(): array
     {
-        if (self::$cache === null) {
-            self::$cache = require base_path('config/hospital/hospital-1.php');
+        if (! isset(self::$cache[$this->facilityKey])) {
+            self::$cache[$this->facilityKey] = require base_path($this->configPath());
         }
 
-        return self::$cache;
+        return self::$cache[$this->facilityKey];
     }
 
-    /** Test/seed helper: drop the static cache (e.g. between test cases). */
+    /** Resolve the facility_key to its manifest config path (config/hospital.php). */
+    private function configPath(): string
+    {
+        /** @var array<string,string> $manifests */
+        $manifests = (array) config('hospital.manifests', []);
+
+        $path = $manifests[$this->facilityKey] ?? null;
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException(
+                "No manifest is registered for facility_key '{$this->facilityKey}'. ".
+                'Register it in config/hospital.php (generate with `hospital:generate-manifest`).'
+            );
+        }
+
+        return $path;
+    }
+
+    /** Test/seed helper: drop the static cache for all facilities (e.g. between test cases). */
     public static function flush(): void
     {
-        self::$cache = null;
+        self::$cache = [];
     }
 
     // ---- facility identity ----

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -94,6 +95,10 @@ class FacilityModelSchemaTest extends TestCase
 
     public function test_facility_space_can_map_to_existing_rtdc_unit(): void
     {
+        // facility_spaces.service_line_code carries a validated FK onto the registry
+        // (2026_07_04_000160), so the vocabulary must exist before inserting a space.
+        Artisan::call('deployment:seed-registry');
+
         $importId = (int) DB::table('hosp_ingest.blueprint_imports')->insertGetId([
             'source_name' => 'Unit test model catalog',
             'source_type' => 'catalog_json',

@@ -4,12 +4,15 @@ namespace App\Services\PatientFlow;
 
 use App\Models\Facility\FacilitySpace;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use stdClass;
 
 class FacilitySpaceLocationResolver
 {
     /** @var array<string, array<string, mixed>|null> */
     private array $cache = [];
+
+    private ?bool $bridgeAvailable = null;
 
     /**
      * @return array<string, mixed>|null
@@ -63,9 +66,13 @@ class FacilitySpaceLocationResolver
             ->orderBy('space_code')
             ->get();
 
+        $serviceLinesBySpace = $this->serviceLinesForMany(
+            $rows->pluck('facility_space_id')->map(fn ($id): int => (int) $id)->all()
+        );
+
         $locations = [];
         foreach ($rows as $row) {
-            $payload = $this->spaceRowToPayload($row);
+            $payload = $this->spaceRowToPayload($row, $serviceLinesBySpace[(int) $row->facility_space_id] ?? []);
             $locations[$payload['location_code']] = $payload;
         }
 
@@ -89,6 +96,7 @@ class FacilitySpaceLocationResolver
                 'space_category' => $space->space_category,
                 'floor_number' => $space->floor_number,
                 'service_line_code' => $space->service_line_code,
+                'location_role' => $space->location_role,
                 'acuity_level' => $space->acuity_level,
                 'geometry' => json_encode($space->geometry ?? [], JSON_THROW_ON_ERROR),
                 'attributes' => json_encode($space->attributes ?? [], JSON_THROW_ON_ERROR),
@@ -99,10 +107,13 @@ class FacilitySpaceLocationResolver
     }
 
     /**
+     * @param  list<string>|null  $serviceLines  pre-loaded bridge codes; null lazy-loads for this space
      * @return array<string, mixed>
      */
-    private function spaceRowToPayload(stdClass $row): array
+    private function spaceRowToPayload(stdClass $row, ?array $serviceLines = null): array
     {
+        $facilitySpaceId = (int) $row->facility_space_id;
+        $serviceLines ??= $this->serviceLinesFor($facilitySpaceId);
         $geometry = $this->decodeJson($row->geometry ?? '{}');
         $attributes = $this->decodeJson($row->attributes ?? '{}');
         $sourceCode = $geometry['source_object_code']
@@ -121,7 +132,7 @@ class FacilitySpaceLocationResolver
         }
 
         return [
-            'facility_space_id' => (int) $row->facility_space_id,
+            'facility_space_id' => $facilitySpaceId,
             'location_code' => $sourceCode,
             'source_location_code' => $sourceCode,
             'name' => (string) $row->space_name,
@@ -129,11 +140,69 @@ class FacilitySpaceLocationResolver
             'floor' => $row->floor_number !== null ? (int) $row->floor_number : null,
             'unit_code' => $attributes['unit_code'] ?? null,
             'service_line' => $row->service_line_code ?: ($attributes['service_line'] ?? null),
+            'service_lines' => $serviceLines,
+            'location_role' => ($row->location_role ?? null) ?: null,
             'acuity' => $row->acuity_level ?: ($attributes['acuity'] ?? null),
             'position_ft' => $positionFt,
             'position_m' => $positionM,
             'metadata' => $attributes,
         ];
+    }
+
+    /**
+     * All service-line codes a space can serve (Layer 4 bridge), primary first.
+     *
+     * @return list<string>
+     */
+    private function serviceLinesFor(int $facilitySpaceId): array
+    {
+        if (! $this->bridgeAvailable()) {
+            return [];
+        }
+
+        return DB::table('hosp_space.facility_space_service_lines')
+            ->where('facility_space_id', $facilitySpaceId)
+            ->orderByDesc('primary_flag')
+            ->orderBy('service_line_code')
+            ->pluck('service_line_code')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Batch variant to avoid N+1 when resolving many spaces at once.
+     *
+     * @param  list<int>  $facilitySpaceIds
+     * @return array<int, list<string>>
+     */
+    private function serviceLinesForMany(array $facilitySpaceIds): array
+    {
+        if (! $this->bridgeAvailable() || $facilitySpaceIds === []) {
+            return [];
+        }
+
+        $rows = DB::table('hosp_space.facility_space_service_lines')
+            ->whereIn('facility_space_id', $facilitySpaceIds)
+            ->orderByDesc('primary_flag')
+            ->orderBy('service_line_code')
+            ->get(['facility_space_id', 'service_line_code']);
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row->facility_space_id][] = (string) $row->service_line_code;
+        }
+
+        foreach ($map as $id => $codes) {
+            $map[$id] = array_values(array_unique($codes));
+        }
+
+        return $map;
+    }
+
+    private function bridgeAvailable(): bool
+    {
+        return $this->bridgeAvailable ??= Schema::hasTable('hosp_space.facility_space_service_lines');
     }
 
     /**

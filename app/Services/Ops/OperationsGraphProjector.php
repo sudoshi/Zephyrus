@@ -39,6 +39,8 @@ class OperationsGraphProjector
             $this->projectTransportRequests();
             $this->projectEvsRequests();
             $this->projectBarriers();
+            $this->projectFacilities();
+            $this->projectTransfers();
 
             return $this->captureSnapshot();
         });
@@ -536,6 +538,162 @@ class OperationsGraphProjector
             });
     }
 
+    /**
+     * Layer 1: project every hosp_org.facilities row as a facility node
+     * (canonical_key = facility:{facility_key}), guarded so the projector degrades
+     * gracefully before the deployment schema is migrated.
+     */
+    private function projectFacilities(): void
+    {
+        if (! Schema::hasTable('hosp_org.facilities')) {
+            return;
+        }
+
+        DB::table('hosp_org.facilities')
+            ->orderBy('facility_id')
+            ->get()
+            ->each(function (object $facility): void {
+                $this->upsertNode(
+                    type: 'facility',
+                    id: (string) $facility->facility_key,
+                    displayName: (string) ($facility->facility_name ?? $facility->facility_key),
+                    sourceTable: 'facilities',
+                    status: ($facility->is_active ?? true) ? 'active' : 'inactive',
+                    state: [
+                        'facility_key' => $facility->facility_key,
+                        'idn_role' => $facility->idn_role,
+                        'state' => $facility->state ?? null,
+                        'county' => $facility->county ?? null,
+                        'trauma_level_adult' => $facility->trauma_level_adult ?? null,
+                        'neonatal_level' => $facility->neonatal_level ?? null,
+                        'cad_facility_code' => $facility->cad_facility_code ?? null,
+                        'review_status' => $facility->review_status ?? null,
+                    ],
+                    metadata: ['organization_id' => (int) $facility->organization_id],
+                    sourceSchema: 'hosp_org',
+                );
+            });
+    }
+
+    /**
+     * Project hosp_org.transfer_relationships as directed transfers_to edges. Because
+     * ops.edges is uniquely keyed on (from, to, edge_type), rows for the same facility
+     * pair across several service lines are aggregated into ONE edge, with the service
+     * lines / transport modes carried in metadata and weight = the fastest typical_minutes.
+     */
+    private function projectTransfers(): void
+    {
+        if (! Schema::hasTable('hosp_org.transfer_relationships')) {
+            return;
+        }
+
+        $rows = DB::table('hosp_org.transfer_relationships')
+            ->where('is_active', true)
+            ->orderBy('transfer_relationship_id')
+            ->get();
+
+        /** @var array<string, array<string, mixed>> $groups */
+        $groups = [];
+        foreach ($rows as $row) {
+            $fromKey = $row->source_facility_key;
+            if (! $fromKey) {
+                continue; // a transfer must originate from an internal facility node
+            }
+
+            $toRef = $row->destination_facility_key
+                ?: ($row->destination_external_name ? 'ext:'.Str::slug($row->destination_external_name) : null);
+            if ($toRef === null) {
+                continue;
+            }
+
+            $groupKey = $fromKey.'->'.$toRef;
+            $groups[$groupKey] ??= [
+                'from_key' => $fromKey,
+                'dest_facility_key' => $row->destination_facility_key,
+                'dest_external_name' => $row->destination_external_name,
+                'rows' => [],
+            ];
+            $groups[$groupKey]['rows'][] = $row;
+        }
+
+        foreach ($groups as $group) {
+            $fromNodeKey = "facility:{$group['from_key']}";
+            if (! isset($this->nodeIdsByKey[$fromNodeKey])) {
+                continue;
+            }
+
+            $toNodeKey = $this->resolveTransferTargetNode($group);
+            if ($toNodeKey === null) {
+                continue;
+            }
+
+            $serviceLines = [];
+            $transportModes = [];
+            $minutes = [];
+            $ids = [];
+            $external = false;
+            foreach ($group['rows'] as $row) {
+                if ($row->service_line_code) {
+                    $serviceLines[] = $row->service_line_code;
+                }
+                if ($row->transport_mode) {
+                    $transportModes[] = $row->transport_mode;
+                }
+                if ($row->typical_minutes !== null) {
+                    $minutes[] = (int) $row->typical_minutes;
+                }
+                $external = $external || (bool) $row->is_external_partner;
+                $ids[] = (int) $row->transfer_relationship_id;
+            }
+
+            $weight = $minutes === [] ? 1 : min($minutes);
+
+            $this->addEdge(
+                $fromNodeKey,
+                $toNodeKey,
+                'transfers_to',
+                [
+                    'service_lines' => array_values(array_unique($serviceLines)),
+                    'transport_modes' => array_values(array_unique($transportModes)),
+                    'is_external_partner' => $external,
+                    'transfer_count' => count($group['rows']),
+                    'transfer_relationship_ids' => $ids,
+                    'typical_minutes' => $weight,
+                ],
+                weight: $weight,
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $group
+     */
+    private function resolveTransferTargetNode(array $group): ?string
+    {
+        if ($group['dest_facility_key']) {
+            $key = "facility:{$group['dest_facility_key']}";
+
+            return isset($this->nodeIdsByKey[$key]) ? $key : null;
+        }
+
+        if ($group['dest_external_name']) {
+            $slug = Str::slug((string) $group['dest_external_name']);
+            $this->upsertNode(
+                type: 'external_facility',
+                id: $slug,
+                displayName: (string) $group['dest_external_name'],
+                sourceTable: 'transfer_relationships',
+                status: 'active',
+                state: ['name' => $group['dest_external_name'], 'is_external' => true],
+                sourceSchema: 'hosp_org',
+            );
+
+            return "external_facility:{$slug}";
+        }
+
+        return null;
+    }
+
     private function upsertNode(
         string $type,
         string $id,
@@ -545,6 +703,7 @@ class OperationsGraphProjector
         array $state,
         array $metadata = [],
         mixed $observedAt = null,
+        string $sourceSchema = 'prod',
     ): OperationsNode {
         $canonicalKey = "{$type}:{$id}";
         $node = OperationsNode::firstOrNew(['canonical_key' => $canonicalKey]);
@@ -556,7 +715,7 @@ class OperationsGraphProjector
         $node->fill([
             'node_type' => $type,
             'display_name' => $displayName,
-            'source_schema' => 'prod',
+            'source_schema' => $sourceSchema,
             'source_table' => $sourceTable,
             'source_pk' => $id,
             'status' => $status,
@@ -573,7 +732,7 @@ class OperationsGraphProjector
         return $node;
     }
 
-    private function addEdge(OperationsNode|string $from, OperationsNode|string $to, string $type, array $metadata = []): void
+    private function addEdge(OperationsNode|string $from, OperationsNode|string $to, string $type, array $metadata = [], int|float $weight = 1): void
     {
         $fromId = $from instanceof OperationsNode ? (int) $from->graph_node_id : ($this->nodeIdsByKey[$from] ?? null);
         $toId = $to instanceof OperationsNode ? (int) $to->graph_node_id : ($this->nodeIdsByKey[$to] ?? null);
@@ -587,7 +746,7 @@ class OperationsGraphProjector
             'from_node_id' => $fromId,
             'to_node_id' => $toId,
             'edge_type' => $type,
-            'weight' => 1,
+            'weight' => $weight,
             'metadata' => array_merge(['projector' => self::PROJECTOR], $this->cleanArray($metadata)),
             'valid_from' => now(),
             'is_active' => true,

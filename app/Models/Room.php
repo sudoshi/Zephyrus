@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PgTextArray;
 use App\Models\Facility\FacilitySpace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ class Room extends Model
         'created_by',
         'modified_by',
         'facility_space_id',
+        'capability_tags',
         'created_at',
         'updated_at',
         'is_deleted',
@@ -31,6 +33,7 @@ class Room extends Model
     protected $casts = [
         'active_status' => 'boolean',
         'is_deleted' => 'boolean',
+        'capability_tags' => PgTextArray::class,
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

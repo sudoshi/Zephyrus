@@ -20,7 +20,8 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
   const url = page.url ?? '';
   const path = url.split('?')[0].split('#')[0];
   const isAdmin = Boolean(page.props.auth?.is_admin);
-  const sections = visibleSections(isAdmin);
+  const role = page.props.auth?.user?.role ?? null;
+  const sections = visibleSections(isAdmin, role);
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const cockpitActive = path === '/dashboard' || path === '/';
 
@@ -82,6 +83,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
                             key={domain.key}
                             domain={domain}
                             isAdmin={isAdmin}
+                            role={role}
                             active={isDomainActive(domain, url)}
                           />
                         ))}

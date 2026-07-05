@@ -1,13 +1,14 @@
 import { Link } from '@inertiajs/react';
-import type { NavDomain } from '@/config/navigationConfig';
+import { isLeafVisible, type NavDomain } from '@/config/navigationConfig';
 
 interface MegaMenuPanelProps {
   domain: NavDomain;
   isAdmin: boolean;
+  role?: string | null;
   onNavigate?: () => void;
 }
 
-export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProps) {
+export function MegaMenuPanel({ domain, isAdmin, role, onNavigate }: MegaMenuPanelProps) {
   return (
     <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-3 shadow-xl dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
       {domain.dashboardHref && (
@@ -21,7 +22,7 @@ export function MegaMenuPanel({ domain, isAdmin, onNavigate }: MegaMenuPanelProp
       )}
       <div className="flex gap-4">
         {domain.groups.map((group) => {
-          const items = group.items.filter((item) => !item.adminOnly || isAdmin);
+          const items = group.items.filter((item) => isLeafVisible(item, isAdmin, role));
           if (items.length === 0) return null;
           return (
             <div key={group.title || domain.key} className="min-w-[160px]">

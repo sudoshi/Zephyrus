@@ -42,6 +42,7 @@ class FacilityImportCatalogCommand extends Command
         $this->line('Checksum: '.$summary['checksum']);
         $this->line('Objects: '.$summary['objects']);
         $this->line('Facility spaces: '.$summary['spaces']);
+        $this->line('Service-line bridge rows: '.$summary['service_lines']);
         $this->line('Operational units created: '.$summary['units']);
         $this->line('Operational beds created: '.$summary['beds']);
         $this->line('Operational maps created: '.$summary['maps']);

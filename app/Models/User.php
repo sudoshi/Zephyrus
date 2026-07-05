@@ -93,6 +93,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Operational staff assignments (Phase 7 Staffing Alignment) linked to this
+     * account via hosp_org.staff_members.user_id. Additive: this is the operational
+     * layer, never the auth role of record (prod.users.role stays authoritative).
+     */
+    public function staffAssignments(): HasMany
+    {
+        return $this->hasMany(\App\Models\Org\StaffMember::class, 'user_id', 'id');
+    }
+
+    /**
      * Sanctum token abilities granted to this user, derived from role + workflow.
      * Admins get full access; everyone else gets the read/act baseline plus their
      * workflow scope. Used when issuing mobile access tokens.

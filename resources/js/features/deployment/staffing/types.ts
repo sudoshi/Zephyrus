@@ -1,0 +1,27 @@
+// Staffing Alignment Wizard domain types — inferred from the zod response schemas in
+// ./api (single source of truth, so the wire shape and the TS types never drift).
+export type {
+  AssignmentDraft,
+  Bucket,
+  CommitResult,
+  ConnectionResult,
+  CoverageReport,
+  CreateRuleInput,
+  DecisionInput,
+  DiscoverResult,
+  ImportResult,
+  ImportRun,
+  MappingRule,
+  ProbeInput,
+  ProposedAssignment,
+  ReviewAction,
+  ReviewDecision,
+  RoleOption,
+  ServiceLineOption,
+  StaffingReference,
+  StaffingSource,
+  StagedItem,
+  StagedPayload,
+  StartImportInput,
+  UpsertSourceInput,
+} from './api';

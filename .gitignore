@@ -8,6 +8,7 @@
 /vendor
 .env
 .env.local
+.env.local.*
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -36,6 +37,9 @@ config.local.php
 
 # Claude Code local plugin/tooling state (per-developer, not project config)
 /.claude/settings.json
+
+# Playwright MCP scratch captures (per-session browser artifacts)
+/.playwright-mcp/
 
 # Deployment specific
 /public/mix-manifest.json

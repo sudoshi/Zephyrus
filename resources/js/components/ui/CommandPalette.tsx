@@ -25,7 +25,7 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  const entries = flattenNavigation(isAdmin);
+  const entries = flattenNavigation(isAdmin, page.props.auth?.user?.role ?? null);
   const groups = entries.reduce<Record<string, typeof entries[number][]>>((acc, item) => {
     (acc[item.group] ??= []).push(item);
     return acc;

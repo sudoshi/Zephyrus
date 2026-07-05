@@ -10,8 +10,8 @@ import {
 } from '@/config/navigationConfig';
 
 describe('navigationConfig', () => {
-  it('exposes the four altitude sections in order (P4a)', () => {
-    expect(NAV_SECTIONS.map((s) => s.key)).toEqual(['cockpit', 'workspaces', 'study', 'admin']);
+  it('exposes the altitude sections in order (P4a + Deploy)', () => {
+    expect(NAV_SECTIONS.map((s) => s.key)).toEqual(['cockpit', 'workspaces', 'study', 'deploy', 'admin']);
     // COCKPIT is the one home: a plain link, no dropdown domains.
     expect(NAV_SECTIONS[0].homeHref).toBe('/dashboard');
     expect(NAV_SECTIONS[0].domains).toEqual([]);
@@ -27,6 +27,7 @@ describe('navigationConfig', () => {
       'flow',
       'analytics',
       'improvement',
+      'deployment',
       'admin',
     ]);
   });
@@ -171,8 +172,27 @@ describe('navigationConfig', () => {
       'cockpit',
       'workspaces',
       'study',
+      'deploy',
       'admin',
     ]);
+  });
+
+  it('gates the Deployment surfaces by users.role, mirroring the server abilities', () => {
+    // The Deploy section is visible to ops-leadership (viewDeploymentConsole roles) even
+    // without the coarse admin flag, and hidden from frontline / anonymous nav.
+    expect(visibleSections(false, 'ops-leader').map((s) => s.key)).toContain('deploy');
+    expect(visibleSections(false, 'user').map((s) => s.key)).not.toContain('deploy');
+    expect(visibleSections(false, null).map((s) => s.key)).not.toContain('deploy');
+
+    // The Staffing Wizard leaf is gated MORE tightly (manageDeploymentConfig) — STRICT on
+    // users.role with no admin bypass, so a plain admin who can view the console still
+    // never sees a link the route would 403.
+    const wizard = '/deployment/staffing';
+    expect(flattenNavigation(false, 'ops-leader').some((e) => e.href === wizard)).toBe(true);
+    expect(flattenNavigation(true, 'admin').some((e) => e.href === wizard)).toBe(false);
+    expect(flattenNavigation(false, 'user').some((e) => e.href === wizard)).toBe(false);
+    // The read console itself is visible to admins.
+    expect(flattenNavigation(true, 'admin').some((e) => e.href === '/deployment')).toBe(true);
   });
 
   it('flattens to command-palette entries and drops admin items for non-admins', () => {

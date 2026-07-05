@@ -1,0 +1,21 @@
+{
+    "capabilities": [
+        { "facility_key": "GEISINGER_GMC", "service_line": "trauma_acute_care_surgery", "capability_level": "definitive", "coverage_model": "in_house", "hours": "24/7", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_GWV", "service_line": "trauma_acute_care_surgery", "capability_level": "definitive", "coverage_model": "in_house", "hours": "24/7", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_GCMC", "service_line": "trauma_acute_care_surgery", "capability_level": "advanced", "coverage_model": "on_call", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_MUNCY", "service_line": "trauma_acute_care_surgery", "capability_level": "stabilize", "coverage_model": "on_call", "transfer_out_targets": ["GEISINGER_GMC"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_LEWISTOWN", "service_line": "trauma_acute_care_surgery", "capability_level": "stabilize", "coverage_model": "on_call", "transfer_out_targets": ["GEISINGER_GMC"], "source_evidence_type": "assumption", "review_status": "assumed" },
+
+        { "facility_key": "GEISINGER_GMC", "service_line": "transplant", "capability_level": "definitive", "programs_present": ["kidney", "liver", "heart"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_GMC", "service_line": "neurosciences", "capability_level": "definitive", "programs_present": ["comprehensive_stroke", "thrombectomy_capable"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_GCMC", "service_line": "neurosciences", "capability_level": "routine", "programs_present": ["primary_stroke"], "source_evidence_type": "assumption", "review_status": "assumed" },
+
+        { "facility_key": "GEISINGER_GMC", "service_line": "emergency", "capability_level": "definitive", "coverage_model": "in_house", "hours": "24/7", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_MUNCY", "service_line": "emergency", "capability_level": "stabilize", "coverage_model": "in_house", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "GEISINGER_LEWISTOWN", "service_line": "emergency", "capability_level": "routine", "coverage_model": "in_house", "source_evidence_type": "assumption", "review_status": "assumed" }
+    ],
+    "transfers": [
+        { "source_facility_key": "GEISINGER_MUNCY", "destination_facility_key": "GEISINGER_GMC", "service_line": "trauma_acute_care_surgery", "transport_mode": "critical_care_transport", "typical_minutes": 50, "direction": "out", "review_status": "assumed" },
+        { "source_facility_key": "GEISINGER_LEWISTOWN", "destination_facility_key": "GEISINGER_GMC", "service_line": "trauma_acute_care_surgery", "transport_mode": "critical_care_transport", "typical_minutes": 45, "direction": "out", "review_status": "assumed" }
+    ]
+}

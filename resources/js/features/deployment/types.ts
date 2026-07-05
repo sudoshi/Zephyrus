@@ -1,0 +1,25 @@
+// Deployment Console domain types — inferred from the zod response schemas in
+// ./api (single source of truth, so the wire shape and the TS types never drift).
+export type {
+  Capability,
+  CapabilityMatrix,
+  CapabilityTag,
+  EvidenceClass,
+  FacilityDetail,
+  FacilitySpace,
+  FacilityTransfer,
+  Market,
+  MatrixCell,
+  OrgFacility,
+  OrganizationDetail,
+  OrganizationSummary,
+  Program,
+  ReadinessCheck,
+  ReadinessReport,
+  ReadinessStatus,
+  ReviewStatus,
+  ServiceLine,
+  ServiceLineCatalog,
+  TransferEdge,
+  Vocab,
+} from './api';

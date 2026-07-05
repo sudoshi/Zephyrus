@@ -1,0 +1,17 @@
+{
+    "capabilities": [
+        { "facility_key": "VIRTUA_OLOL", "service_line": "transplant", "capability_level": "definitive", "programs_present": ["kidney"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "VIRTUA_OLOL", "service_line": "cardiovascular", "capability_level": "advanced", "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "VIRTUA_OLOL", "service_line": "emergency", "capability_level": "definitive", "coverage_model": "in_house", "hours": "24/7", "source_evidence_type": "assumption", "review_status": "assumed" },
+
+        { "facility_key": "VIRTUA_VOORHEES", "service_line": "neonatology", "capability_level": "advanced", "programs_present": ["nicu_level_iii"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "VIRTUA_VOORHEES", "service_line": "womens_health", "capability_level": "definitive", "programs_present": ["regional_perinatal_center", "mfm"], "source_evidence_type": "assumption", "review_status": "assumed" },
+        { "facility_key": "VIRTUA_VOORHEES", "service_line": "trauma_acute_care_surgery", "capability_level": "stabilize", "coverage_model": "on_call", "source_evidence_type": "assumption", "review_status": "assumed" },
+
+        { "facility_key": "VIRTUA_MARLTON", "service_line": "emergency", "capability_level": "routine", "coverage_model": "in_house", "source_evidence_type": "assumption", "review_status": "assumed" }
+    ],
+    "transfers": [
+        { "source_facility_key": "VIRTUA_VOORHEES", "destination_external_name": "Cooper University Hospital", "service_line": "trauma_acute_care_surgery", "transport_mode": "ground_als", "typical_minutes": 20, "direction": "out", "is_external_partner": true, "review_status": "assumed" },
+        { "source_facility_key": "VIRTUA_MARLTON", "destination_external_name": "Cooper University Hospital", "service_line": "trauma_acute_care_surgery", "transport_mode": "ground_als", "typical_minutes": 25, "direction": "out", "is_external_partner": true, "review_status": "assumed" }
+    ]
+}

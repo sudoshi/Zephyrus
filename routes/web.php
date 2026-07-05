@@ -3,6 +3,7 @@
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Operations;
@@ -168,6 +169,19 @@ Route::middleware(['auth'])
 
         // Staffing Office
         Route::get('/staffing', [StaffingDashboardController::class, 'index'])->name('staffing');
+
+        // Deployment Console (Phase F1) — read surface over the deployment API,
+        // gated to the deployment-console roles (same ability as /api/deployment/*).
+        Route::get('/deployment', [DeploymentConsoleController::class, 'index'])
+            ->middleware('can:viewDeploymentConsole')
+            ->name('deployment');
+
+        // Staffing Alignment Wizard (Phase F4) — the write surface over the §8 staffing
+        // API. Gated by the narrower manageDeploymentConfig ability (superuser/ops-leader,
+        // NOT plain admin) — same ability as /api/deployment/staffing/*.
+        Route::get('/deployment/staffing', [DeploymentConsoleController::class, 'staffingWizard'])
+            ->middleware('can:manageDeploymentConfig')
+            ->name('deployment.staffing');
 
         // Operations Console — agent governance + executive brief
         Route::get('/ops/agent-inbox', [OpsConsoleController::class, 'agentInbox'])->name('ops.agent-inbox');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PgTextArray;
 use App\Models\Facility\FacilitySpace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,13 +15,14 @@ class Bed extends Model
 
     protected $fillable = [
         'unit_id', 'label', 'status', 'bed_type',
-        'isolation_capable', 'facility_space_id',
+        'isolation_capable', 'facility_space_id', 'capability_tags',
         'created_by', 'modified_by', 'is_deleted',
     ];
 
     protected $casts = [
         'isolation_capable' => 'boolean',
         'is_deleted' => 'boolean',
+        'capability_tags' => PgTextArray::class,
     ];
 
     public function unit(): BelongsTo

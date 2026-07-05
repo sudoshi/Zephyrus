@@ -5,6 +5,8 @@ export interface User {
   email: string;
   workflow_preference?: string;
   must_change_password?: boolean;
+  /** The users.role string column (auth role of record); distinct from Spatie `roles`. */
+  role?: string;
   roles?: string[];
 }
 
