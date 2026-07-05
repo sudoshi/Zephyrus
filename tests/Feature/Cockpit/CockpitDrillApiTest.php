@@ -4,9 +4,11 @@ namespace Tests\Feature\Cockpit;
 
 use App\Models\User;
 use App\Services\Cockpit\SnapshotBuilder;
+use App\Services\Mobile\MobilePatientContextService;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -92,6 +94,39 @@ class CockpitDrillApiTest extends TestCase
     public function test_drill_requires_authentication(): void
     {
         $this->getJson('/api/cockpit/drill/rtdc')->assertStatus(401);
+    }
+
+    public function test_ed_track_board_beds_drill_to_the_patient_lens(): void
+    {
+        // One ED patient in the treatment cohort (arrived, seen, not departed).
+        DB::table('prod.ed_visits')->insert([
+            'patient_ref' => 'test-ed-drill',
+            'arrived_at' => now()->subHours(3),
+            'esi_level' => 2,
+            'provider_seen_at' => now()->subHours(2),
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/cockpit/drill/ed')
+            ->assertOk();
+
+        $board = collect($response->json('tables'))->firstWhere('caption', 'Active track board');
+        $this->assertNotNull($board, 'the ED drill must expose the Active track board');
+
+        // The seeded bed row carries a drill cell whose ptok matches the service.
+        $drillCell = collect($board['rows'])
+            ->pluck('room')
+            ->first(fn ($cell): bool => is_array($cell) && isset($cell['drill']));
+
+        $this->assertNotNull($drillCell, 'a bed cell must be drillable to the patient lens');
+        $this->assertSame(
+            app(MobilePatientContextService::class)->contextRefFor('test-ed-drill'),
+            $drillCell['drill']['patientRef'],
+        );
+        $this->assertStringStartsWith('ptok_', $drillCell['drill']['patientRef']);
     }
 
     public function test_stream_emits_a_snapshot_ping_when_a_row_exists(): void

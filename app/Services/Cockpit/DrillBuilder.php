@@ -166,14 +166,22 @@ class DrillBuilder
     private function edTables(): array
     {
         $board = app(\App\Services\Ed\TreatmentService::class)->build();
+        $patients = app(\App\Services\Mobile\MobilePatientContextService::class);
         $rows = [];
 
         $tables = [$this->edOvercrowdingTable()];
 
         foreach (array_slice($board['board'] ?? [], 0, 12) as $patient) {
             $esi = (int) $patient['esiLevel'];
+            // P8 WS-4b — the bed cell becomes a drill affordance to the A2P
+            // patient lens when a patient_ref resolves to a context token; RBAC
+            // is enforced at the destination (/cockpit/patient), so the opaque
+            // ptok is safe to carry. Falls back to plain text when unresolvable.
+            $contextRef = $patients->contextRefFor($patient['patientRef'] ?? null);
             $rows[] = [
-                'room' => ['v' => (string) $patient['room'], 'strong' => true],
+                'room' => $contextRef !== null
+                    ? ['drill' => ['patientRef' => $contextRef, 'text' => (string) $patient['room'], 'strong' => true]]
+                    : ['v' => (string) $patient['room'], 'strong' => true],
                 'complaint' => (string) $patient['chiefComplaint'],
                 'esi' => ['tag' => [
                     'text' => 'ESI '.$esi,

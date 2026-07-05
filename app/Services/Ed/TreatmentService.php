@@ -192,6 +192,9 @@ class TreatmentService
             $board[] = [
                 'id' => 'V'.str_pad((string) $id, 4, '0', STR_PAD_LEFT),
                 'edVisitId' => $id,
+                // P8 WS-4b — carry the raw patient_ref so the cockpit drill can
+                // derive the A2P context token (ptok) for a bed → patient descent.
+                'patientRef' => $row->patient_ref,
                 'room' => $room,
                 'chiefComplaint' => $complaint,
                 'esiLevel' => $esi,
