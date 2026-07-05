@@ -451,6 +451,35 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /flow/spaces3d:
+    get:
+      tags: [flow]
+      summary:
+        Versioned 3D space-anchor asset for the native SceneKit/Filament
+        viewers — per-space centroid (metres) + unit/bed bridges to place
+        patient tokens and duty markers over the GLB shell. Geometry only,
+        no live state. Strong ETag; revalidate with If-None-Match.
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+          description: "Previously returned ETag (the spaces3d version)."
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: "#/components/schemas/FlowSpaces3dEnvelope" },
+                  },
+              },
+          }
+        "304": { description: Not modified — render the cached anchors. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /flow/window:
     get:
       tags: [flow]
@@ -480,6 +509,17 @@ paths:
           in: query
           schema: { type: string }
           description: "Comma list of snapshots,events,projections,spaces (intersected with the lens)."
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+          description:
+            "Delta refresh cursor. When present, `events` and `snapshots`
+            contain only items with t > since, while `projections`, `spaces`,
+            and `bed_statuses` are always recomputed and served in full.
+            Everything else (lens clamping, scope resolution, redaction)
+            behaves exactly like a full request, and the parsed value is
+            echoed back as `window.since`. Must parse as ISO8601 and lie
+            within [window.from, window.to); anything else is a 422."
       responses:
         "200":
           {
@@ -494,6 +534,13 @@ paths:
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description:
+            Invalid `since` — not parseable as ISO8601, or outside
+            [window.from, window.to).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 
   /rtdc/census:
     get:
@@ -1798,6 +1845,94 @@ components:
                           items: { $ref: "#/components/schemas/FlowPlate" },
                         }
 
+    FlowSpace3d:
+      type: object
+      required: [space_ref, floor, category, centroid_m]
+      properties:
+        space_ref: { type: string }
+        floor: { type: integer }
+        category: { type: string }
+        unit_id: { type: integer, nullable: true }
+        bed_id: { type: integer, nullable: true }
+        centroid_m:
+          type: object
+          description: 3D centroid in metres; y is the vertical (floor) axis.
+          properties:
+            x: { type: number }
+            y: { type: number }
+            z: { type: number }
+
+    FlowSpaces3dEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [version, facility, spaces]
+              properties:
+                version: { type: string }
+                units: { type: string, description: Geometry unit contract note. }
+                facility:
+                  type: object
+                  properties:
+                    code: { type: string }
+                    cad_code: { type: string }
+                    name: { type: string }
+                spaces:
+                  type: array
+                  items: { $ref: "#/components/schemas/FlowSpace3d" }
+
+    FlowDuty:
+      type: object
+      description:
+        One persona duty — an actionable worklist item, spatially anchored
+        (centroid_m) and due-dated (due_at + window_status), with the governed
+        BFF endpoint that actions it. Patient identity only as
+        patient_context_ref at the lens depth; null for patient_dots:none.
+      required: [id, kind, label, tier]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum:
+            [
+              transport_run,
+              bed_turn,
+              placement,
+              barrier_resolve,
+              staffing_fill,
+              approval,
+              discharge_leverage,
+            ]
+        label: { type: string }
+        space_ref: { type: string, nullable: true }
+        unit_id: { type: integer, nullable: true }
+        bed_id: { type: integer, nullable: true }
+        centroid_m:
+          type: object
+          nullable: true
+          properties:
+            x: { type: number }
+            y: { type: number }
+            z: { type: number }
+        due_at: { type: string, format: date-time, nullable: true }
+        window_status:
+          { type: string, nullable: true, enum: [overdue, due, upcoming] }
+        tier: { type: string, enum: [critical, warning, info] }
+        patient_context_ref: { type: string, nullable: true }
+        provenance:
+          type: object
+          properties:
+            service: { type: string }
+        action:
+          type: object
+          nullable: true
+          properties:
+            endpoint: { type: string }
+            method: { type: string }
+            label: { type: string }
+
     FlowTimelineEvent:
       type: object
       description:
@@ -1875,6 +2010,13 @@ components:
         confidence: { type: string, enum: [definite, probable, possible] }
         unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
         bed_id: { oneOf: [{ type: integer }, { type: "null" }] }
+        room:
+          {
+            oneOf: [{ type: string }, { type: "null" }],
+            description:
+              OR room name (e.g. "OR 3") on scheduled_or_case items; null for
+              every other kind.,
+          }
         entity:
           oneOf:
             - type: "null"
@@ -1920,11 +2062,21 @@ components:
               properties:
                 window:
                   type: object
-                  required: [from, to, now]
+                  required: [from, to, now, since]
                   properties:
                     from: { type: string, format: date-time }
                     to: { type: string, format: date-time }
                     now: { type: string, format: date-time }
+                    since:
+                      oneOf:
+                        - { type: string, format: date-time }
+                        - { type: "null" }
+                      description:
+                        Echo of the parsed `since` delta cursor (null on a
+                        full request). When non-null, `events` and
+                        `snapshots` were filtered to t > since;
+                        `projections`, `spaces`, and `bed_statuses` are
+                        always full.
                 lens:
                   type: object
                   properties:
@@ -1976,6 +2128,35 @@ components:
                     type: array,
                     items: { $ref: "#/components/schemas/FlowProjection" },
                   }
+                duties:
+                  type: array
+                  description:
+                    The persona's actionable worklist — spatially anchored,
+                    due-dated duties (NATIVE-4D-VIEWER-PLAN). Clamped to the
+                    lens duty_kinds, redacted per patient_dots, and served in
+                    full even on a `?since=` delta.
+                  items: { $ref: "#/components/schemas/FlowDuty" }
+                bed_statuses:
+                  type: array
+                  description:
+                    Current bed state for the turn map — strictly "now", never
+                    historical or projected (past turns live in events,
+                    upcoming ones in projections). Present only when the
+                    requested scope is floor or unit AND the caller's lens
+                    event_kinds include bed_status; absent for every other
+                    lens/scope combination.
+                  items:
+                    type: object
+                    required: [bed_id, unit_id, status]
+                    properties:
+                      bed_id: { type: integer }
+                      unit_id: { type: integer }
+                      label: { oneOf: [{ type: string }, { type: "null" }] }
+                      status:
+                        {
+                          type: string,
+                          enum: [available, occupied, blocked, dirty],
+                        }
 
     CensusEnvelope:
       allOf:

@@ -608,5 +608,8 @@ data class EddyContext(
     val questionsSupported: List<String>,
 )
 
-/** Carries an HTTP status so the UI can react to 401 (re-auth). */
-class ApiException(message: String, val statusCode: Int? = null) : Exception(message)
+/**
+ * Carries an HTTP status so the UI can react to 401 (re-auth). `errorCode` mirrors the
+ * envelope's `error.code` (e.g. "invalid_since" on a 422 delta rejection).
+ */
+class ApiException(message: String, val statusCode: Int? = null, val errorCode: String? = null) : Exception(message)

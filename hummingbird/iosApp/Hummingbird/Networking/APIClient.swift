@@ -216,15 +216,33 @@ struct APIClient {
 
     // MARK: Flow Window (48h spatiotemporal lens)
 
-    /// GET /api/mobile/v1/flow/window?persona=&scope= — the persona-lensed 48h window
+    /// GET /api/mobile/v1/flow/window?persona=&scope=&since= — the persona-lensed 48h window
     /// (snapshots + events + projections + per-floor rollups) for a scope the lens allows.
-    func flowWindow(persona: String?, scope: String?, bearer: String) async throws -> Envelope<FlowWindowData> {
+    /// `since` (ISO-8601, within [window.from, window.to]) requests a delta: only events and
+    /// snapshots with t > since come back; projections/spaces/bed_statuses stay full. An
+    /// out-of-range/malformed `since` is a 422 (invalid_since) — callers fall back to a full load.
+    func flowWindow(persona: String?, scope: String?, since: String? = nil, bearer: String) async throws -> Envelope<FlowWindowData> {
+        try await getEnvelope(path: flowWindowPath(persona: persona, scope: scope, since: since),
+                              bearer: bearer, as: FlowWindowData.self)
+    }
+
+    /// As `flowWindow`, but also returns the raw envelope bytes so the caller can persist the
+    /// last FULL window to the offline cache verbatim (no round-trip through Encodable DTOs).
+    func flowWindowRaw(persona: String?, scope: String?, since: String? = nil, bearer: String) async throws -> (Envelope<FlowWindowData>, Data) {
+        let data = try await send(path: flowWindowPath(persona: persona, scope: scope, since: since),
+                                  method: "GET", body: nil, bearer: bearer)
+        return (try Self.decoder.decode(Envelope<FlowWindowData>.self, from: data), data)
+    }
+
+    private func flowWindowPath(persona: String?, scope: String?, since: String?) -> String {
         var path = withPersona("/api/mobile/v1/flow/window", persona)
         if let scope, !scope.isEmpty {
-            let separator = path.contains("?") ? "&" : "?"
-            path += "\(separator)scope=\(Self.queryValue(scope))"
+            path += "\(path.contains("?") ? "&" : "?")scope=\(Self.queryValue(scope))"
         }
-        return try await getEnvelope(path: path, bearer: bearer, as: FlowWindowData.self)
+        if let since, !since.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")since=\(Self.queryValue(since))"
+        }
+        return path
     }
 
     /// GET /api/mobile/v1/flow/floors — the versioned floor-plates asset (plan-view rects).
@@ -232,6 +250,20 @@ struct APIClient {
     /// enough at < 60 KB gzipped per floor.
     func flowFloors(bearer: String) async throws -> Envelope<FlowFloorsDocument> {
         try await getEnvelope(path: "/api/mobile/v1/flow/floors", bearer: bearer, as: FlowFloorsDocument.self)
+    }
+
+    /// As `flowFloors`, but returns the raw bytes too (persisted alongside the window in the
+    /// offline cache so the plates render offline).
+    func flowFloorsRaw(bearer: String) async throws -> (Envelope<FlowFloorsDocument>, Data) {
+        let data = try await send(path: "/api/mobile/v1/flow/floors", method: "GET", body: nil, bearer: bearer)
+        return (try Self.decoder.decode(Envelope<FlowFloorsDocument>.self, from: data), data)
+    }
+
+    /// GET /api/mobile/v1/flow/spaces3d — the versioned 3D space-anchor asset (per-space
+    /// metre centroids + unit/bed bridges) the native SceneKit scene places segments and
+    /// tokens by. ETag-cacheable; fetched once per session.
+    func flowSpaces3d(bearer: String) async throws -> Envelope<FlowSpaces3dDocument> {
+        try await getEnvelope(path: "/api/mobile/v1/flow/spaces3d", bearer: bearer, as: FlowSpaces3dDocument.self)
     }
 
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.

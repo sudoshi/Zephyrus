@@ -523,6 +523,7 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     // patient identity never exceeds the caller's A2P matrix depth.
     Route::prefix('flow')->group(function () {
         Route::get('/floors', [MobileFlowController::class, 'floors']);
+        Route::get('/spaces3d', [MobileFlowController::class, 'spaces3d']);
         Route::get('/window', [MobileFlowController::class, 'window']);
     });
 

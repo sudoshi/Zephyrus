@@ -1,6 +1,9 @@
 package net.acumenus.hummingbird.data
 
+import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
  * Flow Window models — GET /api/mobile/v1/flow/window + /flow/floors.
@@ -14,10 +17,18 @@ fun flowIsoToEpochMs(iso: String?): Long? =
     if (iso.isNullOrBlank()) null
     else runCatching { OffsetDateTime.parse(iso).toInstant().toEpochMilli() }.getOrNull()
 
+/** Epoch millis → ISO-8601 UTC offset string (the `?since=` param the delta path sends). */
+fun flowEpochMsToIso(ms: Long): String =
+    DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneOffset.UTC),
+    )
+
 data class FlowWindowRange(
     val from: String,
     val to: String,
     val now: String,
+    /** `window.since` — the server-echoed parsed delta cursor; null on a full load. */
+    val since: String? = null,
 )
 
 data class FlowLens(
@@ -80,6 +91,8 @@ data class FlowTimelineEvent(
     val toSpace: String?,
     val patientContextRef: String?,
     val provenanceSource: String,
+    /** `entity.ref` (ptok or non-patient ref) — part of the delta dedupe key. */
+    val entityRef: String? = null,
 ) {
     val tMs: Long by lazy { flowIsoToEpochMs(t) ?: 0L }
 }
@@ -91,6 +104,8 @@ data class FlowProjection(
     val label: String,
     val unitId: Int?,
     val bedId: Int?,
+    /** Room name — populated only on `scheduled_or_case` (e.g. "OR 3"); null elsewhere. */
+    val room: String?,
     val value: Int?,
     val bandLower: Int?,
     val bandUpper: Int?,
@@ -101,6 +116,7 @@ data class FlowProjection(
     val provenanceReliability: Double?,
 ) {
     val tMs: Long by lazy { flowIsoToEpochMs(t) ?: 0L }
+    val endsAtMs: Long? by lazy { flowIsoToEpochMs(endsAt) }
 
     /** Ghost grammar: definite 0.8, probable 0.5, possible 0.3 — never solid. */
     val confidenceAlpha: Float
@@ -111,6 +127,18 @@ data class FlowProjection(
         }
 }
 
+/**
+ * Strictly-current bed state for the EVS turn map. Present only when the
+ * scope is floor/unit AND the lens allows bed_status events; absent otherwise.
+ */
+data class FlowBedStatus(
+    val bedId: Int,
+    val unitId: Int?,
+    val label: String,
+    /** available | occupied | blocked | dirty */
+    val status: String,
+)
+
 data class FlowWindowData(
     val window: FlowWindowRange,
     val lens: FlowLens,
@@ -119,11 +147,20 @@ data class FlowWindowData(
     val snapshots: List<FlowSnapshot>,
     val events: List<FlowTimelineEvent>,
     val projections: List<FlowProjection>,
+    val bedStatuses: List<FlowBedStatus> = emptyList(),
+    /** `links.web` — the web Navigator deep link for this scope/t (PI clip target). */
+    val webLink: String? = null,
 ) {
     val fromMs: Long by lazy { flowIsoToEpochMs(window.from) ?: 0L }
     val toMs: Long by lazy { flowIsoToEpochMs(window.to) ?: 0L }
     val nowMs: Long by lazy { flowIsoToEpochMs(window.now) ?: 0L }
 }
+
+/** Parsed window plus the raw envelope text, so a FULL load can be cached verbatim. */
+data class FlowWindowFetch(
+    val data: FlowWindowData,
+    val raw: String,
+)
 
 /** One drawable plate on a floor: unit/zone, room/bay, bed, corridor, vertical_transport. */
 data class FlowPlate(

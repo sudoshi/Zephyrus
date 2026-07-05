@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -38,6 +39,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -55,6 +60,9 @@ import net.acumenus.hummingbird.data.StrainDriver
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 
@@ -68,6 +76,7 @@ fun CapacityDemandScreen(
 ) {
     val vm: CapacityDemandViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -100,8 +109,22 @@ fun CapacityDemandScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            // §8 P6: curve-first strain-over-time lens; the map is secondary.
+            FlowMapScreen(
+                auth = auth,
+                persona = "capacity_lead",
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         LazyColumn(
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -139,6 +162,8 @@ fun CapacityDemandScreen(
                     }
                 }
             }
+        }
+        }
         }
     }
 }

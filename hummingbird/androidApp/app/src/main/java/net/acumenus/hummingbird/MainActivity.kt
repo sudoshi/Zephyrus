@@ -38,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AppLock
 import net.acumenus.hummingbird.data.AuthPhase
 import net.acumenus.hummingbird.data.AuthViewModel
+import net.acumenus.hummingbird.notifications.UrgencyChannels
 import net.acumenus.hummingbird.ui.HummingbirdLaunchConfig
 import net.acumenus.hummingbird.ui.LockScreen
 import net.acumenus.hummingbird.ui.LoginScreen
@@ -51,6 +52,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AppLock.init(this)
+        // Register the T1–T4 urgency notification channels at app start (FCM send still
+        // blocked on server credentials — registration only).
+        UrgencyChannels.register(this)
         // Test/demo affordance, mirrors iOS: `adb am start ... -e HB_AUTOLOGIN 1` lands on Home
         // for headless screenshots / UI tests. No-op for normal launches.
         val autologin = intent.getStringExtra("HB_AUTOLOGIN") == "1"

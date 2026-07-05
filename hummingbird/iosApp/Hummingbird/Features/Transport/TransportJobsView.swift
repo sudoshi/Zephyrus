@@ -61,6 +61,7 @@ struct TransportJobsView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm: TransportJobsViewModel
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     private let refreshInterval: Duration = .seconds(20)
 
@@ -70,26 +71,27 @@ struct TransportJobsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "transport")
-                    if vm.queue == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.queue == nil && vm.errorMessage != nil {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load trips",
-                                         message: vm.errorMessage ?? "", tone: .warning) {
-                            Task { await vm.load(bearer: auth.accessToken ?? "") }
-                        }
-                    } else if let q = vm.queue {
-                        content(q)
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — "my day in the building": trips as routes over the
+                    // house stack. A presentation mode of this home, not a new tab.
+                    FlowMapView(persona: "transport", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("Transport")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
                         Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
@@ -98,19 +100,38 @@ struct TransportJobsView: View {
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled {
-                    await vm.load(bearer: token)
-                    try? await Task.sleep(for: refreshInterval)
-                }
-            }
             .onChange(of: vm.needsReauth) { _, needs in
                 if needs { Task { await auth.logout() } }
             }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "transport")
+                if vm.queue == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.queue == nil && vm.errorMessage != nil {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load trips",
+                                     message: vm.errorMessage ?? "", tone: .warning) {
+                        Task { await vm.load(bearer: auth.accessToken ?? "") }
+                    }
+                } else if let q = vm.queue {
+                    content(q)
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled {
+                await vm.load(bearer: token)
+                try? await Task.sleep(for: refreshInterval)
+            }
+        }
     }
 
     @ViewBuilder

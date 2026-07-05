@@ -7,6 +7,8 @@ use Inertia\Inertia;
 
 class EDDashboardController extends Controller
 {
+    use \App\Http\Controllers\Concerns\ResolvesFlowLens;
+
     /**
      * Display the ED dashboard.
      *
@@ -36,9 +38,12 @@ class EDDashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function flow()
+    public function flow(Request $request)
     {
-        return Inertia::render('ED/Analytics/Flow');
+        return Inertia::render('ED/Analytics/Flow', [
+            'flowLens' => $this->resolveFlowLens($request),
+            'flowUnits' => $this->flowUnits(),
+        ]);
     }
 
     /**

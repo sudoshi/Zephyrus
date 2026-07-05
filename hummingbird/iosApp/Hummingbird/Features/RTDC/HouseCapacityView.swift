@@ -48,13 +48,15 @@ final class HouseCapacityViewModel: ObservableObject {
     /// widget itself has no network or token).
     private func cacheGlance(_ h: HouseRollup) {
         let status = h.occupancy.percent >= 100 ? "critical" : (h.occupancy.percent >= 90 ? "warning" : "success")
-        HouseGlanceCache.save(HouseGlanceSnapshot(
-            occupancyPercent: h.occupancy.percent,
-            occupied: h.occupancy.occupied,
-            staffed: h.occupancy.staffed,
-            pendingPlacements: h.pendingPlacements,
-            statusRaw: status,
-            updatedAt: Date()))
+        // Merge only the fields RTDC owns — the flow window separately writes next4hGhostCount.
+        HouseGlanceCache.merge {
+            $0.occupancyPercent = h.occupancy.percent
+            $0.occupied = h.occupancy.occupied
+            $0.staffed = h.occupancy.staffed
+            $0.pendingPlacements = h.pendingPlacements
+            $0.netBedNeed = h.netBedNeed
+            $0.statusRaw = status
+        }
         WidgetCenter.shared.reloadTimelines(ofKind: HouseGlanceCache.widgetKind)
     }
 }
@@ -67,7 +69,7 @@ struct HouseCapacityView: View {
     @State private var autoOpenPlacement = false
     @State private var autoPlacementIndex = 0
     @State private var didAutoOpen = false
-    @State private var viewMode: FlowHomeMode = .list
+    @State private var viewMode: FlowHomeMode = ProcessInfo.processInfo.environment["HB_HOME_MODE"] == "map" ? .map : .list
 
     private let refreshInterval: Duration = .seconds(20)
 

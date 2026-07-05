@@ -1,5 +1,70 @@
 # The 48-Hour Flow Window — 4D for Every Persona
 
+**Status update 2026-07-04 (later) — Phases 3–4 IMPLEMENTED.**
+Phase 3 (aggregate lenses, both platforms): shared FlowCurve (48h census
+curve: solid past from snapshots, dashed predicted_census + band ribbon,
+staffed-capacity line, shift detents); executive 15s auto-replay time-lapse
+(Reduce Motion honored) settling into the forecast strip; capacity_lead
+curve-first with client-side floor/unit focus; staffing coverage-vs-curve
+with per-floor worst-gap tints (never color alone); hospitalist/intensivist
+discharge-leverage lane (ranked expected_discharge → A2P when ref present;
+iOS census-home map had to be enabled for them, Android already had it);
+pi_lead 4h/s replay + clip-to-share (plain-text summary + links.web
+?from=&to= — v1, no PDSA write). No backend changes needed.
+Phase 4 (web Navigator parity): monolith decomposed (NavigatorScene.ts is
+React-free and the only three.js importer — lazy chunk 642 kB, navigator UI
+chunk 21.7 kB); trails/heat rebuild now bucketed instead of per-frame;
+48h Chronobar (past coverage band, dashed future, detents, graceful sparse
+data); projection ghost layer from /api/patient-flow/projections (entity
+ghosts at unit/room anchors, aggregate forecast pillars + HUD, provenance
+in inspector); persona lens via shared ResolvesFlowLens trait (patient_dots
+none/unit/task redaction in scene + inspector; lens-less web users keep the
+full house view); ?persona=&scope=&t= handoff. Verified: vite build green,
+vitest 180 passed, tsc no new errors, full backend suite 376 passed / 1
+pre-existing env failure (EddyKnowledgeRagTest needs pgvector, absent from
+the local hb_pg postgres image — fails identically on HEAD).
+**Status update 2026-07-04 (final) — Phase 5 IMPLEMENTED. Phases 0–5 all
+shipped.** Backend: `?since=` delta on GET /flow/window — events/snapshots
+filtered to t > since, projections/spaces/bed_statuses always full,
+`window.since` echo, 422 `invalid_since` on out-of-range/malformed;
+OpenAPI + 4 delta tests (FlowWindowTest 20 green, MobileBff drift green).
+iOS: delta merge + per-user offline FlowCache (LRU 20, staleness caption,
+cleared on logout) + Reverb/foreground delta refresh; the widget extension,
+Live Activities, and App-Group house-glance widget were already shipped in
+commit 9ac1b6a, so Phase 5 EXTENDED them — added SLA countdowns
+(Text(timerInterval:) on lock screen + Dynamic Island, calm not coral) and
+the enriched glance widget (occupancy %, net bed need, For You count,
+next-4h ghost count, updated-at); clean xcodebuild green, 0 warnings,
+.appex embedded — no fallback rung taken. Android: same delta merge +
+per-user filesDir/flow-cache (atomic, LRU 20) + Glance house widget
+(app-driven updateAll, no background networking) + T1–T4 urgency
+notification channels registered at start (FCM send still blocked on
+server credentials); 17 new pure-logic unit tests + assembleDebug green.
+Whole feature verified: backend mobile/flow suites green, both mobile
+builds green. REMAINING (tracked, not blocking): persona screenshot matrix
+(14 roles × surfaces × 2 platforms), plate-LOD/dot-batching perf pass,
+real APNs/FCM push credentials, EDD write-back + service-scope patient
+access (§11 open questions), and the pre-existing pgvector env gap in
+EddyKnowledgeRagTest (unrelated to this feature).
+
+**Status update 2026-07-04 — Phase 2 IMPLEMENTED.** Frontline task lenses +
+periop shipped on both platforms: transport (house/floor trip arcs with
+unit-abbr → unit-name → bed-label endpoint resolution, off-map gutter for
+free-text destinations, derived-ghost trips with provenance chips), EVS (turn
+map: bed-level `bed_statuses` tints at floor/unit scope — now-only, fading on
+scrub — plus past turn ticks and dashed `evs_due` bed ghosts with time/ISO
+chips), OR (RoomLanes: per-room case bars t→ends_at with cascade drift "+Xm"
+chips, milestone ticks, or_nurse room picker, periop floor auto-resolved via
+procedure_room plates). Contract additions (additive): projection `room`
+field, window `bed_statuses` (floor/unit scope × bed_status-lens gate),
+or_milestone `to_space` = real room name; new fixture
+`mobile-flow-window-evs.json`; story seeds now cover transport/EVS/OR.
+Bug fixed en route: or_milestone read the legacy `prod.orlog` table that no
+migration creates — now resolves `prod.orlog` → `prod.or_logs` at query time.
+Verified: backend 64 passed (redaction matrix green), Android
+`assembleDebug` + unit tests green, iOS `xcodebuild` green + 7 fixtures
+decoded. Phases 3–5 remain open.
+
 **Status:** Phases 0–1 IMPLEMENTED (2026-07-03) — data plane + contract + lens
 RBAC shipped and verified (`FlowWindowTest`, `PatientFlowApiTest`,
 `MobileBffTest` green; live-verified against the seeded local `hb_pg` demo);

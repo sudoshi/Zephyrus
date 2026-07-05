@@ -49,43 +49,66 @@ struct CapacityDemandView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = CapacityDemandViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "ops")
-                    if let s = vm.strain { strainHeader(s) }
-                    if vm.approvals.isEmpty && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.approvals.isEmpty && vm.errorMessage != nil {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load approvals",
-                                         message: vm.errorMessage ?? "", tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
-                    } else if vm.approvals.isEmpty {
-                        RetryableMessage(symbol: "checkmark.circle", title: "Inbox clear",
-                                         message: "No operational actions awaiting your approval.", tone: .success)
-                    } else {
-                        sectionLabel("APPROVALS (\(vm.approvals.count))")
-                        ForEach(vm.approvals) { approvalRow($0) }
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — "strain over time" (P6): curve-first (occupancy vs
+                    // staffed with the forecast band), the house map one fold below.
+                    FlowMapView(persona: "capacity_lead", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("Capacity & Demand")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
-            } }
-            .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .onChange(of: vm.needsReauth) { _, n in if n { Task { await auth.logout() } } }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "ops")
+                if let s = vm.strain { strainHeader(s) }
+                if vm.approvals.isEmpty && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.approvals.isEmpty && vm.errorMessage != nil {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load approvals",
+                                     message: vm.errorMessage ?? "", tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
+                } else if vm.approvals.isEmpty {
+                    RetryableMessage(symbol: "checkmark.circle", title: "Inbox clear",
+                                     message: "No operational actions awaiting your approval.", tone: .success)
+                } else {
+                    sectionLabel("APPROVALS (\(vm.approvals.count))")
+                    ForEach(vm.approvals) { approvalRow($0) }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+        }
     }
 
     private func strainHeader(_ s: ExecStrain) -> some View {

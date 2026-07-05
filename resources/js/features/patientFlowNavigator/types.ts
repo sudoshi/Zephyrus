@@ -164,6 +164,8 @@ export interface PatientLayerState {
   tokens: boolean;
   trails: boolean;
   heat: boolean;
+  /** Projection ghost layer (future half of the 48h window). */
+  ghosts: boolean;
 }
 
 export interface PatientVisibleState {
@@ -171,4 +173,77 @@ export interface PatientVisibleState {
   event: PatientFlowEvent;
   position: { x: number; y: number; z: number };
   recent: PatientFlowEvent[];
+}
+
+// ---------------------------------------------------------------------------
+// 48h Flow Window — projections + persona lens (FLOW-WINDOW-PLAN §7.3)
+// ---------------------------------------------------------------------------
+
+export type ProjectionKind =
+  | 'expected_discharge'
+  | 'predicted_census'
+  | 'predicted_arrivals'
+  | 'scheduled_or_case'
+  | 'transport_due'
+  | 'evs_due'
+  | 'staffing_shift_gap'
+  | 'surge_probability';
+
+export type ProjectionConfidence = 'definite' | 'probable' | 'possible';
+
+export interface ProjectionProvenance {
+  service: string;
+  reliability: number | null;
+}
+
+export interface ProjectionEntity {
+  type: string;
+  ref: string;
+}
+
+export interface ProjectionItem {
+  t: string;
+  kind: ProjectionKind;
+  confidence: ProjectionConfidence;
+  unit_id: number | null;
+  bed_id: number | null;
+  room: string | null;
+  entity: ProjectionEntity | null;
+  patient_context_ref: string | null;
+  label: string;
+  value: number | null;
+  band: { lower: number; upper: number } | null;
+  ends_at: string | null;
+  derived: boolean;
+  provenance: ProjectionProvenance;
+}
+
+export interface PatientFlowProjectionsResponse {
+  window: { from: string; to: string };
+  lens: { role_id: string; projection_kinds: string[]; patient_dots: string };
+  projections: ProjectionItem[];
+  generated_at: string;
+}
+
+export type FlowPatientDots = 'full' | 'unit' | 'task' | 'none';
+
+/** Resolved persona lens (config/hummingbird/flow_lens.php), passed as an Inertia prop. */
+export interface FlowLens {
+  role_id: string;
+  scope_default: string;
+  scopes_allowed: string[];
+  layers: string[];
+  event_kinds: string[];
+  projection_kinds: string[];
+  patient_dots: FlowPatientDots;
+  actions: string[];
+  default_zoom_hours: number;
+}
+
+/** unit_id ↔ unit_code ↔ floor bridge for joining projections to /locations. */
+export interface FlowUnitSummary {
+  unit_id: number;
+  unit_code: string | null;
+  name: string | null;
+  floor: number | null;
 }

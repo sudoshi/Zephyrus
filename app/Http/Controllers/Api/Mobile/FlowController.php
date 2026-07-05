@@ -4,14 +4,17 @@ namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
+use App\Models\Bed;
 use App\Models\CensusSnapshot;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
+use App\Services\Flow\DutyProjectionService;
 use App\Services\Flow\FloorPlateAssetService;
 use App\Services\Flow\FloorRollupService;
 use App\Services\Flow\FlowLensService;
 use App\Services\Flow\ForwardProjectionService;
 use App\Services\Flow\OperationalTimelineService;
+use App\Services\Flow\Spaces3dAssetService;
 use App\Services\Mobile\MobilePersonaCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -25,7 +28,8 @@ use Illuminate\Http\Request;
  *       strong ETag; geometry only, no live state, aggressively cacheable.
  *   GET /api/mobile/v1/flow/window   (mobile:read) — snapshots + events +
  *       projections for one persona-lensed scope, clipped to ≤48h centered
- *       on now.
+ *       on now. `?since=` (Phase 5 delta refresh) narrows events/snapshots
+ *       to t > since; projections/spaces/bed_statuses always come in full.
  *
  * Everything is clamped server-side by FlowLensService (config/hummingbird/
  * flow_lens.php). Unauthorized scopes are an explicit 403 state, and
@@ -49,11 +53,37 @@ class FlowController extends Controller
         private readonly FloorRollupService $floors,
         private readonly OperationalTimelineService $timeline,
         private readonly ForwardProjectionService $projections,
+        private readonly DutyProjectionService $dutyProjections,
+        private readonly Spaces3dAssetService $spaces3dAsset,
     ) {}
 
     public function floors(Request $request): JsonResponse
     {
         $document = $this->plates->load();
+        $etag = '"'.$document['version'].'"';
+
+        if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
+            return response()->json(null, 304)->withHeaders(['ETag' => $etag]);
+        }
+
+        return $this->envelope(
+            $document,
+            meta: ['version' => $document['version']],
+            links: ['web' => url('/rtdc/patient-flow-navigator')],
+        )->withHeaders([
+            'ETag' => $etag,
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
+    }
+
+    /**
+     * The 3D space-anchor asset (centroids + unit/bed bridges) the native
+     * SceneKit/Filament viewers use to place tokens + duty markers over the
+     * GLB shell. Geometry only, no live state — ETagged + aggressively cached.
+     */
+    public function spaces3d(Request $request): JsonResponse
+    {
+        $document = $this->spaces3dAsset->load();
         $etag = '"'.$document['version'].'"';
 
         if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
@@ -82,6 +112,21 @@ class FlowController extends Controller
 
         $now = CarbonImmutable::now();
         [$from, $to] = $this->clampWindow($request, $now);
+
+        // Delta refresh (Phase 5): `since` filters the append-only halves
+        // (events, snapshots) to t > since; projections/spaces/bed_statuses
+        // are recomputed and served in full on every request. Unlike from/to
+        // (which clamp silently), an unparseable or out-of-range `since` is a
+        // hard 422 — a delta against the wrong window must never look like a
+        // quiet full refresh.
+        $since = null;
+        if (($sinceRaw = $request->query('since')) !== null && trim((string) $sinceRaw) !== '') {
+            $since = $this->parseTime((string) $sinceRaw);
+            if ($since === null || $since->lt($from) || $since->gte($to)) {
+                return $this->invalidSince($from, $to);
+            }
+        }
+
         $layers = $this->lens->clampLayers($lens, $request->query('layers'));
         $depth = $this->lens->effectivePatientDepth($lens, $scope, $request->user());
         $taskRefs = $depth === 'task' ? $this->taskPatientRefs($roleId) : [];
@@ -91,6 +136,7 @@ class FlowController extends Controller
                 'from' => $from->toIso8601String(),
                 'to' => $to->toIso8601String(),
                 'now' => $now->toIso8601String(),
+                'since' => $since?->toIso8601String(),
             ],
             'lens' => [
                 'role_id' => $roleId,
@@ -120,13 +166,20 @@ class FlowController extends Controller
         }
 
         if (in_array('snapshots', $layers, true)) {
-            $payload['snapshots'] = $this->snapshots($from, $to, $scope);
+            $payload['snapshots'] = $this->snapshots($from, $to, $scope, $since);
         }
 
         if (in_array('events', $layers, true)) {
+            $events = $this->timeline->events($from, $to->min($now), $scope, $lens['event_kinds']);
+            if ($since !== null) {
+                $events = array_values(array_filter(
+                    $events,
+                    fn (array $event): bool => CarbonImmutable::parse($event['t'])->gt($since),
+                ));
+            }
             $payload['events'] = array_map(
                 fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs),
-                $this->timeline->events($from, $to->min($now), $scope, $lens['event_kinds']),
+                $events,
             );
         }
 
@@ -135,6 +188,25 @@ class FlowController extends Controller
                 fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
                 $this->projections->projections($from->max($now), $to, $scope, $lens['projection_kinds']),
             );
+        }
+
+        // Duties — the persona's actionable worklist, spatially anchored and
+        // due-dated (NATIVE-4D-VIEWER-PLAN §4 W1). Like projections: clamped to
+        // the lens `duty_kinds`, redacted per patient_dots, and served IN FULL
+        // even on a `?since=` delta (it is current worklist, not append-only).
+        if (in_array('duties', $layers, true)) {
+            $payload['duties'] = array_map(
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                $this->dutyProjections->duties($now, $lens['duty_kinds'] ?? [], $this->scopeUnitIds($scope)),
+            );
+        }
+
+        // Bed-level "now" for the turn map: only floor/unit scopes, and only
+        // for lenses whose event_kinds already include bed_status — the same
+        // vocabulary gate, so transport/executive/etc. never receive the key.
+        if (in_array($scope['type'], ['floor', 'unit'], true)
+            && in_array('bed_status', $lens['event_kinds'], true)) {
+            $payload['bed_statuses'] = $this->bedStatuses($scope);
         }
 
         return $this->envelope(
@@ -180,11 +252,12 @@ class FlowController extends Controller
         }
     }
 
-    /** @return list<array<string, mixed>> census checkpoints in scope */
-    private function snapshots(CarbonImmutable $from, CarbonImmutable $to, array $scope): array
+    /** @return list<array<string, mixed>> census checkpoints in scope (t > since on a delta) */
+    private function snapshots(CarbonImmutable $from, CarbonImmutable $to, array $scope, ?CarbonImmutable $since = null): array
     {
         $query = CensusSnapshot::query()
             ->whereBetween('captured_at', [$from, $to])
+            ->when($since, fn ($query) => $query->where('captured_at', '>', $since))
             ->orderBy('captured_at');
 
         if ($scope['type'] === 'unit' || $scope['type'] === 'patient') {
@@ -216,6 +289,57 @@ class FlowController extends Controller
             ->all();
     }
 
+    /**
+     * Current bed state for the scoped floor/unit — strictly "now", never
+     * historical or projected (the review/prediction halves stay in events/
+     * projections). Floor membership comes from the same manifest-driven
+     * rollup the snapshots/spaces layers use.
+     *
+     * @param  array{type: string, floor: ?int, unit_id: ?int}  $scope
+     * @return list<array{bed_id: int, unit_id: int, label: ?string, status: string}>
+     */
+    private function bedStatuses(array $scope): array
+    {
+        $unitIds = $scope['type'] === 'unit'
+            ? [(int) $scope['unit_id']]
+            : array_values(array_filter(array_column(
+                collect($this->floorRollup())->firstWhere('floor', $scope['floor'])['units'] ?? [],
+                'unit_id',
+            )));
+
+        if ($unitIds === []) {
+            return [];
+        }
+
+        return Bed::query()
+            ->where('is_deleted', false)
+            ->whereIn('unit_id', $unitIds)
+            ->orderBy('unit_id')
+            ->orderBy('label')
+            ->limit(5000)
+            ->get(['bed_id', 'unit_id', 'label', 'status'])
+            ->map(fn (Bed $bed): array => [
+                'bed_id' => (int) $bed->bed_id,
+                'unit_id' => (int) $bed->unit_id,
+                'label' => $bed->label,
+                'status' => (string) $bed->status,
+            ])
+            ->all();
+    }
+
+    /** @return list<int>|null  null = house/patient scope (no spatial duty filter) */
+    private function scopeUnitIds(array $scope): ?array
+    {
+        return match ($scope['type']) {
+            'unit' => $scope['unit_id'] !== null ? [(int) $scope['unit_id']] : [],
+            'floor' => array_values(array_filter(array_column(
+                collect($this->floorRollup())->firstWhere('floor', $scope['floor'])['units'] ?? [],
+                'unit_id',
+            ))),
+            default => null,
+        };
+    }
+
     /** @return list<array<string, mixed>> */
     private function floorRollup(): array
     {
@@ -234,6 +358,20 @@ class FlowController extends Controller
                 ->distinct()->pluck('patient_ref')->all(),
             default => [],
         };
+    }
+
+    private function invalidSince(CarbonImmutable $from, CarbonImmutable $to): JsonResponse
+    {
+        return response()->json([
+            'error' => [
+                'code' => 'invalid_since',
+                'message' => sprintf(
+                    'since must be an ISO8601 timestamp within [%s, %s).',
+                    $from->toIso8601String(),
+                    $to->toIso8601String(),
+                ),
+            ],
+        ], 422);
     }
 
     private function forbidden(string $reason): JsonResponse

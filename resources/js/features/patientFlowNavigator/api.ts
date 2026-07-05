@@ -3,6 +3,7 @@ import type {
   PatientFlowAmbient,
   PatientFlowEvent,
   PatientFlowLocations,
+  PatientFlowProjectionsResponse,
   PatientFlowState,
   PatientFlowSummary,
   PatientFlowTracks,
@@ -47,6 +48,21 @@ export async function fetchPatientFlowState(asOf?: string): Promise<PatientFlowS
 
 export async function fetchPatientFlowAmbient(): Promise<PatientFlowAmbient> {
   const response = await axios.get<PatientFlowAmbient>('/api/patient-flow/ambient');
+  return response.data;
+}
+
+/**
+ * The +24h projection stream for the ghost layer (FLOW-WINDOW-PLAN §7.3).
+ * Persona is optional: when set it is forwarded so EnforceFlowLens resolves
+ * the same lens the page was rendered with; the server clamps kinds and
+ * redacts identity regardless.
+ */
+export async function fetchPatientFlowProjections(
+  options: { persona?: string } = {},
+): Promise<PatientFlowProjectionsResponse> {
+  const response = await axios.get<PatientFlowProjectionsResponse>('/api/patient-flow/projections', {
+    params: options.persona ? { persona: options.persona } : {},
+  });
   return response.data;
 }
 

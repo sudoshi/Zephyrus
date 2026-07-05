@@ -181,6 +181,266 @@ class FlowWindowTest extends TestCase
         $this->assertStringContainsString($eddPtok, $body);
     }
 
+    public function test_or_milestones_and_scheduled_cases_carry_the_room_identity(): void
+    {
+        $this->actingAsRole('periop_manager');
+
+        $response = $this->getJson('/api/mobile/v1/flow/window?persona=periop_manager&scope=house')
+            ->assertOk();
+
+        // The four OR-side milestones land in the named room, not generic 'OR'.
+        $milestones = collect($response->json('data.events'))->where('kind', 'or_milestone');
+        $this->assertNotEmpty($milestones, 'seeded orlog milestones should be on the timeline');
+        $this->assertSame(['OR 3'], $milestones->pluck('to_space')->unique()->values()->all());
+
+        $cases = collect($response->json('data.projections'))->where('kind', 'scheduled_or_case');
+        $this->assertNotEmpty($cases, 'seeded OR case should project onto the schedule lane');
+        $this->assertSame('OR 3', $cases->first()['room']);
+
+        // Non-OR projections carry the field as null — additive, never absent.
+        $this->actingAsRole('bed_manager');
+        $discharge = collect($this->getJson('/api/mobile/v1/flow/window?persona=bed_manager')->json('data.projections'))
+            ->firstWhere('kind', 'expected_discharge');
+        $this->assertArrayHasKey('room', $discharge);
+        $this->assertNull($discharge['room']);
+    }
+
+    public function test_bed_statuses_are_served_only_to_bed_status_lenses_at_floor_or_unit_scope(): void
+    {
+        $micu = Unit::where('abbreviation', 'MICU')->firstOrFail();
+        $floor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+
+        // EVS (event_kinds includes bed_status) at floor scope → the turn map.
+        $this->actingAsRole('evs');
+        $data = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$floor)
+            ->assertOk()
+            ->json('data');
+        $this->assertArrayHasKey('bed_statuses', $data);
+        $occupied = collect($data['bed_statuses'])->firstWhere('unit_id', $micu->unit_id);
+        $this->assertNotNull($occupied, 'floor scope must include the scoped floor\'s beds');
+        foreach ($data['bed_statuses'] as $bed) {
+            $this->assertContains($bed['status'], ['available', 'occupied', 'blocked', 'dirty']);
+            $this->assertIsInt($bed['bed_id']);
+            $this->assertIsInt($bed['unit_id']);
+            $this->assertNotSame('', (string) $bed['label']);
+        }
+        $this->assertContains('occupied', collect($data['bed_statuses'])->pluck('status')->all());
+
+        // …but never at house scope (current-state bed detail is floor/unit only).
+        $this->assertArrayNotHasKey(
+            'bed_statuses',
+            $this->getJson('/api/mobile/v1/flow/window?persona=evs')->assertOk()->json('data'),
+        );
+
+        // Transport's lens has no bed_status kind → same floor, no key.
+        $this->actingAsRole('transport');
+        $this->assertArrayNotHasKey(
+            'bed_statuses',
+            $this->getJson('/api/mobile/v1/flow/window?persona=transport&scope=floor:'.$floor)->assertOk()->json('data'),
+        );
+
+        // Executive is house-only and dotless — unaffected either way.
+        $this->actingAsRole('executive');
+        $this->assertArrayNotHasKey(
+            'bed_statuses',
+            $this->getJson('/api/mobile/v1/flow/window?persona=executive')->assertOk()->json('data'),
+        );
+    }
+
+    public function test_transport_status_and_evs_status_events_ride_the_timeline(): void
+    {
+        $this->actingAsRole('bed_manager');
+
+        $events = collect($this->getJson('/api/mobile/v1/flow/window?persona=bed_manager')
+            ->assertOk()
+            ->json('data.events'));
+
+        $transport = $events->where('kind', 'transport_status');
+        $this->assertCount(2, $transport, 'both seeded transport transitions should be on the timeline');
+        $this->assertSame('ED', $transport->first()['from_space']);
+        $this->assertSame('MICU-01', $transport->first()['to_space']);
+
+        $evs = $events->where('kind', 'evs_status');
+        $this->assertNotEmpty($evs, 'seeded EVS transition should be on the timeline');
+        $this->assertSame('MICU-01', $evs->first()['to_space']);
+    }
+
+    public function test_delta_refresh_narrows_the_append_only_halves_and_serves_projections_in_full(): void
+    {
+        Artisan::call('flow:snapshot', ['--backfill' => '24h']);
+        $this->actingAsRole('bed_manager');
+
+        $full = $this->getJson('/api/mobile/v1/flow/window?persona=bed_manager')->assertOk()->json('data');
+        $events = collect($full['events']);
+        $this->assertNotEmpty($events, 'the seeded story should put events on the timeline');
+
+        // A `since` at the earliest event drops at least that event (t > since is strict).
+        $earliest = $events->map(fn (array $e): string => $e['t'])->sort()->first();
+        $since = (new \DateTimeImmutable($earliest))->format(\DateTimeInterface::ATOM);
+
+        $delta = $this->getJson('/api/mobile/v1/flow/window?persona=bed_manager&since='.urlencode($since))
+            ->assertOk()->json('data');
+
+        // The cursor is echoed (compared as instants — the server re-serializes it).
+        $this->assertNotNull($delta['window']['since']);
+        $this->assertEquals(new \DateTimeImmutable($since), new \DateTimeImmutable($delta['window']['since']));
+
+        // Append-only halves are strictly narrowed; nothing at/at-or-before the cursor survives.
+        $this->assertLessThan(count($full['events']), count($delta['events']));
+        foreach ($delta['events'] as $event) {
+            $this->assertGreaterThan(new \DateTimeImmutable($since), new \DateTimeImmutable($event['t']));
+        }
+        $this->assertLessThanOrEqual(count($full['snapshots']), count($delta['snapshots']));
+
+        // Projections and spaces are recomputed in full on every request.
+        $this->assertCount(count($full['projections']), $delta['projections']);
+        $this->assertSame($full['spaces']['plates_version'], $delta['spaces']['plates_version']);
+    }
+
+    public function test_delta_with_out_of_range_or_malformed_since_is_a_422(): void
+    {
+        $this->actingAsRole('bed_manager');
+
+        foreach (['2000-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 'not-a-timestamp'] as $bad) {
+            $this->getJson('/api/mobile/v1/flow/window?persona=bed_manager&since='.urlencode($bad))
+                ->assertStatus(422)
+                ->assertJsonPath('error.code', 'invalid_since');
+        }
+    }
+
+    public function test_delta_responses_still_enforce_lens_redaction(): void
+    {
+        // Executive is patient_dots:none — a delta request must be as redacted as a full one.
+        $this->actingAsRole('executive');
+        $now = $this->getJson('/api/mobile/v1/flow/window?persona=executive')->assertOk()->json('data.window.now');
+
+        $body = $this->getJson('/api/mobile/v1/flow/window?persona=executive&since='.urlencode($now))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('ptok_', $body, 'a dotless role must not gain a token on a delta refresh');
+        foreach (self::RAW_PATIENT_REFS as $rawRef) {
+            $this->assertStringNotContainsString($rawRef, $body);
+        }
+    }
+
+    public function test_bed_statuses_survive_a_qualifying_evs_floor_scope_delta(): void
+    {
+        $floor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+        $this->actingAsRole('evs');
+
+        $now = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$floor)
+            ->assertOk()->json('data.window.now');
+
+        $data = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$floor.'&since='.urlencode($now))
+            ->assertOk()->json('data');
+
+        // bed_statuses is "now" state, always full — a delta never strips it.
+        $this->assertArrayHasKey('bed_statuses', $data);
+        $this->assertNotEmpty($data['bed_statuses']);
+        $this->assertEquals(new \DateTimeImmutable($now), new \DateTimeImmutable($data['window']['since']));
+    }
+
+    public function test_duties_are_clamped_to_each_personas_lens_duty_kinds(): void
+    {
+        foreach (MobilePersonaCatalog::ROLE_IDS as $roleId) {
+            $this->actingAsRole($roleId);
+            $allowed = config("hummingbird.flow_lens.{$roleId}.duty_kinds");
+
+            $duties = collect($this->getJson('/api/mobile/v1/flow/window?persona='.$roleId.'&layers=duties')
+                ->assertOk()->json('data.duties'));
+
+            foreach ($duties as $duty) {
+                $this->assertContains($duty['kind'], $allowed, "{$roleId} received an out-of-lens duty kind: {$duty['kind']}");
+            }
+            if ($allowed === []) {
+                $this->assertCount(0, $duties, "{$roleId} has no duty_kinds but its payload carried duties");
+            }
+        }
+    }
+
+    public function test_frontline_duties_carry_temporal_status_provenance_and_an_action(): void
+    {
+        $this->actingAsRole('transport');
+
+        $run = collect($this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.duties'))
+            ->firstWhere('kind', 'transport_run');
+
+        $this->assertNotNull($run, 'the seeded trip should surface as a transport_run duty');
+        $this->assertContains($run['window_status'], ['overdue', 'due', 'upcoming', null]);
+        $this->assertContains($run['tier'], ['critical', 'warning', 'info']);
+        $this->assertSame('duty_projection', $run['provenance']['service']);
+        $this->assertArrayHasKey('centroid_m', $run); // present (a 3D anchor or null when unmapped)
+        $this->assertNotNull($run['action'], 'a transport_run is actionable');
+        $this->assertStringContainsString('/transport/requests/', $run['action']['endpoint']);
+        $this->assertSame('POST', $run['action']['method']);
+
+        // The EVS turn and the EDD both surface as duties for their personas.
+        $this->actingAsRole('evs');
+        $this->assertNotNull(
+            collect($this->getJson('/api/mobile/v1/flow/window?persona=evs')->assertOk()->json('data.duties'))
+                ->firstWhere('kind', 'bed_turn'),
+            'the seeded isolation turn should surface as a bed_turn duty',
+        );
+    }
+
+    public function test_duties_honour_the_redaction_matrix(): void
+    {
+        foreach (MobilePersonaCatalog::ROLE_IDS as $roleId) {
+            $this->actingAsRole($roleId);
+            $duties = $this->getJson('/api/mobile/v1/flow/window?persona='.$roleId.'&layers=duties')
+                ->assertOk()->json('data.duties');
+            $json = json_encode($duties);
+
+            foreach (self::RAW_PATIENT_REFS as $raw) {
+                $this->assertStringNotContainsString($raw, $json, "{$roleId} duties leaked a raw patient ref");
+            }
+            $this->assertStringNotContainsString('_patient_ref', $json, "{$roleId} duties leaked the internal ref field");
+
+            if (config("hummingbird.flow_lens.{$roleId}.patient_dots") === 'none') {
+                foreach ($duties as $duty) {
+                    $this->assertNull($duty['patient_context_ref'] ?? null, "{$roleId} is patient_dots:none but a duty carried a token");
+                }
+            }
+        }
+    }
+
+    public function test_duties_survive_a_since_delta_in_full(): void
+    {
+        $this->actingAsRole('transport');
+        $now = $this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.window.now');
+
+        $full = $this->getJson('/api/mobile/v1/flow/window?persona=transport')->assertOk()->json('data.duties');
+        $delta = $this->getJson('/api/mobile/v1/flow/window?persona=transport&since='.urlencode($now))
+            ->assertOk()->json('data.duties');
+
+        $this->assertNotEmpty($full);
+        $this->assertCount(count($full), $delta, 'duties are current worklist — always full, never narrowed by a delta');
+    }
+
+    public function test_spaces3d_asset_is_versioned_and_carries_3d_centroids(): void
+    {
+        $this->actingAsRole('bed_manager');
+
+        $res = $this->getJson('/api/mobile/v1/flow/spaces3d')->assertOk();
+        $etag = $res->headers->get('ETag');
+        $this->assertNotEmpty($etag);
+        $this->assertSame(trim($etag, '"'), $res->json('data.version'));
+
+        // The bare test DB has no CAD catalog imported (facility:import-catalog
+        // is a demo/deploy step), so `spaces` may be empty here; against a
+        // catalog-loaded DB every entry carries a {x, y, z} metre centroid.
+        $spaces = $res->json('data.spaces');
+        $this->assertIsArray($spaces);
+        foreach ($spaces as $space) {
+            $this->assertEqualsCanonicalizing(['x', 'y', 'z'], array_keys($space['centroid_m']));
+        }
+
+        $this->withHeaders(['If-None-Match' => $etag])
+            ->getJson('/api/mobile/v1/flow/spaces3d')
+            ->assertStatus(304);
+    }
+
     public function test_floors_asset_is_versioned_and_supports_conditional_requests(): void
     {
         $this->actingAsRole('bed_manager');
@@ -224,5 +484,4 @@ class FlowWindowTest extends TestCase
 
         return $user;
     }
-
 }

@@ -45,23 +45,37 @@ enum DecodeSharedFixtures {
         try require(flowWindow.data.lens.patientDots == "full", "Flow window lens patient_dots drifted.")
         try require(flowWindow.data.scope.type == "house", "Flow window fixture scope drifted.")
         try require(flowWindow.data.spaces?.floors.count == 11, "Flow window floor rollup count drifted.")
-        try require(flowWindow.data.events.count == 2, "Flow window event count drifted.")
+        try require(flowWindow.data.events.count == 5, "Flow window event count drifted.")
         try require(flowWindow.data.events.first?.kind == "admit", "Flow window first event kind drifted.")
-        try require(flowWindow.data.projections.first?.kind == "surge_probability", "Flow window first projection kind drifted.")
+        try require(flowWindow.data.events.contains { $0.kind == "transport_status" && $0.fromSpace == "ED" },
+                    "Flow window transport_status event route drifted.")
+        try require(flowWindow.data.events.contains { $0.kind == "evs_status" },
+                    "Flow window evs_status event missing.")
+        try require(flowWindow.data.projections.first?.kind == "scheduled_or_case", "Flow window first projection kind drifted.")
+        try require(flowWindow.data.projections.contains { $0.kind == "scheduled_or_case" && $0.room != nil },
+                    "Flow window scheduled_or_case lost its room.")
         try require(flowWindow.data.projections.contains { $0.derived == true && $0.kind == "transport_due" },
                     "Flow window derived transport ghost missing.")
         try require(flowWindow.data.projections.allSatisfy { ["definite", "probable", "possible"].contains($0.confidence) },
                     "Flow window projection confidence vocabulary drifted.")
+        try require(flowWindow.data.bedStatuses.isEmpty, "Flow window house scope must not carry bed_statuses.")
         try require(FlowTime.parse(flowWindow.data.window.now) != nil, "Flow window `now` timestamp failed ISO-8601 parse.")
 
+        let evsWindow = try decode("mobile-flow-window-evs.json", as: Envelope<FlowWindowData>.self, root: root, decoder: decoder)
+        try require(evsWindow.data.lens.roleId == "evs", "EVS flow window fixture decoded the wrong lens role.")
+        try require(evsWindow.data.scope.type == "floor", "EVS flow window fixture scope drifted.")
+        try require(!evsWindow.data.bedStatuses.isEmpty, "EVS flow window bed_statuses missing or empty.")
+        try require(evsWindow.data.bedStatuses.allSatisfy { ["available", "occupied", "blocked", "dirty"].contains($0.status) },
+                    "EVS flow window bed status vocabulary drifted.")
+
         let flowFloors = try decode("mobile-flow-floors.json", as: Envelope<FlowFloorsDocument>.self, root: root, decoder: decoder)
-        try require(flowFloors.data.version == "v1-346c77a48494", "Flow floors plates version drifted.")
+        try require(flowFloors.data.version == "v1-2b3e9f90ad5d", "Flow floors plates version drifted.")
         try require(flowFloors.data.floors.first?.spaces.count == 4, "Flow floors plate count drifted.")
         try require(flowFloors.data.floors.first?.bounds.count == 4, "Flow floors bounds shape drifted.")
         try require(flowFloors.data.floors.contains { floor in floor.spaces.contains { $0.bedId == 693 && $0.rect.count == 4 } },
                     "Flow floors bed plate bridge (bed_id + rect) drifted.")
 
-        print("Decoded 6 shared Hummingbird DTO fixtures.")
+        print("Decoded 7 shared Hummingbird DTO fixtures.")
     }
 
     private static func decode<T: Decodable>(

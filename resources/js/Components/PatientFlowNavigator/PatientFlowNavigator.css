@@ -75,6 +75,127 @@
   accent-color: #e0a33f;
 }
 
+/* --- 48h Chronobar (now−24h … now+24h) ---------------------------------- */
+
+.patient-flow-chronobar {
+  display: grid;
+  gap: 6px;
+}
+
+.patient-flow-chronobar output {
+  min-height: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #ddd4c5;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-chronobar-rel {
+  color: #b9b2a6;
+}
+
+.patient-flow-chronobar-rel.future {
+  color: #7dd3fc;
+}
+
+.patient-flow-chronobar-track {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Past half: solid but dimmed until event coverage brightens it. */
+.patient-flow-chronobar-past {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(221, 212, 197, 0.14);
+}
+
+/* Future half: dashed ghost region. */
+.patient-flow-chronobar-future {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(125, 211, 252, 0.28) 0 5px,
+    transparent 5px 10px
+  );
+}
+
+/* Replay-event coverage inside the past half. */
+.patient-flow-chronobar-coverage {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(224, 163, 63, 0.45);
+}
+
+.patient-flow-chronobar-detent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(239, 234, 220, 0.4);
+}
+
+.patient-flow-chronobar-now {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  margin-left: -1px;
+  background: #e0a33f;
+}
+
+.patient-flow-chronobar input[type='range'] {
+  width: 100%;
+  accent-color: #e0a33f;
+}
+
+.patient-flow-chronobar input[type='range']:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-chronobar-empty {
+  margin: 0;
+  color: #b9b2a6;
+  font-size: 12px;
+}
+
+/* Forecast HUD strip — aggregate projections at the scrubbed future time. */
+.patient-flow-forecast-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: #b9b2a6;
+}
+
+.patient-flow-forecast-hud div {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+}
+
+.patient-flow-forecast-hud dt {
+  color: #b9b2a6;
+}
+
+.patient-flow-forecast-hud dd {
+  margin: 0;
+  color: #7dd3fc;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-forecast-hud small {
+  color: #b9b2a6;
+}
+
 .patient-flow-buttons {
   display: grid;
   grid-template-columns: repeat(4, 42px);
@@ -163,19 +284,64 @@
   min-height: 26px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .patient-flow-checkbox-row label {
   min-width: 0;
   overflow-wrap: anywhere;
+  cursor: pointer;
+  user-select: none;
 }
 
+/* Layer visibility toggles — standard switch controls (gold track = on).
+   !important overrides the app's global form-input resets (height/background)
+   so the switch renders consistently inside this scoped viewer overlay. */
 .patient-flow-checkbox-row input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box !important;
+  position: relative;
   flex: 0 0 auto;
-  accent-color: #e0a33f;
+  width: 34px !important;
+  height: 20px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.patient-flow-checkbox-row input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f4f5f7;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: left 0.18s ease;
+}
+
+.patient-flow-checkbox-row input[type='checkbox']:checked {
+  background: #e0a33f !important;
+  border-color: #e0a33f !important;
+}
+
+.patient-flow-checkbox-row input[type='checkbox']:checked::after {
+  left: calc(100% - 16px);
+}
+
+.patient-flow-checkbox-row input[type='checkbox']:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
 }
 
 .patient-flow-metrics {

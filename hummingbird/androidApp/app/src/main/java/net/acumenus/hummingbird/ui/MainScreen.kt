@@ -218,6 +218,7 @@ fun MainScreen(
                         HomeKind.OrBoard -> ORBoardScreen(
                             auth = auth,
                             forceError = launchConfig.forceError,
+                            personaId = selectedRole.id,
                             onOpenProfile = { detail = AltitudeDetail.Profile },
                             onOpenRoom = { room, webLink -> detail = AltitudeDetail.ORCase(room, webLink) },
                         )

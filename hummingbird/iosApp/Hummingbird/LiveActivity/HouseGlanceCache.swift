@@ -2,6 +2,7 @@ import Foundation
 
 /// Last-known house snapshot, cached to the App Group so the glance widget renders
 /// without network or auth (widgets get no bearer token; the app is the only writer).
+/// New fields are optional so a blob written by an older build still decodes.
 struct HouseGlanceSnapshot: Codable {
     var occupancyPercent: Int
     var occupied: Int
@@ -11,6 +12,11 @@ struct HouseGlanceSnapshot: Codable {
     /// never color alone.
     var statusRaw: String
     var updatedAt: Date
+    /// Net bed need (by-2pm sum) from the RTDC house rollup.
+    var netBedNeed: Int? = nil
+    /// Count of projected "ghost" items landing in the next 4h — written from the Flow
+    /// Window load so the glance shows what is coming, not just what is.
+    var next4hGhostCount: Int? = nil
 }
 
 enum HouseGlanceCache {
@@ -28,6 +34,18 @@ enum HouseGlanceCache {
         guard let defaults = UserDefaults(suiteName: appGroupId),
               let data = defaults.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(HouseGlanceSnapshot.self, from: data)
+    }
+
+    /// Update only the fields a given writer owns (RTDC owns occupancy/net-bed-need; the Flow
+    /// Window owns next4hGhostCount) without clobbering the others. Seeds a calm zero snapshot
+    /// when nothing is cached yet.
+    static func merge(_ mutate: (inout HouseGlanceSnapshot) -> Void) {
+        var snapshot = load() ?? HouseGlanceSnapshot(
+            occupancyPercent: 0, occupied: 0, staffed: 0, pendingPlacements: 0,
+            statusRaw: "info", updatedAt: Date())
+        mutate(&snapshot)
+        snapshot.updatedAt = Date()
+        save(snapshot)
     }
 
     static func clear() {
@@ -57,5 +75,9 @@ enum ForYouGlanceCache {
         guard let defaults = UserDefaults(suiteName: HouseGlanceCache.appGroupId),
               let data = defaults.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(ForYouGlanceSnapshot.self, from: data)
+    }
+
+    static func clear() {
+        UserDefaults(suiteName: HouseGlanceCache.appGroupId)?.removeObject(forKey: key)
     }
 }

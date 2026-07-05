@@ -36,46 +36,69 @@ struct ImprovementView: View {
     @EnvironmentObject var auth: AuthStore
     @StateObject private var vm = ImprovementViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "ops")
-                    if !vm.loaded && vm.isLoading {
-                        SkeletonRows()
-                    } else if !vm.loaded, let e = vm.errorMessage {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load improvement",
-                                         message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
-                    } else {
-                        summary
-                        if !vm.activeCycles.isEmpty {
-                            sectionLabel("ACTIVE PDSA CYCLES (\(vm.activeCycles.count))")
-                            ForEach(vm.activeCycles) { cycleRow($0) }
-                        }
-                        if !vm.opportunities.isEmpty {
-                            sectionLabel("OPPORTUNITIES (by impact)")
-                            ForEach(vm.opportunities) { oppRow($0) }
-                        }
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window — "the pattern, not the patient" (P8): de-identified
+                    // process replay at ~4h/s with clip-to-share for PDSA evidence.
+                    FlowMapView(persona: "pi_lead", scope: .house)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("Improvement")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
-            } }
-            .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(30)) }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .onChange(of: vm.needsReauth) { _, n in if n { Task { await auth.logout() } } }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "ops")
+                if !vm.loaded && vm.isLoading {
+                    SkeletonRows()
+                } else if !vm.loaded, let e = vm.errorMessage {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load improvement",
+                                     message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
+                } else {
+                    summary
+                    if !vm.activeCycles.isEmpty {
+                        sectionLabel("ACTIVE PDSA CYCLES (\(vm.activeCycles.count))")
+                        ForEach(vm.activeCycles) { cycleRow($0) }
+                    }
+                    if !vm.opportunities.isEmpty {
+                        sectionLabel("OPPORTUNITIES (by impact)")
+                        ForEach(vm.opportunities) { oppRow($0) }
+                    }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(30)) }
+        }
     }
 
     private var summary: some View {

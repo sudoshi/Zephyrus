@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import net.acumenus.hummingbird.widget.HouseGlanceStore
 
 enum class AuthPhase { LOADING, LOGGED_OUT, NEEDS_PASSWORD_CHANGE, LOGGED_IN }
 
@@ -62,12 +63,18 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
     fun logout() {
         val t = accessToken
-        viewModelScope.launch { if (t != null) api.revoke(t) }
+        viewModelScope.launch {
+            if (t != null) api.revoke(t)
+            // Reset the widget to its placeholder once this session's data is gone.
+            runCatching { HouseGlanceStore.clear(getApplication<android.app.Application>()) }
+        }
         clearTokens(); me = null; error = null; phase = AuthPhase.LOGGED_OUT
     }
 
     private fun clearTokens() {
         accessToken = null
         prefs.edit().remove("access").remove("refresh").apply()
+        // Never let one user's cached flow window survive into another session.
+        runCatching { FlowWindowCache(getApplication<android.app.Application>()).clearAll() }
     }
 }

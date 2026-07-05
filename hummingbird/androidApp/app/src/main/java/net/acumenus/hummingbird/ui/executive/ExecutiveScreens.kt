@@ -36,6 +36,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -54,6 +58,9 @@ import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
 import net.acumenus.hummingbird.ui.components.StatusChip
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.flow.FlowBoardMode
+import net.acumenus.hummingbird.ui.flow.FlowMapScreen
+import net.acumenus.hummingbird.ui.flow.ListMapSegment
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
 
@@ -68,6 +75,7 @@ fun HouseBriefScreen(
     val vm: ExecutiveViewModel = viewModel()
     val bearer = auth.accessToken ?: ""
     val uriHandler = LocalUriHandler.current
+    var boardMode by remember { mutableStateOf(FlowBoardMode.List) }
 
     LaunchedEffect(bearer, forceError) {
         if (!forceError) {
@@ -100,10 +108,24 @@ fun HouseBriefScreen(
             )
         },
     ) { inner ->
+        Column(Modifier.padding(inner).fillMaxSize()) {
+        ListMapSegment(
+            mode = boardMode,
+            onSelect = { boardMode = it },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        if (boardMode == FlowBoardMode.Map) {
+            // §8 P9: the morning-brief time-lapse + forecast strip lens.
+            FlowMapScreen(
+                auth = auth,
+                persona = "executive",
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+        } else {
         HbRefreshable(
             refreshing = vm.loading,
             onRefresh = { vm.load(bearer) },
-            modifier = Modifier.padding(inner),
+            modifier = Modifier.weight(1f),
         ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -144,6 +166,8 @@ fun HouseBriefScreen(
                     }
                 }
             }
+        }
+        }
         }
         }
     }

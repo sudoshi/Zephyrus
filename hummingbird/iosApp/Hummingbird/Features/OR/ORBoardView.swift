@@ -31,42 +31,71 @@ final class ORBoardViewModel: ObservableObject {
 
 struct ORBoardView: View {
     @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
     @StateObject private var vm = ORBoardViewModel(api: APIClient(baseURL: URL(string: AppConfig.baseURL)!))
     @State private var showProfile = false
+    @State private var viewMode: FlowHomeMode = .list
+
+    // Both OR personas share this board; the Flow Window lens tells them apart
+    // (one room's day vs the whole cascade).
+    private var orPersona: String {
+        profile.roleId == "periop_manager" ? "periop_manager" : "or_nurse"
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Z.s4) {
-                    AltitudeContextCard(domain: "or")
-                    if vm.board == nil && vm.isLoading {
-                        SkeletonRows()
-                    } else if vm.board == nil, let e = vm.errorMessage {
-                        RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the OR board",
-                                         message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
-                    } else if let b = vm.board {
-                        metrics(b.metrics)
-                        sectionLabel("ROOMS")
-                        ForEach(b.rooms) { roomCard($0) }
-                    }
+            Group {
+                if viewMode == .map {
+                    // The Flow Window at periop-floor scope: room lanes against the 48h scrubber.
+                    ORFlowMapSection(persona: orPersona)
+                } else {
+                    listBody
                 }
-                .padding(Z.s4)
             }
             .background(Z.bg)
             .navigationTitle("OR Board")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
-            } }
-            .sheet(isPresented: $showProfile) { ProfileView() }
-            .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
-            .task {
-                let token = auth.accessToken ?? ""
-                while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        Text("List").tag(FlowHomeMode.list)
+                        Text("Map").tag(FlowHomeMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                }
             }
+            .sheet(isPresented: $showProfile) { ProfileView() }
             .onChange(of: vm.needsReauth) { _, n in if n { Task { await auth.logout() } } }
         }
         .tint(Z.primary)
+    }
+
+    private var listBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s4) {
+                AltitudeContextCard(domain: "or")
+                if vm.board == nil && vm.isLoading {
+                    SkeletonRows()
+                } else if vm.board == nil, let e = vm.errorMessage {
+                    RetryableMessage(symbol: "wifi.exclamationmark", title: "Can't load the OR board",
+                                     message: e, tone: .warning) { Task { await vm.load(bearer: auth.accessToken ?? "") } }
+                } else if let b = vm.board {
+                    metrics(b.metrics)
+                    sectionLabel("ROOMS")
+                    ForEach(b.rooms) { roomCard($0) }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .refreshable { await vm.load(bearer: auth.accessToken ?? "") }
+        .task {
+            let token = auth.accessToken ?? ""
+            while !Task.isCancelled { await vm.load(bearer: token); try? await Task.sleep(for: .seconds(20)) }
+        }
     }
 
     private func metrics(_ m: ORMetrics) -> some View {
@@ -145,5 +174,34 @@ struct ORBoardView: View {
 
     private func sectionLabel(_ t: String) -> some View {
         Text(t).font(.system(size: 11, weight: .semibold)).tracking(0.5).foregroundStyle(Z.inkMuted).padding(.top, Z.s2)
+    }
+}
+
+/// Resolves the periop floor before mounting the Flow Window: the floor whose plates
+/// include a procedure room; when the plates asset can't say, bare floor scope lets the
+/// server's lens default (the periop floor) decide.
+private struct ORFlowMapSection: View {
+    @EnvironmentObject var auth: AuthStore
+    let persona: String
+
+    @State private var scope: FlowScopeRequest?
+
+    var body: some View {
+        Group {
+            if let scope {
+                FlowMapView(persona: persona, scope: scope)
+            } else {
+                ScrollView { SkeletonRows().padding(Z.s4) }
+            }
+        }
+        .task {
+            guard scope == nil else { return }
+            let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+            let floors = try? await api.flowFloors(bearer: auth.accessToken ?? "").data
+            let procedureFloor = floors?.floors.first { floor in
+                floor.spaces.contains { $0.category == "procedure_room" }
+            }?.floor
+            scope = .floor(procedureFloor)
+        }
     }
 }

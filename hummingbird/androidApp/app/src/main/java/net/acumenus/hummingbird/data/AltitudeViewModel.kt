@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import net.acumenus.hummingbird.widget.HouseGlanceStore
 
 class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     private val api = ApiClient()
@@ -96,6 +97,8 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun loadHome(bearer: String) = request {
         home = api.altitudeHome(bearer, selectedRole.id)
+        // Feed the house-glance widget on every home load (app-driven, no background work).
+        home?.let { runCatching { HouseGlanceStore.updateFromHome(getApplication<android.app.Application>(), it) } }
     }
 
     fun loadWorkspace(bearer: String) = request {

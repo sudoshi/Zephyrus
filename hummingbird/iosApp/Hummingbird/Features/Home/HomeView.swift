@@ -70,12 +70,14 @@ struct HomeView: View {
     }
 
     /// The personas whose census home offers the spatial Flow Window, and at which scope
-    /// (charge nurse → own unit's floor board; house supervisor → the whole house).
+    /// (charge nurse → own unit's floor board; house supervisor → the whole house;
+    /// hospitalist/intensivist → house, since their patients span floors and the map adds
+    /// the discharge-leverage rounding order).
     private var mapScope: FlowScopeRequest? {
         switch profile.roleId {
         case "charge_nurse":
             return profile.unitId.map { FlowScopeRequest.unit($0) } ?? .house
-        case "house_supervisor":
+        case "house_supervisor", "hospitalist", "intensivist":
             return .house
         default:
             return nil

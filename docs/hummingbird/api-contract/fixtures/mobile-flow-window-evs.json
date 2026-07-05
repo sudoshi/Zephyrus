@@ -1,0 +1,1359 @@
+{
+    "data": {
+        "window": {
+            "from": "2026-07-04T03:05:15+00:00",
+            "to": "2026-07-06T03:05:15+00:00",
+            "now": "2026-07-05T03:05:15+00:00",
+            "since": null
+        },
+        "lens": {
+            "role_id": "evs",
+            "scope_default": "house",
+            "scopes_allowed": [
+                "house",
+                "floor",
+                "patient"
+            ],
+            "layers": [
+                "snapshots",
+                "events",
+                "projections",
+                "spaces",
+                "duties"
+            ],
+            "event_kinds": [
+                "evs_status",
+                "bed_status",
+                "discharge"
+            ],
+            "projection_kinds": [
+                "evs_due",
+                "expected_discharge"
+            ],
+            "patient_dots": "task",
+            "actions": [
+                "claim_turn",
+                "start_turn",
+                "complete_turn"
+            ],
+            "default_zoom_hours": 8
+        },
+        "scope": {
+            "type": "floor",
+            "floor": 3,
+            "unit_id": null,
+            "patient_context_ref": null,
+            "label": "Floor 3"
+        },
+        "spaces": {
+            "plates_version": "v1-a8f91dc9a9e4",
+            "floors": [
+                {
+                    "floor": 1,
+                    "label": "Floor 1",
+                    "units": [
+                        {
+                            "unit_id": 24,
+                            "abbr": "ED",
+                            "name": "1 \u2014 Emergency Department",
+                            "type": "ed",
+                            "service_line": "emergency",
+                            "acuity": "emergency",
+                            "cad_code": "ED",
+                            "facility_space_id": null,
+                            "staffed": 148,
+                            "occupied": 0,
+                            "available": 148,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 1,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 148,
+                    "occupied": 0,
+                    "available": 148,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 1,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 2,
+                    "label": "Floor 2",
+                    "units": [
+                        {
+                            "unit_id": 6,
+                            "abbr": "BHU",
+                            "name": "2 \u2014 Inpatient Behavioral Health (Secure)",
+                            "type": "med_surg",
+                            "service_line": "behavioral_health",
+                            "acuity": "behavioral",
+                            "cad_code": "BHU2",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 25,
+                            "abbr": "OR",
+                            "name": "2 \u2014 Perioperative / Procedural Platform",
+                            "type": "periop",
+                            "service_line": "perioperative",
+                            "acuity": "procedural",
+                            "cad_code": "PERIOP",
+                            "facility_space_id": null,
+                            "staffed": 44,
+                            "occupied": 0,
+                            "available": 44,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 68,
+                    "occupied": 0,
+                    "available": 68,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 3,
+                    "label": "Floor 3",
+                    "units": [
+                        {
+                            "unit_id": 1,
+                            "abbr": "MICU",
+                            "name": "3 West \u2014 Medical ICU (MICU)",
+                            "type": "icu",
+                            "service_line": "critical_care",
+                            "acuity": "icu",
+                            "cad_code": "MICU3",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 1,
+                            "available": 23,
+                            "blocked": 0,
+                            "occupancy_pct": 4,
+                            "evs_open": 1,
+                            "transport_active": 0,
+                            "barriers_open": 1,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 2,
+                            "abbr": "SICU",
+                            "name": "3 East \u2014 Surgical/Trauma ICU (SICU)",
+                            "type": "icu",
+                            "service_line": "trauma_surgery",
+                            "acuity": "icu",
+                            "cad_code": "SICU3",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 3,
+                            "abbr": "NSICU",
+                            "name": "3 South \u2014 Neuroscience ICU (NSICU)",
+                            "type": "icu",
+                            "service_line": "neurosciences",
+                            "acuity": "icu",
+                            "cad_code": "NSICU3",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 4,
+                            "abbr": "CVICU",
+                            "name": "3 North \u2014 Cardiovascular ICU (CVICU)",
+                            "type": "icu",
+                            "service_line": "cardiovascular",
+                            "acuity": "icu",
+                            "cad_code": "CVICU3",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 5,
+                            "abbr": "BURN",
+                            "name": "3 Central \u2014 Burn ICU",
+                            "type": "icu",
+                            "service_line": "burn",
+                            "acuity": "burn_icu",
+                            "cad_code": "BURN3",
+                            "facility_space_id": null,
+                            "staffed": 8,
+                            "occupied": 0,
+                            "available": 8,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 96,
+                    "occupied": 1,
+                    "available": 95,
+                    "blocked": 0,
+                    "occupancy_pct": 1,
+                    "evs_open": 1,
+                    "transport_active": 0,
+                    "barriers_open": 1
+                },
+                {
+                    "floor": 4,
+                    "label": "Floor 4",
+                    "units": [
+                        {
+                            "unit_id": 7,
+                            "abbr": "4W",
+                            "name": "4 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS4A",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 8,
+                            "abbr": "4E",
+                            "name": "4 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS4B",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 56,
+                    "occupied": 0,
+                    "available": 56,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 5,
+                    "label": "Floor 5",
+                    "units": [
+                        {
+                            "unit_id": 9,
+                            "abbr": "5W",
+                            "name": "5 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS5A",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 10,
+                            "abbr": "5E",
+                            "name": "5 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS5B",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 56,
+                    "occupied": 0,
+                    "available": 56,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 6,
+                    "label": "Floor 6",
+                    "units": [
+                        {
+                            "unit_id": 11,
+                            "abbr": "6W",
+                            "name": "6 West \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS6A",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 12,
+                            "abbr": "6E",
+                            "name": "6 East \u2014 Medical/Surgical",
+                            "type": "med_surg",
+                            "service_line": "adult_med_surg",
+                            "acuity": "med_surg",
+                            "cad_code": "MS6B",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 7,
+                    "label": "Floor 7",
+                    "units": [
+                        {
+                            "unit_id": 13,
+                            "abbr": "7E",
+                            "name": "7 East \u2014 Telemetry & Cardiology",
+                            "type": "step_down",
+                            "service_line": "cardiology",
+                            "acuity": "telemetry",
+                            "cad_code": "TEL7A",
+                            "facility_space_id": null,
+                            "staffed": 32,
+                            "occupied": 0,
+                            "available": 32,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 14,
+                            "abbr": "7W",
+                            "name": "7 West \u2014 Telemetry & Stepdown",
+                            "type": "step_down",
+                            "service_line": "medicine",
+                            "acuity": "telemetry",
+                            "cad_code": "TEL7B",
+                            "facility_space_id": null,
+                            "staffed": 32,
+                            "occupied": 0,
+                            "available": 32,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 64,
+                    "occupied": 0,
+                    "available": 64,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 8,
+                    "label": "Floor 8",
+                    "units": [
+                        {
+                            "unit_id": 15,
+                            "abbr": "ANT",
+                            "name": "8 \u2014 Antepartum (High-Risk OB)",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "ANT8",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 16,
+                            "abbr": "PP",
+                            "name": "8 \u2014 Postpartum / Mother-Baby",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "PP8",
+                            "facility_space_id": null,
+                            "staffed": 28,
+                            "occupied": 0,
+                            "available": 28,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 17,
+                            "abbr": "GYN",
+                            "name": "8 \u2014 Gynecology Surgery",
+                            "type": "med_surg",
+                            "service_line": "womens_health",
+                            "acuity": "women",
+                            "cad_code": "GYN8",
+                            "facility_space_id": null,
+                            "staffed": 8,
+                            "occupied": 0,
+                            "available": 8,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 9,
+                    "label": "Floor 9",
+                    "units": [
+                        {
+                            "unit_id": 18,
+                            "abbr": "PED",
+                            "name": "9 \u2014 Pediatric Acute Care",
+                            "type": "med_surg",
+                            "service_line": "pediatrics",
+                            "acuity": "pediatrics",
+                            "cad_code": "PED9",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 19,
+                            "abbr": "PICU",
+                            "name": "9 \u2014 Pediatric ICU (PICU)",
+                            "type": "med_surg",
+                            "service_line": "pediatrics",
+                            "acuity": "pediatrics",
+                            "cad_code": "PICU9",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 20,
+                            "abbr": "NICU",
+                            "name": "9 \u2014 Neonatal ICU (NICU)",
+                            "type": "med_surg",
+                            "service_line": "neonatology",
+                            "acuity": "pediatrics",
+                            "cad_code": "NICU9",
+                            "facility_space_id": null,
+                            "staffed": 12,
+                            "occupied": 0,
+                            "available": 12,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 48,
+                    "occupied": 0,
+                    "available": 48,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 10,
+                    "label": "Floor 10",
+                    "units": [
+                        {
+                            "unit_id": 21,
+                            "abbr": "ONC",
+                            "name": "10 \u2014 Oncology / Hematology",
+                            "type": "med_surg",
+                            "service_line": "oncology",
+                            "acuity": "oncology",
+                            "cad_code": "ONC10",
+                            "facility_space_id": null,
+                            "staffed": 24,
+                            "occupied": 0,
+                            "available": 24,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        },
+                        {
+                            "unit_id": 22,
+                            "abbr": "BMT",
+                            "name": "10 \u2014 Bone Marrow Transplant / Cellular Therapy",
+                            "type": "med_surg",
+                            "service_line": "oncology",
+                            "acuity": "oncology",
+                            "cad_code": "BMT10",
+                            "facility_space_id": null,
+                            "staffed": 16,
+                            "occupied": 0,
+                            "available": 16,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 40,
+                    "occupied": 0,
+                    "available": 40,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                },
+                {
+                    "floor": 11,
+                    "label": "Floor 11",
+                    "units": [
+                        {
+                            "unit_id": 23,
+                            "abbr": "AIR",
+                            "name": "11 \u2014 Acute Inpatient Rehabilitation",
+                            "type": "med_surg",
+                            "service_line": "rehabilitation",
+                            "acuity": "rehab",
+                            "cad_code": "AIR11",
+                            "facility_space_id": null,
+                            "staffed": 20,
+                            "occupied": 0,
+                            "available": 20,
+                            "blocked": 0,
+                            "occupancy_pct": 0,
+                            "evs_open": 0,
+                            "transport_active": 0,
+                            "barriers_open": 0,
+                            "staffing_status": null
+                        }
+                    ],
+                    "staffed": 20,
+                    "occupied": 0,
+                    "available": 20,
+                    "blocked": 0,
+                    "occupancy_pct": 0,
+                    "evs_open": 0,
+                    "transport_active": 0,
+                    "barriers_open": 0
+                }
+            ]
+        },
+        "snapshots": [],
+        "events": [
+            {
+                "t": "2026-07-05T02:20:14+00:00",
+                "kind": "evs_status",
+                "entity": {
+                    "type": "evs",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_dcf6bf35b952bc96d48730ad",
+                "from_space": null,
+                "to_space": "MICU-01",
+                "unit_id": 1,
+                "label": "Turn queued",
+                "tier": "info",
+                "provenance": {
+                    "source": "prod.evs_events"
+                }
+            }
+        ],
+        "projections": [
+            {
+                "t": "2026-07-05T04:05:14+00:00",
+                "kind": "evs_due",
+                "confidence": "definite",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "evs",
+                    "ref": "1"
+                },
+                "patient_context_ref": "ptok_dcf6bf35b952bc96d48730ad",
+                "label": "Turn due \u00b7 MICU-01",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "evs_requests",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T11:00:00+00:00",
+                "kind": "expected_discharge",
+                "confidence": "definite",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "encounter",
+                    "ref": "1"
+                },
+                "patient_context_ref": null,
+                "label": "Expected discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": false,
+                "provenance": {
+                    "service": "rtdc_predictions \u00d7 encounter EDD",
+                    "reliability": null
+                }
+            },
+            {
+                "t": "2026-07-05T11:20:00+00:00",
+                "kind": "evs_due",
+                "confidence": "probable",
+                "unit_id": 1,
+                "bed_id": 1,
+                "room": null,
+                "entity": {
+                    "type": "bed",
+                    "ref": "1"
+                },
+                "patient_context_ref": null,
+                "label": "Bed turn after discharge",
+                "value": null,
+                "band": null,
+                "ends_at": null,
+                "derived": true,
+                "provenance": {
+                    "service": "derived \u00b7 expected_discharge",
+                    "reliability": null
+                }
+            }
+        ],
+        "duties": [],
+        "bed_statuses": [
+            {
+                "bed_id": 1,
+                "unit_id": 1,
+                "label": "MICU-01",
+                "status": "occupied"
+            },
+            {
+                "bed_id": 2,
+                "unit_id": 1,
+                "label": "MICU-02",
+                "status": "available"
+            },
+            {
+                "bed_id": 3,
+                "unit_id": 1,
+                "label": "MICU-03",
+                "status": "available"
+            },
+            {
+                "bed_id": 4,
+                "unit_id": 1,
+                "label": "MICU-04",
+                "status": "available"
+            },
+            {
+                "bed_id": 5,
+                "unit_id": 1,
+                "label": "MICU-05",
+                "status": "available"
+            },
+            {
+                "bed_id": 6,
+                "unit_id": 1,
+                "label": "MICU-06",
+                "status": "available"
+            },
+            {
+                "bed_id": 7,
+                "unit_id": 1,
+                "label": "MICU-07",
+                "status": "available"
+            },
+            {
+                "bed_id": 8,
+                "unit_id": 1,
+                "label": "MICU-08",
+                "status": "available"
+            },
+            {
+                "bed_id": 9,
+                "unit_id": 1,
+                "label": "MICU-09",
+                "status": "available"
+            },
+            {
+                "bed_id": 10,
+                "unit_id": 1,
+                "label": "MICU-10",
+                "status": "available"
+            },
+            {
+                "bed_id": 11,
+                "unit_id": 1,
+                "label": "MICU-11",
+                "status": "available"
+            },
+            {
+                "bed_id": 12,
+                "unit_id": 1,
+                "label": "MICU-12",
+                "status": "available"
+            },
+            {
+                "bed_id": 13,
+                "unit_id": 1,
+                "label": "MICU-13",
+                "status": "available"
+            },
+            {
+                "bed_id": 14,
+                "unit_id": 1,
+                "label": "MICU-14",
+                "status": "available"
+            },
+            {
+                "bed_id": 15,
+                "unit_id": 1,
+                "label": "MICU-15",
+                "status": "available"
+            },
+            {
+                "bed_id": 16,
+                "unit_id": 1,
+                "label": "MICU-16",
+                "status": "available"
+            },
+            {
+                "bed_id": 17,
+                "unit_id": 1,
+                "label": "MICU-17",
+                "status": "available"
+            },
+            {
+                "bed_id": 18,
+                "unit_id": 1,
+                "label": "MICU-18",
+                "status": "available"
+            },
+            {
+                "bed_id": 19,
+                "unit_id": 1,
+                "label": "MICU-19",
+                "status": "available"
+            },
+            {
+                "bed_id": 20,
+                "unit_id": 1,
+                "label": "MICU-20",
+                "status": "available"
+            },
+            {
+                "bed_id": 21,
+                "unit_id": 1,
+                "label": "MICU-21",
+                "status": "available"
+            },
+            {
+                "bed_id": 22,
+                "unit_id": 1,
+                "label": "MICU-22",
+                "status": "available"
+            },
+            {
+                "bed_id": 23,
+                "unit_id": 1,
+                "label": "MICU-23",
+                "status": "available"
+            },
+            {
+                "bed_id": 24,
+                "unit_id": 1,
+                "label": "MICU-24",
+                "status": "available"
+            },
+            {
+                "bed_id": 25,
+                "unit_id": 2,
+                "label": "SICU-01",
+                "status": "available"
+            },
+            {
+                "bed_id": 26,
+                "unit_id": 2,
+                "label": "SICU-02",
+                "status": "available"
+            },
+            {
+                "bed_id": 27,
+                "unit_id": 2,
+                "label": "SICU-03",
+                "status": "available"
+            },
+            {
+                "bed_id": 28,
+                "unit_id": 2,
+                "label": "SICU-04",
+                "status": "available"
+            },
+            {
+                "bed_id": 29,
+                "unit_id": 2,
+                "label": "SICU-05",
+                "status": "available"
+            },
+            {
+                "bed_id": 30,
+                "unit_id": 2,
+                "label": "SICU-06",
+                "status": "available"
+            },
+            {
+                "bed_id": 31,
+                "unit_id": 2,
+                "label": "SICU-07",
+                "status": "available"
+            },
+            {
+                "bed_id": 32,
+                "unit_id": 2,
+                "label": "SICU-08",
+                "status": "available"
+            },
+            {
+                "bed_id": 33,
+                "unit_id": 2,
+                "label": "SICU-09",
+                "status": "available"
+            },
+            {
+                "bed_id": 34,
+                "unit_id": 2,
+                "label": "SICU-10",
+                "status": "available"
+            },
+            {
+                "bed_id": 35,
+                "unit_id": 2,
+                "label": "SICU-11",
+                "status": "available"
+            },
+            {
+                "bed_id": 36,
+                "unit_id": 2,
+                "label": "SICU-12",
+                "status": "available"
+            },
+            {
+                "bed_id": 37,
+                "unit_id": 2,
+                "label": "SICU-13",
+                "status": "available"
+            },
+            {
+                "bed_id": 38,
+                "unit_id": 2,
+                "label": "SICU-14",
+                "status": "available"
+            },
+            {
+                "bed_id": 39,
+                "unit_id": 2,
+                "label": "SICU-15",
+                "status": "available"
+            },
+            {
+                "bed_id": 40,
+                "unit_id": 2,
+                "label": "SICU-16",
+                "status": "available"
+            },
+            {
+                "bed_id": 41,
+                "unit_id": 2,
+                "label": "SICU-17",
+                "status": "available"
+            },
+            {
+                "bed_id": 42,
+                "unit_id": 2,
+                "label": "SICU-18",
+                "status": "available"
+            },
+            {
+                "bed_id": 43,
+                "unit_id": 2,
+                "label": "SICU-19",
+                "status": "available"
+            },
+            {
+                "bed_id": 44,
+                "unit_id": 2,
+                "label": "SICU-20",
+                "status": "available"
+            },
+            {
+                "bed_id": 45,
+                "unit_id": 2,
+                "label": "SICU-21",
+                "status": "available"
+            },
+            {
+                "bed_id": 46,
+                "unit_id": 2,
+                "label": "SICU-22",
+                "status": "available"
+            },
+            {
+                "bed_id": 47,
+                "unit_id": 2,
+                "label": "SICU-23",
+                "status": "available"
+            },
+            {
+                "bed_id": 48,
+                "unit_id": 2,
+                "label": "SICU-24",
+                "status": "available"
+            },
+            {
+                "bed_id": 49,
+                "unit_id": 3,
+                "label": "NSICU-01",
+                "status": "available"
+            },
+            {
+                "bed_id": 50,
+                "unit_id": 3,
+                "label": "NSICU-02",
+                "status": "available"
+            },
+            {
+                "bed_id": 51,
+                "unit_id": 3,
+                "label": "NSICU-03",
+                "status": "available"
+            },
+            {
+                "bed_id": 52,
+                "unit_id": 3,
+                "label": "NSICU-04",
+                "status": "available"
+            },
+            {
+                "bed_id": 53,
+                "unit_id": 3,
+                "label": "NSICU-05",
+                "status": "available"
+            },
+            {
+                "bed_id": 54,
+                "unit_id": 3,
+                "label": "NSICU-06",
+                "status": "available"
+            },
+            {
+                "bed_id": 55,
+                "unit_id": 3,
+                "label": "NSICU-07",
+                "status": "available"
+            },
+            {
+                "bed_id": 56,
+                "unit_id": 3,
+                "label": "NSICU-08",
+                "status": "available"
+            },
+            {
+                "bed_id": 57,
+                "unit_id": 3,
+                "label": "NSICU-09",
+                "status": "available"
+            },
+            {
+                "bed_id": 58,
+                "unit_id": 3,
+                "label": "NSICU-10",
+                "status": "available"
+            },
+            {
+                "bed_id": 59,
+                "unit_id": 3,
+                "label": "NSICU-11",
+                "status": "available"
+            },
+            {
+                "bed_id": 60,
+                "unit_id": 3,
+                "label": "NSICU-12",
+                "status": "available"
+            },
+            {
+                "bed_id": 61,
+                "unit_id": 3,
+                "label": "NSICU-13",
+                "status": "available"
+            },
+            {
+                "bed_id": 62,
+                "unit_id": 3,
+                "label": "NSICU-14",
+                "status": "available"
+            },
+            {
+                "bed_id": 63,
+                "unit_id": 3,
+                "label": "NSICU-15",
+                "status": "available"
+            },
+            {
+                "bed_id": 64,
+                "unit_id": 3,
+                "label": "NSICU-16",
+                "status": "available"
+            },
+            {
+                "bed_id": 65,
+                "unit_id": 3,
+                "label": "NSICU-17",
+                "status": "available"
+            },
+            {
+                "bed_id": 66,
+                "unit_id": 3,
+                "label": "NSICU-18",
+                "status": "available"
+            },
+            {
+                "bed_id": 67,
+                "unit_id": 3,
+                "label": "NSICU-19",
+                "status": "available"
+            },
+            {
+                "bed_id": 68,
+                "unit_id": 3,
+                "label": "NSICU-20",
+                "status": "available"
+            },
+            {
+                "bed_id": 69,
+                "unit_id": 4,
+                "label": "CVICU-01",
+                "status": "available"
+            },
+            {
+                "bed_id": 70,
+                "unit_id": 4,
+                "label": "CVICU-02",
+                "status": "available"
+            },
+            {
+                "bed_id": 71,
+                "unit_id": 4,
+                "label": "CVICU-03",
+                "status": "available"
+            },
+            {
+                "bed_id": 72,
+                "unit_id": 4,
+                "label": "CVICU-04",
+                "status": "available"
+            },
+            {
+                "bed_id": 73,
+                "unit_id": 4,
+                "label": "CVICU-05",
+                "status": "available"
+            },
+            {
+                "bed_id": 74,
+                "unit_id": 4,
+                "label": "CVICU-06",
+                "status": "available"
+            },
+            {
+                "bed_id": 75,
+                "unit_id": 4,
+                "label": "CVICU-07",
+                "status": "available"
+            },
+            {
+                "bed_id": 76,
+                "unit_id": 4,
+                "label": "CVICU-08",
+                "status": "available"
+            },
+            {
+                "bed_id": 77,
+                "unit_id": 4,
+                "label": "CVICU-09",
+                "status": "available"
+            },
+            {
+                "bed_id": 78,
+                "unit_id": 4,
+                "label": "CVICU-10",
+                "status": "available"
+            },
+            {
+                "bed_id": 79,
+                "unit_id": 4,
+                "label": "CVICU-11",
+                "status": "available"
+            },
+            {
+                "bed_id": 80,
+                "unit_id": 4,
+                "label": "CVICU-12",
+                "status": "available"
+            },
+            {
+                "bed_id": 81,
+                "unit_id": 4,
+                "label": "CVICU-13",
+                "status": "available"
+            },
+            {
+                "bed_id": 82,
+                "unit_id": 4,
+                "label": "CVICU-14",
+                "status": "available"
+            },
+            {
+                "bed_id": 83,
+                "unit_id": 4,
+                "label": "CVICU-15",
+                "status": "available"
+            },
+            {
+                "bed_id": 84,
+                "unit_id": 4,
+                "label": "CVICU-16",
+                "status": "available"
+            },
+            {
+                "bed_id": 85,
+                "unit_id": 4,
+                "label": "CVICU-17",
+                "status": "available"
+            },
+            {
+                "bed_id": 86,
+                "unit_id": 4,
+                "label": "CVICU-18",
+                "status": "available"
+            },
+            {
+                "bed_id": 87,
+                "unit_id": 4,
+                "label": "CVICU-19",
+                "status": "available"
+            },
+            {
+                "bed_id": 88,
+                "unit_id": 4,
+                "label": "CVICU-20",
+                "status": "available"
+            },
+            {
+                "bed_id": 89,
+                "unit_id": 5,
+                "label": "BURN-01",
+                "status": "available"
+            },
+            {
+                "bed_id": 90,
+                "unit_id": 5,
+                "label": "BURN-02",
+                "status": "available"
+            },
+            {
+                "bed_id": 91,
+                "unit_id": 5,
+                "label": "BURN-03",
+                "status": "available"
+            },
+            {
+                "bed_id": 92,
+                "unit_id": 5,
+                "label": "BURN-04",
+                "status": "available"
+            },
+            {
+                "bed_id": 93,
+                "unit_id": 5,
+                "label": "BURN-05",
+                "status": "available"
+            },
+            {
+                "bed_id": 94,
+                "unit_id": 5,
+                "label": "BURN-06",
+                "status": "available"
+            },
+            {
+                "bed_id": 95,
+                "unit_id": 5,
+                "label": "BURN-07",
+                "status": "available"
+            },
+            {
+                "bed_id": 96,
+                "unit_id": 5,
+                "label": "BURN-08",
+                "status": "available"
+            }
+        ]
+    },
+    "meta": {
+        "as_of": "2026-07-05T03:05:15.400626Z",
+        "stale": false,
+        "version": null,
+        "count": 4
+    },
+    "links": {
+        "web": "http://localhost/rtdc/patient-flow-navigator?persona=evs&scope=floor%3A3&t=2026-07-05T03%3A05%3A15%2B00%3A00"
+    }
+}

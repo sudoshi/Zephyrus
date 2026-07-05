@@ -10,11 +10,15 @@ enum JobActivityController {
     private static let terminal: Set<String> = ["completed", "cancelled", "unable_to_complete"]
 
     static func sync(kind: String, id: Int, title: String, detail: String,
-                     isStat: Bool, statusRaw: String, statusLabel: String) {
+                     isStat: Bool, statusRaw: String, statusLabel: String,
+                     slaDeadline: Date? = nil) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
+        // Updates are app-driven: the worker's own lifecycle taps push each new ContentState
+        // locally — no APNs push token yet, so no server round-trip is involved here.
         let state = HBJobActivityAttributes.ContentState(
-            statusRaw: statusRaw, statusLabel: statusLabel, updatedAt: Date())
+            statusRaw: statusRaw, statusLabel: statusLabel, updatedAt: Date(),
+            slaDeadline: slaDeadline)
         let content = ActivityContent(state: state, staleDate: nil)
         let existing = Activity<HBJobActivityAttributes>.activities
             .first { $0.attributes.kind == kind && $0.attributes.jobId == id }
@@ -49,7 +53,8 @@ enum JobActivityController {
         guard ProcessInfo.processInfo.environment["HB_DEMO_LIVE_ACTIVITY"] == "1" else { return }
         sync(kind: "transport", id: 999_999, title: "STAT transport",
              detail: "ED Room 4 → CT Imaging", isStat: true,
-             statusRaw: "en_route", statusLabel: "En route")
+             statusRaw: "en_route", statusLabel: "En route",
+             slaDeadline: Date().addingTimeInterval(18 * 60))
     }
     #endif
 }
