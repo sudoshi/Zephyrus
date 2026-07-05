@@ -11,7 +11,9 @@ interface RoleOption {
 const ROLES: RoleOption[] = [
   { value: 'command', label: 'Command' },
   { value: 'executive', label: 'Executive' },
-  { value: 'service-line', label: 'Service Line', disabled: true },
+  // P8 WS-5: the reserved service-line persona is now live (ops-first emphasis;
+  // the concrete line is picked via the mount scope picker, ?scope=service_line:*).
+  { value: 'service-line', label: 'Service Line' },
 ];
 
 export function RoleSwitcher() {

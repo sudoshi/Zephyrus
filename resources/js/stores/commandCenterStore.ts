@@ -3,9 +3,12 @@ import { create } from 'zustand';
 
 export type CommandRole = 'command' | 'executive' | 'service-line';
 
-// Roles that actually re-level the surface today. 'service-line' is scoped but
-// not yet functional, so it is never restored from a URL or persisted.
-export const SELECTABLE_ROLES: CommandRole[] = ['command', 'executive'];
+// Roles that actually re-level the surface today. P8 WS-5 activated the reserved
+// 'service-line' persona: it is selectable, URL-synced via ?role=, and reads
+// ops-first (like command); the concrete service line is chosen via the mount
+// scope picker (?scope=service_line:*), keeping persona (emphasis) and scope
+// (data) orthogonal per the mount-profile model.
+export const SELECTABLE_ROLES: CommandRole[] = ['command', 'executive', 'service-line'];
 
 interface CommandCenterState {
   role: CommandRole;

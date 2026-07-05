@@ -34,6 +34,11 @@ export { CockpitOverview } from './CockpitOverview';
 export { DrillModal, type DrillModalProps } from './DrillModal';
 // P8 WS-2b — the mount-anywhere altitude face (unit / department / service line).
 export { ScopedFaceView, type ScopedFaceViewProps } from './ScopedFaceView';
+// P8 WS-5 — the mount scope picker + the wall-preset 1 Hz clock.
+export { ScopePicker, type ScopePickerProps } from './ScopePicker';
+export { WallClock, type WallClockProps } from './WallClock';
+// P8 WS-6b — the app-chrome-wide data-freshness banner.
+export { StaleDataBanner, type StaleDataBannerProps } from './StaleDataBanner';
 // P8 WS-3 — the A2P patient lens (in-place drill + render surface).
 export { PatientLens, type PatientLensProps } from './PatientLens';
 export { PatientLensModal, type PatientLensModalProps } from './PatientLensModal';

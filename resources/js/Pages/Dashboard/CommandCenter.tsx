@@ -34,6 +34,8 @@ import { CommandCenterView } from '@/Components/CommandCenter/CommandCenterView'
 import { CommandCenterError, relativeTimeFrom } from '@/Components/CommandCenter/states';
 import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { ScopedFaceView } from '@/Components/cockpit/ScopedFaceView';
+import { ScopePicker } from '@/Components/cockpit/ScopePicker';
+import { useIdleReset } from '@/features/cockpit/useIdleReset';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { PatientLensModal } from '@/Components/cockpit/PatientLensModal';
 import { ActionInboxModal } from '@/Components/cockpit/ActionInboxModal';
@@ -49,6 +51,11 @@ const STALE_MS = REFRESH_MS * 2.5;
 // One overdue refresh ⇒ "aging": a quiet amber cue before the loud stale banner.
 const AGING_MS = REFRESH_MS * 1.4;
 const TICK_MS = 15_000;
+// P8 WS-5 auto-timeout-to-glance: after this much inactivity a wall mount closes
+// any open drill/patient overlay and returns to its glance (the CMIO PHI
+// mitigation for an always-on screen). Keeps the mount's ?scope — a unit wall
+// returns to its unit face, not the house.
+const WALL_IDLE_MS = 120_000;
 
 function urlParam(name: string): string | null {
   if (typeof window === 'undefined') return null;
@@ -148,6 +155,18 @@ export default function CommandCenter({
     return () => clearInterval(id);
   }, []);
 
+  // P8 WS-5 auto-timeout-to-glance: on a wall mount, inactivity walks any open
+  // drill/patient overlay back to the mount's glance (scope preserved). No-op off
+  // the wall — a staffed desk keeps whatever it drilled into.
+  useIdleReset({
+    enabled: wall,
+    timeoutMs: WALL_IDLE_MS,
+    onIdle: () => {
+      handleDrillChange(null);
+      handlePatientChange(null);
+    },
+  });
+
   const handleRefresh = useCallback(() => {
     void query.refetch();
   }, [query]);
@@ -194,7 +213,7 @@ export default function CommandCenter({
   const refreshing = query.isFetching;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout wall={wall}>
       <Head title="Operations Command Center · Zephyrus" />
       {/* P4a: the RoleSwitcher moved to persistent app chrome (TopNavbar) —
           it is no longer page-local header content. */}
@@ -203,6 +222,14 @@ export default function CommandCenter({
         subtitle="House-wide demand, capacity, flow & forecast"
         headerContent={null}
       >
+        {/* P8 WS-5: the mount scope picker — switch altitude (house / unit /
+            department / service line) from any mount. Hidden on a wall preset
+            (a wall is pinned to its configured scope). */}
+        {cockpitActive && !wall && (
+          <div className="mb-3 flex items-center gap-2">
+            <ScopePicker activeToken={scopeToken} />
+          </div>
+        )}
         {cockpitActive ? (
           <ErrorBoundary
             fallback={(error?: Error) => (
