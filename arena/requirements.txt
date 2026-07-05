@@ -1,0 +1,14 @@
+# Zephyrus Patient-Flow Arena — OCPM sidecar (Part X, X1).
+# Core runtime:
+fastapi==0.136.*
+uvicorn[standard]==0.34.*
+pydantic==2.*
+pydantic-settings==2.*
+
+# Object-centric process mining engine. pm4py pulls pandas/numpy/networkx.
+# Pin the OCEL 2.0-capable line; treat the relational/JSON store as the contract
+# and pm4py as replaceable (§X.2 'standard drift' mitigation).
+pm4py>=2.7,<3
+
+# Test-only (not imported at runtime):
+# pytest>=8

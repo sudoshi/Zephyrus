@@ -94,6 +94,26 @@ services:
     profiles: [eddy]
     restart: unless-stopped
 
+  # Patient-Flow Arena — OCPM sidecar (Part X; opt-in via `--profile arena`).
+  # Laravel reaches it at http://arena:8100. Stateless, read-only, PHI-free: it
+  # reads the de-identified OCEL 2.0 export (storage/app/ocel, mounted read-only)
+  # and returns canon-shaped discovery JSON. Ships behind ARENA_ENABLED.
+  arena:
+    build:
+      context: .
+      dockerfile: docker/arena/Dockerfile
+    container_name: zephyrus-arena
+    env_file: [.env]
+    environment:
+      ARENA_PORT: 8100
+      ARENA_OCEL_EXPORT_PATH: /data/ocel/ocel-export.json
+    ports: ["${ARENA_PORT:-8110}:8100"]
+    volumes:
+      - ./storage/app/ocel:/data/ocel:ro
+    networks: [zephyrus]
+    profiles: [arena]
+    restart: unless-stopped
+
 networks:
   zephyrus:
     driver: bridge
