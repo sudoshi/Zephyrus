@@ -33,6 +33,14 @@ class DatabaseSeeder extends Seeder
             // creates them.)
             CommandCenterDemoSeeder::class,
             ImprovementDemoSeeder::class,
+            // ClinicalPathwaySeeder synthesises per-encounter clinical trajectories
+            // (sepsis bundle, acute-ischemic-stroke pathway) into flow_core.flow_events
+            // and the WHO surgical-safety checklist / OR phase timeline into
+            // prod.case_timings + care_journey_milestones + case_safety_notes — the
+            // conformance data the operational store does not capture (Part X / X.7).
+            // Runs AFTER CommandCenterDemoSeeder because surgical safety attaches to
+            // its seeded prod.or_cases. Idempotent (tag/cohort delete-then-insert).
+            ClinicalPathwaySeeder::class,
             // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
             // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
             // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.
