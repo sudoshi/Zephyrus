@@ -41,6 +41,11 @@ class EddyActionService
         // so it routes ONLY the sepsis-bundle conformance metric — never the
         // other quality.* alerts (which keep their flag_barrier fallback).
         'flag_pathway_deviation' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Flag a care-pathway conformance deviation', 'recommendation_type' => 'eddy_pathway_deviation', 'alert_key' => 'quality.sepsis_conformance'],
+        // Part X (X4): the governed AI copilot's two draft types. alert_key is null
+        // on BOTH so actionForAlert() never auto-selects them (they are copilot-
+        // invoked only) — X3's alert→action routing is unchanged, purely additive.
+        'propose_pdsa_cycle' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Draft a PDSA improvement cycle', 'recommendation_type' => 'eddy_pdsa_cycle', 'alert_key' => null],
+        'propose_pathway_correction' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Draft a care-pathway correction', 'recommendation_type' => 'eddy_pathway_correction', 'alert_key' => null],
     ];
 
     /**

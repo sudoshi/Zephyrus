@@ -108,8 +108,96 @@ export const arenaPerformanceResponseSchema = z.union([
   z.object({ available: z.literal(false), reason: z.string() }),
 ]);
 
+// --- X4 governed AI copilot ---
+
+export const arenaNarrativeFactSchema = z.object({
+  claim: z.string(),
+  source: z.string(),
+  value: z.string(),
+});
+
+export const arenaNarrativeResponseSchema = z.union([
+  z.object({
+    available: z.literal(true),
+    narrative: z.string(),
+    provenance: z.array(arenaNarrativeFactSchema),
+    ai_polished: z.boolean(),
+    generated_label: z.string(),
+  }),
+  z.object({ available: z.literal(false), reason: z.string() }),
+]);
+
+export const arenaQuerySuggestionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+});
+
+export const arenaQueryResponseSchema = z.union([
+  z.object({
+    available: z.literal(true),
+    matched: z.boolean(),
+    question: z.string().optional(),
+    routed_by: z.string().optional(),
+    query_id: z.string().optional(),
+    label: z.string().optional(),
+    columns: z.array(z.string()).optional(),
+    rows: z.array(z.record(z.string(), z.unknown())).optional(),
+    params: z.record(z.string(), z.unknown()).optional(),
+    provenance: z.string().optional(),
+    message: z.string().optional(),
+    suggestions: z.array(arenaQuerySuggestionSchema).optional(),
+  }),
+  z.object({ available: z.literal(false), reason: z.string() }),
+]);
+
+export const arenaFitnessEdgeSchema = z.object({
+  object_type: z.string(),
+  source: z.string(),
+  target: z.string(),
+  frequency: z.number().optional(),
+});
+
+export const arenaAuthorMapResponseSchema = z.union([
+  z.object({
+    available: z.literal(true),
+    published: z.boolean(),
+    fitness: z.number(),
+    precision: z.number(),
+    fitness_floor: z.number(),
+    reason: z.string().nullable().optional(),
+    generated_label: z.string(),
+    invented_edges: z.array(arenaFitnessEdgeSchema).optional(),
+    missing_edges: z.array(arenaFitnessEdgeSchema).optional(),
+  }),
+  z.object({ available: z.literal(false), reason: z.string() }),
+]);
+
+export const arenaDraftActionSchema = z.object({
+  action_uuid: z.string(),
+  action_type: z.string(),
+  tier: z.string().optional(),
+  risk: z.string().optional(),
+  title: z.string().optional(),
+  status: z.string(),
+  approved: z.boolean(),
+  approval_uuid: z.string().optional(),
+});
+
+export const arenaDraftResponseSchema = z.object({
+  available: z.boolean(),
+  drafted: z.boolean().optional(),
+  reason: z.string().optional(),
+  action: arenaDraftActionSchema.optional(),
+  pdsa: z.record(z.string(), z.string()).optional(),
+});
+
 export type ArenaHandoff = z.infer<typeof arenaHandoffSchema>;
 export type ArenaSyncWait = z.infer<typeof arenaSyncWaitSchema>;
+export type ArenaNarrativeResponse = z.infer<typeof arenaNarrativeResponseSchema>;
+export type ArenaQueryResponse = z.infer<typeof arenaQueryResponseSchema>;
+export type ArenaAuthorMapResponse = z.infer<typeof arenaAuthorMapResponseSchema>;
+export type ArenaDraftResponse = z.infer<typeof arenaDraftResponseSchema>;
 export type ArenaNode = z.infer<typeof arenaNodeSchema>;
 export type ArenaEdge = z.infer<typeof arenaEdgeSchema>;
 export type ArenaOcdfg = z.infer<typeof arenaOcdfgSchema>;

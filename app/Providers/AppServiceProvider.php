@@ -24,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
             \App\Rtdc\Optimizer\HeuristicBedAssignmentOptimizer::class,
         );
 
+        // Part X (X4) — the Arena copilot's LLM seam. Bound to the Eddy-proxy driver,
+        // which is inert (isLive()=false, generate()=null) unless BOTH EDDY_ENABLED
+        // and ARENA_AI_ENABLED are on — so the copilot runs fully deterministic by
+        // default and in tests, with the LLM as a pure enhancement when switched on.
+        $this->app->bind(
+            \App\Domain\Arena\Copilot\CopilotLlm::class,
+            \App\Domain\Arena\Copilot\EddyProxyCopilotLlm::class,
+        );
+
         $this->app->singleton(OidcProviderConfig::class);
 
         $this->app->bind(OidcDiscoveryService::class, fn ($app) => new OidcDiscoveryService(

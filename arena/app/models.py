@@ -120,3 +120,42 @@ class PathwayConformance(BaseModel):
     conformance_rate: float | None
     deviations: list[DeviationCount]
     sample_deviant_cases: list[SampleDeviantCase]
+
+
+# --- X4 governed AI copilot: the conformance-fitness trust gate (§X.8.2) ---
+
+
+class ProposedEdge(BaseModel):
+    """One arc of a copilot-proposed object-centric DFG (same shape as Edge, minus
+    the frequency the AI cannot know)."""
+
+    object_type: str
+    source: str
+    target: str
+
+
+class ModelFitnessRequest(OcelSource):
+    proposed_edges: list[ProposedEdge] = Field(default_factory=list, description="the copilot-proposed OC-DFG arcs to conformance-check")
+    fitness_floor: float | None = Field(default=None, ge=0.0, le=1.0, description="override the publish threshold (default: sidecar arena_ai_fitness_floor)")
+
+
+class FitnessEvidenceEdge(BaseModel):
+    object_type: str
+    source: str
+    target: str
+    frequency: int | None = None
+
+
+class ModelFitnessResponse(BaseModel):
+    fitness: float                       # frequency-weighted recall of real behavior [0,1]
+    precision: float                     # share of the proposed model grounded in the log [0,1]
+    published: bool                      # fitness >= floor AND the model is non-empty over real behavior
+    fitness_floor: float
+    object_types: list[str]
+    covered_freq: int
+    total_real_freq: int
+    proposed_edges: int
+    grounded_edges: int
+    invented_edges: list[FitnessEvidenceEdge]  # proposed arcs the log never exhibits
+    missing_edges: list[FitnessEvidenceEdge]    # busy real arcs the model omits (top by frequency)
+    reason: str | None = None            # why withheld: empty_model | no_reference_behavior | below_fitness_floor

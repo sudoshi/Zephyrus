@@ -45,3 +45,32 @@ export async function fetchArenaPerformance(types?: string[], top?: number): Pro
   });
   return res.data;
 }
+
+// --- X4 governed AI copilot (routes 404 unless ARENA_AI_ENABLED) ---
+
+export async function fetchArenaNarrative(): Promise<unknown> {
+  const res = await axios.get('/api/arena/copilot/narrative');
+  return res.data;
+}
+
+export async function postArenaQuery(question: string): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/query', { question });
+  return res.data;
+}
+
+export async function postArenaAuthorMap(types?: string[]): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/author-map', {
+    types: types && types.length > 0 ? types.join(',') : undefined,
+  });
+  return res.data;
+}
+
+export async function postArenaDraftPdsa(focus: string): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/draft-pdsa', { focus });
+  return res.data;
+}
+
+export async function postArenaDraftCorrection(pathway: string): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/draft-correction', { pathway });
+  return res.data;
+}

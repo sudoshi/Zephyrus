@@ -6,9 +6,11 @@
 // parsed with the Zod schema at this boundary; every failure degrades to an
 // in-place card, never a white screen.
 import { useMemo, useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import type { PageProps } from '@/types';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import { ConformancePane } from '@/Components/arena/ConformancePane';
+import { CopilotPane } from '@/Components/arena/CopilotPane';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
 import { PerformancePane } from '@/Components/arena/PerformancePane';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
@@ -48,6 +50,7 @@ function InfoCard({ title, body }: { title: string; body: string }) {
 }
 
 export default function Arena() {
+  const aiEnabled = usePage<PageProps>().props.arena?.ai_enabled ?? false;
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [minFreq, setMinFreq] = useState<number>(3);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -314,6 +317,23 @@ export default function Arena() {
             </div>
           )}
         </div>
+
+        {/* Copilot pane (X4) — governed AI author, only when ARENA_AI_ENABLED */}
+        {aiEnabled && (
+          <div className="space-y-3 pt-2">
+            <div>
+              <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                AI copilot
+              </h2>
+              <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                The copilot narrates the process, answers allow-listed questions, authors maps validated against the data,
+                and drafts PDSA cycles and pathway corrections — every one of which a human approves through the Eddy gate.
+                It proposes; it never enacts.
+              </p>
+            </div>
+            <CopilotPane />
+          </div>
+        )}
 
         {/* Conformance pane (X3) — patient safety as conformance */}
         <div className="space-y-3 pt-2">

@@ -117,3 +117,33 @@ jobs:
 
       - name: Vite production build
         run: npx vite build
+
+  # ---------------------------------------------------------------------------
+  # Arena sidecar — OCPM pytest incl. the Part X (X4) PM-LLM-Benchmark copilot
+  # eval harness (model-discovery quality via conformance-fitness). §X.8.4: a
+  # copilot release that regresses model fitness does not ship.
+  # ---------------------------------------------------------------------------
+  arena:
+    name: Arena sidecar (pytest / pm4py)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: arena/requirements.txt
+
+      - name: Install dependencies
+        working-directory: arena
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Run OCPM + copilot eval tests
+        working-directory: arena
+        run: python -m pytest tests -q

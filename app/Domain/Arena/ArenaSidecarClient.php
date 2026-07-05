@@ -107,6 +107,26 @@ class ArenaSidecarClient
     }
 
     /**
+     * Part X (X4) — conformance-fitness of a copilot-proposed object-centric model
+     * (a list of {object_type, source, target} arcs) against the OCEL log. Returns
+     * the fitness/precision verdict the orchestrator uses to withhold a bad map, or
+     * null if the copilot sidecar endpoint is off/unreachable.
+     *
+     * @param  array<string, mixed>  $ocel
+     * @param  array<int, array{object_type:string, source:string, target:string}>  $proposedEdges
+     * @return array<string, mixed>|null
+     */
+    public function modelFitness(array $ocel, array $proposedEdges, ?float $fitnessFloor = null): ?array
+    {
+        $body = ['ocel' => $ocel, 'proposed_edges' => array_values($proposedEdges)];
+        if ($fitnessFloor !== null) {
+            $body['fitness_floor'] = $fitnessFloor;
+        }
+
+        return $this->post('/copilot/model-fitness', $body);
+    }
+
+    /**
      * @param  array<string, mixed>  $body
      * @return array<mixed>|null
      */

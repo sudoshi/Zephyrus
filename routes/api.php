@@ -125,6 +125,17 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
         Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
         Route::get('/performance', [\App\Http\Controllers\Api\ArenaController::class, 'performance']);
         Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);
+
+        // Part X (X4) — the governed AI copilot. Nested behind EnsureArenaAiEnabled
+        // (ARENA_AI_ENABLED), so these 404 unless BOTH the Arena and its AI author
+        // are on. Draft endpoints only ever land pending on the Eddy plane.
+        Route::middleware(\App\Http\Middleware\EnsureArenaAiEnabled::class)->prefix('copilot')->group(function () {
+            Route::get('/narrative', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'narrative']);
+            Route::post('/query', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'query']);
+            Route::post('/author-map', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'authorMap']);
+            Route::post('/draft-pdsa', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'draftPdsa']);
+            Route::post('/draft-correction', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'draftCorrection']);
+        });
     });
 
 // Facility blueprint/digital twin model (web session auth)

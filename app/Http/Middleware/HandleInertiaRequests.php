@@ -43,6 +43,11 @@ class HandleInertiaRequests extends Middleware
             'eddy' => [
                 'enabled' => (bool) config('services.eddy.enabled'),
             ],
+            // Part X (X4): the Arena's governed AI copilot ships disabled — the
+            // copilot pane only mounts when this is true (independent of ARENA_ENABLED).
+            'arena' => [
+                'ai_enabled' => (bool) config('services.arena.ai_enabled'),
+            ],
             'workflow' => $request->session()->get('workflow'),
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

@@ -19,6 +19,9 @@ export interface PageProps {
   eddy?: {
     enabled: boolean;
   };
+  arena?: {
+    ai_enabled: boolean;
+  };
   flash?: {
     message?: string;
     error?: string;

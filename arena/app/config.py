@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     # hand-off, and excluded from the duration/synchronization stats.
     arena_max_handoff_hours: int = 72
 
+    # --- X4 governed AI copilot ---
+    # Mirrors the Laravel ARENA_AI_ENABLED flag. The sidecar's copilot endpoint (the
+    # pm4py conformance-fitness gate for a copilot-proposed map) 404s when off,
+    # independent of arena_enabled. arena_ai_fitness_floor is the minimum DFG-fitness
+    # a proposed model must clear to be publishable — below it, the map is withheld.
+    arena_ai_enabled: bool = False
+    arena_ai_fitness_floor: float = 0.80
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

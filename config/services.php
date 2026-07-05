@@ -77,6 +77,13 @@ return [
         'url' => env('ARENA_BASE_URL', 'http://arena:8100'),
         'timeout' => (int) env('ARENA_TIMEOUT_SECONDS', 60),
         'cache_ttl' => (int) env('ARENA_CACHE_TTL_SECONDS', 900), // discovered-map cache lifetime
+
+        // Part X (X4) — the governed AI copilot. Independent of ARENA_ENABLED so the
+        // deterministic discovery/analytics can run with the AI author switched
+        // entirely off (the conservative default). The copilot holds ops:draft and
+        // never ops:approve; every generated map below the fitness floor is withheld.
+        'ai_enabled' => filter_var(env('ARENA_AI_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'ai_fitness_floor' => (float) env('ARENA_AI_FITNESS_FLOOR', 0.80), // withhold a proposed map below this DFG-fitness
     ],
 
 ];
