@@ -54,6 +54,20 @@ class MaterializedMetricsReader
             }
         }
 
+        // Part X (X3): union the Arena's cached care-pathway conformance rates
+        // (arena.conformance_signals, written by RefreshArenaConformance) so they
+        // band through the same StatusEngine as every other cockpit metric. Empty
+        // when the Arena is off — the conformance tiles simply don't appear.
+        try {
+            foreach (DB::table('arena.conformance_signals')->get(['metric_key', 'value']) as $row) {
+                if ($row->value !== null) {
+                    $map[$row->metric_key] = (float) $row->value;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('cockpit.mv.read_failed', ['view' => 'arena.conformance_signals', 'error' => $e->getMessage()]);
+        }
+
         return $this->cache = $map;
     }
 }

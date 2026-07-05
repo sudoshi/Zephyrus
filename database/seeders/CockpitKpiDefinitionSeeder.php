@@ -142,6 +142,15 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'quality.mrsa' => $this->kpi('MRSA MTD', 'MRSA bacteremia, month to date.', '', 'down', 0, 2, 4, 1800),
             'quality.vap' => $this->kpi('VAP MTD', 'Ventilator-associated pneumonia, month to date.', '', 'down', 0, 2, 4, 1800),
             'quality.hapi' => $this->kpi('HAPI 3+ MTD', 'Hospital-acquired pressure injuries, stage 3+, month to date.', '', 'down', 0, 1, 2, 1800),
+            // Part X (X3): object-centric care-pathway conformance mined from the
+            // OCEL log (Arena). An OBSERVED adherence rate, so it earns colour;
+            // the alert_template lets a crit deviation ride the AlertEngine ticker
+            // into the EddyDock (→ flag_pathway_deviation). Only present when the
+            // Arena is enabled + the sidecar has reported.
+            'quality.sepsis_conformance' => $this->kpi('Sepsis bundle conformance', 'SEP-3 bundle adherence discovered object-centrically from the OCEL log (Part X §X.7).', '%', 'up', 90, 85, 70, 900,
+                'Sepsis bundle conformance {display} — observed pathway deviations', null, 90),
+            'quality.surgical_safety_conformance' => $this->kpi('WHO checklist conformance', 'WHO Surgical Safety Checklist adherence discovered from the OCEL log (Part X §X.7).', '%', 'up', 98, 90, 80, 900,
+                'Surgical safety checklist conformance {display}', null, 98),
 
             // ---------------- Service lines (spec §2.8) — refresh 3600s -----
             // oe_los / readmit / avoidable_days match the legacy outcomes band.

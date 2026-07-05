@@ -20,6 +20,9 @@ class QualityMetrics extends BaseMetrics
         'quality.falls_rate', 'quality.rapid_response', 'quality.med_rec',
         'quality.clabsi', 'quality.cauti', 'quality.cdiff', 'quality.ssi',
         'quality.mrsa', 'quality.vap', 'quality.hapi',
+        // Part X (X3): object-centric care-pathway conformance, mined from the
+        // OCEL log and cached in arena.conformance_signals (Arena-off = absent).
+        'quality.sepsis_conformance', 'quality.surgical_safety_conformance',
     ];
 
     public function __construct(

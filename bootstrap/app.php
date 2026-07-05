@@ -55,5 +55,10 @@ return $builder
         // Nightly full reconcile: re-project the trailing window and diff
         // projected counts against prod.*/flow_core.* source counts (§X.3.3).
         $schedule->command('ocel:project --days=90 --reconcile')->dailyAt('02:30');
+        // Zephyrus 2.0 Part X (X3): recompute care-pathway conformance on its own
+        // cadence and cache the rate for the cockpit. ARENA_ENABLED-gated (no-op
+        // when off). Off the per-minute snapshot path — the heavy sidecar call
+        // never blocks the wall.
+        $schedule->job(new \App\Jobs\RefreshArenaConformance)->everyThirtyMinutes()->withoutOverlapping();
     })
     ->create();

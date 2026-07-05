@@ -36,6 +36,11 @@ class EddyActionService
         'propose_transport_dispatch' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose a transport dispatch', 'recommendation_type' => 'eddy_transport', 'alert_key' => 'flow.'],
         'propose_bed_placement' => ['tier' => 'T3', 'risk' => 'high', 'label' => 'Propose a bed placement', 'recommendation_type' => 'eddy_bed_placement', 'alert_key' => 'rtdc.'],
         'propose_surge_plan' => ['tier' => 'T3', 'risk' => 'critical', 'label' => 'Propose a surge / red-stretch plan', 'recommendation_type' => 'eddy_surge', 'alert_key' => 'ed.'],
+        // Part X (X3): a crit care-pathway conformance deviation (from the Arena)
+        // drafts a governed correction through the human gate. Full-key alert_key
+        // so it routes ONLY the sepsis-bundle conformance metric — never the
+        // other quality.* alerts (which keep their flag_barrier fallback).
+        'flag_pathway_deviation' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Flag a care-pathway conformance deviation', 'recommendation_type' => 'eddy_pathway_deviation', 'alert_key' => 'quality.sepsis_conformance'],
     ];
 
     /**
