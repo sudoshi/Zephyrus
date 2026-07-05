@@ -192,6 +192,80 @@ class EmissionMapTest extends TestCase
         $this->assertStringNotContainsString('MRN-123', EmissionMap::hashRef('MRN-123'));
     }
 
+    public function test_placement_records_bed_status_occupied_change(): void
+    {
+        $e = EmissionMap::forFlowEvent($this->flowRow([
+            'event_type' => 'admit',
+            'metadata' => [],
+            'to_source_location_code' => '3East',
+            'bed' => '7',
+        ]));
+
+        $this->assertCount(1, $e->changes);
+        $this->assertSame('bed-3east-7', $e->changes[0]['object_id']);
+        $this->assertSame('status', $e->changes[0]['attr']);
+        $this->assertSame('occupied', $e->changes[0]['value']);
+    }
+
+    public function test_discharge_vacates_the_bed(): void
+    {
+        $e = EmissionMap::forFlowEvent($this->flowRow([
+            'event_type' => 'discharge',
+            'metadata' => [],
+            'to_source_location_code' => '3East',
+            'bed' => '7',
+        ]));
+
+        $this->assertSame('vacated', $e->changes[0]['value']);
+    }
+
+    public function test_non_placement_activity_records_no_bed_change(): void
+    {
+        // A medication event that happens to carry a bed must NOT move bed status.
+        $e = EmissionMap::forFlowEvent($this->flowRow([
+            'event_type' => 'medication',
+            'to_source_location_code' => '3East',
+            'bed' => '7',
+        ]));
+
+        $this->assertSame([], $e->changes);
+    }
+
+    public function test_case_timing_emits_phase_event_with_object_changes(): void
+    {
+        $row = (object) [
+            'timing_id' => 5501,
+            'case_id' => 4242,
+            'phase' => 'Procedure',
+            'planned_start' => '2026-06-30T07:30:00-04:00',
+            'actual_start' => '2026-06-30T07:37:00-04:00',
+            'planned_duration' => 212,
+            'actual_duration' => 212,
+            'variance' => 0,
+            'room_id' => 9,
+        ];
+
+        $e = EmissionMap::forCaseTiming($row);
+        $this->assertSame('Procedure', $e->activity);
+        $this->assertSame('ct-5501', $e->id);
+        $this->assertSame('orcase-4242', $this->objectByType($e, 'OR Case')['id']);
+        $this->assertSame('orsuite-9', $this->objectByType($e, 'OR Suite')['id']);
+
+        $byObject = [];
+        foreach ($e->changes as $c) {
+            $byObject[$c['object_id']] = $c;
+        }
+        $this->assertSame('Procedure', $byObject['orcase-4242']['value'], 'OR Case phase change');
+        $this->assertSame('phase', $byObject['orcase-4242']['attr']);
+        $this->assertSame('running', $byObject['orsuite-9']['value'], 'OR Suite status while a Procedure runs');
+    }
+
+    public function test_case_timing_without_any_start_is_skipped(): void
+    {
+        $row = (object) ['timing_id' => 1, 'case_id' => 2, 'phase' => 'Recovery', 'planned_start' => null, 'actual_start' => null, 'room_id' => 3];
+        $this->assertNull(EmissionMap::forCaseTiming($row));
+    }
+
     /** @return array{id: string, type: string, qualifier: string, attrs?: array} */
     private function objectByType(EmittedEvent $e, string $type): array
     {

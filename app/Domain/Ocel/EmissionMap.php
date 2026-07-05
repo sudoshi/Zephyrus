@@ -84,7 +84,15 @@ final class EmissionMap
 
         $bedId = null;
         if (! empty($row->bed)) {
-            $bedId = 'bed-'.self::slug(($unitCode ?? 'x').'-'.$row->bed);
+            // Qualify a bare bed label with its unit, but don't re-prefix a bed
+            // whose code already carries the unit (real feeds hand back the
+            // fully-qualified code in both columns).
+            $bedKey = self::slug($row->bed);
+            $unitSlug = $unitCode ? self::slug($unitCode) : null;
+            if ($unitSlug && $bedKey !== '' && ! str_starts_with($bedKey, $unitSlug)) {
+                $bedKey = $unitSlug.'-'.$bedKey;
+            }
+            $bedId = 'bed-'.($bedKey !== '' ? $bedKey : 'x');
             $objects[] = ['id' => $bedId, 'type' => 'Bed', 'qualifier' => 'resource'];
         }
 
@@ -97,6 +105,20 @@ final class EmissionMap
         }
         if ($bedId && $unitId) {
             $o2o[] = ['from' => $bedId, 'to' => $unitId, 'qualifier' => 'in'];
+        }
+
+        // Time-varying Bed status — the raw material for bed-turnaround analytics
+        // (§X.2.1 / §X.6). A placement occupies the bed; a discharge vacates it.
+        $changes = [];
+        if ($bedId) {
+            $bedStatus = match (true) {
+                in_array($activity, ['admit', 'transfer', 'place', 'register', 'assign-bed'], true) => 'occupied',
+                $activity === 'discharge' => 'vacated',
+                default => null,
+            };
+            if ($bedStatus !== null) {
+                $changes[] = ['object_id' => $bedId, 'attr' => 'status', 'value' => $bedStatus, 'at' => Carbon::parse($row->occurred_at)];
+            }
         }
 
         $attrs = array_filter([
@@ -128,6 +150,7 @@ final class EmissionMap
             objects: $objects,
             o2o: $o2o,
             attrs: $attrs,
+            changes: $changes,
         );
     }
 
@@ -191,6 +214,60 @@ final class EmissionMap
             objects: $objects,
             o2o: $o2o,
             attrs: $attrs,
+        );
+    }
+
+    /**
+     * prod.case_timings (joined to prod.or_cases) → one OCEL event per OR phase
+     * (Pre_Procedure → Procedure → Recovery → Room_Turnover), recording the
+     * TIME-VARYING OR Case phase and OR Suite status as object_changes — the raw
+     * material for PACU pooling / turnover analytics (§X.6). Binds each phase to
+     * its OR Case (subject) and OR Suite (resource).
+     *
+     * @param  object  $row  a case_timings row LEFT JOINed to its or_case
+     */
+    public static function forCaseTiming(object $row): ?EmittedEvent
+    {
+        $when = $row->actual_start ?? $row->planned_start ?? null;
+        if (empty($when) || empty($row->timing_id) || empty($row->phase)) {
+            return null;
+        }
+
+        $at = Carbon::parse($when);
+        $caseId = 'orcase-'.$row->case_id;
+        $objects = [['id' => $caseId, 'type' => 'OR Case', 'qualifier' => 'subject']];
+        $o2o = [];
+        $changes = [['object_id' => $caseId, 'attr' => 'phase', 'value' => $row->phase, 'at' => $at]];
+
+        if (! empty($row->room_id)) {
+            $suiteId = 'orsuite-'.$row->room_id;
+            $objects[] = ['id' => $suiteId, 'type' => 'OR Suite', 'qualifier' => 'resource'];
+            $o2o[] = ['from' => $caseId, 'to' => $suiteId, 'qualifier' => 'in'];
+            $suiteStatus = match ($row->phase) {
+                'Procedure' => 'running',
+                'Room_Turnover' => 'turnover',
+                default => 'occupied',
+            };
+            $changes[] = ['object_id' => $suiteId, 'attr' => 'status', 'value' => $suiteStatus, 'at' => $at];
+        }
+
+        $attrs = array_filter([
+            'phase' => $row->phase,
+            'planned_duration' => isset($row->planned_duration) ? (int) $row->planned_duration : null,
+            'actual_duration' => isset($row->actual_duration) ? (int) $row->actual_duration : null,
+            'variance' => isset($row->variance) ? (int) $row->variance : null,
+        ], fn ($v) => $v !== null);
+
+        return new EmittedEvent(
+            id: 'ct-'.$row->timing_id,
+            activity: (string) $row->phase,
+            timestamp: $at,
+            sourceSystem: 'prod.case_timings',
+            sourceRef: (string) $row->timing_id,
+            objects: $objects,
+            o2o: $o2o,
+            attrs: $attrs,
+            changes: $changes,
         );
     }
 

@@ -103,6 +103,12 @@ final class OcelCatalog
             'H&P' => 'periop',
             'Labs' => 'periop',
             'Transport' => 'periop',
+            // OR phase timeline (prod.case_timings) — carries OR Case phase +
+            // OR Suite status as time-varying object_changes.
+            'Pre_Procedure' => 'periop',
+            'Procedure' => 'periop',
+            'Recovery' => 'periop',
+            'Room_Turnover' => 'periop',
             // Transport
             'transport-request' => 'transport',
             'transport-pickup' => 'transport',

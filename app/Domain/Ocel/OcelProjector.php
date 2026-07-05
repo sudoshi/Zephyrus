@@ -53,6 +53,7 @@ class OcelProjector
         $sourceRows = [
             'flow_core.flow_events' => $this->collectFlowEvents($since, $until),
             'prod.care_journey_milestones' => $this->collectMilestones($since, $until),
+            'prod.case_timings' => $this->collectCaseTimings($since, $until),
             'prod.transport_requests' => $this->collectTransport($since, $until),
         ];
 
@@ -82,7 +83,7 @@ class OcelProjector
         $until ??= Carbon::now();
 
         $out = [];
-        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.transport_requests'] as $src) {
+        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.case_timings', 'prod.transport_requests'] as $src) {
             $projected = (int) DB::table('ocel.events')->where('source_system', $src)->count();
             $distinct = (int) DB::table('ocel.events')->where('source_system', $src)->distinct('source_ref')->count('source_ref');
             $out[] = [
@@ -140,6 +141,29 @@ class OcelProjector
         return $n;
     }
 
+    private function collectCaseTimings(CarbonInterface $since, CarbonInterface $until): int
+    {
+        $n = 0;
+        DB::table('prod.case_timings as t')
+            ->leftJoin('prod.or_cases as c', 'c.case_id', '=', 't.case_id')
+            ->whereRaw('COALESCE(t.actual_start, t.planned_start) BETWEEN ? AND ?', [$since, $until])
+            ->select([
+                't.id as timing_id', 't.case_id', 't.phase', 't.planned_start', 't.actual_start',
+                't.planned_duration', 't.actual_duration', 't.variance', 'c.room_id',
+            ])
+            ->orderBy('t.id')
+            ->chunk(1000, function ($rows) use (&$n) {
+                foreach ($rows as $row) {
+                    if ($e = EmissionMap::forCaseTiming($row)) {
+                        $this->absorb($e);
+                        $n++;
+                    }
+                }
+            });
+
+        return $n;
+    }
+
     private function collectTransport(CarbonInterface $since, CarbonInterface $until): int
     {
         $n = 0;
@@ -166,6 +190,8 @@ class OcelProjector
                 ->whereBetween('occurred_at', [$since, $until])->count(),
             'prod.care_journey_milestones' => (int) DB::table('prod.care_journey_milestones')
                 ->whereRaw('COALESCE(completed_at, created_at) BETWEEN ? AND ?', [$since, $until])->count(),
+            'prod.case_timings' => (int) DB::table('prod.case_timings')
+                ->whereRaw('COALESCE(actual_start, planned_start) BETWEEN ? AND ?', [$since, $until])->count(),
             'prod.transport_requests' => (int) DB::table('prod.transport_requests')
                 ->where('is_deleted', false)->whereBetween('requested_at', [$since, $until])->count(),
             default => 0,
