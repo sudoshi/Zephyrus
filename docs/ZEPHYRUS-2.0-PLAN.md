@@ -966,7 +966,7 @@ Every cyan in the reference (`oklch(0.72 0.13 200)`: the logo glow, domain swatc
 The cockpit is **both**, never two builds:
 
 - **House-wide HOME** at `/dashboard` — the existing `CommandCenter.tsx` evolves in place (it is already ~60% aligned per discovery). Full interactivity: drill-modals, RoleSwitcher in persistent chrome, Eddy hand-off from warn/crit tiles, Cmd+K.
-- **Kiosk / wall MODE** = the *same* page at `/dashboard?display=wall`. It drops interactive chrome (no nav mega-menu, no user menu, no drill affordances — `onDrill` becomes a no-op), enlarges to the wall scale tier, runs the 1Hz clock + AlertTicker, and **locks dark theme** (a bright wall in a dark unit is hostile). One snapshot, one StatusEngine, one component tree; mode is a presentation flag read by the layout shell.
+- **Wall MODE** = the *same* page at `/dashboard?display=wall`. It drops *decorative* chrome (no nav mega-menu, no user menu), enlarges to the wall scale tier, runs the 1Hz clock + AlertTicker, and **locks dark theme** (a bright wall in a dark unit is hostile). One snapshot, one StatusEngine, one component tree; mode is a presentation flag read by the layout shell. **[Revised by P8, 2026-07-04:** wall MODE is *not* an untended kiosk — it keeps its RBAC auth session and **drills live** all the way to the patient lens; `onDrill` is **not** a no-op. PHI on an always-on screen is managed by session auth + `EnforceFlowLens` + an auto-timeout-to-glance idle timer. See the revised **P8 — The Mount-Anywhere Cockpit** in Part VIII.**]**
 
 **Dual-theme implications:** desk mode honors the dual-theme toggle (dark default, light mirror per DESIGN.md). Wall mode forces dark. Light-mode status hues already darken for white-bg contrast in the canon (`--success` `#059669`, `--critical` `#DC2626`, etc.) so the same StatusEngine output renders WCAG-AA in both themes without branching — the engine emits a *logical state*, the theme layer picks the hue.
 
@@ -1338,7 +1338,7 @@ This collapses four surfaces into one loop driven by one snapshot, satisfying th
 | **P5** | Analytics + PI → the Study altitude | A3 consolidation; de-dup surgical deep-dives; kill mock bundles | Hidden mock→live denominator mismatches | Surgical deep-dives single canonical home; mock bundles removed from prod |
 | **P6** | Eddy loop + alerting fan-out | alert → recommended action → approval → audited execution; ticker + push | Alarm fatigue (flap/strobe) | Flap-damped `cockpit_alerts`; Eddy proposes via existing FSM; `EDDY_ENABLED`-gated |
 | **P7** | Swap mocks → real sources per domain | Replace seeded MOCK domains + synthetic sparklines with live history | Per-metric denominator drift | RTDC→Flow→Staffing→ED→Periop→Quality→Service→Financial, contract unchanged |
-| **P8** | Wall-display / kiosk hardening | `?display=wall` chromeless kiosk mode; SSE reconnect; staleness; reduced-motion; zoom | Dead Reverb in prod (`BROADCAST_CONNECTION=null`) | Wall mode renders chromeless; stale banner; SSE/poll fallback proven |
+| **P8** | Mount-anywhere cockpit (altitude-scoped, RBAC) | `?scope=` mounts house/service-line/dept/unit; **live** descent to patient lens (A2P); wall = one preset (6–9 panel, chrome-strip, auto-timeout-to-glance); safety floor + admin editor | PHI on always-on wall; scope leakage; dead Reverb | Any RBAC mount drills live to A2P via `EnforceFlowLens`; scope-appropriate faces; wall preset + stale/SSE/poll proven |
 
 **Cutover footgun applies to every phase that touches real-time:** `config/broadcasting.php` defaults `BROADCAST_CONNECTION='null'` → broadcasts are silently dropped in prod. The deploy that ships P1/P6/P8 real-time MUST set `BROADCAST_CONNECTION=reverb` (and recall `docker compose restart` does NOT reload `env_file` — must `up -d`; here it's Apache+fpm so the deploy must `./deploy.sh` and clear config cache).
 
@@ -1567,27 +1567,135 @@ This collapses four surfaces into one loop driven by one snapshot, satisfying th
 
 ---
 
-## P8 — Wall-Display / Kiosk Hardening
+## P8 — The Mount-Anywhere Cockpit (Altitude-Scoped, RBAC-Gated)
 
-**Goal.** Deliver the **24/7 wall-display MODE** — `/dashboard?display=wall` as a chromeless kiosk presentation of the *same* surface (never a separate build) — plus SSE reconnect, staleness safety, reduced-motion, and zoom robustness. Land the admin threshold editor so clinicians tune bands without a deploy.
+> **Supersedes the original "Wall-Display / Kiosk Hardening" scope (2026-07-04).** The
+> kiosk framing — chromeless, dark-locked, **no-op drills**, untended screen — is
+> inverted. P8 is now an **authenticated, RBAC-scoped instrument** that mounts at *any*
+> altitude (house / service-line / department / unit) and drills **live** all the way to
+> the individual patient in any bed. The 6–9-panel video-wall is **one preset** of it, not
+> the whole phase. There is **no unauthenticated kiosk token**: every mount keeps a real
+> auth session and is simply chrome-stripped for its context. The old wall-mode safety /
+> zoom / admin-editor / cutover work survives as WS-6/WS-7 below.
+>
+> **CMIO ruling (2026-07-04):** live drill descent is **uncapped on any authenticated
+> mount, including a wall** — House → Dept → Unit → Bed → Patient lens (A2P). PHI on an
+> always-on screen is managed by (a) the auth session, (b) `EnforceFlowLens` gating *which*
+> patients each persona may open, and (c) an **auto-timeout-to-glance** idle timer that
+> walks a wall/kiosk preset back up to A0 after inactivity. This is a deliberate exposure
+> trade-off, owned by the CMIO, not a default.
+
+**Goal.** Turn the single house Cockpit into a **scope-parameterized surface** you can mount
+anywhere for authenticated RBAC users, with a deterministic, live descent to the patient
+lens — plus the wall/multi-display preset, the safety floor (staleness, SSE reconnect,
+reduced-motion, zoom), the admin threshold editor, and cutover hardening. **Non-destructive
+and reuse-first:** the cached house `cockpit.snapshot` and `StatusEngine` are untouched;
+scoped faces are assembled from services already on `main`.
+
+**Reuse ledger (grounded in the codebase — build on these, do not reinvent).**
+- **Patient lens (A2P)** is already computed by `MobilePatientContextService`
+  (`/api/mobile/v1/patients/{ref}/operational-context`) and **externally ratified** in
+  `docs/hummingbird/ADR-2026-07-01-altitude-patient-lens.md`. It is mobile-only today;
+  promoting it to a web surface is the single biggest win of P8.
+- **User→unit assignment** exists: `prod.user_unit` (`role` charge/bedside/manager,
+  `is_primary`) → every mount gets a sensible default scope for free.
+- **Flow-lens RBAC** exists: `EnforceFlowLens` middleware already gates patient-level reads
+  per persona — reused verbatim as the drill boundary.
+- **Org spine** exists: `hosp_space.facility_spaces` (`parent_space_id`, `service_line_code`,
+  `acuity`) + `HospitalManifest` (23 units, 16 service lines enumerated). No new org model.
+- **Service-line persona slot** is reserved-but-`disabled: true` in `RoleSwitcher.tsx` — WS-2
+  activates it as a real scope.
+- `?display=wall` + `DashboardLayout.fullBleed` + the `hospital.cockpit` Reverb channel /
+  `useLiveCockpit` hook / 45 s poll are all plumbed; wall mode just isn't built on them yet.
+
+**The load-bearing decision (WS-2).** A unit/department mount renders **altitude-appropriate
+tiles**, *not* the house 8-domain grid shrunk. A single MICU has no periop or financial
+domain; its cockpit face is census / occupancy / boarders / staffing-ratio / barriers /
+patient-list, assembled from `BedTrackingService` + the `UnitHuddle` services. This keeps the
+house snapshot untouched, reuses the per-scope services already on `main`, and matches the
+already-ratified Altitude model (A1 workspace ≠ A0 grid) — instead of re-plumbing
+`SnapshotBuilder` for N scoped cache rows.
 
 **Scope / workstreams.**
-1. **Wall MODE = presentation flag.** The layout shell reads `?display=wall`: drops interactive chrome (no nav mega-menu, no user menu, `onDrill` → no-op), enlarges to the wall scale tier, runs the 1Hz clock + AlertTicker, **locks dark theme** (a bright wall in a dark unit is hostile). One snapshot, one StatusEngine, one component tree. Desk mode keeps full interactivity + dual-theme toggle. Light-mode status hues already darken for white-bg contrast so the same StatusEngine output is WCAG-AA in both themes without branching.
-2. **Density multiplier.** Root `data-density` attribute (`compact|normal|wall`) on `<html>` driving a font-size multiplier so the wall scales every `rem`-based size at once without touching components; persist via the existing preference round-trip. The sanctioned `text-[11px]` wall exception (documented P0) applies only inside cockpit primitives.
-3. **Safety floor.** App-chrome-level `StaleDataBanner` (extract the aging/stale detection in `CommandCenterView`): solid amber `healthcare-warning` banner ("Data X min old — verify before acting") when `generatedAtIso` ages past threshold — never a silent stale screen. SSE reconnect via `/cockpit/stream`; 30–60s ETag/304 poll as final fallback; keep last-good on disconnect.
-4. **Reduced-motion + zoom.** All transitions (MeterBar width, Sparkline, gauge `stroke-dashoffset`, modal enter/leave, AlertTicker blip) gated by `@media (prefers-reduced-motion: reduce)` (extend `app.css:165`); `tabular-nums` everywhere keeps digit columns from reflowing at any zoom (the reason IBM Plex Mono is rejected).
-5. **Admin threshold editor.** Wire the P1 `PUT /cockpit/kpi-definitions/{key}` (audited edge edit, writes `ops.metric_definitions`) to an admin UI so bands tune without a deploy.
-6. **Cutover hardening.** Confirm `BROADCAST_CONNECTION=reverb` in prod env (the silent-drop footgun); verify the snapshot job, MV refreshes, and SSE survive the Apache+fpm deploy (config-cache clear, opcache).
+1. **`CockpitScope` — the spine.** A `{level: house|service_line|department|unit, key}` value
+   object + resolver. Parsed from URL (`/dashboard?scope=unit:MICU`), falling back to the
+   user's `prod.user_unit` primary assignment, else house. Backed by `facility_spaces` +
+   `HospitalManifest`; the house snapshot stays untouched. Threads through the drill API and
+   the layout shell so a shared link reproduces the exact mount.
+2. **Altitude-appropriate tile faces.** Each scope renders a scope-appropriate cockpit face,
+   every tile still emitting the `StatusEngine` contract so status is identical across
+   altitudes: **house** = existing 8-domain grid (unchanged); **department** (ED/RTDC/Periop/…)
+   = that department's live workspace tiles as a cockpit face (reuse `EdDashboardService`,
+   `RtdcDashboardService`, `RoomStatusService`); **unit** = census / occupancy / boarders /
+   staffing / barriers / patient-list (reuse `BedTrackingService` + `UnitHuddle` services);
+   **service-line** = the `ServiceLineMetrics` scorecard scoped to one line + its units
+   (activates the reserved `RoleSwitcher` slot).
+3. **Patient lens (A2P) as a web surface.** Promote `MobilePatientContextService`'s A2P payload
+   to a web Inertia surface — an **in-place drill modal** openable from any bed/board **plus** a
+   deep-linkable route (`/patient/{ref}`) — reusing the service verbatim and wiring the existing
+   demo `PatientJourneyModal` / `PatientCard` to live data. Gated by `EnforceFlowLens`.
+4. **Live drill descent (kill the no-op).** Every tile / bed / board drills:
+   domain → dept → unit → bed → **patient**, `pushState`/`popstate`-synced (Back walks one
+   history), RBAC-gated at each step. Reuse the P2/P3 `DrillModal` + `?drill=` machinery;
+   extend the drill graph down to A2P. **This replaces the old `onDrill → no-op`.**
+5. **Mount presets & the multi-display wall.** A **mount profile** = `(scope, display, persona)`.
+   Wall preset = chrome-stripped (hide `TopNavbar`/user-menu, keep the RBAC session), `fullBleed`
+   (drop the 1600 px cap), **dark-lock** (soft `?theme=` escape, D6), 1 Hz clock + `AlertTicker`,
+   wall-scale type (the sanctioned `text-[11px]` cockpit exception), a **configurable 6–9-panel
+   grid** (vs. the house 8-domain 4-col grid), and **one-panel-per-display** video-wall via
+   per-panel scope. **Auto-timeout-to-glance** idle timer returns a wall/kiosk mount to its A0
+   scope after inactivity (the CMIO PHI mitigation). Drills stay **live** on every preset.
+6. **RBAC + safety floor.** Reuse Spatie roles + `prod.user_unit` + `EnforceFlowLens`: what a
+   user may mount and how far they may drill is gated by role + assignment (a wall in the ED
+   mounts ED; a charge nurse defaults to her unit; a house supervisor/exec gets house). The old
+   P8 safety floor survives and is now app-chrome-wide so it shows at **every** scope:
+   `StaleDataBanner` extracted from `CommandCenterView` (solid amber `healthcare-warning` when
+   `generatedAtIso` ages past threshold — never a silent stale screen); SSE reconnect via
+   `/cockpit/stream` with 30–60 s ETag/304 poll fallback + keep-last-good; all transitions gated
+   by `@media (prefers-reduced-motion: reduce)`; `tabular-nums` + `data-density`
+   (`compact|normal|wall`) multiplier keep digits from reflowing at 80–125 % zoom; and the admin
+   threshold editor wiring the P1 `PUT /cockpit/kpi-definitions/{key}` (audited, writes
+   `ops.metric_definitions`) so bands tune without a deploy.
+7. **Docs / tests / deploy.** Per the established P0–P7 cadence: scope-resolver + drill-descent
+   + flow-lens tests; `RouteSmoke` green; canon green (`text-[11px]` stays cockpit-scoped);
+   `BROADCAST_CONNECTION=reverb` re-verified with a real broadcast; `./deploy.sh` + manual
+   `systemctl restart php8.5-fpm`; devlog + memory topic-file update.
 
-**Files / areas touched.** layout shell (`?display=wall` + `data-density`); `cockpit/StaleDataBanner.tsx` (extract from `CommandCenterView`); `app.css` reduced-motion block; SSE consumer for `/cockpit/stream`; admin threshold editor page + `PUT` controller; prod env + deploy.
+**Files / areas touched.** `app/Support/Cockpit/CockpitScope.php` + resolver (net-new); drill
+API scope param (`routes/api.php`, `DrillBuilder`); `PatientLensController` + Inertia
+`Pages/Patient/Lens.tsx` reusing `MobilePatientContextService` (net-new surface, reused
+service); `CockpitOverview`/`DomainGrid` scope-aware faces; layout shell (`?display=wall`,
+`?scope=`, `data-density`, chrome-strip, `fullBleed`); `cockpit/StaleDataBanner.tsx` (extract);
+`app.css` reduced-motion; SSE consumer for `/cockpit/stream`; auto-timeout idle hook; admin
+threshold editor page + `PUT` controller; prod env + deploy.
 
-**Dependencies.** P2 (overview), P6 (alerts/real-time), P1 (kpi-definitions endpoint). **Merged/deprecated:** nothing — wall MODE is a presentation of the existing surface.
+**Dependencies.** P2 (overview + `?drill=`/`?display=wall` param reading), P3 (drill
+auto-open), P6 (alerts/real-time), P1 (kpi-definitions endpoint + `EnforceFlowLens`).
+**Absorbs the two deferred items:** analytics-hub sections → modal-drills; `PdsaCycle` →
+outcome-attribution chain surface. **Merged/deprecated:** nothing destroyed — scope + patient
+lens are additive; wall is a preset of the existing surface.
 
-**Acceptance criteria.** `/dashboard?display=wall` renders chromeless, dark-locked, wall-scaled, 1Hz clock + ticker, no-op drills; stale banner fires; SSE reconnect + poll fallback proven; reduced-motion honored; legible at 80–125% zoom without reflow; admin can edit an edge and see the band change without deploy; `BROADCAST_CONNECTION=reverb` verified live; canon + builds green.
+**Acceptance criteria.** `/dashboard?scope=unit:MICU` mounts that unit's altitude-appropriate
+face with `StatusEngine`-consistent status; `?scope=department:ed` mounts ED; a no-param mount
+resolves to the user's `prod.user_unit` primary (or house); **any** bed/board drills live down
+to the patient lens (A2P) subject to `EnforceFlowLens`; `?display=wall` renders chrome-stripped,
+dark-locked, wall-scaled, 1 Hz clock + ticker, **live drills** (not no-op), 6–9-panel grid, with
+auto-timeout-to-glance proven; stale banner fires at every scope; SSE reconnect + poll fallback
+proven; reduced-motion honored; legible at 80–125 % zoom without reflow; admin edits an edge and
+sees the band change without deploy; RBAC denies out-of-assignment mounts/drills;
+`BROADCAST_CONNECTION=reverb` verified with a real broadcast; canon + `tsc` + `vite build` green.
 
-**Effort / sequencing.** ~2 weeks. Wall MODE flag + density first, then stale/SSE safety, then reduced-motion/zoom, then admin editor, then cutover verification.
+**Effort / sequencing.** ~3 weeks (up from 2 — the scope model + patient-lens surface are net
+new). Order: WS-1 scope resolver → WS-2 scoped faces → WS-3 patient lens → WS-4 live descent →
+WS-5 mount presets/wall → WS-6 RBAC + safety floor → WS-7 docs/tests/deploy. Each lands as a
+sequential auto-rebased commit on `main`, green at every step.
 
-**Chief risk.** **Dead Reverb in prod** (`BROADCAST_CONNECTION=null`) — the AlertTicker/wall appear live in dev and are dead in prod. This is a hard cutover checklist item; verify with a real broadcast before declaring done.
+**Chief risks.** (1) **PHI on an always-on wall** — mitigated by session auth + `EnforceFlowLens`
++ auto-timeout-to-glance, but the residual exposure is a CMIO-owned trade-off; document the
+per-mount placement guidance. (2) **Dead Reverb in prod** (`BROADCAST_CONNECTION=null`) — the
+AlertTicker/wall appear live in dev and dead in prod; hard cutover checklist item, verify with a
+real broadcast. (3) **Scope leakage** — a resolver bug that lets a unit mount read house PHI or a
+sibling unit; covered by RBAC + flow-lens tests as a release gate.
 
 ---
 
@@ -1613,7 +1721,7 @@ This collapses four surfaces into one loop driven by one snapshot, satisfying th
 | P5 | 2–2.5 wk | P4 |
 | P6 | 2.5–3 wk | P7 (loop vs source-swap independent) |
 | P7 | 3–4 wk | incremental after P1; a domain's live swap follows that domain's P2 gauge + P6 alert wiring (e.g. `ed.nedocs` after P2/P6) |
-| P8 | 2 wk | after P2/P6 |
+| P8 | ~3 wk | after P2/P3/P6 (scope model + patient-lens surface are net new) |
 
 **Total ~19–23 weeks** for the full cohesion (P4 split into P4a+P4b adds ~0.5 wk), with the cockpit HOME visible and demo-lit after **P2 (~week 6)** and actionable after **P6**. The path is monotonic: every phase leaves `main` green, deployable, and strictly more cohesive than before.
 
