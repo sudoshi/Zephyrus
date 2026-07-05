@@ -58,14 +58,19 @@ class MaterializedMetricsReader
         // (arena.conformance_signals, written by RefreshArenaConformance) so they
         // band through the same StatusEngine as every other cockpit metric. Empty
         // when the Arena is off — the conformance tiles simply don't appear.
-        try {
-            foreach (DB::table('arena.conformance_signals')->get(['metric_key', 'value']) as $row) {
-                if ($row->value !== null) {
-                    $map[$row->metric_key] = (float) $row->value;
+        // Part X (X2): the same for the object-centric performance bottleneck
+        // (arena.performance_signals, written by RefreshArenaPerformance) — the
+        // worst object-side hand-off wait, surfaced as a flow-domain tile.
+        foreach (['arena.conformance_signals', 'arena.performance_signals'] as $signals) {
+            try {
+                foreach (DB::table($signals)->get(['metric_key', 'value']) as $row) {
+                    if ($row->value !== null) {
+                        $map[$row->metric_key] = (float) $row->value;
+                    }
                 }
+            } catch (\Throwable $e) {
+                Log::warning('cockpit.mv.read_failed', ['view' => $signals, 'error' => $e->getMessage()]);
             }
-        } catch (\Throwable $e) {
-            Log::warning('cockpit.mv.read_failed', ['view' => 'arena.conformance_signals', 'error' => $e->getMessage()]);
         }
 
         return $this->cache = $map;

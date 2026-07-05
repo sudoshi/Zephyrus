@@ -60,5 +60,9 @@ return $builder
         // when off). Off the per-minute snapshot path — the heavy sidecar call
         // never blocks the wall.
         $schedule->job(new \App\Jobs\RefreshArenaConformance)->everyThirtyMinutes()->withoutOverlapping();
+        // Zephyrus 2.0 Part X (X2): recompute object-centric performance (OPerA)
+        // and cache the worst hand-off synchronization wait as a flow-domain
+        // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
+        $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
     })
     ->create();

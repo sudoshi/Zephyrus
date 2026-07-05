@@ -127,6 +127,11 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'flow.bottlenecks_active' => $this->kpi('Active bottlenecks', 'Live flow constraint signals ranked by impact: long-stay, OR turnover, blocked beds, at-risk transports, ED boarding.', '', 'down', null, 3, 5, 300,
                 'Flow bottlenecks — {display} active constraint signals'),
             'flow.bottleneck_patients' => $this->kpi('Bottleneck patients', 'Patients affected by the active bottleneck signals.', 'pts', 'down', null, 25, 50, 300),
+            // Part X (X2): the OPerA synchronization constraint — the worst
+            // object-side wait at a shared hand-off, mined object-centrically from
+            // the OCEL log and cached in arena.performance_signals. Absent (tile
+            // hidden) when the Arena is off, so no regression to the prod cockpit.
+            'flow.worst_handoff_wait' => $this->kpi('Worst hand-off wait', 'The longest object-side wait at a shared hand-off — which resource is the flow constraint, discovered object-centrically from the OCEL log (Part X §X.6, OPerA).', 'min', 'down', 30, 90, 240, 900),
 
             // ---------------- Quality & safety (spec §2.7) — refresh 1800s --
             'quality.sepsis_3hr' => $this->kpi('Sepsis 3-hr bundle', 'SEP-1 3-hour bundle compliance.', '%', 'up', 90, 90, 80, 1800, null, null, 90),

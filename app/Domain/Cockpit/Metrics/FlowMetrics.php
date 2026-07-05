@@ -5,12 +5,14 @@ namespace App\Domain\Cockpit\Metrics;
 use App\Domain\Cockpit\SnapshotContext;
 use App\Models\Flow\DischargeLoungeStay;
 use App\Models\Transport\TransportRequest;
+use App\Services\Cockpit\MaterializedMetricsReader;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
 use App\Support\Hospital\HospitalManifest;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Patient flow & transport (spec §2.6). LIVE as of P7: DBN from the legacy
@@ -27,6 +29,7 @@ class FlowMetrics extends BaseMetrics
         private readonly EvsOperationsService $evs,
         private readonly DashboardService $dashboard,
         private readonly HospitalManifest $manifest,
+        private readonly MaterializedMetricsReader $mv,
     ) {
         parent::__construct($engine);
     }
@@ -49,6 +52,10 @@ class FlowMetrics extends BaseMetrics
         $loungeChairs = $this->manifest->facility()['discharge_lounge_chairs'] ?? null;
 
         $bottlenecks = $this->bottleneckStats();
+        // Part X (X2): the OPerA synchronization constraint — the worst object-side
+        // wait at a shared hand-off, mined object-centrically and cached in
+        // arena.performance_signals. Null (tile absent) whenever the Arena is off.
+        $worstHandoff = $this->mv->value('flow.worst_handoff_wait');
 
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
@@ -75,7 +82,31 @@ class FlowMetrics extends BaseMetrics
                 'flow.bottleneck_patients',
                 (float) $bottlenecks['patientImpact'],
             ),
+            $worstHandoff === null ? null : $this->fromKey(
+                $ctx,
+                'flow.worst_handoff_wait',
+                $worstHandoff,
+                ['sub' => $this->handoffContext()],
+            ),
         ]);
+    }
+
+    /**
+     * Part X (X2): the human label for the winning hand-off ("Bed at discharge")
+     * — a cheap point-read of the same cached row RefreshArenaPerformance wrote.
+     * Guarded: any read failure leaves the tile without a sub, never blanks it.
+     */
+    private function handoffContext(): ?string
+    {
+        try {
+            $row = DB::table('arena.performance_signals')
+                ->where('metric_key', 'flow.worst_handoff_wait')
+                ->value('context');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $row !== null ? (string) $row : null;
     }
 
     /**
