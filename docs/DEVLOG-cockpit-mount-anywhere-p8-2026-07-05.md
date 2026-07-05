@@ -100,15 +100,23 @@ non-deterministically with `SQLSTATE[42P01] relation "prod.users" does not exist
 running migrations/tests against the same test database (failure count varies run-to-run; my
 commits touch zero migrations/seeders/Ops files). Not a P8 regression.
 
-## Deploy runbook (prod)
-1. `./deploy.sh --frontend` (build in dev + rsync) then `./deploy.sh` for the PHP caches — or
-   the full `./deploy.sh`. deploy.sh **restarts Apache only** and **skips migrations** by
-   design (there are no P8 migrations).
-2. `sudo -A systemctl restart php8.5-fpm` — required so FPM workers pick up env; deploy.sh
-   does not restart FPM.
-3. **Broadcast cutover:** confirm prod `.env` has `BROADCAST_CONNECTION=reverb` (config
-   default is `null` — the documented footgun) and `php artisan config:clear` ran (deploy.sh
-   does). Verify a real broadcast: dispatch `CockpitSnapshotUpdated` (or let the scheduler
-   refresh) and confirm the Reverb daemon relays it + a browser client refetches.
-4. No `zephyrus:demo-seed` needed (no new seed data); the threshold editor reads the existing
-   `ops.metric_definitions`.
+## Deploy — DONE 2026-07-05 (ISOLATED cockpit-only)
+Because `main` interleaves the P8 cockpit commits with the concurrent Arena Part X (X0–X3),
+and `deploy.sh` rsyncs the whole tree, the deploy was **isolated** so Arena did not ship:
+
+1. `git worktree add -b deploy-p8-cockpit /tmp/zephyrus-deploy-p8 197e666` (the P7-deployed tip),
+   cherry-pick ONLY the 10 deployed-code cockpit commits — **skipping `c722ba6`+`406bf0a`**
+   (authorizer add+remove = net-zero, so `CockpitController` stays gateless) and the docs/test-only
+   commits. Clean auto-merge on the 4 overlap files (`routes/api.php`, `routes/web.php`,
+   `navigationConfig.ts`, plan doc).
+2. Build the frontend in the worktree (symlink main's `node_modules`); `tsc` + canon + `vite build`
+   green; confirm no `arena/` and no `CockpitScopeAuthorizer` in the tree.
+3. **Additive** `sudo -A rsync` (no `--delete`, deploy.sh's excludes) worktree → `/var/www/Zephyrus`,
+   preserving prod `.env`/`vendor`/`storage` (cockpit adds no composer deps, so prod's P7 vendor
+   serves it); `chown -R www-data`; `artisan cache:/view:/config:/route:clear` (as www-data,
+   `HOME=/tmp XDG_*=/tmp`); restart `apache2` + `php8.5-fpm`; remove the worktree.
+4. **Verified on prod:** no `arena/` + no authorizer; `route:list` shows every cockpit route;
+   `/login` 200; `/dashboard` + `/api/cockpit/*` 302 (auth redirect, not 500); zero fresh errors;
+   `BROADCAST_CONNECTION=reverb` was **already set** — the WS-7 broadcast requirement was
+   pre-satisfied. No migrations, no `zephyrus:demo-seed` (threshold editor reads existing
+   `ops.metric_definitions`). **Arena Part X remains on `origin/main` but deliberately off prod.**
