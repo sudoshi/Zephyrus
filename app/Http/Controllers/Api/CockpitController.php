@@ -7,7 +7,6 @@ use App\Models\Ops\MetricDefinition;
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\ScopedFaceBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
-use App\Support\Cockpit\CockpitScopeAuthorizer;
 use App\Support\Cockpit\CockpitScopeResolver;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
@@ -71,21 +70,18 @@ class CockpitController extends Controller
      * 'department:ed' | 'house'); absent/unknown resolves to the user's primary unit
      * assignment, else house. Backs the mount picker and the scope-aware faces (WS-2).
      */
-    public function scopes(Request $request, CockpitScopeResolver $resolver, CockpitScopeAuthorizer $authorizer): JsonResponse
+    public function scopes(Request $request, CockpitScopeResolver $resolver): JsonResponse
     {
         $user = $request->user();
         $scope = $request->query('scope');
         $active = $resolver->resolve(is_string($scope) ? $scope : null, $user);
 
-        // Never land the picker on a mount the caller may not open: an explicit but
-        // unauthorized ?scope= degrades to the user's safe default (primary unit → house).
-        if (! $authorizer->canMount($user, $active)) {
-            $active = $resolver->resolve(null, $user);
-        }
-
+        // The full catalog: every authenticated user may mount any altitude (scoped
+        // faces are house-wide occupancy, no PHI — CMIO ruling 2026-07-05). The
+        // `assigned` flag lets the picker foreground "my units" without hiding others.
         return response()->json([
             'active' => $active->toArray(),
-            'catalog' => $authorizer->filterCatalog($user, $resolver->catalog($user)),
+            'catalog' => $resolver->catalog($user),
         ])->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
@@ -96,24 +92,16 @@ class CockpitController extends Controller
      * 'render' => 'grid' (the frontend keeps the DomainGrid); department reuses the
      * domain drill; unit / service_line render live-census faces.
      */
-    public function face(Request $request, CockpitScopeResolver $resolver, ScopedFaceBuilder $faces, CockpitScopeAuthorizer $authorizer): JsonResponse
+    public function face(Request $request, CockpitScopeResolver $resolver, ScopedFaceBuilder $faces): JsonResponse
     {
         $scope = $request->query('scope');
         $resolved = $resolver->resolve(is_string($scope) ? $scope : null, $request->user());
 
-        // The scope-leakage gate (WS-6): unit / service_line faces serve live bed
-        // census, so an out-of-assignment mount is denied rather than served. house /
-        // department faces are aggregate and always pass.
-        if (! $authorizer->canMount($request->user(), $resolved)) {
-            return response()->json([
-                'error' => [
-                    'code' => 'cockpit_scope_forbidden',
-                    'message' => 'You are not assigned to this mount.',
-                    'unauthorized_state' => true,
-                ],
-            ], 403);
-        }
-
+        // No mount gate: a scoped face is per-unit bed OCCUPANCY (counts, no patient
+        // identity) — the same house-wide situational-awareness data already served
+        // by the /snapshot heat strip and the /drill descent (plan §A0; CMIO ruling
+        // 2026-07-05). Patient identity stays gated at A2P by EnforceFlowLens; ?scope=
+        // is a relevance default (you land on your unit), not a confidentiality wall.
         return response()->json($faces->build($resolved))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
