@@ -46,5 +46,14 @@ return $builder
         // Retention for the snapshot scalars the refresh job writes — the
         // writer and the pruner ship together (P1 execution notes).
         $schedule->job(new \App\Jobs\PruneCockpitMetricValues)->dailyAt('03:40');
+        // Zephyrus 2.0 Part X (X0): the object-centric event log (OCEL 2.0)
+        // incremental projection — read-side, additive, PHI-safe. Runs on the
+        // SAME clock as the cockpit snapshot so A0 (cockpit) and A3 (Arena)
+        // never disagree (Principle 7). Idempotent upserts, so the 2-day
+        // trailing window overlapping the prior run is harmless.
+        $schedule->job(new \App\Jobs\RefreshOcelLog)->everyFifteenMinutes()->withoutOverlapping();
+        // Nightly full reconcile: re-project the trailing window and diff
+        // projected counts against prod.*/flow_core.* source counts (§X.3.3).
+        $schedule->command('ocel:project --days=90 --reconcile')->dailyAt('02:30');
     })
     ->create();
