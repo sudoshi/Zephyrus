@@ -1138,7 +1138,7 @@ paths:
   /eddy/context/{scopeRef}:
     get:
       tags: [eddy]
-      summary: Eddy-safe context packet for a drill, patient lens, event, or scope.
+      summary: Eddy-safe context packet for a drill, patient lens, event, or flow scope.
       parameters:
         [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
       responses:
@@ -1733,7 +1733,12 @@ components:
         generated_at: { type: string, format: date-time }
         persona: { $ref: "#/components/schemas/MobilePersona" }
         phi_policy: { type: object, additionalProperties: true }
-        context: { type: object, additionalProperties: true }
+        context:
+          {
+            type: object,
+            additionalProperties: true,
+            description: "Event/patient/activity context; authorized house/floor flow scopes may include patient_flow_4d with aggregate-safe current_metrics, top_barriers, redaction, lineage, and action_allowlist.",
+          }
         questions_supported: { type: array, items: { type: string } }
       required:
         [scope_ref, scope_type, generated_at, persona, phi_policy, context]

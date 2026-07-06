@@ -8,9 +8,7 @@ use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
 use App\Services\PatientFlow\FlowEventRepository;
-use App\Services\PatientFlow\PatientFlowEddyContextBuilder;
-use App\Services\PatientFlow\OccupancyInsightProjector;
-use App\Services\PatientFlow\PatientFlowDemoBarrierScenario;
+use App\Services\PatientFlow\PatientFlowOccupancyContextService;
 use App\Services\PatientFlow\PatientStateProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -26,9 +24,7 @@ class PatientFlowController extends Controller
         private readonly PatientStateProjector $stateProjector,
         private readonly FhirBundleFactory $fhir,
         private readonly AmbientSignalService $ambientSignals,
-        private readonly OccupancyInsightProjector $occupancyInsights,
-        private readonly PatientFlowDemoBarrierScenario $demoBarriers,
-        private readonly PatientFlowEddyContextBuilder $eddyContext,
+        private readonly PatientFlowOccupancyContextService $occupancyContext,
     ) {}
 
     public function summary(): JsonResponse
@@ -124,72 +120,13 @@ class PatientFlowController extends Controller
         $asOf = is_string($request->query('asOf')) ? $request->query('asOf') : null;
         $time = $asOf ? CarbonImmutable::parse($asOf) : CarbonImmutable::now();
 
-        $filters = $this->filters($request) + ['limit' => 20000];
-        unset($filters['from']);
-        $filters['to'] = $time->toIso8601String();
-
-        $events = $this->events->serializeEvents($this->events->filteredEvents($filters));
-        $locations = $this->locations->allNavigatorLocations($this->facilityCode());
-
-        $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
-        $rawProjections = app(\App\Services\Flow\ForwardProjectionService::class)
-            ->projections($time, $time->addHours(24), $scope, $lens['projection_kinds']);
-        $depth = $lens['patient_dots'] === 'full' ? 'full' : 'none';
-        $lensService = app(\App\Services\Flow\FlowLensService::class);
-        $projections = array_map(
-            fn (array $item): array => $lensService->redactRow($item, $depth, $scope),
-            $rawProjections,
-        );
-
-        $demoScenario = null;
-        $demoEnabled = $this->demoBarriersEnabled($request);
-        $staleReplay = $demoEnabled && $this->replayIsStale($events, $time);
-        $demoReplacesReplay = $demoEnabled && (
-            $this->demoBarriersReplaceReplay($request)
-            || $staleReplay
-        );
-        if ($demoReplacesReplay) {
-            $events = [];
-            $projections = [];
-        }
-
-        if ($demoEnabled) {
-            $demo = $this->demoBarriers->build($locations, $time, $filters);
-            $events = [...$events, ...$demo['events']];
-            $projections = [...$projections, ...$demo['projections']];
-            $demoScenario = $demo['scenario'] + [
-                'replaces_replay' => $demoReplacesReplay,
-                'replaces_stale_replay' => $staleReplay,
-            ];
-        }
-
-        $payload = $this->occupancyInsights->project(
-            events: $events,
-            locations: $locations,
-            projections: $projections,
-            asOf: $time->toIso8601String(),
-            lens: $lens,
-        );
-
-        $response = $payload + [
-            'lens' => [
-                'role_id' => $roleId,
-                'patient_dots' => $lens['patient_dots'],
-                'projection_kinds' => $lens['projection_kinds'],
-            ],
-            'projection_window' => [
-                'from' => $time->toIso8601String(),
-                'to' => $time->addHours(24)->toIso8601String(),
-            ],
-            'demo_scenario' => $demoScenario,
-            'generated_at' => now()->toJSON(),
-        ];
-
-        if ($this->includes($request, 'eddy_context')) {
-            $response['eddy_context'] = $this->eddyContext->build($payload, $lens, $roleId, $time, $filters, $demoScenario);
-        }
-
-        return response()->json($response);
+        return response()->json($this->occupancyContext->build(
+            $lens,
+            $roleId,
+            $time,
+            $this->filters($request),
+            $this->includes($request, 'eddy_context'),
+        ));
     }
 
     /**
@@ -260,6 +197,7 @@ class PatientFlowController extends Controller
             'category' => $request->query('category'),
             'service_line' => $request->query('service_line'),
             'floor' => $request->query('floor'),
+            'demo' => $request->query('demo'),
             'limit' => $request->query('limit', 5000),
         ];
     }
@@ -267,48 +205,6 @@ class PatientFlowController extends Controller
     private function facilityCode(): string
     {
         return (string) config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500');
-    }
-
-    private function demoBarriersEnabled(Request $request): bool
-    {
-        $value = $request->query('demo');
-        if ($value !== null) {
-            $normalized = strtolower((string) $value);
-
-            return in_array($normalized, ['1', 'true', 'yes', 'on', 'barriers', 'rtdc'], true);
-        }
-
-        return (bool) config('patient_flow.demo_barriers_enabled', false);
-    }
-
-    private function demoBarriersReplaceReplay(Request $request): bool
-    {
-        $value = $request->query('demo');
-        if ($value !== null) {
-            $normalized = strtolower((string) $value);
-
-            return in_array($normalized, ['1', 'true', 'yes', 'on', 'barriers', 'rtdc', 'replace'], true);
-        }
-
-        return (bool) config('patient_flow.demo_barriers_replace_replay', false);
-    }
-
-    /** @param list<array<string, mixed>> $events */
-    private function replayIsStale(array $events, CarbonImmutable $time): bool
-    {
-        $latest = null;
-        foreach ($events as $event) {
-            if (empty($event['occurred_at'])) {
-                continue;
-            }
-
-            $occurred = CarbonImmutable::parse((string) $event['occurred_at']);
-            if (! $latest || $occurred->greaterThan($latest)) {
-                $latest = $occurred;
-            }
-        }
-
-        return ! $latest || $latest->lessThan($time->subHours(48));
     }
 
     private function includes(Request $request, string $feature): bool

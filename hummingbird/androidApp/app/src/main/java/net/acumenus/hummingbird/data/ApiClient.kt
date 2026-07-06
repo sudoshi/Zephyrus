@@ -1135,6 +1135,20 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         o.optJSONArray("activity")?.let {
             fields += DisplayField("Activity events", "${it.length()}")
         }
+        o.optJSONObject("patient_flow_4d")?.let { flow ->
+            fields += DisplayField("Surface", humanize(flow.optString("surface", "patient_flow_4d")))
+            flow.optJSONObject("current_metrics")?.let { metrics ->
+                fields += DisplayField("Active patients", metrics.optInt("active", 0).toString())
+                fields += DisplayField("Delayed", metrics.optInt("delayed", 0).toString())
+                fields += DisplayField("Watch", metrics.optInt("watch", 0).toString())
+            }
+            flow.optJSONArray("top_barriers")?.let {
+                fields += DisplayField("Top barriers", "${it.length()}")
+            }
+            flow.optJSONObject("redaction")?.optStringOrNull("patient_dots")?.let {
+                fields += DisplayField("Patient dots", humanize(it))
+            }
+        }
         if (fields.isEmpty()) fields += safeFields(o)
         return fields
     }

@@ -11,6 +11,7 @@ class PatientFlowEddyContextBuilder
      * @param  array<string, mixed>  $lens
      * @param  array<string, mixed>  $filters
      * @param  array<string, mixed>|null  $demoScenario
+     * @param  array<string, mixed>|null  $scope
      * @return array<string, mixed>
      */
     public function build(
@@ -20,6 +21,7 @@ class PatientFlowEddyContextBuilder
         CarbonImmutable $time,
         array $filters,
         ?array $demoScenario,
+        ?array $scope = null,
     ): array {
         $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : [];
         $occupancy = is_array($payload['occupancy'] ?? null) ? $payload['occupancy'] : [];
@@ -35,7 +37,7 @@ class PatientFlowEddyContextBuilder
                 'patient_dots' => (string) ($lens['patient_dots'] ?? 'none'),
                 'scope_default' => (string) ($lens['scope_default'] ?? 'house'),
             ],
-            'scope' => [
+            'scope' => $scope ?? [
                 'type' => 'house',
                 'filters' => $this->contextFilters($filters),
             ],

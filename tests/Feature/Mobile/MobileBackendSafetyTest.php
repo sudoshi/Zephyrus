@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -308,6 +309,63 @@ class MobileBackendSafetyTest extends TestCase
             $this->assertStringNotContainsString($rawEncounterRef, $body);
             $this->assertStringNotContainsString('ops:approve', $body);
         }
+    }
+
+    public function test_eddy_context_packet_includes_patient_flow_4d_context_for_flow_scopes(): void
+    {
+        $this->assertSame(0, Artisan::call('facility:import-catalog', [
+            'path' => base_path('tests/Fixtures/facility/model_catalog_fixture.json'),
+            '--facility-code' => 'ZEPHYRUS-500',
+            '--facility-name' => 'Mobile Eddy Flow Context Facility',
+            '--source-name' => 'mobile-eddy-flow-context-catalog',
+            '--map-operational' => true,
+        ]));
+        config([
+            'patient_flow.demo_barriers_enabled' => true,
+            'patient_flow.demo_barriers_replace_replay' => true,
+        ]);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+
+        $bedManager = $this->getJson('/api/mobile/v1/eddy/context/house?persona=bed_manager')
+            ->assertOk()
+            ->assertJsonPath('data.scope_type', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.surface', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.role.id', 'bed_manager')
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.patient_identifiers_included', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'context' => [
+                        'patient_flow_4d' => [
+                            'current_metrics',
+                            'top_barriers' => [['barrier_code', 'label', 'owner_role', 'eddy_summary']],
+                            'barrier_owner_map',
+                            'recommended_focus_areas',
+                            'source_lineage' => ['timer_sources', 'demo_scenario', 'generated_from'],
+                            'action_allowlist',
+                        ],
+                    ],
+                ],
+            ])
+            ->json('data.context.patient_flow_4d');
+
+        $this->assertNotEmpty($bedManager['top_barriers']);
+        $this->assertContains('draft_huddle_summary', $bedManager['action_allowlist']);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'executive');
+
+        $executiveBody = $this->getJson('/api/mobile/v1/eddy/context/house?persona=executive')
+            ->assertOk()
+            ->assertJsonPath('data.scope_type', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.role.id', 'executive')
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.patient_identifiers_included', false)
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.aggregate_only', true)
+            ->getContent();
+
+        $this->assertStringNotContainsString('"patient_id"', $executiveBody);
+        $this->assertStringNotContainsString('"patient_display_id"', $executiveBody);
+        $this->assertStringNotContainsString('"encounter_id"', $executiveBody);
+        $this->assertStringNotContainsString('DEMO-FLOW-', $executiveBody);
     }
 
     public function test_scoped_user_cannot_spoof_an_unassigned_persona(): void

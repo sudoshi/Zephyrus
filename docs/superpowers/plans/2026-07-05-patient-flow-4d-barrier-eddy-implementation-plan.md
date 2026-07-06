@@ -92,8 +92,14 @@ production-grade capability.
 - Building autonomous action execution for Eddy.
 - Production integrations with real transport, EVS, staffing, or discharge
   systems beyond existing source hooks.
-- Native mobile implementation beyond contract alignment notes.
+- Native mobile screen buildout beyond contract alignment notes.
 - Reworking the Three.js renderer into React Three Fiber.
+
+### Parity Constraint
+
+- Any Hummingbird advancement in this area must be backed by the same Zephyrus
+  Patient Flow 4D service contract, taxonomy, persona lens, and redaction tests.
+  Mobile-only context or semantics are not acceptable for Eddy barrier work.
 
 ## 5. Target Architecture
 
@@ -662,32 +668,37 @@ GET /api/patient-flow/occupancy?demo=or_pacu_hold
 ### Backend Tasks
 
 - [ ] Add `GET /api/patient-flow/eddy-context`.
-- [ ] Or add `eddy_context` object to occupancy response when requested:
+- [x] Or add `eddy_context` object to occupancy response when requested:
 
 ```text
 GET /api/patient-flow/occupancy?include=eddy_context
 ```
 
-- [ ] Include:
-    - [ ] role/persona,
-    - [ ] scope,
-    - [ ] as-of time,
-    - [ ] current metrics,
-    - [ ] top barriers,
-    - [ ] barrier-to-owner map,
-    - [ ] affected service lines,
-    - [ ] recommended focus areas,
-    - [ ] source lineage,
-    - [ ] redaction state,
-    - [ ] action allowlist.
-- [ ] Add policy filters so Eddy never receives patient identifiers for
+- [x] Include:
+    - [x] role/persona,
+    - [x] scope,
+    - [x] as-of time,
+    - [x] current metrics,
+    - [x] top barriers,
+    - [x] barrier-to-owner map,
+    - [x] affected service lines,
+    - [x] recommended focus areas,
+    - [x] source lineage,
+    - [x] redaction state,
+    - [x] action allowlist.
+- [x] Expose the same `patient_flow_4d` context through
+      `GET /api/mobile/v1/eddy/context/{scopeRef}` for authorized Hummingbird
+      house/floor flow scopes.
+- [x] Add policy filters so Eddy never receives patient identifiers for
       aggregate personas.
-- [ ] Add tests for bed manager vs executive context.
+- [x] Add tests for bed manager vs executive context.
+- [x] Add mobile parity tests proving Hummingbird Eddy context uses the Zephyrus
+      Patient Flow 4D context contract.
 
 ### Frontend Tasks
 
-- [ ] Replace prose-only prefill with structured context plus concise prompt.
-- [ ] Keep a readable prompt for the user to inspect.
+- [x] Replace prose-only prefill with structured context plus concise prompt.
+- [x] Keep a readable prompt for the user to inspect.
 - [ ] Add "Ask Eddy about selected barrier" from inspector.
 - [ ] Add "Ask Eddy about all barriers" from toolbar.
 - [ ] Add "Draft huddle summary" action for bed manager/house supervisor.
@@ -706,7 +717,7 @@ GET /api/patient-flow/occupancy?include=eddy_context
 - [ ] Eddy can summarize the barrier picture.
 - [ ] Eddy can explain why each top barrier matters.
 - [ ] Eddy output differs appropriately by persona.
-- [ ] Tests verify structured context redaction.
+- [x] Tests verify structured context redaction.
 
 ## Phase 8: Persona Comparison Mode
 
@@ -948,12 +959,12 @@ npm run build
 
 ### Eddy
 
-- [ ] Add structured Eddy context payload.
+- [x] Add structured Eddy context payload.
 - [ ] Add all-barriers Eddy action.
 - [ ] Add selected-barrier Eddy action.
 - [ ] Add huddle-summary Eddy action.
-- [ ] Add persona redaction tests.
-- [ ] Add source-lineage requirements to prompt.
+- [x] Add persona redaction tests.
+- [x] Add source-lineage requirements to prompt.
 
 ### Visual Semantics
 
@@ -1023,8 +1034,8 @@ demo while moving the underlying contract toward production use.
 - [ ] Each disk answers duration, origin, next move, active timers, delay reason,
       owner, and impact.
 - [ ] Service-line and persona rollups show compounding pressure.
-- [ ] Eddy receives structured governed context.
-- [ ] Aggregate personas receive useful pressure context without patient identity.
+- [x] Eddy receives structured governed context.
+- [x] Aggregate personas receive useful pressure context without patient identity.
 - [ ] Demo scenarios are deterministic and repeatable.
 - [ ] Snapshot persistence supports trend and history views.
 - [ ] Automated tests cover contracts, redaction, taxonomy, snapshots, and build.
