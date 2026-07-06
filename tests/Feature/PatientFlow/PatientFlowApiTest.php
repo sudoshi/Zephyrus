@@ -131,19 +131,29 @@ class PatientFlowApiTest extends TestCase
                 'occupancy' => [
                     [
                         'barrier_reasons',
+                        'barrier_codes',
+                        'barrier_labels',
                         'owner_roles',
                         'delay_impacts',
-                        'timers' => [['reason', 'owner_role', 'blocks', 'impact']],
+                        'rtdc_metrics',
+                        'eddy_summaries',
+                        'barrier_owner_map',
+                        'timers' => [['reason', 'barrier_code', 'barrier_label', 'owner_role', 'blocks', 'impact', 'rtdc_metrics', 'eddy_summary']],
                     ],
                 ],
                 'summary' => [
-                    'top_barriers' => [['label', 'reason', 'owner_role', 'count', 'service_lines']],
+                    'top_barriers' => [['barrier_code', 'label', 'reason', 'owner_role', 'count', 'service_lines', 'rtdc_metrics', 'eddy_summary']],
                 ],
             ])
             ->json();
 
         $this->assertNotEmpty($demo['summary']['top_barriers']);
         $this->assertNotEmpty(collect($demo['occupancy'])->first(fn (array $item): bool => ! empty($item['barrier_reasons'])));
+        $this->assertGreaterThanOrEqual(
+            5,
+            collect($demo['summary']['top_barriers'])->pluck('barrier_code')->filter()->unique()->count(),
+        );
+        $this->assertNotEmpty(collect($demo['occupancy'])->first(fn (array $item): bool => ! empty($item['rtdc_metrics']) && ! empty($item['eddy_summaries'])));
 
         $ambient = $this->actingAs($user)
             ->getJson('/api/patient-flow/ambient')

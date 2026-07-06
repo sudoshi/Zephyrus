@@ -112,6 +112,7 @@ return [
             'search_path' => 'prod,public',
             'schema' => 'prod',
             'sslmode' => 'prefer',
+            'timezone' => env('DB_TIMEZONE', 'UTC'),
         ],
 
         'sqlsrv' => [

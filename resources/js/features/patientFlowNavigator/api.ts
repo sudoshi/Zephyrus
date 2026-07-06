@@ -62,9 +62,15 @@ interface RawOccupancyTimer {
   status: OccupancyTimer['status'];
   source: string;
   reason?: string | null;
+  barrier_code?: string | null;
+  barrier_label?: string | null;
+  barrier_category?: string | null;
   owner_role?: string | null;
   blocks?: string | null;
   impact?: string | null;
+  rtdc_metrics?: string[];
+  eddy_summary?: string | null;
+  recommended_focus?: string | null;
 }
 
 interface RawOccupancyInsight {
@@ -87,8 +93,13 @@ interface RawOccupancyInsight {
   timers: RawOccupancyTimer[];
   blockers: string[];
   barrier_reasons?: string[];
+  barrier_codes?: string[];
+  barrier_labels?: string[];
   owner_roles?: string[];
   delay_impacts?: string[];
+  rtdc_metrics?: string[];
+  eddy_summaries?: string[];
+  barrier_owner_map?: Record<string, { label?: string | null; owner_role?: string | null }>;
 }
 
 interface RawOccupancySummary {
@@ -113,9 +124,14 @@ interface RawOccupancySummary {
     capacity: number;
   };
   top_barriers?: Array<{
+    barrier_code?: string | null;
     label: string;
     reason?: string | null;
     owner_role?: string | null;
+    barrier_category?: string | null;
+    rtdc_metrics?: string[];
+    eddy_summary?: string | null;
+    recommended_focus?: string | null;
     count: number;
     service_lines: string[];
   }>;
@@ -136,9 +152,15 @@ function mapTimer(timer: RawOccupancyTimer): OccupancyTimer {
     status: timer.status,
     source: timer.source,
     reason: timer.reason,
+    barrierCode: timer.barrier_code,
+    barrierLabel: timer.barrier_label,
+    barrierCategory: timer.barrier_category,
     ownerRole: timer.owner_role,
     blocks: timer.blocks,
     impact: timer.impact,
+    rtdcMetrics: timer.rtdc_metrics ?? [],
+    eddySummary: timer.eddy_summary,
+    recommendedFocus: timer.recommended_focus,
   };
 }
 
@@ -164,8 +186,18 @@ function mapOccupancy(item: RawOccupancyInsight): OccupancyInsight | null {
     timers: item.timers.map(mapTimer),
     blockers: item.blockers,
     barrierReasons: item.barrier_reasons ?? [],
+    barrierCodes: item.barrier_codes ?? [],
+    barrierLabels: item.barrier_labels ?? [],
     ownerRoles: item.owner_roles ?? [],
     delayImpacts: item.delay_impacts ?? [],
+    rtdcMetrics: item.rtdc_metrics ?? [],
+    eddySummaries: item.eddy_summaries ?? [],
+    barrierOwnerMap: Object.fromEntries(
+      Object.entries(item.barrier_owner_map ?? {}).map(([code, owner]) => [
+        code,
+        { label: owner.label, ownerRole: owner.owner_role },
+      ]),
+    ),
   };
 }
 
@@ -192,9 +224,14 @@ function mapSummary(summary: RawOccupancySummary): OccupancySummary {
       capacity: summary.persona.capacity,
     },
     topBarriers: (summary.top_barriers ?? []).map((item) => ({
+      barrierCode: item.barrier_code,
       label: item.label,
       reason: item.reason,
       ownerRole: item.owner_role,
+      barrierCategory: item.barrier_category,
+      rtdcMetrics: item.rtdc_metrics ?? [],
+      eddySummary: item.eddy_summary,
+      recommendedFocus: item.recommended_focus,
       count: item.count,
       serviceLines: item.service_lines,
     })),

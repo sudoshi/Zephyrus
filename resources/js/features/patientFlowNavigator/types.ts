@@ -189,9 +189,15 @@ export interface OccupancyTimer {
   status: OccupancyTimerStatus;
   source: string;
   reason?: string | null;
+  barrierCode?: string | null;
+  barrierLabel?: string | null;
+  barrierCategory?: string | null;
   ownerRole?: string | null;
   blocks?: string | null;
   impact?: string | null;
+  rtdcMetrics?: string[];
+  eddySummary?: string | null;
+  recommendedFocus?: string | null;
 }
 
 export interface OccupancyInsight {
@@ -214,8 +220,13 @@ export interface OccupancyInsight {
   timers: OccupancyTimer[];
   blockers: string[];
   barrierReasons?: string[];
+  barrierCodes?: string[];
+  barrierLabels?: string[];
   ownerRoles?: string[];
   delayImpacts?: string[];
+  rtdcMetrics?: string[];
+  eddySummaries?: string[];
+  barrierOwnerMap?: Record<string, { label?: string | null; ownerRole?: string | null }>;
 }
 
 export interface OccupancyServiceLineSummary {
@@ -244,9 +255,14 @@ export interface OccupancySummary {
   serviceLines: OccupancyServiceLineSummary[];
   persona: OccupancyPersonaSummary;
   topBarriers?: Array<{
+    barrierCode?: string | null;
     label: string;
     reason?: string | null;
     ownerRole?: string | null;
+    barrierCategory?: string | null;
+    rtdcMetrics?: string[];
+    eddySummary?: string | null;
+    recommendedFocus?: string | null;
     count: number;
     serviceLines: string[];
   }>;
@@ -295,9 +311,11 @@ export interface ProjectionItem {
   derived: boolean;
   provenance: ProjectionProvenance;
   reason?: string | null;
+  barrier_code?: string | null;
   owner_role?: string | null;
   blocks?: string | null;
   impact?: string | null;
+  _patient_ref?: string | null;
 }
 
 export interface PatientFlowProjectionsResponse {

@@ -97,6 +97,7 @@ class PatientFlowDemoBarrierScenario
                     'ends_at' => null,
                     'derived' => true,
                     'reason' => (string) $timer['reason'],
+                    'barrier_code' => (string) $timer['barrier_code'],
                     'owner_role' => (string) $timer['owner_role'],
                     'blocks' => (string) $timer['blocks'],
                     'impact' => (string) $timer['impact'],
@@ -142,6 +143,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'transport_due',
                         'timer_kind' => 'arrival_transport',
+                        'barrier_code' => 'transport_oxygen_team_delayed',
                         'label' => 'ICU arrival transport',
                         'minutes' => -35,
                         'reason' => 'ICU bed is assigned but the oxygen-capable transport team is still tied up on CT and ED runs.',
@@ -153,6 +155,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'expected_discharge',
                         'timer_kind' => 'readiness',
+                        'barrier_code' => 'icu_handoff_staffing_pending',
                         'label' => 'ICU acceptance',
                         'minutes' => -18,
                         'reason' => 'Receiving ICU nurse-to-nurse handoff is waiting on staffing confirmation.',
@@ -175,6 +178,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'evs_due',
                         'timer_kind' => 'evs',
+                        'barrier_code' => 'evs_isolation_clean_delayed',
                         'label' => 'Receiving bed EVS turn',
                         'minutes' => -28,
                         'reason' => 'Isolation clean on the assigned surgical bed exceeded target after discharge transport arrived late.',
@@ -186,6 +190,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'transport_due',
                         'timer_kind' => 'next_transport',
+                        'barrier_code' => 'pacu_floor_transport_at_risk',
                         'label' => 'PACU to floor move',
                         'minutes' => 22,
                         'reason' => 'Transport can move as soon as EVS releases the bed.',
@@ -208,6 +213,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'expected_discharge',
                         'timer_kind' => 'readiness',
+                        'barrier_code' => 'discharge_dme_authorization_pending',
                         'label' => 'Discharge clearance',
                         'minutes' => -55,
                         'reason' => 'Home oxygen authorization and DME delivery confirmation are incomplete after discharge order.',
@@ -230,6 +236,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'transport_due',
                         'timer_kind' => 'next_transport',
+                        'barrier_code' => 'stepdown_staffing_variance',
                         'label' => 'Stepdown move',
                         'minutes' => -42,
                         'reason' => 'Telemetry stepdown room is assigned but the receiving unit is holding for a 1:4 staffing variance.',
@@ -252,6 +259,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'transport_due',
                         'timer_kind' => 'next_transport',
+                        'barrier_code' => 'cath_pickup_handoff_pending',
                         'label' => 'Cath lab pickup',
                         'minutes' => 18,
                         'reason' => 'Nurse handoff and consent packet are due before the transport window closes.',
@@ -274,6 +282,7 @@ class PatientFlowDemoBarrierScenario
                     [
                         'projection_kind' => 'expected_discharge',
                         'timer_kind' => 'readiness',
+                        'barrier_code' => 'post_acute_packet_reconciliation_pending',
                         'label' => 'Post-acute acceptance',
                         'minutes' => 14,
                         'reason' => 'External rehab acceptance expires soon unless the packet is reconciled.',
@@ -295,23 +304,14 @@ class PatientFlowDemoBarrierScenario
      */
     private function pickLocation(array $locations, array $criteria, array &$used): ?array
     {
-        $candidates = [];
-        foreach ($locations as $code => $location) {
-            if (isset($used[$code]) || empty($location['position_m'])) {
-                continue;
-            }
-
-            $score = $this->scoreLocation($code, $location, $criteria);
-            if ($score <= 0) {
-                continue;
-            }
-
-            $candidates[] = ['code' => $code, 'location' => $location, 'score' => $score];
+        $candidates = $this->candidateLocations($locations, $criteria, $used, false);
+        if ($candidates === []) {
+            $candidates = $this->candidateLocations($locations, $criteria, $used, true);
         }
 
         if ($candidates === []) {
             foreach ($locations as $code => $location) {
-                if (! isset($used[$code]) && ! empty($location['position_m'])) {
+                if (! empty($location['position_m'])) {
                     $used[$code] = true;
 
                     return ['code' => $code, 'location' => $location];
@@ -326,6 +326,31 @@ class PatientFlowDemoBarrierScenario
         $used[$picked['code']] = true;
 
         return ['code' => $picked['code'], 'location' => $picked['location']];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $locations
+     * @param  array<string, mixed>  $criteria
+     * @param  array<string, bool>  $used
+     * @return list<array{code: string, location: array<string, mixed>, score: int}>
+     */
+    private function candidateLocations(array $locations, array $criteria, array $used, bool $allowUsed): array
+    {
+        $candidates = [];
+        foreach ($locations as $code => $location) {
+            if ((! $allowUsed && isset($used[$code])) || empty($location['position_m'])) {
+                continue;
+            }
+
+            $score = $this->scoreLocation($code, $location, $criteria);
+            if ($score <= 0) {
+                continue;
+            }
+
+            $candidates[] = ['code' => $code, 'location' => $location, 'score' => $score];
+        }
+
+        return $candidates;
     }
 
     /**

@@ -672,7 +672,12 @@ export default function PatientFlowNavigator({
     const topBarriers = occupancy.topBarriers?.length
       ? occupancy.topBarriers
           .slice(0, 5)
-          .map((item) => `${item.label} (${item.count}): ${item.reason ?? item.ownerRole ?? 'active barrier'}`)
+          .map((item) => {
+            const code = item.barrierCode ? `${item.barrierCode} / ` : '';
+            const metrics = item.rtdcMetrics?.length ? ` Metrics: ${item.rtdcMetrics.join(', ')}.` : '';
+            const focus = item.recommendedFocus ? ` Focus: ${item.recommendedFocus}` : '';
+            return `${code}${item.label} (${item.count}): ${item.eddySummary ?? item.reason ?? item.ownerRole ?? 'active barrier'}.${metrics}${focus}`;
+          })
           .join('; ')
       : 'No active barrier reasons in the current lens.';
     const sampleDiskDetails = lastOccupancyInsightsRef.current
@@ -680,7 +685,8 @@ export default function PatientFlowNavigator({
       .slice(0, 4)
       .map((item) => {
         const reasons = item.barrierReasons?.length ? item.barrierReasons.join(' / ') : item.blockers.join(', ');
-        return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${Math.round(item.stayMinutes / 60)}h stay; ${reasons}`;
+        const codes = item.barrierCodes?.length ? ` codes ${item.barrierCodes.join(', ')};` : '';
+        return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${Math.round(item.stayMinutes / 60)}h stay;${codes} ${reasons}`;
       })
       .join('; ') || 'No delayed disk details selected.';
 

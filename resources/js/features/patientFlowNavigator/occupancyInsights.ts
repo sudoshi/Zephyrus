@@ -53,12 +53,17 @@ function humanServiceLine(value?: string | null): string {
 }
 
 function projectionMatchesState(item: ProjectionItem, state: PatientVisibleState): boolean {
+  return projectionMatchRank(item, state) > 0;
+}
+
+function projectionMatchRank(item: ProjectionItem, state: PatientVisibleState): number {
+  if (item._patient_ref && item._patient_ref === state.event.patient_id) return 5;
   const entityRef = item.entity?.ref ? String(item.entity.ref) : null;
-  if (item.patient_context_ref && state.event.metadata?.patient_context_ref === item.patient_context_ref) return true;
-  if (entityRef && [state.event.encounter_id, state.event.patient_id, state.event.patient_display_id].includes(entityRef)) return true;
-  if (item.bed_id !== null && state.event.bed && String(item.bed_id) === String(state.event.bed)) return true;
-  if (item.room && state.event.room && item.room.toLowerCase() === state.event.room.toLowerCase()) return true;
-  return false;
+  if (item.patient_context_ref && state.event.metadata?.patient_context_ref === item.patient_context_ref) return 5;
+  if (entityRef && [state.event.encounter_id, state.event.patient_id, state.event.patient_display_id].includes(entityRef)) return 4;
+  if (item.bed_id !== null && state.event.bed && String(item.bed_id) === String(state.event.bed)) return 3;
+  if (item.room && state.event.room && item.room.toLowerCase() === state.event.room.toLowerCase()) return 2;
+  return 0;
 }
 
 function nearbyProjections(
@@ -77,9 +82,13 @@ function nearbyProjections(
       if (item.unit_id !== null && currentUnit && item.label.toLowerCase().includes(currentUnit.toLowerCase())) return true;
       return false;
     })
-    .sort((a, b) => Date.parse(a.t) - Date.parse(b.t));
+    .map((item) => ({ item, rank: projectionMatchRank(item, state) }));
+  const exact = future.filter(({ rank }) => rank >= 4);
 
-  return future.slice(0, 4);
+  return (exact.length > 0 ? exact : future)
+    .sort((a, b) => b.rank - a.rank || Date.parse(a.item.t) - Date.parse(b.item.t))
+    .slice(0, 4)
+    .map(({ item }) => item);
 }
 
 function eventTimer(state: PatientVisibleState, timeMs: number): OccupancyTimer | null {
@@ -101,6 +110,7 @@ function eventTimer(state: PatientVisibleState, timeMs: number): OccupancyTimer 
     status: timerStatus(minutesRemaining),
     source: movement ? 'movement' : next.event_category,
     reason: typeof metadata.reason === 'string' ? metadata.reason : typeof metadata.barrier_reason === 'string' ? metadata.barrier_reason : typeof metadata.delay_reason === 'string' ? metadata.delay_reason : null,
+    barrierCode: typeof metadata.barrier_code === 'string' ? metadata.barrier_code : null,
     ownerRole: typeof metadata.owner_role === 'string' ? metadata.owner_role : null,
     blocks: typeof metadata.blocks === 'string' ? metadata.blocks : null,
     impact: typeof metadata.impact === 'string' ? metadata.impact : null,
@@ -122,6 +132,7 @@ function projectionTimer(item: ProjectionItem, timeMs: number): OccupancyTimer {
     status: timerStatus(minutesRemaining),
     source,
     reason: item.reason ?? null,
+    barrierCode: item.barrier_code ?? null,
     ownerRole: item.owner_role ?? null,
     blocks: item.blocks ?? null,
     impact: item.impact ?? null,
@@ -141,6 +152,8 @@ function stayTimer(stayMinutes: number): OccupancyTimer {
     status,
     source: 'elapsed occupancy',
     reason: status === 'ok' ? null : 'Elapsed occupancy has crossed the RTDC stay-duration threshold.',
+    barrierCode: status === 'ok' ? null : 'long_stay_capacity_risk',
+    barrierLabel: status === 'ok' ? null : 'Long-stay capacity risk',
     ownerRole: status === 'ok' ? null : 'bed_manager',
     blocks: status === 'ok' ? null : 'Capacity release',
     impact: status === 'ok' ? null : 'Long-stay occupancy compounds bed availability risk.',
@@ -162,7 +175,14 @@ function summarize(insights: OccupancyInsight[]): OccupancySummary {
   let evsDelays = 0;
   let readyToMove = 0;
   let stayTotal = 0;
-  const barrierMap = new Map<string, { label: string; reason: string | null; ownerRole: string | null; count: number; serviceLines: Set<string> }>();
+  const barrierMap = new Map<string, {
+    barrierCode: string | null;
+    label: string;
+    reason: string | null;
+    ownerRole: string | null;
+    count: number;
+    serviceLines: Set<string>;
+  }>();
 
   for (const insight of insights) {
     stayTotal += insight.stayMinutes;
@@ -183,9 +203,10 @@ function summarize(insights: OccupancyInsight[]): OccupancySummary {
     for (const timer of insight.timers) {
       if (timer.status === 'ok') continue;
       if (timer.kind === 'stay') continue;
-      const key = `${timer.label}|${timer.reason ?? ''}|${timer.ownerRole ?? ''}`;
+      const key = timer.barrierCode ?? `${timer.label}|${timer.reason ?? ''}|${timer.ownerRole ?? ''}`;
       const barrier = barrierMap.get(key) ?? {
-        label: timer.label,
+        barrierCode: timer.barrierCode ?? null,
+        label: timer.barrierLabel ?? timer.label,
         reason: timer.reason ?? null,
         ownerRole: timer.ownerRole ?? null,
         count: 0,
@@ -225,6 +246,7 @@ function summarize(insights: OccupancyInsight[]): OccupancySummary {
     },
     topBarriers: [...barrierMap.values()]
       .map((item) => ({
+        barrierCode: item.barrierCode,
         label: item.label,
         reason: item.reason,
         ownerRole: item.ownerRole,
@@ -283,8 +305,20 @@ export function buildOccupancyInsights(
       timers,
       blockers,
       barrierReasons: [...new Set(blockingTimers.map((timer) => timer.reason).filter((value): value is string => Boolean(value)))],
+      barrierCodes: [...new Set(blockingTimers.map((timer) => timer.barrierCode).filter((value): value is string => Boolean(value)))],
+      barrierLabels: [...new Set(blockingTimers.map((timer) => timer.barrierLabel).filter((value): value is string => Boolean(value)))],
       ownerRoles: [...new Set(blockingTimers.map((timer) => timer.ownerRole).filter((value): value is string => Boolean(value)))],
       delayImpacts: [...new Set(blockingTimers.map((timer) => timer.impact).filter((value): value is string => Boolean(value)))],
+      rtdcMetrics: [...new Set(blockingTimers.flatMap((timer) => timer.rtdcMetrics ?? []))],
+      eddySummaries: [...new Set(blockingTimers.map((timer) => timer.eddySummary).filter((value): value is string => Boolean(value)))],
+      barrierOwnerMap: Object.fromEntries(
+        blockingTimers
+          .filter((timer) => timer.barrierCode)
+          .map((timer) => [
+            timer.barrierCode as string,
+            { label: timer.barrierLabel ?? timer.label, ownerRole: timer.ownerRole ?? null },
+          ]),
+      ),
     };
   });
 

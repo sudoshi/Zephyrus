@@ -240,10 +240,10 @@ export default function NavigatorToolbar({
         {Boolean(occupancy.topBarriers?.length) && (
           <ol className="patient-flow-barrier-rollup">
             {occupancy.topBarriers?.slice(0, 3).map((item) => (
-              <li key={`${item.label}-${item.reason ?? 'none'}`}>
+              <li key={item.barrierCode ?? `${item.label}-${item.reason ?? 'none'}`}>
                 <span>{item.label}</span>
                 <strong>{item.count}</strong>
-                <small>{item.reason ?? item.ownerRole ?? 'Barrier active'}</small>
+                <small>{item.eddySummary ?? item.reason ?? item.ownerRole ?? 'Barrier active'}</small>
               </li>
             ))}
           </ol>

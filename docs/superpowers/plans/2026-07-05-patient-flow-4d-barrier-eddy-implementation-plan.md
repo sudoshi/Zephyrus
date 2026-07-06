@@ -376,35 +376,35 @@ curl -sS \
 
 ### Backend Tasks
 
-- [ ] Add `config/patient_flow_barriers.php`.
-- [ ] Add canonical barrier codes and metadata.
-- [ ] Add `BarrierTaxonomyService`.
-- [ ] Add methods:
-    - [ ] `definition(string $code): array`.
-    - [ ] `statusFor(string $code, ?int $minutesRemaining): string`.
-    - [ ] `ownerFor(string $code): string`.
-    - [ ] `eddySummaryFor(string $code): string`.
-    - [ ] `rtdcMetricsFor(string $code): array`.
-- [ ] Update `PatientFlowDemoBarrierScenario` to emit `barrier_code`.
-- [ ] Update `OccupancyInsightProjector` to resolve barrier metadata.
-- [ ] Keep `reason` as narrative detail, but require `barrier_code` for
+- [x] Add `config/patient_flow_barriers.php`.
+- [x] Add canonical barrier codes and metadata.
+- [x] Add `BarrierTaxonomyService`.
+- [x] Add methods:
+    - [x] `definition(string $code): array`.
+    - [x] `statusFor(string $code, ?int $minutesRemaining): string`.
+    - [x] `ownerFor(string $code): string`.
+    - [x] `eddySummaryFor(string $code): string`.
+    - [x] `rtdcMetricsFor(string $code): array`.
+- [x] Update `PatientFlowDemoBarrierScenario` to emit `barrier_code`.
+- [x] Update `OccupancyInsightProjector` to resolve barrier metadata.
+- [x] Keep `reason` as narrative detail, but require `barrier_code` for
       normalized analytics.
-- [ ] Add tests for unknown barrier codes.
-- [ ] Add tests for status thresholds.
+- [x] Add tests for unknown barrier codes.
+- [x] Add tests for status thresholds.
 
 ### Frontend Tasks
 
-- [ ] Add `barrierCode` to `OccupancyTimer`.
-- [ ] Add `rtdcMetrics` to timer or disk detail types.
-- [ ] Display human labels from backend response, not local enums.
-- [ ] Show barrier code in debug-only inspector rows if useful.
+- [x] Add `barrierCode` to `OccupancyTimer`.
+- [x] Add `rtdcMetrics` to timer or disk detail types.
+- [x] Display human labels from backend response, not local enums.
+- [x] Show barrier code in debug-only inspector rows if useful.
 
 ### Acceptance Criteria
 
-- [ ] Top-barrier rollups group by `barrier_code`, not just label/reason.
-- [ ] Demo scenario returns at least five distinct barrier codes.
-- [ ] Backend tests prove taxonomy fields are present.
-- [ ] Frontend build passes.
+- [x] Top-barrier rollups group by `barrier_code`, not just label/reason.
+- [x] Demo scenario returns at least five distinct barrier codes.
+- [x] Backend tests prove taxonomy fields are present.
+- [x] Frontend build passes.
 
 ## Phase 2: Backend Snapshot Persistence
 

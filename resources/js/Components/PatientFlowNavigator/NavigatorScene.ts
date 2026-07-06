@@ -337,8 +337,12 @@ export class NavigatorScene {
         status: insight.primaryStatus,
         blockers: insight.blockers.join(', '),
         barrier_reasons: insight.barrierReasons?.join(' | '),
+        barrier_codes: insight.barrierCodes?.join(', '),
+        barrier_labels: insight.barrierLabels?.join(' | '),
         owner_roles: insight.ownerRoles?.join(', '),
         delay_impacts: insight.delayImpacts?.join(' | '),
+        rtdc_metrics: insight.rtdcMetrics?.join(', '),
+        eddy_summaries: insight.eddySummaries?.join(' | '),
         timers: insight.timers.map((timer) => `${timer.label}: ${timer.minutesRemaining ?? 'n/a'}m ${timer.status}${timer.reason ? ` because ${timer.reason}` : ''}`).join(' | '),
         ...Object.fromEntries(
           insight.timers.slice(0, 6).map((timer, index) => [
@@ -371,9 +375,15 @@ export class NavigatorScene {
           status: timer.status,
           source: timer.source,
           reason: timer.reason,
+          barrier_code: timer.barrierCode,
+          barrier_label: timer.barrierLabel,
+          barrier_category: timer.barrierCategory,
           owner_role: timer.ownerRole,
           blocks: timer.blocks,
           impact: timer.impact,
+          rtdc_metrics: timer.rtdcMetrics?.join(', '),
+          eddy_summary: timer.eddySummary,
+          recommended_focus: timer.recommendedFocus,
           ...(insight.patientDisplayId ? { patient_display_id: insight.patientDisplayId } : {}),
         };
         this.heatLayer.add(pip);
