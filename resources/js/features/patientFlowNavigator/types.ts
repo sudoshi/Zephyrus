@@ -268,6 +268,51 @@ export interface OccupancySummary {
   }>;
 }
 
+export interface OccupancyEddyContext {
+  surface: 'patient_flow_4d';
+  role: {
+    id: string;
+    patient_dots: FlowPatientDots;
+    scope_default: string;
+  };
+  scope: {
+    type: string;
+    filters: {
+      floor?: string | null;
+      service_line?: string | null;
+      category?: string | null;
+    };
+  };
+  as_of: string;
+  redaction: {
+    patient_dots: FlowPatientDots;
+    patient_identifiers_included: boolean;
+    aggregate_only: boolean;
+  };
+  current_metrics: Record<string, unknown>;
+  affected_service_lines: OccupancyServiceLineSummary[];
+  top_barriers: Array<{
+    barrier_code?: string | null;
+    label: string;
+    category?: string | null;
+    reason?: string | null;
+    owner_role?: string | null;
+    count: number;
+    service_lines: string[];
+    rtdc_metrics: string[];
+    eddy_summary?: string | null;
+    recommended_focus?: string | null;
+  }>;
+  barrier_owner_map: Record<string, { label?: string | null; owner_role?: string | null; count: number }>;
+  recommended_focus_areas: string[];
+  source_lineage: {
+    timer_sources: Record<string, number>;
+    demo_scenario?: Record<string, unknown> | null;
+    generated_from: string;
+  };
+  action_allowlist: string[];
+}
+
 // ---------------------------------------------------------------------------
 // 48h Flow Window — projections + persona lens (FLOW-WINDOW-PLAN §7.3)
 // ---------------------------------------------------------------------------

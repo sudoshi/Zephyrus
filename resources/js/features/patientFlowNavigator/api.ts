@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   PatientFlowAmbient,
+  OccupancyEddyContext,
   PatientFlowEvent,
   PatientFlowLocations,
   OccupancyInsight,
@@ -141,6 +142,7 @@ interface RawOccupancyResponse {
   asOf: string;
   occupancy: RawOccupancyInsight[];
   summary: RawOccupancySummary;
+  eddy_context?: OccupancyEddyContext;
 }
 
 function mapTimer(timer: RawOccupancyTimer): OccupancyTimer {
@@ -238,16 +240,18 @@ function mapSummary(summary: RawOccupancySummary): OccupancySummary {
   };
 }
 
-export async function fetchPatientFlowOccupancy(query: PatientFlowEventQuery & { asOf?: string } = {}): Promise<{
+export async function fetchPatientFlowOccupancy(query: PatientFlowEventQuery & { asOf?: string; include?: string } = {}): Promise<{
   asOf: string;
   occupancy: OccupancyInsight[];
   summary: OccupancySummary;
+  eddyContext?: OccupancyEddyContext;
 }> {
   const response = await axios.get<RawOccupancyResponse>('/api/patient-flow/occupancy', { params: query });
   return {
     asOf: response.data.asOf,
     occupancy: response.data.occupancy.map(mapOccupancy).filter((item): item is OccupancyInsight => item !== null),
     summary: mapSummary(response.data.summary),
+    eddyContext: response.data.eddy_context,
   };
 }
 

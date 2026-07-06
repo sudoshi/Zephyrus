@@ -124,9 +124,12 @@ class PatientFlowApiTest extends TestCase
         $this->assertArrayNotHasKey('patient_display_id', $redacted);
 
         $demo = $this->actingAs($user)
-            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers')
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers&include=eddy_context')
             ->assertOk()
             ->assertJsonPath('demo_scenario.key', 'rtdc_barriers')
+            ->assertJsonPath('eddy_context.surface', 'patient_flow_4d')
+            ->assertJsonPath('eddy_context.role.id', 'bed_manager')
+            ->assertJsonPath('eddy_context.redaction.patient_identifiers_included', true)
             ->assertJsonStructure([
                 'occupancy' => [
                     [
@@ -144,6 +147,14 @@ class PatientFlowApiTest extends TestCase
                 'summary' => [
                     'top_barriers' => [['barrier_code', 'label', 'reason', 'owner_role', 'count', 'service_lines', 'rtdc_metrics', 'eddy_summary']],
                 ],
+                'eddy_context' => [
+                    'current_metrics',
+                    'top_barriers' => [['barrier_code', 'label', 'owner_role', 'rtdc_metrics', 'eddy_summary', 'recommended_focus']],
+                    'barrier_owner_map',
+                    'recommended_focus_areas',
+                    'source_lineage' => ['timer_sources', 'demo_scenario', 'generated_from'],
+                    'action_allowlist',
+                ],
             ])
             ->json();
 
@@ -154,6 +165,21 @@ class PatientFlowApiTest extends TestCase
             collect($demo['summary']['top_barriers'])->pluck('barrier_code')->filter()->unique()->count(),
         );
         $this->assertNotEmpty(collect($demo['occupancy'])->first(fn (array $item): bool => ! empty($item['rtdc_metrics']) && ! empty($item['eddy_summaries'])));
+        $this->assertContains('draft_huddle_summary', $demo['eddy_context']['action_allowlist']);
+        $this->assertNotEmpty($demo['eddy_context']['recommended_focus_areas']);
+
+        $executiveContext = $this->actingAs(User::factory()->create(['role' => 'executive']))
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers&include=eddy_context')
+            ->assertOk()
+            ->assertJsonPath('eddy_context.role.id', 'executive')
+            ->assertJsonPath('eddy_context.redaction.patient_identifiers_included', false)
+            ->assertJsonPath('eddy_context.redaction.aggregate_only', true)
+            ->json('eddy_context');
+
+        $encodedExecutiveContext = json_encode($executiveContext, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('"patient_id"', $encodedExecutiveContext);
+        $this->assertStringNotContainsString('"patient_display_id"', $encodedExecutiveContext);
+        $this->assertStringNotContainsString('"encounter_id"', $encodedExecutiveContext);
 
         $ambient = $this->actingAs($user)
             ->getJson('/api/patient-flow/ambient')

@@ -30,6 +30,7 @@ import type {
   FlowLens,
   FlowPatientDots,
   FlowUnitSummary,
+  OccupancyEddyContext,
   OccupancyInsight,
   OccupancySummary,
   PatientFlowAmbient,
@@ -250,6 +251,7 @@ export default function PatientFlowNavigator({
   const [cameraText, setCameraText] = useState('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
+  const [eddyContext, setEddyContext] = useState<OccupancyEddyContext | null>(null);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
@@ -452,6 +454,7 @@ export default function PatientFlowNavigator({
         service_line: filters.serviceLine !== 'all' ? filters.serviceLine : undefined,
         category: filters.category !== 'all' ? filters.category : undefined,
         limit: 20000,
+        include: 'eddy_context',
       })
         .then((payload) => {
           serverOccupancyRef.current = {
@@ -462,10 +465,12 @@ export default function PatientFlowNavigator({
           };
           lastBucketKeyRef.current = '';
           setOccupancy(payload.summary);
+          setEddyContext(payload.eddyContext ?? null);
           refreshScene();
         })
         .catch(() => {
           serverOccupancyRef.current = null;
+          setEddyContext(null);
         });
     }, playing ? 900 : 220);
 
@@ -689,6 +694,15 @@ export default function PatientFlowNavigator({
         return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${Math.round(item.stayMinutes / 60)}h stay;${codes} ${reasons}`;
       })
       .join('; ') || 'No delayed disk details selected.';
+    const structuredContext = eddyContext
+      ? JSON.stringify(eddyContext, null, 2)
+      : JSON.stringify({
+          surface: 'patient_flow_4d',
+          role: lens?.role_id ?? 'house',
+          redaction: { patient_dots: lens?.patient_dots ?? 'unknown' },
+          current_metrics: occupancy,
+          note: 'Server structured context was unavailable; use the visible summary only.',
+        }, null, 2);
 
     openEddyWithPrefill(
       [
@@ -699,11 +713,13 @@ export default function PatientFlowNavigator({
         `Service-line compounding: ${serviceLines}`,
         `Barrier reasons: ${topBarriers}`,
         `Disk examples: ${sampleDiskDetails}`,
+        'Structured governed context for facts, redaction, owners, metrics, and allowed actions:',
+        structuredContext,
         'Prioritize what the current persona can influence, call out cross-service-line compounding, and draft only governed recommendations for human review.',
       ].join('\n'),
       'patient-flow-4d-timers',
     );
-  }, [lens?.role_id, occupancy, openEddyWithPrefill]);
+  }, [eddyContext, lens, occupancy, openEddyWithPrefill]);
 
   return (
     <section ref={containerRef} className="patient-flow-shell" aria-label="Patient Flow 4D Navigator">

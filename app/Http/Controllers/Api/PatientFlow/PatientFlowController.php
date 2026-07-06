@@ -8,6 +8,7 @@ use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
 use App\Services\PatientFlow\FlowEventRepository;
+use App\Services\PatientFlow\PatientFlowEddyContextBuilder;
 use App\Services\PatientFlow\OccupancyInsightProjector;
 use App\Services\PatientFlow\PatientFlowDemoBarrierScenario;
 use App\Services\PatientFlow\PatientStateProjector;
@@ -27,6 +28,7 @@ class PatientFlowController extends Controller
         private readonly AmbientSignalService $ambientSignals,
         private readonly OccupancyInsightProjector $occupancyInsights,
         private readonly PatientFlowDemoBarrierScenario $demoBarriers,
+        private readonly PatientFlowEddyContextBuilder $eddyContext,
     ) {}
 
     public function summary(): JsonResponse
@@ -169,7 +171,7 @@ class PatientFlowController extends Controller
             lens: $lens,
         );
 
-        return response()->json($payload + [
+        $response = $payload + [
             'lens' => [
                 'role_id' => $roleId,
                 'patient_dots' => $lens['patient_dots'],
@@ -181,7 +183,13 @@ class PatientFlowController extends Controller
             ],
             'demo_scenario' => $demoScenario,
             'generated_at' => now()->toJSON(),
-        ]);
+        ];
+
+        if ($this->includes($request, 'eddy_context')) {
+            $response['eddy_context'] = $this->eddyContext->build($payload, $lens, $roleId, $time, $filters, $demoScenario);
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -301,6 +309,14 @@ class PatientFlowController extends Controller
         }
 
         return ! $latest || $latest->lessThan($time->subHours(48));
+    }
+
+    private function includes(Request $request, string $feature): bool
+    {
+        return in_array($feature, array_filter(array_map(
+            fn (string $value): string => strtolower(trim($value)),
+            explode(',', (string) $request->query('include', '')),
+        )), true);
     }
 
     /** @param array<string,array<string,mixed>> $locations */
