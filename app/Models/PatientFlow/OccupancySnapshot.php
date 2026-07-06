@@ -19,6 +19,12 @@ class OccupancySnapshot extends Model
         'active_patient_count' => 'integer',
         'service_line_counts' => 'array',
         'acuity_counts' => 'array',
+        'occupancy_details' => 'array',
+        'timer_status_counts' => 'array',
+        'service_line_timer_counts' => 'array',
+        'persona_timer_counts' => 'array',
+        'active_blocker_counts' => 'array',
+        'projection_window' => 'array',
     ];
 
     public function facilitySpace(): BelongsTo

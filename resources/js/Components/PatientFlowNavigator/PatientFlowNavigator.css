@@ -198,7 +198,7 @@
 
 .patient-flow-buttons {
   display: grid;
-  grid-template-columns: repeat(4, 42px);
+  grid-template-columns: repeat(5, 42px);
   gap: 8px;
   margin: 12px 0;
 }
@@ -370,6 +370,90 @@
   font-size: 12px;
 }
 
+.patient-flow-occupancy-rollup {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.patient-flow-rollup-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.patient-flow-rollup-grid div {
+  min-height: 48px;
+  border: 1px solid rgba(239, 234, 220, 0.16);
+  border-radius: 6px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.patient-flow-rollup-grid span {
+  display: block;
+  color: #f3efe5;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-rollup-grid small,
+.patient-flow-service-rollup small,
+.patient-flow-barrier-rollup small {
+  color: #b9b2a6;
+  font-size: 11px;
+}
+
+.patient-flow-service-rollup,
+.patient-flow-barrier-rollup {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #b9b2a6;
+  font-size: 12px;
+}
+
+.patient-flow-service-rollup li,
+.patient-flow-barrier-rollup li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px minmax(112px, auto);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 5px;
+}
+
+.patient-flow-service-rollup span,
+.patient-flow-barrier-rollup span {
+  min-width: 0;
+  overflow: hidden;
+  color: #ddd6c7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-service-rollup strong,
+.patient-flow-barrier-rollup strong {
+  color: #f3efe5;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-barrier-rollup li {
+  grid-template-columns: minmax(0, 0.8fr) 22px minmax(0, 1.2fr);
+}
+
+.patient-flow-barrier-rollup small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .patient-flow-inspector {
   right: 16px;
   bottom: 48px;
@@ -478,7 +562,7 @@
   }
 
   .patient-flow-buttons {
-    grid-template-columns: repeat(4, 38px);
+    grid-template-columns: repeat(5, 38px);
     margin: 10px 0;
   }
 
@@ -492,6 +576,10 @@
   }
 
   .patient-flow-metrics {
+    display: none;
+  }
+
+  .patient-flow-occupancy-rollup {
     display: none;
   }
 

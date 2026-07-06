@@ -23,7 +23,17 @@ class SessionAuthMiddleware
             return $next($request);
         }
 
-        // Auto-login as admin user
+        // The admin auto-login below is a LOCAL/DEMO convenience ONLY. In any other
+        // environment (production, staging) this middleware must behave like real `auth`
+        // — never mint an admin session for an anonymous visitor. See
+        // .claude/rules/auth-system.md (the temp-password + must_change_password flow).
+        if (! app()->environment(['local', 'testing'])) {
+            return $request->expectsJson()
+                ? abort(401, 'Unauthenticated.')
+                : redirect()->guest(route('login'));
+        }
+
+        // Auto-login as admin user (local/demo only)
         $user = User::firstOrCreate(
             ['username' => 'admin'],
             [
@@ -31,8 +41,20 @@ class SessionAuthMiddleware
                 'email' => 'admin@example.com',
                 'password' => bcrypt('password'),
                 'workflow_preference' => 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
             ]
         );
+
+        if ($user->must_change_password || ! in_array($user->role, ['admin', 'bed_manager'], true)) {
+            $user->forceFill([
+                'workflow_preference' => $user->workflow_preference ?: 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
+            ])->save();
+        }
 
         // Log the user in
         Auth::login($user);

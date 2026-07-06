@@ -221,6 +221,12 @@ class TimelineSnapshotService
                     'active_patient_count' => $occupied,
                     'service_line_counts' => [],
                     'acuity_counts' => $acuityCounts,
+                    'occupancy_details' => [],
+                    'timer_status_counts' => ['ok' => $occupied, 'watch' => 0, 'delayed' => 0],
+                    'service_line_timer_counts' => [],
+                    'persona_timer_counts' => ['transport' => 0, 'evs' => 0, 'bed_manager' => 0, 'capacity' => 0],
+                    'active_blocker_counts' => [],
+                    'projection_window' => [],
                 ],
             );
         }

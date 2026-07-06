@@ -173,6 +173,83 @@ export interface PatientVisibleState {
   event: PatientFlowEvent;
   position: { x: number; y: number; z: number };
   recent: PatientFlowEvent[];
+  arrivedAt: string;
+  cameFrom?: string | null;
+  nextEvent?: PatientFlowEvent | null;
+}
+
+export type OccupancyTimerKind = 'stay' | 'arrival_transport' | 'next_transport' | 'evs' | 'readiness';
+export type OccupancyTimerStatus = 'ok' | 'watch' | 'delayed';
+
+export interface OccupancyTimer {
+  kind: OccupancyTimerKind;
+  label: string;
+  dueAt: string | null;
+  minutesRemaining: number | null;
+  status: OccupancyTimerStatus;
+  source: string;
+  reason?: string | null;
+  ownerRole?: string | null;
+  blocks?: string | null;
+  impact?: string | null;
+}
+
+export interface OccupancyInsight {
+  key: string;
+  location: string;
+  locationName?: string | null;
+  unitCode?: string | null;
+  serviceLine?: string | null;
+  patientDisplayId?: string | null;
+  patientId?: string | null;
+  encounterId?: string | null;
+  patientContextRef?: string | null;
+  position: { x: number; y: number; z: number };
+  stayMinutes: number;
+  arrivedAt?: string | null;
+  cameFrom?: string | null;
+  nextMove?: string | null;
+  nextMoveAt?: string | null;
+  primaryStatus: OccupancyTimerStatus;
+  timers: OccupancyTimer[];
+  blockers: string[];
+  barrierReasons?: string[];
+  ownerRoles?: string[];
+  delayImpacts?: string[];
+}
+
+export interface OccupancyServiceLineSummary {
+  serviceLine: string;
+  occupied: number;
+  delayed: number;
+  watch: number;
+  avgStayMinutes: number;
+}
+
+export interface OccupancyPersonaSummary {
+  transport: number;
+  evs: number;
+  bedManager: number;
+  capacity: number;
+}
+
+export interface OccupancySummary {
+  active: number;
+  delayed: number;
+  watch: number;
+  transportDelays: number;
+  evsDelays: number;
+  readyToMove: number;
+  avgStayMinutes: number;
+  serviceLines: OccupancyServiceLineSummary[];
+  persona: OccupancyPersonaSummary;
+  topBarriers?: Array<{
+    label: string;
+    reason?: string | null;
+    ownerRole?: string | null;
+    count: number;
+    serviceLines: string[];
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -204,6 +281,7 @@ export interface ProjectionEntity {
 export interface ProjectionItem {
   t: string;
   kind: ProjectionKind;
+  timer_kind?: OccupancyTimerKind | null;
   confidence: ProjectionConfidence;
   unit_id: number | null;
   bed_id: number | null;
@@ -216,6 +294,10 @@ export interface ProjectionItem {
   ends_at: string | null;
   derived: boolean;
   provenance: ProjectionProvenance;
+  reason?: string | null;
+  owner_role?: string | null;
+  blocks?: string | null;
+  impact?: string | null;
 }
 
 export interface PatientFlowProjectionsResponse {
