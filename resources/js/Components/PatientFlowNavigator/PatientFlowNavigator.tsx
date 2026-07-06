@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePage } from '@inertiajs/react';
 import {
   createPatientFlowEventSource,
   fetchPatientFlowAmbient,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
+  fetchPatientFlowOccupancy,
   fetchPatientFlowProjections,
   fetchPatientFlowSummary,
 } from '@/features/patientFlowNavigator/api';
@@ -22,10 +24,14 @@ import {
   ghostsAt,
 } from '@/features/patientFlowNavigator/projections';
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
+import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupancyInsights';
+import { useEddyStore } from '@/stores/eddyStore';
 import type {
   FlowLens,
   FlowPatientDots,
   FlowUnitSummary,
+  OccupancyInsight,
+  OccupancySummary,
   PatientFlowAmbient,
   PatientFlowEvent,
   PatientFlowFilters,
@@ -35,6 +41,7 @@ import type {
   PatientVisibleState,
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
+import type { PageProps } from '@/types';
 import type { NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
@@ -65,6 +72,24 @@ interface PatientFlowNavigatorProps {
 const WINDOW_HALF_MS = 24 * 60 * 60 * 1000;
 
 const IDENTITY_KEYS = ['patient_display_id', 'patient_id', 'encounter_id'] as const;
+
+const EMPTY_OCCUPANCY_SUMMARY: OccupancySummary = {
+  active: 0,
+  delayed: 0,
+  watch: 0,
+  transportDelays: 0,
+  evsDelays: 0,
+  readyToMove: 0,
+  avgStayMinutes: 0,
+  serviceLines: [],
+  persona: {
+    transport: 0,
+    evs: 0,
+    bedManager: 0,
+    capacity: 0,
+  },
+  topBarriers: [],
+};
 
 interface HandoffParams {
   floor: string | null;
@@ -136,11 +161,26 @@ function redactSelection(
 function flattenInspector(data: Record<string, unknown>): Array<[string, string]> {
   return Object.entries(data)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .slice(0, 18)
+    .slice(0, 32)
     .map(([key, value]) => [
       key.replaceAll('_', ' '),
       typeof value === 'object' ? JSON.stringify(value) : String(value),
     ]);
+}
+
+function occupancyFilterKey(filters: PatientFlowFilters): string {
+  return JSON.stringify({
+    floor: filters.floor,
+    serviceLine: filters.serviceLine,
+    category: filters.category,
+    search: filters.search.trim() ? 'local-search' : '',
+  });
+}
+
+function isBarrierOrDelay(insight: OccupancyInsight): boolean {
+  return insight.primaryStatus !== 'ok'
+    || insight.blockers.length > 0
+    || insight.timers.some((timer) => timer.status !== 'ok');
 }
 
 export default function PatientFlowNavigator({
@@ -158,6 +198,9 @@ export default function PatientFlowNavigator({
 
   const dotsPolicy: FlowPatientDots | null = lens?.patient_dots ?? null;
   const patientDotsVisible = dotsPolicy !== 'none';
+  const page = usePage<PageProps>();
+  const eddyEnabled = Boolean(page.props.eddy?.enabled);
+  const openEddyWithPrefill = useEddyStore((state) => state.openWithPrefill);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -172,13 +215,21 @@ export default function PatientFlowNavigator({
     search: '',
   });
   const layersRef = useRef<PatientLayerState>(defaultLayersForLens(lens));
+  const barrierFinderRef = useRef(false);
   const projectionsRef = useRef<ProjectionItem[]>([]);
+  const serverOccupancyRef = useRef<{
+    asOfMs: number;
+    filterKey: string;
+    occupancy: OccupancyInsight[];
+    summary: OccupancySummary;
+  } | null>(null);
   const currentTimeRef = useRef(handoff.t ?? nowMs);
   const speedRef = useRef(60);
   const playingRef = useRef(false);
   const liveRef = useRef(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const lastVisibleStatesRef = useRef<PatientVisibleState[]>([]);
+  const lastOccupancyInsightsRef = useRef<OccupancyInsight[]>([]);
   const lastBucketKeyRef = useRef('');
   const lastTimeEmitRef = useRef(0);
   const scopeAppliedRef = useRef(false);
@@ -190,6 +241,7 @@ export default function PatientFlowNavigator({
   const [projections, setProjections] = useState<ProjectionItem[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
+  const [barrierFinder, setBarrierFinder] = useState(false);
   const [currentTime, setCurrentTime] = useState(currentTimeRef.current);
   const [speed, setSpeed] = useState(60);
   const [playing, setPlaying] = useState(false);
@@ -197,6 +249,7 @@ export default function PatientFlowNavigator({
   const [status, setStatus] = useState('Loading');
   const [cameraText, setCameraText] = useState('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
+  const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
@@ -253,7 +306,27 @@ export default function PatientFlowNavigator({
 
     const timeMs = currentTimeRef.current;
     const states = patientStatesAt(tracksRef.current, locationsRef.current, timeMs, filtersRef.current);
+    const localOccupancy = buildOccupancyInsights(
+      states,
+      locationsRef.current,
+      projectionsRef.current,
+      timeMs,
+      lens,
+    );
+    const serverOccupancy = serverOccupancyRef.current;
+    const useServerOccupancy = Boolean(
+      serverOccupancy
+        && Math.abs(serverOccupancy.asOfMs - timeMs) < 60_000
+        && serverOccupancy.filterKey === occupancyFilterKey(filtersRef.current)
+        && filtersRef.current.search.trim() === '',
+    );
+    const occupancyInsights = useServerOccupancy ? serverOccupancy!.occupancy : localOccupancy.insights;
+    const occupancySummary = useServerOccupancy ? serverOccupancy!.summary : localOccupancy.summary;
+    const visibleOccupancyInsights = barrierFinderRef.current
+      ? occupancyInsights.filter(isBarrierOrDelay)
+      : occupancyInsights;
     lastVisibleStatesRef.current = states;
+    lastOccupancyInsightsRef.current = occupancyInsights;
     scene.updateTokens(
       states,
       layersRef.current.tokens && dotsPolicy !== 'none',
@@ -266,6 +339,7 @@ export default function PatientFlowNavigator({
       Math.floor(timeMs / 60_000),
       JSON.stringify(filtersRef.current),
       JSON.stringify(layersRef.current),
+      barrierFinderRef.current ? 'barriers' : 'all',
       eventsRef.current.length,
       projectionsRef.current.length,
       Object.keys(locationsRef.current).length,
@@ -281,7 +355,7 @@ export default function PatientFlowNavigator({
       timeMs,
       layersRef.current.trails && patientDotsVisible,
     );
-    const occupied = scene.rebuildHeat(states, locationsRef.current, layersRef.current.heat);
+    const occupied = scene.rebuildHeat(visibleOccupancyInsights, layersRef.current.heat);
 
     // Projection ghosts + forecast heat (the future half; §5 ghost grammar).
     const index = placementIndexRef.current;
@@ -323,13 +397,15 @@ export default function PatientFlowNavigator({
       : [];
     scene.rebuildForecastHeat(heatCells, layersRef.current.ghosts && timeMs > nowMs);
     setForecast(aggregates && timeMs > nowMs ? aggregates : null);
+    setOccupancy(occupancySummary);
 
     setMetrics({
-      active: states.length,
+      active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
       events: eventsRef.current.filter((event) => parseTime(event.occurred_at) <= timeMs).length,
-      occupiedLocations: occupied || new Set(states.map((state) => state.event.to_location).filter(Boolean)).size,
+      occupiedLocations: occupied
+        || new Set((barrierFinderRef.current || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
     });
-  }, [dotsPolicy, nowMs, patientDotsVisible]);
+  }, [dotsPolicy, lens, nowMs, patientDotsVisible]);
 
   // Keep refs in sync with state, then repaint.
   useEffect(() => {
@@ -337,6 +413,7 @@ export default function PatientFlowNavigator({
     locationsRef.current = locations;
     filtersRef.current = filters;
     layersRef.current = layers;
+    barrierFinderRef.current = barrierFinder;
     projectionsRef.current = projections;
     speedRef.current = speed;
     playingRef.current = playing;
@@ -344,13 +421,56 @@ export default function PatientFlowNavigator({
     tracksRef.current = tracks;
     placementIndexRef.current = placementIndex;
     refreshScene();
-  }, [events, locations, filters, layers, projections, speed, playing, live, tracks, placementIndex, refreshScene]);
+  }, [events, locations, filters, layers, barrierFinder, projections, speed, playing, live, tracks, placementIndex, refreshScene]);
+
+  useEffect(() => {
+    barrierFinderRef.current = barrierFinder;
+    lastBucketKeyRef.current = '';
+    refreshScene();
+    if (barrierFinder) {
+      const points = lastOccupancyInsightsRef.current
+        .filter(isBarrierOrDelay)
+        .map((item) => item.position);
+      sceneRef.current?.focusOn(points);
+    }
+  }, [barrierFinder, refreshScene]);
 
   // Repaint when the displayed time changes. The ref is the source of truth
   // (playback advances it per frame); scrub/live paths write it via applyTime.
   useEffect(() => {
     refreshScene();
   }, [currentTime, refreshScene]);
+
+  useEffect(() => {
+    if (!lens || filters.search.trim() !== '') return;
+    const asOf = new Date(currentTime).toISOString();
+    const filterKey = occupancyFilterKey(filters);
+    const timer = window.setTimeout(() => {
+      fetchPatientFlowOccupancy({
+        asOf,
+        floor: filters.floor !== 'all' ? filters.floor : undefined,
+        service_line: filters.serviceLine !== 'all' ? filters.serviceLine : undefined,
+        category: filters.category !== 'all' ? filters.category : undefined,
+        limit: 20000,
+      })
+        .then((payload) => {
+          serverOccupancyRef.current = {
+            asOfMs: Date.parse(payload.asOf),
+            filterKey,
+            occupancy: payload.occupancy,
+            summary: payload.summary,
+          };
+          lastBucketKeyRef.current = '';
+          setOccupancy(payload.summary);
+          refreshScene();
+        })
+        .catch(() => {
+          serverOccupancyRef.current = null;
+        });
+    }, playing ? 900 : 220);
+
+    return () => window.clearTimeout(timer);
+  }, [currentTime, filters, lens, playing, refreshScene]);
 
   const applyTime = useCallback((timeMs: number): void => {
     currentTimeRef.current = timeMs;
@@ -367,20 +487,23 @@ export default function PatientFlowNavigator({
         const [summaryData, locationData, eventData, ambientData] = await Promise.all([
           fetchPatientFlowSummary(),
           fetchPatientFlowLocations(),
-          fetchPatientFlowEvents({ limit: 20000 }),
+          patientDotsVisible ? fetchPatientFlowEvents({ limit: 20000 }) : Promise.resolve([]),
           fetchPatientFlowAmbient(),
         ]);
         if (cancelled) return;
 
         const sortedEvents = [...eventData].sort((a, b) => parseTime(a.occurred_at) - parseTime(b.occurred_at));
+        const replayIsStale = sortedEvents.length > 0 && parseTime(sortedEvents[sortedEvents.length - 1].occurred_at) < windowStart;
         setSummary(summaryData);
         setAmbient(ambientData);
         setLocations(locationData);
-        setEvents(sortedEvents);
-        if (!sortedEvents.length) {
+        setEvents(replayIsStale ? [] : sortedEvents);
+        if (!patientDotsVisible) {
+          setStatus('Aggregate persona lens');
+        } else if (!sortedEvents.length) {
           setStatus('No flow events loaded');
-        } else if (parseTime(sortedEvents[sortedEvents.length - 1].occurred_at) < windowStart) {
-          setStatus('Events precede the 48h window — rebase the synthetic fixture');
+        } else if (replayIsStale) {
+          setStatus('Demo barriers loaded');
         } else {
           setStatus('Data loaded');
         }
@@ -396,7 +519,7 @@ export default function PatientFlowNavigator({
     return () => {
       cancelled = true;
     };
-  }, [windowStart]);
+  }, [patientDotsVisible, windowStart]);
 
   // Projection stream (future half) — lens-clamped server-side; a failure
   // only disables ghosts, never the navigator.
@@ -502,6 +625,10 @@ export default function PatientFlowNavigator({
   }, []);
 
   const connectLive = useCallback((): void => {
+    if (!patientDotsVisible) {
+      setStatus('Live patient stream unavailable for this persona');
+      return;
+    }
     eventSourceRef.current?.close();
     const source = createPatientFlowEventSource({ replay: 180, interval: 0.65 });
     eventSourceRef.current = source;
@@ -519,7 +646,7 @@ export default function PatientFlowNavigator({
     source.onerror = () => setStatus('Live stream reconnecting');
     setLive(true);
     setStatus('Live stream active');
-  }, [applyTime, nowMs, windowStart]);
+  }, [applyTime, nowMs, patientDotsVisible, windowStart]);
 
   const handleScrub = useCallback((timeMs: number): void => {
     disconnectLive();
@@ -535,6 +662,42 @@ export default function PatientFlowNavigator({
     if (!scene) return;
     scene.focusOn(lastVisibleStatesRef.current.map((state) => state.position));
   }, []);
+
+  const askEddy = useCallback((): void => {
+    const serviceLines = occupancy.serviceLines.length > 0
+      ? occupancy.serviceLines
+          .map((item) => `${item.serviceLine}: ${item.occupied} occupied, ${item.delayed} delayed, ${item.watch} watch`)
+          .join('; ')
+      : 'No active service-line occupancy in the current lens.';
+    const topBarriers = occupancy.topBarriers?.length
+      ? occupancy.topBarriers
+          .slice(0, 5)
+          .map((item) => `${item.label} (${item.count}): ${item.reason ?? item.ownerRole ?? 'active barrier'}`)
+          .join('; ')
+      : 'No active barrier reasons in the current lens.';
+    const sampleDiskDetails = lastOccupancyInsightsRef.current
+      .filter((item) => item.primaryStatus !== 'ok')
+      .slice(0, 4)
+      .map((item) => {
+        const reasons = item.barrierReasons?.length ? item.barrierReasons.join(' / ') : item.blockers.join(', ');
+        return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${Math.round(item.stayMinutes / 60)}h stay; ${reasons}`;
+      })
+      .join('; ') || 'No delayed disk details selected.';
+
+    openEddyWithPrefill(
+      [
+        'Review this Patient Flow 4D timer picture for RTDC demand-capacity risk.',
+        `Persona lens: ${lens?.role_id ?? 'house'}. Floor filter: ${filtersRef.current.floor}. Service filter: ${filtersRef.current.serviceLine}.`,
+        `Occupancy: ${occupancy.active} active, ${occupancy.delayed} delayed, ${occupancy.watch} watch, ${occupancy.readyToMove} ready inside 30 minutes.`,
+        `Timer blockers: ${occupancy.transportDelays} transport, ${occupancy.evsDelays} EVS, average stay ${Math.round(occupancy.avgStayMinutes / 60)}h.`,
+        `Service-line compounding: ${serviceLines}`,
+        `Barrier reasons: ${topBarriers}`,
+        `Disk examples: ${sampleDiskDetails}`,
+        'Prioritize what the current persona can influence, call out cross-service-line compounding, and draft only governed recommendations for human review.',
+      ].join('\n'),
+      'patient-flow-4d-timers',
+    );
+  }, [lens?.role_id, occupancy, openEddyWithPrefill]);
 
   return (
     <section ref={containerRef} className="patient-flow-shell" aria-label="Patient Flow 4D Navigator">
@@ -567,7 +730,10 @@ export default function PatientFlowNavigator({
         categories={categories}
         layers={layers}
         layerControls={layerControls}
+        barrierFinder={barrierFinder}
         metrics={metrics}
+        occupancy={occupancy}
+        eddyEnabled={eddyEnabled}
         onTogglePlay={() => {
           if (!playing) disconnectLive();
           setPlaying((value) => !value);
@@ -578,6 +744,8 @@ export default function PatientFlowNavigator({
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
         onLayerChange={(key, value) => setLayers((prev) => ({ ...prev, [key]: value }))}
+        onBarrierFinderChange={setBarrierFinder}
+        onAskEddy={askEddy}
       />
 
       <NavigatorFeed feed={feed} redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'} />

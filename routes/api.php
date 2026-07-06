@@ -165,6 +165,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // the same lens the mobile window uses.
     Route::get('/projections', [PatientFlowController::class, 'projections'])
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
+    Route::get('/occupancy', [PatientFlowController::class, 'occupancy'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
 
     Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
 });

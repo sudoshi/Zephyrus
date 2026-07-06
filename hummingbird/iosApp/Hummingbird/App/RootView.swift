@@ -12,7 +12,10 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            Z.bg.ignoresSafeArea()
+            // The persistent Hummingbird artwork carousel — the app's living background,
+            // behind every screen (the login screen paints its own on top). Frosted panels
+            // and translucent screen scrims let it read through the whole app.
+            HummingbirdBackdrop()
 
             switch auth.phase {
             case .loading:
@@ -26,6 +29,10 @@ struct RootView: View {
                     OnboardingView()
                 } else {
                     MainTabView()
+                        // Eddy (left) + profile (right) are matched chrome avatars, overlaid on
+                        // the shell so they align exactly and neither is clipped by a nav bar.
+                        .overlay(alignment: .topLeading) { EddyAccessButton() }
+                        .overlay(alignment: .topTrailing) { ProfileAccessButton() }
                 }
             }
         }
@@ -99,6 +106,56 @@ struct RootView: View {
 
     private func isSuperuser(_ me: MeData) -> Bool {
         me.isAdmin || me.workflowPreference == "superuser"
+    }
+}
+
+/// The persistent Hummingbird artwork carousel — the app's living background. Crossfades
+/// through the auth photography every ~9.5s (Reduce-Motion holds on one frame), with a
+/// dim scrim so foreground content stays legible over the photography. Self-timed so any
+/// screen can sit on it; non-interactive and accessibility-hidden.
+struct HummingbirdBackdrop: View {
+    var dim: Double = 0.42
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var index = 0
+
+    private static let slides = [
+        "AuthHummingbird10", "AuthHummingbird05", "AuthHummingbird04", "AuthHummingbird11",
+        "AuthHummingbird12", "AuthHummingbird01", "AuthHummingbird08", "AuthHummingbird09",
+        "AuthHummingbird06", "AuthHummingbird03", "AuthHummingbird02", "AuthHummingbird07",
+    ]
+    private let timer = Timer.publish(every: 9.5, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Color(red: 0.02, green: 0.04, blue: 0.06)
+
+                ForEach(Array(Self.slides.enumerated()), id: \.offset) { position, asset in
+                    Image(asset)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
+                        .opacity(position == index ? 1 : 0)
+                }
+
+                // Legibility scrim: a top-weighted gradient (behind the status/nav chrome)
+                // plus a flat wash. Photo stays clearly visible; text stays readable.
+                LinearGradient(
+                    colors: [Color.black.opacity(dim + 0.16), Color.black.opacity(dim)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                Color.black.opacity(dim * 0.5)
+            }
+            .animation(.easeInOut(duration: 1.6), value: index)
+        }
+        .ignoresSafeArea()
+        .onReceive(timer) { _ in
+            guard !reduceMotion else { return }
+            index = (index + 1) % Self.slides.count
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

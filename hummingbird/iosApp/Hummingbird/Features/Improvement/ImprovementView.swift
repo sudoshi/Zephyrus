@@ -49,8 +49,9 @@ struct ImprovementView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("Improvement")
+            .eddyContext("improvement", title: "Improvement", summary: "opportunities & PDSA")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -62,7 +63,7 @@ struct ImprovementView: View {
                     .frame(width: 160)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                    Button { showProfile = true } label: { EmptyView() }.accessibilityLabel("Profile and settings")
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }

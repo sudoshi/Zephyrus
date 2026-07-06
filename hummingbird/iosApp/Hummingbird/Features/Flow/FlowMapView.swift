@@ -38,6 +38,9 @@ struct FlowMapView: View {
     @State private var curveUnitId: Int?
     /// Capacity lead: the map is the secondary surface — collapsed by default.
     @State private var showHouseMap = false
+    /// Native 3D twin: how segments are tinted. Defaults to service line (the "what care
+    /// happens here" read); the viewer can flip to live bed-status heat.
+    @State private var colorMode: FlowColorMode = .serviceLine
 
     init(persona: String, scope: FlowScopeRequest) {
         self.persona = persona
@@ -72,7 +75,8 @@ struct FlowMapView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
+        .eddyContext("flow_map", title: "Flow Map", summary: "\(personaTitle) lens · \(store.window?.scope.label ?? "House")", data: ["lens": persona], scopeRef: "house")
         .task {
             let token = auth.accessToken ?? ""
             store.startLive(bearer: token)
@@ -195,14 +199,41 @@ struct FlowMapView: View {
     private var is3DLens: Bool { persona == "bed_manager" || persona == "house_supervisor" }
 
     private func flow3DLayer(spaces: FlowSpaces3dDocument) -> some View {
-        Panel(padding: Z.s2) {
-            Flow3DView(spaces: spaces,
-                       bedStatuses: store.window?.bedStatuses ?? [],
-                       selectedFloor: store.selectedFloor)
-                .frame(height: 420)
-                .cornerRadius(12)
-                .accessibilityLabel("Native 3D hospital view")
+        VStack(alignment: .leading, spacing: Z.s2) {
+            HStack(spacing: Z.s2) {
+                sectionCaption("3D HOSPITAL")
+                Spacer()
+                colorModePicker
+            }
+            Panel(padding: Z.s2) {
+                Flow3DView(spaces: spaces,
+                           bedStatuses: store.window?.bedStatuses ?? [],
+                           colorMode: colorMode,
+                           selectedFloor: store.selectedFloor)
+                    .frame(height: 420)
+                    .cornerRadius(12)
+                    .accessibilityElement()
+                    .accessibilityLabel("Native 3D hospital view, colored by \(colorMode.label). Pinch to zoom, drag to orbit.")
+            }
+            // Pinch to zoom · drag to orbit — SceneKit's camera control handles the
+            // two-finger pinch; this hint makes the gesture discoverable.
+            Text("Pinch to zoom · drag to orbit")
+                .font(.system(size: 11))
+                .foregroundStyle(Z.inkMuted)
+            Flow3DLegend(mode: colorMode, serviceLines: spaces.serviceLines)
         }
+    }
+
+    /// Segment-color mode: service line (default) ⇄ live bed status.
+    private var colorModePicker: some View {
+        Picker("Color by", selection: $colorMode) {
+            ForEach(FlowColorMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 220)
+        .accessibilityLabel("Color the map by")
     }
 
     private var houseLayer: some View {
@@ -818,6 +849,59 @@ struct FlowMapView: View {
             store.playRate = 4 * 3600 // process-replay pace: ~4 sim-hours per second
         default:
             break
+        }
+    }
+}
+
+/// The labelled color key for the 3D twin — every swatch is paired with its name so the
+/// map is never status-by-color-alone. In service-line mode it lists the lines actually
+/// present (server-driven palette, registry order); in bed-status mode, the four states
+/// whose hexes mirror `Flow3DView.bedColor`.
+private struct Flow3DLegend: View {
+    let mode: FlowColorMode
+    let serviceLines: [String: FlowServiceLineStyle]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Z.s2) {
+                ForEach(entries, id: \.key) { entry in
+                    HStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(flowHex: entry.hex))
+                            .frame(width: 11, height: 11)
+                        Text(entry.label)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Z.inkMuted)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, Z.s2)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Z.surface))
+                    .overlay(Capsule().strokeBorder(Z.border, lineWidth: 1))
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(entry.label)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+
+    private struct Entry: Identifiable { let key: String; let label: String; let hex: String; var id: String { key } }
+
+    private var entries: [Entry] {
+        switch mode {
+        case .serviceLine:
+            return serviceLines
+                .sorted { ($0.value.sort ?? 999) < ($1.value.sort ?? 999) }
+                .map { Entry(key: $0.key, label: $0.value.name, hex: $0.value.color) }
+        case .bedStatus:
+            // Hexes mirror Flow3DView.bedColor so the key matches the segments exactly.
+            return [
+                Entry(key: "occupied", label: "Occupied", hex: "#78BF70"),
+                Entry(key: "available", label: "Available", hex: "#DBDBDB"),
+                Entry(key: "dirty", label: "Needs EVS", hex: "#E0A340"),
+                Entry(key: "blocked", label: "Blocked", hex: "#F06654"),
+            ]
         }
     }
 }

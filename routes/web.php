@@ -31,8 +31,12 @@ Route::get('/', function (Request $request) {
     return redirect()->route('login');
 });
 
-// Authenticated routes
-Route::middleware(['auth'])
+// Authenticated demo routes.
+//
+// SessionAuthMiddleware is the existing local/demo auto-login gate. Keeping it
+// Direct viewer URLs create a valid session here, while API routes retain their
+// normal web-session authentication.
+Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
     ->group(function () {
         // RTDC Routes
         Route::prefix('rtdc')->group(function () {

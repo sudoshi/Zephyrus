@@ -33,8 +33,9 @@ struct HomeView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle(role.homeTitle)
+            .eddyContext("census", title: role.homeTitle, summary: role.homeFocus, scopeRef: "house")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if mapScope != nil {
@@ -49,7 +50,7 @@ struct HomeView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
-                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                        EmptyView()
                     }
                     .accessibilityLabel("Profile and settings")
                 }

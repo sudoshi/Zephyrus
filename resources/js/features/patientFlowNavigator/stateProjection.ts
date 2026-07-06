@@ -98,7 +98,24 @@ export function patientStatesAt(
       return occurred <= timeMs && occurred >= timeMs - 2 * 60 * 60 * 1000;
     });
 
-    states.push({ patientId, event: current, position, recent });
+    const currentIndex = track.findIndex((event) => event.event_id === current?.event_id);
+    const previousMovement = track
+      .slice(0, Math.max(0, currentIndex))
+      .reverse()
+      .find((event) => event.event_category === 'movement' && Boolean(event.to_location));
+    const nextEvent = track
+      .slice(Math.max(0, currentIndex + 1))
+      .find((event) => parseTime(event.occurred_at) > timeMs);
+
+    states.push({
+      patientId,
+      event: current,
+      position,
+      recent,
+      arrivedAt: current.occurred_at,
+      cameFrom: current.from_location ?? previousMovement?.to_location ?? null,
+      nextEvent: nextEvent ?? null,
+    });
   }
 
   return states;

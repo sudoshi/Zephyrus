@@ -709,6 +709,36 @@ struct PatientPhiPolicy: Decodable {
     let requiresDetailAuth: Bool?
 }
 
+// MARK: Eddy chat (POST /api/mobile/v1/eddy/chat)
+
+/// One assistant turn from Eddy. On success `message` is an object; on a hard failure
+/// (server 503) the backend sends `message` as a bare string — decode both so the UI
+/// always has something to render.
+struct EddyChatReply: Decodable, Equatable {
+    let conversationId: String?
+    let message: EddyReplyMessage
+
+    private enum CodingKeys: String, CodingKey { case conversationId, message }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
+        if let object = try? container.decode(EddyReplyMessage.self, forKey: .message) {
+            message = object
+        } else {
+            let text = (try? container.decode(String.self, forKey: .message))
+                ?? "Eddy is unavailable right now. Please try again shortly."
+            message = EddyReplyMessage(role: "assistant", content: text, provider: nil)
+        }
+    }
+}
+
+struct EddyReplyMessage: Decodable, Equatable {
+    let role: String
+    let content: String
+    let provider: String?
+}
+
 struct EddyContextPacket: Decodable {
     let scopeRef: String
     let scopeType: String?

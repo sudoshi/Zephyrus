@@ -1,6 +1,7 @@
 import React from 'react';
-import { Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
+  OccupancySummary,
   PatientFlowAmbient,
   PatientFlowFilters,
   PatientFlowSummary,
@@ -33,14 +34,19 @@ interface NavigatorToolbarProps {
   categories: string[];
   layers: PatientLayerState;
   layerControls: LayerControl[];
+  barrierFinder: boolean;
   metrics: NavigatorMetrics;
+  occupancy: OccupancySummary;
+  eddyEnabled: boolean;
   onTogglePlay: () => void;
   onToggleLive: () => void;
   onResetCamera: () => void;
   onFocusPatients: () => void;
+  onAskEddy: () => void;
   onSpeedChange: (speed: number) => void;
   onFiltersChange: (patch: Partial<PatientFlowFilters>) => void;
   onLayerChange: (key: keyof PatientLayerState, value: boolean) => void;
+  onBarrierFinderChange: (value: boolean) => void;
 }
 
 export default function NavigatorToolbar({
@@ -57,14 +63,19 @@ export default function NavigatorToolbar({
   categories,
   layers,
   layerControls,
+  barrierFinder,
   metrics,
+  occupancy,
+  eddyEnabled,
   onTogglePlay,
   onToggleLive,
   onResetCamera,
   onFocusPatients,
+  onAskEddy,
   onSpeedChange,
   onFiltersChange,
   onLayerChange,
+  onBarrierFinderChange,
 }: NavigatorToolbarProps) {
   return (
     <aside className="patient-flow-toolbar" aria-label="Navigator controls">
@@ -106,6 +117,16 @@ export default function NavigatorToolbar({
         >
           <ScanSearch />
         </button>
+        {eddyEnabled && (
+          <button
+            className="patient-flow-icon-button"
+            type="button"
+            title="Ask Eddy about timer and service-line pressure"
+            onClick={onAskEddy}
+          >
+            <Bot />
+          </button>
+        )}
       </div>
 
       <div className="patient-flow-control-grid">
@@ -177,6 +198,16 @@ export default function NavigatorToolbar({
             <label htmlFor={id}>{label}</label>
           </div>
         ))}
+        <div className="patient-flow-checkbox-row">
+          <input
+            id="flow-barrier-finder"
+            type="checkbox"
+            role="switch"
+            checked={barrierFinder}
+            onChange={(event) => onBarrierFinderChange(event.target.checked)}
+          />
+          <label htmlFor="flow-barrier-finder" title="Find all barriers and delays">Barriers</label>
+        </div>
       </fieldset>
 
       <div className="patient-flow-metrics">
@@ -185,6 +216,39 @@ export default function NavigatorToolbar({
         <div><span>{metrics.occupiedLocations}</span><small>Locations</small></div>
         <div><span>{ambient?.summary.eventCount ?? summary?.ambient_signals ?? 0}</span><small>Ambient</small></div>
       </div>
+
+      <section className="patient-flow-occupancy-rollup" aria-label="Occupancy timer rollup">
+        <div className="patient-flow-rollup-grid">
+          <div><span>{occupancy.delayed}</span><small>Delayed</small></div>
+          <div><span>{occupancy.readyToMove}</span><small>Ready</small></div>
+          <div><span>{occupancy.transportDelays}</span><small>Transport</small></div>
+          <div><span>{occupancy.evsDelays}</span><small>EVS</small></div>
+        </div>
+
+        {occupancy.serviceLines.length > 0 && (
+          <ol className="patient-flow-service-rollup">
+            {occupancy.serviceLines.slice(0, 3).map((item) => (
+              <li key={item.serviceLine}>
+                <span>{item.serviceLine}</span>
+                <strong>{item.occupied}</strong>
+                <small>{item.delayed} delayed / {item.watch} watch</small>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {Boolean(occupancy.topBarriers?.length) && (
+          <ol className="patient-flow-barrier-rollup">
+            {occupancy.topBarriers?.slice(0, 3).map((item) => (
+              <li key={`${item.label}-${item.reason ?? 'none'}`}>
+                <span>{item.label}</span>
+                <strong>{item.count}</strong>
+                <small>{item.reason ?? item.ownerRole ?? 'Barrier active'}</small>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </aside>
   );
 }

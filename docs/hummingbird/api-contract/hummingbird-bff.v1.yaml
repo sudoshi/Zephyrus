@@ -1852,6 +1852,13 @@ components:
         space_ref: { type: string }
         floor: { type: integer }
         category: { type: string }
+        service_line:
+          type: string
+          nullable: true
+          description:
+            Canonical service-line code this space serves (legacy catalog aliases folded
+            to canonical). Keys into the `service_lines` legend for color. Null for
+            corridors / unmapped spaces (rendered as `unassigned`).
         unit_id: { type: integer, nullable: true }
         bed_id: { type: integer, nullable: true }
         centroid_m:
@@ -1862,6 +1869,16 @@ components:
             y: { type: number }
             z: { type: number }
 
+    FlowServiceLineStyle:
+      type: object
+      description: One legend entry — the visual identity a service line carries on the 4D map.
+      required: [name, color]
+      properties:
+        name: { type: string, description: Display name for the legend row. }
+        domain: { type: string, nullable: true, description: Clinical domain family. }
+        color: { type: string, description: Hex color (categorical data-viz palette). }
+        sort: { type: integer, description: Registry sort order for stable legend sequence. }
+
     FlowSpaces3dEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }
@@ -1869,7 +1886,7 @@ components:
           properties:
             data:
               type: object
-              required: [version, facility, spaces]
+              required: [version, facility, service_lines, spaces]
               properties:
                 version: { type: string }
                 units: { type: string, description: Geometry unit contract note. }
@@ -1879,6 +1896,13 @@ components:
                     code: { type: string }
                     cad_code: { type: string }
                     name: { type: string }
+                service_lines:
+                  type: object
+                  description:
+                    Colored legend for the service lines present in this asset, keyed by
+                    canonical code, plus an `unassigned` entry. The single source of truth
+                    for map color so iOS/Android never drift.
+                  additionalProperties: { $ref: "#/components/schemas/FlowServiceLineStyle" }
                 spaces:
                   type: array
                   items: { $ref: "#/components/schemas/FlowSpace3d" }

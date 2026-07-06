@@ -112,6 +112,50 @@ struct APIClient {
         return try await getEnvelope(path: withPersona("/api/mobile/v1/eddy/context/\(encodedRef)", persona), bearer: bearer, as: EddyContextPacket.self)
     }
 
+    /// Send a chat turn to Eddy (persona-aware, grounded in live operations + the RAG
+    /// knowledge base). Uses a longer timeout than the shared `send` because a model turn
+    /// can take several seconds; a 503 hard-failure still carries a usable reply envelope.
+    func eddyChat(message: String, conversationId: String?, persona: String?,
+                  surface: String? = "hummingbird", pageContext: String? = nil,
+                  pageComponent: String? = nil, pageData: [String: String]? = nil,
+                  bearer: String) async throws -> Envelope<EddyChatReply> {
+        guard let url = URL(string: withPersona("/api/mobile/v1/eddy/chat", persona), relativeTo: baseURL) else {
+            throw APIError(message: "Bad URL", statusCode: nil)
+        }
+        var payload: [String: Any] = ["message": message]
+        if let conversationId { payload["conversation_id"] = conversationId }
+        if let surface { payload["surface"] = surface }
+        if let pageContext { payload["page_context"] = pageContext }
+        if let pageComponent { payload["page_component"] = pageComponent }
+        if let pageData, !pageData.isEmpty { payload["page_data"] = pageData }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        req.timeoutInterval = 60
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: req)
+        } catch {
+            throw APIError(message: "Can't reach Eddy. Is the server running at \(baseURL.absoluteString)?", statusCode: nil)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError(message: "Invalid response", statusCode: nil)
+        }
+        // The 503 unavailable envelope still decodes (data.message is a friendly string).
+        if http.statusCode == 503, let envelope = try? Self.decoder.decode(Envelope<EddyChatReply>.self, from: data) {
+            return envelope
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
+        }
+        return try Self.decoder.decode(Envelope<EddyChatReply>.self, from: data)
+    }
+
     /// POST an action endpoint supplied by an A2 drill payload. Use only for endpoints whose
     /// server-side contract needs no additional body (for example barrier resolve).
     func performMobileAction(endpoint: String, bearer: String) async throws {

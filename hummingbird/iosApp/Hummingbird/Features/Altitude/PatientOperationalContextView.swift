@@ -63,7 +63,7 @@ struct PatientOperationalContextView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .navigationTitle("Patient Context")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(contextRef)|\(profile.roleId ?? "")") {
@@ -76,7 +76,6 @@ struct PatientOperationalContextView: View {
         VStack(alignment: .leading, spacing: Z.s4) {
             header(context)
 
-            EddyContextButton(scopeRef: context.patient.patientContextRef ?? contextRef)
 
             sectionLabel("STATUS SPINE")
             Panel(padding: Z.s3) { statusSpine(context.statusSpine) }

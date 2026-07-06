@@ -177,20 +177,45 @@ struct FlowCentroid3d: Decodable, Equatable {
 /// The 3D space-anchor asset (GET /flow/spaces3d): per-space centroids (metres,
 /// y is the vertical/floor axis) the native SceneKit/Filament scene places
 /// segments and tokens by. Geometry only, ETag-cached.
+///
+/// `serviceLines` is the colored legend (canonical code → style) the server ships
+/// as the single source of map color — the renderer never hardcodes a palette, so
+/// iOS and Android can never drift.
 struct FlowSpaces3dDocument: Decodable, Equatable {
     let version: String
     let spaces: [FlowSpace3d]
+    let serviceLines: [String: FlowServiceLineStyle]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(String.self, forKey: .version)
+        spaces = try container.decodeIfPresent([FlowSpace3d].self, forKey: .spaces) ?? []
+        serviceLines = try container.decodeIfPresent([String: FlowServiceLineStyle].self, forKey: .serviceLines) ?? [:]
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, spaces, serviceLines }
 }
 
 struct FlowSpace3d: Decodable, Equatable, Identifiable {
     let spaceRef: String
     let floor: Int
     let category: String
+    /// Canonical service-line code (keys into `serviceLines` for color); nil for
+    /// corridors / unmapped spaces → rendered as `unassigned`.
+    let serviceLine: String?
     let unitId: Int?
     let bedId: Int?
     let centroidM: FlowCentroid3d
 
     var id: String { spaceRef }
+}
+
+/// One service-line legend entry: the color + label a service line carries on the map.
+struct FlowServiceLineStyle: Decodable, Equatable {
+    let name: String
+    let domain: String?
+    let color: String // "#RRGGBB"
+    let sort: Int?
 }
 
 struct FlowWindow: Decodable, Equatable {

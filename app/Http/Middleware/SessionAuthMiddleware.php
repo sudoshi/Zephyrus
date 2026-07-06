@@ -31,8 +31,20 @@ class SessionAuthMiddleware
                 'email' => 'admin@example.com',
                 'password' => bcrypt('password'),
                 'workflow_preference' => 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
             ]
         );
+
+        if ($user->must_change_password || ! in_array($user->role, ['admin', 'bed_manager'], true)) {
+            $user->forceFill([
+                'workflow_preference' => $user->workflow_preference ?: 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
+            ])->save();
+        }
 
         // Log the user in
         Auth::login($user);

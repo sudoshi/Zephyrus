@@ -89,6 +89,62 @@ class PatientFlowApiTest extends TestCase
             ->assertJsonPath('activePatients', 1)
             ->assertJsonPath('patients.0.location', 'TICU-B001');
 
+        $occupancy = $this->actingAs($user)
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z')
+            ->assertOk()
+            ->assertJsonPath('summary.active', 1)
+            ->assertJsonPath('summary.service_lines.0.occupied', 1)
+            ->assertJsonPath('occupancy.0.location', 'TICU-B001')
+            ->assertJsonPath('occupancy.0.came_from', null)
+            ->assertJsonStructure([
+                'occupancy' => [
+                    [
+                        'location',
+                        'location_name',
+                        'service_line',
+                        'stay_minutes',
+                        'arrived_at',
+                        'primary_status',
+                        'timers' => [['kind', 'label', 'status', 'source']],
+                    ],
+                ],
+                'summary' => ['persona', 'service_lines', 'timer_status_counts'],
+            ])
+            ->json('occupancy.0');
+
+        $this->assertArrayHasKey('patient_id', $occupancy);
+
+        $redacted = $this->actingAs(User::factory()->create(['role' => 'executive']))
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z')
+            ->assertOk()
+            ->assertJsonPath('lens.patient_dots', 'none')
+            ->json('occupancy.0');
+
+        $this->assertArrayNotHasKey('patient_id', $redacted);
+        $this->assertArrayNotHasKey('patient_display_id', $redacted);
+
+        $demo = $this->actingAs($user)
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers')
+            ->assertOk()
+            ->assertJsonPath('demo_scenario.key', 'rtdc_barriers')
+            ->assertJsonStructure([
+                'occupancy' => [
+                    [
+                        'barrier_reasons',
+                        'owner_roles',
+                        'delay_impacts',
+                        'timers' => [['reason', 'owner_role', 'blocks', 'impact']],
+                    ],
+                ],
+                'summary' => [
+                    'top_barriers' => [['label', 'reason', 'owner_role', 'count', 'service_lines']],
+                ],
+            ])
+            ->json();
+
+        $this->assertNotEmpty($demo['summary']['top_barriers']);
+        $this->assertNotEmpty(collect($demo['occupancy'])->first(fn (array $item): bool => ! empty($item['barrier_reasons'])));
+
         $ambient = $this->actingAs($user)
             ->getJson('/api/patient-flow/ambient')
             ->assertOk()

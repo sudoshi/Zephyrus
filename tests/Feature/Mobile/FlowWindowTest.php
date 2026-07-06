@@ -434,6 +434,17 @@ class FlowWindowTest extends TestCase
         $this->assertIsArray($spaces);
         foreach ($spaces as $space) {
             $this->assertEqualsCanonicalizing(['x', 'y', 'z'], array_keys($space['centroid_m']));
+            $this->assertArrayHasKey('service_line', $space, 'each space carries its (nullable) service line for map color');
+        }
+
+        // The service-line legend is the single source of map color. It always carries the
+        // neutral `unassigned` swatch; any real (catalog) line adds a {name, color} entry.
+        $legend = $res->json('data.service_lines');
+        $this->assertIsArray($legend);
+        $this->assertArrayHasKey('unassigned', $legend);
+        foreach ($legend as $code => $style) {
+            $this->assertArrayHasKey('name', $style, "legend entry {$code} has a display name");
+            $this->assertMatchesRegularExpression('/^#[0-9A-Fa-f]{6}$/', $style['color'], "legend entry {$code} has a hex color");
         }
 
         $this->withHeaders(['If-None-Match' => $etag])
