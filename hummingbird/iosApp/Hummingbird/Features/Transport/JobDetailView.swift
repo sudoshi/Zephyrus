@@ -51,7 +51,7 @@ struct JobDetailView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .navigationTitle("Trip")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { primaryBar }
@@ -243,7 +243,7 @@ struct HandoffSheet: View {
                 }
                 .padding(Z.s4)
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("Structured handoff")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

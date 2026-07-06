@@ -46,7 +46,7 @@ struct TurnDetailView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .navigationTitle("Bed Turn")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { primaryBar }

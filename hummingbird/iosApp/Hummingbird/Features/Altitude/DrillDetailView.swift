@@ -85,7 +85,7 @@ struct DrillDetailView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(itemUuid)|\(profile.roleId ?? "")") {
@@ -117,9 +117,6 @@ struct DrillDetailView: View {
 
             if let ref = drill.patientContextRef {
                 PatientContextLink(contextRef: ref)
-                EddyContextButton(scopeRef: ref)
-            } else {
-                EddyContextButton(scopeRef: itemUuid)
             }
 
             sectionLabel("WHY IT MATTERS")

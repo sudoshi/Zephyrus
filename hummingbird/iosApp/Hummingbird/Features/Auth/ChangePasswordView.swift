@@ -89,7 +89,7 @@ struct ChangePasswordView: View {
             }
             .padding(Z.s5)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .task {
             // Test affordance: SIMCTL_CHILD_HB_PW_AUTOSUBMIT=1 submits the prefilled form once
             // so an end-to-end screenshot can land past the change gate. No-op in production.

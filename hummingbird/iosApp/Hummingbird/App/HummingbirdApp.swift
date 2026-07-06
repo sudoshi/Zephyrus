@@ -7,6 +7,7 @@ struct HummingbirdApp: App {
     @StateObject private var profile = ProfileStore()
     @StateObject private var lock = AppLock()
     @StateObject private var push = PushManager.shared
+    @StateObject private var eddyContext = EddyContextStore()
 
     init() {
         let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
@@ -20,6 +21,7 @@ struct HummingbirdApp: App {
                 .environmentObject(profile)
                 .environmentObject(lock)
                 .environmentObject(push)
+                .environmentObject(eddyContext)
                 .preferredColorScheme(.dark)
         }
     }

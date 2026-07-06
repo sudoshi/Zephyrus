@@ -87,8 +87,9 @@ struct HouseCapacityView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("House Capacity")
+            .eddyContext("house_capacity", title: "House Capacity", scopeRef: "house")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -101,7 +102,7 @@ struct HouseCapacityView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
-                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                        EmptyView()
                     }
                     .accessibilityLabel("Profile and settings")
                 }

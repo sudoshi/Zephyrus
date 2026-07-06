@@ -62,8 +62,9 @@ struct CapacityDemandView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("Capacity & Demand")
+            .eddyContext("capacity_demand", title: "Capacity & Demand", scopeRef: "house")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -75,7 +76,7 @@ struct CapacityDemandView: View {
                     .frame(width: 160)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                    Button { showProfile = true } label: { EmptyView() }.accessibilityLabel("Profile and settings")
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
@@ -142,7 +143,6 @@ struct CapacityDemandView: View {
                         .foregroundStyle(Z.primary)
                 }
                 .buttonStyle(.plain)
-                EddyContextButton(scopeRef: a.approvalUuid)
                 HStack(spacing: Z.s2) {
                     Button {
                         Task { await vm.reject(a, bearer: auth.accessToken ?? "") }

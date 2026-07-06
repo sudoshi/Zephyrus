@@ -71,8 +71,9 @@ struct BedTurnsView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("Bed Turns")
+            .eddyContext("bed_turns", title: "Bed Turns", summary: "dirty & blocked beds")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -85,7 +86,7 @@ struct BedTurnsView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
-                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                        EmptyView()
                     }
                     .accessibilityLabel("Profile and settings")
                 }

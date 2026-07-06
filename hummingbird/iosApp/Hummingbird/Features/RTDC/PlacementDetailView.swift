@@ -56,7 +56,7 @@ struct PlacementDetailView: View {
             }
             .padding(Z.s4)
         }
-        .background(Z.bg)
+        .background { HummingbirdBackdrop(dim: 0.4) }
         .navigationTitle("Placement")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { actionBar }

@@ -80,8 +80,9 @@ struct TransportJobsView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("Transport")
+            .eddyContext("transport_jobs", title: "Transport", summary: "my trips & moves")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -94,7 +95,7 @@ struct TransportJobsView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
-                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                        EmptyView()
                     }
                     .accessibilityLabel("Profile and settings")
                 }

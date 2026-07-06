@@ -120,13 +120,14 @@ struct ForYouView: View {
                 }
                 .padding(Z.s4)
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("For You")
+            .eddyContext("for_you", title: "For You", summary: "your priority queue")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showProfile = true } label: {
-                        Image(systemName: "person.crop.circle").foregroundStyle(Z.ink)
+                        EmptyView()
                     }
                     .accessibilityLabel("Profile and settings")
                 }

@@ -52,8 +52,9 @@ struct ORBoardView: View {
                     listBody
                 }
             }
-            .background(Z.bg)
+            .background { HummingbirdBackdrop(dim: 0.4) }
             .navigationTitle("OR Board")
+            .eddyContext("or_board", title: "OR Board", summary: "cases & room status")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -65,7 +66,7 @@ struct ORBoardView: View {
                     .frame(width: 160)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Z.ink) }.accessibilityLabel("Profile and settings")
+                    Button { showProfile = true } label: { EmptyView() }.accessibilityLabel("Profile and settings")
                 }
             }
             .sheet(isPresented: $showProfile) { ProfileView() }
