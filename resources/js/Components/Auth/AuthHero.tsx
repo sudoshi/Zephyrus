@@ -1,22 +1,9 @@
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
-/* Concentric rising-pulse arcs — indigo→blue→cyan brand mark (from GuestLayout). */
 function ZephyrusMark({ className = '' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <linearGradient id="hero-mark-grad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#6366f1" />
-          <stop offset="0.5" stopColor="#3b82f6" />
-          <stop offset="1" stopColor="#06b6d4" />
-        </linearGradient>
-      </defs>
-      <path d="M12 58 A30 30 0 0 1 68 58" stroke="url(#hero-mark-grad)" strokeWidth="2.5" strokeLinecap="round" opacity="0.35" />
-      <path d="M22 54 A20 20 0 0 1 58 54" stroke="url(#hero-mark-grad)" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
-      <path d="M30 50 A12 12 0 0 1 50 50" stroke="url(#hero-mark-grad)" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="40" cy="38" r="3.5" fill="url(#hero-mark-grad)" />
-    </svg>
+    <img src="/images/zephyrus-icon.png" alt="" aria-hidden="true" className={`${className} object-contain`} />
   );
 }
 
