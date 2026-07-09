@@ -9,6 +9,8 @@ use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
 use App\Services\PatientFlow\FlowEventRepository;
 use App\Services\PatientFlow\PatientFlowOccupancyContextService;
+use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
+use App\Services\PatientFlow\PatientFlowScenarioRegistry;
 use App\Services\PatientFlow\PatientStateProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +27,8 @@ class PatientFlowController extends Controller
         private readonly FhirBundleFactory $fhir,
         private readonly AmbientSignalService $ambientSignals,
         private readonly PatientFlowOccupancyContextService $occupancyContext,
+        private readonly PatientFlowOccupancyHistoryService $occupancyHistory,
+        private readonly PatientFlowScenarioRegistry $scenarios,
     ) {}
 
     public function summary(): JsonResponse
@@ -103,6 +107,18 @@ class PatientFlowController extends Controller
         return response()->json($this->ambientSignals->summary($this->facilityCode()));
     }
 
+    public function demoScenarios(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->scenarios->all(),
+            'meta' => [
+                'enabled_keys' => $this->scenarios->enabledKeys(),
+                'source_mode' => 'synthetic_demo',
+                'generated_at' => now()->toJSON(),
+            ],
+        ]);
+    }
+
     /**
      * Disk-ready occupancy detail contract for the 4D viewer.
      *
@@ -127,6 +143,15 @@ class PatientFlowController extends Controller
             $this->filters($request),
             $this->includes($request, 'eddy_context'),
         ));
+    }
+
+    public function occupancyHistory(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $lens */
+        $lens = $request->attributes->get('flow_lens');
+        $roleId = (string) $request->attributes->get('flow_role_id');
+
+        return response()->json($this->occupancyHistory->history($lens, $roleId, $this->filters($request)));
     }
 
     /**
@@ -198,6 +223,7 @@ class PatientFlowController extends Controller
             'service_line' => $request->query('service_line'),
             'floor' => $request->query('floor'),
             'demo' => $request->query('demo'),
+            'scenario' => $request->query('scenario'),
             'limit' => $request->query('limit', 5000),
         ];
     }

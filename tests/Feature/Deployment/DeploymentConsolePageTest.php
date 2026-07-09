@@ -18,9 +18,11 @@ class DeploymentConsolePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_login(): void
+    public function test_demo_guest_is_auto_authenticated_as_console_reader(): void
     {
-        $this->get('/deployment')->assertRedirect('/login');
+        $this->get('/deployment')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('Deployment/DeploymentConsole'));
     }
 
     public function test_frontline_role_is_forbidden(): void

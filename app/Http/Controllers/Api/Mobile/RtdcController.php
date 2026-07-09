@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Mobile;
 
 use App\Exceptions\BedUnavailableException;
 use App\Exceptions\UnsafePlacementException;
+use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\BedRequest;
@@ -36,6 +37,7 @@ use Illuminate\Validation\Rule;
  */
 class RtdcController extends Controller
 {
+    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
     public function __construct(
@@ -159,6 +161,7 @@ class RtdcController extends Controller
 
                 $fresh = $bedRequest->fresh();
                 $this->ledger->record($validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected', [
+                    'idempotency_key' => $this->mobileIdempotencyKey($request),
                     'actor_user_id' => $request->user()?->id,
                     'actor_role' => $this->personas->fromRequest($request),
                     'domain' => 'rtdc',
@@ -207,6 +210,7 @@ class RtdcController extends Controller
             $barrier = $this->barriers->resolve($id);
 
             $this->ledger->record('barrier.resolved', [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $request->user()?->id,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'rtdc',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Evs\EvsRequest;
@@ -27,6 +28,7 @@ use Illuminate\Validation\Rule;
  */
 class EvsController extends Controller
 {
+    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
     public function __construct(
@@ -93,6 +95,7 @@ class EvsController extends Controller
             };
 
             $this->ledger->record($eventType, [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $actorId,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'evs',

@@ -186,7 +186,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
 
     public function test_integration_health_endpoint_reports_status(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'must_change_password' => false]);
         app(SyntheticHealthcareConnector::class)->healthCheck();
         app(SyntheticHealthcareConnector::class)->poll(new \App\Integrations\Healthcare\DTO\PollRequest(messages: []));
 
@@ -199,7 +199,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
 
     public function test_enterprise_connector_summary_seeds_playbooks_and_coexistence_adapters(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'must_change_password' => false]);
 
         $response = $this->actingAs($user)
             ->getJson('/api/admin/integrations/enterprise')
@@ -218,7 +218,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
 
     public function test_fhir_capability_discovery_records_connection_capabilities_and_smart_lifecycle(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
 
         $response = $this->actingAs($user)
             ->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
@@ -255,7 +255,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
 
     public function test_writeback_draft_creates_pending_ops_approval_gate(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
 
         $response = $this->actingAs($user)
             ->postJson('/api/admin/integrations/enterprise/writeback-drafts', [

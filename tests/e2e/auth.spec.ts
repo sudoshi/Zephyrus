@@ -2,65 +2,83 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
   test('login page renders correctly', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.locator('input[name="username"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
+    await expect(page.getByLabel(/username/i)).toBeVisible();
+    await expect(page.getByLabel(/^password$/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 
   test('login page has create account section', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText(/create account/i)).toBeVisible();
+    await expect(page.getByText(/create an account/i)).toBeVisible();
   });
 
   test('shows validation errors for empty login', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-    await page.getByRole('button', { name: /log in/i }).click();
+    await page.getByRole('button', { name: /sign in/i }).click();
 
-    // Should stay on login page with validation errors
+    // Native required fields keep the operator on the login page.
     await expect(page).toHaveURL(/\/login/);
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-    await page.fill('input[name="username"]', 'invalid_user');
-    await page.fill('input[name="password"]', 'wrong_password');
-    await page.getByRole('button', { name: /log in/i }).click();
+    await page.getByLabel(/username/i).fill('invalid_user');
+    await page.getByLabel(/^password$/i).fill('wrong_password');
+    await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should stay on login page and show error
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('successful login redirects to dashboard', async ({ page }) => {
-    await page.goto('/login');
+  test('seeded login redirects to dashboard', async ({ page }) => {
+    test.skip(
+      !process.env.TEST_USERNAME || !process.env.TEST_PASSWORD,
+      'Set TEST_USERNAME and TEST_PASSWORD to run the seeded login E2E path.'
+    );
 
-    // This test requires a seeded test user in the database
-    // The actual credentials would be configured per environment
-    await page.fill('input[name="username"]', process.env.TEST_USERNAME || 'admin');
-    await page.fill('input[name="password"]', process.env.TEST_PASSWORD || 'password');
-    await page.getByRole('button', { name: /log in/i }).click();
+    await page.route('**/api/cockpit/stream', async (route) => {
+      await route.fulfill({ status: 204, body: '' });
+    });
 
-    // Should redirect away from login on success
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    await page.getByLabel(/username/i).fill(process.env.TEST_USERNAME!);
+    await page.getByLabel(/^password$/i).fill(process.env.TEST_PASSWORD!);
+    await page.getByRole('button', { name: /sign in/i }).click();
+
+    await expect(page).toHaveURL(/\/dashboard|\/change-password/, { timeout: 10000 });
   });
 
-  test('unauthenticated users are redirected to login', async ({ page }) => {
-    await page.goto('/dashboard');
+  test('demo web routes auto-authenticate dashboard viewers', async ({ page }) => {
+    await page.route('**/api/cockpit/stream', async (route) => {
+      await route.fulfill({ status: 204, body: '' });
+    });
 
-    await expect(page).toHaveURL(/\/login/);
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
   });
 
   test('change password modal appears for new users', async ({ page }) => {
     // This test requires a user with must_change_password=true
-    await page.goto('/login');
+    test.skip(
+      !process.env.TEST_NEW_USERNAME || !process.env.TEST_NEW_PASSWORD,
+      'Set TEST_NEW_USERNAME and TEST_NEW_PASSWORD to run the temporary-password E2E path.'
+    );
 
-    await page.fill('input[name="username"]', process.env.TEST_NEW_USERNAME || 'newuser');
-    await page.fill('input[name="password"]', process.env.TEST_NEW_PASSWORD || 'temp_pass');
-    await page.getByRole('button', { name: /log in/i }).click();
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    await page.getByLabel(/username/i).fill(process.env.TEST_NEW_USERNAME!);
+    await page.getByLabel(/^password$/i).fill(process.env.TEST_NEW_PASSWORD!);
+    await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should redirect to change password or show the modal
     await page.waitForURL(/\/(change-password|dashboard)/, { timeout: 10000 });

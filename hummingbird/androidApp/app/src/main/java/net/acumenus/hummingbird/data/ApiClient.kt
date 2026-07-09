@@ -8,6 +8,7 @@ import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.security.MessageDigest
 
 /**
  * Thin coroutine API client for the Hummingbird BFF. The Android emulator reaches the Mac
@@ -310,6 +311,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             readTimeout = 15000
             setRequestProperty("Accept", "application/json")
             bearer?.let { setRequestProperty("Authorization", "Bearer $it") }
+            mobileIdempotencyKey(method, path, body)?.let { setRequestProperty("Idempotency-Key", it) }
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
@@ -326,6 +328,15 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         } finally {
             conn.disconnect()
         }
+    }
+
+    internal fun mobileIdempotencyKey(method: String, path: String, body: String?): String? {
+        val verb = method.uppercase()
+        if (verb != "POST" || !path.startsWith("/api/mobile/v1/")) return null
+        val material = "$verb\n$path\n${body.orEmpty()}"
+        val digest = MessageDigest.getInstance("SHA-256").digest(material.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        return "hb-$digest"
     }
 
     /** The envelope's `error.code` (e.g. "invalid_since"), when present. */
@@ -1217,7 +1228,7 @@ private fun JSONObject.optIsolation(key: String): String? {
     return when (raw) {
         is Boolean -> if (raw) "isolation" else null
         JSONObject.NULL -> null
-        else -> raw.toString().takeIf { it.isNotBlank() }
+        else -> raw?.toString()?.takeIf { it.isNotBlank() }
     }
 }
 

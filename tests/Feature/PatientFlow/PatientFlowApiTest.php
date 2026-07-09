@@ -168,6 +168,74 @@ class PatientFlowApiTest extends TestCase
         $this->assertContains('draft_huddle_summary', $demo['eddy_context']['action_allowlist']);
         $this->assertNotEmpty($demo['eddy_context']['recommended_focus_areas']);
 
+        $scenarioRegistry = $this->actingAs($user)
+            ->getJson('/api/patient-flow/demo-scenarios')
+            ->assertOk()
+            ->assertJsonPath('meta.source_mode', 'synthetic_demo')
+            ->json('data');
+
+        $scenarioKeys = array_column($scenarioRegistry, 'key');
+        foreach ([
+            'ed_boarding_surge',
+            'evs_backlog',
+            'or_pacu_hold',
+            'weekend_staffing_gap',
+            'post_acute_discharge_gridlock',
+            'critical_care_outflow',
+        ] as $requiredScenario) {
+            $this->assertContains($requiredScenario, $scenarioKeys);
+        }
+
+        $this->actingAs($user)
+            ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=critical_care_outflow&include=eddy_context')
+            ->assertOk()
+            ->assertJsonPath('demo_scenario.key', 'critical_care_outflow')
+            ->assertJsonPath('demo_scenario.enabled', true)
+            ->assertJsonPath('eddy_context.source_lineage.demo_scenario.key', 'critical_care_outflow');
+
+        DB::table('flow_core.occupancy_snapshots')->insert([
+            'snapshot_at' => '2026-06-25 02:00:00+00',
+            'facility_space_id' => $spaceId,
+            'active_patient_count' => 1,
+            'service_line_counts' => json_encode(['critical_care' => 1]),
+            'acuity_counts' => json_encode(['icu' => 1]),
+            'occupancy_details' => json_encode([[
+                'location' => 'TICU-B001',
+                'patient_id' => 'SYN000001',
+                'patient_display_id' => 'Demo SYN000001',
+                'encounter_id' => 'VIS000001',
+                'primary_status' => 'watch',
+            ]]),
+            'timer_status_counts' => json_encode(['ok' => 0, 'watch' => 1, 'delayed' => 0]),
+            'service_line_timer_counts' => json_encode(['critical_care' => ['watch' => 1]]),
+            'persona_timer_counts' => json_encode(['bed_manager' => 1]),
+            'active_blocker_counts' => json_encode(['stepdown_staffing_variance' => 1]),
+            'projection_window' => json_encode(['from' => '2026-06-25T02:00:00Z', 'to' => '2026-06-26T02:00:00Z']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $history = $this->actingAs($user)
+            ->getJson('/api/patient-flow/occupancy/history?from=2026-06-25T00:00:00Z&to=2026-06-25T03:00:00Z&demo=critical_care_outflow')
+            ->assertOk()
+            ->assertJsonPath('summary.snapshots', 1)
+            ->assertJsonPath('history.0.facility_space.space_code', "{$facilityCode}:TICU-B001")
+            ->assertJsonPath('history.0.lineage.source_table', 'flow_core.occupancy_snapshots')
+            ->json('history.0.occupancy_details.0');
+
+        $this->assertSame('SYN000001', $history['patient_id']);
+
+        $executiveHistory = $this->actingAs(User::factory()->create(['role' => 'executive']))
+            ->getJson('/api/patient-flow/occupancy/history?from=2026-06-25T00:00:00Z&to=2026-06-25T03:00:00Z&demo=critical_care_outflow')
+            ->assertOk()
+            ->assertJsonPath('lens.patient_dots', 'none')
+            ->assertJsonPath('summary.redacted', true)
+            ->json('history.0.occupancy_details.0');
+
+        $this->assertArrayNotHasKey('patient_id', $executiveHistory);
+        $this->assertArrayNotHasKey('patient_display_id', $executiveHistory);
+        $this->assertArrayNotHasKey('encounter_id', $executiveHistory);
+
         $executiveContext = $this->actingAs(User::factory()->create(['role' => 'executive']))
             ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers&include=eddy_context')
             ->assertOk()

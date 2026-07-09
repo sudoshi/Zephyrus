@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Services\Mobile\MobilePersonaCatalog;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\SeedsFlowStory;
 use Tests\TestCase;
@@ -478,6 +480,71 @@ class FlowWindowTest extends TestCase
         $this->assertNotEmpty($snapshots, 'backfill should yield census checkpoints inside the window');
         $this->assertArrayHasKey('occupied', $snapshots[0]);
         $this->assertArrayHasKey('staffed', $snapshots[0]);
+    }
+
+    public function test_live_flow_snapshot_persists_redactable_occupancy_details(): void
+    {
+        $unit = Unit::where('abbreviation', 'MICU')->firstOrFail();
+        $spaceId = DB::table('hosp_space.facility_spaces')->insertGetId([
+            'space_code' => 'FLOWTEST:MICU',
+            'space_name' => 'Flow Test MICU',
+            'space_category' => 'unit',
+            'floor_label' => '3',
+            'floor_number' => 3,
+            'service_line_code' => 'critical_care',
+            'acuity_level' => 'icu',
+            'status' => 'active',
+            'geometry' => json_encode(['bounds' => [0, 0, 100, 100]]),
+            'attributes' => json_encode(['fixture' => 'flow-window-test']),
+            'source_system' => 'test',
+            'source_confidence' => 1,
+            'facility_key' => 'HOSP1',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'facility_space_id');
+        $unit->update(['facility_space_id' => $spaceId]);
+
+        Artisan::call('flow:snapshot');
+
+        $row = DB::table('flow_core.occupancy_snapshots')
+            ->where('active_patient_count', '>', 0)
+            ->whereRaw('jsonb_array_length(occupancy_details) > 0')
+            ->orderByDesc('snapshot_at')
+            ->first();
+
+        $this->assertNotNull($row, 'flow:snapshot should write disk-ready occupancy detail rows.');
+
+        $details = json_decode($row->occupancy_details, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertNotEmpty($details);
+        $this->assertSame('FLOWTEST-PAT-EDD', $details[0]['patient_ref']);
+        $this->assertArrayHasKey('encounter_id', $details[0]);
+        $this->assertArrayHasKey('timer_status', $details[0]);
+        $this->assertSame('prod', $details[0]['source']['schema']);
+        $this->assertSame('encounters', $details[0]['source']['table']);
+
+        $snapshotAt = Carbon::parse($row->snapshot_at);
+        $query = http_build_query([
+            'from' => $snapshotAt->copy()->subMinute()->toIso8601String(),
+            'to' => $snapshotAt->copy()->addMinute()->toIso8601String(),
+        ]);
+
+        $bedManager = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
+        $this->actingAs($bedManager)
+            ->getJson("/api/patient-flow/occupancy/history?{$query}")
+            ->assertOk()
+            ->assertJsonPath('summary.snapshots', 1)
+            ->assertJsonPath('history.0.occupancy_details.0.patient_ref', 'FLOWTEST-PAT-EDD');
+
+        $executive = User::factory()->create(['role' => 'executive', 'must_change_password' => false]);
+        $executiveDetail = $this->actingAs($executive)
+            ->getJson("/api/patient-flow/occupancy/history?{$query}")
+            ->assertOk()
+            ->assertJsonPath('lens.patient_dots', 'none')
+            ->assertJsonPath('summary.redacted', true)
+            ->json('history.0.occupancy_details.0');
+
+        $this->assertArrayNotHasKey('patient_ref', $executiveDetail);
+        $this->assertArrayNotHasKey('encounter_id', $executiveDetail);
     }
 
     // -----------------------------------------------------------------

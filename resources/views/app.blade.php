@@ -58,7 +58,7 @@
             <script type="module" src="/build/{{ $manifest['resources/js/app.tsx']['file'] }}"></script>
         @else
             @viteReactRefresh
-            @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.jsx"])
+            @vite(['resources/js/app.tsx'])
         @endproduction
         @inertiaHead
     </head>

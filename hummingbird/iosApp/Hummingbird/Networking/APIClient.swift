@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Where the BFF lives, resolved per build so the same source runs against the right host:
 /// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
@@ -353,9 +354,13 @@ struct APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bearer { req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
-        if let body {
+        let bodyData = body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) }
+        if let idempotencyKey = Self.mobileIdempotencyKey(method: method, path: path, bodyData: bodyData) {
+            req.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        }
+        if body != nil {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+            req.httpBody = bodyData
         }
         req.timeoutInterval = 15
 
@@ -373,6 +378,17 @@ struct APIClient {
             throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
         }
         return data
+    }
+
+    internal static func mobileIdempotencyKey(method: String, path: String, bodyData: Data?) -> String? {
+        guard method.uppercased() == "POST", path.hasPrefix("/api/mobile/v1/") else { return nil }
+        let bodyString = bodyData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        let material = "\(method.uppercased())\n\(path)\n\(bodyString)"
+        let digest = SHA256.hash(data: Data(material.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+
+        return "hb-\(digest)"
     }
 
     private static func errorMessage(from data: Data, status: Int) -> String {

@@ -81,12 +81,70 @@ class EddyActionService
 
     public function catalog(): array
     {
-        return self::CATALOG;
+        $catalog = [];
+        foreach (self::CATALOG as $actionType => $spec) {
+            $catalog[$actionType] = $this->catalogEntry($actionType, $spec);
+        }
+
+        return $catalog;
     }
 
     public function isProposable(string $actionType): bool
     {
         return array_key_exists($actionType, self::CATALOG);
+    }
+
+    /**
+     * @param  array<string, mixed>  $spec
+     * @return array<string, mixed>
+     */
+    private function catalogEntry(string $actionType, array $spec): array
+    {
+        return $spec + [
+            'minimum_role' => $this->minimumRole($spec),
+            'scope' => [
+                'allowed_surfaces' => ['house', 'dashboard', 'rtdc', 'patient_flow_4d', 'transport', 'evs', 'staffing', 'periop', 'quality'],
+                'requires_scope_key' => false,
+            ],
+            'write_tier' => $spec['tier'],
+            'phi_policy' => [
+                'patient_identifiers_allowed' => false,
+                'prompt_policy' => 'phi_minimized',
+                'push_payload_policy' => 'phi_free_doorbell_only',
+            ],
+            'dry_run' => [
+                'required' => true,
+                'preview_fields' => ['title', 'rationale', 'runner_up', 'params'],
+            ],
+            'execution_adapter' => [
+                'type' => 'governance_lifecycle',
+                'adapter' => OperationalActionLifecycleService::class,
+                'direct_domain_mutation' => false,
+            ],
+            'rollback' => [
+                'classification' => 'approval_reversible_before_execution',
+                'procedure' => 'Reject the pending approval or override/expire the operational action before execution.',
+            ],
+            'audit' => [
+                'records' => ['ops.recommendations', 'ops.actions', 'ops.approvals'],
+                'decision_event' => 'ops.approvals.decision',
+                'created_by_source' => 'eddy',
+            ],
+            'mobile_available' => true,
+            'requires_human_approval' => true,
+            'draft_only_for_agent_tokens' => true,
+            'action_type' => $actionType,
+        ];
+    }
+
+    /** @param array<string, mixed> $spec */
+    private function minimumRole(array $spec): string
+    {
+        return match ($spec['tier'] ?? 'T1') {
+            'T3' => 'capacity_lead',
+            'T2' => 'bed_manager',
+            default => 'user',
+        };
     }
 
     /**

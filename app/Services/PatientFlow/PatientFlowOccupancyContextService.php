@@ -16,6 +16,7 @@ class PatientFlowOccupancyContextService
         private readonly PatientFlowEddyContextBuilder $eddyContext,
         private readonly ForwardProjectionService $projections,
         private readonly FlowLensService $flowLens,
+        private readonly PatientFlowScenarioRegistry $scenarios,
     ) {}
 
     /**
@@ -123,7 +124,7 @@ class PatientFlowOccupancyContextService
         if ($value !== null) {
             $normalized = strtolower((string) $value);
 
-            return in_array($normalized, ['1', 'true', 'yes', 'on', 'barriers', 'rtdc'], true);
+            return $this->scenarios->isDemoRequestValue($normalized);
         }
 
         return (bool) config('patient_flow.demo_barriers_enabled', false);
@@ -136,7 +137,7 @@ class PatientFlowOccupancyContextService
         if ($value !== null) {
             $normalized = strtolower((string) $value);
 
-            return in_array($normalized, ['1', 'true', 'yes', 'on', 'barriers', 'rtdc', 'replace'], true);
+            return $this->scenarios->isDemoRequestValue($normalized);
         }
 
         return (bool) config('patient_flow.demo_barriers_replace_replay', false);

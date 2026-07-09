@@ -53,11 +53,27 @@ class TimelineSnapshotService
             ->get()
             ->groupBy('unit_id');
 
+        $encountersByUnit = Encounter::query()
+            ->with('bed')
+            ->where('status', 'active')
+            ->where('is_deleted', false)
+            ->whereNotNull('unit_id')
+            ->get()
+            ->groupBy('unit_id');
+
         $written = 0;
         foreach ($units as $unit) {
             $occupied = $unit->beds->where('status', 'occupied')->count();
             $available = $unit->beds->where('status', 'available')->count();
             $blocked = $unit->beds->whereIn('status', ['blocked', 'dirty'])->count();
+            $details = $this->liveOccupancyDetails(
+                unit: $unit,
+                encounters: $encountersByUnit[$unit->unit_id] ?? collect(),
+                capturedAt: $at,
+            );
+            $timerStatusCounts = $this->timerStatusCounts($details, $occupied);
+            $serviceLineCounts = $this->serviceLineCounts($unit, count($details), $occupied);
+            $serviceLineTimerCounts = $this->serviceLineTimerCounts($unit, $timerStatusCounts);
 
             $this->writeCheckpoint(
                 unit: $unit,
@@ -69,6 +85,12 @@ class TimelineSnapshotService
                 acuityCounts: ($acuityByUnit[$unit->unit_id] ?? collect())
                     ->mapWithKeys(fn ($row): array => [(string) $row->acuity_tier => (int) $row->n])
                     ->all(),
+                serviceLineCounts: $serviceLineCounts,
+                occupancyDetails: $details,
+                timerStatusCounts: $timerStatusCounts,
+                serviceLineTimerCounts: $serviceLineTimerCounts,
+                personaTimerCounts: $this->personaTimerCounts($details, $occupied, $blocked),
+                projectionWindow: $this->projectionWindow($at, $details),
             );
             $written++;
         }
@@ -137,6 +159,8 @@ class TimelineSnapshotService
                         blocked: $blocked,
                         acuityAdjusted: (int) $unit->staffed_bed_count,
                         acuityCounts: [],
+                        timerStatusCounts: ['ok' => $occupied, 'watch' => 0, 'delayed' => 0],
+                        personaTimerCounts: $this->personaTimerCounts([], $occupied, $blocked),
                     );
                     $written++;
                 }
@@ -202,6 +226,13 @@ class TimelineSnapshotService
         int $blocked,
         int $acuityAdjusted,
         array $acuityCounts,
+        array $serviceLineCounts = [],
+        array $occupancyDetails = [],
+        array $timerStatusCounts = [],
+        array $serviceLineTimerCounts = [],
+        array $personaTimerCounts = [],
+        array $activeBlockerCounts = [],
+        array $projectionWindow = [],
     ): void {
         CensusSnapshot::updateOrCreate(
             ['unit_id' => $unit->unit_id, 'captured_at' => $capturedAt],
@@ -219,16 +250,140 @@ class TimelineSnapshotService
                 ['snapshot_at' => $capturedAt, 'facility_space_id' => $unit->facility_space_id],
                 [
                     'active_patient_count' => $occupied,
-                    'service_line_counts' => [],
+                    'service_line_counts' => $serviceLineCounts,
                     'acuity_counts' => $acuityCounts,
-                    'occupancy_details' => [],
-                    'timer_status_counts' => ['ok' => $occupied, 'watch' => 0, 'delayed' => 0],
-                    'service_line_timer_counts' => [],
-                    'persona_timer_counts' => ['transport' => 0, 'evs' => 0, 'bed_manager' => 0, 'capacity' => 0],
-                    'active_blocker_counts' => [],
-                    'projection_window' => [],
+                    'occupancy_details' => $occupancyDetails,
+                    'timer_status_counts' => $timerStatusCounts ?: ['ok' => $occupied, 'watch' => 0, 'delayed' => 0],
+                    'service_line_timer_counts' => $serviceLineTimerCounts,
+                    'persona_timer_counts' => $personaTimerCounts ?: ['transport' => 0, 'evs' => 0, 'bed_manager' => 0, 'capacity' => 0],
+                    'active_blocker_counts' => $activeBlockerCounts,
+                    'projection_window' => $projectionWindow,
                 ],
             );
         }
+    }
+
+    private function liveOccupancyDetails(Unit $unit, iterable $encounters, CarbonImmutable $capturedAt): array
+    {
+        $serviceLine = $this->serviceLine($unit);
+
+        return collect($encounters)
+            ->map(function (Encounter $encounter) use ($unit, $capturedAt, $serviceLine): array {
+                $admittedAt = $encounter->admitted_at ? CarbonImmutable::parse($encounter->admitted_at) : null;
+                $elapsedMinutes = $admittedAt ? max(0, $admittedAt->diffInMinutes($capturedAt, false)) : null;
+                $expectedDischarge = $encounter->expected_discharge_date
+                    ? CarbonImmutable::parse($encounter->expected_discharge_date)->endOfDay()
+                    : null;
+                $timerStatus = $this->timerStatus($capturedAt, $admittedAt, $expectedDischarge, (int) $unit->access_standard_minutes);
+
+                return [
+                    'unit_id' => (int) $unit->unit_id,
+                    'unit' => $unit->abbreviation ?: $unit->name,
+                    'bed_id' => $encounter->bed_id ? (int) $encounter->bed_id : null,
+                    'bed_label' => $encounter->bed?->label,
+                    'service_line' => $serviceLine,
+                    'patient_ref' => (string) $encounter->patient_ref,
+                    'encounter_id' => (int) $encounter->encounter_id,
+                    'acuity_tier' => (int) $encounter->acuity_tier,
+                    'admitted_at' => $admittedAt?->toIso8601String(),
+                    'elapsed_minutes' => $elapsedMinutes,
+                    'expected_discharge_date' => $encounter->expected_discharge_date?->toDateString(),
+                    'anticipated_move' => $expectedDischarge && $expectedDischarge->lte($capturedAt->addDay())
+                        ? 'planned_discharge'
+                        : null,
+                    'primary_status' => $timerStatus,
+                    'timer_status' => $timerStatus,
+                    'source' => [
+                        'schema' => 'prod',
+                        'table' => 'encounters',
+                        'captured_at' => $capturedAt->toIso8601String(),
+                        'source_mode' => 'snapshot',
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function timerStatus(
+        CarbonImmutable $capturedAt,
+        ?CarbonImmutable $admittedAt,
+        ?CarbonImmutable $expectedDischarge,
+        int $accessStandardMinutes,
+    ): string {
+        if ($expectedDischarge && $expectedDischarge->lt($capturedAt)) {
+            return 'delayed';
+        }
+
+        if ($expectedDischarge && $expectedDischarge->lte($capturedAt->addHours(12))) {
+            return 'watch';
+        }
+
+        if ($admittedAt && $accessStandardMinutes > 0
+            && $admittedAt->diffInMinutes($capturedAt, false) >= $accessStandardMinutes) {
+            return 'watch';
+        }
+
+        return 'ok';
+    }
+
+    private function timerStatusCounts(array $details, int $occupied): array
+    {
+        $counts = ['ok' => 0, 'watch' => 0, 'delayed' => 0];
+        foreach ($details as $detail) {
+            $status = in_array($detail['timer_status'] ?? null, ['ok', 'watch', 'delayed'], true)
+                ? $detail['timer_status']
+                : 'ok';
+            $counts[$status]++;
+        }
+
+        if ($occupied > count($details)) {
+            $counts['ok'] += $occupied - count($details);
+        }
+
+        return $counts;
+    }
+
+    private function serviceLineCounts(Unit $unit, int $detailCount, int $occupied): array
+    {
+        $count = max($detailCount, $occupied);
+
+        return $count > 0 ? [$this->serviceLine($unit) => $count] : [];
+    }
+
+    private function serviceLineTimerCounts(Unit $unit, array $timerStatusCounts): array
+    {
+        return array_sum($timerStatusCounts) > 0
+            ? [$this->serviceLine($unit) => $timerStatusCounts]
+            : [];
+    }
+
+    private function personaTimerCounts(array $details, int $occupied, int $blocked): array
+    {
+        $watchOrDelayed = collect($details)
+            ->filter(fn (array $detail): bool => in_array($detail['timer_status'] ?? null, ['watch', 'delayed'], true))
+            ->count();
+
+        return [
+            'transport' => collect($details)->where('anticipated_move', 'planned_discharge')->count(),
+            'evs' => $blocked,
+            'bed_manager' => $watchOrDelayed,
+            'capacity' => $occupied,
+        ];
+    }
+
+    private function projectionWindow(CarbonImmutable $capturedAt, array $details): array
+    {
+        return [
+            'from' => $capturedAt->toIso8601String(),
+            'to' => $capturedAt->addDay()->toIso8601String(),
+            'anticipated_discharges' => collect($details)->where('anticipated_move', 'planned_discharge')->count(),
+            'source_mode' => 'snapshot',
+        ];
+    }
+
+    private function serviceLine(Unit $unit): string
+    {
+        return $unit->type ?: 'unassigned';
     }
 }

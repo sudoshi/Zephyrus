@@ -42,10 +42,20 @@ class OperationalActivityLedger
             'push_safe' => true,
             'requires_detail_auth' => ! empty($scope['patient_ref']) || ! empty($scope['encounter_ref']),
         ], $attributes['phi_policy'] ?? []);
+        $eventUuid = $this->eventUuid($eventType, $attributes, $scope, $actorRole);
 
-        return DB::transaction(function () use ($attributes, $eventType, $domain, $actorRole, $scope, $status, $recommendation, $relay, $phiPolicy): array {
+        return DB::transaction(function () use ($attributes, $eventType, $domain, $actorRole, $scope, $status, $recommendation, $relay, $phiPolicy, $eventUuid): array {
+            $existing = OperationalEvent::query()
+                ->with(['targets', 'entities'])
+                ->where('event_uuid', $eventUuid)
+                ->first();
+
+            if ($existing) {
+                return $this->shape($existing);
+            }
+
             $event = OperationalEvent::create([
-                'event_uuid' => $attributes['event_uuid'] ?? (string) Str::uuid(),
+                'event_uuid' => $eventUuid,
                 'event_type' => $eventType,
                 'occurred_at' => $attributes['occurred_at'] ?? now(),
                 'actor_user_id' => $attributes['actor_user_id'] ?? null,
@@ -294,6 +304,54 @@ class OperationalActivityLedger
         $key = (string) config('app.key', 'zephyrus');
 
         return 'ptok_'.substr(hash_hmac('sha256', $patientRef, $key), 0, 24);
+    }
+
+    private function eventUuid(string $eventType, array $attributes, array $scope, ?string $actorRole): string
+    {
+        if (! empty($attributes['event_uuid']) && is_string($attributes['event_uuid']) && Str::isUuid($attributes['event_uuid'])) {
+            return $attributes['event_uuid'];
+        }
+
+        $key = $attributes['idempotency_key'] ?? null;
+        if (! is_string($key) || trim($key) === '') {
+            return (string) Str::uuid();
+        }
+
+        $hash = hash('sha256', implode('|', [
+            'hummingbird-mobile-ledger',
+            $eventType,
+            (string) ($attributes['actor_user_id'] ?? ''),
+            (string) $actorRole,
+            (string) ($attributes['source_surface'] ?? 'hummingbird'),
+            json_encode($this->idempotencyScope($scope), JSON_THROW_ON_ERROR),
+            mb_substr(trim($key), 0, 200),
+        ]));
+
+        return sprintf(
+            '%s-%s-5%s-%s%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 13, 3),
+            dechex((hexdec($hash[16]) & 0x3) | 0x8),
+            substr($hash, 17, 3),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function idempotencyScope(array $scope): array
+    {
+        return collect($scope)
+            ->only([
+                'action_uuid',
+                'approval_uuid',
+                'barrier_id',
+                'bed_request_id',
+                'evs_request_id',
+                'staffing_request_id',
+                'transport_request_id',
+            ])
+            ->sortKeys()
+            ->all();
     }
 
     private function entityRefForPayload(string $entityType, string $entityRef): ?string

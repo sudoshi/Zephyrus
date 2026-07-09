@@ -6,6 +6,8 @@ use Carbon\CarbonImmutable;
 
 class PatientFlowDemoBarrierScenario
 {
+    public function __construct(private readonly PatientFlowScenarioRegistry $scenarios) {}
+
     /**
      * @param  array<string, array<string, mixed>>  $locations
      * @param  array<string, mixed>  $filters
@@ -21,8 +23,13 @@ class PatientFlowDemoBarrierScenario
         $events = [];
         $projections = [];
         $templates = $this->templates();
+        $scenarioKey = $this->scenarioKey($filters);
 
         foreach ($templates as $index => $template) {
+            if ($scenarioKey !== 'rtdc_barriers' && ! in_array($scenarioKey, $template['scenario_keys'] ?? [], true)) {
+                continue;
+            }
+
             $picked = $this->pickLocation($locations, $template['criteria'], $used);
             if (! $picked) {
                 continue;
@@ -74,7 +81,7 @@ class PatientFlowDemoBarrierScenario
                 'position_m' => $location['position_m'] ?? null,
                 'unit_code' => $location['unit_code'] ?? null,
                 'metadata' => [
-                    'demo_scenario' => 'rtdc_barriers',
+                    'demo_scenario' => $scenarioKey,
                     'scenario_label' => $template['label'],
                     'rtdc_factor' => $template['rtdc_factor'],
                 ],
@@ -115,8 +122,8 @@ class PatientFlowDemoBarrierScenario
             'events' => $events,
             'projections' => $projections,
             'scenario' => [
-                'key' => 'rtdc_barriers',
-                'label' => 'RTDC barrier demonstration',
+                'key' => $scenarioKey,
+                'label' => $this->scenarioLabel($scenarioKey),
                 'enabled' => true,
                 'patients' => count($events),
                 'barrier_timers' => count($projections),
@@ -132,6 +139,7 @@ class PatientFlowDemoBarrierScenario
     {
         return [
             [
+                'scenario_keys' => ['ed_boarding_surge'],
                 'label' => 'ED boarded ICU admit',
                 'criteria' => ['acuity' => 'emergency', 'category' => 'bay', 'code_prefix' => 'ED-'],
                 'service_line' => 'emergency_medicine',
@@ -167,6 +175,7 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
             [
+                'scenario_keys' => ['or_pacu_hold', 'evs_backlog'],
                 'label' => 'PACU hold for dirty inpatient bed',
                 'criteria' => ['category' => 'bay', 'code_prefix' => 'PACU-'],
                 'service_line' => 'perioperative',
@@ -202,6 +211,7 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
             [
+                'scenario_keys' => ['post_acute_discharge_gridlock'],
                 'label' => 'Medicine discharge barrier',
                 'criteria' => ['service_line' => 'adult_med_surg', 'unit_prefix' => 'MS'],
                 'service_line' => 'adult_med_surg',
@@ -225,6 +235,7 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
             [
+                'scenario_keys' => ['critical_care_outflow', 'weekend_staffing_gap'],
                 'label' => 'Critical-care stepdown hold',
                 'criteria' => ['service_line' => 'critical_care', 'unit_prefix' => 'MICU'],
                 'service_line' => 'critical_care',
@@ -248,6 +259,7 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
             [
+                'scenario_keys' => ['or_pacu_hold'],
                 'label' => 'Cath lab pickup watch',
                 'criteria' => ['service_line' => 'cardiology', 'unit_prefix' => 'TEL7'],
                 'service_line' => 'cardiology',
@@ -271,6 +283,7 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
             [
+                'scenario_keys' => ['post_acute_discharge_gridlock'],
                 'label' => 'Rehab placement expiration',
                 'criteria' => ['service_line' => 'rehabilitation', 'unit_prefix' => 'AIR'],
                 'service_line' => 'rehabilitation',
@@ -294,6 +307,25 @@ class PatientFlowDemoBarrierScenario
                 ],
             ],
         ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function scenarioKey(array $filters): string
+    {
+        $value = is_string($filters['demo'] ?? null) ? (string) $filters['demo'] : null;
+
+        return $this->scenarios->canonicalKey($value) ?? 'rtdc_barriers';
+    }
+
+    private function scenarioLabel(string $scenarioKey): string
+    {
+        foreach ($this->scenarios->all() as $scenario) {
+            if (($scenario['key'] ?? null) === $scenarioKey) {
+                return (string) $scenario['label'];
+            }
+        }
+
+        return 'RTDC barrier demonstration';
     }
 
     /**

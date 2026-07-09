@@ -18,9 +18,9 @@ class StaffingWizardPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_login(): void
+    public function test_demo_guest_is_forbidden_from_config_writer(): void
     {
-        $this->get('/deployment/staffing')->assertRedirect('/login');
+        $this->get('/deployment/staffing')->assertForbidden();
     }
 
     public function test_frontline_and_plain_admin_are_forbidden(): void

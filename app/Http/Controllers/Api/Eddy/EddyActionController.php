@@ -29,8 +29,9 @@ class EddyActionController extends Controller
             return response()->json(['error' => 'Caller lacks the ops:draft ability.'], 403);
         }
 
-        // Only a human may approve (Eddy's scoped token never holds ops:approve).
-        $canApprove = $human || $user->tokenCan('ops:approve');
+        // Only a web-session/stateful human may approve. A bearer-token caller is
+        // draft-only even if a misissued token ever carries ops:approve.
+        $canApprove = $human;
         $approve = $request->boolean('approve') && $canApprove;
 
         try {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Transport\TransportRequest;
@@ -28,6 +29,7 @@ use Illuminate\Validation\Rule;
  */
 class TransportController extends Controller
 {
+    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
     public function __construct(
@@ -87,6 +89,7 @@ class TransportController extends Controller
                 : $this->transport->transition($req, $validated['status'], [], $actorId);
 
             $this->ledger->record($validated['status'] === 'assigned' ? 'transport.claimed' : 'transport.progressed', [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $actorId,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'transport',
@@ -135,6 +138,7 @@ class TransportController extends Controller
             $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
 
             $this->ledger->record('transport.handoff_completed', [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $request->user()?->id,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'transport',

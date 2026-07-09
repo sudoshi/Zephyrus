@@ -72,7 +72,7 @@ use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 // Health Check
 Route::get('/health', function () {
     try {
-        \DB::connection()->getPdo();
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
 
         return response()->json([
             'status' => 'healthy',
@@ -149,6 +149,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     Route::get('/summary', [PatientFlowController::class, 'summary']);
     Route::get('/locations', [PatientFlowController::class, 'locations']);
     Route::get('/ambient', [PatientFlowController::class, 'ambient']);
+    Route::get('/demo-scenarios', [PatientFlowController::class, 'demoScenarios']);
 
     // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
     // requires a flow lens whose patient_dots policy is not `none`.
@@ -164,6 +165,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // aggregate-safe: items are persona-clamped and identity-redacted by
     // the same lens the mobile window uses.
     Route::get('/projections', [PatientFlowController::class, 'projections'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
+    Route::get('/occupancy/history', [PatientFlowController::class, 'occupancyHistory'])
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
     Route::get('/occupancy', [PatientFlowController::class, 'occupancy'])
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
@@ -327,10 +330,14 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->grou
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
-// Admin integration health (web session auth)
-Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('admin/integrations')->group(function () {
+// Admin integration health and connector inventory. Read-gated to deployment-console roles.
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewDeploymentConsole'])->prefix('admin/integrations')->group(function () {
     Route::get('/health', IntegrationHealthController::class);
     Route::get('/enterprise', [EnterpriseConnectorController::class, 'summary']);
+});
+
+// Admin integration configuration writes. Narrower gate: superuser/ops-leader only.
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageDeploymentConfig'])->prefix('admin/integrations')->group(function () {
     Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
     Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
 });

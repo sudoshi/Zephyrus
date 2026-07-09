@@ -82,6 +82,7 @@ class AnalyticsController extends Controller
         $utilization = DB::table('prod.case_metrics as cm')
             ->join('prod.or_cases as c', 'cm.case_id', '=', 'c.case_id')
             ->join('prod.services as s', 'c.case_service_id', '=', 's.service_id')
+            ->leftJoin('prod.or_logs as l', 'c.case_id', '=', 'l.case_id')
             ->whereBetween('c.surgery_date', [$startDate, $endDate])
             ->where('c.is_deleted', false)
             ->groupBy('s.service_id', 's.name')
@@ -91,8 +92,8 @@ class AnalyticsController extends Controller
                 DB::raw('COUNT(DISTINCT c.case_id) as case_count'),
                 DB::raw('AVG(cm.utilization_percentage) as avg_utilization'),
                 DB::raw('AVG(cm.turnover_time) as avg_turnover'),
-                DB::raw('AVG(CASE WHEN c.actual_start_time <= c.scheduled_start_time THEN 1 ELSE 0 END) * 100 as on_time_start_percentage'),
-                DB::raw('AVG(EXTRACT(EPOCH FROM (c.actual_end_time - c.actual_start_time))/60) as avg_duration')
+                DB::raw("AVG(CASE WHEN l.procedure_start_time IS NULL THEN NULL WHEN l.procedure_start_time <= c.scheduled_start_time + INTERVAL '15 minutes' THEN 1 ELSE 0 END) * 100 as on_time_start_percentage"),
+                DB::raw('AVG(EXTRACT(EPOCH FROM (l.procedure_end_time - l.procedure_start_time))/60) as avg_duration')
             )
             ->get();
 
@@ -163,6 +164,7 @@ class AnalyticsController extends Controller
         $metrics = DB::table('prod.case_metrics as cm')
             ->join('prod.or_cases as c', 'cm.case_id', '=', 'c.case_id')
             ->join('prod.providers as p', 'c.primary_surgeon_id', '=', 'p.provider_id')
+            ->leftJoin('prod.or_logs as l', 'c.case_id', '=', 'l.case_id')
             ->whereBetween('c.surgery_date', [$startDate, $endDate])
             ->where('c.is_deleted', false)
             ->groupBy('p.provider_id', 'p.name')
@@ -172,9 +174,9 @@ class AnalyticsController extends Controller
                 DB::raw('COUNT(DISTINCT c.case_id) as case_count'),
                 DB::raw('AVG(cm.utilization_percentage) as avg_utilization'),
                 DB::raw('AVG(cm.turnover_time) as avg_turnover'),
-                DB::raw('AVG(CASE WHEN c.actual_start_time <= c.scheduled_start_time THEN 1 ELSE 0 END) * 100 as on_time_start_percentage'),
-                DB::raw('AVG(EXTRACT(EPOCH FROM (c.actual_end_time - c.actual_start_time))/60) as avg_duration'),
-                DB::raw('AVG(CASE WHEN c.actual_end_time > c.scheduled_end_time THEN 1 ELSE 0 END) * 100 as overtime_percentage')
+                DB::raw("AVG(CASE WHEN l.procedure_start_time IS NULL THEN NULL WHEN l.procedure_start_time <= c.scheduled_start_time + INTERVAL '15 minutes' THEN 1 ELSE 0 END) * 100 as on_time_start_percentage"),
+                DB::raw('AVG(EXTRACT(EPOCH FROM (l.procedure_end_time - l.procedure_start_time))/60) as avg_duration'),
+                DB::raw("AVG(CASE WHEN l.procedure_end_time IS NULL THEN NULL WHEN l.procedure_end_time > c.scheduled_start_time + (c.scheduled_duration || ' minutes')::interval THEN 1 ELSE 0 END) * 100 as overtime_percentage")
             )
             ->get();
 
@@ -222,6 +224,7 @@ class AnalyticsController extends Controller
         // Overall trends
         $trends = DB::table('prod.case_metrics as cm')
             ->join('prod.or_cases as c', 'cm.case_id', '=', 'c.case_id')
+            ->leftJoin('prod.or_logs as l', 'c.case_id', '=', 'l.case_id')
             ->whereBetween('c.surgery_date', [$startDate, $endDate])
             ->where('c.is_deleted', false)
             ->groupBy(DB::raw($grouping))
@@ -230,7 +233,7 @@ class AnalyticsController extends Controller
                 DB::raw('COUNT(DISTINCT c.case_id) as case_count'),
                 DB::raw('AVG(cm.utilization_percentage) as avg_utilization'),
                 DB::raw('AVG(cm.turnover_time) as avg_turnover'),
-                DB::raw('AVG(CASE WHEN c.actual_start_time <= c.scheduled_start_time THEN 1 ELSE 0 END) * 100 as on_time_start_percentage')
+                DB::raw("AVG(CASE WHEN l.procedure_start_time IS NULL THEN NULL WHEN l.procedure_start_time <= c.scheduled_start_time + INTERVAL '15 minutes' THEN 1 ELSE 0 END) * 100 as on_time_start_percentage")
             )
             ->orderBy('period')
             ->get();

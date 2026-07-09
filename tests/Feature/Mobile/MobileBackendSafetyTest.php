@@ -62,6 +62,27 @@ class MobileBackendSafetyTest extends TestCase
         $this->assertOneOperationalEvent('barrier.resolved', $user, 'charge_nurse', 'barrier');
     }
 
+    public function test_mobile_idempotency_key_replay_does_not_duplicate_activity_ledger_rows(): void
+    {
+        $user = $this->actingAsMobile(['mobile:read', 'mobile:act']);
+        $barrier = Barrier::create([
+            'category' => 'placement',
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        $path = "/api/mobile/v1/rtdc/barriers/{$barrier->barrier_id}/resolve?persona=charge_nurse";
+        $headers = ['Idempotency-Key' => 'mobile-replay-barrier-resolution-1'];
+
+        $this->withHeaders($headers)->postJson($path)->assertOk();
+        $this->withHeaders($headers)->postJson($path)->assertOk();
+
+        $this->assertSame('resolved', $barrier->fresh()->status);
+
+        $event = $this->assertOneOperationalEvent('barrier.resolved', $user, 'charge_nurse', 'barrier');
+        $this->assertSame($event->event_uuid, OperationalEvent::query()->first()?->event_uuid);
+    }
+
     public function test_transport_status_and_handoff_writes_emit_exactly_one_operational_event_each(): void
     {
         $user = $this->actingAsMobile(['mobile:read', 'mobile:act']);

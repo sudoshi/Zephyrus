@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Ops\Approval;
@@ -24,6 +25,7 @@ use Illuminate\Validation\Rule;
  */
 class OpsController extends Controller
 {
+    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
     public function __construct(
@@ -77,6 +79,7 @@ class OpsController extends Controller
             $action->loadMissing('recommendation');
 
             $this->ledger->record($validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected', [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $request->user()?->id,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'ops',

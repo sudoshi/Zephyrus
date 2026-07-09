@@ -18,9 +18,9 @@ class ORCaseController extends Controller
             'patient_name' => 'required|string|max:255',
             'mrn' => 'required|string|max:50',
             'procedure_name' => 'required|string|max:255',
-            'service_id' => 'required|exists:prod.service,service_id',
-            'room_id' => 'required|exists:prod.room,room_id',
-            'primary_surgeon_id' => 'required|exists:prod.provider,provider_id',
+            'service_id' => 'required|exists:prod.services,service_id',
+            'room_id' => 'required|exists:prod.rooms,room_id',
+            'primary_surgeon_id' => 'required|exists:prod.providers,provider_id',
             'surgery_date' => 'required|date',
             'scheduled_start_time' => 'required|date_format:H:i',
             'estimated_duration' => 'required|integer|min:15',
@@ -39,6 +39,12 @@ class ORCaseController extends Controller
 
         $case = new ORCase;
         $case->fill($request->all());
+        if ($request->filled('service_id') && ! $request->filled('case_service_id')) {
+            $case->case_service_id = $request->integer('service_id');
+        }
+        if ($request->filled('estimated_duration') && ! $request->filled('scheduled_duration')) {
+            $case->scheduled_duration = $request->integer('estimated_duration');
+        }
         // prod.or_cases has a `status_id` FK to prod.case_statuses (NOT NULL) and
         // NO string `status` column — writing `status` here previously broke inserts.
         // Persist the Scheduled status id (code SCHED).
@@ -99,8 +105,6 @@ class ORCaseController extends Controller
 
             return response()->json([
                 'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -125,8 +129,6 @@ class ORCaseController extends Controller
 
             return response()->json([
                 'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -137,16 +139,16 @@ class ORCaseController extends Controller
             Log::info('Fetching metrics for last 7 days');
 
             $utilization = DB::table('prod.case_metrics')
-                ->join('prod.orcase', 'case_metrics.case_id', '=', 'orcase.case_id')
-                ->where('orcase.surgery_date', '>=', now()->subDays(7)->toDateString())
+                ->join('prod.or_cases', 'case_metrics.case_id', '=', 'or_cases.case_id')
+                ->where('or_cases.surgery_date', '>=', now()->subDays(7)->toDateString())
                 ->select(
-                    'orcase.surgery_date',
+                    'or_cases.surgery_date',
                     DB::raw('AVG(utilization_percentage) as utilization'),
                     DB::raw('AVG(turnover_time) as avg_turnover'),
                     DB::raw('COUNT(*) as case_count')
                 )
-                ->groupBy('orcase.surgery_date')
-                ->orderBy('orcase.surgery_date')
+                ->groupBy('or_cases.surgery_date')
+                ->orderBy('or_cases.surgery_date')
                 ->get();
 
             Log::info('Found metrics for '.$utilization->count().' days');
@@ -165,8 +167,6 @@ class ORCaseController extends Controller
 
             return response()->json([
                 'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -177,7 +177,7 @@ class ORCaseController extends Controller
             Log::info('Fetching room status');
 
             // Get all active rooms
-            $rooms = DB::table('prod.room')
+            $rooms = DB::table('prod.rooms')
                 ->where('active_status', true)
                 ->orderBy('name')
                 ->get();
@@ -185,14 +185,14 @@ class ORCaseController extends Controller
             Log::info('Found '.$rooms->count().' active rooms');
 
             // Get current cases and logs
-            $currentCases = DB::table('prod.orcase as c')
-                ->join('prod.orlog as l', 'c.case_id', '=', 'l.case_id')
-                ->join('prod.provider as p', 'c.primary_surgeon_id', '=', 'p.provider_id')
-                ->join('prod.service as s', 'c.case_service_id', '=', 's.service_id')
+            $currentCases = DB::table('prod.or_cases as c')
+                ->join('prod.or_logs as l', 'c.case_id', '=', 'l.case_id')
+                ->join('prod.providers as p', 'c.primary_surgeon_id', '=', 'p.provider_id')
+                ->join('prod.services as s', 'c.case_service_id', '=', 's.service_id')
                 ->select(
                     'c.room_id',
                     'c.case_id',
-                    'c.procedure_name',
+                    'l.primary_procedure as procedure_name',
                     'c.scheduled_duration',
                     'p.name as surgeon_name',
                     's.name as service_name',
@@ -237,8 +237,6 @@ class ORCaseController extends Controller
 
             return response()->json([
                 'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }

@@ -105,6 +105,21 @@ class EddyActionTest extends TestCase
         $this->assertSame('pending', Approval::firstOrFail()->status);
     }
 
+    public function test_scoped_token_with_misissued_ops_approve_still_cannot_auto_approve(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user, ['ops:read', 'ops:draft', 'ops:approve']);
+
+        $response = $this->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal(['approve' => true]));
+
+        $response->assertCreated()
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.approved', false);
+
+        $this->assertSame('draft', OperationalAction::firstOrFail()->status);
+        $this->assertSame('pending', Approval::firstOrFail()->status);
+    }
+
     public function test_scoped_token_without_ops_draft_is_forbidden(): void
     {
         $user = User::factory()->create();
@@ -132,7 +147,23 @@ class EddyActionTest extends TestCase
         $this->actingAs($user)->getJson('/api/eddy/actions/catalog')
             ->assertOk()
             ->assertJsonPath('data.flag_barrier.tier', 'T1')
-            ->assertJsonPath('data.propose_surge_plan.risk', 'critical');
+            ->assertJsonPath('data.propose_surge_plan.risk', 'critical')
+            ->assertJsonPath('data.propose_surge_plan.phi_policy.patient_identifiers_allowed', false)
+            ->assertJsonPath('data.propose_surge_plan.dry_run.required', true)
+            ->assertJsonPath('data.propose_surge_plan.execution_adapter.direct_domain_mutation', false)
+            ->assertJsonPath('data.propose_surge_plan.mobile_available', true);
+
+        $catalog = $this->actingAs($user)->getJson('/api/eddy/actions/catalog')->json('data');
+        foreach ($catalog as $actionType => $entry) {
+            $this->assertArrayHasKey('minimum_role', $entry, "{$actionType} must declare minimum_role");
+            $this->assertArrayHasKey('scope', $entry, "{$actionType} must declare scope");
+            $this->assertArrayHasKey('phi_policy', $entry, "{$actionType} must declare phi_policy");
+            $this->assertArrayHasKey('dry_run', $entry, "{$actionType} must declare dry_run");
+            $this->assertArrayHasKey('execution_adapter', $entry, "{$actionType} must declare execution_adapter");
+            $this->assertArrayHasKey('rollback', $entry, "{$actionType} must declare rollback");
+            $this->assertArrayHasKey('audit', $entry, "{$actionType} must declare audit");
+            $this->assertArrayHasKey('mobile_available', $entry, "{$actionType} must declare mobile availability");
+        }
     }
 
     public function test_mint_agent_token_never_grants_ops_approve(): void

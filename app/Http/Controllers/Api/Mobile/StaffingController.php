@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Staffing\StaffingRequest;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class StaffingController extends Controller
 {
+    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
     public function __construct(
@@ -55,6 +57,7 @@ class StaffingController extends Controller
             ], $actorId);
 
             $this->ledger->record('staffing.request_filled', [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
                 'actor_user_id' => $actorId,
                 'actor_role' => $this->personas->fromRequest($request),
                 'domain' => 'staffing',
