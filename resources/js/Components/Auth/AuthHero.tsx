@@ -84,7 +84,7 @@ export function AuthHero() {
 
       <div className="mt-7 hidden lg:block border-t border-white/[0.06] pt-3">
         <span className="text-xs tracking-wide text-slate-500">
-          Acumenus Data Sciences &middot; Wellstack.ai
+          Acumenus Data Sciences
         </span>
       </div>
     </motion.div>
