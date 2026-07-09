@@ -30,7 +30,7 @@ Rollback status: app rollback only for post-review hardening
 | --- | --- |
 | `php artisan test --filter=ApiAuthorizationTest` | Pass: 5 tests, 59 assertions |
 | `php artisan test --filter=ApiRouteSmokeTest` | Pass: 4 tests, 94 assertions |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1563 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1566 assertions |
 | `git diff --check` | Pass |
 | `git diff --name-only -- '*.php' | xargs -r ./vendor/bin/pint --test` | Pass: 22 files |
 

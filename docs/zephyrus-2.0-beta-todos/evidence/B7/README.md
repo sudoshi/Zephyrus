@@ -33,7 +33,7 @@ Rollback status: app rollback only for post-review hardening
 | `php artisan test --filter=ApiRouteSmokeTest` | Pass: 4 tests, 94 assertions |
 | `php artisan test --filter=ApiAuthorizationTest` | Pass: 5 tests, 59 assertions |
 | `php artisan test --filter=SyntheticHealthcareConnectorTest` | Pass: 9 tests, 74 assertions |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1563 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1566 assertions |
 | `npm run build` | Pass; Vite reported existing large-chunk warnings |
 
 ## Remaining B7/B8 Work

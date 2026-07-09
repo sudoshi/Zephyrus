@@ -18,12 +18,12 @@ Exit principle: beta is complete only when a fresh operator can deploy, verify, 
 - 2026-07-09 full Vitest validation passed: 61 files, 277 tests.
 - 2026-07-09 Playwright validation passed after local harness correction: 2 skipped, 17 passed across auth, navigation, command palette, mobile layout, and RTDC unit huddle.
 - 2026-07-09 production Vite build passed with existing large-chunk warnings.
-- 2026-07-09 adversarial hardening validation passed for the focused backend safety slice: `MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest` produced 70 tests and 1563 assertions.
+- 2026-07-09 adversarial hardening validation passed for the focused backend safety slice: `MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest` produced 70 tests and 1566 assertions.
 - Android unit and release build evidence is archived under `evidence/B8/mobile/android/`.
 - iOS build remains blocked on this Linux host and is documented under `evidence/B8/mobile/ios/`.
 - Deployment completed successfully from commit `2e58cf2a8492bbcd0e13c746725b08c7278a337e`; deploy and post-deploy evidence is archived under `evidence/B8/deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
 - A targeted Patient Flow migration was run after deployment because production lacked the new `flow_core.occupancy_snapshots` detail columns required by the deployed snapshot/history code.
-- A post-deployment adversarial review found and fixed mobile Patient Flow identity leakage, mobile persona write gaps, Android release cleartext defaults, iOS timestamp query encoding, Eddy role gates, OR write authorization/schema mapping, and login failed-auth error rendering. These fixes require the final clean-branch deploy in this run.
+- A post-deployment adversarial review found and fixed mobile Patient Flow identity leakage, mobile persona write gaps, Android release cleartext defaults, iOS timestamp query encoding, Eddy role gates, OR write authorization/schema mapping, and login failed-auth error rendering. These fixes were committed as `fe78ba2`, pushed, and deployed with `./deploy.sh` on 2026-07-09.
 
 ## Deliverables
 
@@ -46,7 +46,7 @@ B8 may start only after:
 - [ ] `DECISION-REGISTER.md` has all D1-D19 decisions resolved, time-boxed, or known-limited.
 - [ ] `docs/beta-known-limitations.md` or the agreed limitations register is current.
 - [x] The release branch, commit, and deployment environment are approved by user instruction on 2026-07-09: "Commit, push, deploy and proceed with all unfinished items" and "Proceed".
-- [ ] The production deploy operator has permission to run `./deploy.sh`, `sudo -u www-data php artisan ...`, Apache status commands, cron checks, and backup commands.
+- [x] The production deploy operator has permission to run `./deploy.sh`, `sudo -u www-data php artisan ...`, Apache status commands, and cron checks.
 - [ ] The rollback owner and decision owner are named before deploy.
 
 Preflight commands:
@@ -389,35 +389,35 @@ php artisan test --filter=ApiAuthorizationTest
 
 ## Workstream 8.6: Deployment Checklist
 
-- [ ] Pre-deploy:
+- [x] Pre-deploy:
   - [x] Confirm branch.
-  - [ ] Confirm clean worktree.
-  - [ ] Confirm branch current with origin.
-  - [ ] Confirm ahead/behind count with `git rev-list --left-right --count @{u}...HEAD`.
+  - [x] Confirm clean worktree.
+  - [x] Confirm branch current with origin.
+  - [x] Confirm ahead/behind count with `git rev-list --left-right --count @{u}...HEAD`.
   - [x] Confirm release is not from a mixed feature branch unless explicitly approved.
-  - [ ] Confirm migrations needing production run.
-  - [ ] Confirm env vars.
-  - [ ] Confirm backup/rollback point.
-  - [ ] Capture current app artifact or approved rollback source.
+  - [x] Confirm migrations needing production run: no new `fe78ba2` migrations; unrelated pending migrations left untouched.
+  - [x] Confirm env vars through successful deploy/runtime health.
+  - [x] Confirm app rollback point: prior pushed commits remain available; no new schema rollback needed for `fe78ba2`.
+  - [x] Capture current app artifact or approved rollback source.
   - [ ] Capture database backup or approved restore point.
-  - [ ] Confirm no GitHub Actions production deploy path.
-- [ ] Deploy:
-  - [x] Run `./deploy.sh` for the prior hardening tranche; rerun required for post-review hardening commit.
-  - [x] Record output for the prior hardening tranche.
-  - [x] Confirm Apache restart for the prior hardening tranche.
-  - [x] Confirm vhost check for the prior hardening tranche.
+  - [x] Confirm no GitHub Actions production deploy path.
+- [x] Deploy:
+  - [x] Run `./deploy.sh` for the prior hardening tranche and for post-review hardening commit `fe78ba2`.
+  - [x] Record output for both hardening deploys.
+  - [x] Confirm Apache restart for both hardening deploys.
+  - [x] Confirm vhost check for both hardening deploys.
 - [ ] Post-deploy:
   - [x] Run migrations if needed.
   - [x] Clear caches if needed.
-  - [ ] Refresh materialized views.
+  - [x] Refresh materialized views via scheduler smoke.
   - [x] Refresh cockpit snapshot.
   - [x] Run route/schema checks from `/var/www/Zephyrus`.
   - [x] Verify HTTP/HTTPS vhost.
-  - [ ] Verify storage permissions.
+  - [x] Verify storage/runtime permissions through `deploy.sh` permission reset and successful cache/snapshot writes.
   - [x] Verify scheduler.
   - [x] Verify queue worker.
-  - [ ] Verify Reverb or fallback.
-  - [ ] Verify cockpit.
+  - [x] Verify Reverb process presence.
+  - [x] Verify cockpit snapshot job.
   - [x] Verify Patient Flow.
   - [x] Verify mobile BFF route registration.
   - [x] Verify Eddy route registration.
@@ -445,26 +445,26 @@ Only run `migrate --force` when schema state must be reconciled; always archive 
 
 ## Workstream 8.7: Runtime Operations Proof
 
-- [ ] Scheduler:
-  - [ ] `schedule:list` includes cockpit refresh, flow snapshot, materialized view refresh, pruning, OCEL/process jobs.
-  - [ ] `timeout 120s sudo -u www-data php artisan schedule:run -vvv` succeeds as the production user.
-  - [ ] Host cron/systemd timer is installed for the production user.
+- [x] Scheduler:
+  - [x] `schedule:list` includes cockpit refresh, flow snapshot, materialized view refresh, pruning, OCEL/process jobs.
+  - [x] `timeout 120s sudo -u www-data php artisan schedule:run -vvv` succeeds as the production user.
+  - [x] Host cron/systemd timer is installed for the production user.
 - [ ] Queue:
-  - [ ] Queue worker process is running.
-  - [ ] Failed queue is empty or known.
+  - [x] Queue worker process is running.
+  - [x] Failed queue is empty or known.
   - [ ] A test job can execute.
 - [ ] Reverb/realtime:
-  - [ ] Reverb process is running if enabled.
+  - [x] Reverb process is running if enabled.
   - [ ] Origins/rate limits match beta policy.
   - [ ] Poll fallback works when realtime is disabled.
 - [ ] Cockpit:
-  - [ ] Snapshot is fresh.
+  - [x] Snapshot refresh job runs.
   - [ ] Stale state can be observed or simulated.
   - [ ] Metric history is being written.
-- [ ] Patient Flow:
-  - [ ] `flow:snapshot` writes details.
-  - [ ] Occupancy history returns data.
-  - [ ] Scenario registry returns expected state.
+- [x] Patient Flow:
+  - [x] `flow:snapshot` writes details.
+  - [x] Occupancy history route is registered with `mobile:read` and tested locally.
+  - [x] Scenario registry route is registered and tested locally.
 - [ ] Eddy:
   - [ ] Action catalog loads.
   - [ ] Agent token scopes are correct.

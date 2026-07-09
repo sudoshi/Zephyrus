@@ -30,7 +30,7 @@ Rollback status: not applicable to local-only changes
 | --- | --- |
 | `php artisan test --filter=EddyActionTest` | Pass in targeted runs |
 | `php artisan test --filter=MobileBackendSafetyTest` | Pass in targeted runs |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1563 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1566 assertions |
 
 ## Remaining B5/B8 Work
 

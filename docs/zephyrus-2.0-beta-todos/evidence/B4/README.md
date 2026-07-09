@@ -32,7 +32,7 @@ Rollback status: app rollback only for post-review hardening; prior additive Pat
 | `php artisan route:list --path=api/patient-flow` | Pass: route list includes `demo-scenarios` and `occupancy/history` |
 | `php artisan test --filter=PatientFlowApiTest` | Pass: 3 tests, 167 assertions |
 | `php artisan test --filter=FlowWindowTest` | Pass: 22 tests, 811 assertions |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1563 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1566 assertions |
 
 ## Remaining B4/B8 Work
 

@@ -34,7 +34,7 @@ Review mode: two-agent adversarial review plus orchestrator reconciliation
 
 | Command | Result |
 | --- | --- |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1563 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | Pass: 70 tests, 1566 assertions |
 | `npx tsc --noEmit --pretty false` | Pass |
 | `npm run build` | Pass with existing Browserslist and large-chunk warnings |
 | `npx playwright test tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --reporter=line` | Pass: 17 passed, 2 skipped |

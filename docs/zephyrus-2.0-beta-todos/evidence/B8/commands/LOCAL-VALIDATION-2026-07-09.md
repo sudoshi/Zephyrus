@@ -3,7 +3,7 @@
 date: 2026-07-09
 cwd: `/home/smudoshi/Github/Zephyrus`
 branch: `feat/hummingbird-4d-service-line-eddy`
-commit: post-review hardening working tree; final commit recorded by git history
+commit: `fe78ba2` post-review hardening tranche
 environment: local development checkout
 
 ## Passed Commands
@@ -22,7 +22,7 @@ environment: local development checkout
 | `php artisan test --filter=MobileBackendSafetyTest` | 0 | 17 tests, 244 assertions |
 | `php artisan test --filter=EddyActionTest` | 0 | 10 tests, 109 assertions |
 | `php artisan test --filter=SyntheticHealthcareConnectorTest` | 0 | 9 tests, 74 assertions |
-| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | 0 | 70 tests, 1563 assertions after adversarial hardening |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | 0 | 70 tests, 1566 assertions after recursive Patient Flow redaction and role-spelling regressions |
 | `npm run test` | 0 | 61 test files, 277 tests |
 | `npm run test:e2e` | 0 | 2 skipped, 16 passed before post-review auth UI fix |
 | `npx playwright test tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --reporter=line` | 0 | 17 passed, 2 skipped after post-review auth UI fix |
@@ -50,7 +50,7 @@ An attempted parallel run of `EddyActionTest` and `SyntheticHealthcareConnectorT
 ## Not Run Or Known-Limited
 
 - `xcodegen generate` and `xcodebuild`, because `swift`, `xcodebuild`, and `xcodegen` were unavailable on this Linux host.
-- Production `./deploy.sh` was not run at the time this local validation artifact was first written because the checkout still contained uncommitted work. The user subsequently approved commit, push, and deployment from this branch; deployment evidence belongs under `evidence/B8/deploy/` after `./deploy.sh` runs from a clean tree.
+- Production `./deploy.sh` subsequently passed from a clean, current branch at commit `fe78ba2`; deployment evidence is archived under `evidence/B8/deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
 - iOS compile/build validation after post-review APIClient changes remains blocked by the same missing macOS/Xcode toolchain.
 
 ## Requirements Covered

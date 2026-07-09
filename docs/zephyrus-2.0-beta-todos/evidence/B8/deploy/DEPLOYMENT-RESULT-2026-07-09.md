@@ -3,7 +3,7 @@
 Date: 2026-07-09
 Operator: Codex
 Branch: `feat/hummingbird-4d-service-line-eddy`
-Commit deployed: `2e58cf2a8492bbcd0e13c746725b08c7278a337e`
+Commits deployed: `2e58cf2a8492bbcd0e13c746725b08c7278a337e`, `fe78ba2`
 Production path: `/var/www/Zephyrus`
 Deploy mechanism: `./deploy.sh`
 
@@ -105,7 +105,7 @@ Not run:
 - Reverb/fallback runtime proof.
 - 15-30 minute monitoring window after a scheduler interval.
 
-## Post-Review Hardening Deploy Target
+## Post-Review Hardening Deploy Result
 
 After the first deployment, adversarial review produced additional product fixes:
 
@@ -117,9 +117,47 @@ After the first deployment, adversarial review produced additional product fixes
 - iOS query encoding and mobile Patient Flow parity calls.
 - Login failed-auth error rendering.
 
-These changes add no new Laravel migrations. The final deploy for this run should:
+These changes were committed as `fe78ba2`, pushed to `origin/feat/hummingbird-4d-service-line-eddy`, and deployed with the canonical manual deployment path.
 
-1. Commit and push the post-review hardening tranche.
-2. Run `./deploy.sh` from a clean, current branch.
-3. Re-run health/vhost, route-list, scheduler, queue, Patient Flow, mobile route, and Eddy route smokes.
-4. Leave unrelated pending migrations untouched.
+Post-review preflight:
+
+| Check | Result |
+| --- | --- |
+| `git status --short` | clean |
+| `git rev-list --left-right --count @{u}...HEAD` | `0 0` |
+| `git rev-parse --short HEAD` / `@{u}` | `fe78ba2` / `fe78ba2` |
+
+Post-review deploy command:
+
+```bash
+cd /home/smudoshi/Github/Zephyrus
+./deploy.sh
+```
+
+Result: pass. `deploy.sh` built assets, rsynced `/var/www/Zephyrus`, reset ownership, cleared Laravel caches, restarted Apache, and verified the Zephyrus vhost.
+
+Post-review migration position:
+
+- No new Laravel migrations were added by `fe78ba2`.
+- `migrate:status` still shows unrelated pending service-line/staffing alignment migrations and legacy base migrations.
+- `2026_07_05_000400_extend_patient_flow_occupancy_snapshots_for_disk_details` remains `[13] Ran`.
+- No blanket `php artisan migrate --force` was run.
+
+Post-review smoke:
+
+| Command | Result |
+| --- | --- |
+| `curl https://zephyrus.acumenus.net/api/health` | pass; `200`, database connected, timestamp `2026-07-09T04:24:58.375142Z` |
+| `curl -I -H 'Host: zephyrus.acumenus.net' http://localhost/` | pass; `301` to HTTPS |
+| `curl -I https://zephyrus.acumenus.net/` | pass; `302` to `/login` with security headers |
+| `sudo -u www-data php artisan route:list --path=api/mobile/v1/flow` | pass; includes `demo-scenarios` and `occupancy/history` |
+| `sudo -u www-data php artisan route:list --path=api/mobile/v1/flow/occupancy/history -v` | pass; `auth:sanctum`, `mobile:read`, `throttle:120,1` |
+| `sudo -u www-data php artisan route:list --path=api/eddy/actions/propose -v` | pass; `auth`, `can:useEddyActions` |
+| `sudo -u www-data php artisan route:list --path=api/cases -v` | pass; OR case writes use `auth` and `can:writeOrCases`; reads remain public throttled |
+| `sudo -u www-data php artisan queue:failed` | pass; no failed jobs |
+| `sudo -u www-data php artisan schedule:list` | pass; cockpit, flow snapshot, materialized view, pruning, OCEL, and Arena schedules listed |
+| `timeout 120s sudo -u www-data php artisan schedule:run -vvv` | pass; `App\Jobs\RefreshCockpitSnapshot` ran in 207.33ms |
+| `timeout 120s sudo -u www-data php artisan flow:snapshot` | pass; captured 25 unit checkpoints for `2026-07-09 04:00:00` |
+| `sudo crontab -u www-data -l` | pass; Laravel scheduler installed every minute |
+| `systemctl is-active apache2` | pass; `active` after deploy restart |
+| process check for queue/Horizon/Reverb | pass; queue worker, Horizon workers, and Reverb processes present |
