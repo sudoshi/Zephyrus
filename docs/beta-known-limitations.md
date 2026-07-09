@@ -41,8 +41,10 @@ xcodebuild -project Hummingbird.xcodeproj -scheme Hummingbird -configuration Deb
 ## Operations
 
 - `deploy.sh` is the canonical production deployment mechanism.
-- `deploy.sh` does not run Laravel migrations. This beta slice adds no Laravel migrations; production migration execution should occur only if `migrate:status` shows pending migrations from another approved release.
-- Scheduler, queue, Reverb/fallback, cockpit snapshot freshness, Patient Flow history, mobile BFF, Eddy catalog, and Integration Health still require post-deploy runtime smoke evidence.
+- `deploy.sh` does not run Laravel migrations. Production migration execution should occur only when `migrate:status` shows a migration needed by the deployed slice and the release owner/operator approves it.
+- After deployment on 2026-07-09, production was missing Patient Flow snapshot detail columns required by the deployed snapshot/history code. The operator ran only `database/migrations/2026_07_05_000400_extend_patient_flow_occupancy_snapshots_for_disk_details.php` with `--path` and `--force`; the columns then existed and `flow:snapshot` succeeded.
+- Production still reports unrelated pending service-line/staffing alignment migrations and legacy base migrations. These were not run during this slice.
+- Scheduler, queue, cockpit snapshot refresh, Patient Flow snapshot, route registration, health endpoint, and vhost checks were smoked after deployment. Full Reverb/fallback, authenticated mobile BFF, authenticated Eddy catalog, and Integration Health browser checks remain pending.
 - Rollback is currently app-artifact/commit based for this slice because no migrations are added. Database restore remains an ops-controlled procedure if unrelated schema/data changes are present.
 
 ## Demo

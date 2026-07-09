@@ -29,6 +29,6 @@ curl -sSI https://zephyrus.acumenus.net/ | sed -n '1,20p'
 - Queue default is documented.
 - Scheduler list renders without fatal errors.
 
-## Artifact Rule
+## Artifact
 
-After deploy, archive command output in a dated file under this directory before final beta signoff.
+The completed deployment and smoke evidence is archived in `DEPLOYMENT-RESULT-2026-07-09.md`.

@@ -91,8 +91,8 @@ Status values:
 | PRD-SEC-001 | 4/10/14 | Demo auto-login and beta auth posture are decided and enforced. | B0/B8 | auth routes/middleware/docs | decision, tests, deployment note | Partial |
 | PRD-SEC-002 | 10/14 | Mutable/admin/API routes have explicit auth and route smoke coverage. | B0/B7/B8 | `routes/api.php`, middleware, tests | `401/403/200` tests | Ready for B8 |
 | PRD-SEC-003 | 10/14 | CORS/CSP/security headers/Reverb origins and rate limits are beta-safe. | B0/B8 | `public/.htaccess`, middleware, Reverb config | config review, smoke, limitation if deferred | Open |
-| PRD-OPS-001 | 11 | `deploy.sh` remains canonical; migrations are explicit post-deploy. | B0/B8 | deploy script/runbook | deploy log, migration status | Partial |
-| PRD-OPS-002 | 11 | Scheduler, queue, Reverb/fallback, materialized views, cockpit refresh, mobile BFF, Eddy, Patient Flow are smoked after deploy. | B8 | production runtime | post-deploy command archive | Open |
+| PRD-OPS-001 | 11 | `deploy.sh` remains canonical; migrations are explicit post-deploy. | B0/B8 | deploy script/runbook | deploy log, migration status | Complete |
+| PRD-OPS-002 | 11 | Scheduler, queue, Reverb/fallback, materialized views, cockpit refresh, mobile BFF, Eddy, Patient Flow are smoked after deploy. | B8 | production runtime | post-deploy command archive | Partial |
 | PRD-OPS-003 | 11 | Rollback plan exists and accounts for schema/data changes. | B8 | release runbook | rollback rehearsal evidence | Partial |
 
 ## Demo Track Requirements

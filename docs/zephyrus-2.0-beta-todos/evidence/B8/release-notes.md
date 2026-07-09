@@ -41,3 +41,10 @@ cd /home/smudoshi/Github/Zephyrus
 ```
 
 Run production migrations only if `migrate:status` shows pending migrations and the release owner approves execution.
+
+## 2026-07-09 Deployment
+
+- Commit `2e58cf2a8492bbcd0e13c746725b08c7278a337e` was deployed successfully with `./deploy.sh`.
+- Production required one targeted Patient Flow migration for `flow_core.occupancy_snapshots` detail columns.
+- Health, vhost, scheduler, queue, route registration, cockpit snapshot refresh, and Patient Flow snapshot smoke checks passed.
+- Authenticated mobile/Eddy/Integration Health browser smoke remains pending.

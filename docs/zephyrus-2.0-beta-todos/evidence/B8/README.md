@@ -22,7 +22,7 @@ Environment: local validation plus pending production deploy evidence
 ## Deployment Evidence
 
 - `deploy/DEPLOYMENT-BLOCKERS-2026-07-09.md` was converted into the current deployment preflight and deferred-evidence register after user approval to deploy.
-- Final `deploy.sh` and post-deploy smoke output must be added after the clean deploy completes.
+- `deploy/DEPLOYMENT-RESULT-2026-07-09.md` records the deployed commit, deploy result, targeted migration, and post-deploy smoke results.
 
 ## Rollback Evidence
 

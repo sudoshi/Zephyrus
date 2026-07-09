@@ -20,7 +20,8 @@ Exit principle: beta is complete only when a fresh operator can deploy, verify, 
 - 2026-07-09 production Vite build passed with existing large-chunk warnings.
 - Android unit and debug build evidence is archived under `evidence/B8/mobile/android/`.
 - iOS build remains blocked on this Linux host and is documented under `evidence/B8/mobile/ios/`.
-- Deployment is approved by the user for the current branch after commit/push; deploy preflight is documented under `evidence/B8/deploy/`.
+- Deployment completed successfully from commit `2e58cf2a8492bbcd0e13c746725b08c7278a337e`; deploy and post-deploy evidence is archived under `evidence/B8/deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
+- A targeted Patient Flow migration was run after deployment because production lacked the new `flow_core.occupancy_snapshots` detail columns required by the deployed snapshot/history code.
 
 ## Deliverables
 
@@ -29,7 +30,7 @@ Exit principle: beta is complete only when a fresh operator can deploy, verify, 
 - [ ] Partial: mobile iOS and Android build archive. Android complete; iOS blocked pending macOS/Xcode.
 - [ ] Partial: PHI and security review signoff. Automated/code review notes complete; screenshot, push, runtime headers, and Eddy cloud-policy review pending.
 - [x] Demo script with scenario data and fallback path.
-- [ ] Partial: deployment and post-deployment checklist. Preflight complete; production evidence pending `./deploy.sh`.
+- [x] Deployment and post-deployment checklist for this slice.
 - [x] Rollback checklist.
 - [x] Known limitations release note.
 - [ ] Partial: final beta definition-of-done checklist. Automated gates complete; deployment/manual/mobile limitations remain.
@@ -193,8 +194,8 @@ B8 owns the final evidence bundle:
 - [ ] `reviews/traceability-final.md`.
 - [x] `demo/demo-script.md`.
 - [ ] Partial: `demo/demo-rehearsal.md` with local automated proof and manual rehearsal gap.
-- [ ] `deploy/deploy-log.txt` or equivalent dated deploy artifact.
-- [ ] `deploy/post-deploy-smoke.txt` or equivalent dated post-deploy artifact.
+- [x] `deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
+- [x] Post-deploy smoke evidence in `deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
 - [x] `rollback/rehearsal.md`.
 - [x] final known limitations and release notes.
 
