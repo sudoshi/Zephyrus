@@ -148,6 +148,8 @@ class ApiRouteSmokeTest extends TestCase
             '/api/mobile/v1/for-you?persona=bed_manager',
             '/api/mobile/v1/flow/floors',
             '/api/mobile/v1/flow/spaces3d',
+            '/api/mobile/v1/flow/demo-scenarios?persona=bed_manager',
+            '/api/mobile/v1/flow/occupancy/history?persona=bed_manager',
             '/api/mobile/v1/flow/window?persona=bed_manager',
             '/api/mobile/v1/transport/queue',
             '/api/mobile/v1/evs/queue',

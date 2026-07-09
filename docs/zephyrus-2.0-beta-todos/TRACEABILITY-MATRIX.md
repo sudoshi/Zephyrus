@@ -51,7 +51,7 @@ Status values:
 | PRD-PF-002 | 7 | Occupancy history endpoint exists and is backed by persisted snapshot details. | B4 | `/api/patient-flow/occupancy/history`, `flow:snapshot` | API feature test, retention test | Ready for B8 |
 | PRD-PF-003 | 7 | Demo scenarios are repeatable and switchable in dev/demo mode. | B4/B1 | `/api/patient-flow/demo-scenarios`, config/db registry | API tests, UI scenario switch screenshot | Ready for B8 |
 | PRD-PF-004 | 7 | Barrier taxonomy is canonical and supports finder, grouping, inspector, and selected/all-barrier Eddy context. | B4/B5 | barrier taxonomy service, navigator inspector, Eddy context | unit/feature tests, screenshots | Partial |
-| PRD-PF-005 | 7 | Patient Flow redaction and role lenses suppress identifiers for aggregate roles. | B4/B6/B8 | web API/UI, mobile flow context | role tests and screenshots | Partial |
+| PRD-PF-005 | 7 | Patient Flow redaction and role lenses suppress identifiers for aggregate roles. | B4/B6/B8 | web API/UI, mobile flow context | role tests and screenshots | Ready for B8 |
 | PRD-PF-006 | 7 | Patient Flow 4D canvas is nonblank, framed, interactive, and safe across viewports. | B4/B8 | Three.js/canvas UI | Playwright screenshot and canvas-pixel check | Open |
 | PRD-PF-007 | 7 | Patient Flow events and snapshots include lineage counts, scenario/live flag, source, and confidence. | B1/B4 | snapshot persistence, API DTOs | DB/API assertions | Partial |
 
@@ -79,7 +79,7 @@ Status values:
 | PRD-HB-005 | 9 | Push or fetch-on-open posture is decided, implemented, and disclosed. | B0/B6/B8 | APNs/FCM/fetch code, docs | build/runtime evidence and limitations | Open |
 | PRD-HB-006 | 9 | Android and iOS builds pass for demo scope. | B6/B8 | native projects | `gradlew`, `xcodebuild`, artifacts | Partial |
 | PRD-HB-007 | 9 | PHI is absent from push, Activity, broad list rows, logs, screenshots, and unauthorized patient context. | B3/B6/B8 | mobile UI/API/logging | security tests and screenshot review | Open |
-| PRD-HB-008 | 9 | Mobile Flow Window and Patient Flow parity share backend truth with Zephyrus. | B4/B6 | mobile flow APIs/UI | parity tests and screenshots | Partial |
+| PRD-HB-008 | 9 | Mobile Flow Window and Patient Flow parity share backend truth with Zephyrus. | B4/B6 | mobile flow APIs/UI | parity tests and screenshots | Ready for B8 |
 
 ## Integration, Trust, Security, And Ops Requirements
 
@@ -125,10 +125,10 @@ Status values:
 
 | Artifact | Requirements Covered |
 | --- | --- |
-| `evidence/B8/commands/php-artisan-test.txt` | PRD-GATE-AUTO-001, PRD-GATE-AUTO-003 |
-| `evidence/B8/commands/npm-test-build-e2e.txt` | PRD-GATE-AUTO-002, PRD-GATE-VIS-001 |
-| `evidence/B8/mobile/android-build.txt` | PRD-HB-006, PRD-GATE-AUTO-004 |
-| `evidence/B8/mobile/ios-build.txt` | PRD-HB-006, PRD-GATE-AUTO-004 |
+| `evidence/B8/commands/LOCAL-VALIDATION-2026-07-09.md` | PRD-GATE-AUTO-001, PRD-GATE-AUTO-002, PRD-GATE-AUTO-003, PRD-HB-006, PRD-GATE-AUTO-004 |
+| `evidence/B8/reviews/ADVERSARIAL-REVIEW-2026-07-09.md` | PRD-PF-005, PRD-HB-003, PRD-HB-008, PRD-EDDY-001, PRD-EDDY-004, PRD-SEC-002, PRD-GATE-PHI-001 |
+| `evidence/B8/mobile/android/README.md` | PRD-HB-006, PRD-GATE-AUTO-004 |
+| `evidence/B8/mobile/ios/README.md` | PRD-HB-006, PRD-GATE-AUTO-004 |
 | `evidence/B8/screenshots/web/` | PRD-Z2-003, PRD-Z3-001, PRD-GATE-VIS-001 |
 | `evidence/B8/screenshots/mobile/` | PRD-HB-002, PRD-HB-007, PRD-GATE-VIS-001 |
 | `evidence/B8/api/` | PRD-Z1-003, PRD-PF-002, PRD-PF-003, PRD-EDDY-004, PRD-TRUST-001 |

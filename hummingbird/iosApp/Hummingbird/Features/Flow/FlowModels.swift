@@ -95,6 +95,50 @@ struct FlowWindowData: Decodable, Equatable {
     }
 }
 
+struct FlowDemoScenario: Decodable, Equatable {
+    let key: String
+    let label: String
+    let enabled: Bool
+    let historySupported: Bool
+    let sourceMode: String?
+}
+
+struct FlowOccupancyHistoryData: Decodable, Equatable {
+    let window: FlowHistoryWindow
+    let lens: FlowHistoryLens
+    let scenario: String?
+    let history: [FlowHistorySnapshot]
+    let summary: FlowHistorySummary
+}
+
+struct FlowHistoryWindow: Decodable, Equatable {
+    let from: String
+    let to: String
+    let limit: Int
+}
+
+struct FlowHistoryLens: Decodable, Equatable {
+    let roleId: String
+    let patientDots: String
+    let projectionKinds: [String]
+}
+
+struct FlowHistorySnapshot: Decodable, Equatable {
+    let snapshotAt: String?
+    let activePatientCount: Int
+    let occupancyDetails: [FlowOpaqueDetail]
+    let timerStatusCounts: [String: Int]
+}
+
+struct FlowHistorySummary: Decodable, Equatable {
+    let snapshots: Int
+    let activePatientCount: Int
+    let sourceMode: String
+    let redacted: Bool
+}
+
+struct FlowOpaqueDetail: Decodable, Equatable {}
+
 extension FlowWindowData {
     /// Client merge for a `?since=` delta response (the delta carries only `events`/`snapshots`
     /// with t > since; `projections`, `spaces`, and `bed_statuses` come back full):

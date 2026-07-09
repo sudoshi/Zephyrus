@@ -22,8 +22,9 @@ test.describe('Authentication', () => {
 
     await page.getByRole('button', { name: /sign in/i }).click();
 
-    // Native required fields keep the operator on the login page.
     await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator('#username:invalid')).toHaveCount(1);
+    await expect(page.locator('#password:invalid')).toHaveCount(1);
   });
 
   test('shows error for invalid credentials', async ({ page }) => {
@@ -33,8 +34,8 @@ test.describe('Authentication', () => {
     await page.getByLabel(/^password$/i).fill('wrong_password');
     await page.getByRole('button', { name: /sign in/i }).click();
 
-    // Should stay on login page and show error
     await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator('.za-alert-err')).toContainText(/credentials|username|password|match/i, { timeout: 10000 });
   });
 
   test('seeded login redirects to dashboard', async ({ page }) => {
@@ -83,10 +84,8 @@ test.describe('Authentication', () => {
     // Should redirect to change password or show the modal
     await page.waitForURL(/\/(change-password|dashboard)/, { timeout: 10000 });
 
-    // If redirected to change-password page
-    const url = page.url();
-    if (url.includes('change-password')) {
-      await expect(page.locator('input[name="current_password"], input[name="password"]')).toBeVisible();
-    }
+    await expect(
+      page.locator('#current_password, input[name="current_password"], text=/change your password/i').first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });

@@ -17,7 +17,9 @@ Exit principle: the navigator must support a credible demo and operating-room-st
 - 2026-07-09 local implementation added `GET /api/patient-flow/occupancy/history`.
 - 2026-07-09 local implementation added `GET /api/patient-flow/demo-scenarios`.
 - 2026-07-09 local implementation populates live snapshot detail/count/projection fields for `flow:snapshot`.
-- Remaining proof gaps are visual canvas evidence, archived API samples, and native/mobile screenshot parity.
+- 2026-07-09 adversarial hardening added mobile `/api/mobile/v1/flow/demo-scenarios` and `/api/mobile/v1/flow/occupancy/history` parity.
+- 2026-07-09 adversarial hardening removes raw patient/encounter identifiers from Patient Flow history details across web and mobile responses and replaces authorized detail rows with `ptok_` context refs.
+- Remaining proof gaps are visual canvas evidence, archived API samples, selected/all barrier UI evidence, and native/mobile screenshot parity.
 
 ## Deliverables
 
@@ -26,7 +28,7 @@ Exit principle: the navigator must support a credible demo and operating-room-st
 - [x] PRD demo scenarios represented as selectable, labeled, source-aware scenarios.
 - [x] Persisted snapshot detail/count/projection/lineage fields for live snapshot writes.
 - [ ] Barrier intelligence panel with selected/all barrier modes.
-- [ ] Persona redaction proof for web and mobile.
+- [x] Persona redaction proof for web and mobile API/mobile responses.
 - [ ] Eddy context parity for selected barriers and occupancy scope.
 - [ ] Canvas/timeline visual tests and screenshot evidence.
 
@@ -115,26 +117,26 @@ If beta implements seven Patient Flow scenarios instead of all nine PRD demo sce
 
 `GET /api/patient-flow/occupancy/history` must specify:
 
-- [ ] default time window.
+- [x] default time window.
 - [ ] maximum time window.
 - [ ] interval/bucketing behavior.
-- [ ] pagination or capped sample count.
-- [ ] role/persona redaction mode.
-- [ ] scenario key filter behavior.
-- [ ] empty-state response.
+- [x] pagination or capped sample count.
+- [x] role/persona redaction mode.
+- [x] scenario key filter behavior.
+- [x] empty-state response.
 - [ ] stale/degraded source fields.
 - [ ] lineage count fields.
 
 `GET /api/patient-flow/demo-scenarios` must specify:
 
-- [ ] scenario key.
-- [ ] label.
-- [ ] description.
-- [ ] PRD scenario ID.
-- [ ] source mode.
-- [ ] enabled/disabled state.
-- [ ] disabled reason.
-- [ ] owning phase if scenario is outside Patient Flow.
+- [x] scenario key.
+- [x] label.
+- [x] description.
+- [x] PRD scenario ID.
+- [x] source mode.
+- [x] enabled/disabled state.
+- [x] disabled reason.
+- [x] owning phase if scenario is outside Patient Flow.
 - [ ] default route/query params.
 - [ ] expected actor/persona.
 
@@ -142,13 +144,13 @@ If beta implements seven Patient Flow scenarios instead of all nine PRD demo sce
 
 `flow:snapshot` and related services must populate or explicitly defer:
 
-- [ ] per-unit occupancy details.
+- [x] per-unit occupancy details.
 - [ ] per-space occupancy details.
-- [ ] service-line counts.
-- [ ] blocker/barrier counts.
-- [ ] projection windows.
-- [ ] lineage source tables/counts.
-- [ ] scenario/live flag.
+- [x] service-line counts.
+- [x] blocker/barrier counts.
+- [x] projection windows.
+- [x] lineage source tables/counts.
+- [x] scenario/live flag.
 - [ ] source key and freshness timestamp.
 - [ ] retention/pruning behavior.
 
@@ -213,8 +215,8 @@ Create:
   - [ ] Occupancy.
   - [ ] HL7v2 ingest.
 - [ ] Add missing PRD routes:
-  - [ ] `GET /api/patient-flow/occupancy/history`.
-  - [ ] `GET /api/patient-flow/demo-scenarios`.
+  - [x] `GET /api/patient-flow/occupancy/history`.
+  - [x] `GET /api/patient-flow/demo-scenarios`.
 - [ ] Add request/response contracts for:
   - [ ] Scope.
   - [ ] Persona.
@@ -224,7 +226,7 @@ Create:
   - [ ] Redaction mode.
   - [ ] Source/freshness metadata.
 - [ ] Add OpenAPI or contract tests if the repo's API contract pattern supports it.
-- [ ] Add route smoke tests for all Patient Flow routes.
+- [x] Add route smoke tests for all Patient Flow routes.
 
 Suggested files:
 
@@ -254,18 +256,18 @@ php artisan test --filter=ApiRouteSmokeTest
   - [ ] `lineage`.
   - [ ] `scenario`.
   - [ ] `redaction`.
-- [ ] Read from persisted occupancy snapshots rather than recomputing only current state.
+- [x] Read from persisted occupancy snapshots rather than recomputing only current state.
 - [ ] Support filters:
   - [ ] Unit.
-  - [ ] Service line.
+  - [x] Service line.
   - [ ] Acuity.
   - [ ] Barrier type.
   - [ ] Patient class.
-  - [ ] Scenario key.
+  - [x] Scenario key.
 - [ ] Enforce retention boundaries.
-- [ ] Add pagination or interval bucketing to prevent large payloads.
+- [x] Add pagination or interval bucketing to prevent large payloads.
 - [ ] Add tests for empty history, normal history, stale history, and scenario history.
-- [ ] Add tests for unauthorized and redacted roles.
+- [x] Add tests for unauthorized and redacted roles.
 
 Acceptance example:
 
@@ -273,17 +275,17 @@ Acceptance example:
 
 ## Workstream 4.3: Persist Snapshot Details
 
-- [ ] Populate snapshot fields that are currently empty or incomplete:
-  - [ ] `occupancy_details`.
-  - [ ] Service-line counts.
-  - [ ] Blocker counts.
-  - [ ] Projection windows.
-  - [ ] Source lineage.
-  - [ ] Scenario key.
-  - [ ] Demo/live flag.
+- [x] Populate snapshot fields that are currently empty or incomplete:
+  - [x] `occupancy_details`.
+  - [x] Service-line counts.
+  - [x] Blocker counts.
+  - [x] Projection windows.
+  - [x] Source lineage.
+  - [x] Scenario key.
+  - [x] Demo/live flag.
   - [ ] Confidence/freshness state.
-- [ ] Ensure `flow:snapshot` writes enough data for the history endpoint.
-- [ ] Ensure scheduled snapshots and manual snapshots use the same write path.
+- [x] Ensure `flow:snapshot` writes enough data for the history endpoint.
+- [x] Ensure scheduled snapshots and manual snapshots use the same write path.
 - [ ] Add data migration or compatibility handling for older snapshot rows.
 - [ ] Add pruning/retention command tests.
 - [ ] Add metric for last successful snapshot time.
@@ -304,20 +306,20 @@ php artisan test --filter=FlowSnapshot
 
 ## Workstream 4.4: Demo Scenario Registry
 
-- [ ] Create a scenario registry service for PRD demo scenarios.
-- [ ] Add `GET /api/patient-flow/demo-scenarios`.
+- [x] Create a scenario registry service for PRD demo scenarios.
+- [x] Add `GET /api/patient-flow/demo-scenarios`.
 - [ ] Include for each scenario:
-  - [ ] Key.
-  - [ ] Label.
-  - [ ] Short description.
+  - [x] Key.
+  - [x] Label.
+  - [x] Short description.
   - [ ] Required seed state.
   - [ ] Default scope.
   - [ ] Time window.
   - [ ] Expected visible barriers.
   - [ ] Expected Eddy action opportunities.
-  - [ ] Source mode.
-  - [ ] Enabled/disabled state.
-  - [ ] Reason if disabled.
+  - [x] Source mode.
+  - [x] Enabled/disabled state.
+  - [x] Reason if disabled.
 - [ ] Support at minimum these PRD-aligned scenarios:
   - [ ] House executive glance.
   - [ ] ED boarder to inpatient bed.
@@ -329,7 +331,7 @@ php artisan test --filter=FlowSnapshot
   - [ ] Improvement and study handoff.
   - [ ] Trust/provenance/degraded feed.
 - [ ] If the implementation chooses seven Patient Flow scenarios instead of all nine PRD demo scenarios, document that decision in B0 and show which two are handled outside Patient Flow.
-- [ ] Add tests that scenario keys remain stable and each enabled scenario produces visible data.
+- [x] Add tests that scenario keys remain stable and each enabled scenario produces visible data.
 
 Suggested files:
 
@@ -420,20 +422,20 @@ npm run build
 
 ## Workstream 4.8: Mobile Patient Flow Parity
 
-- [ ] Ensure Hummingbird BFF exposes the same Patient Flow context needed by mobile.
+- [x] Ensure Hummingbird BFF exposes the same Patient Flow context needed by mobile.
 - [ ] Ensure selected barrier and all-barriers modes have mobile-friendly cards.
-- [ ] Ensure mobile redaction matches web.
+- [x] Ensure mobile redaction matches web.
 - [ ] Ensure mobile action paths use the same Eddy/action lifecycle as web.
-- [ ] Add mobile contract tests for scenario and barrier context.
+- [x] Add mobile contract tests for scenario and history context.
 - [ ] Capture iOS and Android screenshots for at least one Patient Flow barrier scenario.
 
 ## Phase Exit Gate
 
 This phase is complete only when:
 
-- [ ] `/api/patient-flow/occupancy/history` exists, is tested, and reads persisted snapshots.
-- [ ] `/api/patient-flow/demo-scenarios` exists, is tested, and reports enabled/disabled scenario state.
-- [ ] Snapshot details are populated enough to support history, lineage, and projections.
+- [x] `/api/patient-flow/occupancy/history` exists, is tested, and reads persisted snapshots.
+- [x] `/api/patient-flow/demo-scenarios` exists, is tested, and reports enabled/disabled scenario state.
+- [x] Snapshot details are populated enough to support history, lineage, and projections.
 - [ ] Scenario selection works in API and UI.
 - [ ] Barrier intelligence supports selected and all-barrier modes.
 - [ ] Eddy context and mobile context match web redaction and source metadata.

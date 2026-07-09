@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Mobile;
 
 use App\Exceptions\BedUnavailableException;
 use App\Exceptions\UnsafePlacementException;
+use App\Http\Concerns\AuthorizesMobilePersonaActions;
 use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
+use App\Models\Barrier;
 use App\Models\BedRequest;
 use App\Models\EdVisit;
 use App\Models\RtdcPrediction;
@@ -37,6 +39,7 @@ use Illuminate\Validation\Rule;
  */
 class RtdcController extends Controller
 {
+    use AuthorizesMobilePersonaActions;
     use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
@@ -141,6 +144,8 @@ class RtdcController extends Controller
     /** Place (accept a chosen bed) or reject a pending request. Engine re-validates safety. */
     public function placeBed(Request $request, int $id): JsonResponse
     {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['bed_manager', 'house_supervisor'], 'place beds');
+
         $validated = $request->validate([
             'action' => ['required', Rule::in(['accepted', 'rejected'])],
             'chosen_bed_id' => ['nullable', 'integer'],
@@ -148,9 +153,33 @@ class RtdcController extends Controller
         ]);
 
         $bedRequest = BedRequest::where('bed_request_id', $id)->where('is_deleted', false)->firstOrFail();
+        $eventType = $validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected';
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $request->user()?->id,
+            'actor_role' => $actorRole,
+            'domain' => 'rtdc',
+            'scope' => [
+                'patient_ref' => $bedRequest->patient_ref,
+                'bed_id' => $validated['chosen_bed_id'] ?? null,
+                'bed_request_id' => $bedRequest->bed_request_id,
+            ],
+            'idempotency_payload' => [
+                'action' => $validated['action'],
+                'chosen_bed_id' => $validated['chosen_bed_id'] ?? null,
+                'reason' => $validated['reason'] ?? null,
+            ],
+        ];
+
+        if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
+            return $this->envelope(
+                ['id' => $id, 'action' => $validated['action'], 'status' => $bedRequest->fresh()->status],
+                links: ['web' => url('/rtdc/bed-placement')],
+            );
+        }
 
         try {
-            $result = DB::transaction(function () use ($bedRequest, $id, $request, $validated): array {
+            $result = DB::transaction(function () use ($bedRequest, $eventAttributes, $eventType, $id, $request, $validated): array {
                 $this->placement->decide(
                     $bedRequest,
                     $validated['action'],
@@ -160,16 +189,8 @@ class RtdcController extends Controller
                 );
 
                 $fresh = $bedRequest->fresh();
-                $this->ledger->record($validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected', [
-                    'idempotency_key' => $this->mobileIdempotencyKey($request),
-                    'actor_user_id' => $request->user()?->id,
-                    'actor_role' => $this->personas->fromRequest($request),
-                    'domain' => 'rtdc',
-                    'scope' => [
-                        'patient_ref' => $bedRequest->patient_ref,
-                        'bed_id' => $validated['chosen_bed_id'] ?? null,
-                        'bed_request_id' => $bedRequest->bed_request_id,
-                    ],
+                $this->ledger->record($eventType, [
+                    ...$eventAttributes,
                     'status' => [
                         'previous' => 'pending',
                         'current' => $fresh->status,
@@ -206,18 +227,35 @@ class RtdcController extends Controller
      */
     public function resolveBarrier(Request $request, int $id): JsonResponse
     {
-        $result = DB::transaction(function () use ($id, $request): array {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['charge_nurse', 'bed_manager', 'house_supervisor'], 'resolve barriers');
+
+        $barrier = Barrier::findOrFail($id);
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $request->user()?->id,
+            'actor_role' => $actorRole,
+            'domain' => 'rtdc',
+            'scope' => [
+                'unit_id' => $barrier->unit_id,
+                'barrier_id' => $barrier->barrier_id,
+            ],
+            'idempotency_payload' => [
+                'action' => 'resolve',
+            ],
+        ];
+
+        if ($this->ledger->replay('barrier.resolved', $eventAttributes) !== null) {
+            return $this->envelope(
+                ['id' => $id, 'status' => $barrier->fresh()->status],
+                links: ['web' => url('/rtdc/bed-tracking')],
+            );
+        }
+
+        $result = DB::transaction(function () use ($eventAttributes, $id): array {
             $barrier = $this->barriers->resolve($id);
 
             $this->ledger->record('barrier.resolved', [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $request->user()?->id,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'rtdc',
-                'scope' => [
-                    'unit_id' => $barrier->unit_id,
-                    'barrier_id' => $barrier->barrier_id,
-                ],
+                ...$eventAttributes,
                 'status' => [
                     'previous' => 'open',
                     'current' => 'resolved',

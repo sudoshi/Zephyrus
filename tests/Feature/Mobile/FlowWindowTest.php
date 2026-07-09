@@ -529,11 +529,15 @@ class FlowWindowTest extends TestCase
         ]);
 
         $bedManager = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
-        $this->actingAs($bedManager)
+        $webHistoryDetail = $this->actingAs($bedManager)
             ->getJson("/api/patient-flow/occupancy/history?{$query}")
             ->assertOk()
             ->assertJsonPath('summary.snapshots', 1)
-            ->assertJsonPath('history.0.occupancy_details.0.patient_ref', 'FLOWTEST-PAT-EDD');
+            ->json('history.0.occupancy_details.0');
+
+        $this->assertStringStartsWith('ptok_', $webHistoryDetail['patient_context_ref'] ?? '');
+        $this->assertArrayNotHasKey('patient_ref', $webHistoryDetail);
+        $this->assertArrayNotHasKey('encounter_id', $webHistoryDetail);
 
         $executive = User::factory()->create(['role' => 'executive', 'must_change_password' => false]);
         $executiveDetail = $this->actingAs($executive)
@@ -541,10 +545,37 @@ class FlowWindowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('lens.patient_dots', 'none')
             ->assertJsonPath('summary.redacted', true)
-            ->json('history.0.occupancy_details.0');
+            ->json('history.0.occupancy_details');
 
-        $this->assertArrayNotHasKey('patient_ref', $executiveDetail);
-        $this->assertArrayNotHasKey('encounter_id', $executiveDetail);
+        $this->assertSame([], $executiveDetail);
+
+        Sanctum::actingAs($bedManager, ['mobile:read']);
+        $this->getJson('/api/mobile/v1/flow/demo-scenarios?persona=bed_manager')
+            ->assertOk()
+            ->assertJsonPath('data.0.history_supported', true)
+            ->assertJsonPath('meta.source_mode', 'synthetic_demo');
+
+        $mobileHistoryResponse = $this->getJson("/api/mobile/v1/flow/occupancy/history?persona=bed_manager&{$query}")
+            ->assertOk()
+            ->assertJsonPath('data.summary.snapshots', 1);
+
+        $mobileHistoryBody = $mobileHistoryResponse->getContent();
+        $this->assertStringNotContainsString('FLOWTEST-PAT-EDD', $mobileHistoryBody);
+        $this->assertStringNotContainsString('"patient_ref"', $mobileHistoryBody);
+        $this->assertStringNotContainsString('"encounter_id"', $mobileHistoryBody);
+
+        $mobileHistoryDetail = $mobileHistoryResponse->json('data.history.0.occupancy_details.0');
+        $this->assertStringStartsWith('ptok_', $mobileHistoryDetail['patient_context_ref'] ?? '');
+
+        Sanctum::actingAs($executive, ['mobile:read']);
+        $this->getJson("/api/mobile/v1/flow/occupancy/history?persona=executive&{$query}")
+            ->assertOk()
+            ->assertJsonPath('data.lens.patient_dots', 'none')
+            ->assertJsonPath('data.history.0.occupancy_details', []);
+
+        $this->getJson('/api/mobile/v1/flow/occupancy/history?persona=executive&from=nope')
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'invalid_occupancy_history_window');
     }
 
     // -----------------------------------------------------------------

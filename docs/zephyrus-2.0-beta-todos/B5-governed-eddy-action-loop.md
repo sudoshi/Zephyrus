@@ -14,6 +14,8 @@ Exit principle: Eddy is beta-complete only when an operator can follow a real si
 - Tests cover basic propose and approval constraints.
 - 2026-07-09 local implementation proves that token callers remain draft-only even if a token is misissued with `ops:approve`.
 - 2026-07-09 local implementation expands action-catalog safety metadata and tests the required schema fields.
+- 2026-07-09 adversarial hardening adds `useEddyActions` gates to web Eddy propose/token routes and enforces role eligibility inside `EddyActionService`.
+- 2026-07-09 adversarial hardening checks Hummingbird Eddy approval decisions against the same minimum-role policy instead of relying only on broad token ability.
 - Python local agent loop exists but is gated/stubbed and not proven as durable production state.
 - Full execution adapters and end-to-end loop are not proven.
 
@@ -119,10 +121,10 @@ Every Eddy tool/action must declare:
 
 Policy:
 
-- [ ] No enabled write tool may lack dry-run schema, approval policy, audit event, and execution/draft-only declaration.
-- [ ] Draft-only tools must show draft-only status in web/mobile/Eddy responses.
+- [x] No enabled write tool may lack dry-run schema, approval policy, audit event, and execution/draft-only declaration.
+- [x] Draft-only tools must show draft-only status in web/mobile/Eddy responses.
 - [ ] Disabled tools must be omitted from action affordances or displayed with disabled reason.
-- [ ] Agent tokens must never include approval scope.
+- [x] Agent tokens must never include approval scope.
 - [ ] If D15 forbids human self-approval, tests must prove proposer and approver differ.
 
 ## Execution Adapter List
@@ -187,17 +189,17 @@ Create:
 
 ## Workstream 5.1: Governance Semantics
 
-- [ ] Decide no-self-approval semantics:
-  - [ ] Agent can never approve.
-  - [ ] Human requester can approve their own draft.
+- [x] Decide no-self-approval semantics:
+  - [x] Agent can never approve.
+  - [x] Human requester can approve their own draft.
   - [ ] Human requester cannot approve their own draft.
   - [ ] Escalation role can override with audit.
 - [ ] Encode the decision in:
-  - [ ] Service logic.
-  - [ ] Tests.
+  - [x] Service logic.
+  - [x] Tests.
   - [ ] UI copy.
-  - [ ] Mobile UI.
-  - [ ] Release notes.
+  - [x] Mobile API policy.
+  - [x] Release notes.
 - [ ] Ensure actions have states:
   - [ ] Recommended.
   - [ ] Drafted.
@@ -219,26 +221,26 @@ Suggested files:
 
 ## Workstream 5.2: Tool Catalog Metadata
 
-- [ ] Define required metadata for every Eddy tool/action:
-  - [ ] Tool key.
-  - [ ] Display label.
-  - [ ] Domain.
-  - [ ] Minimum role.
-  - [ ] Risk tier.
-  - [ ] PHI policy.
-  - [ ] Required scopes.
-  - [ ] Dry-run support.
-  - [ ] Rollback support.
-  - [ ] Execution adapter class.
-  - [ ] Approval policy.
-  - [ ] Input schema.
-  - [ ] Output schema.
-  - [ ] Audit event type.
-  - [ ] Mobile availability.
-  - [ ] Web availability.
-  - [ ] Enabled state.
-  - [ ] Disabled reason.
-- [ ] Add tests that no enabled write tool lacks required metadata.
+- [x] Define required metadata for every Eddy tool/action:
+  - [x] Tool key.
+  - [x] Display label.
+  - [x] Domain.
+  - [x] Minimum role.
+  - [x] Risk tier.
+  - [x] PHI policy.
+  - [x] Required scopes.
+  - [x] Dry-run support.
+  - [x] Rollback support.
+  - [x] Execution adapter class.
+  - [x] Approval policy.
+  - [x] Input schema.
+  - [x] Output schema.
+  - [x] Audit event type.
+  - [x] Mobile availability.
+  - [x] Web availability.
+  - [x] Enabled state.
+  - [x] Disabled reason.
+- [x] Add tests that no enabled write tool lacks required metadata.
 - [ ] Add UI/API display of disabled reasons.
 - [ ] Add a beta operator view of the catalog.
 - [ ] Add OpenAPI or schema tests for tool inputs.
@@ -329,8 +331,8 @@ Suggested files:
 ## Workstream 5.6: Safety And Abuse Tests
 
 - [ ] Add or extend tests for:
-  - [ ] Agent cannot approve.
-  - [ ] Human self-approval rule.
+  - [x] Agent cannot approve.
+  - [x] Human self-approval rule.
   - [ ] No SQL execution.
   - [ ] Prompt injection resistance.
   - [ ] Tool not in catalog cannot execute.
@@ -338,11 +340,11 @@ Suggested files:
   - [ ] Dry-run required for high-risk action.
   - [ ] PHI minimization in aggregate contexts.
   - [ ] Stale source blocks or downgrades recommendations.
-  - [ ] Unauthorized mobile role cannot approve or execute.
+  - [x] Unauthorized mobile role cannot approve or execute tested mobile action families.
   - [ ] Duplicate approval/execution is idempotent.
   - [ ] Audit event created exactly once.
-- [ ] Include tests for both web session and Sanctum/mobile token paths.
-- [ ] Include tests for agent scoped token path.
+- [x] Include tests for both web session and Sanctum/mobile token paths.
+- [x] Include tests for agent scoped token path.
 
 Verification:
 
@@ -395,8 +397,8 @@ Recommended scenario:
 
 This phase is complete only when:
 
-- [ ] Governance semantics are decided, implemented, and tested.
-- [ ] Enabled tools have complete metadata.
+- [x] Governance semantics are decided, implemented, and tested.
+- [x] Enabled tools have complete metadata.
 - [ ] High-risk writes require dry-run preview.
 - [ ] Beta tools have execution adapters or are visibly disabled/draft-only.
 - [ ] Agent run/tool-call state is durable.

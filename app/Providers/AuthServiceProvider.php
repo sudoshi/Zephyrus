@@ -38,6 +38,49 @@ class AuthServiceProvider extends ServiceProvider
     private const DEPLOYMENT_CONFIG_ROLES = ['super-admin', 'superuser', 'ops-leader'];
 
     /**
+     * Roles allowed to create governed Eddy action proposals or mint the scoped
+     * draft token used by the agent callback. Plain authenticated accounts can
+     * chat/read, but only operational personas may enter the approvals workflow.
+     *
+     * @var list<string>
+     */
+    private const EDDY_ACTION_ROLES = [
+        'super-admin',
+        'super_admin',
+        'superuser',
+        'ops-leader',
+        'ops_leader',
+        'admin',
+        'bed_manager',
+        'house_supervisor',
+        'capacity_lead',
+        'charge_nurse',
+        'hospitalist',
+        'intensivist',
+        'transport',
+        'evs',
+        'staffing_coordinator',
+        'pi_lead',
+        'periop_manager',
+    ];
+
+    /**
+     * Roles allowed to create/update legacy OR case API records. Reads stay
+     * public for the existing dashboard widgets; writes are constrained to OR,
+     * periop, and operational admin roles.
+     *
+     * @var list<string>
+     */
+    private const OR_CASE_WRITE_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'periop_manager',
+        'or_nurse',
+    ];
+
+    /**
      * Register any authentication / authorization services.
      */
     public function boot(): void
@@ -51,5 +94,22 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manageDeploymentConfig', fn (User $user): bool => in_array(
             (string) $user->role, self::DEPLOYMENT_CONFIG_ROLES, true
         ));
+
+        Gate::define('useEddyActions', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::EDDY_ACTION_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
+
+        Gate::define('writeOrCases', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::OR_CASE_WRITE_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin', 'periop_manager', 'or_nurse']));
+    }
+
+    private static function canonicalRole(string $role): string
+    {
+        return str_replace([' ', '-'], '_', strtolower($role));
     }
 }

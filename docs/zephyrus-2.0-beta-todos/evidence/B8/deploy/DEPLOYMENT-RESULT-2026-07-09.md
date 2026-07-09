@@ -104,3 +104,22 @@ Not run:
 - Integration Health browser/admin smoke.
 - Reverb/fallback runtime proof.
 - 15-30 minute monitoring window after a scheduler interval.
+
+## Post-Review Hardening Deploy Target
+
+After the first deployment, adversarial review produced additional product fixes:
+
+- Patient Flow history redaction across web/mobile.
+- Mobile persona-specific write gates.
+- Eddy web/mobile role gates.
+- OR case write authorization and current-schema mapping.
+- Android release HTTPS/WSS defaults and debug-only cleartext.
+- iOS query encoding and mobile Patient Flow parity calls.
+- Login failed-auth error rendering.
+
+These changes add no new Laravel migrations. The final deploy for this run should:
+
+1. Commit and push the post-review hardening tranche.
+2. Run `./deploy.sh` from a clean, current branch.
+3. Re-run health/vhost, route-list, scheduler, queue, Patient Flow, mobile route, and Eddy route smokes.
+4. Leave unrelated pending migrations untouched.

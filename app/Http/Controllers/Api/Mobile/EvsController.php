@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\AuthorizesMobilePersonaActions;
 use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
@@ -28,6 +29,7 @@ use Illuminate\Validation\Rule;
  */
 class EvsController extends Controller
 {
+    use AuthorizesMobilePersonaActions;
     use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
@@ -71,6 +73,7 @@ class EvsController extends Controller
     /** Advance a turn (Claim → Start → Complete). Delegates to the service. */
     public function status(Request $request, int $id): JsonResponse
     {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['evs'], 'update EVS turns');
         $allowed = array_merge(EvsOperationsService::ACTIVE_STATUSES, ['completed', 'canceled', 'failed']);
 
         $validated = $request->validate([
@@ -81,31 +84,41 @@ class EvsController extends Controller
         $req = EvsRequest::where('evs_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $actorId = $request->user()?->id;
         $from = $req->status;
+        $eventType = match ($validated['status']) {
+            'assigned' => 'evs.claimed',
+            'in_progress' => 'evs.started',
+            'completed' => 'evs.completed',
+            default => 'evs.progressed',
+        };
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $actorId,
+            'actor_role' => $actorRole,
+            'domain' => 'evs',
+            'scope' => [
+                'patient_ref' => $req->patient_ref,
+                'encounter_ref' => $req->encounter_ref,
+                'bed_id' => $req->bed_id,
+                'unit_id' => $req->unit_id,
+                'evs_request_id' => $req->evs_request_id,
+            ],
+            'idempotency_payload' => [
+                'status' => $validated['status'],
+                'assigned_team' => $validated['assigned_team'] ?? null,
+            ],
+        ];
 
-        $updated = DB::transaction(function () use ($actorId, $from, $req, $request, $validated): EvsRequest {
+        if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
+            return $this->envelope($this->shapeTurn($req->fresh()), links: ['web' => url('/rtdc/bed-tracking')]);
+        }
+
+        $updated = DB::transaction(function () use ($actorId, $eventAttributes, $eventType, $from, $req, $request, $validated): EvsRequest {
             $updated = $validated['status'] === 'assigned'
                 ? $this->evs->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
                 : $this->evs->transition($req, $validated['status'], [], $actorId);
 
-            $eventType = match ($updated->status) {
-                'assigned' => 'evs.claimed',
-                'in_progress' => 'evs.started',
-                'completed' => 'evs.completed',
-                default => 'evs.progressed',
-            };
-
             $this->ledger->record($eventType, [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $actorId,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'evs',
-                'scope' => [
-                    'patient_ref' => $updated->patient_ref,
-                    'encounter_ref' => $updated->encounter_ref,
-                    'bed_id' => $updated->bed_id,
-                    'unit_id' => $updated->unit_id,
-                    'evs_request_id' => $updated->evs_request_id,
-                ],
+                ...$eventAttributes,
                 'status' => [
                     'previous' => $from,
                     'current' => $updated->status,

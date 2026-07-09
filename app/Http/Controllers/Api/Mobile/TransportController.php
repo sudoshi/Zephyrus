@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\AuthorizesMobilePersonaActions;
 use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
@@ -29,6 +30,7 @@ use Illuminate\Validation\Rule;
  */
 class TransportController extends Controller
 {
+    use AuthorizesMobilePersonaActions;
     use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
@@ -72,6 +74,7 @@ class TransportController extends Controller
     /** Advance a job along its lifecycle (Claim → … → Completed). Delegates to the service. */
     public function status(Request $request, int $id): JsonResponse
     {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['transport'], 'update transport jobs');
         $allowed = array_merge(TransportOperationsService::ACTIVE_STATUSES, ['completed', 'canceled', 'failed']);
 
         $validated = $request->validate([
@@ -82,22 +85,34 @@ class TransportController extends Controller
         $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $actorId = $request->user()?->id;
         $from = $req->status;
+        $eventType = $validated['status'] === 'assigned' ? 'transport.claimed' : 'transport.progressed';
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $actorId,
+            'actor_role' => $actorRole,
+            'domain' => 'transport',
+            'scope' => [
+                'patient_ref' => $req->patient_ref,
+                'encounter_ref' => $req->encounter_ref,
+                'transport_request_id' => $req->transport_request_id,
+            ],
+            'idempotency_payload' => [
+                'status' => $validated['status'],
+                'assigned_team' => $validated['assigned_team'] ?? null,
+            ],
+        ];
 
-        $updated = DB::transaction(function () use ($actorId, $from, $req, $request, $validated): TransportRequest {
+        if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
+            return $this->envelope($this->shapeJob($req->fresh()), links: ['web' => url('/transport/dispatch')]);
+        }
+
+        $updated = DB::transaction(function () use ($actorId, $eventAttributes, $eventType, $from, $req, $request, $validated): TransportRequest {
             $updated = $validated['status'] === 'assigned'
                 ? $this->transport->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
                 : $this->transport->transition($req, $validated['status'], [], $actorId);
 
-            $this->ledger->record($validated['status'] === 'assigned' ? 'transport.claimed' : 'transport.progressed', [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $actorId,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'transport',
-                'scope' => [
-                    'patient_ref' => $updated->patient_ref,
-                    'encounter_ref' => $updated->encounter_ref,
-                    'transport_request_id' => $updated->transport_request_id,
-                ],
+            $this->ledger->record($eventType, [
+                ...$eventAttributes,
                 'status' => [
                     'previous' => $from,
                     'current' => $updated->status,
@@ -125,6 +140,8 @@ class TransportController extends Controller
     /** Structured handoff at the destination → marks the job handed off. */
     public function handoff(Request $request, int $id): JsonResponse
     {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['transport'], 'handoff transport jobs');
+
         $validated = $request->validate([
             'handoff_to' => ['required', 'string', 'max:160'],
             'handoff_summary' => ['sometimes', 'nullable', 'string', 'max:1000'],
@@ -134,19 +151,31 @@ class TransportController extends Controller
 
         $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $from = $req->status;
-        $updated = DB::transaction(function () use ($from, $req, $request, $validated): TransportRequest {
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $request->user()?->id,
+            'actor_role' => $actorRole,
+            'domain' => 'transport',
+            'scope' => [
+                'patient_ref' => $req->patient_ref,
+                'encounter_ref' => $req->encounter_ref,
+                'transport_request_id' => $req->transport_request_id,
+            ],
+            'idempotency_payload' => [
+                'handoff_to' => $validated['handoff_to'],
+                'handoff_summary' => $validated['handoff_summary'] ?? null,
+            ],
+        ];
+
+        if ($this->ledger->replay('transport.handoff_completed', $eventAttributes) !== null) {
+            return $this->envelope($this->shapeJob($req->fresh()), links: ['web' => url('/transport/dispatch')]);
+        }
+
+        $updated = DB::transaction(function () use ($eventAttributes, $from, $req, $request, $validated): TransportRequest {
             $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
 
             $this->ledger->record('transport.handoff_completed', [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $request->user()?->id,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'transport',
-                'scope' => [
-                    'patient_ref' => $updated->patient_ref,
-                    'encounter_ref' => $updated->encounter_ref,
-                    'transport_request_id' => $updated->transport_request_id,
-                ],
+                ...$eventAttributes,
                 'status' => [
                     'previous' => $from,
                     'current' => $updated->status,

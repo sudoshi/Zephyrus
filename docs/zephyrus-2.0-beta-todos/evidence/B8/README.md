@@ -2,17 +2,18 @@
 
 Date: 2026-07-09
 Branch: `feat/hummingbird-4d-service-line-eddy`
-Environment: local validation plus pending production deploy evidence
+Environment: local validation, prior production deploy evidence, and post-review hardening pending final deploy
 
 ## Automated Evidence
 
-- `commands/LOCAL-VALIDATION-2026-07-09.md` records full PHP, targeted PHP, Vitest, Playwright, UI canon, Android, and production build results.
-- `mobile/android/README.md` records Android unit/build and security posture evidence.
+- `commands/LOCAL-VALIDATION-2026-07-09.md` records full PHP, targeted PHP, Vitest, Playwright, UI canon, Android, and production build results, including the post-adversarial 70-test focused safety run and 17-pass browser smoke.
+- `mobile/android/README.md` records Android unit/release-build and security posture evidence.
 - `mobile/ios/README.md` records the Linux-host blocker and exact macOS commands required for iOS proof.
 
 ## Review Evidence
 
 - `reviews/PHI-SECURITY-NOTES-2026-07-09.md` records automated/code-review security evidence and outstanding manual/runtime checks.
+- `reviews/ADVERSARIAL-REVIEW-2026-07-09.md` records the mobile/native and backend/security review findings, fixes, and remaining hardening items.
 
 ## Demo Evidence
 

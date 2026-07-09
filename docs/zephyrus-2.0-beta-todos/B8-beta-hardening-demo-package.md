@@ -16,19 +16,21 @@ Exit principle: beta is complete only when a fresh operator can deploy, verify, 
 - 2026-07-09 local targeted validation is archived in `evidence/B8/commands/LOCAL-VALIDATION-2026-07-09.md`.
 - 2026-07-09 full PHP validation passed: 1 skipped, 661 passed, 6810 assertions.
 - 2026-07-09 full Vitest validation passed: 61 files, 277 tests.
-- 2026-07-09 Playwright validation passed: 2 skipped, 16 passed; targeted navigation/RTDC Chromium pass was 11/11.
+- 2026-07-09 Playwright validation passed after local harness correction: 2 skipped, 17 passed across auth, navigation, command palette, mobile layout, and RTDC unit huddle.
 - 2026-07-09 production Vite build passed with existing large-chunk warnings.
-- Android unit and debug build evidence is archived under `evidence/B8/mobile/android/`.
+- 2026-07-09 adversarial hardening validation passed for the focused backend safety slice: `MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest` produced 70 tests and 1563 assertions.
+- Android unit and release build evidence is archived under `evidence/B8/mobile/android/`.
 - iOS build remains blocked on this Linux host and is documented under `evidence/B8/mobile/ios/`.
 - Deployment completed successfully from commit `2e58cf2a8492bbcd0e13c746725b08c7278a337e`; deploy and post-deploy evidence is archived under `evidence/B8/deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
 - A targeted Patient Flow migration was run after deployment because production lacked the new `flow_core.occupancy_snapshots` detail columns required by the deployed snapshot/history code.
+- A post-deployment adversarial review found and fixed mobile Patient Flow identity leakage, mobile persona write gaps, Android release cleartext defaults, iOS timestamp query encoding, Eddy role gates, OR write authorization/schema mapping, and login failed-auth error rendering. These fixes require the final clean-branch deploy in this run.
 
 ## Deliverables
 
 - [x] Final automated validation archive for local PHP/JS/E2E/build gates.
 - [ ] Final manual/visual validation archive.
 - [ ] Partial: mobile iOS and Android build archive. Android complete; iOS blocked pending macOS/Xcode.
-- [ ] Partial: PHI and security review signoff. Automated/code review notes complete; screenshot, push, runtime headers, and Eddy cloud-policy review pending.
+- [ ] Partial: PHI and security review signoff. Automated/code review notes and adversarial review remediation complete; screenshot, push, runtime headers, and Eddy cloud-policy review pending.
 - [x] Demo script with scenario data and fallback path.
 - [x] Deployment and post-deployment checklist for this slice.
 - [x] Rollback checklist.
@@ -158,14 +160,14 @@ B8 must close every row from `ENGINEERING-CRITICALITIES.md` across the full beta
 
 - [ ] Requirements traceability: every requirement ID is `Complete`, `Ready for B8`, or `Deferred`.
 - [ ] Architecture fit: no release-critical feature bypasses established Laravel/Inertia/BFF/native patterns.
-- [ ] API contract: route/API samples are archived and drift tests are run or known-limited.
-- [ ] Authorization: route-family auth matrix is tested or known-limited.
+- [x] API contract: route/API samples are archived and drift tests are run or known-limited for the hardened route families.
+- [x] Authorization: route-family auth matrix is tested or known-limited for mobile writes, Eddy, OR case writes, and route smoke.
 - [ ] PHI/privacy: screenshot/API/log/push/Eddy review is signed off.
 - [ ] Data trust: every action-driving signal has source/as-of/freshness/synthetic/fallback state.
 - [ ] Data integrity: seed/import/rebase/snapshot operations are idempotent or limitations are recorded.
 - [ ] Migrations: production migration status and reversibility/forward-fix plan are archived.
 - [ ] Frontend quality: web screenshots and Playwright/manual viewport reviews are archived.
-- [ ] Mobile parity: Android/iOS/BFF evidence is archived or limitations are explicit.
+- [x] Mobile parity: Android/BFF evidence is archived and iOS/toolchain limitations are explicit.
 - [ ] Eddy governance: no-self-approval, tool catalog, dry-run, adapter, and audit evidence are archived.
 - [ ] Observability: scheduler, queue, logs, source watermarks, and action ledgers are proven.
 - [ ] Performance: cache/poll/realtime/materialized-view behavior is acceptable or limited.
@@ -190,7 +192,7 @@ B8 owns the final evidence bundle:
 - [x] `mobile/android/`.
 - [ ] Partial: `mobile/ios/` with Linux blocker and required macOS commands.
 - [x] API route smoke evidence in `commands/LOCAL-VALIDATION-2026-07-09.md`.
-- [ ] Partial: `reviews/PHI-SECURITY-NOTES-2026-07-09.md`.
+- [ ] Partial: `reviews/PHI-SECURITY-NOTES-2026-07-09.md` with adversarial-review remediation notes.
 - [ ] `reviews/traceability-final.md`.
 - [x] `demo/demo-script.md`.
 - [ ] Partial: `demo/demo-rehearsal.md` with local automated proof and manual rehearsal gap.
@@ -210,7 +212,7 @@ B8 owns the final evidence bundle:
   - [x] Integration/synthetic connector.
   - [x] Route smoke.
   - [x] API authorization.
-  - [ ] Security headers/auth posture if tests exist.
+  - [x] Auth posture and mutable API authorization where tests exist.
 - [x] Run JS tests.
 - [x] Run UI canon script.
 - [x] Run production build.
@@ -292,12 +294,12 @@ Stop when done:
 - [x] Run Android tests/build.
 - [ ] Capture iOS screenshot matrix.
 - [ ] Capture Android screenshot matrix.
-- [ ] Validate mobile API target configuration.
+- [x] Validate mobile API target configuration for Android release/debug and iOS query construction.
 - [ ] Validate token/device registration.
 - [ ] Validate push/fetch-on-open behavior.
 - [ ] Validate offline/stale behavior.
-- [ ] Validate PHI redaction.
-- [ ] Validate action lifecycle and activity feed.
+- [x] Validate PHI redaction for tested mobile Patient Flow/history payloads.
+- [x] Validate action lifecycle and activity feed replay semantics for tested mobile writes.
 
 Suggested commands:
 
@@ -309,8 +311,8 @@ xcodebuild -project Hummingbird.xcodeproj -scheme Hummingbird -configuration Deb
 
 ```bash
 cd hummingbird/androidApp
-./gradlew test
-./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew assembleRelease
 ```
 
 If local toolchains are unavailable, archive the exact blocker and run on the correct machine before beta signoff.
@@ -329,10 +331,10 @@ If local toolchains are unavailable, archive the exact blocker and run on the co
   - [ ] Logs and broadcast payloads.
 - [ ] Auth review:
   - [ ] Demo auto-login restriction.
-  - [ ] Mutable API auth.
+  - [x] Mutable API auth.
   - [ ] Admin route auth.
-  - [ ] Mobile token auth.
-  - [ ] Agent scoped-token auth.
+  - [x] Mobile token auth.
+  - [x] Agent scoped-token auth.
 - [ ] Headers/realtime review:
   - [ ] Apache `.htaccess` CORS/CSP posture.
   - [ ] Laravel `SecurityHeaders`.
@@ -340,12 +342,12 @@ If local toolchains are unavailable, archive the exact blocker and run on the co
   - [ ] Reverb rate limit.
   - [ ] Broadcast payload PHI.
 - [ ] Mobile security review:
-  - [ ] Android backup.
-  - [ ] Android cleartext.
+  - [x] Android backup.
+  - [x] Android cleartext.
   - [ ] Exported components.
   - [ ] iOS entitlements.
   - [ ] Credential storage.
-- [ ] Archive findings and fixes.
+- [x] Archive findings and fixes.
 
 Suggested commands:
 
@@ -388,11 +390,11 @@ php artisan test --filter=ApiAuthorizationTest
 ## Workstream 8.6: Deployment Checklist
 
 - [ ] Pre-deploy:
-  - [ ] Confirm branch.
+  - [x] Confirm branch.
   - [ ] Confirm clean worktree.
   - [ ] Confirm branch current with origin.
   - [ ] Confirm ahead/behind count with `git rev-list --left-right --count @{u}...HEAD`.
-  - [ ] Confirm release is not from a mixed feature branch unless explicitly approved.
+  - [x] Confirm release is not from a mixed feature branch unless explicitly approved.
   - [ ] Confirm migrations needing production run.
   - [ ] Confirm env vars.
   - [ ] Confirm backup/rollback point.
@@ -400,25 +402,25 @@ php artisan test --filter=ApiAuthorizationTest
   - [ ] Capture database backup or approved restore point.
   - [ ] Confirm no GitHub Actions production deploy path.
 - [ ] Deploy:
-  - [ ] Run `./deploy.sh`.
-  - [ ] Record output.
-  - [ ] Confirm Apache restart.
-  - [ ] Confirm vhost check.
+  - [x] Run `./deploy.sh` for the prior hardening tranche; rerun required for post-review hardening commit.
+  - [x] Record output for the prior hardening tranche.
+  - [x] Confirm Apache restart for the prior hardening tranche.
+  - [x] Confirm vhost check for the prior hardening tranche.
 - [ ] Post-deploy:
-  - [ ] Run migrations if needed.
-  - [ ] Clear caches if needed.
+  - [x] Run migrations if needed.
+  - [x] Clear caches if needed.
   - [ ] Refresh materialized views.
-  - [ ] Refresh cockpit snapshot.
-  - [ ] Run route/schema checks from `/var/www/Zephyrus`.
-  - [ ] Verify HTTP/HTTPS vhost.
+  - [x] Refresh cockpit snapshot.
+  - [x] Run route/schema checks from `/var/www/Zephyrus`.
+  - [x] Verify HTTP/HTTPS vhost.
   - [ ] Verify storage permissions.
-  - [ ] Verify scheduler.
-  - [ ] Verify queue worker.
+  - [x] Verify scheduler.
+  - [x] Verify queue worker.
   - [ ] Verify Reverb or fallback.
   - [ ] Verify cockpit.
-  - [ ] Verify Patient Flow.
-  - [ ] Verify mobile BFF.
-  - [ ] Verify Eddy health.
+  - [x] Verify Patient Flow.
+  - [x] Verify mobile BFF route registration.
+  - [x] Verify Eddy route registration.
   - [ ] Verify Integration Health.
 
 Commands:

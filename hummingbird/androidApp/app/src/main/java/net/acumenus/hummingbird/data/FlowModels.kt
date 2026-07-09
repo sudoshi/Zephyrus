@@ -162,6 +162,48 @@ data class FlowWindowFetch(
     val raw: String,
 )
 
+data class FlowDemoScenario(
+    val key: String,
+    val label: String,
+    val enabled: Boolean,
+    val historySupported: Boolean,
+    val sourceMode: String?,
+)
+
+data class FlowHistoryWindow(
+    val from: String,
+    val to: String,
+    val limit: Int,
+)
+
+data class FlowHistoryLens(
+    val roleId: String,
+    val patientDots: String,
+    val projectionKinds: List<String>,
+)
+
+data class FlowHistorySnapshot(
+    val snapshotAt: String?,
+    val activePatientCount: Int,
+    val occupancyDetailCount: Int,
+    val timerStatusCounts: Map<String, Int>,
+)
+
+data class FlowHistorySummary(
+    val snapshots: Int,
+    val activePatientCount: Int,
+    val sourceMode: String,
+    val redacted: Boolean,
+)
+
+data class FlowOccupancyHistory(
+    val window: FlowHistoryWindow,
+    val lens: FlowHistoryLens,
+    val scenario: String?,
+    val history: List<FlowHistorySnapshot>,
+    val summary: FlowHistorySummary,
+)
+
 /** One drawable plate on a floor: unit/zone, room/bay, bed, corridor, vertical_transport. */
 data class FlowPlate(
     val id: Int,

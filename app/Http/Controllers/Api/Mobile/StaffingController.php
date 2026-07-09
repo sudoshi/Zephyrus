@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Concerns\AuthorizesMobilePersonaActions;
 use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 class StaffingController extends Controller
 {
+    use AuthorizesMobilePersonaActions;
     use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
 
@@ -37,6 +39,8 @@ class StaffingController extends Controller
 
     public function fill(Request $request, int $id): JsonResponse
     {
+        $actorRole = $this->authorizeMobilePersonaAction($request, ['staffing_coordinator'], 'fill staffing requests');
+
         $validated = $request->validate([
             'assigned_source' => ['required', 'string', 'max:120'],
             'owner_name' => ['sometimes', 'nullable', 'string', 'max:120'],
@@ -45,8 +49,26 @@ class StaffingController extends Controller
         $req = StaffingRequest::where('staffing_request_id', $id)->where('is_deleted', false)->firstOrFail();
         $actorId = $request->user()?->id;
         $from = $req->status;
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $actorId,
+            'actor_role' => $actorRole,
+            'domain' => 'staffing',
+            'scope' => [
+                'unit_id' => $req->unit_id,
+                'staffing_request_id' => $req->staffing_request_id,
+            ],
+            'idempotency_payload' => [
+                'assigned_source' => $validated['assigned_source'],
+                'owner_name' => $validated['owner_name'] ?? null,
+            ],
+        ];
 
-        $filled = DB::transaction(function () use ($actorId, $from, $req, $request, $validated): StaffingRequest {
+        if ($this->ledger->replay('staffing.request_filled', $eventAttributes) !== null) {
+            return $this->envelope($this->staffing->serializeRequest($req->fresh()), links: ['web' => url('/staffing')]);
+        }
+
+        $filled = DB::transaction(function () use ($actorId, $eventAttributes, $from, $req, $request, $validated): StaffingRequest {
             $assigned = $this->staffing->assign($req, [
                 'assigned_source' => $validated['assigned_source'],
                 'owner_name' => $validated['owner_name'] ?? ($request->user()?->name),
@@ -57,14 +79,7 @@ class StaffingController extends Controller
             ], $actorId);
 
             $this->ledger->record('staffing.request_filled', [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $actorId,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'staffing',
-                'scope' => [
-                    'unit_id' => $filled->unit_id,
-                    'staffing_request_id' => $filled->staffing_request_id,
-                ],
+                ...$eventAttributes,
                 'status' => [
                     'previous' => $from,
                     'current' => $filled->status,

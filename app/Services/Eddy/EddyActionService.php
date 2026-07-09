@@ -7,6 +7,7 @@ use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
 use App\Services\Ops\OperationalActionLifecycleService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -94,6 +95,22 @@ class EddyActionService
         return array_key_exists($actionType, self::CATALOG);
     }
 
+    public function minimumRoleForAction(string $actionType): string
+    {
+        if (! $this->isProposable($actionType)) {
+            throw new InvalidArgumentException("Action type [{$actionType}] is not proposable by Eddy.");
+        }
+
+        return $this->minimumRole(self::CATALOG[$actionType]);
+    }
+
+    public function userMeetsMinimumRole(User $actor, string $actionType, ?string $roleOverride = null): bool
+    {
+        $minimum = $this->minimumRoleForAction($actionType);
+
+        return $this->highestRoleRank($actor, $roleOverride) >= $this->roleRank($minimum);
+    }
+
     /**
      * @param  array<string, mixed>  $spec
      * @return array<string, mixed>
@@ -165,6 +182,10 @@ class EddyActionService
         }
 
         $spec = self::CATALOG[$actionType];
+        if (! $this->userMeetsMinimumRole($actor, $actionType)) {
+            throw new AuthorizationException("The {$this->minimumRole($spec)} role is required to propose {$actionType}.");
+        }
+
         $title = trim((string) ($proposal['title'] ?? $spec['label']));
         $surface = (string) ($proposal['surface'] ?? 'house');
 
@@ -259,5 +280,35 @@ class EddyActionService
         }
 
         return $actor;
+    }
+
+    private function highestRoleRank(User $actor, ?string $roleOverride = null): int
+    {
+        $roles = collect([$roleOverride, $actor->role])
+            ->merge($actor->getRoleNames())
+            ->filter()
+            ->map(fn (string $role): int => $this->roleRank($role));
+
+        return $roles->isEmpty() ? -1 : (int) $roles->max();
+    }
+
+    private function roleRank(string $role): int
+    {
+        return match (str_replace([' ', '-'], '_', strtolower($role))) {
+            'super_admin', 'superuser', 'ops_leader', 'admin' => 30,
+            'capacity_lead', 'house_supervisor' => 20,
+            'bed_manager' => 10,
+            'charge_nurse',
+            'hospitalist',
+            'intensivist',
+            'transport',
+            'evs',
+            'staffing_coordinator',
+            'pi_lead',
+            'periop_manager',
+            'or_nurse',
+            'user' => 0,
+            default => -1,
+        };
     }
 }

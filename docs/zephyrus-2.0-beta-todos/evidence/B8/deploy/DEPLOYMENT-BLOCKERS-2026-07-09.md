@@ -15,7 +15,8 @@ Deployment was initially deferred while the checkout contained uncommitted produ
 - `deploy.sh` is the only approved production deployment mechanism.
 - GitHub Actions must not deploy production.
 - `deploy.sh` builds assets, rsyncs to `/var/www/Zephyrus`, clears Laravel caches, restarts Apache, and verifies the Zephyrus vhost with `Host: zephyrus.acumenus.net`.
-- `deploy.sh` does not run Laravel migrations. This slice did not add Laravel migrations, so production `migrate --force` is not required unless `migrate:status` shows pending migrations from another release.
+- `deploy.sh` does not run Laravel migrations. The earlier 2026-07-09 deploy required one targeted Patient Flow migration, which has already been applied. The post-review hardening changes add no Laravel migrations; do not run blanket `migrate --force`.
+- Production still has unrelated pending migrations; they are outside this hardening tranche and must not be run without a separate release decision.
 - Post-deploy runtime proof must be captured after the clean deployment finishes.
 
 ## Evidence Captured After Deploy

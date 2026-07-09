@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Eddy;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Eddy\EddyProposeActionRequest;
 use App\Services\Eddy\EddyActionService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -36,6 +37,8 @@ class EddyActionController extends Controller
 
         try {
             $result = $this->actions->propose($user, $request->validated(), $approve);
+        } catch (AuthorizationException $exception) {
+            return response()->json(['error' => $exception->getMessage()], 403);
         } catch (InvalidArgumentException $exception) {
             return response()->json(['error' => $exception->getMessage()], 422);
         }

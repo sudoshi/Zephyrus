@@ -138,4 +138,4 @@ Do not use automated GitHub Actions deploy jobs, ad hoc SSH command blocks, dire
 - New pages: Create a React component in `Pages/`, add an Inertia route in `routes/web.php`, and create a controller method that calls `Inertia::render()`.
 - New API endpoints: Add to `routes/api.php` with a controller in `Http/Controllers/Api/`.
 - Mock data for development: Add mock data files in `resources/js/mock-data/` and wire them into `DataService`.
-- Workflow navigation: To add items to a workflow's nav menu, update `workflowNavigationConfig` in `Contexts/DashboardContext.jsx`.
+- Workflow navigation: To add items to a workflow's nav menu, keep `resources/js/config/navigationConfig.ts` and `resources/js/Contexts/DashboardContext.jsx` in sync.

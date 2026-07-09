@@ -3,7 +3,7 @@
 date: 2026-07-09
 cwd: `/home/smudoshi/Github/Zephyrus`
 branch: `feat/hummingbird-4d-service-line-eddy`
-commit: `3093c355efdc6d2bbdf3310f30d3ba663105629f` plus uncommitted local changes
+commit: post-review hardening working tree; final commit recorded by git history
 environment: local development checkout
 
 ## Passed Commands
@@ -22,12 +22,16 @@ environment: local development checkout
 | `php artisan test --filter=MobileBackendSafetyTest` | 0 | 17 tests, 244 assertions |
 | `php artisan test --filter=EddyActionTest` | 0 | 10 tests, 109 assertions |
 | `php artisan test --filter=SyntheticHealthcareConnectorTest` | 0 | 9 tests, 74 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | 0 | 70 tests, 1563 assertions after adversarial hardening |
 | `npm run test` | 0 | 61 test files, 277 tests |
-| `npm run test:e2e` | 0 | 2 skipped, 16 passed |
+| `npm run test:e2e` | 0 | 2 skipped, 16 passed before post-review auth UI fix |
+| `npx playwright test tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --reporter=line` | 0 | 17 passed, 2 skipped after post-review auth UI fix |
 | `npx playwright test tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --project=chromium` | 0 | 11/11 targeted Chromium E2E tests passed |
 | `./scripts/check-ui-canon.sh` | 0 | Passed with existing arbitrary-line-height warnings only |
 | `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew test` | 0 | Android unit tests pass |
 | `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew assembleDebug` | 0 | Android debug APK build passes |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew testDebugUnitTest` | 0 | Android debug unit tests pass after release/debug transport split |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew assembleRelease` | 0 | Android release APK build passes with HTTPS/WSS defaults |
 | `npm run build` | 0 | Production Vite build passes with existing large-chunk warnings |
 
 ## Corrected Validation Error
@@ -39,11 +43,15 @@ An attempted parallel run of `EddyActionTest` and `SyntheticHealthcareConnectorT
 - `resources/views/app.blade.php` no longer asks Vite for a page-specific `.jsx` asset beside the TypeScript Inertia entrypoint. This fixed local production-build page boot failures for TSX-backed pages.
 - Playwright now runs serially with one worker because `php artisan serve`, SSE streams, and shared session/database state are not safe under high-concurrency E2E execution.
 - E2E specs now use the actual login/demo route behavior, block long-lived cockpit streams where appropriate, and close the command palette with Escape.
+- The local E2E harness requires a valid `APP_KEY` and `DB_*` values pinned into the `php artisan serve` process when shell/dotenv state would otherwise resolve to defaults. The final post-review run used file sessions, the configured PostgreSQL database, and production-built assets.
+- `Login.jsx` now renders `errors.general`, matching `LoginRequest::authenticate()` failed-credential responses.
+- Android Gradle/Kotlin on this checkout requires Java 17 locally; the default OpenJDK 25 runtime fails Gradle/Kotlin version parsing.
 
 ## Not Run Or Known-Limited
 
 - `xcodegen generate` and `xcodebuild`, because `swift`, `xcodebuild`, and `xcodegen` were unavailable on this Linux host.
 - Production `./deploy.sh` was not run at the time this local validation artifact was first written because the checkout still contained uncommitted work. The user subsequently approved commit, push, and deployment from this branch; deployment evidence belongs under `evidence/B8/deploy/` after `./deploy.sh` runs from a clean tree.
+- iOS compile/build validation after post-review APIClient changes remains blocked by the same missing macOS/Xcode toolchain.
 
 ## Requirements Covered
 

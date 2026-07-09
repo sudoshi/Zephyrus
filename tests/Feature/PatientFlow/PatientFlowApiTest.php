@@ -204,7 +204,13 @@ class PatientFlowApiTest extends TestCase
                 'patient_id' => 'SYN000001',
                 'patient_display_id' => 'Demo SYN000001',
                 'encounter_id' => 'VIS000001',
+                'mrn' => 'MRN-SYN000001',
                 'primary_status' => 'watch',
+                'nested' => [
+                    'patient_name' => 'Demo Patient',
+                    'encounter_ref' => 'ENC-SYN000001',
+                    'safe_context' => 'retained',
+                ],
             ]]),
             'timer_status_counts' => json_encode(['ok' => 0, 'watch' => 1, 'delayed' => 0]),
             'service_line_timer_counts' => json_encode(['critical_care' => ['watch' => 1]]),
@@ -223,18 +229,26 @@ class PatientFlowApiTest extends TestCase
             ->assertJsonPath('history.0.lineage.source_table', 'flow_core.occupancy_snapshots')
             ->json('history.0.occupancy_details.0');
 
-        $this->assertSame('SYN000001', $history['patient_id']);
+        $this->assertStringStartsWith('ptok_', $history['patient_context_ref'] ?? '');
+        $this->assertArrayNotHasKey('patient_id', $history);
+        $this->assertArrayNotHasKey('patient_display_id', $history);
+        $this->assertArrayNotHasKey('encounter_id', $history);
+        $this->assertArrayNotHasKey('mrn', $history);
+        $this->assertSame(['safe_context' => 'retained'], $history['nested'] ?? null);
 
         $executiveHistory = $this->actingAs(User::factory()->create(['role' => 'executive']))
             ->getJson('/api/patient-flow/occupancy/history?from=2026-06-25T00:00:00Z&to=2026-06-25T03:00:00Z&demo=critical_care_outflow')
             ->assertOk()
             ->assertJsonPath('lens.patient_dots', 'none')
             ->assertJsonPath('summary.redacted', true)
-            ->json('history.0.occupancy_details.0');
+            ->json('history.0.occupancy_details');
 
-        $this->assertArrayNotHasKey('patient_id', $executiveHistory);
-        $this->assertArrayNotHasKey('patient_display_id', $executiveHistory);
-        $this->assertArrayNotHasKey('encounter_id', $executiveHistory);
+        $this->assertSame([], $executiveHistory);
+
+        $this->actingAs($user)
+            ->getJson('/api/patient-flow/occupancy/history?from=not-a-date&to=2026-06-25T03:00:00Z')
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'invalid_occupancy_history_window');
 
         $executiveContext = $this->actingAs(User::factory()->create(['role' => 'executive']))
             ->getJson('/api/patient-flow/occupancy?asOf=2026-06-25T02:00:00Z&demo=barriers&include=eddy_context')

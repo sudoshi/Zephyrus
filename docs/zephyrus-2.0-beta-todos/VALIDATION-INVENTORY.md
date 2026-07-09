@@ -80,7 +80,7 @@ This inventory is deliberately strict. A command listed as "to create" cannot be
 | Eddy strict no-self-approval tests | B5 | Extended: `tests/Feature/Eddy/EddyActionTest.php` | Agent cannot approve; human self-approval rule matches D15. |
 | Eddy local Python tests in release gate | B5/B8 | `cd eddy && python -m pytest` | Local agent loop, sanitizer, proposal, stream, and router pass with dependencies installed. |
 | Hummingbird push/fetch tests | B6 | PHP/native tests and `hummingbird:test-push <username>` smoke | PHI-free payload, correct device behavior, fetch fallback if push not required. |
-| Android release security tests/checks | B6/B8 | Implemented code review plus `./gradlew test` and `./gradlew assembleDebug` | Non-dev backup/cleartext/exported component posture. |
+| Android release security tests/checks | B6/B8 | Implemented code review plus `./gradlew testDebugUnitTest` and `./gradlew assembleRelease` with Java 17 | Non-dev backup/cleartext/exported component posture. |
 | iOS project generation/build proof | B6/B8 | `cd hummingbird/iosApp && xcodegen generate && xcodebuild ...` | Project generated and demo-scope build succeeds. |
 | Domain API smoke matrix | B7 | Extended: `tests/Feature/ApiRouteSmokeTest.php` | ED/RTDC/periop/transport/EVS/staffing/improvement/study route families smoke. |
 | Operational-event-to-study contract | B7 | Feature test around Study/A3 route/API | Event payload is aggregate, redacted, source-linked, and actionable. |

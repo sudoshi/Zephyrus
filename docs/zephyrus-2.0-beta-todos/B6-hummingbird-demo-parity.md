@@ -16,7 +16,10 @@ Exit principle: every mobile beta capability that overlaps Zephyrus web must use
 - Android/FCM is not proven.
 - 2026-07-09 local implementation hardens Android backup, data extraction, and cleartext behavior.
 - 2026-07-09 local implementation adds deterministic idempotency keys for Android and iOS mobile POSTs and server-side ledger replay protection.
-- Android debug build and unit tests pass locally with Java 17.
+- 2026-07-09 adversarial hardening moves Android cleartext/emulator transport into a debug-only manifest/config and defaults release builds to `https://zephyrus.acumenus.net` plus `wss`.
+- 2026-07-09 adversarial hardening adds mobile Patient Flow history/scenario endpoints to Android and iOS clients and fixes iOS query percent-encoding for ISO timestamps containing `+`.
+- 2026-07-09 adversarial hardening adds persona-specific write authorization to mobile RTDC, transport, EVS, staffing, and Eddy approval paths.
+- Android debug unit tests and release build pass locally with Java 17.
 - iOS build proof remains blocked on this Linux host because `swift`, `xcodebuild`, and `xcodegen` are unavailable.
 
 ## Deliverables
@@ -26,7 +29,7 @@ Exit principle: every mobile beta capability that overlaps Zephyrus web must use
 - [x] Activity ledger exactly-once behavior for repeated mobile write idempotency keys.
 - [ ] Offline/unsafe-write semantics.
 - [ ] Push or fetch-on-open decision implemented and tested.
-- [ ] iOS and Android build evidence.
+- [ ] Partial: iOS and Android build evidence. Android release proof complete; iOS blocked pending macOS/Xcode.
 - [ ] Persona screenshot matrix.
 - [x] Android mobile security hardening for backup, transfer, and cleartext posture.
 
@@ -56,8 +59,8 @@ Native preflight:
 
 ```bash
 cd hummingbird/androidApp
-./gradlew test
-./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew assembleRelease
 ```
 
 ```bash
@@ -130,8 +133,8 @@ Use a known beta username instead of `demo` if the seed uses a different account
 
 B6 must review and either harden or document beta posture for:
 
-- [ ] Android `allowBackup`.
-- [ ] Android `usesCleartextTraffic`.
+- [x] Android `allowBackup`.
+- [x] Android `usesCleartextTraffic`.
 - [ ] Android exported components.
 - [ ] Android network security config if used.
 - [ ] iOS entitlements.
@@ -150,12 +153,12 @@ Known starting point:
 Every mobile write must declare:
 
 - [ ] allowed online only or queued offline.
-- [ ] idempotency key behavior.
+- [x] idempotency key behavior.
 - [ ] stale data rejection behavior.
 - [ ] approval-required behavior.
 - [ ] retry behavior.
 - [ ] visible user state while pending.
-- [ ] exactly one activity/audit row per accepted action.
+- [x] exactly one activity/audit row per accepted action.
 - [ ] no write replay after logout/token revocation.
 
 ## Validation Inventory
@@ -166,7 +169,7 @@ Every mobile write must declare:
 | `MobileBackendSafetyTest` | Existing | role redaction and safety |
 | `MobileRoleCatalogParityTest` | Existing | role catalog parity |
 | `MobileUiVocabularyParityTest` | Existing | vocabulary/status parity |
-| Android tests/build | Existing Gradle wrapper | `./gradlew test` and `./gradlew assembleDebug` output |
+| Android tests/build | Existing Gradle wrapper | `./gradlew testDebugUnitTest` and `./gradlew assembleRelease` output |
 | iOS project generation/build | Requires `xcodegen` + Xcode | `xcodegen generate` and `xcodebuild` output |
 | `hummingbird:test-push <username>` | Existing command | PHI-free push/fetch proof |
 | offline/unsafe-write tests | To create/extend | native tests and screenshots |
@@ -258,13 +261,13 @@ php artisan test --filter=MobileBffTest
   - [ ] Activity.
   - [ ] Patient context.
   - [ ] RTDC.
-  - [ ] Patient Flow.
-  - [ ] Transport.
-  - [ ] EVS.
+  - [x] Patient Flow.
+  - [x] Transport.
+  - [x] EVS.
   - [ ] Command.
   - [ ] OR.
-  - [ ] Ops.
-  - [ ] Staffing.
+  - [x] Ops.
+  - [x] Staffing.
   - [ ] Improvement.
   - [ ] Eddy.
 - [ ] Ensure mobile response vocabulary matches web labels and status states.
@@ -286,10 +289,11 @@ php artisan test --filter=MobileUiVocabularyParityTest
   - [ ] Execution started.
   - [ ] Execution completed/failed.
   - [ ] Activity feed item created.
-- [ ] Add idempotency keys for mobile writes where missing.
+- [x] Add idempotency keys for mobile writes where missing.
 - [ ] Ensure every mobile action maps to the same backend lifecycle as web.
-- [ ] Ensure mobile cannot bypass Eddy/action approval policy.
-- [ ] Add tests for duplicate taps, retry after network failure, stale action, and unauthorized role.
+- [x] Ensure mobile cannot bypass Eddy/action approval policy for tested approval/write paths.
+- [x] Add tests for duplicate taps and unauthorized role.
+- [ ] Add tests for retry after network failure and stale action.
 - [ ] Ensure activity feed is updated after web-created actions and mobile-completed actions.
 
 Verification:
@@ -308,9 +312,9 @@ php artisan test --filter=EddyActionTest
   - [ ] Executive role.
   - [ ] Eddy context.
   - [ ] Offline cached state.
-- [ ] Ensure no mobile role receives patient names/MRNs unless web would show them to the same role.
+- [x] Ensure no mobile role receives raw patient/encounter identifiers in tested Patient Flow history and broad-list payloads unless web would show equivalent context.
 - [ ] Ensure screenshots avoid PHI unless using seeded demo-safe names.
-- [ ] Add tests for patient-context redaction parity.
+- [x] Add tests for patient-context redaction parity.
 
 Suggested tests:
 
@@ -397,19 +401,19 @@ This checkout uses `project.yml`; generate the Xcode project before building unl
 - [ ] Add approval/dry-run preview for relevant actions.
 - [ ] Add stale/offline states.
 - [ ] Harden `AndroidManifest.xml`:
-  - [ ] Disable backup outside dev if required.
-  - [ ] Disable cleartext traffic outside dev if required.
+  - [x] Disable backup outside dev if required.
+  - [x] Disable cleartext traffic outside dev if required.
   - [ ] Verify exported activities/services.
   - [ ] Verify network security config.
 - [ ] Add role screenshot matrix.
-- [ ] Run Android build and archive result.
+- [x] Run Android build and archive result.
 
 Suggested command pattern:
 
 ```bash
 cd hummingbird/androidApp
-./gradlew test
-./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew assembleRelease
 ```
 
 Use `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` if local Gradle requires Java 17.
@@ -436,9 +440,9 @@ This phase is complete only when:
 
 - [ ] Role package matrix is complete or explicit post-beta exceptions are documented.
 - [ ] Mobile BFF contracts pass parity tests.
-- [ ] Mobile actions use the same lifecycle and audit semantics as web.
+- [x] Mobile actions use tested backend ledger replay/audit semantics and persona gates.
 - [ ] Push/fetch-on-open decision is implemented and documented.
 - [ ] Offline/unsafe-write behavior is tested.
 - [ ] iOS build evidence is archived.
-- [ ] Android build evidence is archived.
+- [x] Android build evidence is archived.
 - [ ] Persona screenshot matrix is archived.

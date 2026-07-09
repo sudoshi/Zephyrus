@@ -34,8 +34,10 @@ class OpsController extends Controller
         private readonly MobilePersonaCatalog $personas,
     ) {}
 
-    public function inbox(): JsonResponse
+    public function inbox(Request $request): JsonResponse
     {
+        $this->approvalPersona($request);
+
         $items = Approval::query()
             ->where('status', 'pending')
             ->with('action.recommendation')
@@ -72,21 +74,41 @@ class OpsController extends Controller
             'decision' => ['required', Rule::in(['approved', 'rejected'])],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
+        $roleId = $this->approvalPersona($request);
 
-        $result = DB::transaction(function () use ($request, $uuid, $validated): array {
+        $approvalForReplay = Approval::with('action')->where('approval_uuid', $uuid)->firstOrFail();
+        $actionForReplay = $approvalForReplay->action;
+        $eventType = $validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected';
+        $eventAttributes = [
+            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'actor_user_id' => $request->user()?->id,
+            'actor_role' => $roleId,
+            'domain' => 'ops',
+            'scope' => [
+                'action_uuid' => $actionForReplay?->action_uuid,
+                'approval_uuid' => $approvalForReplay->approval_uuid,
+            ],
+            'idempotency_payload' => [
+                'decision' => $validated['decision'],
+                'reason' => $validated['reason'] ?? null,
+            ],
+        ];
+
+        if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
+            return $this->envelope([
+                'approval_uuid' => $uuid,
+                'decision' => $validated['decision'],
+                'action_status' => $actionForReplay?->fresh()?->status,
+            ], links: ['web' => url('/ops/agent-inbox')]);
+        }
+
+        $result = DB::transaction(function () use ($eventAttributes, $eventType, $request, $uuid, $validated): array {
             $approval = Approval::where('approval_uuid', $uuid)->where('status', 'pending')->firstOrFail();
             $action = $this->lifecycle->decideApproval($approval, $validated['decision'], $validated['reason'] ?? null, $request->user()?->id);
             $action->loadMissing('recommendation');
 
-            $this->ledger->record($validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected', [
-                'idempotency_key' => $this->mobileIdempotencyKey($request),
-                'actor_user_id' => $request->user()?->id,
-                'actor_role' => $this->personas->fromRequest($request),
-                'domain' => 'ops',
-                'scope' => [
-                    'action_uuid' => $action->action_uuid,
-                    'approval_uuid' => $approval->approval_uuid,
-                ],
+            $this->ledger->record($eventType, [
+                ...$eventAttributes,
                 'status' => [
                     'previous' => 'pending',
                     'current' => $validated['decision'],
@@ -111,5 +133,24 @@ class OpsController extends Controller
         });
 
         return $this->envelope($result, links: ['web' => url('/ops/agent-inbox')]);
+    }
+
+    private function approvalPersona(Request $request): string
+    {
+        $roleId = $this->personas->fromRequest($request);
+
+        if ($roleId === 'capacity_lead') {
+            return $roleId;
+        }
+
+        $explicitPersona = $request->query('persona') !== null
+            || $request->headers->has('X-Hummingbird-Role')
+            || $request->input('persona') !== null;
+
+        if (! $explicitPersona && $this->personas->isBroadAccessUser($request->user())) {
+            return 'capacity_lead';
+        }
+
+        abort(403, 'Capacity lead persona is required for operational approval decisions.');
     }
 }

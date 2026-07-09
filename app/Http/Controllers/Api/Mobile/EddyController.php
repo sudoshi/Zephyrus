@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Eddy\EddyChatRequest;
 use App\Models\Eddy\EddyConversation;
 use App\Models\Ops\Approval;
+use App\Models\Ops\OperationalAction;
 use App\Services\Eddy\EddyActionService;
 use App\Services\Eddy\EddyChatService;
 use App\Services\Eddy\EddyLearningService;
@@ -170,7 +171,36 @@ class EddyController extends Controller
         ]);
 
         try {
-            $result = DB::transaction(function () use ($request, $uuid, $validated): array {
+            $roleId = $this->personas->fromRequest($request);
+            $approvalForReplay = $this->findApprovalForReplay($request, $uuid);
+            $actionForReplay = $approvalForReplay->action;
+            $this->assertCanDecideAction($request, $actionForReplay, $roleId);
+            $eventType = $validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected';
+            $eventAttributes = [
+                'idempotency_key' => $this->mobileIdempotencyKey($request),
+                'actor_user_id' => $request->user()?->id,
+                'actor_role' => $roleId,
+                'domain' => 'ops',
+                'scope' => [
+                    'action_uuid' => $actionForReplay?->action_uuid,
+                    'approval_uuid' => $approvalForReplay->approval_uuid,
+                ],
+                'idempotency_payload' => [
+                    'decision' => $validated['decision'],
+                    'reason' => $validated['reason'] ?? null,
+                ],
+            ];
+
+            if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
+                return $this->envelope([
+                    'approval_uuid' => $approvalForReplay->approval_uuid,
+                    'action_uuid' => $actionForReplay?->action_uuid,
+                    'decision' => $validated['decision'],
+                    'action_status' => $actionForReplay?->fresh()?->status,
+                ]);
+            }
+
+            $result = DB::transaction(function () use ($eventAttributes, $eventType, $request, $uuid, $validated): array {
                 $approval = $this->findActionableApproval($request, $uuid);
                 $action = $this->lifecycle->decideApproval(
                     $approval,
@@ -183,15 +213,8 @@ class EddyController extends Controller
                 $this->learning->recordDecision($request->user(), (string) $action->action_type, $validated['decision']);
                 $action->loadMissing('recommendation');
 
-                $this->ledger->record($validated['decision'] === 'approved' ? 'recommendation.approved' : 'recommendation.rejected', [
-                    'idempotency_key' => $this->mobileIdempotencyKey($request),
-                    'actor_user_id' => $request->user()?->id,
-                    'actor_role' => $this->personas->fromRequest($request),
-                    'domain' => 'ops',
-                    'scope' => [
-                        'action_uuid' => $action->action_uuid,
-                        'approval_uuid' => $approval->approval_uuid,
-                    ],
+                $this->ledger->record($eventType, [
+                    ...$eventAttributes,
                     'status' => [
                         'previous' => 'pending',
                         'current' => $validated['decision'],
@@ -250,6 +273,28 @@ class EddyController extends Controller
             )
             ->with('action.recommendation')
             ->firstOrFail();
+    }
+
+    private function findApprovalForReplay(Request $request, string $uuid): Approval
+    {
+        $user = $request->user();
+
+        return Approval::query()
+            ->where('approval_uuid', $uuid)
+            ->whereHas('action.recommendation', fn ($q) => $q->where('created_by_source', 'eddy'))
+            ->when(
+                ! $user->hasRole(['super-admin', 'admin']),
+                fn ($q) => $q->where('requested_by_user_id', $user->id),
+            )
+            ->with('action.recommendation')
+            ->firstOrFail();
+    }
+
+    private function assertCanDecideAction(Request $request, ?OperationalAction $action, string $roleId): void
+    {
+        if (! $action || ! $this->actions->userMeetsMinimumRole($request->user(), (string) $action->action_type, $roleId)) {
+            abort(403, 'This mobile persona cannot decide this Eddy approval tier.');
+        }
     }
 
     /**

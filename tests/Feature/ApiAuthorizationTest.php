@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -115,12 +116,89 @@ class ApiAuthorizationTest extends TestCase
 
         $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertUnauthorized();
 
-        $user = User::factory()->create(['must_change_password' => false]);
+        $user = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
         Sanctum::actingAs($user, ['ops:read']);
         $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertForbidden();
 
         Sanctum::actingAs($user, ['ops:read', 'ops:draft']);
         $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertCreated();
+    }
+
+    public function test_legacy_case_writes_require_web_authentication(): void
+    {
+        $this->postJson('/api/cases', [])->assertUnauthorized();
+        $this->putJson('/api/cases/1', [])->assertUnauthorized();
+    }
+
+    public function test_legacy_case_writes_require_or_case_authorization(): void
+    {
+        $frontline = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
+
+        $this->actingAs($frontline)->postJson('/api/cases', [])->assertForbidden();
+    }
+
+    public function test_authenticated_case_write_maps_legacy_payload_to_or_case_schema(): void
+    {
+        $or = $this->seedOrWriteReferences();
+        $operator = User::factory()->create(['role' => 'periop_manager', 'must_change_password' => false]);
+
+        $this->actingAs($operator)->postJson('/api/cases', [
+            'patient_name' => 'Schema Mapped Patient',
+            'mrn' => 'ORWRITE-001',
+            'procedure_name' => 'Appendectomy',
+            'service_id' => $or['serviceId'],
+            'room_id' => $or['roomId'],
+            'primary_surgeon_id' => $or['surgeonId'],
+            'surgery_date' => '2026-07-09',
+            'scheduled_start_time' => '08:30',
+            'estimated_duration' => 90,
+            'case_class' => 'Elective',
+        ])->assertCreated()
+            ->assertJsonPath('procedure_name', 'Appendectomy');
+
+        $this->assertDatabaseHas('prod.or_cases', [
+            'patient_id' => 'ORWRITE-001',
+            'room_id' => $or['roomId'],
+            'location_id' => $or['locId'],
+            'primary_surgeon_id' => $or['surgeonId'],
+            'case_service_id' => $or['serviceId'],
+            'scheduled_duration' => 90,
+            'status_id' => $or['statusId'],
+            'asa_rating_id' => $or['asaId'],
+            'case_type_id' => $or['caseTypeId'],
+            'case_class_id' => $or['caseClassId'],
+            'patient_class_id' => $or['patientClassId'],
+        ]);
+
+        $this->assertDatabaseHas('prod.or_logs', [
+            'case_id' => 1,
+            'tracking_date' => '2026-07-09',
+            'primary_procedure' => 'Appendectomy',
+            'is_deleted' => false,
+        ]);
+    }
+
+    public function test_eddy_governance_write_routes_require_operator_roles(): void
+    {
+        $payload = [
+            'action_type' => 'flag_barrier',
+            'title' => 'Imaging delay blocking discharges',
+            'surface' => 'rtdc',
+            'rationale' => 'Two discharges are held on pending CT reads.',
+            'runner_up' => 'Escalate to the radiology charge instead.',
+            'params' => ['unit' => '3W', 'barrier' => 'imaging'],
+        ];
+
+        $frontline = User::factory()->create(['role' => 'user', 'must_change_password' => false]);
+        $operator = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
+        $opsLeader = User::factory()->create(['role' => 'ops-leader', 'must_change_password' => false]);
+
+        $this->actingAs($frontline)->postJson('/api/eddy/actions/propose', $payload)->assertForbidden();
+        $this->actingAs($frontline)->postJson('/api/eddy/agent/token')->assertForbidden();
+
+        $this->actingAs($operator)->postJson('/api/eddy/actions/propose', $payload)->assertCreated();
+        $this->actingAs($operator)->postJson('/api/eddy/agent/token')->assertOk();
+        $this->actingAs($opsLeader)->postJson('/api/eddy/agent/token')->assertOk();
     }
 
     private function spatieAdmin(): User
@@ -134,5 +212,105 @@ class ApiAuthorizationTest extends TestCase
         $user->assignRole('admin');
 
         return $user;
+    }
+
+    /** @return array{locId:int, roomId:int, surgeonId:int, serviceId:int, statusId:int, asaId:int, caseTypeId:int, caseClassId:int, patientClassId:int} */
+    private function seedOrWriteReferences(): array
+    {
+        $locId = (int) DB::table('prod.locations')->insertGetId([
+            'name' => 'Write Test OR Suite',
+            'abbreviation' => 'WTOR',
+            'type' => 'surgical',
+            'pos_type' => 'inpatient',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'location_id');
+
+        $specialtyId = (int) DB::table('prod.specialties')->insertGetId([
+            'name' => 'Write Test Surgery',
+            'code' => 'WTGS',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'specialty_id');
+
+        $surgeonId = (int) DB::table('prod.providers')->insertGetId([
+            'name' => 'Dr. Write Test',
+            'npi' => '9191919191',
+            'specialty_id' => $specialtyId,
+            'type' => 'surgeon',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'provider_id');
+
+        $serviceId = (int) DB::table('prod.services')->insertGetId([
+            'name' => 'Write Test Service',
+            'code' => 'WTSVC',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'service_id');
+
+        $roomId = (int) DB::table('prod.rooms')->insertGetId([
+            'location_id' => $locId,
+            'name' => 'OR-WT1',
+            'type' => 'OR',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'room_id');
+
+        $statusId = (int) DB::table('prod.case_statuses')->insertGetId([
+            'name' => 'Scheduled',
+            'code' => 'SCHED',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'status_id');
+
+        $asaId = (int) DB::table('prod.asa_ratings')->insertGetId([
+            'name' => 'ASA II',
+            'code' => 'ASA2',
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'asa_id');
+
+        $caseTypeId = (int) DB::table('prod.case_types')->insertGetId([
+            'name' => 'Elective',
+            'code' => 'ELEC',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'case_type_id');
+
+        $caseClassId = (int) DB::table('prod.case_classes')->insertGetId([
+            'name' => 'Inpatient',
+            'code' => 'INP',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'case_class_id');
+
+        $patientClassId = (int) DB::table('prod.patient_classes')->insertGetId([
+            'name' => 'Inpatient',
+            'code' => 'INP',
+            'active_status' => true,
+            'is_deleted' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'patient_class_id');
+
+        return compact('locId', 'roomId', 'surgeonId', 'serviceId', 'statusId', 'asaId', 'caseTypeId', 'caseClassId', 'patientClassId');
     }
 }

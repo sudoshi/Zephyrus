@@ -315,8 +315,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
     Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);
     // Phase 3 — advice-not-autopilot action proposals (the dock human proposes/approves).
     Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
-    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
-    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+    Route::post('/actions/propose', [EddyActionController::class, 'propose'])
+        ->middleware('can:useEddyActions');
+    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken'])
+        ->middleware('can:useEddyActions');
 
     // Phase 6 — super-admin: cost/redaction accounting, route simulator, knowledge review.
     Route::get('/admin/usage', [EddyAdminController::class, 'usage']);
@@ -345,11 +347,13 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageDeploymentConfig']
 // OR Cases
 Route::prefix('cases')->middleware('throttle:60,1')->group(function () {
     Route::get('/', [ORCaseController::class, 'index']);
-    Route::post('/', [ORCaseController::class, 'store']);
-    Route::put('/{id}', [ORCaseController::class, 'update']);
     Route::get('/today', [ORCaseController::class, 'todaysCases']);
     Route::get('/metrics', [ORCaseController::class, 'metrics']);
     Route::get('/room-status', [ORCaseController::class, 'roomStatus']);
+});
+Route::prefix('cases')->middleware(['web', 'auth', 'throttle:60,1', 'can:writeOrCases'])->group(function () {
+    Route::post('/', [ORCaseController::class, 'store']);
+    Route::put('/{id}', [ORCaseController::class, 'update']);
 });
 
 // Block Schedule
@@ -533,6 +537,8 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::prefix('flow')->group(function () {
         Route::get('/floors', [MobileFlowController::class, 'floors']);
         Route::get('/spaces3d', [MobileFlowController::class, 'spaces3d']);
+        Route::get('/demo-scenarios', [MobileFlowController::class, 'demoScenarios']);
+        Route::get('/occupancy/history', [MobileFlowController::class, 'occupancyHistory']);
         Route::get('/window', [MobileFlowController::class, 'window']);
     });
 

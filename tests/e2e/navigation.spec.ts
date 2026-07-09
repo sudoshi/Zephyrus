@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 
 // Zephyrus demo web routes use SessionAuthMiddleware and auto-authenticate as admin.
 async function blockCockpitStream(page: Page) {
@@ -13,6 +13,21 @@ async function openDashboard(page: Page) {
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
+}
+
+async function expectLegacyRedirect(
+  request: APIRequestContext,
+  page: Page,
+  legacyPath: string,
+  drill: string
+) {
+  const redirect = await request.get(legacyPath, { maxRedirects: 0 });
+  expect(redirect.status()).toBe(302);
+  expect(redirect.headers().location ?? '').toContain(`/dashboard?drill=${drill}`);
+
+  await blockCockpitStream(page);
+  await page.goto(legacyPath, { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(new RegExp(`/dashboard\\?drill=${drill}`));
 }
 
 test.describe('Top Navigation', () => {
@@ -30,32 +45,20 @@ test.describe('Top Navigation', () => {
 
   // P4a (D4): the legacy overview bookmarks are permanent redirects into the
   // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
-  test('legacy perioperative overview redirects into the periop drill', async ({ page }) => {
-    await blockCockpitStream(page);
-    await page.goto('/dashboard/perioperative', { waitUntil: 'domcontentloaded' });
-
-    await expect(page).toHaveURL(/\/dashboard\?drill=periop/);
+  test('legacy perioperative overview redirects into the periop drill', async ({ page, request }) => {
+    await expectLegacyRedirect(request, page, '/dashboard/perioperative', 'periop');
   });
 
-  test('legacy RTDC overview redirects into the rtdc drill', async ({ page }) => {
-    await blockCockpitStream(page);
-    await page.goto('/dashboard/rtdc', { waitUntil: 'domcontentloaded' });
-
-    await expect(page).toHaveURL(/\/dashboard\?drill=rtdc/);
+  test('legacy RTDC overview redirects into the rtdc drill', async ({ page, request }) => {
+    await expectLegacyRedirect(request, page, '/dashboard/rtdc', 'rtdc');
   });
 
-  test('legacy emergency overview redirects into the ed drill', async ({ page }) => {
-    await blockCockpitStream(page);
-    await page.goto('/dashboard/emergency', { waitUntil: 'domcontentloaded' });
-
-    await expect(page).toHaveURL(/\/dashboard\?drill=ed/);
+  test('legacy emergency overview redirects into the ed drill', async ({ page, request }) => {
+    await expectLegacyRedirect(request, page, '/dashboard/emergency', 'ed');
   });
 
-  test('legacy improvement overview redirects into the quality drill', async ({ page }) => {
-    await blockCockpitStream(page);
-    await page.goto('/dashboard/improvement', { waitUntil: 'domcontentloaded' });
-
-    await expect(page).toHaveURL(/\/dashboard\?drill=quality/);
+  test('legacy improvement overview redirects into the quality drill', async ({ page, request }) => {
+    await expectLegacyRedirect(request, page, '/dashboard/improvement', 'quality');
   });
 });
 
@@ -87,6 +90,19 @@ test.describe('Command Palette', () => {
 
     await expect(commandInput).not.toBeVisible({ timeout: 5000 });
   });
+
+  test('filters entries and navigates to the selected page', async ({ page }) => {
+    await page.keyboard.press('Meta+k');
+    const commandInput = page.locator('[placeholder*="Search"], [placeholder*="search"]');
+    await expect(commandInput).toBeVisible({ timeout: 5000 });
+
+    await commandInput.fill('bed placement');
+    const result = page.getByRole('option', { name: /bed placement/i }).first();
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/rtdc\/bed-placement/);
+  });
 });
 
 test.describe('Mobile Navigation', () => {
@@ -100,6 +116,11 @@ test.describe('Mobile Navigation', () => {
   });
 
   test('mobile command search is accessible', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
+    await page.getByRole('button', { name: /search/i }).click();
+
+    const commandInput = page.locator('[placeholder*="Search"], [placeholder*="search"]');
+    await expect(commandInput).toBeVisible({ timeout: 5000 });
+    await commandInput.fill('rtdc');
+    await expect(page.getByRole('option', { name: /rtdc/i }).first()).toBeVisible();
   });
 });

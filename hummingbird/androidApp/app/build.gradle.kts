@@ -14,9 +14,21 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "ZEPHYRUS_BASE_URL", "\"https://zephyrus.acumenus.net\"")
+        buildConfigField("String", "ZEPHYRUS_REVERB_SCHEME", "\"wss\"")
+        buildConfigField("String", "ZEPHYRUS_REVERB_HOST", "\"zephyrus.acumenus.net\"")
+        buildConfigField("int", "ZEPHYRUS_REVERB_PORT", "443")
+        buildConfigField("String", "ZEPHYRUS_REVERB_KEY", "\"zephyrus-key\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "ZEPHYRUS_BASE_URL", "\"http://10.0.2.2:8001\"")
+            buildConfigField("String", "ZEPHYRUS_REVERB_SCHEME", "\"ws\"")
+            buildConfigField("String", "ZEPHYRUS_REVERB_HOST", "\"10.0.2.2\"")
+            buildConfigField("int", "ZEPHYRUS_REVERB_PORT", "8080")
+            buildConfigField("String", "ZEPHYRUS_REVERB_KEY", "\"zephyrus-key\"")
+        }
         release {
             isMinifyEnabled = false
         }

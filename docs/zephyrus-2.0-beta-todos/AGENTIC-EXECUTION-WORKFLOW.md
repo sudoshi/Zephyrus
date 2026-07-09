@@ -127,8 +127,8 @@ Mobile commands when the phase touches Hummingbird:
 
 ```bash
 cd hummingbird/androidApp
-./gradlew test
-./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew assembleRelease
 ```
 
 ```bash

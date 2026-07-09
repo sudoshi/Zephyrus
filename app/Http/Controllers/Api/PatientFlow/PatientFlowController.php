@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use InvalidArgumentException;
 
 class PatientFlowController extends Controller
 {
@@ -151,7 +152,16 @@ class PatientFlowController extends Controller
         $lens = $request->attributes->get('flow_lens');
         $roleId = (string) $request->attributes->get('flow_role_id');
 
-        return response()->json($this->occupancyHistory->history($lens, $roleId, $this->filters($request)));
+        try {
+            return response()->json($this->occupancyHistory->history($lens, $roleId, $this->filters($request), $request->user()));
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_occupancy_history_window',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 422);
+        }
     }
 
     /**
