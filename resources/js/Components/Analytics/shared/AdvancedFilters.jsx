@@ -281,8 +281,9 @@ const AdvancedFilters = ({
             size="xs"
             color="light"
             onClick={() => setIsExpanded(!isExpanded)}
+            className="text-lg"
           >
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {isExpanded ? <ChevronUp className="panel-label-icon" /> : <ChevronDown className="panel-label-icon" />}
           </Button>
         </div>
       </div>

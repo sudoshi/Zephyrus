@@ -23,10 +23,10 @@ const WorkbenchReports = ({ reports }) => {
                             </p>
                         </div>
                     </div>
-                    <div className="relative group">
+                    <div className="relative group text-lg">
                         <Icon 
                             icon="heroicons:information-circle" 
-                            className="w-10 h-10 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
+                            className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
                         />
                         <div className="absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none right-0">
                             Track and monitor recent OR activity reports and their current status

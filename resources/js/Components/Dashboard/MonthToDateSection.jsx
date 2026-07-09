@@ -26,7 +26,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
     const renderChartSection = (title, info, children, className = '') => (
         <Card className={className}>
             <Card.Content>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 text-lg">
                     <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
                         {title}
                     </h3>
@@ -35,7 +35,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                             <div className="relative group">
                                 <Icon 
                                     icon="heroicons:information-circle"
-                                    className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
+                                    className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark transition-colors duration-300 cursor-help"
                                 />
                                 <div className="absolute z-10 w-64 p-2 mt-2 text-sm rounded-lg shadow-lg bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none right-0">
                                     {info}
@@ -54,7 +54,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
     const renderCollapsibleSection = (title, content, section) => (
         <Card>
             <button
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
+                className="w-full flex items-center justify-between p-4 text-left text-lg hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-300"
                 onClick={() => toggleSection(section)}
             >
                 <h3 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark transition-colors duration-300">
@@ -62,7 +62,7 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                 </h3>
                 <Icon 
                     icon={expandedSections[section] ? 'heroicons:chevron-down' : 'heroicons:chevron-right'}
-                    className={`w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transform transition-all duration-300 ${
+                    className={`panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark transform transition-all duration-300 ${
                         expandedSections[section] ? 'rotate-0' : '-rotate-90'
                     }`}
                 />

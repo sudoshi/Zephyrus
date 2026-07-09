@@ -3,10 +3,10 @@ import { Link, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
 import { CommandPalette } from '@/components/ui/CommandPalette';
-import { RoleSwitcher } from '@/Components/CommandCenter/RoleSwitcher';
 import { useUIStore } from '@/stores/uiStore';
 import { isSectionActive, visibleSections, type NavigationAccess } from '@/config/navigationConfig';
 import type { PageProps } from '@/types';
+import { CockpitMenu } from './CockpitMenu';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { NavSectionMenu } from './NavSectionMenu';
 import { UserMenu } from './UserMenu';
@@ -22,6 +22,9 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
   const isAdmin = Boolean(page.props.auth?.is_admin);
   const access: NavigationAccess = { isAdmin, can: page.props.auth?.can };
   const sections = visibleSections(access);
+  const centeredSections = sections.filter((section) => ['cockpit', 'workspaces', 'study'].includes(section.key));
+  const utilitySections = sections.filter((section) => !['cockpit', 'workspaces', 'study'].includes(section.key));
+  const scopeToken = new URLSearchParams(url.split('?')[1] ?? '').get('scope');
   const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
 
   return (
@@ -37,16 +40,26 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
             href="/dashboard"
             className="flex flex-shrink-0 items-center gap-2 rounded-md px-2 py-1 transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark"
           >
+            <img
+              src="/images/zephyrus-icon.png"
+              alt=""
+              aria-hidden="true"
+              className="h-7 w-7 object-contain"
+            />
             <span className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
-            {sections.map((section) => {
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
+            {centeredSections.map((section) => {
               const active = isSectionActive(section, url);
               const Icon = section.icon;
               const direct = section.homeHref && section.domains.length <= 1;
+
+              if (section.key === 'cockpit') {
+                return <CockpitMenu key={section.key} active={active} scopeToken={scopeToken} />;
+              }
 
               if (direct) {
                 return (
@@ -79,9 +92,25 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
           </div>
 
           <div className="ml-auto flex flex-shrink-0 items-center gap-1 sm:gap-2">
-            <div className="hidden xl:block">
-              <RoleSwitcher />
-            </div>
+            {utilitySections.map((section) => {
+              const active = isSectionActive(section, url);
+              const Icon = section.icon;
+              return section.homeHref ? (
+                <Link
+                  key={section.key}
+                  href={section.homeHref}
+                  aria-current={active ? 'page' : undefined}
+                  className={`hidden items-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-healthcare-hover xl:flex dark:hover:bg-healthcare-hover-dark ${
+                    active
+                      ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                      : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <span>{section.title}</span>
+                </Link>
+              ) : null;
+            })}
             <button
               type="button"
               aria-label="Search (Cmd+K)"

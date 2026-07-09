@@ -202,11 +202,11 @@ const CompactStaffingOverview = ({ staffingData }) => {
                         </button>
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="p-1 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-150"
+                            className="p-1 text-base hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-150"
                         >
                             <Icon
                                 icon={isExpanded ? 'heroicons:chevron-up' : 'heroicons:chevron-down'}
-                                className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
+                                className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                             />
                         </button>
                     </div>

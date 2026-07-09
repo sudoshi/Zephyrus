@@ -37,8 +37,8 @@ const AlertDetails = ({ alert, onClose }) => {
             isOpen={true}
             onClose={onClose}
             title={
-                <div className="flex items-center space-x-3">
-                    <Icon icon={styles.icon} className={`${styles.icon === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'} ${styles.text}`} />
+                <div className="flex items-center space-x-3 text-base">
+                    <Icon icon={styles.icon} className={`${styles.icon === 'heroicons:information-circle' ? 'panel-label-icon' : 'w-5 h-5'} ${styles.text}`} />
                     <span>{alert.title}</span>
                 </div>
             }
@@ -172,11 +172,11 @@ const CompactAlerts = ({ alerts, statistics }) => {
                     </div>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-1 hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-150"
+                        className="p-1 text-base hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark rounded-md transition-colors duration-150"
                     >
                         <Icon
                             icon={isExpanded ? 'heroicons:chevron-up' : 'heroicons:chevron-down'}
-                            className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
+                            className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                         />
                     </button>
                 </div>

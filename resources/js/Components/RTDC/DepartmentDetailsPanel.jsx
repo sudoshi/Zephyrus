@@ -3,6 +3,7 @@ import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
 import PropTypes from 'prop-types';
 import MetricsCard, { MetricsCardGroup } from '@/Components/Analytics/Common/MetricsCard';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const DepartmentDetailsPanel = ({ department, onClose }) => {
     if (!department) return null;
@@ -27,7 +28,7 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                     <div className="flex items-center justify-between">
                         <Card.Title>
                             <div className="flex items-center space-x-2">
-                                <Icon icon="heroicons:information-circle" className="w-10 h-10" />
+                                <Icon icon="heroicons:information-circle" className="panel-label-icon" />
                                 <span>{name} Details</span>
                             </div>
                         </Card.Title>
@@ -133,7 +134,7 @@ const DepartmentDetailsPanel = ({ department, onClose }) => {
                                                 : 'bg-healthcare-success/20 text-healthcare-success dark:text-healthcare-success-dark'
                                         }`}
                                     >
-                                        {averageWaitTime} minutes
+                                        {formatDurationMinutes(averageWaitTime)}
                                     </div>
                                 </div>
                             )}

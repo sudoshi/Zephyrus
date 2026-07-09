@@ -52,11 +52,11 @@ const AlertCard = ({ alert }) => {
             aria-live={alert.type === 'critical' ? 'assertive' : 'polite'}
         >
             <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
+                    <div className={`p-2 text-sm rounded-lg ${styles.bg} ${styles.text}`}>
                     <div className="relative">
                         <Icon 
                             icon={styles.icon}
-                            className={styles.icon === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'}
+                            className={styles.icon === 'heroicons:information-circle' ? 'panel-label-icon' : 'w-5 h-5'}
                         />
                         <span className="sr-only">{styles.pattern}</span>
                     </div>
@@ -88,13 +88,13 @@ const AlertCard = ({ alert }) => {
             
             {/* Keyboard navigation support */}
             <button 
-                className="p-2 hover:bg-healthcare-background-dark/10 dark:hover:bg-healthcare-background/10 rounded-full transition-colors duration-150"
+                className="p-2 text-sm hover:bg-healthcare-background-dark/10 dark:hover:bg-healthcare-background/10 rounded-full transition-colors duration-150"
                 aria-label="View alert details"
                 onClick={() => {/* Add click handler for alert details */}}
             >
                 <Icon 
                     icon="heroicons:chevron-right" 
-                    className="w-5 h-5 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
+                    className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                 />
             </button>
         </div>
