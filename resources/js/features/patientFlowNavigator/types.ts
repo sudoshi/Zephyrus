@@ -5,6 +5,26 @@ export interface Vector3Payload {
   level?: number;
 }
 
+export type PatientFlowFreshness = 'fresh' | 'stale' | 'missing' | 'degraded';
+
+export interface PatientFlowSource {
+  mode: 'live' | 'synthetic' | 'seeded' | 'derived' | 'fallback';
+  system: string;
+  scenario_id: string | null;
+  generated_at: string;
+  last_event_at: string | null;
+  expected_cadence_seconds: number;
+  freshness: PatientFlowFreshness;
+  stale_after_seconds: number;
+  lineage: string[];
+}
+
+export interface PatientFlowDataExtent {
+  first_event_at: string | null;
+  last_event_at: string | null;
+  event_count: number;
+}
+
 export interface PatientFlowSummary {
   messages: number;
   normalized_events: number;
@@ -21,6 +41,9 @@ export interface PatientFlowSummary {
   facility_code: string;
   model_url: string;
   tileset_url?: string;
+  source: PatientFlowSource;
+  data_extent: PatientFlowDataExtent;
+  suggested_initial_time: string | null;
   generated_at: string;
 }
 
@@ -180,6 +203,22 @@ export interface PatientVisibleState {
 
 export type OccupancyTimerKind = 'stay' | 'arrival_transport' | 'next_transport' | 'evs' | 'readiness';
 export type OccupancyTimerStatus = 'ok' | 'watch' | 'delayed';
+export type OccupancyTimerClassification = 'duration_risk' | 'projected_risk' | 'projected_barrier' | 'verified_barrier';
+
+export interface OccupancyTimerVerification {
+  status: 'verified' | 'inferred' | 'unverified' | string;
+  assertion?: string | null;
+  sourceStatus?: string | null;
+  assertedAt?: string | null;
+  observedAt?: string | null;
+  matchedBy?: string | null;
+}
+
+export interface OccupancyTimerProvenance {
+  sourceTable?: string | null;
+  sourceRecordId?: string | null;
+  recordType?: string | null;
+}
 
 export interface OccupancyTimer {
   kind: OccupancyTimerKind;
@@ -198,6 +237,15 @@ export interface OccupancyTimer {
   rtdcMetrics?: string[];
   eddySummary?: string | null;
   recommendedFocus?: string | null;
+  sourceReasonCode?: string | null;
+  owner?: string | null;
+  riskCode?: string | null;
+  riskLabel?: string | null;
+  riskCategory?: string | null;
+  classification?: OccupancyTimerClassification;
+  verified?: boolean;
+  verification?: OccupancyTimerVerification;
+  provenance?: OccupancyTimerProvenance;
 }
 
 export interface OccupancyInsight {
@@ -251,6 +299,8 @@ export interface OccupancySummary {
   transportDelays: number;
   evsDelays: number;
   readyToMove: number;
+  durationRisks?: number;
+  verifiedBarriers?: number;
   avgStayMinutes: number;
   serviceLines: OccupancyServiceLineSummary[];
   persona: OccupancyPersonaSummary;
@@ -263,6 +313,8 @@ export interface OccupancySummary {
     rtdcMetrics?: string[];
     eddySummary?: string | null;
     recommendedFocus?: string | null;
+    verifiedCount?: number;
+    sources?: string[];
     count: number;
     serviceLines: string[];
   }>;

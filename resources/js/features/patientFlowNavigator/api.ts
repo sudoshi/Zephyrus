@@ -55,7 +55,7 @@ export async function fetchPatientFlowAmbient(): Promise<PatientFlowAmbient> {
   return response.data;
 }
 
-interface RawOccupancyTimer {
+export interface RawOccupancyTimer {
   kind: OccupancyTimer['kind'];
   label: string;
   due_at: string | null;
@@ -72,6 +72,26 @@ interface RawOccupancyTimer {
   rtdc_metrics?: string[];
   eddy_summary?: string | null;
   recommended_focus?: string | null;
+  source_reason_code?: string | null;
+  owner?: string | null;
+  risk_code?: string | null;
+  risk_label?: string | null;
+  risk_category?: string | null;
+  classification?: OccupancyTimer['classification'];
+  verified?: boolean;
+  verification?: {
+    status: string;
+    assertion?: string | null;
+    source_status?: string | null;
+    asserted_at?: string | null;
+    observed_at?: string | null;
+    matched_by?: string | null;
+  };
+  provenance?: {
+    source_table?: string | null;
+    source_record_id?: string | null;
+    record_type?: string | null;
+  };
 }
 
 interface RawOccupancyInsight {
@@ -110,6 +130,8 @@ interface RawOccupancySummary {
   transport_delays: number;
   evs_delays: number;
   ready_to_move: number;
+  duration_risks?: number;
+  verified_barriers?: number;
   avg_stay_minutes: number;
   service_lines: Array<{
     service_line: string;
@@ -133,6 +155,8 @@ interface RawOccupancySummary {
     rtdc_metrics?: string[];
     eddy_summary?: string | null;
     recommended_focus?: string | null;
+    verified_count?: number;
+    sources?: string[];
     count: number;
     service_lines: string[];
   }>;
@@ -145,7 +169,7 @@ interface RawOccupancyResponse {
   eddy_context?: OccupancyEddyContext;
 }
 
-function mapTimer(timer: RawOccupancyTimer): OccupancyTimer {
+export function mapOccupancyTimer(timer: RawOccupancyTimer): OccupancyTimer {
   return {
     kind: timer.kind,
     label: timer.label,
@@ -163,6 +187,30 @@ function mapTimer(timer: RawOccupancyTimer): OccupancyTimer {
     rtdcMetrics: timer.rtdc_metrics ?? [],
     eddySummary: timer.eddy_summary,
     recommendedFocus: timer.recommended_focus,
+    sourceReasonCode: timer.source_reason_code,
+    owner: timer.owner,
+    riskCode: timer.risk_code,
+    riskLabel: timer.risk_label,
+    riskCategory: timer.risk_category,
+    classification: timer.classification,
+    verified: timer.verified ?? false,
+    verification: timer.verification
+      ? {
+          status: timer.verification.status,
+          assertion: timer.verification.assertion,
+          sourceStatus: timer.verification.source_status,
+          assertedAt: timer.verification.asserted_at,
+          observedAt: timer.verification.observed_at,
+          matchedBy: timer.verification.matched_by,
+        }
+      : undefined,
+    provenance: timer.provenance
+      ? {
+          sourceTable: timer.provenance.source_table,
+          sourceRecordId: timer.provenance.source_record_id,
+          recordType: timer.provenance.record_type,
+        }
+      : undefined,
   };
 }
 
@@ -185,7 +233,7 @@ function mapOccupancy(item: RawOccupancyInsight): OccupancyInsight | null {
     nextMove: item.next_move,
     nextMoveAt: item.next_move_at,
     primaryStatus: item.primary_status,
-    timers: item.timers.map(mapTimer),
+    timers: item.timers.map(mapOccupancyTimer),
     blockers: item.blockers,
     barrierReasons: item.barrier_reasons ?? [],
     barrierCodes: item.barrier_codes ?? [],
@@ -211,6 +259,8 @@ function mapSummary(summary: RawOccupancySummary): OccupancySummary {
     transportDelays: summary.transport_delays,
     evsDelays: summary.evs_delays,
     readyToMove: summary.ready_to_move,
+    durationRisks: summary.duration_risks ?? 0,
+    verifiedBarriers: summary.verified_barriers ?? 0,
     avgStayMinutes: summary.avg_stay_minutes,
     serviceLines: summary.service_lines.map((item) => ({
       serviceLine: item.service_line,
@@ -234,6 +284,8 @@ function mapSummary(summary: RawOccupancySummary): OccupancySummary {
       rtdcMetrics: item.rtdc_metrics ?? [],
       eddySummary: item.eddy_summary,
       recommendedFocus: item.recommended_focus,
+      verifiedCount: item.verified_count ?? 0,
+      sources: item.sources ?? [],
       count: item.count,
       serviceLines: item.service_lines,
     })),

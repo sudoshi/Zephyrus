@@ -8,12 +8,12 @@ const rtdc = NAVIGATION.find((d) => d.key === 'rtdc')!;
 
 describe('NavMegaMenu', () => {
   it('renders the domain trigger label', () => {
-    render(<NavMegaMenu domain={rtdc} isAdmin={false} active={false} />);
+    render(<NavMegaMenu domain={rtdc} access={{ isAdmin: false }} active={false} />);
     expect(screen.getByRole('button', { name: /RTDC/i })).toBeInTheDocument();
   });
 
   it('marks the trigger active via aria-current when active', () => {
-    render(<NavMegaMenu domain={rtdc} isAdmin={false} active />);
+    render(<NavMegaMenu domain={rtdc} access={{ isAdmin: false }} active />);
     expect(screen.getByRole('button', { name: /RTDC/i })).toHaveAttribute('aria-current', 'page');
   });
 });

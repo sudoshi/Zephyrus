@@ -38,6 +38,16 @@ class AuthServiceProvider extends ServiceProvider
     private const DEPLOYMENT_CONFIG_ROLES = ['super-admin', 'superuser', 'ops-leader'];
 
     /**
+     * Integration control-plane access is intentionally independent from the
+     * broader enterprise-setup and staffing administration roles. The scalar
+     * users.role value remains authoritative; a Spatie admin assignment must
+     * not silently grant access to connector configuration or operational logs.
+     *
+     * @var list<string>
+     */
+    private const INTEGRATION_CONTROL_ROLES = ['super_admin', 'superuser'];
+
+    /**
      * Roles allowed to create governed Eddy action proposals or mint the scoped
      * draft token used by the agent callback. Plain authenticated accounts can
      * chat/read, but only operational personas may enter the approvals workflow.
@@ -93,6 +103,18 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('manageDeploymentConfig', fn (User $user): bool => in_array(
             (string) $user->role, self::DEPLOYMENT_CONFIG_ROLES, true
+        ));
+
+        Gate::define('viewIntegrations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::INTEGRATION_CONTROL_ROLES,
+            true,
+        ));
+
+        Gate::define('manageIntegrations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::INTEGRATION_CONTROL_ROLES,
+            true,
         ));
 
         Gate::define('useEddyActions', fn (User $user): bool => in_array(

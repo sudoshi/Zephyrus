@@ -43,6 +43,22 @@ test.describe('Top Navigation', () => {
     await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
   });
 
+  test('renders section controls instead of every domain', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    await expect(page.getByRole('link', { name: 'Cockpit' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Workspaces' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Study' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'RTDC' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Workspaces' }).click();
+    await expect(page.getByRole('tab', { name: 'RTDC' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Patient Flow 4D' })).toHaveAttribute(
+      'href',
+      '/rtdc/patient-flow-navigator',
+    );
+  });
+
   // P4a (D4): the legacy overview bookmarks are permanent redirects into the
   // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
   test('legacy perioperative overview redirects into the periop drill', async ({ page, request }) => {
@@ -113,6 +129,19 @@ test.describe('Mobile Navigation', () => {
 
   test('shows mobile-friendly layout on small viewport', async ({ page }) => {
     await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open main navigation' })).toBeVisible();
+  });
+
+  test('mobile drawer exposes workspaces and closes with Escape', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: 'Open main navigation' });
+    await trigger.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByRole('button', { name: 'RTDC' }).click();
+    await expect(page.getByRole('link', { name: 'Patient Flow 4D' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect(trigger).toBeFocused();
   });
 
   test('mobile command search is accessible', async ({ page }) => {
@@ -123,4 +152,26 @@ test.describe('Mobile Navigation', () => {
     await commandInput.fill('rtdc');
     await expect(page.getByRole('option', { name: /rtdc/i }).first()).toBeVisible();
   });
+});
+
+test.describe('Responsive navigation bounds', () => {
+  for (const width of [375, 390, 768, 1024, 1280, 1440, 1920]) {
+    test(`has no hidden horizontal navigation at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openDashboard(page);
+
+      const primary = page.getByRole('navigation', { name: 'Primary' });
+      const bounds = await primary.evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      }));
+      expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.clientWidth);
+
+      if (width < 1024) {
+        await expect(page.getByRole('button', { name: 'Open main navigation' })).toBeVisible();
+      } else {
+        await expect(page.getByRole('button', { name: 'Workspaces' })).toBeVisible();
+      }
+    });
+  }
 });

@@ -109,13 +109,25 @@ class FlowEventRepository
     {
         $query = FlowEvent::query()
             ->with(['toFacilitySpace', 'fromFacilitySpace'])
-            ->orderBy('occurred_at');
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('flow_event_id');
 
         $this->applyFilters($query, $filters);
 
         $limit = min(max((int) ($filters['limit'] ?? 5000), 1), 20000);
 
-        return $query->limit($limit)->get();
+        // Limit the newest matching rows in SQL, then restore chronological
+        // replay order for state projection, trails, and the event stream.
+        return $query->limit($limit)
+            ->get()
+            ->sort(function (FlowEvent $left, FlowEvent $right): int {
+                $timeOrder = $left->occurred_at <=> $right->occurred_at;
+
+                return $timeOrder !== 0
+                    ? $timeOrder
+                    : strcmp((string) $left->flow_event_id, (string) $right->flow_event_id);
+            })
+            ->values();
     }
 
     /**

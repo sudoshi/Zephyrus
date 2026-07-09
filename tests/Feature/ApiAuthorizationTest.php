@@ -77,13 +77,14 @@ class ApiAuthorizationTest extends TestCase
         $this->actingAs($superuser)->getJson('/api/deployment/staffing/reference')->assertOk();
 
         $this->actingAs($frontline)->getJson('/api/admin/integrations/health')->assertForbidden();
-        $this->actingAs($fieldAdmin)->getJson('/api/admin/integrations/health')->assertOk();
+        $this->actingAs($fieldAdmin)->getJson('/api/admin/integrations/health')->assertForbidden();
+        $this->actingAs($superuser)->getJson('/api/admin/integrations/health')->assertOk();
         $this->actingAs($fieldAdmin)->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
             'source_key' => 'epic.fhir.sandbox',
         ])->assertForbidden();
         $this->actingAs($superuser)->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
             'source_key' => 'epic.fhir.sandbox',
-        ])->assertOk();
+        ])->assertStatus(501);
     }
 
     public function test_mobile_bff_requires_sanctum_read_and_act_abilities(): void

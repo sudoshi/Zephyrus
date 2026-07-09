@@ -3,8 +3,13 @@
 namespace Tests\Feature\Staffing;
 
 use App\Models\Staffing\StaffingPlan;
+use App\Models\Staffing\StaffingRequest;
 use App\Models\User;
+use App\Services\Demo\OperationalDemoDataService;
+use Database\Seeders\RtdcSeeder;
+use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -114,6 +119,89 @@ class StaffingApiTest extends TestCase
             'priority' => 'routine',
             'headcount_needed' => 1,
         ])->assertStatus(422);
+    }
+
+    public function test_empty_staffing_maps_are_json_objects_and_missing_coverage_is_unknown(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/api/staffing/requests', [
+            'unit_label' => '7 West',
+            'role' => 'rn',
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'routine',
+            'headcount_needed' => 1,
+        ])->assertCreated();
+
+        $decoded = json_decode($response->getContent());
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->resolution_payload);
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->metadata);
+
+        $this->actingAs($user)->getJson('/api/staffing/overview')
+            ->assertOk()
+            ->assertJsonPath('data.coverage.coverage_pct', null)
+            ->assertJsonPath('data.metrics.coverage_pct', null)
+            ->assertJsonPath('data.workforce.metrics.active_members', 0)
+            ->assertJsonPath('data.resource_options.0.available', null)
+            ->assertJsonPath('data.source.status', 'fresh');
+    }
+
+    public function test_staffing_overview_and_directory_expose_the_canonical_workforce(): void
+    {
+        Carbon::setTestNow('2026-07-09 12:00:00 America/New_York');
+        $this->seed(RtdcSeeder::class);
+        $this->seed(StaffingReferenceSeeder::class);
+        $result = app(OperationalDemoDataService::class)->rollForward();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->getJson('/api/staffing/overview')
+            ->assertOk()
+            ->assertJsonPath('data.workforce.available', true)
+            ->assertJsonPath('data.workforce.metrics.active_members', $result['workforce_active'])
+            ->assertJsonPath('data.workforce.metrics.inactive_members', 12)
+            ->assertJsonPath('data.workforce.metrics.unit_count', 25)
+            ->assertJsonPath('data.workforce.assumptions.productive_hours_per_fte', 1664)
+            ->assertJsonPath('data.workforce.assumptions.relief_factor', 1.18)
+            ->assertJsonPath('data.source.synthetic', true);
+
+        $directory = $this->actingAs($user)->getJson('/api/staffing/workforce?role=critical_care_nurse&shift=night&status=active&per_page=10')
+            ->assertOk()
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('meta.per_page', 10)
+            ->assertJsonPath('data.0.role_code', 'critical_care_nurse')
+            ->assertJsonPath('data.0.preferred_shift', 'night')
+            ->assertJsonPath('data.0.is_active', true)
+            ->json();
+        $this->assertGreaterThan(10, $directory['meta']['total']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_old_synthetic_request_is_expired_instead_of_thousands_of_minutes_overdue(): void
+    {
+        $user = User::factory()->create();
+        $request = StaffingRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_label' => '6 East',
+            'role' => 'rn',
+            'shift_date' => now()->subDays(5)->toDateString(),
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'urgent',
+            'status' => 'open',
+            'headcount_needed' => 2,
+            'requested_by' => 'demo-seeder',
+            'needed_by' => now()->subDays(5),
+            'is_deleted' => false,
+        ]);
+
+        $this->actingAs($user)->getJson('/api/staffing/requests')
+            ->assertOk()
+            ->assertJsonPath('data.0.staffing_request_id', $request->staffing_request_id)
+            ->assertJsonPath('data.0.freshness_status', 'expired')
+            ->assertJsonPath('data.0.sla.at_risk', false)
+            ->assertJsonPath('data.0.sla.label', 'Expired synthetic request');
     }
 
     private function seedUnit(string $name, string $abbreviation): int

@@ -12,6 +12,7 @@ class PatientFlowOccupancyContextService
         private readonly FlowEventRepository $events,
         private readonly FacilitySpaceLocationResolver $locations,
         private readonly OccupancyInsightProjector $occupancyInsights,
+        private readonly OperationalBarrierProjectionService $operationalBarriers,
         private readonly PatientFlowDemoBarrierScenario $demoBarriers,
         private readonly PatientFlowEddyContextBuilder $eddyContext,
         private readonly ForwardProjectionService $projections,
@@ -65,12 +66,35 @@ class PatientFlowOccupancyContextService
             ];
         }
 
+        $operational = $demoEnabled
+            ? [
+                'records' => [],
+                'sources' => [
+                    [
+                        'source_table' => 'prod.barriers',
+                        'available' => true,
+                        'status' => 'suppressed_for_demo',
+                        'verified_records' => 0,
+                        'last_observed_at' => null,
+                    ],
+                    [
+                        'source_table' => 'prod.transport_requests',
+                        'available' => true,
+                        'status' => 'suppressed_for_demo',
+                        'verified_records' => 0,
+                        'last_observed_at' => null,
+                    ],
+                ],
+            ]
+            : $this->operationalBarriers->collect($time);
+
         $payload = $this->occupancyInsights->project(
             events: $events,
             locations: $locations,
             projections: $projections,
             asOf: $time->toIso8601String(),
             lens: $lens,
+            operationalBarriers: $operational['records'],
         );
 
         $response = $payload + [
@@ -79,6 +103,7 @@ class PatientFlowOccupancyContextService
                 'patient_dots' => $lens['patient_dots'],
                 'projection_kinds' => $lens['projection_kinds'],
             ],
+            'operational_barrier_sources' => $operational['sources'],
             'projection_window' => [
                 'from' => $time->toIso8601String(),
                 'to' => $time->addHours(24)->toIso8601String(),

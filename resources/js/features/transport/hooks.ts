@@ -28,10 +28,10 @@ export function useTransportOverview() {
   return useQuery({ queryKey: ['transport', 'overview'], queryFn: fetchTransportOverview });
 }
 
-export function useTransportRequests(requestType?: TransportRequestType) {
+export function useTransportRequests(requestType?: TransportRequestType, scope: 'active' | 'dispatch' | 'history' = 'active') {
   return useQuery({
-    queryKey: ['transport', 'requests', requestType ?? 'all'],
-    queryFn: () => fetchTransportRequests(requestType ? { request_type: requestType } : {}),
+    queryKey: ['transport', 'requests', requestType ?? 'all', scope],
+    queryFn: () => fetchTransportRequests({ request_type: requestType, scope }),
   });
 }
 

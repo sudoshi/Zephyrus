@@ -15,6 +15,12 @@ import {
   rebuildTracks,
 } from '@/features/patientFlowNavigator/stateProjection';
 import {
+  LIVE_WINDOW_HALF_MS,
+  prepareReplay,
+  recentReplayEvents,
+  replayStatus,
+} from '@/features/patientFlowNavigator/replayTimeline';
+import {
   ENTITY_PROJECTION_KINDS,
   aggregatesAt,
   anchorForProjection,
@@ -42,6 +48,7 @@ import type {
   PatientVisibleState,
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
+import { occupancyInspectorData } from '@/features/patientFlowNavigator/inspector';
 import type { PageProps } from '@/types';
 import type { NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
@@ -70,8 +77,6 @@ interface PatientFlowNavigatorProps {
   units?: FlowUnitSummary[];
 }
 
-const WINDOW_HALF_MS = 24 * 60 * 60 * 1000;
-
 const IDENTITY_KEYS = ['patient_display_id', 'patient_id', 'encounter_id'] as const;
 
 const EMPTY_OCCUPANCY_SUMMARY: OccupancySummary = {
@@ -99,7 +104,7 @@ interface HandoffParams {
 }
 
 /** Mobile→web A3 handoff: ?persona=&scope=&t= (persona is resolved server-side). */
-function parseHandoff(nowMs: number): HandoffParams {
+function parseHandoff(): HandoffParams {
   const empty: HandoffParams = { floor: null, unitRef: null, t: null };
   if (typeof window === 'undefined') return empty;
   const params = new URLSearchParams(window.location.search);
@@ -117,9 +122,7 @@ function parseHandoff(nowMs: number): HandoffParams {
   const rawT = params.get('t');
   if (rawT) {
     const parsed = Date.parse(rawT);
-    if (Number.isFinite(parsed)) {
-      t = Math.min(nowMs + WINDOW_HALF_MS, Math.max(nowMs - WINDOW_HALF_MS, parsed));
-    }
+    if (Number.isFinite(parsed)) t = parsed;
   }
 
   return { floor, unitRef, t };
@@ -191,11 +194,16 @@ export default function PatientFlowNavigator({
   lens = null,
   units = [],
 }: PatientFlowNavigatorProps) {
-  // ---- 48h time window (fixed at load; §5) --------------------------------
+  // Fresh sources use the wall-clock 48h window. Stale sources move to an
+  // explicit historical window after bootstrap so their replay stays usable.
   const nowMs = useMemo(() => Date.now(), []);
-  const windowStart = nowMs - WINDOW_HALF_MS;
-  const windowEnd = nowMs + WINDOW_HALF_MS;
-  const handoff = useMemo(() => parseHandoff(nowMs), [nowMs]);
+  const handoff = useMemo(() => parseHandoff(), []);
+  const [timeWindow, setTimeWindow] = useState({
+    start: nowMs - LIVE_WINDOW_HALF_MS,
+    end: nowMs + LIVE_WINDOW_HALF_MS,
+  });
+  const windowStart = timeWindow.start;
+  const windowEnd = timeWindow.end;
 
   const dotsPolicy: FlowPatientDots | null = lens?.patient_dots ?? null;
   const patientDotsVisible = dotsPolicy !== 'none';
@@ -234,6 +242,8 @@ export default function PatientFlowNavigator({
   const lastBucketKeyRef = useRef('');
   const lastTimeEmitRef = useRef(0);
   const scopeAppliedRef = useRef(false);
+  const inspectorInitializedRef = useRef(false);
+  const occupancyRequestRef = useRef(0);
 
   const [summary, setSummary] = useState<PatientFlowSummary | null>(null);
   const [ambient, setAmbient] = useState<PatientFlowAmbient | null>(null);
@@ -265,6 +275,7 @@ export default function PatientFlowNavigator({
     () => (events.length ? parseTime(events[events.length - 1].occurred_at) : null),
     [events],
   );
+  const historical = summary?.source.freshness === 'stale' && dataEnd !== null;
 
   const placementIndex = useMemo(
     () => buildProjectionPlacementIndex(locations, units),
@@ -444,7 +455,8 @@ export default function PatientFlowNavigator({
   }, [currentTime, refreshScene]);
 
   useEffect(() => {
-    if (!lens || filters.search.trim() !== '') return;
+    const requestId = ++occupancyRequestRef.current;
+    if (!summary || !lens || filters.search.trim() !== '') return;
     const asOf = new Date(currentTime).toISOString();
     const filterKey = occupancyFilterKey(filters);
     const timer = window.setTimeout(() => {
@@ -455,8 +467,9 @@ export default function PatientFlowNavigator({
         category: filters.category !== 'all' ? filters.category : undefined,
         limit: 20000,
         include: 'eddy_context',
-      })
+        })
         .then((payload) => {
+          if (requestId !== occupancyRequestRef.current) return;
           serverOccupancyRef.current = {
             asOfMs: Date.parse(payload.asOf),
             filterKey,
@@ -466,16 +479,26 @@ export default function PatientFlowNavigator({
           lastBucketKeyRef.current = '';
           setOccupancy(payload.summary);
           setEddyContext(payload.eddyContext ?? null);
+          if (!inspectorInitializedRef.current) {
+            const priority = payload.occupancy.find(isBarrierOrDelay);
+            if (priority) {
+              inspectorInitializedRef.current = true;
+              const detail = redactSelection(occupancyInspectorData(priority), dotsPolicy);
+              setInspectorTitle(`${priority.locationName ?? priority.location} - delay detail`);
+              setInspectorRows(flattenInspector(detail));
+            }
+          }
           refreshScene();
         })
         .catch(() => {
+          if (requestId !== occupancyRequestRef.current) return;
           serverOccupancyRef.current = null;
           setEddyContext(null);
         });
     }, playing ? 900 : 220);
 
     return () => window.clearTimeout(timer);
-  }, [currentTime, filters, lens, playing, refreshScene]);
+  }, [currentTime, dotsPolicy, filters, lens, playing, refreshScene, summary]);
 
   const applyTime = useCallback((timeMs: number): void => {
     currentTimeRef.current = timeMs;
@@ -497,20 +520,19 @@ export default function PatientFlowNavigator({
         ]);
         if (cancelled) return;
 
-        const sortedEvents = [...eventData].sort((a, b) => parseTime(a.occurred_at) - parseTime(b.occurred_at));
-        const replayIsStale = sortedEvents.length > 0 && parseTime(sortedEvents[sortedEvents.length - 1].occurred_at) < windowStart;
+        const prepared = prepareReplay(summaryData, eventData, nowMs, handoff.t);
+        const { events: sortedEvents, timeline } = prepared;
         setSummary(summaryData);
         setAmbient(ambientData);
         setLocations(locationData);
-        setEvents(replayIsStale ? [] : sortedEvents);
+        setEvents(sortedEvents);
+        setFeed(recentReplayEvents(sortedEvents));
+        setTimeWindow({ start: timeline.windowStart, end: timeline.windowEnd });
+        applyTime(timeline.currentTime);
         if (!patientDotsVisible) {
           setStatus('Aggregate persona lens');
-        } else if (!sortedEvents.length) {
-          setStatus('No flow events loaded');
-        } else if (replayIsStale) {
-          setStatus('Demo barriers loaded');
         } else {
-          setStatus('Data loaded');
+          setStatus(replayStatus(timeline));
         }
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : 'Unable to load patient flow data';
@@ -524,7 +546,7 @@ export default function PatientFlowNavigator({
     return () => {
       cancelled = true;
     };
-  }, [patientDotsVisible, windowStart]);
+  }, [applyTime, handoff.t, nowMs, patientDotsVisible]);
 
   // Projection stream (future half) — lens-clamped server-side; a failure
   // only disables ghosts, never the navigator.
@@ -585,8 +607,8 @@ export default function PatientFlowNavigator({
         onFrame: (delta) => {
           if (!playingRef.current || liveRef.current) return;
           const next = currentTimeRef.current + delta * speedRef.current * 60 * 1000;
-          // Replay loops within the past half only; the future is for scrubbing.
-          const bounded = next > nowMs ? windowStart : next;
+          const replayEnd = historical ? windowEnd : Math.min(nowMs, windowEnd);
+          const bounded = next > replayEnd ? windowStart : next;
           currentTimeRef.current = bounded;
           const wallNow = performance.now();
           if (wallNow - lastTimeEmitRef.current > 150) {
@@ -601,7 +623,6 @@ export default function PatientFlowNavigator({
       scene.loadModel(
         summary.model_url,
         () => {
-          setStatus('Model loaded');
           lastBucketKeyRef.current = '';
           refreshScene();
         },
@@ -619,19 +640,21 @@ export default function PatientFlowNavigator({
       sceneRef.current = null;
       scene?.dispose();
     };
-  }, [summary?.model_url, dotsPolicy, nowMs, windowStart, refreshScene]);
+  }, [summary?.model_url, dotsPolicy, historical, nowMs, windowEnd, windowStart, refreshScene]);
 
   // ---- playback / live -----------------------------------------------------
   const disconnectLive = useCallback((): void => {
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
     setLive(false);
-    setStatus('Historical replay');
-  }, []);
+    setStatus(historical && dataEnd !== null
+      ? `Historical - last event ${new Date(dataEnd).toLocaleString()}`
+      : 'Stored event replay');
+  }, [dataEnd, historical]);
 
   const connectLive = useCallback((): void => {
     if (!patientDotsVisible) {
-      setStatus('Live patient stream unavailable for this persona');
+      setStatus('Stored patient replay unavailable for this persona');
       return;
     }
     eventSourceRef.current?.close();
@@ -643,15 +666,16 @@ export default function PatientFlowNavigator({
         if (prev.some((item) => item.event_id === event.event_id)) return prev;
         return [...prev, event].sort((a, b) => parseTime(a.occurred_at) - parseTime(b.occurred_at));
       });
-      // Follow the stream inside the fixed window — the frame never resets.
+      // This endpoint replays stored rows. Do not label it live until a
+      // cursor-backed connector feed exists.
       const eventTime = parseTime(event.occurred_at);
-      applyTime(Math.min(nowMs, Math.max(windowStart, eventTime)));
+      applyTime(Math.min(windowEnd, Math.max(windowStart, eventTime)));
       setFeed((prev) => [event, ...prev.filter((item) => item.event_id !== event.event_id)].slice(0, 8));
     });
-    source.onerror = () => setStatus('Live stream reconnecting');
+    source.onerror = () => setStatus('Stored replay reconnecting');
     setLive(true);
-    setStatus('Live stream active');
-  }, [applyTime, nowMs, patientDotsVisible, windowStart]);
+    setStatus('Streaming stored replay');
+  }, [applyTime, patientDotsVisible, windowEnd, windowStart]);
 
   const handleScrub = useCallback((timeMs: number): void => {
     disconnectLive();
@@ -739,6 +763,8 @@ export default function PatientFlowNavigator({
             currentTime={currentTime}
             dataStart={dataStart}
             dataEnd={dataEnd}
+            historical={historical}
+            freshness={summary?.source.freshness ?? 'missing'}
             forecast={forecast}
             onScrub={handleScrub}
           />

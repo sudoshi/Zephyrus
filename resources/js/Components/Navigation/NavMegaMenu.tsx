@@ -1,16 +1,15 @@
 import { Popover } from '@headlessui/react';
 import { ChevronDown } from 'lucide-react';
-import type { NavDomain } from '@/config/navigationConfig';
+import type { NavigationAccess, NavDomain } from '@/config/navigationConfig';
 import { MegaMenuPanel } from './MegaMenuPanel';
 
 interface NavMegaMenuProps {
   domain: NavDomain;
-  isAdmin: boolean;
-  role?: string | null;
+  access: NavigationAccess;
   active: boolean;
 }
 
-export function NavMegaMenu({ domain, isAdmin, role, active }: NavMegaMenuProps) {
+export function NavMegaMenu({ domain, access, active }: NavMegaMenuProps) {
   const Icon = domain.icon;
   return (
     <Popover>
@@ -37,7 +36,7 @@ export function NavMegaMenu({ domain, isAdmin, role, active }: NavMegaMenuProps)
         transition
         className="z-[70] origin-top transition duration-100 ease-out data-[closed]:scale-95 data-[closed]:opacity-0"
       >
-        {({ close }) => <MegaMenuPanel domain={domain} isAdmin={isAdmin} role={role} onNavigate={close} />}
+        {({ close }) => <MegaMenuPanel domain={domain} access={access} onNavigate={close} />}
       </Popover.Panel>
     </Popover>
   );

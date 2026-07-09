@@ -485,6 +485,10 @@ class FlowWindowTest extends TestCase
     public function test_live_flow_snapshot_persists_redactable_occupancy_details(): void
     {
         $unit = Unit::where('abbreviation', 'MICU')->firstOrFail();
+        DB::table('hosp_ref.service_lines')->updateOrInsert(
+            ['service_line_code' => 'critical_care'],
+            ['display_name' => 'Critical Care', 'clinical_domain' => 'critical_care'],
+        );
         $spaceId = DB::table('hosp_space.facility_spaces')->insertGetId([
             'space_code' => 'FLOWTEST:MICU',
             'space_name' => 'Flow Test MICU',

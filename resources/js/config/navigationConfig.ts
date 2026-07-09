@@ -1,12 +1,11 @@
 // resources/js/config/navigationConfig.ts
 //
 // The navigation SSOT (navbar + command palette). Zephyrus 2.0 P4a shapes it
-// around the Altitude model: COCKPIT (the one home, /dashboard, no submenu),
-// WORKSPACES (the "now" surfaces — each domain's header link points at its
-// primary live workspace, never a retired /dashboard/* overview), STUDY (the
-// retrospective altitude — Analytics + Improvement, merged fully in P5), and
-// ADMIN. Legacy /dashboard/* overview URLs live on as server-side redirects
-// into the cockpit drill layer (routes/web.php) but are never linked here.
+// around the Altitude model: COCKPIT (the one home, /dashboard), WORKSPACES
+// (the "now" surfaces), STUDY (retrospective analysis and improvement), and
+// capability-gated INTEGRATIONS. The top bar renders only these sections. The
+// complete domain/page tree is projected into desktop and mobile navigation,
+// the command palette, and route-ownership tests from this file.
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -29,6 +28,7 @@ import {
   HeartPulse,
   MapPinned,
   LineChart,
+  LayoutGrid,
   ListChecks,
   PieChart,
   RefreshCcw,
@@ -47,17 +47,26 @@ import {
   Building2,
   Settings,
   Send,
+  PlugZap,
 } from 'lucide-react';
+
+export interface NavigationCapabilities {
+  readonly view_integrations?: boolean;
+  readonly view_enterprise_setup?: boolean;
+  readonly manage_staffing_alignment?: boolean;
+}
+
+export interface NavigationAccess {
+  readonly isAdmin: boolean;
+  readonly can?: NavigationCapabilities;
+}
 
 export interface NavLeaf {
   readonly label: string;
   readonly href: string;
   readonly icon: LucideIcon;
   readonly adminOnly?: boolean;
-  /** Visible when the user's `users.role` string is in this list (OR they are an admin).
-   *  Use for a leaf gated more narrowly than its domain — e.g. a write surface whose
-   *  route carries a tighter ability than the domain's read gate. */
-  readonly visibleToRoles?: readonly string[];
+  readonly requiredCapability?: keyof NavigationCapabilities;
 }
 
 export interface NavGroup {
@@ -80,16 +89,15 @@ export interface NavDomain {
   readonly excludePrefixes?: readonly string[];
   readonly groups: readonly NavGroup[];
   readonly adminOnly?: boolean;
-  /** Visible when the user's `users.role` string is in this list (OR they are an admin).
-   *  Use for surfaces gated to ops-leadership beyond the coarse admin flag. */
-  readonly visibleToRoles?: readonly string[];
+  readonly requiredCapability?: keyof NavigationCapabilities;
 }
 
-/** One of the four altitude sections the top bar renders. */
+/** One of the section-level controls rendered in the top bar. */
 export interface NavSection {
   readonly key: string;
   readonly title: string;
-  /** COCKPIT only: a plain home link with no dropdown domains. */
+  readonly icon: LucideIcon;
+  /** Direct sections render as a link; other sections open their domain panel. */
   readonly homeHref?: string;
   readonly domains: readonly NavDomain[];
 }
@@ -218,7 +226,6 @@ const TRANSPORT: NavDomain = {
       title: 'Control',
       items: [
         { label: 'Resources', href: '/transport/resources', icon: MapPinned },
-        { label: 'Integrations', href: '/transport/settings/integrations', icon: Settings },
       ],
     },
   ],
@@ -231,27 +238,16 @@ const STAFFING: NavDomain = {
   dashboardHref: '/staffing',
   dashboardLabel: 'Staffing Office',
   matchPrefixes: ['/staffing'],
-  // The workspace IS the single page — the panel is just its header link.
-  groups: [],
-};
-
-// The house-wide flow workspace (cockpit domain 'flow'): the pages that answer
-// "is the house moving?" — cross-listed from RTDC/Transport, deduped in the
-// palette by flattenNavigation.
-const PATIENT_FLOW: NavDomain = {
-  key: 'flow',
-  label: 'Patient Flow',
-  icon: Workflow,
-  dashboardHref: '/rtdc/patient-flow-navigator',
-  dashboardLabel: 'Patient Flow 4D',
-  matchPrefixes: ['/rtdc/patient-flow-navigator', '/transport/care-transitions'],
   groups: [
     {
-      title: 'Operations',
+      title: 'Administration',
       items: [
-        { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
-        { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
-        { label: 'Care Transitions', href: '/transport/care-transitions', icon: ClipboardCheck },
+        {
+          label: 'Staffing Alignment',
+          href: '/staffing/administration',
+          icon: UserCog,
+          requiredCapability: 'manage_staffing_alignment',
+        },
       ],
     },
   ],
@@ -368,7 +364,6 @@ const ADMIN: NavDomain = {
   key: 'admin',
   label: 'Admin',
   icon: Shield,
-  adminOnly: true,
   matchPrefixes: ['/users', '/admin'],
   groups: [
     {
@@ -377,6 +372,12 @@ const ADMIN: NavDomain = {
         { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
         // P8 WS-6b — the cockpit threshold editor (band-edge tuning, audited).
         { label: 'Cockpit Thresholds', href: '/admin/cockpit/thresholds', icon: Settings, adminOnly: true },
+        {
+          label: 'Enterprise Setup',
+          href: '/admin/enterprise-setup',
+          icon: Building2,
+          requiredCapability: 'view_enterprise_setup',
+        },
         // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
         // is a JSON API endpoint with no Inertia page, so a nav link would break
         // navigation. Re-add once a real OIDC admin Inertia page exists.
@@ -385,47 +386,47 @@ const ADMIN: NavDomain = {
   ],
 };
 
-// Deployment taxonomy — the IDN/config surfaces (geography, capability matrix,
-// readiness, staffing wizard). Gated to the deployment-console roles; hidden from
-// frontline. The Staffing Wizard leaf is gated more tightly still (manageDeploymentConfig).
-const DEPLOYMENT: NavDomain = {
-  key: 'deployment',
-  label: 'Deployment',
-  icon: Building2,
-  visibleToRoles: ['super-admin', 'admin', 'superuser', 'ops-leader'],
-  matchPrefixes: ['/deployment'],
-  groups: [
-    {
-      title: 'IDN & readiness',
-      items: [
-        { label: 'Deployment Console', href: '/deployment', icon: Building2 },
-        // Write surface — only the manageDeploymentConfig roles (never plain admin).
-        {
-          label: 'Staffing Wizard',
-          href: '/deployment/staffing',
-          icon: UserCog,
-          visibleToRoles: ['super-admin', 'superuser', 'ops-leader'],
-        },
-      ],
-    },
-  ],
+const INTEGRATIONS: NavDomain = {
+  key: 'integrations',
+  label: 'Integrations',
+  icon: PlugZap,
+  dashboardHref: '/integrations',
+  dashboardLabel: 'Integration Control Plane',
+  matchPrefixes: ['/integrations'],
+  requiredCapability: 'view_integrations',
+  groups: [],
 };
 
-/** The altitude sections (P4a). Order is the top-bar render order. */
+/** Primary sections in top-bar order. Admin pages live in the user menu. */
 export const NAV_SECTIONS: readonly NavSection[] = [
-  { key: 'cockpit', title: 'Cockpit', homeHref: TOP_LEVEL_DASHBOARD.href, domains: [] },
+  {
+    key: 'cockpit',
+    title: 'Cockpit',
+    icon: Gauge,
+    homeHref: TOP_LEVEL_DASHBOARD.href,
+    domains: [],
+  },
   {
     key: 'workspaces',
     title: 'Workspaces',
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, TRANSPORT, STAFFING, PATIENT_FLOW],
+    icon: LayoutGrid,
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, TRANSPORT, STAFFING],
   },
-  { key: 'study', title: 'Study', domains: [ANALYTICS, IMPROVEMENT] },
-  { key: 'deploy', title: 'Deploy', domains: [DEPLOYMENT] },
-  { key: 'admin', title: 'Admin', domains: [ADMIN] },
+  { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
+  {
+    key: 'integrations',
+    title: 'Integrations',
+    icon: PlugZap,
+    homeHref: '/integrations',
+    domains: [INTEGRATIONS],
+  },
 ];
 
-/** Flat domain list, section order preserved (palette + active-state checks). */
-export const NAVIGATION: readonly NavDomain[] = NAV_SECTIONS.flatMap((s) => s.domains);
+/** Flat domain list for palette and ownership; administration is user-menu only. */
+export const NAVIGATION: readonly NavDomain[] = [
+  ...NAV_SECTIONS.flatMap((section) => section.domains),
+  ADMIN,
+];
 
 export function isDomainActive(domain: NavDomain, url: string): boolean {
   const path = (url || '').split('?')[0].split('#')[0];
@@ -434,36 +435,61 @@ export function isDomainActive(domain: NavDomain, url: string): boolean {
   return domain.matchPrefixes.some(hits);
 }
 
-/** A domain is visible when it is ungated, the user is an admin, or the user's
- *  `users.role` string is in the domain's visibleToRoles list. */
-export function isDomainVisible(domain: NavDomain, isAdmin: boolean, role?: string | null): boolean {
-  if (domain.adminOnly) return isAdmin;
-  if (domain.visibleToRoles) return isAdmin || (role != null && domain.visibleToRoles.includes(role));
+export function isDomainVisible(domain: NavDomain, access: NavigationAccess): boolean {
+  if (domain.adminOnly) return access.isAdmin;
+  if (domain.requiredCapability) return access.can?.[domain.requiredCapability] === true;
+  if (domain.key === 'admin') {
+    return domain.groups.some((group) => group.items.some((item) => isLeafVisible(item, access)));
+  }
   return true;
 }
 
-export function visibleDomains(isAdmin: boolean, role?: string | null): readonly NavDomain[] {
-  return NAVIGATION.filter((d) => isDomainVisible(d, isAdmin, role));
+export function visibleDomains(access: NavigationAccess): readonly NavDomain[] {
+  return NAVIGATION.filter((domain) => isDomainVisible(domain, access));
 }
 
-/** A leaf is visible unless a gate hides it. `adminOnly` uses the coarse admin flag
- *  (Spatie super-admin/admin). `visibleToRoles` is STRICT on the `users.role` string —
- *  no admin bypass — because it mirrors a server ability keyed on that same string
- *  (e.g. manageDeploymentConfig), so the link never shows a surface the route will 403. */
-export function isLeafVisible(item: NavLeaf, isAdmin: boolean, role?: string | null): boolean {
-  if (item.adminOnly && !isAdmin) return false;
-  if (item.visibleToRoles) return role != null && item.visibleToRoles.includes(role);
+export function isLeafVisible(item: NavLeaf, access: NavigationAccess): boolean {
+  if (item.adminOnly && !access.isAdmin) return false;
+  if (item.requiredCapability) return access.can?.[item.requiredCapability] === true;
   return true;
 }
 
-/** Sections with role-gated domains filtered (adminOnly + visibleToRoles, via
- *  isDomainVisible); empty domain sections drop (the COCKPIT section survives on
- *  its homeHref). Passing `role` lets ops-leadership see the Deployment section. */
-export function visibleSections(isAdmin: boolean, role?: string | null): readonly NavSection[] {
+/** Capability-gated sections are removed before rendering any navigation surface. */
+export function visibleSections(access: NavigationAccess): readonly NavSection[] {
   return NAV_SECTIONS.map((section) => ({
     ...section,
-    domains: section.domains.filter((d) => isDomainVisible(d, isAdmin, role)),
-  })).filter((section) => section.homeHref !== undefined || section.domains.length > 0);
+    domains: section.domains.filter((domain) => isDomainVisible(domain, access)),
+  })).filter((section) => {
+    if (section.key === 'cockpit') return true;
+    return section.domains.length > 0;
+  });
+}
+
+/** Returns all canonical domain owners for a URL. Tests require this to be 0 or 1. */
+export function navigationOwners(url: string): readonly NavDomain[] {
+  return NAVIGATION.filter((domain) => isDomainActive(domain, url));
+}
+
+export function activeNavigationOwner(url: string): NavDomain | undefined {
+  return navigationOwners(url)[0];
+}
+
+/** Shared local-navigation projection for workspace layouts. */
+export function domainLocalNavigation(
+  domainKey: string,
+  access: NavigationAccess,
+): readonly NavLeaf[] {
+  const domain = NAVIGATION.find((candidate) => candidate.key === domainKey);
+  if (!domain || !isDomainVisible(domain, access)) return [];
+  return domain.groups.flatMap((group) =>
+    group.items.filter((item) => isLeafVisible(item, access)),
+  );
+}
+
+export function isSectionActive(section: NavSection, url: string): boolean {
+  const path = (url || '').split('?')[0].split('#')[0];
+  if (section.key === 'cockpit') return path === '/' || path === TOP_LEVEL_DASHBOARD.href;
+  return section.domains.some((domain) => isDomainActive(domain, path));
 }
 
 export interface FlatNavEntry {
@@ -472,13 +498,11 @@ export interface FlatNavEntry {
   readonly group: string;
 }
 
-/** Flatten the config for the command palette, respecting admin gating.
- *  Deduplicates by href (first occurrence wins) because pages are intentionally
- *  cross-listed (the /analytics/* set, the Patient Flow workspace). Group items
- *  are pushed before each domain's header link so the descriptive page labels
- *  win the dedup — a repointed dashboardHref never eats its page's entry.
+/** Flatten the config for the command palette, respecting capability gates.
+ *  Group items are pushed before each domain's header link so a descriptive
+ *  page label wins when dashboardHref points to the same URL.
  */
-export function flattenNavigation(isAdmin: boolean, role?: string | null): readonly FlatNavEntry[] {
+export function flattenNavigation(access: NavigationAccess): readonly FlatNavEntry[] {
   const seen = new Set<string>();
   const entries: FlatNavEntry[] = [];
 
@@ -490,11 +514,11 @@ export function flattenNavigation(isAdmin: boolean, role?: string | null): reado
 
   push({ label: TOP_LEVEL_DASHBOARD.label, href: TOP_LEVEL_DASHBOARD.href, group: 'Navigation' });
 
-  for (const domain of visibleDomains(isAdmin, role)) {
+  for (const domain of visibleDomains(access)) {
     for (const group of domain.groups) {
       const groupLabel = group.title ? `${domain.label} ${group.title}` : domain.label;
       for (const item of group.items) {
-        if (!isLeafVisible(item, isAdmin, role)) continue;
+        if (!isLeafVisible(item, access)) continue;
         push({ label: item.label, href: item.href, group: groupLabel });
       }
     }

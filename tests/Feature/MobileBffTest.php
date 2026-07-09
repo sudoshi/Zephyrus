@@ -138,6 +138,7 @@ class MobileBffTest extends TestCase
             ->where('bed_id', $unavailableBedId)
             ->update(['status' => 'occupied']);
 
+        $this->withHeader('X-Hummingbird-Role', 'bed_manager');
         $this->postJson("/api/mobile/v1/rtdc/bed-requests/{$bedRequest->bed_request_id}/decision", [
             'action' => 'accepted',
             'chosen_bed_id' => $unavailableBedId,
@@ -320,7 +321,9 @@ class MobileBffTest extends TestCase
             '/eddy/conversations' => '/api/mobile/v1/eddy/conversations',
             '/eddy/conversations/{uuid}' => "/api/mobile/v1/eddy/conversations/{$conversation->eddy_conversation_uuid}",
             '/evs/queue' => '/api/mobile/v1/evs/queue',
+            '/flow/demo-scenarios' => '/api/mobile/v1/flow/demo-scenarios',
             '/flow/floors' => '/api/mobile/v1/flow/floors',
+            '/flow/occupancy/history' => '/api/mobile/v1/flow/occupancy/history?persona=bed_manager',
             '/flow/spaces3d' => '/api/mobile/v1/flow/spaces3d',
             '/flow/window' => '/api/mobile/v1/flow/window?persona=bed_manager',
             '/for-you' => '/api/mobile/v1/for-you?persona=bed_manager',

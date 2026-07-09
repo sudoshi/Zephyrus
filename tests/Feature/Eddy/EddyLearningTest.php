@@ -30,7 +30,7 @@ class EddyLearningTest extends TestCase
 
     public function test_approving_an_eddy_proposal_bumps_frequently_used(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $this->actingAs($user)
             ->postJson('/api/eddy/actions/propose', $this->proposal(['approve' => true]))

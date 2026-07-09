@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
+use App\Http\Controllers\Api\Admin\IntegrationControlPlaneController;
+use App\Http\Controllers\Api\Admin\IntegrationCredentialController;
+use App\Http\Controllers\Api\Admin\IntegrationEndpointController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
+use App\Http\Controllers\Api\Admin\IntegrationSourceController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
@@ -237,6 +241,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('evs')->group(functi
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('staffing')->group(function () {
     Route::get('/overview', [StaffingController::class, 'overview']);
     Route::get('/plans', [StaffingController::class, 'plans']);
+    Route::get('/workforce', [StaffingController::class, 'workforce']);
     Route::get('/requests', [StaffingController::class, 'index']);
     Route::post('/requests', [StaffingController::class, 'store']);
     Route::get('/requests/{staffingRequestId}', [StaffingController::class, 'show']);
@@ -332,14 +337,28 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->grou
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
-// Admin integration health and connector inventory. Read-gated to deployment-console roles.
-Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewDeploymentConsole'])->prefix('admin/integrations')->group(function () {
+// Integration administration is a distinct, strict superuser boundary. General
+// enterprise-setup and operations-leader access does not imply connector access.
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewIntegrations'])->prefix('admin/integrations')->group(function () {
+    Route::get('/control-plane', IntegrationControlPlaneController::class);
     Route::get('/health', IntegrationHealthController::class);
     Route::get('/enterprise', [EnterpriseConnectorController::class, 'summary']);
+    Route::get('/sources', [IntegrationSourceController::class, 'index']);
+    Route::get('/sources/{source}', [IntegrationSourceController::class, 'show'])->whereNumber('source');
+    Route::get('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'index'])->whereNumber('source');
+    Route::get('/sources/{source}/credentials', [IntegrationCredentialController::class, 'index'])->whereNumber('source');
 });
 
-// Admin integration configuration writes. Narrower gate: superuser/ops-leader only.
-Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageDeploymentConfig'])->prefix('admin/integrations')->group(function () {
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->prefix('admin/integrations')->group(function () {
+    Route::post('/sources', [IntegrationSourceController::class, 'store']);
+    Route::patch('/sources/{source}', [IntegrationSourceController::class, 'update'])->whereNumber('source');
+    Route::delete('/sources/{source}', [IntegrationSourceController::class, 'destroy'])->whereNumber('source');
+    Route::post('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'store'])->whereNumber('source');
+    Route::patch('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'update'])->whereNumber(['source', 'endpoint']);
+    Route::delete('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'destroy'])->whereNumber(['source', 'endpoint']);
+    Route::post('/sources/{source}/credentials', [IntegrationCredentialController::class, 'store'])->whereNumber('source');
+    Route::patch('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'update'])->whereNumber(['source', 'credential']);
+    Route::delete('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'destroy'])->whereNumber(['source', 'credential']);
     Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
     Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
 });

@@ -36,6 +36,17 @@ class PatientFlowController extends Controller
     {
         $eventCount = (int) DB::table('flow_core.flow_events')->count();
         $ambient = $this->ambientSignals->summary($this->facilityCode());
+        $generatedAt = CarbonImmutable::now();
+        $firstEventValue = DB::table('flow_core.flow_events')->min('occurred_at');
+        $lastEventValue = DB::table('flow_core.flow_events')->max('occurred_at');
+        $firstEventAt = $firstEventValue ? CarbonImmutable::parse((string) $firstEventValue)->toJSON() : null;
+        $lastEventAt = $lastEventValue ? CarbonImmutable::parse((string) $lastEventValue)->toJSON() : null;
+        $latestEvent = FlowEvent::query()
+            ->with('source')
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('flow_event_id')
+            ->first();
+        $source = $this->sourceEnvelope($latestEvent, $generatedAt);
 
         return response()->json([
             'messages' => (int) DB::table('raw.inbound_messages as messages')
@@ -47,8 +58,8 @@ class PatientFlowController extends Controller
             'locations' => count($this->locations->allNavigatorLocations($this->facilityCode())),
             'movement_events' => (int) DB::table('flow_core.flow_events')->where('event_category', 'movement')->count(),
             'clinical_context_events' => (int) DB::table('flow_core.flow_events')->where('event_category', '<>', 'movement')->count(),
-            'min_occurred_at' => DB::table('flow_core.flow_events')->min('occurred_at'),
-            'max_occurred_at' => DB::table('flow_core.flow_events')->max('occurred_at'),
+            'min_occurred_at' => $firstEventAt,
+            'max_occurred_at' => $lastEventAt,
             'live_events' => 0,
             'ambient_signals' => $ambient['summary']['eventCount'],
             'ambient_confidence' => $ambient['summary']['averageConfidence'],
@@ -56,7 +67,14 @@ class PatientFlowController extends Controller
             'facility_code' => $this->facilityCode(),
             'model_url' => (string) config('facility_models.zep_500.model_url'),
             'tileset_url' => (string) config('facility_models.zep_500.tileset_url'),
-            'generated_at' => now()->toJSON(),
+            'source' => $source,
+            'data_extent' => [
+                'first_event_at' => $firstEventAt,
+                'last_event_at' => $lastEventAt,
+                'event_count' => $eventCount,
+            ],
+            'suggested_initial_time' => $lastEventAt,
+            'generated_at' => $generatedAt->toJSON(),
         ]);
     }
 
@@ -241,6 +259,47 @@ class PatientFlowController extends Controller
     private function facilityCode(): string
     {
         return (string) config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500');
+    }
+
+    /** @return array<string, mixed> */
+    private function sourceEnvelope(?FlowEvent $latestEvent, CarbonImmutable $generatedAt): array
+    {
+        $expectedCadence = max(1, (int) config('patient_flow.expected_cadence_seconds', 300));
+        $staleAfter = max($expectedCadence, (int) config('patient_flow.stale_after_seconds', 900));
+        $lastEventAt = $latestEvent?->occurred_at?->toImmutable();
+        $sourceKey = $latestEvent?->source?->source_key;
+        $metadata = is_array($latestEvent?->metadata) ? $latestEvent->metadata : [];
+        $sourceSystem = $sourceKey
+            ?: (is_string($metadata['source_system'] ?? null) ? $metadata['source_system'] : null)
+            ?: $latestEvent?->source_protocol
+            ?: 'patient-flow';
+        $sourceName = strtolower((string) $sourceSystem);
+        $dataOrigin = strtolower((string) ($metadata['data_origin'] ?? ''));
+        $synthetic = $dataOrigin === 'synthetic'
+            || str_contains($sourceName, 'synthetic')
+            || str_contains($sourceName, 'demo');
+        $seeded = str_contains($sourceName, 'seed');
+
+        $freshness = 'missing';
+        if ($lastEventAt) {
+            $ageSeconds = max(0, $lastEventAt->diffInSeconds($generatedAt, false));
+            $freshness = $ageSeconds > $staleAfter ? 'stale' : 'fresh';
+        }
+
+        return [
+            'mode' => $synthetic ? 'synthetic' : ($seeded ? 'seeded' : 'live'),
+            'system' => $sourceSystem,
+            'scenario_id' => null,
+            'generated_at' => $generatedAt->toJSON(),
+            'last_event_at' => $lastEventAt?->toJSON(),
+            'expected_cadence_seconds' => $expectedCadence,
+            'freshness' => $freshness,
+            'stale_after_seconds' => $staleAfter,
+            'lineage' => array_values(array_filter([
+                'flow_core.flow_events',
+                $sourceKey ? 'integration.sources:'.$sourceKey : null,
+            ])),
+        ];
     }
 
     private function includes(Request $request, string $feature): bool

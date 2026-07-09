@@ -17,19 +17,14 @@ class EnterpriseConnectorController extends Controller
         return response()->json(['data' => $this->connectors->summary()]);
     }
 
-    public function discoverFhir(Request $request): JsonResponse
+    public function discoverFhir(): JsonResponse
     {
-        $validated = $request->validate([
-            'source_key' => ['nullable', 'string', 'max:160'],
-            'vendor' => ['nullable', 'string', 'max:120'],
-            'base_url' => ['nullable', 'url'],
-            'fhir_version' => ['nullable', 'string', 'max:40'],
-            'client_id' => ['nullable', 'string', 'max:190'],
-            'jwks_secret_ref' => ['nullable', 'string', 'max:255'],
-            'token_url' => ['nullable', 'url'],
-        ]);
-
-        return response()->json(['data' => $this->connectors->discoverFhirCapabilities($validated)]);
+        return response()->json([
+            'error' => [
+                'code' => 'fhir_discovery_not_configured',
+                'message' => 'FHIR discovery requires a configured protocol checker.',
+            ],
+        ], 501);
     }
 
     public function createWritebackDraft(Request $request): JsonResponse

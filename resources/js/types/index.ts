@@ -15,6 +15,12 @@ export interface PageProps {
     user: User | null;
     roles?: string[];
     is_admin?: boolean;
+    can?: {
+      view_integrations?: boolean;
+      manage_integrations?: boolean;
+      view_enterprise_setup?: boolean;
+      manage_staffing_alignment?: boolean;
+    };
   };
   eddy?: {
     enabled: boolean;

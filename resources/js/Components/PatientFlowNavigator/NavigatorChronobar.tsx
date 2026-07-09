@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
+import type { PatientFlowFreshness } from '@/features/patientFlowNavigator/types';
 
 interface NavigatorChronobarProps {
   windowStart: number;
@@ -9,6 +10,8 @@ interface NavigatorChronobarProps {
   /** Coverage of loaded flow events; null when no events are in the window. */
   dataStart: number | null;
   dataEnd: number | null;
+  historical: boolean;
+  freshness: PatientFlowFreshness;
   forecast: ForecastAggregates | null;
   onScrub: (timeMs: number) => void;
 }
@@ -60,6 +63,8 @@ export default function NavigatorChronobar({
   currentTime,
   dataStart,
   dataEnd,
+  historical,
+  freshness,
   forecast,
   onScrub,
 }: NavigatorChronobarProps) {
@@ -71,9 +76,9 @@ export default function NavigatorChronobar({
   const coverage = useMemo(() => {
     if (dataStart === null || dataEnd === null) return null;
     const start = Math.max(dataStart, windowStart);
-    const end = Math.min(dataEnd, nowMs);
-    return end > start ? { start, end } : null;
-  }, [dataStart, dataEnd, windowStart, nowMs]);
+    const end = Math.min(dataEnd, windowEnd);
+    return end >= start ? { start, end } : null;
+  }, [dataStart, dataEnd, windowEnd, windowStart]);
 
   const sliderValue = Math.round(((currentTime - windowStart) / span) * SLIDER_STEPS);
   const inFuture = currentTime > nowMs;
@@ -83,17 +88,20 @@ export default function NavigatorChronobar({
       <output>
         <span>{fmtTime(currentTime)}</span>
         <span className={`patient-flow-chronobar-rel ${inFuture ? 'future' : ''}`}>
-          {inFuture ? 'Projected · ' : ''}
-          {relativeLabel(currentTime, nowMs)}
+          {historical
+            ? `Historical replay · ${relativeLabel(currentTime, nowMs)}`
+            : `${inFuture ? 'Projected · ' : ''}${relativeLabel(currentTime, nowMs)}`}
         </span>
       </output>
 
       <div className="patient-flow-chronobar-track" aria-hidden="true">
-        <div className="patient-flow-chronobar-past" style={{ width: `${pct(nowMs)}%` }} />
-        <div
-          className="patient-flow-chronobar-future"
-          style={{ left: `${pct(nowMs)}%`, width: `${100 - pct(nowMs)}%` }}
-        />
+        <div className="patient-flow-chronobar-past" style={{ width: historical ? '100%' : `${pct(nowMs)}%` }} />
+        {!historical && (
+          <div
+            className="patient-flow-chronobar-future"
+            style={{ left: `${pct(nowMs)}%`, width: `${100 - pct(nowMs)}%` }}
+          />
+        )}
         {coverage && (
           <div
             className="patient-flow-chronobar-coverage"
@@ -108,7 +116,9 @@ export default function NavigatorChronobar({
             title={new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
           />
         ))}
-        <span className="patient-flow-chronobar-now" style={{ left: `${pct(nowMs)}%` }} title="Now" />
+        {!historical && nowMs >= windowStart && nowMs <= windowEnd && (
+          <span className="patient-flow-chronobar-now" style={{ left: `${pct(nowMs)}%` }} title="Now" />
+        )}
       </div>
 
       <input
@@ -116,12 +126,16 @@ export default function NavigatorChronobar({
         min="0"
         max={SLIDER_STEPS}
         value={Number.isFinite(sliderValue) ? Math.min(SLIDER_STEPS, Math.max(0, sliderValue)) : 0}
-        aria-label="48-hour time scrubber (24h review, 24h projection)"
+        aria-label={historical ? 'Historical patient flow time scrubber' : '48-hour time scrubber (24h review, 24h projection)'}
         onChange={(event) => onScrub(windowStart + (Number(event.target.value) / SLIDER_STEPS) * span)}
       />
 
-      {coverage === null && (
-        <p className="patient-flow-chronobar-empty">No replay events inside the 48h window</p>
+      {coverage === null ? (
+        <p className="patient-flow-chronobar-empty">No replay events available</p>
+      ) : (
+        <p className={`patient-flow-chronobar-extent ${freshness}`}>
+          {freshness === 'stale' ? 'Stale source' : freshness} · {fmtTime(dataStart!)} to {fmtTime(dataEnd!)}
+        </p>
       )}
 
       {inFuture && forecast && (

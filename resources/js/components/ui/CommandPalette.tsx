@@ -3,6 +3,7 @@ import { Command } from 'cmdk';
 import { router, usePage } from '@inertiajs/react';
 import { useUIStore } from '@/stores/uiStore';
 import { flattenNavigation } from '@/config/navigationConfig';
+import type { NavigationAccess } from '@/config/navigationConfig';
 import type { PageProps } from '@/types';
 
 export function CommandPalette() {
@@ -10,6 +11,7 @@ export function CommandPalette() {
   const setOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const page = usePage<PageProps>();
   const isAdmin = Boolean(page.props.auth?.is_admin);
+  const access: NavigationAccess = { isAdmin, can: page.props.auth?.can };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,7 +33,7 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  const entries = flattenNavigation(isAdmin, page.props.auth?.user?.role ?? null);
+  const entries = flattenNavigation(access);
   const groups = entries.reduce<Record<string, typeof entries[number][]>>((acc, item) => {
     (acc[item.group] ??= []).push(item);
     return acc;

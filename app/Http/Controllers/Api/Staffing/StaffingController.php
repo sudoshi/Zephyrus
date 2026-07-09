@@ -34,6 +34,13 @@ class StaffingController extends Controller
         ]);
     }
 
+    public function workforce(Request $request): JsonResponse
+    {
+        return response()->json($this->staffing->workforceDirectory($request->only([
+            'q', 'role', 'shift', 'status', 'page', 'per_page',
+        ])));
+    }
+
     public function index(Request $request): JsonResponse
     {
         $page = $this->staffing->list($request->only(['role', 'status', 'priority', 'unit_id']));

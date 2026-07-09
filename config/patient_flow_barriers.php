@@ -12,6 +12,76 @@ return [
     ],
 
     'barriers' => [
+        'rtdc_medical_barrier' => [
+            'label' => 'Clinical progression barrier',
+            'category' => 'medical',
+            'owner_role' => 'hospitalist',
+            'timer_kind' => 'readiness',
+            'rtdc_metrics' => ['length_of_stay_pressure', 'clinical_readiness_delay'],
+            'eddy_summary' => 'A verified clinical barrier is preventing the patient from progressing to the next level of care.',
+            'recommended_focus' => 'Confirm the documented clinical dependency, accountable team, and next review time.',
+        ],
+
+        'rtdc_logistical_barrier' => [
+            'label' => 'Logistics barrier',
+            'category' => 'logistical',
+            'owner_role' => 'bed_manager',
+            'timer_kind' => 'readiness',
+            'rtdc_metrics' => ['flow_delay_minutes', 'bed_availability_risk'],
+            'eddy_summary' => 'A verified logistics dependency is blocking the patient flow plan.',
+            'recommended_focus' => 'Confirm the operational owner and the next committed completion time.',
+        ],
+
+        'rtdc_placement_barrier' => [
+            'label' => 'Placement barrier',
+            'category' => 'placement',
+            'owner_role' => 'case_management',
+            'timer_kind' => 'readiness',
+            'rtdc_metrics' => ['avoidable_bed_day_risk', 'placement_delay_minutes'],
+            'eddy_summary' => 'A verified placement dependency is delaying transition from the current bed.',
+            'recommended_focus' => 'Confirm placement status, missing requirements, owner, and escalation time.',
+        ],
+
+        'rtdc_social_barrier' => [
+            'label' => 'Social discharge barrier',
+            'category' => 'social',
+            'owner_role' => 'case_management',
+            'timer_kind' => 'readiness',
+            'rtdc_metrics' => ['avoidable_bed_day_risk', 'discharge_delay_minutes'],
+            'eddy_summary' => 'A verified social dependency is delaying a safe transition from the hospital.',
+            'recommended_focus' => 'Confirm the documented dependency, assigned owner, and next escalation checkpoint.',
+        ],
+
+        'transport_request_overdue' => [
+            'label' => 'Transport request overdue',
+            'category' => 'transport',
+            'owner_role' => 'transport',
+            'timer_kind' => 'next_transport',
+            'rtdc_metrics' => ['transport_queue_delay', 'flow_delay_minutes'],
+            'eddy_summary' => 'An active transport request has passed its needed-by time and is delaying the next patient movement.',
+            'recommended_focus' => 'Confirm assignment, pickup readiness, and a credible revised arrival time.',
+        ],
+
+        'transport_request_escalated' => [
+            'label' => 'Transport request escalated',
+            'category' => 'transport',
+            'owner_role' => 'transport',
+            'timer_kind' => 'next_transport',
+            'rtdc_metrics' => ['transport_queue_delay', 'escalated_transport_requests'],
+            'eddy_summary' => 'An overdue transport request is in an escalated operational state.',
+            'recommended_focus' => 'Confirm escalation ownership and whether another qualified resource can take the movement.',
+        ],
+
+        'transport_patient_not_ready' => [
+            'label' => 'Patient not ready for transport',
+            'category' => 'readiness',
+            'owner_role' => 'charge_nurse',
+            'timer_kind' => 'readiness',
+            'rtdc_metrics' => ['transport_queue_delay', 'patient_readiness_delay'],
+            'eddy_summary' => 'The transport window is overdue because patient readiness has not been confirmed.',
+            'recommended_focus' => 'Confirm the readiness dependency before retaining or reassigning the transport resource.',
+        ],
+
         'transport_oxygen_team_delayed' => [
             'label' => 'Oxygen-capable transport delay',
             'category' => 'transport',

@@ -87,13 +87,25 @@ export default function NavigatorToolbar({
         </span>
       </div>
 
+      {summary?.source && (
+        <div className={`patient-flow-source-status ${summary.source.freshness}`} role="status">
+          <strong>{summary.source.freshness === 'stale' ? 'Historical data' : `${summary.source.freshness} data`}</strong>
+          <span>{summary.source.mode} · {summary.source.system}</span>
+          <small>
+            {summary.data_extent.first_event_at && summary.data_extent.last_event_at
+              ? `${new Date(summary.data_extent.first_event_at).toLocaleString()} to ${new Date(summary.data_extent.last_event_at).toLocaleString()}`
+              : 'No event extent available'}
+          </small>
+        </div>
+      )}
+
       {chronobar}
 
       <div className="patient-flow-buttons">
         <button
           className={`patient-flow-icon-button ${playing ? 'active' : ''}`}
           type="button"
-          title={playing ? 'Pause replay' : 'Play replay (loops the past 24h)'}
+          title={playing ? 'Pause replay' : 'Play replay in the displayed window'}
           onClick={onTogglePlay}
         >
           {playing ? <Pause /> : <Play />}
@@ -101,7 +113,7 @@ export default function NavigatorToolbar({
         <button
           className={`patient-flow-icon-button ${live ? 'active' : ''}`}
           type="button"
-          title="Live stream"
+          title="Stream latest stored events"
           onClick={onToggleLive}
         >
           <Radio />
@@ -225,6 +237,14 @@ export default function NavigatorToolbar({
           <div><span>{occupancy.evsDelays}</span><small>EVS</small></div>
         </div>
 
+        {(occupancy.durationRisks ?? 0) > 0 && (
+          <div className="patient-flow-duration-risk">
+            <strong>Duration risk</strong>
+            <span>{occupancy.durationRisks} elapsed-time signals</span>
+            <small>Elapsed occupancy signal; not a verified operational barrier.</small>
+          </div>
+        )}
+
         {occupancy.serviceLines.length > 0 && (
           <ol className="patient-flow-service-rollup">
             {occupancy.serviceLines.slice(0, 3).map((item) => (
@@ -243,7 +263,10 @@ export default function NavigatorToolbar({
               <li key={item.barrierCode ?? `${item.label}-${item.reason ?? 'none'}`}>
                 <span>{item.label}</span>
                 <strong>{item.count}</strong>
-                <small>{item.eddySummary ?? item.reason ?? item.ownerRole ?? 'Barrier active'}</small>
+                <small>
+                  {item.reason ?? item.eddySummary ?? 'Barrier active'}
+                  {item.ownerRole ? ` · Owner: ${item.ownerRole.replaceAll('_', ' ')}` : ''}
+                </small>
               </li>
             ))}
           </ol>

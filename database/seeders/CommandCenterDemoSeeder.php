@@ -104,7 +104,7 @@ class CommandCenterDemoSeeder extends Seeder
         //     Deliberately leaves two units short for the current day shift
         //     so the "staffing is tight on two units" demo signal is real.
         // ----------------------------------------------------------------
-        $this->seedStaffingPlans($nonEdUnits);
+        $this->call(OperationalDemoDataSeeder::class);
 
         // ----------------------------------------------------------------
         // 4b-ii. Workforce actuals (P7) — the time-and-attendance day fact.
@@ -131,7 +131,8 @@ class CommandCenterDemoSeeder extends Seeder
         //     requests so the "transport queue is overloaded" demo signal,
         //     transport SLA-risk recommendation, and dispatch board are real.
         // ----------------------------------------------------------------
-        $this->seedTransportBacklog($nonEdUnits);
+        // Staffing and Transport are seeded together above so their shared
+        // synthetic scenario anchor and freshness timestamps stay coherent.
 
         // ----------------------------------------------------------------
         // 5. ED Visits (~70 over last 24h).

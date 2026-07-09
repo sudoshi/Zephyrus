@@ -55,6 +55,11 @@ return $builder
         // Nightly full reconcile: re-project the trailing window and diff
         // projected counts against prod.*/flow_core.* source counts (§X.3.3).
         $schedule->command('ocel:project --days=90 --reconcile')->dailyAt('02:30');
+        if (config('demo_data.enabled') && config('demo_data.schedule_enabled')) {
+            $schedule->command('zephyrus:demo-roll-forward --commit')
+                ->dailyAt((string) config('demo_data.schedule_time', '05:15'))
+                ->withoutOverlapping();
+        }
         // Zephyrus 2.0 Part X (X3): recompute care-pathway conformance on its own
         // cadence and cache the rate for the cockpit. ARENA_ENABLED-gated (no-op
         // when off). Off the per-minute snapshot path — the heavy sidecar call

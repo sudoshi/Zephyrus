@@ -9,7 +9,7 @@ const admin = NAVIGATION.find((d) => d.key === 'admin')!;
 
 describe('MegaMenuPanel', () => {
   it('renders the dashboard header link and every group title', () => {
-    render(<MegaMenuPanel domain={rtdc} isAdmin={false} />);
+    render(<MegaMenuPanel domain={rtdc} access={{ isAdmin: false }} />);
     // P4a: the header link is the primary live workspace, not a dead overview.
     expect(screen.getByText('Bed Tracking Board').closest('a')).toHaveAttribute(
       'href',
@@ -22,19 +22,19 @@ describe('MegaMenuPanel', () => {
   });
 
   it('renders each item as a link with the correct href', () => {
-    render(<MegaMenuPanel domain={rtdc} isAdmin={false} />);
+    render(<MegaMenuPanel domain={rtdc} access={{ isAdmin: false }} />);
     const bedTracking = screen.getByText('Bed Tracking').closest('a');
     expect(bedTracking).toHaveAttribute('href', '/rtdc/bed-tracking');
     expect(screen.getByText('Discharge').closest('a')).toHaveAttribute('href', '/rtdc/predictions/discharge');
   });
 
   it('hides admin-only items when not an admin', () => {
-    render(<MegaMenuPanel domain={admin} isAdmin={false} />);
+    render(<MegaMenuPanel domain={admin} access={{ isAdmin: false }} />);
     expect(screen.queryByText('User Management')).not.toBeInTheDocument();
   });
 
   it('shows admin-only items for an admin', () => {
-    render(<MegaMenuPanel domain={admin} isAdmin />);
+    render(<MegaMenuPanel domain={admin} access={{ isAdmin: true }} />);
     expect(screen.getByText('User Management').closest('a')).toHaveAttribute('href', '/users');
   });
 });

@@ -5,6 +5,7 @@ namespace Tests\Feature\PatientFlow;
 use App\Models\User;
 use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -297,6 +298,79 @@ class PatientFlowApiTest extends TestCase
         $this->getJson('/api/patient-flow/summary')->assertUnauthorized();
     }
 
+    public function test_event_queries_return_the_latest_bounded_replay_in_chronological_order(): void
+    {
+        $times = [
+            '2026-07-05T01:00:00Z',
+            '2026-07-05T02:00:00Z',
+            '2026-07-05T03:00:00Z',
+            '2026-07-05T04:00:00Z',
+        ];
+
+        foreach ($times as $index => $time) {
+            $this->insertFlowEventAt($time, $index + 1);
+        }
+
+        $user = User::factory()->create(['role' => 'bed_manager']);
+        $latest = $this->actingAs($user)
+            ->getJson('/api/patient-flow/events?limit=2')
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(2, $latest);
+        $this->assertSame(
+            [
+                CarbonImmutable::parse($times[2])->toJSON(),
+                CarbonImmutable::parse($times[3])->toJSON(),
+            ],
+            array_column($latest, 'occurred_at'),
+        );
+
+        $bounded = $this->actingAs($user)
+            ->getJson('/api/patient-flow/events?'.http_build_query([
+                'from' => '2026-07-05T01:30:00Z',
+                'to' => '2026-07-05T03:30:00Z',
+                'limit' => 20,
+            ]))
+            ->assertOk()
+            ->json();
+
+        $this->assertSame(
+            [
+                CarbonImmutable::parse($times[1])->toJSON(),
+                CarbonImmutable::parse($times[2])->toJSON(),
+            ],
+            array_column($bounded, 'occurred_at'),
+        );
+    }
+
+    public function test_summary_exposes_stale_source_and_actual_event_extent(): void
+    {
+        DB::table('flow_core.flow_events')->delete();
+        $first = '2026-07-05T01:00:00Z';
+        $last = '2026-07-05T04:00:00Z';
+        $this->insertFlowEventAt($first, 1);
+        $this->insertFlowEventAt($last, 2);
+        CarbonImmutable::setTestNow('2026-07-09T12:00:00Z');
+
+        try {
+            $this->actingAs(User::factory()->create(['role' => 'bed_manager']))
+                ->getJson('/api/patient-flow/summary')
+                ->assertOk()
+                ->assertJsonPath('source.mode', 'live')
+                ->assertJsonPath('source.freshness', 'stale')
+                ->assertJsonPath('source.last_event_at', CarbonImmutable::parse($last)->toJSON())
+                ->assertJsonPath('source.stale_after_seconds', 900)
+                ->assertJsonPath('data_extent.first_event_at', CarbonImmutable::parse($first)->toJSON())
+                ->assertJsonPath('data_extent.last_event_at', CarbonImmutable::parse($last)->toJSON())
+                ->assertJsonPath('data_extent.event_count', 2)
+                ->assertJsonPath('suggested_initial_time', CarbonImmutable::parse($last)->toJSON())
+                ->assertJsonPath('live_events', 0);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_patient_level_flow_endpoints_require_a_patient_capable_lens(): void
     {
         // No Hummingbird persona at all → explicit 403 unauthorized state.
@@ -323,5 +397,35 @@ class PatientFlowApiTest extends TestCase
             ->getJson('/api/patient-flow/projections')
             ->assertOk()
             ->assertJsonPath('lens.patient_dots', 'none');
+    }
+
+    public function test_superuser_receives_a_patient_capable_flow_lens(): void
+    {
+        $superuser = User::factory()->create(['role' => 'superuser']);
+
+        $this->actingAs($superuser)
+            ->getJson('/api/patient-flow/events')
+            ->assertOk();
+
+        $this->actingAs($superuser)
+            ->getJson('/api/patient-flow/occupancy')
+            ->assertOk()
+            ->assertJsonPath('lens.role_id', 'charge_nurse')
+            ->assertJsonPath('lens.patient_dots', 'unit');
+    }
+
+    private function insertFlowEventAt(string $time, int $sequence): void
+    {
+        $hl7Time = CarbonImmutable::parse($time)->format('YmdHis');
+        $raw = implode("\r", [
+            "MSH|^~\\&|EHR|AMC|FLOW|AMC|{$hl7Time}||ADT^A01|ORDER{$sequence}|P|2.5.1",
+            "EVN|A01|{$hl7Time}",
+            "PID|||ORDER{$sequence}^^^AMC^MR||FLOW^ORDER{$sequence}",
+            "PV1||I|TICU^TICU-R001^TICU-B001^ZEPHYRUS||||99001^ATTENDING^SYNTHETIC|||critical_care|||||||||VISORDER{$sequence}^^^AMC^VN",
+            '',
+        ]);
+
+        $event = app(FlowEventNormalizer::class)->normalize($raw);
+        app(FlowEventRepository::class)->upsertNormalizedEvent($event);
     }
 }

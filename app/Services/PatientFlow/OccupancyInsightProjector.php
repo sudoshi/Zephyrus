@@ -21,10 +21,17 @@ class OccupancyInsightProjector
      * @param  array<string, array<string, mixed>>  $locations
      * @param  list<array<string, mixed>>  $projections
      * @param  array<string, mixed>  $lens
+     * @param  list<array<string, mixed>>  $operationalBarriers
      * @return array{asOf: string, occupancy: list<array<string, mixed>>, summary: array<string, mixed>}
      */
-    public function project(array $events, array $locations, array $projections, ?string $asOf, array $lens): array
-    {
+    public function project(
+        array $events,
+        array $locations,
+        array $projections,
+        ?string $asOf,
+        array $lens,
+        array $operationalBarriers = [],
+    ): array {
         $time = $asOf ? CarbonImmutable::parse($asOf) : CarbonImmutable::now();
         $tracks = $this->tracks($events);
         $identityVisible = ($lens['patient_dots'] ?? null) === 'full';
@@ -45,23 +52,44 @@ class OccupancyInsightProjector
             $loc = $locations[$locationCode];
             $arrivedAt = CarbonImmutable::parse((string) $event['occurred_at']);
             $stayMinutes = max(0, $arrivedAt->diffInMinutes($time, false));
+            $durationRisk = $this->stayTimer($stayMinutes);
             $projectionTimers = array_map(
                 fn (array $projection): array => $this->projectionTimer($projection, $time),
                 $this->nearbyProjections($event, $projections, $time),
             );
+            $operationalTimers = array_map(
+                fn (array $record): array => $this->operationalBarrierTimer($record, $identityVisible),
+                $this->matchingOperationalBarriers(
+                    ['unit_code' => $event['unit_code'] ?? $loc['unit_code'] ?? null] + $event,
+                    $operationalBarriers,
+                ),
+            );
             $knownNext = $state['next_event'] ? $this->eventTimer($state['next_event'], $time) : null;
             $timers = array_values(array_filter([
-                $this->stayTimer($stayMinutes),
+                $durationRisk,
                 $knownNext,
                 ...$projectionTimers,
+                ...$operationalTimers,
             ]));
             usort($timers, fn (array $a, array $b): int => $this->rank($b['status']) <=> $this->rank($a['status']));
 
+            $blockingTimers = array_values(array_filter($timers, fn (array $timer): bool => $timer['status'] !== 'ok'));
+            $barrierTimers = array_values(array_filter(
+                $blockingTimers,
+                fn (array $timer): bool => $this->nullableString($timer['barrier_code'] ?? null) !== null,
+            ));
+            $verifiedTimers = array_values(array_filter(
+                $barrierTimers,
+                fn (array $timer): bool => ($timer['verified'] ?? false) === true,
+            ));
+            $riskTimers = array_values(array_filter(
+                $blockingTimers,
+                fn (array $timer): bool => ($timer['classification'] ?? null) === 'duration_risk',
+            ));
             $blockers = array_values(array_unique(array_map(
                 fn (array $timer): string => (string) $timer['label'],
-                array_filter($timers, fn (array $timer): bool => $timer['status'] !== 'ok'),
+                $barrierTimers,
             )));
-            $blockingTimers = array_values(array_filter($timers, fn (array $timer): bool => $timer['status'] !== 'ok'));
 
             $item = [
                 'key' => $patientRef.':'.$locationCode,
@@ -78,14 +106,17 @@ class OccupancyInsightProjector
                 'primary_status' => $this->strongestStatus(array_column($timers, 'status')),
                 'timers' => $timers,
                 'blockers' => $blockers,
-                'barrier_reasons' => $this->uniqueTimerValues($blockingTimers, 'reason'),
-                'barrier_codes' => $this->uniqueTimerValues($blockingTimers, 'barrier_code'),
-                'barrier_labels' => $this->uniqueTimerValues($blockingTimers, 'barrier_label'),
-                'owner_roles' => $this->uniqueTimerValues($blockingTimers, 'owner_role'),
-                'delay_impacts' => $this->uniqueTimerValues($blockingTimers, 'impact'),
-                'rtdc_metrics' => $this->uniqueNestedTimerValues($blockingTimers, 'rtdc_metrics'),
-                'eddy_summaries' => $this->uniqueTimerValues($blockingTimers, 'eddy_summary'),
-                'barrier_owner_map' => $this->barrierOwnerMap($blockingTimers),
+                'risk_signals' => $this->uniqueTimerValues($riskTimers, 'label'),
+                'duration_risk' => $this->durationRiskSummary($durationRisk),
+                'verified_barriers' => $this->verifiedBarrierSummaries($verifiedTimers),
+                'barrier_reasons' => $this->uniqueTimerValues($barrierTimers, 'reason'),
+                'barrier_codes' => $this->uniqueTimerValues($barrierTimers, 'barrier_code'),
+                'barrier_labels' => $this->uniqueTimerValues($barrierTimers, 'barrier_label'),
+                'owner_roles' => $this->uniqueTimerValues($barrierTimers, 'owner_role'),
+                'delay_impacts' => $this->uniqueTimerValues($barrierTimers, 'impact'),
+                'rtdc_metrics' => $this->uniqueNestedTimerValues($barrierTimers, 'rtdc_metrics'),
+                'eddy_summaries' => $this->uniqueTimerValues($barrierTimers, 'eddy_summary'),
+                'barrier_owner_map' => $this->barrierOwnerMap($barrierTimers),
             ];
 
             if ($identityVisible) {
@@ -231,6 +262,129 @@ class OccupancyInsightProjector
         return 0;
     }
 
+    /**
+     * @param  list<array<string, mixed>>  $records
+     * @return list<array<string, mixed>>
+     */
+    private function matchingOperationalBarriers(array $event, array $records): array
+    {
+        $matched = [];
+        foreach ($records as $record) {
+            $matchedBy = $this->operationalBarrierMatch($record, $event);
+            if (! $matchedBy) {
+                continue;
+            }
+
+            $record['matched_by'] = $matchedBy;
+            $matched[] = $record;
+        }
+
+        return $matched;
+    }
+
+    private function operationalBarrierMatch(array $record, array $event): ?string
+    {
+        $eventEncounter = $this->nullableString($event['encounter_id'] ?? null);
+        $eventPatient = $this->nullableString($event['patient_id'] ?? null);
+
+        if (($record['record_type'] ?? null) === 'transport_delay') {
+            if ($eventEncounter && $eventEncounter === $this->nullableString($record['encounter_ref'] ?? null)) {
+                return 'encounter_ref';
+            }
+
+            if ($eventPatient && $eventPatient === $this->nullableString($record['patient_ref'] ?? null)) {
+                return 'patient_ref';
+            }
+
+            return null;
+        }
+
+        if ($eventEncounter && $eventEncounter === $this->nullableString($record['flow_encounter_ref'] ?? null)) {
+            return 'flow_encounter_link';
+        }
+
+        if ($eventPatient && $eventPatient === $this->nullableString($record['flow_patient_ref'] ?? null)) {
+            return 'flow_patient_link';
+        }
+
+        if ($eventPatient && $eventPatient === $this->nullableString($record['patient_ref'] ?? null)) {
+            return 'patient_ref';
+        }
+
+        // A patient/encounter barrier must never be broadcast to every patient
+        // in its unit if its explicit identity bridge does not match.
+        if (($record['encounter_specific'] ?? false) === true) {
+            return null;
+        }
+
+        $recordUnit = $this->normalizedUnitCode($record['unit_code'] ?? null);
+        $eventUnit = $this->normalizedUnitCode($event['unit_code'] ?? null);
+
+        return $recordUnit && $recordUnit === $eventUnit ? 'unit_id' : null;
+    }
+
+    /** @return array<string, mixed> */
+    private function operationalBarrierTimer(array $record, bool $identityVisible): array
+    {
+        $code = (string) ($record['barrier_code'] ?? 'unclassified_barrier');
+        $definition = $this->barriers->definition($code);
+        $sourceTable = (string) ($record['source_table'] ?? 'operational_source');
+        $sourceRecordId = (string) ($record['source_record_id'] ?? 'unknown');
+        $verification = is_array($record['verification'] ?? null) ? $record['verification'] : [];
+        $verification['matched_by'] = (string) ($record['matched_by'] ?? 'unknown');
+
+        if (($record['record_type'] ?? null) === 'transport_delay') {
+            $overdue = abs((int) ($record['minutes_remaining'] ?? 0));
+            $reason = sprintf(
+                '%s transport is %d minutes overdue in %s status.',
+                ucfirst(str_replace('_', ' ', (string) ($record['request_type'] ?? 'patient'))),
+                $overdue,
+                str_replace('_', ' ', (string) ($record['transport_status'] ?? 'active')),
+            );
+            $blocks = $identityVisible
+                ? trim(implode(' to ', array_filter([
+                    $this->nullableString($record['origin'] ?? null),
+                    $this->nullableString($record['destination'] ?? null),
+                ]))) ?: 'Next patient movement'
+                : 'Next patient movement';
+            $owner = $identityVisible
+                ? $this->nullableString($record['assigned_team'] ?? null)
+                    ?? $this->nullableString($record['assigned_vendor'] ?? null)
+                : null;
+        } else {
+            $reason = $identityVisible
+                ? $this->nullableString($record['description'] ?? null)
+                    ?? 'A verified '.str_replace('_', ' ', (string) ($record['category'] ?? 'operational')).' barrier is open.'
+                : 'A verified '.str_replace('_', ' ', (string) ($record['category'] ?? 'operational')).' barrier is open.';
+            $blocks = 'Patient progression';
+            $owner = $identityVisible ? $this->nullableString($record['owner'] ?? null) : null;
+        }
+
+        return $this->decorateBarrierTimer([
+            'kind' => (string) ($definition['timer_kind'] ?? 'readiness'),
+            'label' => (string) ($definition['label'] ?? 'Operational barrier'),
+            'due_at' => $record['due_at'] ?? null,
+            'minutes_remaining' => $record['minutes_remaining'] ?? null,
+            'status' => (string) ($record['status'] ?? 'delayed'),
+            'source' => $sourceTable,
+            'reason' => $reason,
+            'barrier_code' => $code,
+            'source_reason_code' => $this->nullableString($record['source_reason_code'] ?? null),
+            'owner_role' => (string) ($definition['owner_role'] ?? 'bed_manager'),
+            'owner' => $owner,
+            'blocks' => $blocks,
+            'impact' => 'Verified operational dependency is delaying patient flow.',
+            'classification' => 'verified_barrier',
+            'verified' => true,
+            'verification' => $verification,
+            'provenance' => [
+                'source_table' => $sourceTable,
+                'source_record_id' => $sourceRecordId,
+                'record_type' => (string) ($record['record_type'] ?? 'operational_barrier'),
+            ],
+        ]);
+    }
+
     private function eventTimer(array $event, CarbonImmutable $time): array
     {
         $minutes = $this->minutesUntil($time, (string) $event['occurred_at']);
@@ -294,8 +448,9 @@ class OccupancyInsightProjector
         $status = $stayMinutes >= self::LONG_STAY_DELAY_MINUTES
             ? 'delayed'
             : ($stayMinutes >= self::LONG_STAY_WARN_MINUTES ? 'watch' : 'ok');
+        $definition = $this->barriers->definition('long_stay_capacity_risk');
 
-        return $this->decorateBarrierTimer([
+        return [
             'kind' => 'stay',
             'label' => 'Stay',
             'due_at' => null,
@@ -303,11 +458,31 @@ class OccupancyInsightProjector
             'status' => $status,
             'source' => 'elapsed occupancy',
             'reason' => $status === 'ok' ? null : 'Elapsed occupancy has crossed the RTDC stay-duration threshold.',
-            'barrier_code' => $status === 'ok' ? null : 'long_stay_capacity_risk',
+            'barrier_code' => null,
+            'barrier_label' => null,
+            'barrier_category' => null,
+            'risk_code' => $status === 'ok' ? null : 'long_stay_capacity_risk',
+            'risk_label' => $status === 'ok' ? null : (string) ($definition['label'] ?? 'Long-stay capacity risk'),
+            'risk_category' => $status === 'ok' ? null : (string) ($definition['category'] ?? 'capacity'),
             'owner_role' => $status === 'ok' ? null : 'bed_manager',
             'blocks' => $status === 'ok' ? null : 'Capacity release',
             'impact' => $status === 'ok' ? null : 'Long-stay occupancy compounds bed availability risk.',
-        ]);
+            'rtdc_metrics' => $status === 'ok' ? [] : $this->barriers->rtdcMetricsFor('long_stay_capacity_risk'),
+            'eddy_summary' => $status === 'ok' ? null : $this->barriers->eddySummaryFor('long_stay_capacity_risk'),
+            'recommended_focus' => $status === 'ok' ? null : $this->nullableString($definition['recommended_focus'] ?? null),
+            'classification' => 'duration_risk',
+            'verified' => false,
+            'verification' => [
+                'status' => 'inferred',
+                'assertion' => 'elapsed_duration_threshold',
+                'matched_by' => 'occupancy_elapsed_time',
+            ],
+            'provenance' => [
+                'source_table' => 'flow_core.flow_events',
+                'source_record_id' => null,
+                'record_type' => 'derived_duration_risk',
+            ],
+        ];
     }
 
     /**
@@ -325,6 +500,18 @@ class OccupancyInsightProjector
                 'rtdc_metrics' => [],
                 'eddy_summary' => null,
                 'recommended_focus' => null,
+                'classification' => $timer['classification'] ?? 'projected_risk',
+                'verified' => (bool) ($timer['verified'] ?? false),
+                'verification' => is_array($timer['verification'] ?? null)
+                    ? $timer['verification']
+                    : ['status' => 'unverified'],
+                'provenance' => is_array($timer['provenance'] ?? null)
+                    ? $timer['provenance']
+                    : [
+                        'source_table' => $this->nullableString($timer['source'] ?? null),
+                        'source_record_id' => null,
+                        'record_type' => 'projected_timer',
+                    ],
             ]);
         }
 
@@ -342,6 +529,18 @@ class OccupancyInsightProjector
             'eddy_summary' => $this->barriers->eddySummaryFor($code),
             'recommended_focus' => $this->nullableString($definition['recommended_focus'] ?? null),
             'status' => $minutes !== null ? $this->barriers->statusFor($code, $minutes) : (string) ($timer['status'] ?? 'ok'),
+            'classification' => $timer['classification'] ?? 'projected_barrier',
+            'verified' => (bool) ($timer['verified'] ?? false),
+            'verification' => is_array($timer['verification'] ?? null)
+                ? $timer['verification']
+                : ['status' => 'unverified'],
+            'provenance' => is_array($timer['provenance'] ?? null)
+                ? $timer['provenance']
+                : [
+                    'source_table' => $this->nullableString($timer['source'] ?? null),
+                    'source_record_id' => null,
+                    'record_type' => 'projected_barrier',
+                ],
         ]);
     }
 
@@ -392,6 +591,8 @@ class OccupancyInsightProjector
             'transport_delays' => 0,
             'evs_delays' => 0,
             'ready_to_move' => 0,
+            'duration_risks' => 0,
+            'verified_barriers' => 0,
             'avg_stay_minutes' => 0,
             'service_lines' => [],
             'persona' => ['transport' => 0, 'evs' => 0, 'bed_manager' => 0, 'capacity' => 0],
@@ -413,7 +614,17 @@ class OccupancyInsightProjector
 
             foreach ($item['timers'] as $timer) {
                 $summary['timer_status_counts'][$timer['status']]++;
-                if ($timer['status'] !== 'ok' && ($timer['kind'] ?? null) !== 'stay') {
+                if ($timer['status'] !== 'ok' && ($timer['classification'] ?? null) === 'duration_risk') {
+                    $summary['duration_risks']++;
+                }
+                if ($timer['status'] !== 'ok' && ($timer['verified'] ?? false) === true) {
+                    $summary['verified_barriers']++;
+                }
+                if (
+                    $timer['status'] !== 'ok'
+                    && ($timer['kind'] ?? null) !== 'stay'
+                    && $this->nullableString($timer['barrier_code'] ?? null) !== null
+                ) {
                     $barrierCode = $this->nullableString($timer['barrier_code'] ?? null);
                     $barrierKey = $barrierCode ?: implode('|', [
                         (string) ($timer['label'] ?? 'Barrier'),
@@ -429,10 +640,18 @@ class OccupancyInsightProjector
                         'rtdc_metrics' => [],
                         'eddy_summary' => $this->nullableString($timer['eddy_summary'] ?? null),
                         'recommended_focus' => $this->nullableString($timer['recommended_focus'] ?? null),
+                        'verified_count' => 0,
+                        'sources' => [],
                         'count' => 0,
                         'service_lines' => [],
                     ];
                     $barriers[$barrierKey]['count']++;
+                    if (($timer['verified'] ?? false) === true) {
+                        $barriers[$barrierKey]['verified_count']++;
+                    }
+                    if ($source = $this->nullableString($timer['provenance']['source_table'] ?? null)) {
+                        $barriers[$barrierKey]['sources'][] = $source;
+                    }
                     $barriers[$barrierKey]['rtdc_metrics'] = array_values(array_unique([
                         ...$barriers[$barrierKey]['rtdc_metrics'],
                         ...(is_array($timer['rtdc_metrics'] ?? null) ? $timer['rtdc_metrics'] : []),
@@ -445,7 +664,9 @@ class OccupancyInsightProjector
 
             $transport = collect($item['timers'])->contains(fn (array $timer): bool => in_array($timer['kind'], ['arrival_transport', 'next_transport'], true) && $timer['status'] !== 'ok');
             $evs = collect($item['timers'])->contains(fn (array $timer): bool => $timer['kind'] === 'evs' && $timer['status'] !== 'ok');
-            $ready = collect($item['timers'])->contains(fn (array $timer): bool => $timer['minutes_remaining'] !== null && $timer['minutes_remaining'] <= self::READY_MOVE_WINDOW_MINUTES);
+            $ready = collect($item['timers'])->contains(fn (array $timer): bool => $timer['minutes_remaining'] !== null
+                && $timer['minutes_remaining'] >= 0
+                && $timer['minutes_remaining'] <= self::READY_MOVE_WINDOW_MINUTES);
 
             if ($transport) {
                 $summary['transport_delays']++;
@@ -478,6 +699,7 @@ class OccupancyInsightProjector
         $summary['service_lines'] = array_slice($summary['service_lines'], 0, 8);
         $summary['top_barriers'] = array_values(array_map(function (array $row): array {
             $row['service_lines'] = array_values(array_unique($row['service_lines']));
+            $row['sources'] = array_values(array_unique($row['sources']));
 
             return $row;
         }, $barriers));
@@ -519,6 +741,40 @@ class OccupancyInsightProjector
         return array_values(array_unique($values));
     }
 
+    /** @return array<string, mixed> */
+    private function durationRiskSummary(array $timer): array
+    {
+        return [
+            'status' => (string) ($timer['status'] ?? 'ok'),
+            'classification' => 'duration_risk',
+            'risk_code' => $this->nullableString($timer['risk_code'] ?? null),
+            'risk_label' => $this->nullableString($timer['risk_label'] ?? null),
+            'verified' => false,
+            'verification' => $timer['verification'] ?? ['status' => 'inferred'],
+            'provenance' => $timer['provenance'] ?? [],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $timers
+     * @return list<array<string, mixed>>
+     */
+    private function verifiedBarrierSummaries(array $timers): array
+    {
+        return array_values(array_map(fn (array $timer): array => [
+            'barrier_code' => $this->nullableString($timer['barrier_code'] ?? null),
+            'label' => $this->nullableString($timer['barrier_label'] ?? $timer['label'] ?? null),
+            'category' => $this->nullableString($timer['barrier_category'] ?? null),
+            'reason' => $this->nullableString($timer['reason'] ?? null),
+            'owner_role' => $this->nullableString($timer['owner_role'] ?? null),
+            'owner' => $this->nullableString($timer['owner'] ?? null),
+            'status' => (string) ($timer['status'] ?? 'delayed'),
+            'verified' => true,
+            'verification' => $timer['verification'] ?? ['status' => 'verified'],
+            'provenance' => $timer['provenance'] ?? [],
+        ], $timers));
+    }
+
     /** @param list<array<string, mixed>> $timers */
     private function barrierOwnerMap(array $timers): array
     {
@@ -532,10 +788,19 @@ class OccupancyInsightProjector
             $map[$code] = [
                 'label' => $this->nullableString($timer['barrier_label'] ?? null),
                 'owner_role' => $this->nullableString($timer['owner_role'] ?? null),
+                'verified' => (bool) ($timer['verified'] ?? false),
+                'source_table' => $this->nullableString($timer['provenance']['source_table'] ?? null),
             ];
         }
 
         return $map;
+    }
+
+    private function normalizedUnitCode(mixed $value): ?string
+    {
+        $value = $this->nullableString($value);
+
+        return $value ? strtoupper($value) : null;
     }
 
     private function nullableString(mixed $value): ?string

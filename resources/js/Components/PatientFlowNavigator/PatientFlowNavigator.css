@@ -59,6 +59,46 @@
   font-size: 16px;
 }
 
+.patient-flow-source-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  margin-bottom: 10px;
+  border-left: 3px solid #64bfd0;
+  padding: 7px 9px;
+  background: rgba(100, 191, 208, 0.08);
+  color: #ddd6c7;
+  font-size: 11px;
+}
+
+.patient-flow-source-status.stale {
+  border-left-color: #e0a33f;
+  background: rgba(224, 163, 63, 0.1);
+}
+
+.patient-flow-source-status.missing,
+.patient-flow-source-status.degraded {
+  border-left-color: #f06755;
+  background: rgba(240, 103, 85, 0.1);
+}
+
+.patient-flow-source-status strong {
+  color: #f3efe5;
+  text-transform: capitalize;
+}
+
+.patient-flow-source-status span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-source-status small {
+  grid-column: 1 / -1;
+  color: #b9b2a6;
+}
+
 .patient-flow-time {
   display: grid;
   gap: 8px;
@@ -164,6 +204,16 @@
   margin: 0;
   color: #b9b2a6;
   font-size: 12px;
+}
+
+.patient-flow-chronobar-extent {
+  margin: 0;
+  color: #a8d8df;
+  font-size: 11px;
+}
+
+.patient-flow-chronobar-extent.stale {
+  color: #ffd795;
 }
 
 /* Forecast HUD strip — aggregate projections at the scrubbed future time. */
@@ -376,6 +426,26 @@
   margin-top: 12px;
 }
 
+.patient-flow-duration-risk {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 8px;
+  border-left: 3px solid #e0a33f;
+  padding: 6px 8px;
+  background: rgba(224, 163, 63, 0.08);
+  color: #ddd6c7;
+  font-size: 11px;
+}
+
+.patient-flow-duration-risk span {
+  text-align: right;
+}
+
+.patient-flow-duration-risk small {
+  grid-column: 1 / -1;
+  color: #b9b2a6;
+}
+
 .patient-flow-rollup-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -505,7 +575,7 @@
 
 .patient-flow-feed li {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 104px 1fr;
   gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   padding-top: 5px;

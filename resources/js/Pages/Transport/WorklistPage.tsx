@@ -1,6 +1,7 @@
 import TransportLayout from './TransportLayout';
+import { OperationalDataError, SourceFreshnessBanner } from '@/Components/Operations/OperationalDataState';
 import { EmptyTransportState, MetricTile, sampleRequest, TransportRequestRow, typeLabels } from './components';
-import { useAssignTransportRequest, useCreateTransportRequest, useTransportRequests, useUpdateTransportStatus } from '@/features/transport/hooks';
+import { useAssignTransportRequest, useCreateTransportRequest, useTransportOverview, useTransportRequests, useUpdateTransportStatus } from '@/features/transport/hooks';
 import type { TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
 import type { ReactNode } from 'react';
 import { CheckCircle2 } from 'lucide-react';
@@ -37,11 +38,12 @@ function isDispatchable(row: TransportRequest): boolean {
 }
 
 export default function WorklistPage({ title, subtitle, current, requestType, mode = 'default', children }: WorklistPageProps) {
-  const { data: requests, isLoading } = useTransportRequests(requestType);
+  const requestsQuery = useTransportRequests(requestType, mode === 'dispatch' ? 'dispatch' : 'active');
+  const overviewQuery = useTransportOverview();
   const createRequest = useCreateTransportRequest();
   const assignRequest = useAssignTransportRequest();
   const updateStatus = useUpdateTransportStatus();
-  const allRows = requests ?? [];
+  const allRows = requestsQuery.data ?? [];
   const isDispatch = mode === 'dispatch';
   const rows = isDispatch ? allRows.filter(isDispatchable) : allRows;
   const unassigned = rows.filter((row) => !row.assigned_team && !row.assigned_vendor).length;
@@ -68,6 +70,19 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
 
   return (
     <TransportLayout title={title} subtitle={subtitle} current={current}>
+      {requestsQuery.isError ? (
+        <OperationalDataError
+          title="Transport worklist unavailable"
+          error={requestsQuery.error}
+          onRetry={() => void requestsQuery.refetch()}
+        />
+      ) : requestsQuery.isLoading ? (
+        <div className="rounded-md border border-healthcare-border p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+          Loading transport requests...
+        </div>
+      ) : (
+        <>
+      {overviewQuery.data ? <SourceFreshnessBanner source={overviewQuery.data.source} onRetry={() => void overviewQuery.refetch()} /> : null}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricTile label={isDispatch ? 'In Queue' : 'Visible Requests'} value={rows.length} />
         {isDispatch ? (
@@ -100,22 +115,20 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
               : 'Operational controls update the canonical transport event stream.'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleCreate}
-          disabled={createRequest.isPending}
-          className="rounded-md bg-healthcare-primary px-4 py-2 text-sm/[18px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
-        >
-          {createRequest.isPending ? 'Creating...' : 'Create sample request'}
-        </button>
+        {overviewQuery.data?.source.synthetic ? (
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={createRequest.isPending}
+            className="rounded-md bg-healthcare-primary px-4 py-2 text-sm/[18px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {createRequest.isPending ? 'Creating...' : 'Create sample request'}
+          </button>
+        ) : null}
       </div>
 
       <div className="space-y-3">
-        {isLoading ? (
-          <div className="rounded-md border border-healthcare-border p-4 text-sm/[18px] text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
-            Loading transport requests...
-          </div>
-        ) : rows.length === 0 ? (
+        {rows.length === 0 ? (
           isDispatch ? (
             <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-6 text-center dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
               <CheckCircle2 className="mx-auto h-8 w-8 text-healthcare-success dark:text-healthcare-success-dark" />
@@ -140,6 +153,8 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
           ))
         )}
       </div>
+        </>
+      )}
     </TransportLayout>
   );
 }
