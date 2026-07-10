@@ -126,6 +126,9 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
     ->prefix('arena')->group(function () {
         Route::get('/health', [\App\Http\Controllers\Api\ArenaController::class, 'health']);
         Route::get('/summary', [\App\Http\Controllers\Api\ArenaController::class, 'summary']);
+        Route::get('/models', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'index']);
+        Route::get('/models/{processId}', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'show'])
+            ->where('processId', '[A-Ha-h](?:[1-9]|1[0-4])');
         Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
         Route::get('/performance', [\App\Http\Controllers\Api\ArenaController::class, 'performance']);
         Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);

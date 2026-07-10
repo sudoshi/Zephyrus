@@ -1,6 +1,15 @@
 // resources/js/features/arena/hooks.ts
 import { useQuery } from '@tanstack/react-query';
-import { fetchArenaConformance, fetchArenaMap, fetchArenaNarrative, fetchArenaPerformance, fetchArenaSummary, type ArenaMapParams } from './api';
+import {
+  fetchArenaConformance,
+  fetchArenaMap,
+  fetchArenaNarrative,
+  fetchArenaPerformance,
+  fetchArenaProcessModel,
+  fetchArenaProcessModels,
+  fetchArenaSummary,
+  type ArenaMapParams,
+} from './api';
 
 // Discovered maps are server-cached in arena.maps; a 60s client staleTime keeps
 // the Study responsive to filter changes without re-hitting the sidecar on every
@@ -19,6 +28,23 @@ export function useArenaSummary() {
     queryKey: ['arena', 'summary'],
     queryFn: fetchArenaSummary,
     staleTime: 60_000,
+  });
+}
+
+export function useArenaProcessModels() {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'process-models'],
+    queryFn: fetchArenaProcessModels,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useArenaProcessModel(processId: string | null) {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'process-model', processId],
+    queryFn: () => fetchArenaProcessModel(processId as string),
+    enabled: processId !== null && processId !== '',
+    staleTime: 5 * 60_000,
   });
 }
 

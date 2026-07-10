@@ -13,6 +13,7 @@ import { ConformancePane } from '@/Components/arena/ConformancePane';
 import { CopilotPane } from '@/Components/arena/CopilotPane';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
 import { PerformancePane } from '@/Components/arena/PerformancePane';
+import { ProcessModelLandscape } from '@/Components/arena/ProcessModelLandscape';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
 import { useArenaConformance, useArenaMap, useArenaPerformance, useArenaSummary } from '@/features/arena/hooks';
 import {
@@ -111,9 +112,20 @@ export default function Arena() {
       <Head title="Patient-Flow Arena" />
 
       <div className="space-y-4">
+        <ProcessModelLandscape />
+
+        <div className="pt-4">
+          <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Observed OCEL evidence
+          </h2>
+          <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            The sections below are computed from projected events. They are deliberately separate from the seeded reference landscape above.
+          </p>
+        </div>
+
         <InfoCard
-          title="Object-centric process map — discovered, not drawn"
-          body="This map is mined from the OCEL 2.0 log the platform projects from its own event data (RTDC, ED, perioperative, clinical pathways). Each node is an activity; each arc is a directly-follows relation coloured by the object type that governs it. Filter to a single object type to read that lifecycle in isolation."
+          title="Per-object-type DFG exploration — mined, not drawn"
+          body="This exploratory map flattens the projected OCEL log once per object type, mines a directly-follows graph for each type, and combines those tagged views. It is useful discovery evidence, but it is not a formally discovered object-centric Petri net. Filter to one object type to read that lifecycle in isolation."
         />
 
         {/* Summary strip */}
@@ -302,11 +314,11 @@ export default function Arena() {
         <div className="space-y-3 pt-2">
           <div>
             <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-              Object-centric performance
+              Performance candidates (heuristic)
             </h2>
             <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-              Where flow is lost — measured per object type (no convergence inflation) and at the hand-offs where lifecycles
-              synchronize, so a bottleneck is localized to the side that actually waits.
+              Heuristic adjacent lifecycle gaps and time-since-prior-event summaries. These can localize candidate waits for
+              investigation; they are not formal OPerA synchronization, pooling, or lagging measures from OCPN replay.
             </p>
           </div>
           {performance ? (
@@ -339,11 +351,11 @@ export default function Arena() {
         <div className="space-y-3 pt-2">
           <div>
             <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-              Patient-safety conformance
+              Pathway rule conformance (batch)
             </h2>
             <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-              Live adherence of the OCEL log to the reference care pathways. Every deviation is observed — derived from the
-              event sequence and timing — never predicted.
+              Batch, pathway-specific rule checks over one configured case object. Deviations are observed from event sequence
+              and timing, not predicted; this is not general object-centric alignment or streaming prefix conformance.
             </p>
           </div>
           {conformancePathways ? (

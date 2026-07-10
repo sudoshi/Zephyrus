@@ -47,6 +47,10 @@ class DatabaseSeeder extends Seeder
             // Runs AFTER CommandCenterDemoSeeder because surgical safety attaches to
             // its seeded prod.or_cases. Idempotent (tag/cohort delete-then-insert).
             ClinicalPathwaySeeder::class,
+            // ACUM-OPS-OCEL-001 reference-model registry. These are seeded,
+            // explicitly non-observed bounded flows for the Arena landscape;
+            // live/discovered evidence remains in ocel.events + arena.maps.
+            OcelProcessLandscapeSeeder::class,
             // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
             // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
             // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.

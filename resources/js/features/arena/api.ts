@@ -29,6 +29,16 @@ export async function fetchArenaSummary(): Promise<unknown> {
   return res.data;
 }
 
+export async function fetchArenaProcessModels(): Promise<unknown> {
+  const res = await axios.get('/api/arena/models');
+  return res.data;
+}
+
+export async function fetchArenaProcessModel(processId: string): Promise<unknown> {
+  const res = await axios.get(`/api/arena/models/${encodeURIComponent(processId)}`);
+  return res.data;
+}
+
 export async function fetchArenaConformance(pathway?: string): Promise<unknown> {
   const res = await axios.get('/api/arena/conformance', {
     params: { pathway: pathway || undefined },
