@@ -1,6 +1,6 @@
 # Operational Platform Closure Checklist
 
-**Status:** Active execution checklist
+**Status:** Core closure tranches shipped; external connector activation and deploy-source hardening remain
 
 **Opened:** 2026-07-10
 
@@ -16,7 +16,8 @@
 - [x] R0.6 Deploy only the merged `main` tree through `./deploy.sh`.
 - [x] R0.7 Verify Apache, the forced Zephyrus vhost, the public login boundary, runtime file parity, and current release migrations.
 - [x] R0.8 Restore all pre-existing local worktree changes without including them in the release PR.
-- [ ] R0.9 Keep each remaining tranche on a separate branch and PR; require full CI and a post-merge deployment from `main` before starting the next production tranche.
+- [x] R0.9 Keep each implementation tranche on a separate branch and PR; PRs #15 through #19 each passed all five required checks, merged normally, and were deployed from the resulting `main` history before the next production tranche.
+- [ ] R0.10 Make `deploy.sh` publish an immutable release snapshot, or revalidate and abort immediately before rsync, so concurrent writes cannot enter a release after the initial clean-tree check. The transport deployment exposed this time-of-check/time-of-use race; the correction record below is the acceptance baseline.
 
 ## Patient Flow authorization and ingress hotfix
 
@@ -96,11 +97,11 @@ Pre-PR local evidence on the isolated wall-lockdown branch:
 
 - [x] I1.1a Change the repository/runtime default to the database queue and add an `integrations,default` worker with bounded timeout, backoff, memory, and lifecycle settings.
 - [x] I1.1b Add a hardened systemd unit plus deploy-time install/restart/active verification; keep first-run migrations explicit through `DEPLOY_RUN_MIGRATIONS=1`.
-- [ ] I1.1c Install the unit in production, change production from `sync` to `database`, and prove scheduler → database job → worker completion.
+- [x] I1.1c Install the unit in production, change production from `sync` to `database`, and prove scheduler → database job → worker completion.
 - [x] I1.2 Add protocol-aware health checks for FHIR R4/SMART and HL7 v2 rather than configuration-presence checks; keep protocol health separate from data freshness.
 - [x] I1.3 Add audited replay controls with bounded source/time/event scope, read-only preview, idempotency, and strict operator authorization. Execution excludes already-projected events.
 - [x] I1.4a Add an idempotent real Epic public-sandbox source with official FHIR, SMART-discovery, and token endpoints; never commit credentials.
-- [ ] I1.4b Configure that source in production and complete a live discovery run.
+- [x] I1.4b Configure that source in production and complete a live discovery run. This is discovery-only; credentialed clinical polling remains I1.5b.
 - [x] I1.5a Prove RS384 SMART client assertion construction, five-minute JWT lifetime, minimal Encounter/Location scope, FHIR 4.0.1 compatibility, version retention, provenance, pagination bounds, and watermark advancement in integration tests.
 - [ ] I1.5b Complete a real Epic token exchange and poll. External gate: registered Epic non-production client ID plus an approved private-key reference.
 - [x] I1.6a Operationalize the S1 HL7 boundary with source-governance and bounded machine-token commands plus protocol health.
@@ -120,6 +121,14 @@ Current isolated branch evidence:
 - Full `npx vitest run --coverage`: 81 files and 343 tests passed; `npm run build` and `scripts/check-ui-canon.sh` passed.
 - Clean Arena environment: 17 pytest tests passed.
 - Production pre-change audit: `QUEUE_CONNECTION=sync`, no Zephyrus worker, no endpoints/watermarks/FHIR or SMART rows, and only the synthetic non-PHI HL7 file source. No Epic client identity or private-key reference exists on the host.
+
+Production release evidence:
+
+- PR #17 passed all five exact-head CI checks at `a515575af5f94c94060b9649bc5ab5371a76be77` and merged as `3b41fe241359d3041bb1ab12ab3af5a294b54f0c`.
+- Migration `2026_07_10_000200_operationalize_integration_runtime` is recorded in production batch 23. The deployed queue default is `database`; `zephyrus-queue-worker.service` is enabled and active with `integrations,default`, and both scheduled integration dispatchers are registered.
+- Production has a governed `epic.fhir-r4.sandbox` source with three active `fhir.epic.com` endpoints. Live SMART discovery and CapabilityStatement validation report FHIR `4.0.1` and protocol health `healthy`; polling remains `activation_required` because no client identity/private-key reference is present.
+- The scheduler and database worker completed 59 Epic and 58 synthetic-HL7 protocol-health runs by 2026-07-10 19:50 EDT. Epic reported healthy; the synthetic file source truthfully reported degraded because no machine-ingress identity is configured. The queue then contained zero pending and zero failed jobs.
+- Clinical polling remains intentionally unopened: connector watermarks are zero until I1.5b supplies approved Epic credentials. The first real production HL7 sender remains gated by I1.6b's executed contract/BAA, PHI approval, live sender identity, and bounded machine token.
 
 ## Staffing operations completion
 
@@ -142,6 +151,13 @@ Current isolated branch evidence:
 - Full `npx vitest run --coverage` after rebasing onto `main`: 82 files and 346 tests passed. `npx tsc --noEmit` and `npm run build` passed.
 - `scripts/check-ui-canon.sh` names no staffing file, but the branch inherits pre-existing failures from `main` commit `025139f` in the newly added Arena UI (font weight, arbitrary text sizes, and raw palette ratchet); those unrelated files remain outside this tranche.
 - Android `testDebugUnitTest` passed under the repository-supported JDK 17. Native iOS compilation is unavailable on this Linux host; shared contract/parity guards cover the iOS request and model seams pending GitHub/macOS validation if configured.
+
+Production release evidence:
+
+- PR #18 passed all five exact-head CI checks at `2beab3547f1356c10efcf1f170a28d77a7f7cee3` and merged as `9f2795f80edc5e222d0be7f53287aefca281a139`.
+- Migration `2026_07_10_000300_create_canonical_staffing_fulfillment_tables` is recorded in production batch 25, and the daily `staffing:materialize-canonical` schedule is registered for 04:10.
+- Production contains 4,529 canonical staff members/assignments, 4,517 verified qualifications, and 124,275 future materializer-owned availability windows: 122,651 available, 896 leave, and 728 unavailable.
+- The production invariants return zero overfilled staffing requests and zero overlapping offered/accepted/filled shift assignments.
 
 ## Transport lifecycle completion
 
@@ -168,19 +184,38 @@ Current isolated branch evidence:
 - A production-shaped disposable database rehearsal copied the complete current schema plus 202 transport requests, 2,178 events, and the real 92-row migration ledger. The migration completed in 214 ms (0.36 s command elapsed), synchronized six configured resources, grandfathered 144 terminal records, and returned zero rows for duplicate active assignments, over-capacity resources, missing required evidence, duplicate command keys, stranded assignment-required states, lifecycle versions below one, and escalations without a recovery state.
 - `docs/operations/TRANSPORT-LIFECYCLE-RUNBOOK.md` records configuration, deployment, invariant queries, smoke tests, incident handling, and rollback constraints.
 
+Production release evidence:
+
+- PR #19 passed all five exact-head CI checks at `bf55dee1fd463da72cdddecc43513fc9fe515de2` and merged as `12e1a12d686c85598bd5f6cfbd9bddad5b990a1a`.
+- A verified directory-format PostgreSQL backup was captured at `/var/backups/zephyrus/pre-transport-12e1a12-20260710-190249.dir` before the schema change. Migration `2026_07_10_000400_govern_transport_lifecycle` is recorded in production batch 26, and `transport:sync-resources` completed successfully.
+- Final production state contains 202 requests, 10 resources, 20 active assignments, and 144 explicitly grandfathered terminal records. All seven runbook invariants return zero violations: duplicate active assignments, resource over-capacity, required completion without handoff evidence, duplicate idempotency keys, assignment-required requests without an active assignment, lifecycle versions below one, and escalations without a resume state.
+- The first transport deployment run that passed the initial guard exposed R0.10: a concurrent worktree writer changed files after `deploy.sh`'s initial clean check but before rsync, causing an unrelated unmerged audit migration to run. The single generated audit row was preserved in a restricted backup, a detached clean snapshot of merged `main` was redeployed through `deploy.sh`, only the unrelated migration was rolled back, and its source files were removed. The transport migration was never rolled back.
+- After correction, Apache and the queue worker were active, the login boundary returned 302, the worker completed scheduled jobs, and every deploy-eligible tracked regular file compared byte-for-byte with merged `main` (zero mismatches; nested test trees are intentionally excluded by `deploy.sh`). The unrelated audit migration row/table are absent.
+
 ## Canonical documentation reconciliation
 
-- [ ] D1.1 Re-audit code, migrations, tests, CI, deployed runtime, and open PR state before changing completion claims.
-- [ ] D1.2 Reconcile `docs/superpowers/plans/2026-07-09-operational-platform-remediation-plan.md` so deployed work is marked shipped rather than gated.
-- [ ] D1.3 Link each remaining gate to this checklist's evidence, owner, branch/PR, test, migration, and deployment result.
-- [ ] D1.4 Remove contradictory status language while preserving historical decision context.
-- [ ] D1.5 Update the canonical PRD/plan only after the corresponding production tranche is verified.
+- [x] D1.1 Re-audit code, migrations, tests, exact-head CI, deployed runtime, and open PR state before changing completion claims.
+- [x] D1.2 Reconcile `docs/superpowers/plans/2026-07-09-operational-platform-remediation-plan.md` so deployed work is marked shipped rather than gated.
+- [x] D1.3 Link each remaining gate to this checklist's evidence, owner, future bounded PR, acceptance test, migration, and deployment result.
+- [x] D1.4 Remove contradictory status language while preserving the dated 2026-07-09 audit/checkpoint as historical evidence.
+- [x] D1.5 Update the remediation authority only after verifying the corresponding production tranches. The separately modified `docs/ZEPHYRUS-2.0-PLAN.md` remains untouched by this branch.
 
-## Definition of done for every production tranche
+## Remaining gates after reconciliation
 
-- [ ] The branch contains only the intended tranche and preserves unrelated local work.
-- [ ] Focused tests and relevant static/build checks pass locally.
-- [ ] Full GitHub branch CI passes on the exact PR head.
-- [ ] Review/merge happens through a normal PR; no history rewrite or direct production pull is used.
-- [ ] `main` contains the PR head, the production deploy comes from that merged `main`, and runtime verification is recorded.
-- [ ] Documentation claims match the code and deployed state after—not before—the verification gate.
+| Gate | Owner | Current evidence | Acceptance and release tracking |
+| --- | --- | --- | --- |
+| R0.10 immutable deploy source | Release engineering | The transport correction above proves the clean-check/rsync race and the clean-snapshot recovery. | A separate PR must add an immutable snapshot or pre-rsync recheck, test concurrent mutation/abort behavior, pass full CI, merge, and be exercised by the next `main` deployment. |
+| I1.5b credentialed Epic poll | Integrations + Security | Discovery is healthy against the configured Epic FHIR R4 sandbox; status is `activation_required`, with zero clinical watermarks and no secret reference. | A bounded activation change must provide an approved non-production client ID/private-key reference outside Git, pass live token/Encounter/Location poll and lineage checks, advance a watermark, pass CI, and deploy from `main`. No schema migration is expected. |
+| I1.6b production HL7 v2 ADT | Integrations + Privacy/Interface Operations | The machine-authenticated raw → canonical → Patient Flow path is deployed; only the synthetic non-PHI source is active. | After contract/BAA/PHI approval and sender identity, a bounded activation change must configure a production/live source and exact-ability token, deliver one test ADT with lineage/provenance, pass security smoke, and record deployment evidence. No new migration is expected unless sender-specific state requires one. |
+| I1.7b live failure/rotation drill | Integrations + Operations | Queue supervision, health jobs, replay controls, and runbooks are deployed; no live credential/feed exists to rotate or fail safely yet. | Exercise token/poll failure, dead-letter recovery, staleness, credential overlap rotation, worker restart, and rollback after I1.5b/I1.6b. Track it in the same activation PR or a dedicated operations-evidence PR. |
+| Extended staffing/transport roadmap | Staffing + Transport | Canonical qualification/availability/fulfillment and governed transport lifecycle are deployed with green invariants. | Future bounded PRs retain the still-unchecked July 9 items: versioned staffing rule approvals/forecast UX/FHIR mapping, and explicit pre-transport equipment checklist plus resource-shift/vendor-event depth. Each schema-bearing slice requires rehearsal, focused/full tests, CI, migration, and `main` deployment evidence. |
+| Open Patient Flow PR #13 | Patient Flow | GitHub still reports `feat/patient-flow-4d-barrier-eddy` open at `413f31fdbbb9c37f3979e324fd1be2abbeed7b2f`; it overlaps substantial later Patient Flow work already in `main`. | Re-audit unique commits and either rebase into a bounded non-duplicate PR or close it as superseded. Do not merge the stale branch wholesale. |
+
+## Definition of done for completed implementation tranches #14-#19
+
+- [x] The branch contains only the intended tranche and preserves unrelated local work.
+- [x] Focused tests and relevant static/build checks pass locally.
+- [x] Full GitHub branch CI passes on the exact PR head.
+- [x] Review/merge happens through a normal PR; no history rewrite or direct production pull is used.
+- [x] `main` contains the PR head, the production deploy comes from that merged `main`, and runtime verification is recorded.
+- [x] Documentation claims match the code and deployed state after—not before—the verification gate.

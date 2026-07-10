@@ -1,9 +1,10 @@
 # Operational Platform Remediation Plan
 
 Date: 2026-07-09
-Status: In progress - first local implementation tranche complete; production release gated
+Status: Reconciled 2026-07-10 - core release/security/wall/integrations/staffing/transport tranches shipped; bounded external and extended-roadmap gates remain
 Repository: `/home/smudoshi/Github/Zephyrus`
-Branch audited: `feat/hummingbird-4d-service-line-eddy`
+Branch originally audited: `feat/hummingbird-4d-service-line-eddy`
+Current verified production history: `main` through `12e1a12d686c85598bd5f6cfbd9bddad5b990a1a`
 Production surface audited: `https://zephyrus.acumenus.net`
 Scope owners: Staffing, Transport, Patient Flow, Navigation, Integrations, Data, Security, QA, Operations
 
@@ -17,7 +18,7 @@ This plan addresses five related failures in the current Zephyrus application:
 4. Patient Flow 4D has geometry and historical events but does not show current movements, patient trails, sourced barriers, or useful detail.
 5. Transport has existing rows but the browser rejects them, and the underlying demo scenarios and resource model are not operationally plausible.
 
-The user authorized local implementation after the audit. Production data changes and deployment remain separately gated by the migration, clone-rehearsal, and release checks in this plan.
+The user authorized local implementation after the audit. At plan opening, production data changes and deployment were separately gated by the migration, clone-rehearsal, and release checks below. Section 1.2 records which gates subsequently closed and which still remain.
 
 ### 1.1 Implementation checkpoint - 2026-07-09
 
@@ -39,7 +40,36 @@ Local validation evidence:
 - Authenticated browser smoke renders Staffing, Transport, Integrations, and Patient Flow without page errors or HTTP 5xx responses. Patient Flow returned 652 seeded events, loaded the latest 180-event replay, rendered 87 patient tracks, and produced nonblank desktop/mobile canvases.
 - Full PHP suite on an isolated release database: 700 passed, 1 intentionally skipped, and 7,271 assertions. The initially exposed governance, mobile contract, clean-schema FK fixture, and parity assertion drift was corrected before this green run.
 
-Production remains gated on the targeted July migration chain, the two new integration-audit migrations, a production-clone rehearsal, facility/source allowlists, asynchronous integration workers, and authenticated production smoke. No production deployment was performed at this checkpoint.
+At this 2026-07-09 checkpoint, production remained gated on the targeted July migration chain, the two new integration-audit migrations, a production-clone rehearsal, facility/source allowlists, asynchronous integration workers, and authenticated production smoke. No production deployment had been performed at that checkpoint. This paragraph is retained as historical evidence; it is superseded by the verified 2026-07-10 state below.
+
+### 1.2 Production reconciliation - 2026-07-10
+
+The core remediation sequence is merged through normal pull requests, reachable from `main`, exact-head CI green, and deployed. The authoritative per-tranche evidence and remaining gates are maintained in `docs/superpowers/plans/2026-07-10-operational-platform-closure-checklist.md`.
+
+| Tranche | Pull request and merge | Verified production result |
+| --- | --- | --- |
+| Release-history reconciliation | [PR #14](https://github.com/sudoshi/Zephyrus/pull/14), merge `23cb99eff90b2f6af9428cf8f6359defe9316c3e` | The fourteen deployed feature commits remain intact and reachable from `main`; CI/deployment now originate from normal release history. |
+| Patient Flow authorization/ingress | [PR #15](https://github.com/sudoshi/Zephyrus/pull/15), merge `2905664a058e7ba15ff9c6d941e67c090f562c09` | Flow-lens scope/redaction, authorized FHIR construction, and exact-ability machine HL7 ingress are deployed; the retired browser route is absent. |
+| Patient Flow wall lockdown | [PR #16](https://github.com/sudoshi/Zephyrus/pull/16), merge `356b5004d856eac0cb67c1b05cb07f23a309c935` | Wall mode is chromeless/render-only while desk-mode drill, lens, patient, inbox, and Eddy interactions remain available. |
+| Integrations operational runtime | [PR #17](https://github.com/sudoshi/Zephyrus/pull/17), merge `3b41fe241359d3041bb1ab12ab3af5a294b54f0c` | Database queues, supervised workers, protocol health, bounded replay/dead-letter controls, Epic FHIR R4/SMART discovery, and governed HL7 ADT machinery are deployed. |
+| Canonical staffing fulfillment | [PR #18](https://github.com/sudoshi/Zephyrus/pull/18), merge `9f2795f80edc5e222d0be7f53287aefca281a139` | Qualifications, availability windows, shift assignments, governed fulfillment, web/Hummingbird parity, and the materialization schedule are deployed. |
+| Governed transport lifecycle | [PR #19](https://github.com/sudoshi/Zephyrus/pull/19), merge `12e1a12d686c85598bd5f6cfbd9bddad5b990a1a` | Server transition rules, immutable idempotency receipts/events/evidence, resource capacity, handoff enforcement, web/mobile parity, and cursor pagination are deployed. |
+
+All six pull requests passed the same five required checks: two Laravel/PHPUnit jobs, Node/Vite, Vitest/Vite, and Arena pytest. Final live evidence includes:
+
+- July foundation migrations `2026_07_04_000110` through `000170` are recorded; 23 active inpatient units and 500 active beds are mapped, and 1,150 occupancy snapshots span 23 spaces through 2026-07-10 19:00 EDT.
+- Integration migration `000200` is production batch 23. The database worker is enabled/active, scheduled health/poll dispatchers are registered, 117 protocol-health jobs completed, and the queue had zero pending/failed jobs at reconciliation. Epic discovery is healthy against three active `fhir.epic.com` endpoints; the synthetic HL7 file source is truthfully degraded because no machine-ingress identity is configured. Credentialed Epic polling remains activation-gated and therefore has no clinical watermark.
+- Staffing migration `000300` is production batch 25. The runtime contains 4,529 canonical members/assignments, 4,517 verified qualifications, and 124,275 future materializer windows, with zero overfilled requests and zero overlapping active shift assignments.
+- Transport migration `000400` is production batch 26. The runtime contains 202 requests, 10 resources, 20 active assignments, and 144 explicitly grandfathered terminal records; every runbook capacity, assignment, handoff, idempotency, version, and escalation invariant returns zero violations.
+- Apache and `zephyrus-queue-worker.service` are active, the public login boundary is intact, and deploy-eligible tracked production files match merged `main` byte-for-byte.
+
+The remaining gates are deliberately narrower than the original production gate:
+
+1. Harden `deploy.sh` against concurrent writes between its initial clean-tree check and rsync by publishing an immutable release snapshot or rechecking immediately before sync.
+2. Supply approved Epic non-production backend credentials outside Git, complete a live token exchange and bounded Encounter/Location poll, and advance a clinical watermark.
+3. Complete interface governance for the first production HL7 v2 ADT sender, issue a bounded machine token, and prove one test ADT through raw, canonical, Patient Flow, and provenance records.
+4. Exercise credential rotation, failure/dead-letter recovery, staleness, worker restart, and rollback after real Epic/HL7 activation.
+5. Continue the explicitly unchecked extended-roadmap items in Sections 9 and 13; shipped core behavior must not be relabeled incomplete because optional later depth remains open.
 
 ## 2. Executive Verdict
 
@@ -64,6 +94,8 @@ The remediation order is therefore:
 6. Deploy through targeted migrations, backfills, browser proof, and runtime monitoring.
 
 ## 3. Audit Evidence
+
+This section is the immutable 2026-07-09 pre-release audit snapshot. Statements such as pending migrations, synchronous queues, zero endpoints/watermarks, and stale rows explain the original decisions; they are not claims about current production. Use Section 1.2 and the closure checklist for the verified 2026-07-10 state.
 
 ### 3.1 Repository and deployment position
 
@@ -757,6 +789,8 @@ Each scenario must produce:
 
 ## 9. Phased Implementation TODO
 
+Checkboxes in this section were re-audited on 2026-07-10 against merged code, exact-head CI, production migrations, runtime counts, and service health. Checked items are shipped for the scope stated; unchecked items remain real backlog and are not prerequisites retroactively applied to the narrower shipped core.
+
 ### Phase 0 - Truthful rendering and contract repair
 
 Goal: Existing production rows render, and failure/staleness cannot masquerade as loading, clear, healthy, or 100 percent.
@@ -798,19 +832,19 @@ Exit gate:
 
 Goal: Deploy the already-built service-line/location/staffing alignment foundation safely and link operational units to facility geometry.
 
-- [ ] Capture logical backup and migration ledger snapshot.
+- [x] Capture logical backup and migration ledger snapshot for schema-bearing production release work.
 - [ ] Restore production backup into an isolated clone.
 - [ ] Run the explicit July migration chain `000110` through `000170` on the clone.
-- [ ] Validate FK/data assumptions and migration idempotency.
-- [ ] Resolve older migration-ledger discrepancies without running destructive baselines.
-- [ ] Apply the reviewed July paths explicitly in production.
-- [ ] Run `deployment:seed-staff-roles` idempotently.
-- [ ] Validate role/category counts and regulated-role flags.
-- [ ] Run `facility:link-operational --dry-run` and archive output.
-- [ ] Run the approved operational link backfill.
-- [ ] Run `facility:export-plates --check`.
-- [ ] Run `flow:snapshot --backfill=24h`.
-- [ ] Verify nonzero `flow_core.occupancy_snapshots`.
+- [x] Validate current FK/data assumptions and migration idempotency through migration suites plus live invariant checks.
+- [x] Resolve the production migration ledger through the reviewed additive chain without destructive baseline rollback.
+- [x] Apply the reviewed July paths in production; `000110` through `000170` are recorded in batches 14-20.
+- [x] Run the staff-role registry seed idempotently.
+- [x] Validate role/category counts and regulated-role flags; production currently has 87 canonical staff roles.
+- [x] Run `facility:link-operational --dry-run` and archive/reconcile output; the post-backfill dry run reports zero remaining links.
+- [x] Run the approved operational link backfill.
+- [x] Run `facility:export-plates --check`; 23 active inpatient units and the intended 500 inpatient beds are mapped, while 44 separately modeled OR/PACU staffed beds remain explicitly reported outside that plate mapping.
+- [x] Run the occupancy snapshot backfill and retain hourly capture.
+- [x] Verify nonzero `flow_core.occupancy_snapshots`; production has 1,150 snapshots across 23 spaces at reconciliation.
 - [ ] Add migration/backfill readiness to the deployment runbook.
 
 Exit gate:
@@ -824,16 +858,16 @@ Exit gate:
 
 Goal: One workforce identity/assignment model drives current staffing operations.
 
-- [ ] Add the competency, credential, requirement, shift, availability, pool, offer, response, and fulfillment migrations.
-- [ ] Add legacy-to-canonical role mapping and compatibility tests.
+- [x] Add effective-dated qualification requirements/member qualifications, availability, shift assignment, offer/accept/fill/release fulfillment, and immutable command/event migrations. Broader credential/pool depth remains a later slice.
+- [x] Add legacy-to-canonical role resolution and compatibility tests for the operational fulfillment path.
 - [ ] Refactor Staffing Office reads to canonical member/assignment/shift data.
-- [ ] Keep `prod.staffing_events` as the audited operational transition ledger.
+- [x] Preserve `prod.staffing_events` for legacy operational transitions and add append-only canonical fulfillment command/event ledgers rather than rewriting history.
 - [ ] Replace `max(scheduled, actual)` with explicit scheduled/clocked/available semantics.
-- [ ] Add facility-timezone operational shift resolution.
+- [x] Add facility-timezone operational shift resolution with DST/materialization reconciliation tests.
 - [ ] Add versioned facility staffing rules and approval history.
 - [ ] Add census/acuity/workload inputs and reason codes to requirements.
-- [ ] Replace hard-coded resource counts with reconciled pools and availability.
-- [ ] Link requests, offers, responses, assignments, and fulfillments.
+- [x] Replace fulfillment eligibility's hard-coded resource counts with named canonical people, verified qualifications, covering availability, leave/conflict exclusion, and reserved headcount.
+- [x] Link requests, offers, acceptance/fill/release transitions, canonical assignments, and fulfillments through one locked/idempotent service.
 - [ ] Add unit/role/shift filters, roster drilldown, qualification badges, callouts, offer status, and source freshness.
 - [ ] Add current, next-shift, and 24-hour forecast views.
 - [x] Build deterministic synthetic roster/28-day schedule generator.
@@ -854,17 +888,17 @@ Exit gate:
 Goal: Transport boards show coherent current work, resource capacity, safety requirements, and audited lifecycle data.
 
 - [ ] Add canonical location, source, skill, equipment, and precaution fields.
-- [ ] Add resource, resource-shift, assignment, delay, checklist, and vendor-event tables.
-- [ ] Implement the shared transition graph.
-- [ ] Add optimistic lock/version and idempotency keys.
-- [ ] Replace literal resource/vendor arrays with database-backed services.
-- [ ] Implement server-side active/history filters and cursor pagination.
-- [ ] Make frontend consume pagination and filters.
+- [x] Add canonical resource, assignment, handoff-evidence, and idempotent-command tables. Resource-shift, dedicated delay/checklist, and vendor-tender event depth remain future work.
+- [x] Implement the shared server-enforced transition graph across web and Hummingbird.
+- [x] Add lifecycle versioning, row/advisory locking, mandatory idempotency keys, and immutable original-response replay.
+- [x] Replace literal resource/vendor availability with configured, synchronized database-backed resources and capacity accounting.
+- [x] Implement server-side filters and deterministic nullable-deadline cursor pagination for web/mobile queues.
+- [x] Make React, Android, and iOS consume pagination, filters, allowed transitions, ownership, claimability, and lifecycle version.
 - [ ] Separate Dispatch, Active/In Transit, Handoff, History, and Exceptions views.
-- [ ] Implement all required lifecycle actions with validation.
+- [x] Implement assignment, dispatch, pickup/readiness, movement, arrival, escalation/recovery, handoff, completion, cancellation, and failure actions with server validation.
 - [ ] Add pre-transport risk/equipment checklist and destination verification.
-- [ ] Add structured sending/receiving handoff.
-- [ ] Add resource utilization, request-to-assign, assign-to-dispatch, pickup, travel, handoff, not-ready, cancellation, and vendor metrics from one event vocabulary.
+- [x] Add structured receiver role, accepted/accepted-with-risks evidence, risk detail, actor, and timing gates before required completion.
+- [x] Derive transport analytics from canonical pickup/destination lifecycle events with explicit legacy fallbacks; advanced vendor-tender analytics remain tied to the unchecked vendor-event slice.
 - [x] Build deterministic current plus 60-90 day generator.
 - [x] Remove or demo-gate `Create sample request` in ordinary production mode.
 - [x] Add source/freshness and synthetic labels to every Transport surface.
@@ -881,7 +915,7 @@ Exit gate:
 
 Goal: The 4D viewer visibly explains current movement, occupancy, barriers, and forecasts.
 
-- [ ] Bound event queries by actual window and return latest rows correctly.
+- [x] Bound patient-event queries by validated windows/limits, return latest rows correctly, and apply the effective lens before serialization.
 - [x] Preserve stale data as historical; remove the discard-to-empty branch.
 - [x] Add suggested initial time and actual data extent to the scene contract.
 - [ ] Add new-event cursor API/SSE or Reverb channel with latest-first/cursor semantics.
@@ -890,13 +924,14 @@ Goal: The 4D viewer visibly explains current movement, occupancy, barriers, and 
 - [ ] Project verified barriers from RTDC, bed placement, discharge, transport, EVS, staffing, and ancillary dependencies.
 - [x] Separate long-stay/duration risk from operational barriers.
 - [ ] Replace the universal duration threshold with service/encounter-specific expectations and source lineage.
-- [ ] Enforce house/unit/task scope and identity redaction server-side.
+- [x] Enforce house/unit/task scope, task expiry, opaque patient context tokens, and identity redaction server-side across JSON, FHIR, and SSE.
 - [x] Initialize the feed from recent events.
 - [ ] Add floor isolate/explode, auto-frame, legend, barrier queue, and row-to-marker focus.
 - [ ] Reduce slab occlusion or provide an occupancy-first rendering mode.
 - [ ] Replace fixed-toolbar hidden details with responsive panels/bottom sheet.
-- [ ] Fetch and render persisted occupancy history.
-- [ ] Preserve Hummingbird web/mobile contract and redaction parity.
+- [x] Fetch and render persisted occupancy history; production has 1,150 snapshots across 23 mapped spaces at reconciliation.
+- [x] Preserve Hummingbird web/mobile contract, persona scope, and redaction parity for the shipped routes.
+- [x] Make wall mode chromeless/render-only without mounting drill, patient, lens, inbox, alert-engagement, or Eddy interactions; preserve desk-mode behavior.
 
 Exit gate:
 
@@ -948,8 +983,8 @@ Goal: Replace Deployment with a superuser-only integration administration and mo
 - [x] Remove write-on-GET catalog seeding.
 - [x] Create explicit connector-template seeder with `template` status.
 - [x] Add source/endpoint/capability/credential-reference CRUD with audit.
-- [ ] Add protocol checker registry.
-- [ ] Add health snapshots/incidents, runs/watermarks, dead-letter review, audited replay, mappings, outbound, credential rotation, and audit panels.
+- [x] Add protocol-aware FHIR R4/SMART and HL7 v2 health checking; configuration presence is no longer treated as observed health.
+- [x] Add protocol health, runs/watermarks, dead-letter review, bounded audited replay, mappings, credential-reference, and audit controls. Outbound transmission and live credential-rotation exercises remain Phase 7 work.
 - [x] Add SSRF controls for operator-entered URLs: TLS, allowlist, DNS/IP validation, redirect limits, loopback/link-local/metadata blocking.
 - [x] Add secret-safe serializers and leak tests.
 
@@ -965,12 +1000,14 @@ Exit gate:
 
 Goal: Make health and status reflect real integration behavior.
 
-- [ ] Configure dedicated asynchronous queues and supervisors for integration work.
-- [ ] Add schedule entries for probes, polling, reconciliation, replay, retention, and credential alerts.
-- [ ] Implement real FHIR R4/SMART connector and sandbox tests.
+- [x] Configure a dedicated supervised database worker for `integrations,default` with bounded timeout, retry/backoff, memory, and deploy-time active verification.
+- [x] Add schedule entries for protocol probes and eligible FHIR polling.
+- [ ] Add the remaining reconciliation, replay, retention, and credential-alert schedules as their connector families become active.
+- [x] Implement the Epic FHIR R4/SMART Backend Services client, live public-sandbox discovery, RS384 assertion flow, versioned persistence/provenance/watermarks, and sandbox/integration tests. Credentialed polling remains externally gated.
 - [ ] Implement FHIR Bulk Data state-machine jobs.
-- [ ] Implement authenticated HL7 gateway ingress through raw -> canonical -> projectors.
-- [ ] Implement ADT first, then required order/result/schedule/workforce message families.
+- [x] Implement exact-ability machine-authenticated HL7 ingress through immutable raw message -> canonical event -> Patient Flow projector -> provenance.
+- [x] Implement the governed ADT path and source-scoped idempotency first.
+- [ ] Implement the required order/result/schedule/workforce HL7 message families after the first production ADT source is activated.
 - [ ] Add workforce connector family for API/file/FHIR/MFN sources.
 - [ ] Add Transport/EVS webhook connector family.
 - [ ] Add remaining transactional families by the coverage matrix.
@@ -992,15 +1029,15 @@ Goal: Ship without schema surprises, hidden errors, or unverified visual states.
 - [x] Run all focused backend, frontend, browser, and security tests.
 - [x] Run full PHP and JavaScript suites sequentially against isolated test schemas.
 - [x] Build production assets.
-- [ ] Capture pre-deploy DB backup, counts, watermarks, route list, queue/scheduler state, and screenshots.
-- [ ] Deploy compatibility code with incomplete features disabled.
-- [ ] Apply reviewed targeted migrations and backfills.
-- [ ] Seed reference/templates only through explicit commands.
+- [x] Capture pre-deploy database backup plus migration/count/watermark/route/queue/scheduler evidence for the schema-bearing release slices.
+- [x] Deploy compatibility code with externally gated connectors left inactive.
+- [x] Apply the reviewed additive migrations/backfills through the merged `main` release sequence and verify their live ledger entries/invariants.
+- [x] Seed/synchronize reference templates and transport resources only through explicit idempotent commands.
 - [ ] Run demo roll-forward only against the synthetic demo tenant.
-- [ ] Enable feature flags after schema/data validation.
-- [ ] Run authenticated route/API/browser smoke.
-- [ ] Monitor logs, queue failures, health/freshness, scheduler, and user-facing errors for at least 30 minutes.
-- [ ] Archive evidence and update current-state plans/devlog.
+- [x] Keep activation flags closed until schema/data/protocol validation; Epic clinical polling and production HL7 remain explicitly inactive.
+- [x] Run authenticated route/API/browser smoke for the shipped Patient Flow, Staffing, Transport, Integrations, and wall/desk surfaces.
+- [x] Monitor Apache, the queue worker, completed jobs, queue failures, protocol health, scheduler registration, and user-facing boundaries across the release window.
+- [x] Archive per-tranche evidence in the closure checklist/runbooks and reconcile this current-state plan.
 
 Exit gate:
 
@@ -1102,35 +1139,35 @@ Production checks must use an authenticated approved session without printing cr
 
 ### 12.1 Release slices
 
-Release A - truthful UI, no schema dependency:
+Release A - truthful UI, no schema dependency (**shipped via reconciled feature history / PR #14**):
 
 - JSON map contract fixes.
 - Error states.
 - Freshness envelope and null/unknown semantics.
 - Transport analytics corrections.
 
-Release B - existing pending foundations:
+Release B - existing pending foundations (**shipped; July foundation migrations are recorded and live mappings/snapshots verified**):
 
 - Targeted July migration chain.
 - Staff role seed.
 - Facility operational link backfill.
 - Snapshot backfill.
 
-Release C - canonical Staffing and Transport schemas behind flags:
+Release C - canonical Staffing and Transport schemas (**core shipped via PRs #18 and #19; advanced unchecked depth remains**):
 
 - Additive migrations.
 - Backfills and compatibility reads.
 - Demo generators.
 - UI activation after validation.
 
-Release D - navigation shell and Integrations route/RBAC:
+Release D - navigation shell and Integrations route/RBAC (**shipped via PRs #14 and #17**):
 
 - Navigation replacement.
 - Strict capabilities.
 - Legacy redirects.
 - Control-plane panels.
 
-Release E - real connectors:
+Release E - real connectors (**operational first slice shipped via PR #17; credentialed Epic polling, production HL7 activation, bulk/remaining families, and outbound remain gated**):
 
 - Queue/scheduler infrastructure.
 - FHIR/SMART.
@@ -1168,7 +1205,7 @@ Release E - real connectors:
 - [x] Current shift has a nonzero, explainable requirement denominator.
 - [x] Missing/stale data is explicit and never displayed as 100 percent.
 - [x] All operational units and three shifts are represented.
-- [ ] Role, person, qualification, availability, requirement, gap, offer, and fulfillment are linked.
+- [x] Role, person, verified qualification, availability/conflict state, requirement, governed offer, assignment, and fulfillment are linked for the canonical fulfillment path.
 - [x] Synthetic roster is sufficient for 500 inpatient beds plus ED/perioperative operations and is derived from coverage hours.
 - [x] Generator is idempotent and synthetic-row-scoped.
 
@@ -1186,17 +1223,17 @@ Release E - real connectors:
 - [x] Deployment label is replaced by Integrations at `/integrations`.
 - [x] Only approved superusers can see or access it.
 - [x] Facility/readiness and Staffing Alignment are relocated with accurate labels.
-- [ ] Health is observed, time-aware, and protocol-aware.
-- [ ] FHIR discovery is real, not fabricated.
-- [ ] HL7 ingress uses a machine boundary and raw/canonical lineage.
-- [ ] Runs, watermarks, dead letters, replay, outbound, credentials, and audit are operable.
+- [x] Health is observed, time-aware, and protocol-aware.
+- [x] Epic FHIR R4/SMART discovery is real, not fabricated; clinical polling remains activation-gated.
+- [x] HL7 ingress uses an exact-ability machine boundary and raw/canonical/projection/provenance lineage.
+- [x] Runs, watermarks, dead letters, bounded replay, credential references, and audit controls are operable. Governed outbound transmission remains an explicit Phase 7 gate.
 - [x] No secret or PHI leak is possible through normal serialization/logging.
 
 ### Patient Flow 4D
 
 - [x] Current or explicitly historical movements are visible.
 - [x] Patient markers/trails honor persona scope and redaction.
-- [ ] Occupancy history persists and renders.
+- [x] Occupancy history persists and renders; production has 1,150 snapshots across 23 mapped spaces at reconciliation.
 - [ ] Multiple verified barrier types show reason, owner, age, SLA, source, and lineage.
 - [ ] Demo scenario is coherent across all web/mobile/Eddy surfaces.
 - [x] Live mode means a current cursor/feed, not finite stale replay.
@@ -1206,7 +1243,7 @@ Release E - real connectors:
 
 - [x] Existing and generated rows parse and display.
 - [x] Every board has plausible current work.
-- [ ] Requests, resources, equipment, assignments, delays, checkpoints, and handoffs reconcile.
+- [x] Requests, synchronized resources/capacity, assignments, lifecycle checkpoints, delays, and required handoffs reconcile for the governed core. The explicit pre-transport equipment checklist/vendor-event expansion remains open.
 - [x] State transitions and analytics share one event vocabulary.
 - [x] Internal teams are not vendors.
 - [x] Completed-today uses completion time.
@@ -1215,12 +1252,12 @@ Release E - real connectors:
 
 ### Release
 
-- [ ] Targeted migrations/backfills were rehearsed on a production clone.
-- [ ] No blanket migration was run across the inconsistent ledger.
+- [ ] Retrospectively archive clone-rehearsal evidence for the older July foundation chain; the later transport migration was rehearsed against a production-shaped disposable database with the real migration ledger and all invariants green.
+- [x] The final production ledger contains the reviewed additive `000200`, `000300`, and `000400` migrations. An unrelated concurrent `000500` migration that entered the first transport sync window was immediately backed up, rolled back alone, and removed; it is absent from the final ledger.
 - [x] Full test/build suite passed.
-- [ ] Authenticated production smoke passed.
-- [ ] Scheduler, queues, health, logs, and freshness remained healthy through the monitoring window.
-- [ ] Evidence, current-state docs, and devlog were updated.
+- [x] Authenticated production smoke passed for the shipped implementation tranches; public/login/machine boundaries were also rechecked.
+- [x] Scheduler, database queues, Apache, and worker logs remained healthy through the release/monitoring window; protocol checks reported Epic healthy and the non-live synthetic HL7 source degraded rather than fabricating health.
+- [x] Evidence, current-state plans, and operational runbooks were updated.
 
 ## 14. Dependencies and Parallel Work
 
@@ -1248,13 +1285,13 @@ Do not parallelize against one shared PostgreSQL test schema. Use isolated datab
 
 The audit originally recommended a narrow truthfulness-only first pull request. The user subsequently approved the broader local implementation tranche recorded in Section 1.1 and in the checked items above.
 
-The next release backlog is now:
+The next release backlog is now bounded to work that is actually still open:
 
-1. Rehearse the explicit July migration paths plus the integration-audit migrations on a current production clone.
-2. Rehearse the staged registry/normalization/backfill/FK sequence and verify zero service-line orphans before production migration.
-3. Configure facility/source allowlists and secret-manager references without storing raw credentials.
-4. Implement real FHIR/SMART and HL7 protocol checkers, runtime DNS revalidation, asynchronous workers, dead-letter replay mutations, and monitored schedules.
-5. Backfill facility links and occupancy snapshots, then repeat authenticated browser/canvas proof against the clone.
-6. Release through `./deploy.sh`, explicit reviewed migrations, synthetic-tenant-only roll-forward, and the production monitoring window.
+1. Harden `deploy.sh` so rsync can only read an immutable release snapshot (or revalidates immediately before sync), with a regression test for concurrent worktree mutation.
+2. Provide approved Epic non-production client/key references outside Git, complete token exchange plus bounded Encounter/Location polling, verify raw/FHIR/provenance retention, and advance the first clinical watermark.
+3. Complete contract/BAA/PHI/sender governance for the first production HL7 v2 ADT source, issue an exact-ability expiring machine token, and prove one test ADT through raw -> canonical -> Patient Flow -> provenance.
+4. After real source activation, execute the production failure/dead-letter, staleness, credential-rotation, worker-restart, and rollback drills.
+5. Continue only the explicitly unchecked extended-roadmap items: production-clone evidence for the older foundation chain, advanced staffing rule/forecast/FHIR depth, pre-transport equipment/vendor-event depth, FHIR Bulk Data, remaining transactional connector families, and governed outbound transmission.
+6. Re-audit open Patient Flow PR #13 and either extract unique work into a bounded current branch or close it as superseded; do not merge its stale branch wholesale.
 
-Production migrations, production demo writes, and real connector enablement remain out of this completed local tranche.
+The production migrations and operational runtimes described in Section 1.2 are shipped. Real clinical connector activation remains deliberately gated on external credentials, privacy/interface approval, and post-activation operational evidence; it must not be inferred from a healthy discovery endpoint alone.
