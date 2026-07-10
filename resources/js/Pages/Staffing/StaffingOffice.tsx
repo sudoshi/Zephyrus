@@ -2,7 +2,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { OperationalDataError, SourceFreshnessBanner } from '@/Components/Operations/OperationalDataState';
 import { KpiTile, metric } from '@/Components/system';
-import { useAssignStaffingRequest, useStaffingOverview, useStaffingWorkforce, useUpdateStaffingStatus } from '@/features/staffing/hooks';
+import { useOfferStaffingFulfillment, useStaffingCandidates, useStaffingOverview, useStaffingWorkforce, useTransitionStaffingFulfillment } from '@/features/staffing/hooks';
 import type {
   StaffingAssignedSource,
   StaffingRequest,
@@ -115,11 +115,21 @@ function RoleGapBar({ row }: { row: StaffingRoleGap }) {
   );
 }
 
-function RequestRow({ request }: { request: StaffingRequest }) {
-  const assign = useAssignStaffingRequest();
-  const updateStatus = useUpdateStaffingStatus();
+function RequestRow({ request, canManage }: { request: StaffingRequest; canManage: boolean }) {
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [staffMemberId, setStaffMemberId] = useState<number | null>(null);
+  const [source, setSource] = useState<StaffingAssignedSource>('float_pool');
+  const candidates = useStaffingCandidates(request.staffing_request_id, showCandidates && canManage);
+  const offer = useOfferStaffingFulfillment();
+  const transition = useTransitionStaffingFulfillment();
   const isActive = request.freshness_status !== 'expired' && !['filled', 'completed', 'canceled', 'unfilled'].includes(request.status);
-  const sources: StaffingAssignedSource[] = ['float_pool', 'overtime', 'agency', 'on_call'];
+  const latest = request.fulfillment.latest;
+  const visibleFulfillments = request.fulfillment.active.length > 0
+    ? request.fulfillment.active
+    : latest ? [latest] : [];
+  const hasPendingOffer = request.fulfillment.active.some((fulfillment) => fulfillment.status === 'offered');
+  const isPending = offer.isPending || transition.isPending;
+  const actionError = offer.error ?? transition.error;
   const slaLabel = request.sla.minutes_until_due === null
     ? request.sla.label
     : formatRelativeDurationMinutes(request.sla.minutes_until_due);
@@ -139,35 +149,67 @@ function RequestRow({ request }: { request: StaffingRequest }) {
           <div className="mt-0.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             Need {request.headcount_needed} · {request.shift} shift · {slaLabel}
             {request.assigned_source ? ` · ${SOURCE_LABELS[request.assigned_source]}` : ''}
+            {request.fulfillment.available && ` · ${request.fulfillment.filled_count}/${request.headcount_needed} canonically filled`}
           </div>
         </div>
         <span className={CHIP}>{request.freshness_status === 'expired' ? 'expired demo' : request.status}</span>
       </div>
 
-      {isActive && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {request.status !== 'assigned' &&
-            sources.map((source) => (
-              <button
-                key={source}
-                type="button"
-                disabled={assign.isPending}
-                onClick={() => assign.mutate({ id: request.staffing_request_id, input: { assigned_source: source, owner_name: 'Staffing office' } })}
-                className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary hover:bg-healthcare-background disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5"
-              >
-                {SOURCE_LABELS[source]}
-              </button>
-            ))}
-          <button
-            type="button"
-            disabled={updateStatus.isPending}
-            onClick={() => updateStatus.mutate({ id: request.staffing_request_id, status: 'filled' })}
-            className="ml-auto inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            <CheckCircle2 className="size-3.5" /> Mark filled
+      {visibleFulfillments.map((fulfillment) => (
+        <div key={fulfillment.fulfillment_uuid} className="mt-3 flex flex-wrap items-center gap-2 rounded-md bg-healthcare-background px-3 py-2 text-xs dark:bg-white/5">
+          <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            {fulfillment.staff_member_name}
+          </span>
+          <span className={CHIP}>{fulfillment.status}</span>
+          {canManage && fulfillment.actions.can_accept && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'accepted' })} className="rounded-md bg-healthcare-primary px-2.5 py-1 font-semibold text-white disabled:opacity-60">Accept offer</button>
+          )}
+          {canManage && fulfillment.actions.can_fill && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'filled' })} className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-2.5 py-1 font-semibold text-white disabled:opacity-60"><CheckCircle2 className="size-3.5" /> Fill shift</button>
+          )}
+          {canManage && fulfillment.actions.can_release && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'released' })} className="rounded-md border border-healthcare-border px-2.5 py-1 font-medium text-healthcare-text-secondary disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">Release</button>
+          )}
+          {canManage && fulfillment.actions.can_cancel && fulfillment.status !== 'filled' && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'canceled' })} className="rounded-md border border-healthcare-border px-2.5 py-1 font-medium text-healthcare-text-secondary disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">Cancel offer</button>
+          )}
+        </div>
+      ))}
+
+      {isActive && canManage && request.fulfillment.actions.can_offer && !hasPendingOffer && (
+        <div className="mt-3 space-y-2">
+          <button type="button" onClick={() => setShowCandidates((value) => !value)} className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary hover:bg-healthcare-background dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
+            {showCandidates ? 'Hide candidates' : 'Find qualified, available staff'}
           </button>
+          {showCandidates && (
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={staffMemberId ?? ''} onChange={(event) => setStaffMemberId(event.target.value ? Number(event.target.value) : null)} aria-label="Qualified staffing candidate" className="h-9 min-w-64 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+                <option value="">{candidates.isLoading ? 'Checking qualifications and availability...' : 'Select eligible staff member'}</option>
+                {candidates.data?.data.map((candidate) => (
+                  <option key={candidate.staff_member_id} value={candidate.staff_member_id} disabled={!candidate.eligible}>
+                    {candidate.display_name} · {candidate.role_label}{candidate.eligible ? '' : ` · ${candidate.eligibility_state}`}
+                  </option>
+                ))}
+              </select>
+              <select value={source} onChange={(event) => setSource(event.target.value as StaffingAssignedSource)} aria-label="Staffing fulfillment source" className="h-9 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+                {(Object.keys(SOURCE_LABELS) as StaffingAssignedSource[]).map((key) => <option key={key} value={key}>{SOURCE_LABELS[key]}</option>)}
+              </select>
+              <button type="button" disabled={staffMemberId === null || isPending} onClick={() => staffMemberId !== null && offer.mutate({ id: request.staffing_request_id, input: { staff_member_id: staffMemberId, source } })} className="rounded-md bg-healthcare-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-60">Create governed offer</button>
+              {candidates.isError && <span className="text-xs text-healthcare-critical dark:text-healthcare-critical-dark">Candidate safety checks are unavailable; no offer can be created.</span>}
+              {!candidates.isLoading && candidates.data?.data.filter((candidate) => candidate.eligible).length === 0 && <span className="text-xs text-healthcare-warning dark:text-healthcare-warning-dark">No staff currently pass role, unit, qualification, availability, and conflict checks.</span>}
+            </div>
+          )}
+          {showCandidates && candidates.data && candidates.data.data.some((candidate) => !candidate.eligible) && (
+            <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Ineligible in this page: {(['unqualified', 'unavailable', 'conflicted'] as const).map((state) => {
+                const count = candidates.data.data.filter((candidate) => candidate.eligibility_state === state).length;
+                return count > 0 ? `${count} ${state}` : null;
+              }).filter(Boolean).join(' · ')}. Disabled candidates cannot be offered.
+            </div>
+          )}
         </div>
       )}
+      {actionError && <div className="mt-2 text-xs text-healthcare-critical dark:text-healthcare-critical-dark">The staffing action was rejected. Refresh the candidate check and try again.</div>}
     </div>
   );
 }
@@ -298,7 +340,7 @@ function WorkforceSection({ workforce }: { workforce: StaffingWorkforceSummary }
                   <tr><td colSpan={6} className="px-3 py-6 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading workforce directory...</td></tr>
                 ) : directory.data?.data.length ? directory.data.data.map((member) => (
                   <tr key={`${member.staff_member_id}-${member.role_code}-${member.unit_id ?? 'hospital'}`} className="border-t border-healthcare-border dark:border-healthcare-border-dark">
-                    <td className="px-3 py-2"><div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.display_name}</div><div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.availability}{member.credential_status !== 'valid' ? ` · credential ${member.credential_status}` : ''}</div></td>
+                    <td className="px-3 py-2"><div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.display_name}</div><div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.availability}{!['valid', 'verified'].includes(member.credential_status) ? ` · credential ${member.credential_status}` : ''}</div></td>
                     <td className="px-3 py-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.role_label}</td>
                     <td className="px-3 py-2"><div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.unit_label}</div>{member.eligible_float_units.length > 1 && <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.eligible_float_units.length} eligible units</div>}</td>
                     <td className="px-3 py-2 capitalize text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.preferred_shift ?? 'Variable'}</td>
@@ -422,7 +464,7 @@ export default function StaffingOffice() {
               ) : (
                 <div className="space-y-3">
                   {data.queue.map((request) => (
-                    <RequestRow key={request.staffing_request_id} request={request} />
+                    <RequestRow key={request.staffing_request_id} request={request} canManage={data.permissions.manage} />
                   ))}
                 </div>
               )}

@@ -15,6 +15,64 @@ export type StaffingRequestStatus =
   | 'escalated'
   | 'unfilled';
 export type StaffingAssignedSource = 'float_pool' | 'overtime' | 'agency' | 'on_call';
+export type StaffingFulfillmentStatus = 'offered' | 'accepted' | 'filled' | 'released' | 'canceled';
+
+export interface StaffingFulfillment {
+  fulfillment_uuid: string;
+  staffing_request_id: number;
+  staff_member_id: number;
+  staff_member_name: string;
+  status: StaffingFulfillmentStatus;
+  source: StaffingAssignedSource;
+  version: number;
+  role_code: string | null;
+  unit_id: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  timezone: string | null;
+  validation: Record<string, unknown>;
+  offered_at: string | null;
+  accepted_at: string | null;
+  filled_at: string | null;
+  released_at: string | null;
+  canceled_at: string | null;
+  actions: {
+    can_accept: boolean;
+    can_fill: boolean;
+    can_release: boolean;
+    can_cancel: boolean;
+  };
+}
+
+export interface StaffingCandidate {
+  staff_member_id: number;
+  display_name: string;
+  role_code: string;
+  role_label: string;
+  unit_id: number | null;
+  coverage_model: string | null;
+  eligible: boolean;
+  eligibility_state: 'eligible' | 'unqualified' | 'unavailable' | 'conflicted';
+  reason_codes: string[];
+  qualification_requirements: Array<{
+    qualification_code: string;
+    display_name: string;
+    verified: boolean;
+  }>;
+  availability: {
+    covering_windows: number;
+    blocking_windows: number;
+    timezone: string;
+  };
+  overlapping_assignments: number;
+  shift: { starts_at: string; ends_at: string; timezone: string };
+}
+
+export interface StaffingCandidatePage {
+  data: StaffingCandidate[];
+  meta: { current_page: number; last_page: number; per_page: number; total: number };
+  shift: { starts_at: string; ends_at: string; timezone: string };
+}
 
 export interface StaffingSla {
   minutes_until_due: number | null;
@@ -73,6 +131,17 @@ export interface StaffingRequest {
   is_synthetic: boolean;
   freshness_status: 'current' | 'stale' | 'expired';
   sla: StaffingSla;
+  fulfillment: {
+    available: boolean;
+    state: 'unconfigured' | 'unfilled' | 'offer_pending' | 'partially_fulfilled' | 'filled';
+    offered_count: number;
+    accepted_count: number;
+    filled_count: number;
+    remaining_count: number;
+    latest: StaffingFulfillment | null;
+    active: StaffingFulfillment[];
+    actions: { can_offer: boolean };
+  };
 }
 
 export interface StaffingCoverage {
@@ -173,6 +242,7 @@ export interface StaffingWorkforceMember {
   coverage_model: string | null;
   preferred_shift: StaffingShift | null;
   availability: string;
+  availability_source: string | null;
   credential_status: string;
   credentials: string[];
   eligible_float_units: string[];
@@ -200,6 +270,7 @@ export interface StaffingWorkforceFilters {
 }
 
 export interface StaffingOverview {
+  permissions: { manage: boolean };
   source: SourceFreshness;
   metrics: {
     open_requests: number;
@@ -233,6 +304,10 @@ export interface CreateStaffingRequestInput {
 
 export interface AssignStaffingRequestInput {
   assigned_source: StaffingAssignedSource;
-  assigned_staff_ref?: string;
   owner_name?: string;
+}
+
+export interface OfferStaffingFulfillmentInput {
+  staff_member_id: number;
+  source: StaffingAssignedSource;
 }

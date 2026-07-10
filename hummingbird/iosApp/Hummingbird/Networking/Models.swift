@@ -475,6 +475,36 @@ struct StaffingReq: Decodable, Identifiable {
     }
 }
 
+struct StaffingCandidatePage: Decodable {
+    let data: [StaffingCandidate]
+    let meta: StaffingCandidateMeta
+    let shift: StaffingCandidateShift
+}
+
+struct StaffingCandidateMeta: Decodable {
+    let currentPage: Int
+    let lastPage: Int
+    let perPage: Int
+    let total: Int
+}
+
+struct StaffingCandidateShift: Decodable {
+    let startsAt: String
+    let endsAt: String
+    let timezone: String
+}
+
+struct StaffingCandidate: Decodable, Identifiable {
+    let staffMemberId: Int
+    let displayName: String
+    let roleLabel: String
+    let eligible: Bool
+    let eligibilityState: String
+    let reasonCodes: [String]
+    let overlappingAssignments: Int
+    var id: Int { staffMemberId }
+}
+
 // MARK: Improvement / PI (P8) — GET /improvement/pdsa + /improvement/opportunities
 
 struct PdsaCycle: Decodable, Identifiable {

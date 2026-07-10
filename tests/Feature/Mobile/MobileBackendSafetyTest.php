@@ -9,11 +9,14 @@ use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
 use App\Models\Ops\OperationalEvent;
 use App\Models\Ops\Recommendation;
+use App\Models\Org\StaffAssignment;
+use App\Models\Org\StaffMember;
 use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
+use App\Services\Staffing\StaffingShiftWindowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -146,12 +149,16 @@ class MobileBackendSafetyTest extends TestCase
         ]);
         $staffingPath = "/api/mobile/v1/staffing/requests/{$staffing->staffing_request_id}/fill?persona=staffing_coordinator";
         $staffingHeaders = ['Idempotency-Key' => 'mobile-replay-staffing-fill-1'];
-        $staffingBody = ['assigned_source' => 'float_pool', 'owner_name' => 'Float pool lead'];
+        $staffMemberId = $this->eligibleStaffingCandidate($staffing);
+        $staffingBody = ['staff_member_id' => $staffMemberId, 'assigned_source' => 'float_pool', 'owner_name' => 'Float pool lead'];
 
         $this->withHeaders($staffingHeaders)->postJson($staffingPath, $staffingBody)->assertOk();
         $this->withHeaders($staffingHeaders)->postJson($staffingPath, $staffingBody)->assertOk();
 
-        $this->assertSame(2, DB::table('prod.staffing_events')
+        $this->assertSame(1, DB::table('prod.staffing_events')
+            ->where('staffing_request_id', $staffing->staffing_request_id)
+            ->count());
+        $this->assertSame(3, DB::table('prod.staffing_fulfillment_events')
             ->where('staffing_request_id', $staffing->staffing_request_id)
             ->count());
         $this->assertSame(1, OperationalEvent::query()->where('event_type', 'staffing.request_filled')->count());
@@ -329,11 +336,14 @@ class MobileBackendSafetyTest extends TestCase
             'headcount_needed' => 1,
             'is_deleted' => false,
         ]);
+        $staffMemberId = $this->eligibleStaffingCandidate($staffing);
 
-        $this->postJson("/api/mobile/v1/staffing/requests/{$staffing->staffing_request_id}/fill?persona=staffing_coordinator", [
-            'assigned_source' => 'float_pool',
-            'owner_name' => 'Float pool lead',
-        ])->assertOk();
+        $this->withHeader('Idempotency-Key', 'mobile-staffing-fill-event-1')
+            ->postJson("/api/mobile/v1/staffing/requests/{$staffing->staffing_request_id}/fill?persona=staffing_coordinator", [
+                'staff_member_id' => $staffMemberId,
+                'assigned_source' => 'float_pool',
+                'owner_name' => 'Float pool lead',
+            ])->assertOk();
 
         $this->assertOneOperationalEvent('staffing.request_filled', $user, 'staffing_coordinator', 'staffing_request');
     }
@@ -701,6 +711,82 @@ class MobileBackendSafetyTest extends TestCase
         Sanctum::actingAs($user, $abilities);
 
         return $user;
+    }
+
+    private function eligibleStaffingCandidate(StaffingRequest $request): int
+    {
+        $this->artisan('deployment:seed-registry');
+        $this->artisan('deployment:seed-staff-roles');
+        $member = StaffMember::create([
+            'staff_key' => 'MOBILE:'.Str::uuid(),
+            'source_system' => 'MOBILE_TEST',
+            'external_id' => (string) Str::uuid(),
+            'display_name' => 'Mobile Float Nurse',
+            'employment_status' => 'active',
+            'is_active' => true,
+            'metadata' => [],
+        ]);
+        StaffAssignment::create([
+            'staff_member_id' => $member->staff_member_id,
+            'facility_key' => 'SUMMIT_REGIONAL',
+            'service_line_code' => 'hospital_medicine',
+            'role_code' => 'staff_nurse',
+            'unit_id' => $request->unit_id,
+            'primary_flag' => false,
+            'coverage_model' => 'float',
+            'fte' => 1,
+            'review_status' => 'source_verified',
+            'effective_start' => now()->subYear()->toDateString(),
+            'is_active' => true,
+        ]);
+        DB::table('hosp_ref.staff_qualifications')->updateOrInsert(
+            ['qualification_code' => 'role.staff_nurse'],
+            [
+                'display_name' => 'Staff Nurse role qualification',
+                'qualification_type' => 'role',
+                'metadata' => '{}',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+        DB::table('hosp_ref.staff_role_qualification_requirements')->updateOrInsert(
+            [
+                'facility_key' => null,
+                'unit_id' => null,
+                'service_line_code' => null,
+                'role_code' => 'staff_nurse',
+                'qualification_code' => 'role.staff_nurse',
+                'effective_start' => null,
+            ],
+            ['is_required' => true, 'metadata' => '{}', 'created_at' => now(), 'updated_at' => now()],
+        );
+        DB::table('hosp_org.staff_member_qualifications')->insert([
+            'qualification_uuid' => (string) Str::uuid(),
+            'staff_member_id' => $member->staff_member_id,
+            'qualification_code' => 'role.staff_nurse',
+            'status' => 'verified',
+            'source' => 'mobile-test',
+            'verified_at' => now(),
+            'effective_start' => now()->subYear(),
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $window = app(StaffingShiftWindowService::class)->forRequest($request);
+        DB::table('prod.staff_availability_windows')->insert([
+            'availability_uuid' => (string) Str::uuid(),
+            'staff_member_id' => $member->staff_member_id,
+            'window_type' => 'available',
+            'starts_at' => $window['starts_at'],
+            'ends_at' => $window['ends_at'],
+            'timezone' => $window['timezone'],
+            'source' => 'mobile-test',
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return (int) $member->staff_member_id;
     }
 
     private function transportRequest(array $attributes = []): TransportRequest

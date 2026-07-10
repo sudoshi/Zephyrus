@@ -75,5 +75,11 @@ return $builder
             ->everyFiveMinutes()->withoutOverlapping();
         $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
             ->everyFifteenMinutes()->withoutOverlapping();
+        if (config('staffing.materialization_schedule_enabled', true)) {
+            $schedule->command('staffing:materialize-canonical')
+                ->dailyAt((string) config('staffing.materialization_schedule_time', '04:10'))
+                ->withoutOverlapping(180)
+                ->runInBackground();
+        }
     })
     ->create();

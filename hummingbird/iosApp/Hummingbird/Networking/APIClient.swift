@@ -213,10 +213,18 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/staffing/overview", bearer: bearer, as: StaffingOverview.self)
     }
 
-    /// POST …/staffing/requests/{id}/fill — assign a source and mark filled (mobile:act).
-    func staffingFill(id: Int, source: String, bearer: String) async throws {
+    func staffingCandidates(id: Int, bearer: String) async throws -> StaffingCandidatePage {
+        try await getEnvelope(
+            path: "/api/mobile/v1/staffing/requests/\(id)/candidates?persona=staffing_coordinator&per_page=100",
+            bearer: bearer,
+            as: StaffingCandidatePage.self
+        ).data
+    }
+
+    /// POST …/staffing/requests/{id}/fill — fill with a server-validated canonical person (mobile:act).
+    func staffingFill(id: Int, staffMemberId: Int, source: String, bearer: String) async throws {
         _ = try await send(path: "/api/mobile/v1/staffing/requests/\(id)/fill", method: "POST",
-                           body: ["assigned_source": source], bearer: bearer)
+                           body: ["staff_member_id": "\(staffMemberId)", "assigned_source": source], bearer: bearer)
     }
 
     func improvementPdsa(bearer: String) async throws -> [PdsaCycle] {

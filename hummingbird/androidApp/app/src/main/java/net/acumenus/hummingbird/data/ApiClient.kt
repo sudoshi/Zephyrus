@@ -120,8 +120,20 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         JSONObject(text).optJSONObject("data")?.optStringOrNull("decision") == decision
     }
 
-    suspend fun fillStaffingRequest(bearer: String, id: Int, assignedSource: String): Boolean = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("assigned_source", assignedSource.ifBlank { "Mobile" })
+    suspend fun staffingCandidates(bearer: String, id: Int): List<StaffingCandidate> = withContext(Dispatchers.IO) {
+        val page = getData("/api/mobile/v1/staffing/requests/$id/candidates?persona=staffing_coordinator&per_page=100", bearer)
+        page.optJSONArray("data").objects().map(::parseStaffingCandidate)
+    }
+
+    suspend fun fillStaffingRequest(
+        bearer: String,
+        id: Int,
+        staffMemberId: Int,
+        assignedSource: String,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("staff_member_id", staffMemberId)
+            .put("assigned_source", assignedSource.ifBlank { "float_pool" })
         val (code, text) = send("POST", "/api/mobile/v1/staffing/requests/$id/fill", body.toString(), bearer)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
         JSONObject(text).has("data")
@@ -797,6 +809,16 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             ),
         )
     }
+
+    internal fun parseStaffingCandidate(o: JSONObject): StaffingCandidate = StaffingCandidate(
+        staffMemberId = o.optInt("staff_member_id"),
+        displayName = o.optStringOrNull("display_name") ?: "Staff member",
+        roleLabel = o.optStringOrNull("role_label") ?: "Staff",
+        eligible = o.optBoolean("eligible", false),
+        eligibilityState = o.optStringOrNull("eligibility_state") ?: "unavailable",
+        reasonCodes = o.optJSONArray("reason_codes").strings(),
+        overlappingAssignments = o.optInt("overlapping_assignments"),
+    )
 
     internal fun parsePdsaCycle(o: JSONObject): PdsaCycle = PdsaCycle(
         id = o.optInt("id"),

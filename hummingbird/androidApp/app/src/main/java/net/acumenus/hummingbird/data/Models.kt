@@ -282,8 +282,18 @@ data class StaffingReq(
             priority == "stat" -> CapacityStatus.CRITICAL
             priority == "urgent" || sla.atRisk -> CapacityStatus.WARNING
             else -> CapacityStatus.INFO
-        }
+    }
 }
+
+data class StaffingCandidate(
+    val staffMemberId: Int,
+    val displayName: String,
+    val roleLabel: String,
+    val eligible: Boolean,
+    val eligibilityState: String,
+    val reasonCodes: List<String>,
+    val overlappingAssignments: Int,
+)
 
 data class PdsaCycle(
     val id: Int,

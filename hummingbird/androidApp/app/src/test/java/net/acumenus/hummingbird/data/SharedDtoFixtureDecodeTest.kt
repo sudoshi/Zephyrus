@@ -143,6 +143,27 @@ class SharedDtoFixtureDecodeTest {
         assertEquals(null, api.mobileIdempotencyKey("POST", "/api/auth/token", "{}",))
     }
 
+    @Test
+    fun decodesCanonicalStaffingCandidateSafetyState() {
+        val candidate = api.parseStaffingCandidate(JSONObject("""
+            {
+              "staff_member_id": 42,
+              "display_name": "Avery Adams",
+              "role_label": "Staff Nurse",
+              "eligible": false,
+              "eligibility_state": "conflicted",
+              "reason_codes": ["overlapping_shift_assignment"],
+              "overlapping_assignments": 1
+            }
+        """.trimIndent()))
+
+        assertEquals(42, candidate.staffMemberId)
+        assertEquals("Avery Adams", candidate.displayName)
+        assertEquals("conflicted", candidate.eligibilityState)
+        assertEquals(listOf("overlapping_shift_assignment"), candidate.reasonCodes)
+        assertEquals(1, candidate.overlappingAssignments)
+    }
+
     private fun fixture(filename: String): JSONObject =
         JSONObject(File(repoRoot(), "docs/hummingbird/api-contract/fixtures/$filename").readText())
 

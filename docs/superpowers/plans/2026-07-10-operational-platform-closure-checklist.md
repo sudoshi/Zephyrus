@@ -123,12 +123,25 @@ Current isolated branch evidence:
 
 ## Staffing operations completion
 
-- [ ] ST1.1 Establish the canonical qualification vocabulary and effective-dated staff qualification records.
-- [ ] ST1.2 Model availability, leave, preference, and conflict windows with timezone-safe overlap rules.
-- [ ] ST1.3 Validate each assignment against role, qualification, unit/service-line capability, availability, and overlapping shifts.
-- [ ] ST1.4 Implement shift fulfillment as a governed lifecycle with idempotent accept/fill/release/cancel transitions and an immutable activity trail.
-- [ ] ST1.5 Surface explicit unfilled/unsafe/conflicted states to web and Hummingbird with server-enforced action policies.
-- [ ] ST1.6 Add migration, service, API, policy, concurrency, pagination, and mobile parity tests.
+- [x] ST1.1 Establish the canonical qualification vocabulary and effective-dated staff qualification records.
+- [x] ST1.2 Model availability, leave, preference, and conflict windows with timezone-safe overlap rules.
+- [x] ST1.3 Validate each assignment against role, qualification, unit/service-line capability, availability, and overlapping shifts.
+- [x] ST1.4 Implement shift fulfillment as a governed lifecycle with idempotent accept/fill/release/cancel transitions and an immutable activity trail.
+- [x] ST1.5 Surface explicit unfilled/unsafe/conflicted states to web and Hummingbird with server-enforced action policies.
+- [x] ST1.6 Add migration, service, API, policy, concurrency, pagination, and mobile parity tests.
+
+Current isolated branch evidence:
+
+- `2026_07_10_000300_create_canonical_staffing_fulfillment_tables.php`, `config/staffing.php`, and the canonical staffing models establish effective-dated qualifications, availability windows, shift assignments, request fulfillments, and append-only command/event ledgers without replacing legacy source records.
+- `MaterializeCanonicalStaffing` projects configured roles, qualifications, and timezone-safe shift windows in deterministic batches; dry runs roll back the complete projection, deactivated source qualifications expire, and shortened horizons remove stale source-owned windows.
+- `CanonicalStaffingService` applies facility scope, verified qualifications, effective dates, availability/leave/conflicts, overlapping assignments, unit/service-line capability, accepted/filled headcount reservation, row locks, and advisory idempotency locks before every governed transition.
+- The web API and Staffing Office expose all active fulfillments and explicit ineligible/unavailable/conflicted states. Legacy source selection can no longer assign a person or mark a request filled, and cancellation/completion are tied to canonical fulfillment state.
+- Hummingbird Android and iOS now select an eligible named candidate through the same canonical API; the mobile write requires header idempotency and records offer, accept, and fill atomically with operational activity. OpenAPI and the mobile route inventory carry the contract.
+- `CanonicalStaffingFulfillmentTest`: six feature tests and 109 assertions cover pagination and facility scope, authorization and immutable idempotency, transition-time revalidation, headcount reservation, DST/materialization reconciliation, and legacy/mobile parity.
+- Full `php artisan test` after rebasing onto `main`: 43 tests passed with 9,593 assertions and only the isolated worktree's known missing-local-`.env` warnings. Repository `./vendor/bin/pint --test`: 901 files passed.
+- Full `npx vitest run --coverage` after rebasing onto `main`: 82 files and 346 tests passed. `npx tsc --noEmit` and `npm run build` passed.
+- `scripts/check-ui-canon.sh` names no staffing file, but the branch inherits pre-existing failures from `main` commit `025139f` in the newly added Arena UI (font weight, arbitrary text sizes, and raw palette ratchet); those unrelated files remain outside this tranche.
+- Android `testDebugUnitTest` passed under the repository-supported JDK 17. Native iOS compilation is unavailable on this Linux host; shared contract/parity guards cover the iOS request and model seams pending GitHub/macOS validation if configured.
 
 ## Transport lifecycle completion
 

@@ -47,6 +47,12 @@ class AuthServiceProvider extends ServiceProvider
      */
     private const INTEGRATION_CONTROL_ROLES = ['super_admin', 'superuser'];
 
+    /** @var list<string> */
+    private const STAFFING_OPERATION_ROLES = [
+        'super_admin', 'superuser', 'admin', 'ops_leader', 'staffing_coordinator',
+        'house_supervisor',
+    ];
+
     /**
      * Roles allowed to create governed Eddy action proposals or mint the scoped
      * draft token used by the agent callback. Plain authenticated accounts can
@@ -114,6 +120,12 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manageIntegrations', fn (User $user): bool => in_array(
             self::canonicalRole((string) $user->role),
             self::INTEGRATION_CONTROL_ROLES,
+            true,
+        ));
+
+        Gate::define('manageStaffingOperations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::STAFFING_OPERATION_ROLES,
             true,
         ));
 

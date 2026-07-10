@@ -4,6 +4,10 @@ import { sourceFreshnessSchema } from '@/features/operations/sourceFreshness';
 import type {
   AssignStaffingRequestInput,
   CreateStaffingRequestInput,
+  OfferStaffingFulfillmentInput,
+  StaffingCandidatePage,
+  StaffingFulfillment,
+  StaffingFulfillmentStatus,
   StaffingOverview,
   StaffingRequest,
   StaffingRequestStatus,
@@ -19,6 +23,31 @@ const slaSchema = z.object({
 
 const roleEnum = z.enum(['rn', 'lpn', 'tech', 'charge', 'provider', 'respiratory', 'unit_secretary']);
 const shiftEnum = z.enum(['day', 'evening', 'night']);
+const fulfillmentStatusEnum = z.enum(['offered', 'accepted', 'filled', 'released', 'canceled']);
+
+const fulfillmentSchema = z.object({
+  fulfillment_uuid: z.string().uuid(),
+  staffing_request_id: z.number(),
+  staff_member_id: z.number(),
+  staff_member_name: z.string(),
+  status: fulfillmentStatusEnum,
+  source: z.enum(['float_pool', 'overtime', 'agency', 'on_call']),
+  version: z.number(),
+  role_code: z.string().nullable(),
+  unit_id: z.number().nullable(),
+  starts_at: z.string().nullable(),
+  ends_at: z.string().nullable(),
+  timezone: z.string().nullable(),
+  validation: z.record(z.string(), z.unknown()),
+  offered_at: z.string().nullable(),
+  accepted_at: z.string().nullable(),
+  filled_at: z.string().nullable(),
+  released_at: z.string().nullable(),
+  canceled_at: z.string().nullable(),
+  actions: z.object({
+    can_accept: z.boolean(), can_fill: z.boolean(), can_release: z.boolean(), can_cancel: z.boolean(),
+  }),
+});
 
 const planSchema = z.object({
   staffing_plan_id: z.number(),
@@ -71,6 +100,17 @@ const requestSchema = z.object({
   is_synthetic: z.boolean(),
   freshness_status: z.enum(['current', 'stale', 'expired']),
   sla: slaSchema,
+  fulfillment: z.object({
+    available: z.boolean(),
+    state: z.enum(['unconfigured', 'unfilled', 'offer_pending', 'partially_fulfilled', 'filled']),
+    offered_count: z.number(),
+    accepted_count: z.number(),
+    filled_count: z.number(),
+    remaining_count: z.number(),
+    latest: fulfillmentSchema.nullable(),
+    active: z.array(fulfillmentSchema),
+    actions: z.object({ can_offer: z.boolean() }),
+  }),
 });
 
 const coverageSchema = z.object({
@@ -157,9 +197,11 @@ const workforceMemberSchema = z.object({
   eligible_float_units: z.array(z.string()),
   is_active: z.boolean(),
   is_synthetic: z.boolean(),
+  availability_source: z.string().nullable(),
 });
 
 const overviewSchema = z.object({
+  permissions: z.object({ manage: z.boolean() }),
   source: sourceFreshnessSchema,
   metrics: z.object({
     open_requests: z.number(),
@@ -218,4 +260,55 @@ export async function assignStaffingRequest(id: number, input: AssignStaffingReq
 export async function updateStaffingStatus(id: number, status: StaffingRequestStatus): Promise<StaffingRequest> {
   const res = await axios.post(`/api/staffing/requests/${id}/status`, { status });
   return envelope(requestSchema).parse(res.data).data;
+}
+
+const candidateSchema = z.object({
+  staff_member_id: z.number(),
+  display_name: z.string(),
+  role_code: z.string(),
+  role_label: z.string(),
+  unit_id: z.number().nullable(),
+  coverage_model: z.string().nullable(),
+  eligible: z.boolean(),
+  eligibility_state: z.enum(['eligible', 'unqualified', 'unavailable', 'conflicted']),
+  reason_codes: z.array(z.string()),
+  qualification_requirements: z.array(z.object({
+    qualification_code: z.string(), display_name: z.string(), verified: z.boolean(),
+  })),
+  availability: z.object({ covering_windows: z.number(), blocking_windows: z.number(), timezone: z.string() }),
+  overlapping_assignments: z.number(),
+  shift: z.object({ starts_at: z.string(), ends_at: z.string(), timezone: z.string() }),
+});
+
+export async function fetchStaffingCandidates(id: number): Promise<StaffingCandidatePage> {
+  const res = await axios.get(`/api/staffing/requests/${id}/candidates`, {
+    params: { per_page: 100 },
+  });
+  return z.object({
+    data: z.array(candidateSchema),
+    meta: z.object({ current_page: z.number(), last_page: z.number(), per_page: z.number(), total: z.number() }),
+    shift: z.object({ starts_at: z.string(), ends_at: z.string(), timezone: z.string() }),
+  }).parse(res.data);
+}
+
+export async function offerStaffingFulfillment(
+  id: number,
+  input: OfferStaffingFulfillmentInput,
+  idempotencyKey: string,
+): Promise<StaffingFulfillment> {
+  const res = await axios.post(`/api/staffing/requests/${id}/fulfillments`, input, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+  return envelope(fulfillmentSchema).parse(res.data).data;
+}
+
+export async function transitionStaffingFulfillment(
+  fulfillmentUuid: string,
+  status: Exclude<StaffingFulfillmentStatus, 'offered'>,
+  idempotencyKey: string,
+): Promise<StaffingFulfillment> {
+  const res = await axios.post(`/api/staffing/fulfillments/${fulfillmentUuid}/transition`, { status }, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+  return envelope(fulfillmentSchema).parse(res.data).data;
 }

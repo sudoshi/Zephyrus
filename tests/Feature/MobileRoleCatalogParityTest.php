@@ -578,17 +578,20 @@ class MobileRoleCatalogParityTest extends TestCase
         $staffingViewModel = file_get_contents(base_path(self::ANDROID_STAFFING_VIEW_MODEL));
         $staffingController = file_get_contents(base_path(self::MOBILE_STAFFING_CONTROLLER));
 
-        foreach (['StaffingOverview', 'StaffingMetrics', 'UnitAtRisk', 'StaffingReq'] as $dto) {
+        foreach (['StaffingOverview', 'StaffingMetrics', 'UnitAtRisk', 'StaffingReq', 'StaffingCandidate'] as $dto) {
             $this->assertStringContainsString("data class {$dto}", $models);
         }
 
-        foreach (['staffingOverview', 'fillStaffingRequest', 'parseStaffingOverview', 'parseStaffingMetrics', 'parseUnitAtRisk', 'parseStaffingReq'] as $method) {
+        foreach (['staffingOverview', 'staffingCandidates', 'fillStaffingRequest', 'parseStaffingOverview', 'parseStaffingMetrics', 'parseUnitAtRisk', 'parseStaffingReq', 'parseStaffingCandidate'] as $method) {
             $this->assertStringContainsString("fun {$method}", $apiClient);
         }
 
         $this->assertStringContainsString('class StaffingViewModel(app: Application) : AndroidViewModel(app)', $staffingViewModel);
         $this->assertStringContainsString('overview = api.staffingOverview(bearer)', $staffingViewModel);
-        $this->assertStringContainsString('api.fillStaffingRequest(bearer, request.staffingRequestId, "Float Pool")', $staffingViewModel);
+        $this->assertStringContainsString('val candidates = api.staffingCandidates(bearer, request.staffingRequestId)', $staffingViewModel);
+        $this->assertStringContainsString('selectedCandidateByRequest[request.staffingRequestId]', $staffingViewModel);
+        $this->assertStringContainsString('api.fillStaffingRequest(', $staffingViewModel);
+        $this->assertStringContainsString('staffMemberId,', $staffingViewModel);
         $this->assertStringContainsString('workingRequestIds = workingRequestIds + request.staffingRequestId', $staffingViewModel);
 
         $this->assertStringContainsString('import net.acumenus.hummingbird.ui.staffing.StaffingScreen', $mainScreen);
@@ -601,12 +604,13 @@ class MobileRoleCatalogParityTest extends TestCase
             $this->assertStringContainsString($symbol, $staffingScreen);
         }
 
-        foreach (['Staffing', 'BELOW MINIMUM-SAFE', 'OPEN REQUESTS', 'below safe', 'Fill from float pool', 'Open in Zephyrus'] as $copy) {
+        foreach (['Staffing', 'BELOW MINIMUM-SAFE', 'OPEN REQUESTS', 'below safe', 'Choose qualified staff', 'Fill with selected staff', 'Open in Zephyrus'] as $copy) {
             $this->assertStringContainsString($copy, $staffingScreen);
         }
 
         $this->assertStringContainsString('onOpenRequest(request, overview.webLink)', $staffingScreen);
-        $this->assertStringContainsString('vm.fillFromFloatPool(bearer, request)', $staffingScreen);
+        $this->assertStringContainsString('vm.loadCandidates(bearer, request)', $staffingScreen);
+        $this->assertStringContainsString('vm.fillSelected(bearer, request, onBack)', $staffingScreen);
         $this->assertStringContainsString('GET /api/mobile/v1/staffing/overview', $staffingController);
         $this->assertStringContainsString("links: ['web' => url('/staffing')]", $staffingController);
         $this->assertStringContainsString("\$this->ledger->record('staffing.request_filled'", $staffingController);
@@ -682,7 +686,8 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('fun resolveBarrier(bearer: String, id: Int)', $apiClient);
         $this->assertStringContainsString('fun opsDecision(bearer: String, approvalUuid: String, decision: String)', $apiClient);
         $this->assertStringContainsString('/api/mobile/v1/ops/approvals/${urlPart(approvalUuid)}/decision', $apiClient);
-        $this->assertStringContainsString('fun fillStaffingRequest(bearer: String, id: Int, assignedSource: String)', $apiClient);
+        $this->assertStringContainsString('suspend fun staffingCandidates(bearer: String, id: Int)', $apiClient);
+        $this->assertStringContainsString('staffMemberId: Int,', $apiClient);
         $this->assertStringContainsString('/api/mobile/v1/staffing/requests/$id/fill', $apiClient);
 
         $this->assertStringContainsString('fun load(bearer: String, role: MobileRole)', $viewModel);
@@ -696,9 +701,8 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('fun claimEvsTurn(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
         $this->assertStringContainsString('fun approveOpsAction(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
         $this->assertStringContainsString('fun rejectOpsAction(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
-        $this->assertStringContainsString('fun fillStaffingRequest(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
         $this->assertStringContainsString('api.opsDecision(bearer, approvalUuid, decision)', $viewModel);
-        $this->assertStringContainsString('api.fillStaffingRequest(bearer, id, role.title)', $viewModel);
+        $this->assertStringNotContainsString('api.fillStaffingRequest', $viewModel);
 
         $this->assertStringContainsString('selectedRole: MobileRole = MobileRoleCatalog.default', $screen);
         $this->assertStringContainsString('selectedUnitName: String? = null', $screen);
@@ -713,7 +717,8 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('vm.claimEvsTurn(bearer, item, role)', $screen);
         $this->assertStringContainsString('ForYouAction("Approve", CapacityStatus.SUCCESS) { vm.approveOpsAction(bearer, item, role) }', $screen);
         $this->assertStringContainsString('ForYouAction("Reject", CapacityStatus.WARNING) { vm.rejectOpsAction(bearer, item, role) }', $screen);
-        $this->assertStringContainsString('ForYouAction("Fill") { vm.fillStaffingRequest(bearer, item, role) }', $screen);
+        $this->assertStringContainsString('id.startsWith("staffing-")', $screen);
+        $this->assertStringNotContainsString('ForYouAction("Fill")', $screen);
         $this->assertStringContainsString('actions.forEach { action ->', $screen);
         $this->assertStringContainsString('title = "Can\'t load your queue"', $screen);
         $this->assertStringContainsString('title = "Loading your queue"', $screen);
