@@ -367,7 +367,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->p
     Route::post('/sources/{source}/credentials', [IntegrationCredentialController::class, 'store'])->whereNumber('source');
     Route::patch('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'update'])->whereNumber(['source', 'credential']);
     Route::delete('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'destroy'])->whereNumber(['source', 'credential']);
+    Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->whereNumber('source');
+    Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->whereNumber('source');
     Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
+    Route::post('/enterprise/replays/preview', [EnterpriseConnectorController::class, 'previewReplay']);
+    Route::post('/enterprise/replays', [EnterpriseConnectorController::class, 'queueReplay']);
     Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
 });
 

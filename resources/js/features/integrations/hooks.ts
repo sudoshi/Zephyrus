@@ -6,6 +6,10 @@ import {
   deleteIntegrationCredential,
   deleteIntegrationEndpoint,
   fetchIntegrationControlPlane,
+  previewIntegrationReplay,
+  queueEpicFhirPoll,
+  queueIntegrationHealthCheck,
+  queueIntegrationReplay,
   retireIntegrationSource,
   updateIntegrationEndpoint,
   updateIntegrationCredential,
@@ -13,6 +17,7 @@ import {
   type IntegrationCredentialInput,
   type IntegrationEndpointInput,
   type IntegrationSourceInput,
+  type IntegrationReplayInput,
 } from './api';
 
 const controlPlaneKey = ['admin', 'integrations', 'control-plane'] as const;
@@ -25,7 +30,7 @@ export function useIntegrationControlPlane() {
   });
 }
 
-function useRefreshingMutation<TInput>(mutationFn: (input: TInput) => Promise<unknown>) {
+function useRefreshingMutation<TInput, TOutput>(mutationFn: (input: TInput) => Promise<TOutput>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
@@ -67,4 +72,20 @@ export function useUpdateIntegrationCredential() {
 
 export function useDeleteIntegrationCredential() {
   return useRefreshingMutation(({ sourceId, credentialId }: { sourceId: number; credentialId: number }) => deleteIntegrationCredential(sourceId, credentialId));
+}
+
+export function useQueueIntegrationHealthCheck() {
+  return useRefreshingMutation((sourceId: number) => queueIntegrationHealthCheck(sourceId));
+}
+
+export function useQueueEpicFhirPoll() {
+  return useRefreshingMutation(({ sourceId, resourceType }: { sourceId: number; resourceType: 'Encounter' | 'Location' }) => queueEpicFhirPoll(sourceId, resourceType));
+}
+
+export function usePreviewIntegrationReplay() {
+  return useMutation({ mutationFn: (input: IntegrationReplayInput) => previewIntegrationReplay(input) });
+}
+
+export function useQueueIntegrationReplay() {
+  return useRefreshingMutation(({ input, idempotencyKey }: { input: IntegrationReplayInput; idempotencyKey: string }) => queueIntegrationReplay(input, idempotencyKey));
 }

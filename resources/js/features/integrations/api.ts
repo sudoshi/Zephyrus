@@ -13,6 +13,9 @@ const sourceSchema = z.object({
   interfaceType: z.string(),
   configuredStatus: z.string(),
   healthStatus: z.string(),
+  protocolHealthStatus: z.string(),
+  protocolHealthCheckedAtIso: nullableString,
+  protocolHealthErrorCode: nullableString,
   goLiveStatus: z.string(),
   contractStatus: z.string(),
   baaStatus: z.string(),
@@ -70,6 +73,9 @@ const integrationControlPlaneSchema = z.object({
     degradedSources: z.number(),
     staleSources: z.number(),
     failedSources: z.number(),
+    protocolHealthySources: z.number(),
+    protocolDegradedSources: z.number(),
+    protocolFailedSources: z.number(),
     endpoints: z.number(),
     capabilities: z.number(),
     credentials: z.number(),
@@ -88,6 +94,8 @@ const integrationControlPlaneSchema = z.object({
     terminologyMaps: z.number(),
     writebackDrafts: z.number(),
     configurationAudits: z.number(),
+    queuedJobs: z.number(),
+    failedQueueJobs: z.number(),
   }),
   sources: z.array(sourceSchema),
   endpoints: z.array(z.object({
@@ -105,11 +113,15 @@ const integrationControlPlaneSchema = z.object({
   })),
   fhirConnections: z.array(z.object({
     connectionId: z.number(),
+    sourceId: z.number(),
     sourceName: z.string(),
     connectionKey: z.string(),
     status: z.string(),
     fhirVersion: nullableString,
     capabilityCheckedAtIso: nullableString,
+    healthStatus: z.string(),
+    healthCheckedAtIso: nullableString,
+    healthErrorCode: nullableString,
     baseUrlConfigured: z.boolean(),
     supportedResourceCount: z.number(),
   })),
@@ -175,8 +187,10 @@ const integrationControlPlaneSchema = z.object({
   })),
   replayJobs: z.array(z.object({
     replayJobId: z.number(),
+    sourceId: z.number().nullable(),
     replayType: z.string(),
     status: z.string(),
+    dryRun: z.boolean(),
     eventsReplayed: z.number(),
     eventsFailed: z.number(),
     startedAtIso: nullableString,
@@ -292,6 +306,39 @@ export interface IntegrationCredentialInput {
   owner?: string | null;
 }
 
+export interface IntegrationReplayInput {
+  source_id?: number | null;
+  from: string;
+  to: string;
+  event_types?: string[];
+  limit?: number;
+}
+
+const queuedRunSchema = z.object({
+  runId: z.number(), runUuid: z.string(), status: z.string(), created: z.boolean(),
+  resourceType: z.string().optional(),
+});
+
+const replayPreviewSchema = z.object({
+  eligibleEvents: z.number(),
+  totalMatchingEvents: z.number(),
+  truncated: z.boolean(),
+  oldestAtIso: nullableString,
+  newestAtIso: nullableString,
+  byEventType: z.array(z.object({ eventType: z.string(), count: z.number() })),
+  scope: z.object({
+    sourceId: z.number().nullable(), from: z.string(), to: z.string(),
+    eventTypes: z.array(z.string()), projectionStatuses: z.array(z.string()), limit: z.number(),
+  }),
+  mutation: z.literal(false),
+});
+
+const queuedReplaySchema = z.object({
+  replayJobId: z.number(), replayUuid: z.string(), status: z.string(), created: z.boolean(),
+});
+
+export type IntegrationReplayPreview = z.infer<typeof replayPreviewSchema>;
+
 function parseEnvelope<T>(schema: z.ZodType<T>, payload: unknown): T {
   const envelope = z.object({ data: z.unknown() }).parse(payload);
 
@@ -344,4 +391,26 @@ export async function updateIntegrationCredential(sourceId: number, credentialId
 
 export async function deleteIntegrationCredential(sourceId: number, credentialId: number): Promise<void> {
   await axios.delete(`/api/admin/integrations/sources/${sourceId}/credentials/${credentialId}`);
+}
+
+export async function queueIntegrationHealthCheck(sourceId: number) {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/health-check`);
+  return parseEnvelope(queuedRunSchema, response.data);
+}
+
+export async function queueEpicFhirPoll(sourceId: number, resourceType: 'Encounter' | 'Location') {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/fhir/poll`, { resource_type: resourceType });
+  return parseEnvelope(queuedRunSchema, response.data);
+}
+
+export async function previewIntegrationReplay(input: IntegrationReplayInput) {
+  const response = await axios.post('/api/admin/integrations/enterprise/replays/preview', input);
+  return parseEnvelope(replayPreviewSchema, response.data);
+}
+
+export async function queueIntegrationReplay(input: IntegrationReplayInput, idempotencyKey: string) {
+  const response = await axios.post('/api/admin/integrations/enterprise/replays', input, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+  return parseEnvelope(queuedReplaySchema, response.data);
 }

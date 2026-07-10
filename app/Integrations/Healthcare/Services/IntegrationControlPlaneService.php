@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class IntegrationControlPlaneService
 {
@@ -27,6 +28,9 @@ class IntegrationControlPlaneService
             'degradedSources' => $sources->whereIn('healthStatus', ['degraded', 'unobserved'])->count(),
             'staleSources' => $sources->where('healthStatus', 'stale')->count(),
             'failedSources' => $sources->where('healthStatus', 'failed')->count(),
+            'protocolHealthySources' => $sources->where('protocolHealthStatus', 'healthy')->count(),
+            'protocolDegradedSources' => $sources->where('protocolHealthStatus', 'degraded')->count(),
+            'protocolFailedSources' => $sources->where('protocolHealthStatus', 'failed')->count(),
             'endpoints' => DB::table('integration.source_endpoints')->count(),
             'capabilities' => DB::table('integration.source_capabilities')->where('supported', true)->count(),
             'credentials' => DB::table('integration.source_credentials')->count()
@@ -46,6 +50,8 @@ class IntegrationControlPlaneService
             'terminologyMaps' => DB::table('integration.terminology_maps')->count(),
             'writebackDrafts' => DB::table('ops.writeback_drafts')->count(),
             'configurationAudits' => DB::table('integration.configuration_audits')->count(),
+            'queuedJobs' => Schema::hasTable('jobs') ? DB::table('jobs')->count() : 0,
+            'failedQueueJobs' => Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0,
         ];
 
         return [
@@ -114,6 +120,9 @@ class IntegrationControlPlaneService
             'interfaceType' => $source->interface_type,
             'configuredStatus' => $source->active_status,
             'healthStatus' => $health,
+            'protocolHealthStatus' => $source->protocol_health_status,
+            'protocolHealthCheckedAtIso' => $this->iso($source->protocol_health_checked_at),
+            'protocolHealthErrorCode' => $source->protocol_health_error,
             'goLiveStatus' => $source->go_live_status,
             'contractStatus' => $source->contract_status,
             'baaStatus' => $source->baa_status,
@@ -141,6 +150,7 @@ class IntegrationControlPlaneService
     {
         $latestRunIds = DB::table('raw.ingest_runs')
             ->selectRaw('source_id, max(ingest_run_id) as ingest_run_id')
+            ->whereNot('run_type', 'protocol_health')
             ->groupBy('source_id');
 
         $latestRuns = DB::table('raw.ingest_runs as run')
@@ -247,16 +257,23 @@ class IntegrationControlPlaneService
                 'connection.status',
                 'connection.fhir_version',
                 'connection.capability_checked_at',
+                'connection.health_status',
+                'connection.health_checked_at',
+                'connection.last_health_error',
                 'connection.base_url',
                 'source.source_name',
             ])
             ->map(fn (object $row): array => [
                 'connectionId' => (int) $row->fhir_client_connection_id,
+                'sourceId' => (int) $row->source_id,
                 'sourceName' => $row->source_name,
                 'connectionKey' => $row->connection_key,
                 'status' => $row->status,
                 'fhirVersion' => $row->fhir_version,
                 'capabilityCheckedAtIso' => $this->iso($row->capability_checked_at),
+                'healthStatus' => $row->health_status,
+                'healthCheckedAtIso' => $this->iso($row->health_checked_at),
+                'healthErrorCode' => $row->last_health_error,
                 'baseUrlConfigured' => filled($row->base_url),
                 'supportedResourceCount' => (int) $resourceCounts->get($row->source_id, 0),
             ])->all();
@@ -404,7 +421,9 @@ class IntegrationControlPlaneService
             ->map(fn (object $row): array => [
                 'replayJobId' => (int) $row->event_replay_job_id,
                 'replayType' => $row->replay_type,
+                'sourceId' => $row->source_id ? (int) $row->source_id : null,
                 'status' => $row->status,
+                'dryRun' => (bool) $row->dry_run,
                 'eventsReplayed' => (int) $row->events_replayed,
                 'eventsFailed' => (int) $row->events_failed,
                 'startedAtIso' => $this->iso($row->started_at),
@@ -613,7 +632,7 @@ class IntegrationControlPlaneService
 
     private function templateSafeStatus(string $status): string
     {
-        return $status === 'ready' ? 'template' : $status;
+        return $status;
     }
 
     /** @return array<string, mixed> */

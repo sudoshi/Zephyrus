@@ -1,8 +1,14 @@
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import { CredentialConfiguration, EndpointConfiguration, SourceConfiguration } from '@/Components/Integrations/ConfigurationForms';
-import { useIntegrationControlPlane } from '@/features/integrations/hooks';
-import type { IntegrationControlPlane, IntegrationSource } from '@/features/integrations/api';
+import {
+  useIntegrationControlPlane,
+  usePreviewIntegrationReplay,
+  useQueueEpicFhirPoll,
+  useQueueIntegrationHealthCheck,
+  useQueueIntegrationReplay,
+} from '@/features/integrations/hooks';
+import type { IntegrationControlPlane, IntegrationReplayInput, IntegrationSource } from '@/features/integrations/api';
 import { Head } from '@inertiajs/react';
 import {
   Activity,
@@ -77,6 +83,11 @@ function formatTime(value: string | null): string {
   return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'medium' }) : 'Never';
 }
 
+function localDateTime(value: Date): string {
+  const offsetMs = value.getTimezoneOffset() * 60_000;
+  return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 function StatusBadge({ value }: { value: string }) {
   return (
     <span className={`inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-xs/[16px] font-semibold ${statusClasses[value] ?? statusClasses.template}`}>
@@ -118,6 +129,19 @@ function Panel({ title, actions, children }: { title: string; actions?: ReactNod
       </div>
       {children}
     </section>
+  );
+}
+
+function ActionButton({ children, disabled = false, onClick }: { children: ReactNode; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex min-h-8 items-center justify-center rounded-md border border-healthcare-border px-2.5 py-1 text-xs/[16px] font-semibold text-healthcare-text-primary transition hover:bg-healthcare-hover disabled:cursor-not-allowed disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -187,11 +211,13 @@ function OverviewPanel({ data }: { data: IntegrationControlPlane }) {
       <Panel title="Source Health" actions={<span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Stale after {formatDurationMinutes(data.freshnessPolicy.staleAfterMinutes)}</span>}>
         <SourceTable sources={data.sources} />
       </Panel>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <Metric label="Ingest Runs" value={data.counts.ingestRuns} />
         <Metric label="Inbound Messages" value={data.counts.inboundMessages} />
         <Metric label="Canonical Events" value={data.counts.canonicalEvents} />
         <Metric label="Open Projection Errors" value={data.counts.openProjectionErrors} status={data.counts.openProjectionErrors ? 'critical' : undefined} />
+        <Metric label="Queued Jobs" value={data.counts.queuedJobs} status={data.counts.queuedJobs > 100 ? 'warning' : undefined} />
+        <Metric label="Failed Queue Jobs" value={data.counts.failedQueueJobs} status={data.counts.failedQueueJobs ? 'critical' : undefined} />
       </div>
     </div>
   );
@@ -225,24 +251,38 @@ function SourcesPanel({ data }: { data: IntegrationControlPlane }) {
 
 function FhirPanel({ data }: { data: IntegrationControlPlane }) {
   const smartCredentials = data.credentials.filter((credential) => credential.credentialType === 'smart_backend_services');
+  const healthCheck = useQueueIntegrationHealthCheck();
+  const poll = useQueueEpicFhirPoll();
   return (
     <div className="space-y-5">
       <Panel title="FHIR R4 Connections">
         {data.fhirConnections.length === 0 ? <EmptyRows label="No FHIR R4 connections configured." /> : (
-          <Table headings={['Source', 'Connection', 'FHIR Version', 'Status', 'Capability Check', 'Resources', 'Base URL']}>
+          <Table headings={['Source', 'Connection', 'FHIR Version', 'Status', 'Protocol Health', 'Capability Check', 'Resources', 'Controls']}>
             {data.fhirConnections.map((connection) => (
               <tr key={connection.connectionId}>
                 <td className={primaryCellClass}>{connection.sourceName}</td>
                 <td className={cellClass}>{connection.connectionKey}</td>
                 <td className={cellClass}>{connection.fhirVersion ?? 'Unknown'}</td>
                 <td className={cellClass}><StatusBadge value={connection.status} /></td>
+                <td className={cellClass}>
+                  <StatusBadge value={connection.healthStatus} />
+                  {connection.healthErrorCode && <div className="mt-1 text-xs/[16px]">{humanize(connection.healthErrorCode)}</div>}
+                </td>
                 <td className={cellClass}>{formatTime(connection.capabilityCheckedAtIso)}</td>
                 <td className={`${cellClass} tabular-nums`}>{connection.supportedResourceCount}</td>
-                <td className={cellClass}>{connection.baseUrlConfigured ? 'Configured' : 'Missing'}</td>
+                <td className={cellClass}>
+                  <div className="flex min-w-max flex-wrap gap-1.5">
+                    <ActionButton disabled={healthCheck.isPending} onClick={() => healthCheck.mutate(connection.sourceId)}>Check</ActionButton>
+                    <ActionButton disabled={poll.isPending || !['ready', 'active'].includes(connection.status)} onClick={() => poll.mutate({ sourceId: connection.sourceId, resourceType: 'Encounter' })}>Poll Encounter</ActionButton>
+                    <ActionButton disabled={poll.isPending || !['ready', 'active'].includes(connection.status)} onClick={() => poll.mutate({ sourceId: connection.sourceId, resourceType: 'Location' })}>Poll Location</ActionButton>
+                  </div>
+                </td>
               </tr>
             ))}
           </Table>
         )}
+        {(healthCheck.isSuccess || poll.isSuccess) && <p role="status" className="mt-2 text-xs/[16px] text-healthcare-success dark:text-healthcare-success-dark">The integration run was queued on the supervised worker.</p>}
+        {(healthCheck.isError || poll.isError) && <p role="alert" className="mt-2 text-xs/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">The run could not be queued. Verify activation and protocol health.</p>}
       </Panel>
       <Panel title="SMART Backend Services">
         {smartCredentials.length === 0 ? <EmptyRows label="No SMART Backend Services credentials configured." /> : (
@@ -267,6 +307,7 @@ function FhirPanel({ data }: { data: IntegrationControlPlane }) {
 
 function Hl7Panel({ data }: { data: IntegrationControlPlane }) {
   const hl7Sources = data.sources.filter((source) => source.interfaceType.toLowerCase().includes('hl7'));
+  const healthCheck = useQueueIntegrationHealthCheck();
   return (
     <div className="space-y-5">
       <Panel title="Interface Engine Boundary">
@@ -284,6 +325,21 @@ function Hl7Panel({ data }: { data: IntegrationControlPlane }) {
         )}
       </Panel>
       <Panel title="HL7 v2 Sources"><SourceTable sources={hl7Sources} /></Panel>
+      <Panel title="Ingress Health Controls">
+        {hl7Sources.length === 0 ? <EmptyRows label="No HL7 v2 source is configured for a protocol check." /> : (
+          <div className="space-y-2">
+            {hl7Sources.map((source) => (
+              <div key={source.sourceId} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+                <div>
+                  <div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{source.sourceName}</div>
+                  <div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Protocol: {humanize(source.protocolHealthStatus)} · checked {formatTime(source.protocolHealthCheckedAtIso)}</div>
+                </div>
+                <ActionButton disabled={healthCheck.isPending} onClick={() => healthCheck.mutate(source.sourceId)}>Check boundary</ActionButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }
@@ -387,6 +443,23 @@ function RunsPanel({ data }: { data: IntegrationControlPlane }) {
 }
 
 function DeadLettersPanel({ data }: { data: IntegrationControlPlane }) {
+  const preview = usePreviewIntegrationReplay();
+  const replay = useQueueIntegrationReplay();
+  const [sourceId, setSourceId] = useState('');
+  const [from, setFrom] = useState(() => localDateTime(new Date(Date.now() - 24 * 60 * 60 * 1000)));
+  const [to, setTo] = useState(() => localDateTime(new Date()));
+  const [previewedInput, setPreviewedInput] = useState<IntegrationReplayInput | null>(null);
+  const replayInput = (): IntegrationReplayInput => ({
+    source_id: sourceId ? Number(sourceId) : null,
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString(),
+    limit: 500,
+  });
+  const resetReplayScope = () => {
+    setPreviewedInput(null);
+    preview.reset();
+    replay.reset();
+  };
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -410,6 +483,33 @@ function DeadLettersPanel({ data }: { data: IntegrationControlPlane }) {
             ))}
           </Table>
         )}
+      </Panel>
+      <Panel title="Canonical Projection Replay">
+        <div className="grid gap-3 rounded-md border border-healthcare-border p-3 md:grid-cols-4 dark:border-healthcare-border-dark">
+          <label className="text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            Source
+            <select value={sourceId} onChange={(event) => { setSourceId(event.target.value); resetReplayScope(); }} className="mt-1 block min-h-9 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm/[18px] text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+              <option value="">All sources</option>
+              {data.sources.map((source) => <option key={source.sourceId} value={source.sourceId}>{source.sourceName}</option>)}
+            </select>
+          </label>
+          <label className="text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            From
+            <input type="datetime-local" value={from} onChange={(event) => { setFrom(event.target.value); resetReplayScope(); }} className="mt-1 block min-h-9 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm/[18px] text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+          </label>
+          <label className="text-xs/[16px] font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            To
+            <input type="datetime-local" value={to} onChange={(event) => { setTo(event.target.value); resetReplayScope(); }} className="mt-1 block min-h-9 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm/[18px] text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark" />
+          </label>
+          <div className="flex items-end gap-2">
+            <ActionButton disabled={preview.isPending || !from || !to} onClick={() => { const input = replayInput(); preview.mutate(input, { onSuccess: () => setPreviewedInput(input) }); }}>Preview</ActionButton>
+            <ActionButton disabled={replay.isPending || replay.isSuccess || !previewedInput || !preview.data || preview.data.eligibleEvents === 0} onClick={() => replay.mutate({ input: previewedInput!, idempotencyKey: globalThis.crypto?.randomUUID?.() ?? `replay-${Date.now()}` })}>Queue replay</ActionButton>
+          </div>
+        </div>
+        <p className="mt-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Only pending or failed RTDC canonical projections are eligible. Preview is read-only; already-projected events are excluded.</p>
+        {preview.data && <p role="status" className="mt-2 text-sm/[18px] text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{preview.data.eligibleEvents} eligible of {preview.data.totalMatchingEvents} matching events{preview.data.truncated ? ' (bounded by the replay limit)' : ''}.</p>}
+        {replay.isSuccess && <p role="status" className="mt-2 text-sm/[18px] text-healthcare-success dark:text-healthcare-success-dark">Replay #{replay.data.replayJobId} was queued with an idempotency key.</p>}
+        {(preview.isError || replay.isError) && <p role="alert" className="mt-2 text-sm/[18px] text-healthcare-critical dark:text-healthcare-critical-dark">The replay request was rejected. Check the seven-day window and source selection.</p>}
       </Panel>
       <Panel title="Replay History">
         {data.replayJobs.length === 0 ? <EmptyRows label="No replay jobs recorded." /> : (
