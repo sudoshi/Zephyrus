@@ -19,6 +19,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useState, type ComponentType, type ReactNode } from 'react';
+import { formatDurationMinutes } from '@/lib/duration';
 
 type TabId =
   | 'overview'
@@ -73,7 +74,7 @@ function humanize(value: string | null | undefined): string {
 }
 
 function formatTime(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : 'Never';
+  return value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'medium' }) : 'Never';
 }
 
 function StatusBadge({ value }: { value: string }) {
@@ -183,7 +184,7 @@ function OverviewPanel({ data }: { data: IntegrationControlPlane }) {
         <Metric label="Open Dead Letters" value={data.counts.openDeadLetters} status={data.counts.openDeadLetters ? 'critical' : undefined} />
         <Metric label="Projection Backlog" value={data.counts.pendingProjectionEvents} status={data.counts.pendingProjectionEvents ? 'warning' : undefined} />
       </div>
-      <Panel title="Source Health" actions={<span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Stale after {data.freshnessPolicy.staleAfterMinutes} minutes</span>}>
+      <Panel title="Source Health" actions={<span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Stale after {formatDurationMinutes(data.freshnessPolicy.staleAfterMinutes)}</span>}>
         <SourceTable sources={data.sources} />
       </Panel>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

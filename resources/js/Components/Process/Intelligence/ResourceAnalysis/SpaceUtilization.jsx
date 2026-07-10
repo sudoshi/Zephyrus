@@ -2,6 +2,7 @@ import React from 'react';
 import { AreaChart, Area, LineChart, Line } from 'recharts';
 import { DoorOpen, Clock, RotateCcw, Zap } from 'lucide-react';
 import MetricChart from '../Common/MetricChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const SpaceUtilization = ({ resourceData, predictions }) => {
   const getOccupancyHeatmap = () => {
@@ -169,12 +170,12 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
                       {room.status}
                     </div>
                     <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                      {room.duration} min
+                      {formatDurationMinutes(room.duration)}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-healthcare-warning">
                     <Clock className="h-4 w-4" />
-                    <span className="text-sm">{room.nextAction}m</span>
+                    <span className="text-sm">{formatDurationMinutes(room.nextAction)}</span>
                   </div>
                 </div>
               </div>
@@ -195,7 +196,10 @@ const SpaceUtilization = ({ resourceData, predictions }) => {
           <div className="h-64">
             <MetricChart
               height="64"
-              yAxisLabel="Minutes"
+              yAxisLabel="Duration"
+              yAxisTickFormatter={formatDurationMinutes}
+              yAxisWidth={108}
+              tooltipFormatter={formatDurationMinutes}
               xAxisDataKey="time"
             >
               <LineChart data={turnoverMetrics}>

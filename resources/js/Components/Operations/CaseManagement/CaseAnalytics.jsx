@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
+import { formatDurationMinutes } from '@/lib/duration';
 import {
   LineChart,
   Line,
@@ -29,7 +30,9 @@ const CustomTooltip = ({ active, payload, label }) => {
               style={{ backgroundColor: entry.color }}
             />
             <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-              {entry.name}: {entry.value}
+              {entry.name}: {entry.dataKey === 'avgDuration'
+                ? formatDurationMinutes(Number(entry.value))
+                : entry.value}
             </p>
           </div>
         ))}
@@ -112,14 +115,14 @@ const CaseAnalytics = ({ data, specialties }) => {
         <MetricCard
           title="Average Duration"
           icon="heroicons:clock"
-          value={`${currentMonth.avgDuration}m`}
+          value={formatDurationMinutes(currentMonth.avgDuration)}
           trend={durationChange < 0 ? 'up' : 'down'}
           trendValue={`${Math.abs(durationChange)}%`}
         />
         <MetricCard
           title="Total OR Time"
           icon="heroicons:chart-bar"
-          value={`${(currentMonth.totalTime / 60).toFixed(0)}h`}
+          value={formatDurationMinutes(currentMonth.totalTime)}
           trend={timeChange > 0 ? 'up' : 'down'}
           trendValue={`${Math.abs(timeChange)}%`}
         />
@@ -168,6 +171,8 @@ const CaseAnalytics = ({ data, specialties }) => {
                 <YAxis
                   yAxisId="right"
                   orientation="right"
+                  tickFormatter={(value) => formatDurationMinutes(Number(value))}
+                  width={108}
                   className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
                 />
                 <Tooltip content={<CustomTooltip />} />
@@ -185,7 +190,7 @@ const CaseAnalytics = ({ data, specialties }) => {
                   yAxisId="right"
                   type="monotone"
                   dataKey="avgDuration"
-                  name="Avg Duration (min)"
+                  name="Avg Duration"
                   stroke="#10B981"
                   activeDot={{ r: 8 }}
                   strokeWidth={2}

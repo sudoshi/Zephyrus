@@ -24,7 +24,7 @@ class BarrierTaxonomyService
         ] + $defaults;
     }
 
-    public function statusFor(string $code, ?int $minutesRemaining): string
+    public function statusFor(string $code, int|float|null $minutesRemaining): string
     {
         if ($minutesRemaining === null) {
             return 'ok';

@@ -6,6 +6,7 @@ use App\Models\Transport\TransportEvent;
 use App\Models\Transport\TransportRequest;
 use App\Support\Api\JsonMap;
 use App\Support\Hospital\HospitalManifest;
+use App\Support\Operations\DurationFormatter;
 use App\Support\Operations\SourceFreshness;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -231,7 +232,7 @@ class TransportOperationsService
                 'label' => 'Avoidable bed-hours attributed to transport',
                 'value' => round($avoidableDelayMinutes / 60, 1),
                 'unit' => 'hrs',
-                'caption' => round($avoidableDelayMinutes).' delay min',
+                'caption' => DurationFormatter::minutes($avoidableDelayMinutes).' attributable delay',
             ],
             [
                 'key' => 'vendor_acceptance_cancellation',
@@ -260,7 +261,7 @@ class TransportOperationsService
             return null;
         }
 
-        return round(array_sum($values) / count($values), 1);
+        return array_sum($values) / count($values);
     }
 
     public function create(array $data, ?int $actorUserId): TransportRequest
@@ -492,12 +493,14 @@ class TransportOperationsService
 
     private function sla(TransportRequest $request): array
     {
-        $minutesUntilDue = $request->needed_at ? now()->diffInMinutes($request->needed_at, false) : null;
+        $minutesUntilDue = $request->needed_at
+            ? ((int) round(now()->diffInSeconds($request->needed_at, false))) / 60
+            : null;
 
         return [
             'minutes_until_due' => $minutesUntilDue,
             'at_risk' => $this->isAtRisk($request),
-            'label' => $minutesUntilDue === null ? 'No target' : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+            'label' => DurationFormatter::relativeMinutes($minutesUntilDue),
         ];
     }
 }

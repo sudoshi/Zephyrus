@@ -5,6 +5,7 @@ import TabNavigation from '@/Components/ui/TabNavigation';
 import { useDarkMode } from '@/Contexts/DarkModeContext';
 import { getChartTheme } from '@/utils/chartTheme';
 import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
+import { formatProcessDuration } from './formatDuration';
 
 const VariantsViewPanel = () => {
   const { isDarkMode } = useDarkMode();
@@ -327,13 +328,13 @@ const VariantsViewPanel = () => {
         <Panel isSubpanel={true} dropLightIntensity="medium" title="Time Statistics" className="bg-healthcare-success/10 dark:bg-healthcare-success-dark/20">
           <div className="grid grid-cols-2 gap-y-2">
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Mean Duration:</div>
-            <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.meanTime}</div>
+            <div className="text-sm font-semibold dark:text-white">{formatProcessDuration(bedAssignmentStats.meanTime)}</div>
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Median Duration:</div>
-            <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.medianTime}</div>
+            <div className="text-sm font-semibold dark:text-white">{formatProcessDuration(bedAssignmentStats.medianTime)}</div>
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Mode Duration:</div>
-            <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.modeTime}</div>
+            <div className="text-sm font-semibold dark:text-white">{formatProcessDuration(bedAssignmentStats.modeTime)}</div>
             <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Standard Deviation:</div>
-            <div className="text-sm font-semibold dark:text-white">{bedAssignmentStats.stdDev}</div>
+            <div className="text-sm font-semibold dark:text-white">{formatProcessDuration(bedAssignmentStats.stdDev)}</div>
           </div>
         </Panel>
       </div>
@@ -381,7 +382,7 @@ const VariantsViewPanel = () => {
                     <div className="flex items-center mt-0.5">
                       <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark font-medium">{variant.percentage.toFixed(1)}% of total</div>
                       {variant.timing && (
-                        <div className="text-sm font-semibold text-healthcare-info dark:text-healthcare-info-dark ml-3">{variant.timing}</div>
+                        <div className="text-sm font-semibold text-healthcare-info dark:text-healthcare-info-dark ml-3">{formatProcessDuration(variant.timing)}</div>
                       )}
                     </div>
                   </div>
@@ -432,7 +433,7 @@ const VariantsViewPanel = () => {
                           >
                             <span className="text-white text-xs font-medium">{step.name}</span>
                             {step.timing && (
-                              <span className="text-white text-xs mt-1 opacity-90">{step.timing}</span>
+                              <span className="text-white text-xs mt-1 opacity-90">{formatProcessDuration(step.timing)}</span>
                             )}
                             {stepIndex === variant.steps.length - 1 && (
                               <span className="text-white text-xs mt-1 font-semibold">{variant.percentage.toFixed(1)}%</span>
@@ -466,19 +467,19 @@ const VariantsViewPanel = () => {
         <ul className="text-sm space-y-2">
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
-            <span className="dark:text-white">ED admissions take the longest time on average (4.3 hours), while direct admissions are the most efficient (1.8 hours).</span>
+            <span className="dark:text-white">ED admissions take the longest time on average ({formatProcessDuration(4.3, 'hours')}), while direct admissions are the most efficient ({formatProcessDuration(1.8, 'hours')}).</span>
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
-            <span className="dark:text-white">Peak congestion occurs during the 2-4pm shift change period (4.8 hours average).</span>
+            <span className="dark:text-white">Peak congestion occurs during the 2-4pm shift change period ({formatProcessDuration(4.8, 'hours')} average).</span>
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
-            <span className="dark:text-white">{NETWORK_FACILITY_NAMES[0]} has the fastest average bed assignment time (1.4 hours), 56% better than the system average.</span>
+            <span className="dark:text-white">{NETWORK_FACILITY_NAMES[0]} has the fastest average bed assignment time ({formatProcessDuration(1.4, 'hours')}), 56% better than the system average.</span>
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
-            <span className="dark:text-white">12% of all cases are considered outliers ({'>'}6 hours), with ICU bed requests being the most common factor (65%).</span>
+            <span className="dark:text-white">12% of all cases are considered outliers ({'>'}{formatProcessDuration(6, 'hours')}), with ICU bed requests being the most common factor (65%).</span>
           </li>
           <li className="flex items-start">
             <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>
@@ -545,10 +546,10 @@ const VariantsViewPanel = () => {
               <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Duration</label>
               <select className="w-full p-1 border rounded text-sm dark:bg-healthcare-surface-dark dark:border-healthcare-border-dark dark:text-white">
                 <option>Any Duration</option>
-                <option>{'<'} 2 hours</option>
-                <option>2-4 hours</option>
-                <option>4-6 hours</option>
-                <option>{'>'} 6 hours (Outliers)</option>
+                <option>{'<'} {formatProcessDuration(2, 'hours')}</option>
+                <option>{formatProcessDuration(2, 'hours')} - {formatProcessDuration(4, 'hours')}</option>
+                <option>{formatProcessDuration(4, 'hours')} - {formatProcessDuration(6, 'hours')}</option>
+                <option>{'>'} {formatProcessDuration(6, 'hours')} (Outliers)</option>
               </select>
             </div>
           </div>
@@ -585,8 +586,8 @@ const VariantsViewPanel = () => {
                   </td>
                   <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.cases24h}</td>
                   <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.percentage}%</td>
-                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.avgDuration}</td>
-                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.medianDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatProcessDuration(pathway.avgDuration)}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatProcessDuration(pathway.medianDuration)}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       pathway.outlierPercentage < 10 ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
@@ -608,7 +609,7 @@ const VariantsViewPanel = () => {
   const renderOutliersTab = () => (
     <div className="p-4">
       <Panel isSubpanel={true} dropLightIntensity="medium" title="Outlier Analysis" className="mb-4 bg-healthcare-warning/10 dark:bg-healthcare-warning-dark/20">
-        <p className="text-sm mb-3 dark:text-white">Outliers are defined as bed assignments taking {'>'}6 hours (approximately 2 standard deviations above mean). These cases represent 12% of total bed assignments.</p>
+        <p className="text-sm mb-3 dark:text-white">Outliers are defined as bed assignments taking {'>'}{formatProcessDuration(6, 'hours')} (approximately 2 standard deviations above mean). These cases represent 12% of total bed assignments.</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h4 className="text-sm font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">Source Distribution</h4>
@@ -661,31 +662,31 @@ const VariantsViewPanel = () => {
                 <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[1]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">14%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">ED (76%)</td>
-                <td className="px-3 py-2 text-sm dark:text-white">8.2 hours</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(8.2, 'hours')}</td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[3]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">11%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">ED (82%)</td>
-                <td className="px-3 py-2 text-sm dark:text-white">7.6 hours</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(7.6, 'hours')}</td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[0]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">6%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (54%)</td>
-                <td className="px-3 py-2 text-sm dark:text-white">6.8 hours</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(6.8, 'hours')}</td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[4]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">15%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (68%)</td>
-                <td className="px-3 py-2 text-sm dark:text-white">9.1 hours</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(9.1, 'hours')}</td>
               </tr>
               <tr>
                 <td className="px-3 py-2 text-sm dark:text-white">{NETWORK_FACILITY_NAMES[2]}</td>
                 <td className="px-3 py-2 text-sm dark:text-white">18%</td>
                 <td className="px-3 py-2 text-sm dark:text-white">Transfers (72%)</td>
-                <td className="px-3 py-2 text-sm dark:text-white">9.7 hours</td>
+                <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(9.7, 'hours')}</td>
               </tr>
             </tbody>
           </table>
@@ -727,8 +728,8 @@ const VariantsViewPanel = () => {
                   </td>
                   <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.cases24h}</td>
                   <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.percentage}%</td>
-                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.avgDuration}</td>
-                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{pathway.medianDuration}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatProcessDuration(pathway.avgDuration)}</td>
+                  <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatProcessDuration(pathway.medianDuration)}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       pathway.outlierPercentage < 10 ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
@@ -771,7 +772,7 @@ const VariantsViewPanel = () => {
                 {timePatterns.timeOfDay.map((period, index) => (
                   <tr key={index} className={period.volume === 'Very High' ? 'bg-healthcare-critical/10 dark:bg-healthcare-critical-dark/20' : ''}>
                     <td className="px-3 py-2 text-sm dark:text-white">{period.period}</td>
-                    <td className="px-3 py-2 text-sm dark:text-white">{period.avgTime}</td>
+                    <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(period.avgTime)}</td>
                     <td className="px-3 py-2 text-sm">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         period.volume === 'Low' ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
@@ -810,7 +811,7 @@ const VariantsViewPanel = () => {
                 {timePatterns.dayOfWeek.map((day, index) => (
                   <tr key={index}>
                     <td className="px-3 py-2 text-sm dark:text-white">{day.day}</td>
-                    <td className="px-3 py-2 text-sm dark:text-white">{day.avgTime}</td>
+                    <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(day.avgTime)}</td>
                     <td className="px-3 py-2 text-sm">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         day.volume === 'Low' ? 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success-dark/20 dark:text-healthcare-success-dark' :
@@ -852,7 +853,7 @@ const VariantsViewPanel = () => {
                 <tr key={index}>
                   <td className="px-3 py-2 text-sm font-medium dark:text-white">{hospital.name}</td>
                   <td className="px-3 py-2 text-sm dark:text-white">{hospital.bedCount}</td>
-                  <td className="px-3 py-2 text-sm dark:text-white">{hospital.avgTime}</td>
+                  <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(hospital.avgTime)}</td>
                   <td className="px-3 py-2 text-sm dark:text-white">{hospital.caseCount}</td>
                   <td className="px-3 py-2 text-sm dark:text-white">{hospital.topSource}</td>
                 </tr>
@@ -888,8 +889,8 @@ const VariantsViewPanel = () => {
                 <tr key={index}>
                   <td className="px-3 py-2 text-sm font-medium dark:text-white">{source.source}</td>
                   <td className="px-3 py-2 text-sm font-semibold text-teal-600 dark:text-teal-400">{source.improvement}</td>
-                  <td className="px-3 py-2 text-sm dark:text-white">{source.current}</td>
-                  <td className="px-3 py-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{source.previous}</td>
+                  <td className="px-3 py-2 text-sm dark:text-white">{formatProcessDuration(source.current)}</td>
+                  <td className="px-3 py-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{formatProcessDuration(source.previous)}</td>
                 </tr>
               ))}
             </tbody>

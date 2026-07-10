@@ -26,6 +26,7 @@ class BarrierTaxonomyServiceTest extends TestCase
 
         $this->assertSame('ok', $service->statusFor('pacu_floor_transport_at_risk', 45));
         $this->assertSame('watch', $service->statusFor('pacu_floor_transport_at_risk', 22));
+        $this->assertSame('delayed', $service->statusFor('pacu_floor_transport_at_risk', -0.49));
         $this->assertSame('delayed', $service->statusFor('pacu_floor_transport_at_risk', -1));
     }
 

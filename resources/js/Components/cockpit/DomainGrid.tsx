@@ -12,6 +12,7 @@ import { Panel } from './Panel';
 import { RadialGauge, type RadialGaugeBand } from './RadialGauge';
 import { MetricRow } from './Tile';
 import { ProvenanceBadge } from './ProvenanceBadge';
+import { formatMetricTarget } from './metricFormatting';
 
 // Fixed wall order — operational domains first, ledger domains last. Keys are
 // the server domain registry (SnapshotBuilder providers / DrillBuilder).
@@ -90,7 +91,7 @@ function DomainGauge({ metric }: { metric: CockpitMetricValue }) {
         )}
         {metric.target != null && (
           <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Target {metric.target}{metric.unit === '%' ? '%' : ''}
+            {formatMetricTarget(metric.target, metric.unit)}
           </span>
         )}
       </div>

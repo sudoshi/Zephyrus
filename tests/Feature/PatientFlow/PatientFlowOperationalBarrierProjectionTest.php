@@ -84,7 +84,7 @@ class PatientFlowOperationalBarrierProjectionTest extends TestCase
             'status' => 'assigned',
             'patient_ref' => $flowPatientRef,
             'encounter_ref' => $flowEncounterRef,
-            'needed_at' => '2026-06-25 01:40:00+00',
+            'needed_at' => '2026-06-25 01:59:59+00',
         ]);
         $this->insertTransport([
             'status' => 'assigned',
@@ -152,6 +152,15 @@ class PatientFlowOperationalBarrierProjectionTest extends TestCase
             'verified',
             $verifiedBySourceId["prod.transport_requests:{$transportId}"]['verification']['status'],
         );
+        $transportBarrier = $verifiedBySourceId["prod.transport_requests:{$transportId}"];
+        $transportTimer = collect($occupancy['timers'])->first(
+            fn (array $timer): bool => ($timer['provenance']['source_table'] ?? null) === 'prod.transport_requests'
+                && (int) ($timer['provenance']['source_record_id'] ?? 0) === $transportId,
+        );
+        $this->assertNotNull($transportTimer);
+        $this->assertEqualsWithDelta(-1 / 60, $transportTimer['minutes_remaining'], 0.000001);
+        $this->assertSame('delayed', $transportBarrier['status']);
+        $this->assertStringContainsString('1 sec overdue', $transportBarrier['reason']);
 
         $redacted = $this->actingAs(User::factory()->create(['role' => 'executive']))
             ->getJson("/api/patient-flow/occupancy?asOf={$asOf}")

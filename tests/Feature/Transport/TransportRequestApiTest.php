@@ -5,6 +5,7 @@ namespace Tests\Feature\Transport;
 use App\Models\Transport\TransportRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -86,6 +87,28 @@ class TransportRequestApiTest extends TestCase
             ->assertJsonPath('data.metrics.transfer_backlog', 1)
             ->assertJsonPath('data.metrics.stat', 1)
             ->assertJsonPath('data.source.synthetic', true);
+    }
+
+    public function test_sla_preserves_whole_second_precision(): void
+    {
+        Carbon::setTestNow('2026-07-09T16:00:00Z');
+
+        try {
+            $user = User::factory()->create();
+
+            $this->actingAs($user)->postJson('/api/transport/requests', [
+                'request_type' => 'inpatient',
+                'priority' => 'urgent',
+                'patient_ref' => 'patient-duration-precision',
+                'origin' => 'ED Bay 4',
+                'destination' => 'CT Scanner 1',
+                'transport_mode' => 'stretcher',
+                'needed_at' => now()->subSeconds(91)->toISOString(),
+            ])->assertCreated()
+                ->assertJsonPath('data.sla.label', '1 min 31 sec overdue');
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_transport_endpoints_require_authentication(): void

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
+import { formatDurationMinutes } from '@/lib/duration';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
@@ -35,7 +36,7 @@ const RoomStatus = ({ roomStatus = null }) => {
                 { name: 'Surgical Tools', status: 'in_progress' }
             ],
             notes: 'Patient has latex allergy',
-            alerts: index === 3 ? ['Blood pressure elevated', 'Medication due in 15 minutes'] : []
+            alerts: index === 3 ? ['Blood pressure elevated', `Medication due in ${formatDurationMinutes(15)}`] : []
         } : null,
         nextCase: index % 3 === 1 ? {
             startTime: '10:30',

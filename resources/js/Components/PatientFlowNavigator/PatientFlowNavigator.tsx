@@ -57,6 +57,7 @@ import NavigatorInspector from './NavigatorInspector';
 import NavigatorToolbar from './NavigatorToolbar';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
+import { formatDurationMinutes } from '@/lib/duration';
 
 /**
  * Patient Flow 4D Navigator — thin orchestrator (FLOW-WINDOW-PLAN §7.3).
@@ -715,7 +716,7 @@ export default function PatientFlowNavigator({
       .map((item) => {
         const reasons = item.barrierReasons?.length ? item.barrierReasons.join(' / ') : item.blockers.join(', ');
         const codes = item.barrierCodes?.length ? ` codes ${item.barrierCodes.join(', ')};` : '';
-        return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${Math.round(item.stayMinutes / 60)}h stay;${codes} ${reasons}`;
+        return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${formatDurationMinutes(item.stayMinutes)} stay;${codes} ${reasons}`;
       })
       .join('; ') || 'No delayed disk details selected.';
     const structuredContext = eddyContext
@@ -732,8 +733,8 @@ export default function PatientFlowNavigator({
       [
         'Review this Patient Flow 4D timer picture for RTDC demand-capacity risk.',
         `Persona lens: ${lens?.role_id ?? 'house'}. Floor filter: ${filtersRef.current.floor}. Service filter: ${filtersRef.current.serviceLine}.`,
-        `Occupancy: ${occupancy.active} active, ${occupancy.delayed} delayed, ${occupancy.watch} watch, ${occupancy.readyToMove} ready inside 30 minutes.`,
-        `Timer blockers: ${occupancy.transportDelays} transport, ${occupancy.evsDelays} EVS, average stay ${Math.round(occupancy.avgStayMinutes / 60)}h.`,
+        `Occupancy: ${occupancy.active} active, ${occupancy.delayed} delayed, ${occupancy.watch} watch, ${occupancy.readyToMove} ready inside ${formatDurationMinutes(30)}.`,
+        `Timer blockers: ${occupancy.transportDelays} transport, ${occupancy.evsDelays} EVS, average stay ${formatDurationMinutes(occupancy.avgStayMinutes)}.`,
         `Service-line compounding: ${serviceLines}`,
         `Barrier reasons: ${topBarriers}`,
         `Disk examples: ${sampleDiskDetails}`,

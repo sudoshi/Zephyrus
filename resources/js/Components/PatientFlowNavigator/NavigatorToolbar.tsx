@@ -7,6 +7,7 @@ import type {
   PatientFlowSummary,
   PatientLayerState,
 } from '@/features/patientFlowNavigator/types';
+import { formatDurationMinutes } from '@/lib/duration';
 
 export interface NavigatorMetrics {
   active: number;
@@ -180,10 +181,10 @@ export default function NavigatorToolbar({
 
         <label htmlFor="flow-speed">Speed</label>
         <select id="flow-speed" value={speed} onChange={(event) => onSpeedChange(Number(event.target.value))}>
-          <option value={15}>15m/s</option>
-          <option value={60}>1h/s</option>
-          <option value={240}>4h/s</option>
-          <option value={720}>12h/s</option>
+          <option value={15}>{formatDurationMinutes(15)} / sec</option>
+          <option value={60}>{formatDurationMinutes(60)} / sec</option>
+          <option value={240}>{formatDurationMinutes(240)} / sec</option>
+          <option value={720}>{formatDurationMinutes(720)} / sec</option>
         </select>
 
         <label htmlFor="flow-search">Find</label>

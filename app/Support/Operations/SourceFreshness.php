@@ -59,8 +59,8 @@ final class SourceFreshness
     {
         return match ($status) {
             'fresh' => "{$label} is current.",
-            'aging' => "{$label} is aging; the last observation was {$ageMinutes} minutes ago.",
-            'stale' => "{$label} is stale; the last observation was {$ageMinutes} minutes ago.",
+            'aging' => "{$label} is aging; the last observation was ".DurationFormatter::minutes($ageMinutes).' ago.',
+            'stale' => "{$label} is stale; the last observation was ".DurationFormatter::minutes($ageMinutes).' ago.',
             'degraded' => "{$label} is degraded; values may be incomplete.",
             default => "{$label} has no observations.",
         };

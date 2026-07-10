@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
+import { formatDurationHours, formatDurationSeconds } from '@/lib/duration';
 
 const PatientJourney = ({ patient }) => {
   const journeyData = patient?.dischargePlan?.journeyMilestones || [];
@@ -17,11 +18,11 @@ const PatientJourney = ({ patient }) => {
 
   // Calculate length of stay
   const calculateLOS = () => {
-    if (!patient?.admitDate) return 0;
+    if (!patient?.admitDate) return formatDurationSeconds(0);
     const admitDate = new Date(patient.admitDate);
     const currentDate = new Date();
     const diffTime = Math.abs(currentDate - admitDate);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return formatDurationSeconds(diffTime / 1000);
   };
 
   // Get phase color based on type and status
@@ -55,11 +56,11 @@ const PatientJourney = ({ patient }) => {
         <div className="flex gap-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           <div className="flex items-center gap-1">
             <Icon icon="heroicons:calendar" className="w-4 h-4" />
-            <span className="text-sm">LOS: {calculateLOS()} days</span>
+            <span className="text-sm">LOS: {calculateLOS()}</span>
           </div>
           <div className="flex items-center gap-1">
             <Icon icon="heroicons:clock" className="w-4 h-4" />
-            <span className="text-sm">Updated: 2 hrs ago</span>
+            <span className="text-sm">Updated: {formatDurationHours(2)} ago</span>
           </div>
         </div>
       </div>

@@ -27,6 +27,8 @@ describe('operational data states', () => {
     }} />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('stale');
+    expect(screen.getByRole('alert')).toHaveTextContent('120 hr 0 min 0 sec ago');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('7200 minutes');
     expect(screen.getByText('Synthetic')).toBeInTheDocument();
   });
 });

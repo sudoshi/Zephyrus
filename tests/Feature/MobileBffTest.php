@@ -16,6 +16,7 @@ use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -168,22 +169,36 @@ class MobileBffTest extends TestCase
 
     public function test_high_value_mobile_reads_return_seeded_shapes(): void
     {
-        $user = $this->user();
-        $this->seed(RtdcSeeder::class);
-        Sanctum::actingAs($user, ['mobile:read']);
+        Carbon::setTestNow('2026-07-09T16:00:00Z');
 
-        $fixtures = $this->seedHighValueReadFixtures($user);
+        try {
+            $user = $this->user();
+            $this->seed(RtdcSeeder::class);
+            Sanctum::actingAs($user, ['mobile:read']);
 
-        $this->getJson('/api/mobile/v1/transport/queue')
-            ->assertOk()
-            ->assertJsonPath('data.jobs.0.id', $fixtures['transport']->transport_request_id)
-            ->assertJsonStructure(['data' => ['metrics' => ['active', 'stat', 'at_risk', 'completed_today'], 'jobs' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+            $fixtures = $this->seedHighValueReadFixtures($user);
 
-        $this->getJson('/api/mobile/v1/evs/queue')
-            ->assertOk()
-            ->assertJsonPath('data.turns.0.id', $fixtures['evs']->evs_request_id)
-            ->assertJsonStructure(['data' => ['metrics' => ['pending', 'overdue', 'isolation', 'completed_today'], 'turns' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+            $this->getJson('/api/mobile/v1/transport/queue')
+                ->assertOk()
+                ->assertJsonPath('data.jobs.0.id', $fixtures['transport']->transport_request_id)
+                ->assertJsonPath('data.jobs.0.sla.label', '10 min 0 sec remaining')
+                ->assertJsonStructure(['data' => ['metrics' => ['active', 'stat', 'at_risk', 'completed_today'], 'jobs' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
 
+            $this->getJson('/api/mobile/v1/evs/queue')
+                ->assertOk()
+                ->assertJsonPath('data.turns.0.id', $fixtures['evs']->evs_request_id)
+                ->assertJsonPath('data.turns.0.sla.label', '5 min 0 sec overdue')
+                ->assertJsonStructure(['data' => ['metrics' => ['pending', 'overdue', 'isolation', 'completed_today'], 'turns' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+
+            $this->assertHighValueMobileReadShapes($fixtures);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** @param array<string, mixed> $fixtures */
+    private function assertHighValueMobileReadShapes(array $fixtures): void
+    {
         $this->getJson('/api/mobile/v1/rtdc/house')
             ->assertOk()
             ->assertJsonStructure(['data' => ['occupancy' => ['occupied', 'staffed', 'percent'], 'net_bed_need', 'pending_placements', 'ed_boarding', 'units']]);

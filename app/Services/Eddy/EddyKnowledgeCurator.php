@@ -3,6 +3,7 @@
 namespace App\Services\Eddy;
 
 use App\Models\Eddy\EddyKnowledge;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -72,7 +73,9 @@ class EddyKnowledgeCurator
     private function propose(string $category, string $reason, int $count, ?float $avgHours): EddyKnowledge
     {
         $label = trim($category.($reason !== '' ? " / {$reason}" : ''), ' /');
-        $timing = $avgHours !== null ? sprintf(' with a typical resolution time of ~%.1fh', $avgHours) : '';
+        $timing = $avgHours !== null
+            ? ' with a typical resolution time of approximately '.DurationFormatter::minutes($avgHours * 60)
+            : '';
 
         return EddyKnowledge::create([
             'eddy_knowledge_uuid' => (string) Str::uuid(),

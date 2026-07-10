@@ -25,7 +25,7 @@ const TIMER_LABELS: Record<string, string> = {
 function minutesBetween(fromMs: number, toIso: string): number | null {
   const target = Date.parse(toIso);
   if (!Number.isFinite(target)) return null;
-  return Math.round((target - fromMs) / 60_000);
+  return Math.round((target - fromMs) / 1_000) / 60;
 }
 
 function timerStatus(minutesRemaining: number | null): OccupancyTimerStatus {
@@ -234,7 +234,7 @@ function summarize(insights: OccupancyInsight[]): OccupancySummary {
       occupied: entry.occupied,
       delayed: entry.delayed,
       watch: entry.watch,
-      avgStayMinutes: entry.occupied > 0 ? Math.round(entry.stay / entry.occupied) : 0,
+      avgStayMinutes: entry.occupied > 0 ? entry.stay / entry.occupied : 0,
     }))
     .sort((a, b) => (b.delayed + b.watch) - (a.delayed + a.watch) || b.occupied - a.occupied)
     .slice(0, 4);
@@ -248,7 +248,7 @@ function summarize(insights: OccupancyInsight[]): OccupancySummary {
     readyToMove,
     durationRisks: insights.filter((insight) => insight.timers.some((timer) => timer.classification === 'duration_risk' && timer.status !== 'ok')).length,
     verifiedBarriers: insights.reduce((count, insight) => count + insight.timers.filter((timer) => timer.verified && timer.status !== 'ok').length, 0),
-    avgStayMinutes: insights.length > 0 ? Math.round(stayTotal / insights.length) : 0,
+    avgStayMinutes: insights.length > 0 ? stayTotal / insights.length : 0,
     serviceLines,
     persona: {
       transport: transportDelays,
@@ -280,7 +280,7 @@ export function buildOccupancyInsights(
   const identityVisible = !lens || lens.patient_dots === 'full';
 
   const insights = states.map((state): OccupancyInsight => {
-    const stayMinutes = Math.max(0, Math.round((timeMs - Date.parse(state.arrivedAt)) / 60_000));
+    const stayMinutes = Math.max(0, Math.round((timeMs - Date.parse(state.arrivedAt)) / 1_000) / 60);
     const projectionTimers = nearbyProjections(state, projections, timeMs).map((item) => projectionTimer(item, timeMs));
     const knownNext = eventTimer(state, timeMs);
     const timers = [

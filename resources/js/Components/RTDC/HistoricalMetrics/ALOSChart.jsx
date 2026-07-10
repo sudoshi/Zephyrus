@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
+import { formatDurationHours } from '@/lib/duration';
 
 const ALOSChart = ({ data }) => {
     const currentALOS = data[data.length - 1].alos;
@@ -16,8 +17,7 @@ const ALOSChart = ({ data }) => {
                         <h3 className="font-medium">Average Length of Stay</h3>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-semibold">{currentALOS.toFixed(1)}</span>
-                        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">days</span>
+                        <span className="text-2xl font-semibold">{formatDurationHours(currentALOS * 24)}</span>
                         <div className={`flex items-center space-x-1 text-sm ${
                             trend < 0 
                                 ? 'text-healthcare-success dark:text-healthcare-success-dark' 
@@ -57,7 +57,7 @@ const ALOSChart = ({ data }) => {
                                 }),
                         }}
                         yAxis={{
-                            formatter: (value) => `${value.toFixed(1)}d`,
+                            formatter: (value) => formatDurationHours(Number(value) * 24),
                         }}
                     />
             </Card.Content>

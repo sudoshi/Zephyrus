@@ -7,6 +7,7 @@ use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -57,14 +58,15 @@ class FlowLiveSourcesTest extends TestCase
 
     public function test_evs_turnaround_stats_compute_avg_and_p90_over_todays_completed_turns(): void
     {
+        $completedAt = Carbon::today()->addHours(12);
         $turn = fn (int $spanMinutes, array $overrides = []) => DB::table('prod.evs_requests')->insert($overrides + [
             'request_uuid' => (string) Str::uuid(),
             'request_type' => 'bed_clean',
             'priority' => 'routine',
             'status' => 'completed',
             'location_label' => 'TEST-01',
-            'requested_at' => now()->subMinutes($spanMinutes + 10),
-            'completed_at' => now()->subMinutes(10),
+            'requested_at' => $completedAt->copy()->subMinutes($spanMinutes),
+            'completed_at' => $completedAt,
             'is_deleted' => false,
             'created_at' => now(),
             'updated_at' => now(),
@@ -127,5 +129,48 @@ class FlowLiveSourcesTest extends TestCase
         $this->assertNotNull($endToEnd);
         $this->assertSame(24.0, (float) $endToEnd['value']);
         $this->assertSame('1 picked up', $endToEnd['caption']);
+    }
+
+    public function test_transport_wait_average_preserves_whole_second_precision(): void
+    {
+        foreach ([3690, 3691] as $index => $waitSeconds) {
+            $requestedAt = now()->subHours(3)->addMinutes($index);
+            $id = DB::table('prod.transport_requests')->insertGetId([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => 'inpatient',
+                'priority' => 'routine',
+                'status' => 'completed',
+                'patient_ref' => 'test-second-precision-'.$index,
+                'origin' => 'A',
+                'destination' => 'B',
+                'requested_at' => $requestedAt,
+                'is_deleted' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'transport_request_id');
+
+            foreach ([
+                ['transport.requested', 0],
+                ['transport.arrived', $waitSeconds],
+                ['transport.completed', $waitSeconds + 60],
+            ] as [$type, $offsetSeconds]) {
+                DB::table('prod.transport_events')->insert([
+                    'event_uuid' => (string) Str::uuid(),
+                    'transport_request_id' => $id,
+                    'event_type' => $type,
+                    'occurred_at' => $requestedAt->copy()->addSeconds($offsetSeconds),
+                    'created_at' => now(),
+                ]);
+            }
+        }
+
+        $measure = collect(app(TransportOperationsService::class)->measures())
+            ->firstWhere('key', 'request_to_pickup_min');
+
+        $this->assertEqualsWithDelta(61.508333333333, $measure['value'], 0.0000001);
+        $this->assertSame(
+            '1 hr 1 min 31 sec',
+            \App\Support\Operations\DurationFormatter::minutes($measure['value']),
+        );
     }
 }

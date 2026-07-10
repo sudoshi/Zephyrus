@@ -124,4 +124,54 @@ describe('Staffing Office workforce roster', () => {
     expect(screen.getByText('Workforce alignment data is not available.')).toBeInTheDocument();
     expect(screen.queryByText('Active people: 2788')).not.toBeInTheDocument();
   });
+
+  it('renders fractional SLA minutes as hours, minutes, and seconds', () => {
+    vi.mocked(useStaffingOverview).mockReturnValue({
+      data: {
+        ...overview,
+        queue: [{
+          staffing_request_id: 42,
+          request_uuid: 'request-42',
+          unit_id: 3,
+          unit_label: 'Medical ICU',
+          staffing_plan_id: 7,
+          role: 'rn',
+          role_label: 'Registered Nurse',
+          shift_date: '2026-07-09',
+          shift: 'night',
+          request_type: 'fill_gap',
+          priority: 'urgent',
+          status: 'open',
+          headcount_needed: 2,
+          hours_needed: 8,
+          requested_by: 'operations-demo',
+          needed_by: '2026-07-09T23:00:00Z',
+          assigned_at: null,
+          filled_at: null,
+          completed_at: null,
+          assigned_source: null,
+          assigned_staff_ref: null,
+          owner_name: null,
+          risk_flags: [],
+          resolution_payload: {},
+          metadata: {},
+          is_synthetic: true,
+          freshness_status: 'current',
+          sla: {
+            minutes_until_due: 61.516666666666666,
+            at_risk: false,
+            label: '61.516666666666666m remaining',
+          },
+        }],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+
+    render(<StaffingOffice />);
+
+    expect(screen.getByText(/1 hr 1 min 31 sec remaining/)).toBeInTheDocument();
+    expect(screen.queryByText(/61\.516666/)).not.toBeInTheDocument();
+  });
 });

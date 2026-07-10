@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { usePage } from '@inertiajs/react';
 import { TopNavbar } from '@/Components/Navigation/TopNavbar';
@@ -7,6 +7,10 @@ import { TopNavbar } from '@/Components/Navigation/TopNavbar';
 // CommandPalette pulls in cmdk; stub it to keep this test focused on the bar.
 vi.mock('@/components/ui/CommandPalette', () => ({
   CommandPalette: () => null,
+}));
+
+vi.mock('@/Components/cockpit/ScopePicker', () => ({
+  ScopePicker: () => null,
 }));
 
 function mockPage(overrides: Record<string, unknown>) {
@@ -25,7 +29,7 @@ describe('TopNavbar', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
     expect(screen.getByRole('link', { name: /^Zephyrus$/ })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: /Cockpit/ })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('button', { name: /^Cockpit$/ })).toHaveAttribute('aria-current', 'page');
     for (const label of ['Workspaces', 'Study']) {
       expect(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') })).toBeInTheDocument();
     }
@@ -35,9 +39,10 @@ describe('TopNavbar', () => {
     }
   });
 
-  it('renders the RoleSwitcher as persistent chrome (P4a)', () => {
+  it('renders the RoleSwitcher inside the Cockpit menu', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Cockpit$/ }));
     expect(screen.getByRole('tablist', { name: /view/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Executive/ })).toBeInTheDocument();
   });

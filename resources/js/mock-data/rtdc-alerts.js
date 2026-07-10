@@ -44,7 +44,7 @@ export const alertsData = {
             time: '20 min ago',
             details: {
                 impact: 'Extended patient wait times',
-                averageWait: '4.5 hours',
+                averageWait: '4 hr 30 min 0 sec',
                 boardingTime: '6+ hours',
                 affectedAreas: ['ICU', 'Medical-Surgical'],
                 actions: [
@@ -131,7 +131,7 @@ export const alertsData = {
             type: 'info',
             message: 'Bed turnover time improved by 15%',
             unit: 'Environmental',
-            time: '1.5 hours ago',
+            time: '1 hr 30 min 0 sec ago',
             details: {
                 impact: 'Improved patient flow',
                 currentAverage: '42 minutes',

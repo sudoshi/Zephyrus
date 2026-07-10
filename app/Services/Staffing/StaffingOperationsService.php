@@ -6,6 +6,7 @@ use App\Models\Staffing\StaffingEvent;
 use App\Models\Staffing\StaffingPlan;
 use App\Models\Staffing\StaffingRequest;
 use App\Support\Api\JsonMap;
+use App\Support\Operations\DurationFormatter;
 use App\Support\Operations\SourceFreshness;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -645,12 +646,14 @@ class StaffingOperationsService
             ];
         }
 
-        $minutesUntilDue = $request->needed_by ? now()->diffInMinutes($request->needed_by, false) : null;
+        $minutesUntilDue = $request->needed_by
+            ? ((int) round(now()->diffInSeconds($request->needed_by, false))) / 60
+            : null;
 
         return [
             'minutes_until_due' => $minutesUntilDue,
             'at_risk' => $this->isAtRisk($request),
-            'label' => $minutesUntilDue === null ? 'No target' : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+            'label' => DurationFormatter::relativeMinutes($minutesUntilDue),
         ];
     }
 

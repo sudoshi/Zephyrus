@@ -1,6 +1,7 @@
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, EmptyState, STATUS_VAR, metric } from '@/Components/system';
 import TrendChart, { formatters } from '@/Components/Common/TrendChart';
+import { formatDurationHours } from '@/lib/duration';
 
 // Gold-standard build of RTDC Trends & Patterns on the shared design system.
 // Pattern KPIs (peak occupancy day, averages, forecast bias) render as a KpiTile
@@ -107,7 +108,7 @@ export default function Trends({ kpis = {}, flowSeries = [], reliabilitySeries =
         <Section
           title="Pattern indicators"
           icon="heroicons:chart-bar-square"
-          summary={`${windowLabel} · ${meta.windowDays ?? 0} days · ${meta.units ?? 0} units`}
+          summary={`${windowLabel} · ${formatDurationHours(meta.windowDays == null ? null : Number(meta.windowDays) * 24)} · ${meta.units ?? 0} units`}
         >
           <MetricGrid metrics={buildKpis(kpis)} emptyLabel="No trend data reporting" />
         </Section>
@@ -197,7 +198,7 @@ export default function Trends({ kpis = {}, flowSeries = [], reliabilitySeries =
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums">{row.reliability}%</td>
                       <td className="px-4 py-2 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                        {row.sampleDays}d
+                        {Number(row.sampleDays ?? 0).toLocaleString()} days
                       </td>
                     </tr>
                   ))}

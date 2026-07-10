@@ -1,6 +1,15 @@
 import type { SourceFreshness } from '@/features/operations/sourceFreshness';
 import { errorReference } from '@/features/operations/sourceFreshness';
 import { AlertTriangle, Database, RefreshCw } from 'lucide-react';
+import { formatDurationMinutes } from '@/lib/duration';
+
+function freshnessMessage(source: SourceFreshness): string {
+  if (source.age_minutes === null || !['aging', 'stale'].includes(source.status)) {
+    return source.message;
+  }
+
+  return `${source.label} is ${source.status}; the last observation was ${formatDurationMinutes(source.age_minutes)} ago.`;
+}
 
 export function OperationalDataError({
   title,
@@ -54,7 +63,7 @@ export function SourceFreshnessBanner({ source, onRetry }: { source: SourceFresh
     <div role={isProblem ? 'alert' : 'status'} className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm ${tone}`}>
       {isProblem ? <AlertTriangle className="size-4 shrink-0" aria-hidden="true" /> : <Database className="size-4 shrink-0" aria-hidden="true" />}
       <span className="font-semibold capitalize">{source.status}</span>
-      <span className="min-w-0 flex-1">{source.message}</span>
+      <span className="min-w-0 flex-1">{freshnessMessage(source)}</span>
       {source.synthetic ? <span className="rounded border border-current/25 px-1.5 py-0.5 text-xs font-semibold">Synthetic</span> : null}
       {onRetry && isProblem ? (
         <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:no-underline">

@@ -54,11 +54,10 @@ import net.acumenus.hummingbird.data.MobileRoleCatalog
 import net.acumenus.hummingbird.data.QueueFilter
 import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
+import net.acumenus.hummingbird.ui.components.formatOperationalAge
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
-import java.time.Duration
-import java.time.Instant
 import java.time.OffsetDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -317,11 +316,5 @@ private fun emptyQueue(role: MobileRole): String = when (role.queueFilter) {
 private fun relTime(at: String?): String? {
     if (at == null) return null
     val inst = runCatching { OffsetDateTime.parse(at).toInstant() }.getOrNull() ?: return null
-    val mins = Duration.between(inst, Instant.now()).toMinutes()
-    return when {
-        mins < 1 -> "just now"
-        mins < 60 -> "${mins}m ago"
-        mins < 1440 -> "${mins / 60}h ago"
-        else -> "${mins / 1440}d ago"
-    }
+    return formatOperationalAge(inst)
 }

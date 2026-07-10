@@ -89,6 +89,30 @@ class StaffingApiTest extends TestCase
             ->assertJsonPath('data.coverage.coverage_pct', 77); // 10 available / 13 required
     }
 
+    public function test_sla_preserves_whole_second_precision(): void
+    {
+        Carbon::setTestNow('2026-07-09T16:00:00Z');
+
+        try {
+            $user = User::factory()->create();
+            $unitId = $this->seedUnit('7 West', '7W');
+
+            $this->actingAs($user)->postJson('/api/staffing/requests', [
+                'unit_id' => $unitId,
+                'unit_label' => '7 West',
+                'role' => 'rn',
+                'shift' => 'day',
+                'request_type' => 'fill_gap',
+                'priority' => 'urgent',
+                'headcount_needed' => 1,
+                'needed_by' => now()->addSeconds(91)->toISOString(),
+            ])->assertCreated()
+                ->assertJsonPath('data.sla.label', '1 min 31 sec remaining');
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_plans_endpoint_returns_unit_risk_rollup(): void
     {
         $user = User::factory()->create();

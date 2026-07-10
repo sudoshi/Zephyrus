@@ -328,7 +328,7 @@ private fun EvsTurnRow(turn: EvsTurn, onClick: () -> Unit) {
                 Spacer(Modifier.weight(1f))
                 Text(
                     turn.sla.label,
-                    color = if ((turn.sla.minutesUntilDue ?: 0) < 0) CapacityStatus.CRITICAL.color else Z.inkMuted,
+                    color = if (turn.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.Monospace,
@@ -380,7 +380,7 @@ private fun EvsLocationCard(turn: EvsTurn, status: String) {
                 IsolationBadge()
             }
             Spacer(Modifier.weight(1f))
-            Text(turn.sla.label, color = if ((turn.sla.minutesUntilDue ?: 0) < 0) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+            Text(turn.sla.label, color = if (turn.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
         }
         Text(turn.locationLabel ?: "Unknown location", color = Z.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         DetailChip("Turn", evsLabel(turn.turnType ?: turn.requestType))

@@ -54,6 +54,8 @@ class CockpitDrillApiTest extends TestCase
 
         $rows = $response->json('tables.0.rows');
         $this->assertCount(9, $rows);
+        $edLos = collect($rows)->firstWhere('keyResult', 'ED LOS (admitted)');
+        $this->assertSame('5 hr 0 min 0 sec', $edLos['target']['v']);
 
         // Cell grammar uses CANON tokens ('critical'/'warning'/…), never the
         // logical 5-state names — the bridge happens server-side.
@@ -89,6 +91,21 @@ class CockpitDrillApiTest extends TestCase
 
         $this->actingAs($user)->getJson('/api/cockpit/drill/quality')->assertOk();
         $this->actingAs($user)->getJson('/api/cockpit/drill/rtdc')->assertOk();
+    }
+
+    public function test_flow_drill_preserves_bed_hours_as_a_compound_measure(): void
+    {
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/cockpit/drill/flow')
+            ->assertOk();
+
+        $table = collect($response->json('tables'))
+            ->firstWhere('caption', 'Transport performance measures');
+        $measure = collect($table['rows'])
+            ->firstWhere('measure.v', 'Avoidable bed-hours attributed to transport');
+
+        $this->assertSame('0 bed-hr', $measure['value']);
+        $this->assertSame('0 sec attributable delay', $measure['context']['v']);
     }
 
     public function test_drill_requires_authentication(): void

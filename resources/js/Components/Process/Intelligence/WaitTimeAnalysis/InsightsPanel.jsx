@@ -10,6 +10,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import StatusTooltip from '../ResourceAnalysis/StatusTooltip';
+import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 const InsightsPanel = ({
   data,
@@ -29,7 +30,7 @@ const InsightsPanel = ({
         results.push({
           type: 'critical',
           title: `Critical Wait Time in ${step.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-          description: `Current wait time (${value}min) exceeds critical threshold (${threshold.critical}min)`,
+          description: `Current wait time (${formatDurationMinutes(value)}) exceeds critical threshold (${formatDurationMinutes(threshold.critical)})`,
           actions: [
             {
               label: 'Add Staff',
@@ -54,7 +55,7 @@ const InsightsPanel = ({
         results.push({
           type: 'warning',
           title: `Rapid Increase in ${step.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-          description: `Wait times have increased by ${trend.percentage}% in the last hour`,
+          description: `Wait times have increased by ${trend.percentage}% in the last ${formatDurationHours(1)}`,
           actions: [
             {
               label: 'View Analysis',

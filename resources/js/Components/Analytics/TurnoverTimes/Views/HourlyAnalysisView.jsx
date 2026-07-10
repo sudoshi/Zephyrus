@@ -4,6 +4,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const HourlyAnalysisView = ({ filters, data = null }) => {
   // Extract filter values
@@ -121,7 +122,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
             data={hourlyData}
             keys={['Weekday', 'Weekend']}
             indexBy="hour"
-            margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 130, bottom: 50, left: 125 }}
             padding={0.3}
             groupMode="grouped"
             valueScale={{ type: 'linear' }}
@@ -142,10 +143,13 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
+              legend: 'Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
@@ -185,7 +189,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
             data={dayOfWeekData}
             keys={['Average Turnover', 'Peak Hour Turnover']}
             indexBy="day"
-            margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 130, bottom: 50, left: 125 }}
             padding={0.3}
             groupMode="grouped"
             valueScale={{ type: 'linear' }}
@@ -206,10 +210,13 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
+              legend: 'Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
@@ -247,7 +254,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
         <div className="h-80">
           <ResponsiveLine
             data={hourlyTrendData}
-            margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 20, bottom: 50, left: 125 }}
             xScale={{ type: 'point' }}
             yScale={{ 
               type: 'linear', 
@@ -256,7 +263,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
               stacked: false, 
               reverse: false 
             }}
-            yFormat=" >-.1f"
+            yFormat={formatDurationMinutes}
             axisTop={null}
             axisRight={null}
             axisBottom={{
@@ -271,8 +278,9 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
-              legendOffset: -40,
+              legend: 'Duration',
+              legendOffset: -110,
+              format: formatDurationMinutes,
               legendPosition: 'middle'
             }}
             pointSize={10}
@@ -297,7 +305,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
                   Hour Range
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
-                  Average Turnover (min)
+                  Average Turnover
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Number of Turnovers
@@ -323,7 +331,7 @@ const HourlyAnalysisView = ({ filters, data = null }) => {
                     {hour.range}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    {hour.avg}
+                    {formatDurationMinutes(hour.avg)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {hour.count}

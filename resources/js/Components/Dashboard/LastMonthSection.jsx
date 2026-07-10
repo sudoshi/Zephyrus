@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import { Section, KpiTile, metric } from '@/Components/system';
 import { syntheticData } from '../../mock-data/dashboard';
 import DrillDownModal from './DrillDownModal';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Migrated from the bespoke MetricCard to the gold-standard KpiTile (built via
 // metric()). Each tile keeps its real sparkline (sparklineData → trajectory) and
@@ -44,9 +45,11 @@ const LastMonthSection = ({ data: dataProp }) => {
                 key: 'avgTurnover',
                 label: 'Average Room Turnover',
                 value: data.avgTurnover.value,
+                unit: 'min',
+                display: formatDurationMinutes(data.avgTurnover.value),
                 status: statusFor(data.avgTurnover.value, { warning: 45, critical: 60 }),
                 trajectory: trend(data.avgTurnover),
-                caption: `${data.avgTurnover.date} · from ${data.avgTurnover.previousValue} min · min 22m · max 68m`,
+                caption: `${data.avgTurnover.date} · from ${formatDurationMinutes(data.avgTurnover.previousValue)} · min ${formatDurationMinutes(22)} · max ${formatDurationMinutes(68)}`,
                 definition: 'Displays the average room and procedure turnover for cases that took place within the previous calendar month.',
             }),
         },

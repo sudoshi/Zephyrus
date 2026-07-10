@@ -2,6 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
+import { formatDurationHours } from '@/lib/duration';
+
+const formatTimeframe = (value) => {
+    const match = String(value).match(/^Next\s+(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)$/i);
+
+    return match ? `Next ${formatDurationHours(Number(match[1]))}` : value;
+};
 
 const AlertsAndPredictions = ({ alerts, predictions }) => {
     const getAlertIcon = (type) => {
@@ -159,7 +166,7 @@ const AlertsAndPredictions = ({ alerts, predictions }) => {
                                             </span>
                                         </div>
                                         <div className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
-                                            {bottleneck.timeframe}
+                                            {formatTimeframe(bottleneck.timeframe)}
                                         </div>
                                     </div>
                                 ))}

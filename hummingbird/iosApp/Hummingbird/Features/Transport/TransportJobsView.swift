@@ -222,7 +222,7 @@ struct TransportJobsView: View {
                     Spacer()
                     Text(job.sla.label)
                         .font(.system(size: 12, weight: .medium)).monospacedDigit()
-                        .foregroundStyle((job.sla.minutesUntilDue ?? 0) < 0 ? Z.status(.critical) : Z.inkMuted)
+                        .foregroundStyle(job.sla.atRisk ? Z.status(.critical) : Z.inkMuted)
                 }
                 Text("\(job.origin ?? "—")  →  \(job.destination ?? "—")")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)

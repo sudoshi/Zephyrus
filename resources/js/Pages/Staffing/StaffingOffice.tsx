@@ -14,6 +14,7 @@ import type {
 import { Head } from '@inertiajs/react';
 import { AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronLeft, ChevronRight, Search, ShieldAlert, UserCog, Users } from 'lucide-react';
 import { useDeferredValue, useEffect, useState } from 'react';
+import { formatRelativeDurationMinutes } from '@/lib/duration';
 
 const SOURCE_LABELS: Record<StaffingAssignedSource, string> = {
   float_pool: 'Float',
@@ -119,6 +120,9 @@ function RequestRow({ request }: { request: StaffingRequest }) {
   const updateStatus = useUpdateStaffingStatus();
   const isActive = request.freshness_status !== 'expired' && !['filled', 'completed', 'canceled', 'unfilled'].includes(request.status);
   const sources: StaffingAssignedSource[] = ['float_pool', 'overtime', 'agency', 'on_call'];
+  const slaLabel = request.sla.minutes_until_due === null
+    ? request.sla.label
+    : formatRelativeDurationMinutes(request.sla.minutes_until_due);
 
   return (
     <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -133,7 +137,7 @@ function RequestRow({ request }: { request: StaffingRequest }) {
             </span>
           </div>
           <div className="mt-0.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Need {request.headcount_needed} · {request.shift} shift · {request.sla.label}
+            Need {request.headcount_needed} · {request.shift} shift · {slaLabel}
             {request.assigned_source ? ` · ${SOURCE_LABELS[request.assigned_source]}` : ''}
           </div>
         </div>

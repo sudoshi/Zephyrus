@@ -12,6 +12,7 @@ import type {
   PatientVisibleState,
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
+import { formatDurationMinutes, formatRelativeDurationMinutes } from '@/lib/duration';
 
 /**
  * Three.js scene lifecycle for the 4D Navigator — no React in here.
@@ -329,7 +330,7 @@ export class NavigatorScene {
         location_name: insight.locationName,
         service_line: insight.serviceLine,
         unit: insight.unitCode,
-        stay_minutes: insight.stayMinutes,
+        stay_duration: formatDurationMinutes(insight.stayMinutes),
         arrived_at: insight.arrivedAt,
         came_from: insight.cameFrom,
         next_move: insight.nextMove,
@@ -343,11 +344,18 @@ export class NavigatorScene {
         delay_impacts: insight.delayImpacts?.join(' | '),
         rtdc_metrics: insight.rtdcMetrics?.join(', '),
         eddy_summaries: insight.eddySummaries?.join(' | '),
-        timers: insight.timers.map((timer) => `${timer.label}: ${timer.minutesRemaining ?? 'n/a'}m ${timer.status}${timer.reason ? ` because ${timer.reason}` : ''}`).join(' | '),
+        timers: insight.timers.map((timer) => {
+          const target = timer.minutesRemaining === null
+            ? 'No target'
+            : formatRelativeDurationMinutes(timer.minutesRemaining);
+          const status = target.toLowerCase().endsWith(timer.status.toLowerCase()) ? '' : ` ${timer.status}`;
+
+          return `${timer.label}: ${target}${status}${timer.reason ? ` because ${timer.reason}` : ''}`;
+        }).join(' | '),
         ...Object.fromEntries(
           insight.timers.slice(0, 6).map((timer, index) => [
             `timer_${index + 1}`,
-            `${timer.label}${timer.dueAt ? ` due ${timer.dueAt}` : ''}${timer.minutesRemaining !== null ? ` (${timer.minutesRemaining}m)` : ''} · ${timer.status} · ${timer.source}${timer.reason ? ` · ${timer.reason}` : ''}`,
+            `${timer.label}${timer.dueAt ? ` due ${timer.dueAt}` : ''}${timer.minutesRemaining !== null ? ` (${formatRelativeDurationMinutes(timer.minutesRemaining)})` : ''} · ${timer.status} · ${timer.source}${timer.reason ? ` · ${timer.reason}` : ''}`,
           ]),
         ),
         ...(insight.patientDisplayId ? { patient_display_id: insight.patientDisplayId } : {}),
@@ -371,7 +379,9 @@ export class NavigatorScene {
           location: insight.location,
           timer: timer.label,
           due_at: timer.dueAt,
-          minutes_remaining: timer.minutesRemaining,
+          time_to_target: timer.minutesRemaining === null
+            ? 'No target'
+            : formatRelativeDurationMinutes(timer.minutesRemaining),
           status: timer.status,
           source: timer.source,
           reason: timer.reason,

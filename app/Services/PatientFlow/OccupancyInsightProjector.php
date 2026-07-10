@@ -2,6 +2,7 @@
 
 namespace App\Services\PatientFlow;
 
+use App\Support\Operations\DurationFormatter;
 use Carbon\CarbonImmutable;
 
 class OccupancyInsightProjector
@@ -51,7 +52,7 @@ class OccupancyInsightProjector
 
             $loc = $locations[$locationCode];
             $arrivedAt = CarbonImmutable::parse((string) $event['occurred_at']);
-            $stayMinutes = max(0, $arrivedAt->diffInMinutes($time, false));
+            $stayMinutes = max(0, (int) round($arrivedAt->diffInSeconds($time, false))) / 60;
             $durationRisk = $this->stayTimer($stayMinutes);
             $projectionTimers = array_map(
                 fn (array $projection): array => $this->projectionTimer($projection, $time),
@@ -334,11 +335,11 @@ class OccupancyInsightProjector
         $verification['matched_by'] = (string) ($record['matched_by'] ?? 'unknown');
 
         if (($record['record_type'] ?? null) === 'transport_delay') {
-            $overdue = abs((int) ($record['minutes_remaining'] ?? 0));
+            $overdue = abs((float) ($record['minutes_remaining'] ?? 0));
             $reason = sprintf(
-                '%s transport is %d minutes overdue in %s status.',
+                '%s transport is %s overdue in %s status.',
                 ucfirst(str_replace('_', ' ', (string) ($record['request_type'] ?? 'patient'))),
-                $overdue,
+                DurationFormatter::minutes($overdue),
                 str_replace('_', ' ', (string) ($record['transport_status'] ?? 'active')),
             );
             $blocks = $identityVisible
@@ -443,7 +444,7 @@ class OccupancyInsightProjector
         ]);
     }
 
-    private function stayTimer(int $stayMinutes): array
+    private function stayTimer(float $stayMinutes): array
     {
         $status = $stayMinutes >= self::LONG_STAY_DELAY_MINUTES
             ? 'delayed'
@@ -517,7 +518,7 @@ class OccupancyInsightProjector
 
         $definition = $this->barriers->definition($code);
         $minutes = isset($timer['minutes_remaining']) && $timer['minutes_remaining'] !== null
-            ? (int) $timer['minutes_remaining']
+            ? (float) $timer['minutes_remaining']
             : null;
 
         return array_merge($timer, [
@@ -544,12 +545,12 @@ class OccupancyInsightProjector
         ]);
     }
 
-    private function minutesUntil(CarbonImmutable $from, string $iso): ?int
+    private function minutesUntil(CarbonImmutable $from, string $iso): ?float
     {
-        return CarbonImmutable::parse($iso)->diffInMinutes($from, false) * -1;
+        return ((int) round(CarbonImmutable::parse($iso)->diffInSeconds($from, false))) / -60;
     }
 
-    private function timerStatus(?int $minutesRemaining): string
+    private function timerStatus(?float $minutesRemaining): string
     {
         if ($minutesRemaining === null) {
             return 'ok';
@@ -602,9 +603,9 @@ class OccupancyInsightProjector
 
         $service = [];
         $barriers = [];
-        $stayTotal = 0;
+        $stayTotal = 0.0;
         foreach ($items as $item) {
-            $stayTotal += (int) $item['stay_minutes'];
+            $stayTotal += (float) $item['stay_minutes'];
             $status = (string) $item['primary_status'];
             if ($status === 'delayed') {
                 $summary['delayed']++;
@@ -681,7 +682,7 @@ class OccupancyInsightProjector
             $key = (string) ($item['service_line'] ?: 'unassigned');
             $service[$key] ??= ['service_line' => str_replace('_', ' ', $key), 'occupied' => 0, 'delayed' => 0, 'watch' => 0, 'avg_stay_minutes' => 0, '_stay' => 0];
             $service[$key]['occupied']++;
-            $service[$key]['_stay'] += (int) $item['stay_minutes'];
+            $service[$key]['_stay'] += (float) $item['stay_minutes'];
             if ($status === 'delayed') {
                 $service[$key]['delayed']++;
             } elseif ($status === 'watch') {
@@ -690,7 +691,7 @@ class OccupancyInsightProjector
         }
 
         foreach ($service as $row) {
-            $row['avg_stay_minutes'] = $row['occupied'] > 0 ? (int) round($row['_stay'] / $row['occupied']) : 0;
+            $row['avg_stay_minutes'] = $row['occupied'] > 0 ? $row['_stay'] / $row['occupied'] : 0;
             unset($row['_stay']);
             $summary['service_lines'][] = $row;
         }
@@ -705,7 +706,7 @@ class OccupancyInsightProjector
         }, $barriers));
         usort($summary['top_barriers'], fn (array $a, array $b): int => $b['count'] <=> $a['count'] ?: strcmp($a['label'], $b['label']));
         $summary['top_barriers'] = array_slice($summary['top_barriers'], 0, 5);
-        $summary['avg_stay_minutes'] = count($items) > 0 ? (int) round($stayTotal / count($items)) : 0;
+        $summary['avg_stay_minutes'] = count($items) > 0 ? $stayTotal / count($items) : 0;
         $summary['persona'] = [
             'transport' => $summary['transport_delays'],
             'evs' => $summary['evs_delays'],

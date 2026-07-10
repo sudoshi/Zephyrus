@@ -20,6 +20,7 @@ export default function NavigatorFeed({ feed, redactIdentity }: NavigatorFeedPro
                 day: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit',
+                second: '2-digit',
               })}
             </time>
             <span>

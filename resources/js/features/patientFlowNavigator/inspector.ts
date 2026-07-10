@@ -1,4 +1,5 @@
 import type { OccupancyInsight } from './types';
+import { formatDurationMinutes, formatRelativeDurationMinutes } from '@/lib/duration';
 
 export function occupancyInspectorData(insight: OccupancyInsight): Record<string, unknown> {
   return {
@@ -11,7 +12,7 @@ export function occupancyInspectorData(insight: OccupancyInsight): Record<string
     patient_id: insight.patientId,
     encounter_id: insight.encounterId,
     status: insight.primaryStatus,
-    stay_minutes: insight.stayMinutes,
+    stay_duration: formatDurationMinutes(insight.stayMinutes),
     arrived_at: insight.arrivedAt,
     came_from: insight.cameFrom,
     next_move: insight.nextMove,
@@ -25,7 +26,9 @@ export function occupancyInspectorData(insight: OccupancyInsight): Record<string
       label: timer.label,
       status: timer.status,
       due_at: timer.dueAt,
-      minutes_remaining: timer.minutesRemaining,
+      time_to_target: timer.minutesRemaining === null
+        ? 'No target'
+        : formatRelativeDurationMinutes(timer.minutesRemaining),
       source: timer.source,
       reason: timer.reason,
       owner_role: timer.ownerRole,

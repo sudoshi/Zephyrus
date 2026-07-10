@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import StatusDot from './StatusDot';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const RoomStatusCard = ({ room, onClick }) => {
   const getProgressBarColor = () => {
@@ -63,7 +64,7 @@ const RoomStatusCard = ({ room, onClick }) => {
                 Progress
               </span>
               <span className={room.status === 'delayed' ? 'text-healthcare-error dark:text-healthcare-error-dark' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}>
-                {room.timeRemaining} min remaining
+                {formatDurationMinutes(room.timeRemaining)} remaining
               </span>
             </div>
             <div className="h-1.5 bg-healthcare-background dark:bg-healthcare-background-dark rounded-full overflow-hidden">
@@ -87,7 +88,7 @@ const RoomStatusCard = ({ room, onClick }) => {
           {room.status === 'turnover' && (
             <div className="flex items-center text-xs text-healthcare-warning dark:text-healthcare-warning-dark">
               <Icon icon="heroicons:arrow-path" className="w-4 h-4 mr-1" />
-              <span>Est. ready in {room.turnoverTime} min</span>
+              <span>Est. ready in {formatDurationMinutes(room.turnoverTime)}</span>
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
 import type { PatientFlowFreshness } from '@/features/patientFlowNavigator/types';
+import { formatDurationSeconds } from '@/lib/duration';
 
 interface NavigatorChronobarProps {
   windowStart: number;
@@ -25,14 +26,15 @@ function fmtTime(ms: number): string {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   });
 }
 
 function relativeLabel(ms: number, nowMs: number): string {
-  const deltaHours = (ms - nowMs) / 3_600_000;
-  if (Math.abs(deltaHours) < 0.05) return 'now';
-  const rounded = Math.abs(deltaHours) >= 10 ? Math.round(Math.abs(deltaHours)) : Math.round(Math.abs(deltaHours) * 10) / 10;
-  return deltaHours > 0 ? `now +${rounded}h` : `now −${rounded}h`;
+  const deltaSeconds = (ms - nowMs) / 1_000;
+  if (Math.abs(deltaSeconds) < 1) return 'now';
+  const duration = formatDurationSeconds(Math.abs(deltaSeconds));
+  return deltaSeconds > 0 ? `now +${duration}` : `now −${duration}`;
 }
 
 /** Shift-change detents (07:00 / 19:00 local) inside the window. */
@@ -113,7 +115,7 @@ export default function NavigatorChronobar({
             key={detent}
             className="patient-flow-chronobar-detent"
             style={{ left: `${pct(detent)}%` }}
-            title={new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+            title={new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           />
         ))}
         {!historical && nowMs >= windowStart && nowMs <= windowEnd && (

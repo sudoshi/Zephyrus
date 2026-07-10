@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Clock, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
 import StatusTooltip from '../ResourceAnalysis/StatusTooltip';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ProcessTimeline = ({ 
   cascadeData,
@@ -84,10 +85,10 @@ const ProcessTimeline = ({
         const isExpanded = expandedProcess === process.id;
         const phases = [
           { name: 'Impact Start', status: 'complete', time: 'Now' },
-          { name: 'Resource Allocation', status: 'active', time: '+15m', dependencies: ['Staff Availability'] },
-          { name: 'Process Adjustment', status: process.severity > 0.8 ? 'blocked' : 'active', time: '+30m', dependencies: ['Resource Allocation'] },
-          { name: 'Stabilization', status: 'pending', time: '+1h', dependencies: ['Process Adjustment'] },
-          { name: 'Recovery', status: 'pending', time: '+2h', dependencies: ['Stabilization'] }
+          { name: 'Resource Allocation', status: 'active', time: `+${formatDurationMinutes(15)}`, dependencies: ['Staff Availability'] },
+          { name: 'Process Adjustment', status: process.severity > 0.8 ? 'blocked' : 'active', time: `+${formatDurationMinutes(30)}`, dependencies: ['Resource Allocation'] },
+          { name: 'Stabilization', status: 'pending', time: `+${formatDurationMinutes(60)}`, dependencies: ['Process Adjustment'] },
+          { name: 'Recovery', status: 'pending', time: `+${formatDurationMinutes(120)}`, dependencies: ['Stabilization'] }
         ];
 
         return (
@@ -112,7 +113,7 @@ const ProcessTimeline = ({
                     {process.name}
                   </h4>
                   <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    Impact Duration: {process.timeImpact} minutes
+                    Impact Duration: {formatDurationMinutes(process.timeImpact)}
                   </p>
                 </div>
               </div>

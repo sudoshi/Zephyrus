@@ -10,6 +10,7 @@ import { Surface } from '@/Components/ui/Surface';
 import { COCKPIT_STATE_TO_LEVEL, statusStyle } from './statusStyle';
 import { MeterBar } from './MeterBar';
 import { ProvenanceBadge } from './ProvenanceBadge';
+import { formatMetricTarget } from './metricFormatting';
 
 /**
  * Progress toward target, clamped 0–100. For lower-is-better metrics an
@@ -92,7 +93,7 @@ export function OkrScorecard({ okrs, onDrill }: OkrScorecardProps) {
 
               <span className="mt-auto flex items-center justify-between gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 <span className="tabular-nums">
-                  {card.target != null ? `Target ${card.target}${card.unit === '%' ? '%' : ''}` : ''}
+                  {formatMetricTarget(card.target, card.unit)}
                 </span>
                 {card.owner && <span className="truncate">{card.owner}</span>}
               </span>

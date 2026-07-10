@@ -204,7 +204,7 @@ class OperationalBarrierProjectionService
 
             $records = $rows->map(function (object $row) use ($asOf): array {
                 $neededAt = CarbonImmutable::parse((string) $row->needed_at);
-                $overdueMinutes = max(1, $neededAt->diffInMinutes($asOf, false));
+                $overdueMinutes = max(1, (int) round($neededAt->diffInSeconds($asOf, false))) / 60;
                 $barrierCode = match ((string) $row->status) {
                     'patient_not_ready' => 'transport_patient_not_ready',
                     'escalated' => 'transport_request_escalated',

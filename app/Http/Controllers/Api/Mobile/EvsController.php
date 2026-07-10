@@ -10,6 +10,7 @@ use App\Models\Evs\EvsRequest;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Mobile\MobilePersonaCatalog;
 use App\Services\Mobile\OperationalActivityLedger;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -193,14 +194,13 @@ class EvsController extends Controller
     /** @return array{minutes_until_due: int|null, at_risk: bool, label: string} */
     private function sla(EvsRequest $r): array
     {
-        $minutesUntilDue = $r->needed_at ? (int) round(now()->diffInMinutes($r->needed_at, false)) : null;
+        $secondsUntilDue = $r->needed_at ? (int) round(now()->diffInSeconds($r->needed_at, false)) : null;
+        $minutesUntilDue = $secondsUntilDue !== null ? (int) round($secondsUntilDue / 60) : null;
 
         return [
             'minutes_until_due' => $minutesUntilDue,
             'at_risk' => $this->atRisk($r),
-            'label' => $minutesUntilDue === null
-                ? 'No target'
-                : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+            'label' => DurationFormatter::relativeSeconds($secondsUntilDue),
         ];
     }
 }

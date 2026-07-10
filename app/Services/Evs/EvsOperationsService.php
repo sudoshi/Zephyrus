@@ -4,6 +4,7 @@ namespace App\Services\Evs;
 
 use App\Models\Evs\EvsEvent;
 use App\Models\Evs\EvsRequest;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -100,8 +101,8 @@ class EvsOperationsService
         );
 
         return [
-            'avg_min' => $row->avg_min !== null ? round((float) $row->avg_min) : null,
-            'p90_min' => $row->p90_min !== null ? round((float) $row->p90_min) : null,
+            'avg_min' => $row->avg_min !== null ? (float) $row->avg_min : null,
+            'p90_min' => $row->p90_min !== null ? (float) $row->p90_min : null,
             'completed' => (int) ($row->completed ?? 0),
         ];
     }
@@ -264,12 +265,14 @@ class EvsOperationsService
 
     private function sla(EvsRequest $request): array
     {
-        $minutesUntilDue = $request->needed_at ? now()->diffInMinutes($request->needed_at, false) : null;
+        $minutesUntilDue = $request->needed_at
+            ? ((int) round(now()->diffInSeconds($request->needed_at, false))) / 60
+            : null;
 
         return [
             'minutes_until_due' => $minutesUntilDue,
             'at_risk' => $this->isAtRisk($request),
-            'label' => $minutesUntilDue === null ? 'No target' : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+            'label' => DurationFormatter::relativeMinutes($minutesUntilDue),
         ];
     }
 }

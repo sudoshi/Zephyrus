@@ -9,7 +9,7 @@ describe('Patient Flow operational barrier mapping', () => {
       kind: 'next_transport',
       label: 'Transport request overdue',
       due_at: '2026-06-25T01:40:00Z',
-      minutes_remaining: -20,
+      minutes_remaining: -61.516666666666666,
       status: 'delayed',
       source: 'prod.transport_requests',
       barrier_code: 'transport_request_overdue',
@@ -48,12 +48,14 @@ describe('Patient Flow operational barrier mapping', () => {
       key: 'patient:bed',
       location: 'TICU-B001',
       position: { x: 0, y: 0, z: 0 },
-      stayMinutes: 90,
+      stayMinutes: 90.50833333333334,
       primaryStatus: 'delayed',
       timers: [timer],
       blockers: ['Transport request overdue'],
     };
     const detail = occupancyInspectorData(insight);
+
+    expect(detail.stay_duration).toBe('1 hr 30 min 31 sec');
 
     expect(detail.timers).toEqual([
       expect.objectContaining({
@@ -63,6 +65,7 @@ describe('Patient Flow operational barrier mapping', () => {
         source_table: 'prod.transport_requests',
         source_record: '42',
         source_record_type: 'transport_delay',
+        time_to_target: '1 hr 1 min 31 sec overdue',
       }),
     ]);
   });

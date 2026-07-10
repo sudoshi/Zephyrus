@@ -7,6 +7,7 @@ import WeeklyHeatmap from './WeeklyHeatmap';
 import LiveMonitor from './LiveMonitor';
 import InsightsPanel from './InsightsPanel';
 import ComparisonTools from './ComparisonTools';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const WaitTimeAnalysis = ({ metrics }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -140,7 +141,7 @@ const WaitTimeAnalysis = ({ metrics }) => {
           type="warning"
           alerts={criticalDelays.map(delay => ({
             title: delay.step.replace(/([A-Z])/g, ' $1').toLowerCase(),
-            message: `${delay.current} min vs ${delay.benchmark} min benchmark`,
+            message: `${formatDurationMinutes(delay.current)} vs ${formatDurationMinutes(delay.benchmark)} benchmark`,
             value: `+${delay.deviation}%`
           }))}
         />

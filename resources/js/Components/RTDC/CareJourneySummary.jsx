@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import { formatRelativeDurationMinutes } from '@/lib/duration';
 
 const CareJourneySummary = ({ patient, onClick }) => {
   // Calculate current milestone
@@ -19,9 +20,9 @@ const CareJourneySummary = ({ patient, onClick }) => {
   };
 
   const currentMilestone = getCurrentMilestone();
-  const daysUntilDischarge = Math.ceil(
-    (new Date(patient.dischargePlan.estimatedDischargeDate) - new Date()) / (1000 * 60 * 60 * 24)
-  );
+  const minutesUntilDischarge = (
+    new Date(patient.dischargePlan.estimatedDischargeDate) - new Date()
+  ) / (1000 * 60);
 
   const progressPercentage = Math.min(
     (new Date() - new Date(patient.admitDate)) / (1000 * 60 * 60 * 24) / 7 * 100,
@@ -84,7 +85,10 @@ const CareJourneySummary = ({ patient, onClick }) => {
           Admitted {new Date(patient.admitDate).toLocaleDateString()}
         </span>
         <span>
-          {daysUntilDischarge} days until discharge
+          {formatRelativeDurationMinutes(minutesUntilDischarge, {
+            future: 'until discharge',
+            past: 'past estimated discharge',
+          })}
         </span>
       </div>
 

@@ -7,6 +7,7 @@ import StackedBarChart from './Charts/StackedBarChart';
 import LineChart from './Charts/LineChart';
 import WorkbenchReports from './WorkbenchReports';
 import { syntheticData } from '../../mock-data/dashboard';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const MonthToDateSection = ({ data: dataProp, reports }) => {
     const data = dataProp ?? syntheticData.monthToDate;
@@ -255,9 +256,9 @@ const MonthToDateSection = ({ data: dataProp, reports }) => {
                             <div className="space-y-4">
                                 <DualBarChart data={data.avgTurnover.byService} height={280} />
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    {renderMetricBox("Average", "32m")}
-                                    {renderMetricBox("Min", "22m")}
-                                    {renderMetricBox("Max", "68m")}
+                                    {renderMetricBox("Average", formatDurationMinutes(32))}
+                                    {renderMetricBox("Min", formatDurationMinutes(22))}
+                                    {renderMetricBox("Max", formatDurationMinutes(68))}
                                 </div>
                             </div>
                         )}

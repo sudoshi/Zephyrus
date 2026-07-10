@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // ED Treatment Board rebuilt on the gold-standard design system: the KPI wall is
 // one MetricGrid of KpiTiles, the acuity-mix chart and the active treatment
@@ -44,11 +45,11 @@ const esiBadgeClass = (level) => {
     return 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark';
 };
 
-const formatElapsed = (minutes) => {
-    const mins = Math.max(0, Number(minutes) || 0);
-    const hours = Math.floor(mins / 60);
-    const rem = mins % 60;
-    return hours > 0 ? `${hours}h ${rem}m` : `${rem}m`;
+const formatElapsed = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationMinutes(null);
+    const minutes = Number(value);
+
+    return formatDurationMinutes(Number.isFinite(minutes) ? Math.max(0, minutes) : null);
 };
 
 const StatusBadge = ({ status, tone }) => {

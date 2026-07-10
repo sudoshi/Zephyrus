@@ -52,6 +52,11 @@ describe('Tile', () => {
     expect(screen.getByTestId('sparkline-ed.nedocs')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: cockpitStatusStyle('crit').label })).toBeInTheDocument();
   });
+
+  it('renders duration targets as hours, minutes, and seconds', () => {
+    render(<Tile metric={metric('warn', { target: 90.5, unit: 'min' })} />);
+    expect(screen.getByText('Target 1 hr 30 min 30 sec')).toBeInTheDocument();
+  });
 });
 
 describe('MetricRow', () => {
