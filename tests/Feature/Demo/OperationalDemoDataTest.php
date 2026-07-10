@@ -90,6 +90,38 @@ class OperationalDemoDataTest extends TestCase
         $this->assertSame(200, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->count());
         $this->assertSame(0, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->whereNull('encounter_ref')->count());
         $this->assertSame(0, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->whereNull('metadata')->count());
+        $this->assertSame(0, DB::table('prod.transport_requests as tr')
+            ->leftJoin('prod.transport_assignments as ta', function ($join): void {
+                $join->on('ta.transport_request_id', '=', 'tr.transport_request_id')
+                    ->where('ta.status', '=', 'active')
+                    ->whereNull('ta.released_at');
+            })
+            ->where('tr.requested_by', OperationalDemoDataService::OWNER)
+            ->whereIn('tr.status', [
+                'assigned', 'dispatched', 'arrived_pickup', 'patient_ready', 'patient_not_ready',
+                'picked_up', 'en_route', 'arrived_destination', 'handoff_started', 'handoff_complete', 'escalated',
+            ])
+            ->whereNull('ta.transport_assignment_id')
+            ->count(), 'every active post-assignment scenario request has one governed assignment');
+        $this->assertSame(0, DB::query()->fromSub(
+            DB::table('prod.transport_resources as resource')
+                ->leftJoin('prod.transport_assignments as assignment', function ($join): void {
+                    $join->on('assignment.transport_resource_id', '=', 'resource.transport_resource_id')
+                        ->where('assignment.status', '=', 'active')
+                        ->whereNull('assignment.released_at');
+                })
+                ->groupBy('resource.transport_resource_id', 'resource.capacity')
+                ->selectRaw('resource.transport_resource_id, resource.capacity, COALESCE(SUM(assignment.capacity_units), 0) AS busy')
+                ->havingRaw('COALESCE(SUM(assignment.capacity_units), 0) > resource.capacity'),
+            'over_capacity_resources',
+        )->count(), 'scenario projection never overbooks a transport resource');
+        $this->assertSame(0, DB::table('prod.transport_requests as tr')
+            ->leftJoin('prod.transport_handoff_evidence as evidence', 'evidence.transport_request_id', '=', 'tr.transport_request_id')
+            ->where('tr.requested_by', OperationalDemoDataService::OWNER)
+            ->where('tr.handoff_required', true)
+            ->whereIn('tr.status', ['handoff_complete', 'completed'])
+            ->whereNull('evidence.transport_handoff_evidence_id')
+            ->count(), 'required completed scenario handoffs carry append-only acceptance evidence');
         $this->assertSame(5, DB::table('prod.staffing_plans')->where('notes', OperationalDemoDataService::OWNER)->whereIn('status', ['gap', 'critical_gap'])->count());
         $this->assertSame(0, DB::table('hosp_org.staff_members')->where('source_system', OperationalDemoDataService::WORKFORCE_SOURCE)->whereNotNull('user_id')->count());
         $this->assertSame(25, DB::table('hosp_org.staff_assignments as sa')

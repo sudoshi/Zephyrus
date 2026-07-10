@@ -1,0 +1,50 @@
+{
+  "data": {
+    "metrics": {
+      "active": 2,
+      "stat": 1,
+      "at_risk": 1,
+      "completed_today": 3
+    },
+    "jobs": [
+      {
+        "id": 42,
+        "uuid": "9f7a2ef8-9a87-4dd0-80a6-637826e63747",
+        "type": "inpatient",
+        "priority": "stat",
+        "status": "assigned",
+        "tier": "critical",
+        "visual_status": "critical",
+        "origin": "ED",
+        "destination": "4 West",
+        "mode": "stretcher",
+        "needed_at": "2026-07-10T17:04:00Z",
+        "claimed_by_me": true,
+        "available_to_claim": false,
+        "resource_name": "Avery Transporter",
+        "handoff_required": true,
+        "allowed_transitions": ["dispatched", "escalated", "failed"],
+        "can_handoff": false,
+        "lifecycle_version": 3,
+        "sla": {
+          "minutes_until_due": 4,
+          "at_risk": true,
+          "label": "due in 4m"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "as_of": "2026-07-10T17:00:00Z",
+    "stale": false,
+    "version": null,
+    "count": 1,
+    "per_page": 25,
+    "has_more": true,
+    "next_cursor": "eyJwcmlvcml0eV9yYW5rIjowLCJuZWVkZWRfYXRfc29ydCI6IjIwMjYtMDctMTAgMTc6MDQ6MDAiLCJ0cmFuc3BvcnRfcmVxdWVzdF9pZCI6NDIsIl9wb2ludHNUb05leHRJdGVtcyI6dHJ1ZX0",
+    "previous_cursor": null
+  },
+  "links": {
+    "web": "https://zephyrus.acumenus.net/transport/dispatch"
+  }
+}

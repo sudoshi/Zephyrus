@@ -145,13 +145,28 @@ Current isolated branch evidence:
 
 ## Transport lifecycle completion
 
-- [ ] T1.1 Define one transition graph for request, assignment, pickup, movement, arrival, handoff, completion, escalation, cancellation, and failure.
-- [ ] T1.2 Reject illegal or actor-inappropriate transitions server-side across web and mobile endpoints.
-- [ ] T1.3 Require idempotency keys on lifecycle writes and make replays return the original result without duplicate events.
-- [ ] T1.4 Enforce transporter/team/vendor capacity and prevent overlapping active assignments.
-- [ ] T1.5 Require structured handoff evidence before completion where the request type demands it.
-- [ ] T1.6 Add deterministic cursor pagination and stable filters to web/mobile queues.
-- [ ] T1.7 Prove transition, concurrency, capacity, idempotency, handoff, pagination, and parity behavior with tests.
+- [x] T1.1 Define one transition graph for request, assignment, pickup, movement, arrival, handoff, completion, escalation, cancellation, and failure.
+- [x] T1.2 Reject illegal or actor-inappropriate transitions server-side across web and mobile endpoints.
+- [x] T1.3 Require idempotency keys on lifecycle writes and make replays return the original result without duplicate events.
+- [x] T1.4 Enforce transporter/team/vendor capacity and prevent overlapping active assignments.
+- [x] T1.5 Require structured handoff evidence before completion where the request type demands it.
+- [x] T1.6 Add deterministic cursor pagination and stable filters to web/mobile queues.
+- [x] T1.7 Prove transition, concurrency, capacity, idempotency, handoff, pagination, and parity behavior with tests.
+
+Current isolated branch evidence:
+
+- `2026_07_10_000400_govern_transport_lifecycle.php` adds canonical resources, assignments, append-only handoff evidence, append-only command receipts, request lifecycle versioning, non-null cursor sort keys, capacity/uniqueness constraints, legacy active-assignment backfill, and direct ledger-mutation/cascade rejection. Active legacy requests enter governance, assigned states without a named resource receive an explicit unresolved legacy resource, and pre-lifecycle terminal history is marked as grandfathered instead of fabricating receiver acceptance evidence.
+- `TransportLifecycleService` is the single web/mobile write path. Request and resource row locks plus an advisory idempotency lock guard the explicit transition graph, actor/assignment ownership, one-active-assignment rule, capacity units, required reasons, escalation recovery, terminal release, and structured receiver acceptance.
+- Every lifecycle route requires `Idempotency-Key`. A matching replay is hydrated from the stored response snapshot even after the live request advances; a conflicting payload/actor/command returns `409`, and no duplicate event, assignment, handoff, or mobile activity row is written.
+- Web and Hummingbird queues use the same `(priority_rank, needed_at_sort, transport_request_id DESC)` cursor order, reject malformed cursors, apply filters before pagination, and expose next/previous cursor metadata. Hummingbird additionally returns only unassigned work and the authenticated transporter's assignments.
+- React, Android, and iOS consume server `allowed_transitions`, ownership, claimability, handoff permission, and lifecycle version fields. Native handoff capture now requires receiver role plus explicit accepted/accepted-with-risks evidence; accepted-with-risks requires at least one named risk. A shared PHI-safe transport fixture pins this contract.
+- The deterministic operational scenario now projects governed assignments and handoff evidence, preserves append-only direct-write protection during explicitly scenario-owned FK resets, and proves zero missing active assignments, zero over-capacity resources, and zero required completed handoffs without evidence across repeat runs.
+- `TransportLifecycleGovernanceTest`: 12 tests and 154 assertions cover authorization, ownership spoofing, graph violations and escalation recovery, late idempotent replay, conflicting keys, handoff timing/evidence gates and legacy remediation, capability/capacity/release, transporter overlap, nullable-deadline cursors, malformed cursor shapes, mobile ownership, immutable ledgers including parent cascades, migration treatment of legacy records, and validated/idempotent resource synchronization.
+- Focused transport/mobile/demo suite: 88 tests and 2,061 assertions passed. The scenario repeat-run suite passed two tests and 61 assertions. The complete Laravel run against a recreated empty `zephyrus_test` database passed 753 tests with 9,787 assertions; 710 are reported as warnings only because the isolated worktree intentionally lacks a local `.env`. Repository Pint passed 918 files.
+- Full Vitest coverage passed 82 files and 347 tests; `npx tsc --noEmit`, the production Vite build, and Android `testDebugUnitTest` under JDK 17 passed. Native iOS compilation remains unavailable on this Linux host; the Swift fixture decoder and repository parity guards cover its contract pending macOS CI.
+- `scripts/check-ui-canon.sh` reports only inherited Arena font-size/font-weight and raw-palette baseline findings from `main`; the transport diff adds no raw palette token. Its transport line-height findings are advisory rather than a ratchet failure.
+- A production-shaped disposable database rehearsal copied the complete current schema plus 202 transport requests, 2,178 events, and the real 92-row migration ledger. The migration completed in 214 ms (0.36 s command elapsed), synchronized six configured resources, grandfathered 144 terminal records, and returned zero rows for duplicate active assignments, over-capacity resources, missing required evidence, duplicate command keys, stranded assignment-required states, lifecycle versions below one, and escalations without a recovery state.
+- `docs/operations/TRANSPORT-LIFECYCLE-RUNBOOK.md` records configuration, deployment, invariant queries, smoke tests, incident handling, and rollback constraints.
 
 ## Canonical documentation reconciliation
 

@@ -135,10 +135,21 @@ class SharedDtoFixtureDecodeTest {
             "/api/mobile/v1/rtdc/barriers/42/resolve",
             "{\"reason\":\"changed\"}",
         )
+        val lifecycleV3 = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/transport/requests/42/status",
+            "{\"status\":\"dispatched\",\"lifecycle_version\":3}",
+        )
+        val lifecycleV5 = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/transport/requests/42/status",
+            "{\"status\":\"dispatched\",\"lifecycle_version\":5}",
+        )
 
         assertEquals(first, replay)
         assertTrue(first!!.startsWith("hb-"))
         assertTrue(first != differentBody)
+        assertTrue(lifecycleV3 != lifecycleV5)
         assertEquals(null, api.mobileIdempotencyKey("GET", "/api/mobile/v1/activity", null))
         assertEquals(null, api.mobileIdempotencyKey("POST", "/api/auth/token", "{}",))
     }
@@ -162,6 +173,19 @@ class SharedDtoFixtureDecodeTest {
         assertEquals("conflicted", candidate.eligibilityState)
         assertEquals(listOf("overlapping_shift_assignment"), candidate.reasonCodes)
         assertEquals(1, candidate.overlappingAssignments)
+    }
+
+    @Test
+    fun decodesGovernedTransportJobAndCursorState() {
+        val queue = api.parseTransportQueue(fixture("mobile-transport-queue.json"))
+
+        val job = queue.jobs.single()
+        assertTrue(job.claimedByMe)
+        assertTrue(job.handoffRequired)
+        assertEquals(listOf("dispatched", "escalated", "failed"), job.allowedTransitions)
+        assertEquals(3, job.lifecycleVersion)
+        assertTrue(queue.nextCursor!!.isNotBlank())
+        assertTrue(queue.hasMore)
     }
 
     private fun fixture(filename: String): JSONObject =

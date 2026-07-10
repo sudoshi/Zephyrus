@@ -1,8 +1,18 @@
 import TransportLayout from './TransportLayout';
 import { OperationalDataError, SourceFreshnessBanner } from '@/Components/Operations/OperationalDataState';
 import { EmptyTransportState, MetricTile, sampleRequest, TransportRequestRow, typeLabels } from './components';
-import { useAssignTransportRequest, useCreateTransportRequest, useTransportOverview, useTransportRequests, useUpdateTransportStatus } from '@/features/transport/hooks';
-import type { TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
+import {
+  useAssignTransportRequest,
+  useCancelTransportRequest,
+  useCompleteTransportHandoff,
+  useCreateTransportRequest,
+  useTransportOverview,
+  useTransportRequests,
+  useTransportResources,
+  useTransportVendors,
+  useUpdateTransportStatus,
+} from '@/features/transport/hooks';
+import type { CompleteTransportHandoffInput, TransportOption, TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
 import type { ReactNode } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -43,7 +53,11 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
   const createRequest = useCreateTransportRequest();
   const assignRequest = useAssignTransportRequest();
   const updateStatus = useUpdateTransportStatus();
-  const allRows = requestsQuery.data ?? [];
+  const cancelRequest = useCancelTransportRequest();
+  const completeHandoff = useCompleteTransportHandoff();
+  const resourcesQuery = useTransportResources();
+  const vendorsQuery = useTransportVendors();
+  const allRows = requestsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const isDispatch = mode === 'dispatch';
   const rows = isDispatch ? allRows.filter(isDispatchable) : allRows;
   const unassigned = rows.filter((row) => !row.assigned_team && !row.assigned_vendor).length;
@@ -55,17 +69,35 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
   }
 
   function handleAssign(request: TransportRequest) {
-    const assignedVendor = request.request_type === 'discharge' || request.request_type === 'care_transition'
-      ? 'Ride Health'
-      : request.request_type === 'ems'
-        ? 'EMS Liaison'
-        : undefined;
-    const assignedTeam = assignedVendor ? undefined : 'Porter Pool';
-    assignRequest.mutate({ id: request.transport_request_id, assignedTeam, assignedVendor });
+    const preferVendor = request.request_type === 'discharge' || request.request_type === 'care_transition';
+    const preferred = preferVendor ? (vendorsQuery.data ?? []) : (resourcesQuery.data ?? []);
+    const fallback = preferVendor ? (resourcesQuery.data ?? []) : (vendorsQuery.data ?? []);
+    const options = [...preferred, ...fallback];
+    const resource = options.find((option: TransportOption) =>
+      (option.available ?? 0) > 0
+      && (!option.capabilities?.length || option.capabilities.includes(request.transport_mode)),
+    );
+    if (!resource) {
+      window.alert(`No configured resource has capacity for ${request.transport_mode} transport.`);
+      return;
+    }
+    assignRequest.mutate({ id: request.transport_request_id, resourceKey: resource.key });
   }
 
   function handleStatus(request: TransportRequest, status: TransportStatus) {
-    updateStatus.mutate({ id: request.transport_request_id, status });
+    if (status === 'canceled') {
+      const reason = window.prompt('Why is this transport being canceled?')?.trim();
+      if (reason) cancelRequest.mutate({ id: request.transport_request_id, reason });
+      return;
+    }
+    const needsReason = ['patient_not_ready', 'escalated', 'failed'].includes(status);
+    const reason = needsReason ? window.prompt(`Reason for ${status.replaceAll('_', ' ')}:`)?.trim() : undefined;
+    if (needsReason && !reason) return;
+    updateStatus.mutate({ id: request.transport_request_id, status, reason });
+  }
+
+  function handleHandoff(request: TransportRequest, input: CompleteTransportHandoffInput) {
+    completeHandoff.mutate({ id: request.transport_request_id, input });
   }
 
   return (
@@ -149,10 +181,21 @@ export default function WorklistPage({ title, subtitle, current, requestType, mo
               request={request}
               onAssign={handleAssign}
               onStatus={handleStatus}
+              onHandoff={handleHandoff}
             />
           ))
         )}
       </div>
+      {requestsQuery.hasNextPage ? (
+        <button
+          type="button"
+          onClick={() => void requestsQuery.fetchNextPage()}
+          disabled={requestsQuery.isFetchingNextPage}
+          className="w-full rounded-md border border-healthcare-border px-4 py-2 text-sm font-semibold text-healthcare-text-primary hover:bg-healthcare-hover disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark"
+        >
+          {requestsQuery.isFetchingNextPage ? 'Loading more...' : 'Load more requests'}
+        </button>
+      ) : null}
         </>
       )}
     </TransportLayout>

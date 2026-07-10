@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchTransportOverview, fetchTransportRequests } from '@/features/transport/api';
+import {
+  assignTransportRequest,
+  completeTransportHandoff,
+  fetchTransportOverview,
+  fetchTransportRequests,
+  updateTransportStatus,
+} from '@/features/transport/api';
 
 vi.mock('axios');
 const mocked = vi.mocked(axios, true);
@@ -43,6 +49,19 @@ const request = {
   segments: [],
   risk_flags: [],
   handoff: {},
+  handoff_required: true,
+  handoff_evidence: null,
+  active_assignment: {
+    assignment_uuid: '0ce5ead6-2a5d-41f2-8141-b2ca75cd5961',
+    resource_key: 'porter_pool',
+    resource_type: 'team',
+    resource_name: 'Summit Patient Transport',
+    capacity_units: 1,
+    reserved_from: '2026-07-04T12:10:00Z',
+  },
+  lifecycle_version: 2,
+  allowed_transitions: ['dispatched', 'escalated', 'canceled', 'failed'],
+  permissions: { can_assign: false, can_handoff: false },
   metadata: {},
   sla: { minutes_until_due: -7200, at_risk: true, label: '7200m overdue' },
 } as const;
@@ -51,12 +70,19 @@ describe('transport operational API contract', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('parses production-shaped empty JSON maps in the worklist', async () => {
-    mocked.get.mockResolvedValue({ data: { data: [request] } });
+    mocked.get.mockResolvedValue({
+      data: {
+        data: [request],
+        meta: { per_page: 25, count: 1, has_more: false, next_cursor: null, previous_cursor: null },
+        links: { next: null, previous: null },
+      },
+    });
 
-    const rows = await fetchTransportRequests();
+    const page = await fetchTransportRequests();
 
-    expect(rows[0].handoff).toEqual({});
-    expect(rows[0].metadata).toEqual({});
+    expect(page.items[0].handoff).toEqual({});
+    expect(page.items[0].metadata).toEqual({});
+    expect(page.meta.has_more).toBe(false);
   });
 
   it('parses source freshness on the command overview', async () => {
@@ -105,8 +131,45 @@ describe('transport operational API contract', () => {
   });
 
   it('rejects legacy array-shaped map fields', async () => {
-    mocked.get.mockResolvedValue({ data: { data: [{ ...request, handoff: [] }] } });
+    mocked.get.mockResolvedValue({
+      data: {
+        data: [{ ...request, handoff: [] }],
+        meta: { per_page: 25, count: 1, has_more: false, next_cursor: null, previous_cursor: null },
+        links: { next: null, previous: null },
+      },
+    });
 
     await expect(fetchTransportRequests()).rejects.toThrow();
+  });
+
+  it('sends idempotency headers for assignment, lifecycle, and structured handoff commands', async () => {
+    mocked.post.mockResolvedValue({ data: { data: request } });
+
+    await assignTransportRequest(22, { resource_key: 'porter_pool' }, 'web-assign-22');
+    await updateTransportStatus(22, 'dispatched', undefined, 'web-dispatch-22');
+    await completeTransportHandoff(22, {
+      handoff_to: 'CT Charge RN',
+      receiver_role: 'charge_nurse',
+      acceptance_status: 'accepted',
+    }, 'web-handoff-22');
+
+    expect(mocked.post).toHaveBeenNthCalledWith(
+      1,
+      '/api/transport/requests/22/assign',
+      { resource_key: 'porter_pool' },
+      { headers: { 'Idempotency-Key': 'web-assign-22' } },
+    );
+    expect(mocked.post).toHaveBeenNthCalledWith(
+      2,
+      '/api/transport/requests/22/status',
+      { status: 'dispatched', reason: undefined },
+      { headers: { 'Idempotency-Key': 'web-dispatch-22' } },
+    );
+    expect(mocked.post).toHaveBeenNthCalledWith(
+      3,
+      '/api/transport/requests/22/handoff',
+      expect.objectContaining({ receiver_role: 'charge_nurse', acceptance_status: 'accepted' }),
+      { headers: { 'Idempotency-Key': 'web-handoff-22' } },
+    );
   });
 });

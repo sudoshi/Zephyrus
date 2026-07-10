@@ -76,13 +76,23 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         JSONObject(text).optJSONObject("data")?.optBoolean("resolved", true) ?: true
     }
 
-    suspend fun transportQueue(bearer: String): TransportQueue = withContext(Dispatchers.IO) {
-        val root = getEnvelope("/api/mobile/v1/transport/queue", bearer)
+    suspend fun transportQueue(bearer: String, cursor: String? = null): TransportQueue = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("/api/mobile/v1/transport/queue?persona=transport")
+            if (!cursor.isNullOrBlank()) append("&cursor=${urlPart(cursor)}")
+        }
+        val root = getEnvelope(path, bearer)
         parseTransportQueue(root)
     }
 
-    suspend fun transportStatus(bearer: String, id: Int, status: String): TransportJob = withContext(Dispatchers.IO) {
+    suspend fun transportStatus(
+        bearer: String,
+        id: Int,
+        status: String,
+        lifecycleVersion: Int? = null,
+    ): TransportJob = withContext(Dispatchers.IO) {
         val body = JSONObject().put("status", status)
+        lifecycleVersion?.let { body.put("lifecycle_version", it) }
         val (code, text) = send("POST", "/api/mobile/v1/transport/requests/$id/status", body.toString(), bearer)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
         parseTransportJob(JSONObject(text).getJSONObject("data"))
@@ -92,9 +102,20 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         bearer: String,
         id: Int,
         handoffTo: String,
+        receiverRole: String,
+        acceptanceStatus: String,
+        outstandingRisk: String?,
         summary: String?,
+        lifecycleVersion: Int,
     ): TransportJob = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("handoff_to", handoffTo)
+        val body = JSONObject()
+            .put("handoff_to", handoffTo)
+            .put("receiver_role", receiverRole)
+            .put("acceptance_status", acceptanceStatus)
+            .put("lifecycle_version", lifecycleVersion)
+        if (!outstandingRisk.isNullOrBlank()) {
+            body.put("outstanding_risks", JSONArray().put(outstandingRisk))
+        }
         if (!summary.isNullOrBlank()) body.put("handoff_summary", summary)
         val (code, text) = send("POST", "/api/mobile/v1/transport/requests/$id/handoff", body.toString(), bearer)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
@@ -568,6 +589,8 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             jobs = data.optJSONArray("jobs").objects().map(::parseTransportJob),
             webLink = root.optJSONObject("links")?.optStringOrNull("web"),
             stale = root.optJSONObject("meta")?.optBoolean("stale", false) ?: false,
+            nextCursor = root.optJSONObject("meta")?.optStringOrNull("next_cursor"),
+            hasMore = root.optJSONObject("meta")?.optBoolean("has_more", false) ?: false,
         )
     }
 
@@ -592,6 +615,13 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             mode = o.optStringOrNull("mode"),
             neededAt = o.optStringOrNull("needed_at"),
             patientContextRef = o.optStringOrNull("patient_context_ref"),
+            claimedByMe = o.optBoolean("claimed_by_me", false),
+            availableToClaim = o.optBoolean("available_to_claim", false),
+            resourceName = o.optStringOrNull("resource_name"),
+            handoffRequired = o.optBoolean("handoff_required", false),
+            allowedTransitions = o.optJSONArray("allowed_transitions").strings(),
+            canHandoff = o.optBoolean("can_handoff", false),
+            lifecycleVersion = o.optInt("lifecycle_version", 1),
             sla = TransportSla(
                 minutesUntilDue = sla.optIntOrNull("minutes_until_due"),
                 atRisk = sla.optBoolean("at_risk", false),

@@ -11,6 +11,9 @@ final class TransportJobsViewModel: ObservableObject {
     @Published var stale = false
     @Published var webLink: String?
     @Published var needsReauth = false
+    @Published var nextCursor: String?
+    @Published var hasMore = false
+    @Published var isLoadingMore = false
 
     let api: APIClient
     init(api: APIClient) { self.api = api }
@@ -29,6 +32,8 @@ final class TransportJobsViewModel: ObservableObject {
             queue = env.data
             webLink = env.links?["web"]
             stale = env.meta?.stale ?? false
+            nextCursor = env.meta?.nextCursor
+            hasMore = env.meta?.hasMore ?? false
             errorMessage = nil
         } catch let error as APIError {
             if error.statusCode == 401 { needsReauth = true }
@@ -40,20 +45,61 @@ final class TransportJobsViewModel: ObservableObject {
         }
     }
 
-    func advance(id: Int, to status: String, bearer: String) async {
+    func loadMore(bearer: String) async {
+        guard !isLoadingMore, hasMore, let nextCursor else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
         do {
-            try await api.transportStatus(id: id, status: status, bearer: bearer)
-            await load(bearer: bearer)
-        } catch let error as APIError { errorMessage = error.message }
-        catch { errorMessage = error.localizedDescription }
+            let env = try await api.transportQueue(bearer: bearer, cursor: nextCursor)
+            let existing = queue?.jobs ?? []
+            let known = Set(existing.map(\.id))
+            queue = TransportQueue(
+                metrics: env.data.metrics,
+                jobs: existing + env.data.jobs.filter { !known.contains($0.id) }
+            )
+            self.nextCursor = env.meta?.nextCursor
+            hasMore = env.meta?.hasMore ?? false
+            errorMessage = nil
+        } catch let error as APIError {
+            if error.statusCode == 401 { needsReauth = true }
+            errorMessage = error.message
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
-    func handoff(id: Int, to: String, summary: String?, bearer: String) async {
+    func advance(id: Int, to status: String, lifecycleVersion: Int,
+                 bearer: String) async -> TransportJob? {
         do {
-            try await api.transportHandoff(id: id, handoffTo: to, summary: summary, bearer: bearer)
+            let updated = try await api.transportStatus(
+                id: id, status: status, lifecycleVersion: lifecycleVersion, bearer: bearer
+            )
             await load(bearer: bearer)
+            return updated
         } catch let error as APIError { errorMessage = error.message }
         catch { errorMessage = error.localizedDescription }
+        return nil
+    }
+
+    func handoff(id: Int, to: String, receiverRole: String, acceptanceStatus: String,
+                 outstandingRisk: String?, summary: String?, lifecycleVersion: Int,
+                 bearer: String) async -> TransportJob? {
+        do {
+            let updated = try await api.transportHandoff(
+                id: id,
+                handoffTo: to,
+                receiverRole: receiverRole,
+                acceptanceStatus: acceptanceStatus,
+                outstandingRisk: outstandingRisk,
+                summary: summary,
+                lifecycleVersion: lifecycleVersion,
+                bearer: bearer
+            )
+            await load(bearer: bearer)
+            return updated
+        } catch let error as APIError { errorMessage = error.message }
+        catch { errorMessage = error.localizedDescription }
+        return nil
     }
 }
 
@@ -147,17 +193,62 @@ struct TransportJobsView: View {
             RetryableMessage(symbol: "checkmark.circle", title: "Queue clear",
                              message: "No active transport jobs right now.", tone: .success)
         } else {
-            sectionLabel("ACTIVE QUEUE (\(q.jobs.count))")
-            ForEach(q.jobs) { job in
-                NavigationLink {
-                    JobDetailView(
-                        job: job, webLink: vm.webLink,
-                        advance: { id, s in await vm.advance(id: id, to: s, bearer: auth.accessToken ?? "") },
-                        handoff: { id, to, summary in await vm.handoff(id: id, to: to, summary: summary, bearer: auth.accessToken ?? "") }
-                    )
-                } label: { jobRow(job) }
-                .buttonStyle(.plain)
+            let myTrips = q.jobs.filter(\.claimedByMe)
+            let availableTrips = q.jobs.filter(\.availableToClaim)
+            let otherTrips = q.jobs.filter { !$0.claimedByMe && !$0.availableToClaim }
+
+            if !myTrips.isEmpty {
+                sectionLabel("MY TRIPS (\(myTrips.count))")
+                jobLinks(myTrips)
             }
+            if !availableTrips.isEmpty {
+                sectionLabel("AVAILABLE TRIPS (\(availableTrips.count))")
+                jobLinks(availableTrips)
+            }
+            if !otherTrips.isEmpty {
+                sectionLabel("AWAITING DISPATCH (\(otherTrips.count))")
+                jobLinks(otherTrips)
+            }
+            if vm.hasMore {
+                Button {
+                    Task { await vm.loadMore(bearer: auth.accessToken ?? "") }
+                } label: {
+                    Text(vm.isLoadingMore ? "Loading…" : "Load more trips")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(vm.isLoadingMore)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func jobLinks(_ jobs: [TransportJob]) -> some View {
+        ForEach(jobs) { job in
+            NavigationLink {
+                JobDetailView(
+                    job: job, webLink: vm.webLink,
+                    advance: { id, status, lifecycleVersion in
+                        await vm.advance(
+                            id: id, to: status, lifecycleVersion: lifecycleVersion,
+                            bearer: auth.accessToken ?? ""
+                        )
+                    },
+                    handoff: { id, to, role, acceptance, risk, summary, lifecycleVersion in
+                        await vm.handoff(
+                            id: id,
+                            to: to,
+                            receiverRole: role,
+                            acceptanceStatus: acceptance,
+                            outstandingRisk: risk,
+                            summary: summary,
+                            lifecycleVersion: lifecycleVersion,
+                            bearer: auth.accessToken ?? ""
+                        )
+                    }
+                )
+            } label: { jobRow(job) }
+            .buttonStyle(.plain)
         }
     }
 

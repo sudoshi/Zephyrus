@@ -178,7 +178,7 @@ class MobileBffTest extends TestCase
 
             $fixtures = $this->seedHighValueReadFixtures($user);
 
-            $this->getJson('/api/mobile/v1/transport/queue')
+            $this->getJson('/api/mobile/v1/transport/queue?persona=transport')
                 ->assertOk()
                 ->assertJsonPath('data.jobs.0.id', $fixtures['transport']->transport_request_id)
                 ->assertJsonPath('data.jobs.0.sla.label', '10 min 0 sec remaining')
@@ -367,7 +367,7 @@ class MobileBffTest extends TestCase
             '/rtdc/house' => '/api/mobile/v1/rtdc/house',
             '/staffing/overview' => '/api/mobile/v1/staffing/overview',
             '/staffing/requests/{id}/candidates' => "/api/mobile/v1/staffing/requests/{$staffingRequest->staffing_request_id}/candidates?persona=staffing_coordinator",
-            '/transport/queue' => '/api/mobile/v1/transport/queue',
+            '/transport/queue' => '/api/mobile/v1/transport/queue?persona=transport',
         ];
     }
 

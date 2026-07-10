@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Concerns\AuthorizesMobilePersonaActions;
-use App\Http\Concerns\ReadsMobileIdempotencyKey;
 use App\Http\Concerns\RendersMobileEnvelope;
+use App\Http\Concerns\RequiresIdempotencyKey;
 use App\Http\Controllers\Controller;
 use App\Models\Transport\TransportRequest;
 use App\Services\Mobile\MobilePersonaCatalog;
@@ -32,8 +32,8 @@ use Illuminate\Validation\Rule;
 class TransportController extends Controller
 {
     use AuthorizesMobilePersonaActions;
-    use ReadsMobileIdempotencyKey;
     use RendersMobileEnvelope;
+    use RequiresIdempotencyKey;
 
     public function __construct(
         private readonly TransportOperationsService $transport,
@@ -42,32 +42,53 @@ class TransportController extends Controller
     ) {}
 
     /** The prioritized active queue + the glanceable metrics the "My Trips" home leads with. */
-    public function queue(): JsonResponse
+    public function queue(Request $request): JsonResponse
     {
-        $active = TransportRequest::active()
-            ->orderByRaw("CASE priority WHEN 'stat' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END")
-            ->orderByRaw('needed_at NULLS LAST')
-            ->orderByDesc('transport_request_id')
+        $this->authorizeMobilePersonaAction($request, ['transport'], 'view transport jobs');
+        $validated = $request->validate([
+            'cursor' => ['nullable', 'string', 'max:1000'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'priority' => ['nullable', Rule::in(['routine', 'urgent', 'stat'])],
+            'status' => ['nullable', Rule::in(array_keys(\App\Services\Transport\TransportLifecycleService::TRANSITIONS))],
+        ]);
+        $actor = $request->user();
+        $page = $this->transport->list(array_merge($validated, [
+            'scope' => 'active',
+            'mobile_actor_user_id' => $actor->id,
+        ]));
+        $jobs = collect($page->items())
+            ->map(fn (TransportRequest $transportRequest) => $this->shapeJob($transportRequest, $actor))
+            ->values();
+        $visible = TransportRequest::active()
+            ->where(function ($scope) use ($actor): void {
+                $scope->whereDoesntHave('activeAssignment')
+                    ->orWhereHas('activeAssignment.resource', fn ($resource) => $resource
+                        ->where('actor_user_id', $actor->id));
+            })
             ->get();
 
-        $jobs = $active->map(fn (TransportRequest $r) => $this->shapeJob($r))->values();
-
-        $completedToday = TransportRequest::query()
-            ->where('is_deleted', false)
-            ->where('status', 'completed')
-            ->whereDate('requested_at', Carbon::today())
-            ->count();
+        $completedToday = \App\Models\Transport\TransportEvent::query()
+            ->where('event_type', 'transport.completed')
+            ->whereDate('occurred_at', Carbon::today())
+            ->distinct('transport_request_id')
+            ->count('transport_request_id');
 
         $metrics = [
-            'active' => $active->count(),
-            'stat' => $active->where('priority', 'stat')->count(),
-            'at_risk' => $active->filter(fn (TransportRequest $r) => $this->atRisk($r))->count(),
+            'active' => $visible->count(),
+            'stat' => $visible->where('priority', 'stat')->count(),
+            'at_risk' => $visible->filter(fn (TransportRequest $transportRequest) => $this->atRisk($transportRequest))->count(),
             'completed_today' => $completedToday,
         ];
 
         return $this->envelope(
             ['metrics' => $metrics, 'jobs' => $jobs],
-            meta: ['count' => $jobs->count()],
+            meta: [
+                'count' => $jobs->count(),
+                'per_page' => $page->perPage(),
+                'has_more' => $page->hasMorePages(),
+                'next_cursor' => $page->nextCursor()?->encode(),
+                'previous_cursor' => $page->previousCursor()?->encode(),
+            ],
             links: ['web' => url('/transport/dispatch')],
         );
     }
@@ -80,15 +101,21 @@ class TransportController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in($allowed)],
-            'assigned_team' => ['sometimes', 'string', 'max:120'],
+            'reason' => ['nullable', 'string', 'max:500'],
+            'note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
-        $actorId = $request->user()?->id;
+        $req = TransportRequest::with('activeAssignment.resource', 'handoffEvidence')
+            ->where('transport_request_id', $id)
+            ->where('is_deleted', false)
+            ->firstOrFail();
+        $actor = $request->user();
+        $actorId = $actor->id;
         $from = $req->status;
         $eventType = $validated['status'] === 'assigned' ? 'transport.claimed' : 'transport.progressed';
+        $idempotencyKey = $this->requireIdempotencyKey($request);
         $eventAttributes = [
-            'idempotency_key' => $this->mobileIdempotencyKey($request),
+            'idempotency_key' => $idempotencyKey,
             'actor_user_id' => $actorId,
             'actor_role' => $actorRole,
             'domain' => 'transport',
@@ -99,18 +126,18 @@ class TransportController extends Controller
             ],
             'idempotency_payload' => [
                 'status' => $validated['status'],
-                'assigned_team' => $validated['assigned_team'] ?? null,
+                'reason' => $validated['reason'] ?? null,
+                'note' => $validated['note'] ?? null,
             ],
         ];
 
-        if ($this->ledger->replay($eventType, $eventAttributes) !== null) {
-            return $this->envelope($this->shapeJob($req->fresh()), links: ['web' => url('/transport/dispatch')]);
-        }
-
-        $updated = DB::transaction(function () use ($actorId, $eventAttributes, $eventType, $from, $req, $request, $validated): TransportRequest {
+        $updated = DB::transaction(function () use ($actor, $eventAttributes, $eventType, $from, $idempotencyKey, $req, $validated): TransportRequest {
             $updated = $validated['status'] === 'assigned'
-                ? $this->transport->assign($req, ['assigned_team' => $validated['assigned_team'] ?? ($request->user()?->name ?? 'Mobile')], $actorId)
-                : $this->transport->transition($req, $validated['status'], [], $actorId);
+                ? $this->transport->assign($req, [], $actor, $idempotencyKey, 'mobile', claim: true)
+                : $this->transport->transition($req, $validated['status'], [
+                    'reason' => $validated['reason'] ?? null,
+                    'note' => $validated['note'] ?? null,
+                ], $actor, $idempotencyKey, 'mobile');
 
             $this->ledger->record($eventType, [
                 ...$eventAttributes,
@@ -135,7 +162,7 @@ class TransportController extends Controller
             return $updated;
         });
 
-        return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
+        return $this->envelope($this->shapeJob($updated, $actor), links: ['web' => url('/transport/dispatch')]);
     }
 
     /** Structured handoff at the destination → marks the job handed off. */
@@ -145,16 +172,27 @@ class TransportController extends Controller
 
         $validated = $request->validate([
             'handoff_to' => ['required', 'string', 'max:160'],
+            'receiver_role' => ['required', 'string', 'max:120'],
+            'acceptance_status' => ['required', Rule::in(['accepted', 'accepted_with_risks'])],
+            'accepted_at' => ['nullable', 'date', 'before_or_equal:now'],
             'handoff_summary' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'documents' => ['sometimes', 'array'],
-            'outstanding_risks' => ['sometimes', 'array'],
+            'documents' => ['sometimes', 'array', 'max:20'],
+            'documents.*.type' => ['required_with:documents', 'string', 'max:80'],
+            'documents.*.reference' => ['required_with:documents', 'string', 'max:200'],
+            'outstanding_risks' => ['required_if:acceptance_status,accepted_with_risks', 'array', 'min:1', 'max:20'],
+            'outstanding_risks.*' => ['string', 'max:300'],
         ]);
 
-        $req = TransportRequest::where('transport_request_id', $id)->where('is_deleted', false)->firstOrFail();
+        $req = TransportRequest::with('activeAssignment.resource', 'handoffEvidence')
+            ->where('transport_request_id', $id)
+            ->where('is_deleted', false)
+            ->firstOrFail();
+        $actor = $request->user();
         $from = $req->status;
+        $idempotencyKey = $this->requireIdempotencyKey($request);
         $eventAttributes = [
-            'idempotency_key' => $this->mobileIdempotencyKey($request),
-            'actor_user_id' => $request->user()?->id,
+            'idempotency_key' => $idempotencyKey,
+            'actor_user_id' => $actor->id,
             'actor_role' => $actorRole,
             'domain' => 'transport',
             'scope' => [
@@ -164,16 +202,14 @@ class TransportController extends Controller
             ],
             'idempotency_payload' => [
                 'handoff_to' => $validated['handoff_to'],
+                'receiver_role' => $validated['receiver_role'],
+                'acceptance_status' => $validated['acceptance_status'],
                 'handoff_summary' => $validated['handoff_summary'] ?? null,
             ],
         ];
 
-        if ($this->ledger->replay('transport.handoff_completed', $eventAttributes) !== null) {
-            return $this->envelope($this->shapeJob($req->fresh()), links: ['web' => url('/transport/dispatch')]);
-        }
-
-        $updated = DB::transaction(function () use ($eventAttributes, $from, $req, $request, $validated): TransportRequest {
-            $updated = $this->transport->completeHandoff($req, $validated, $request->user()?->id);
+        $updated = DB::transaction(function () use ($actor, $eventAttributes, $from, $idempotencyKey, $req, $validated): TransportRequest {
+            $updated = $this->transport->completeHandoff($req, $validated, $actor, $idempotencyKey, 'mobile');
 
             $this->ledger->record('transport.handoff_completed', [
                 ...$eventAttributes,
@@ -196,15 +232,17 @@ class TransportController extends Controller
             return $updated;
         });
 
-        return $this->envelope($this->shapeJob($updated), links: ['web' => url('/transport/dispatch')]);
+        return $this->envelope($this->shapeJob($updated, $actor), links: ['web' => url('/transport/dispatch')]);
     }
 
     // MARK: PHI-minimized shaping (mirrors TransportOperationsService::sla/isAtRisk semantics)
 
     /** @return array<string, mixed> */
-    private function shapeJob(TransportRequest $r): array
+    private function shapeJob(TransportRequest $r, \App\Models\User $actor): array
     {
         $visualStatus = $this->tier($r);
+        $serialized = $this->transport->serializeRequest($r, $actor);
+        $activeAssignment = $r->activeAssignment;
 
         return [
             'id' => $r->transport_request_id,
@@ -218,6 +256,13 @@ class TransportController extends Controller
             'destination' => $r->destination,
             'mode' => $r->transport_mode,
             'needed_at' => $r->needed_at?->toIso8601String(),
+            'claimed_by_me' => (int) data_get($activeAssignment, 'resource.actor_user_id') === (int) $actor->id,
+            'available_to_claim' => $activeAssignment === null && in_array('assigned', $serialized['allowed_transitions'], true),
+            'resource_name' => data_get($activeAssignment, 'resource.display_name'),
+            'handoff_required' => (bool) $r->handoff_required,
+            'allowed_transitions' => $serialized['allowed_transitions'],
+            'can_handoff' => (bool) $serialized['permissions']['can_handoff'],
+            'lifecycle_version' => (int) $r->lifecycle_version,
             'sla' => $this->sla($r),
         ];
     }

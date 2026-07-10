@@ -75,7 +75,15 @@ enum DecodeSharedFixtures {
         try require(flowFloors.data.floors.contains { floor in floor.spaces.contains { $0.bedId == 693 && $0.rect.count == 4 } },
                     "Flow floors bed plate bridge (bed_id + rect) drifted.")
 
-        print("Decoded 7 shared Hummingbird DTO fixtures.")
+        let transport = try decode("mobile-transport-queue.json", as: Envelope<TransportQueue>.self, root: root, decoder: decoder)
+        try require(transport.data.jobs.first?.claimedByMe == true, "Transport assignment ownership did not decode.")
+        try require(transport.data.jobs.first?.allowedTransitions == ["dispatched", "escalated", "failed"],
+                    "Transport server-authorized transitions drifted.")
+        try require(transport.data.jobs.first?.lifecycleVersion == 3, "Transport lifecycle version drifted.")
+        try require(transport.meta?.hasMore == true && transport.meta?.nextCursor?.isEmpty == false,
+                    "Transport cursor metadata did not decode.")
+
+        print("Decoded 8 shared Hummingbird DTO fixtures.")
     }
 
     private static func decode<T: Decodable>(

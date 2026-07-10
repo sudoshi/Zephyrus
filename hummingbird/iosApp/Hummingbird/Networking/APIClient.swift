@@ -184,7 +184,7 @@ struct APIClient {
 
     /// POST …/rtdc/bed-requests/{id}/decision — place (accept a chosen bed) or reject (mobile:act).
     func placeBed(id: Int, action: String, chosenBedId: Int?, bearer: String) async throws {
-        var body = ["action": action]
+        var body: [String: Any] = ["action": action]
         if let chosenBedId { body["chosen_bed_id"] = String(chosenBedId) }
         _ = try await send(path: "/api/mobile/v1/rtdc/bed-requests/\(id)/decision", method: "POST", body: body, bearer: bearer)
     }
@@ -237,22 +237,40 @@ struct APIClient {
 
     // MARK: Transport (P1)
 
-    func transportQueue(bearer: String) async throws -> Envelope<TransportQueue> {
-        try await getEnvelope(path: "/api/mobile/v1/transport/queue", bearer: bearer, as: TransportQueue.self)
+    func transportQueue(bearer: String, cursor: String? = nil) async throws -> Envelope<TransportQueue> {
+        var path = "/api/mobile/v1/transport/queue?persona=transport"
+        if let cursor, !cursor.isEmpty {
+            path += "&cursor=\(Self.queryValue(cursor))"
+        }
+        return try await getEnvelope(path: path, bearer: bearer, as: TransportQueue.self)
     }
 
     /// POST …/transport/requests/{id}/status — advance a job (Claim → … → Completed).
-    func transportStatus(id: Int, status: String, bearer: String) async throws {
-        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/status", method: "POST",
-                           body: ["status": status], bearer: bearer)
+    func transportStatus(id: Int, status: String, lifecycleVersion: Int,
+                         bearer: String) async throws -> TransportJob {
+        let data = try await send(path: "/api/mobile/v1/transport/requests/\(id)/status", method: "POST",
+                                  body: ["status": status, "lifecycle_version": lifecycleVersion], bearer: bearer)
+        return try Self.decoder.decode(Envelope<TransportJob>.self, from: data).data
     }
 
     /// POST …/transport/requests/{id}/handoff — structured handoff at the destination.
-    func transportHandoff(id: Int, handoffTo: String, summary: String?, bearer: String) async throws {
-        var body = ["handoff_to": handoffTo]
+    func transportHandoff(id: Int, handoffTo: String, receiverRole: String,
+                          acceptanceStatus: String, outstandingRisk: String?,
+                          summary: String?, lifecycleVersion: Int,
+                          bearer: String) async throws -> TransportJob {
+        var body: [String: Any] = [
+            "handoff_to": handoffTo,
+            "receiver_role": receiverRole,
+            "acceptance_status": acceptanceStatus,
+            "lifecycle_version": lifecycleVersion,
+        ]
+        if let outstandingRisk, !outstandingRisk.isEmpty {
+            body["outstanding_risks"] = [outstandingRisk]
+        }
         if let summary, !summary.isEmpty { body["handoff_summary"] = summary }
-        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/handoff", method: "POST",
-                           body: body, bearer: bearer)
+        let data = try await send(path: "/api/mobile/v1/transport/requests/\(id)/handoff", method: "POST",
+                                  body: body, bearer: bearer)
+        return try Self.decoder.decode(Envelope<TransportJob>.self, from: data).data
     }
 
     // MARK: EVS / bed-turns (P2)
@@ -373,7 +391,7 @@ struct APIClient {
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.
     func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
                         deviceName: String?, bearer: String) async throws {
-        var body = ["platform": "ios", "push_token": pushToken]
+        var body: [String: Any] = ["platform": "ios", "push_token": pushToken]
         if let appVersion { body["app_version"] = appVersion }
         if let osVersion { body["os_version"] = osVersion }
         if let deviceName { body["device_name"] = deviceName }
@@ -406,7 +424,7 @@ struct APIClient {
         return try Self.decoder.decode(Envelope<T>.self, from: data)
     }
 
-    private func send(path: String, method: String, body: [String: String]?, bearer: String?) async throws -> Data {
+    private func send(path: String, method: String, body: [String: Any]?, bearer: String?) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw APIError(message: "Bad URL", statusCode: nil)
         }
