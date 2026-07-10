@@ -797,7 +797,16 @@ paths:
   /transport/queue:
     get:
       tags: [transport]
-      summary: My queue + available transport jobs (role-scoped).
+      summary: Cursor-paginated queue containing only this transporter's assignments and unclaimed work.
+      parameters:
+        - { name: persona, in: query, schema: { type: string, enum: [transport], default: transport } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 1000 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { name: priority, in: query, schema: { type: string, enum: [routine, urgent, stat] } }
+        -
+          name: status
+          in: query
+          schema: { $ref: "#/components/schemas/TransportStatus" }
       responses:
         "200":
           {
@@ -816,9 +825,15 @@ paths:
   /transport/requests/{id}/status:
     post:
       tags: [transport]
-      summary: Progress a transport request through its 17-status lifecycle. Delegates to TransportOperationsService.
+      summary: Claim or perform one server-authorized transition in the canonical transport lifecycle.
       parameters:
-        [{ name: id, in: path, required: true, schema: { type: string } }]
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        -
+          name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable per-command retry key. Reuse only when retrying the same payload.
+          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
       requestBody:
         {
           required: true,
@@ -838,9 +853,15 @@ paths:
   /transport/requests/{id}/handoff:
     post:
       tags: [transport]
-      summary: Structured handoff (handoff_to, summary, documents[], outstanding_risks[]).
+      summary: Record append-only receiver acceptance evidence and complete the governed handoff.
       parameters:
-        [{ name: id, in: path, required: true, schema: { type: string } }]
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        -
+          name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable per-command retry key. Reuse only when retrying the same payload.
+          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
       requestBody:
         {
           required: true,
@@ -1306,6 +1327,11 @@ components:
             oneOf: [{ type: string }, { type: "null" }],
             description: ETag/version for optimistic concurrency.,
           }
+        count: { type: integer, minimum: 0 }
+        per_page: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { oneOf: [{ type: string }, { type: "null" }] }
+        previous_cursor: { oneOf: [{ type: string }, { type: "null" }] }
       required: [as_of, stale, version]
     Links:
       type: object
@@ -2549,8 +2575,31 @@ components:
         needed_at:
           { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
         patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        claimed_by_me: { type: boolean }
+        available_to_claim: { type: boolean }
+        resource_name: { oneOf: [{ type: string }, { type: "null" }] }
+        handoff_required: { type: boolean }
+        allowed_transitions:
+          { type: array, items: { $ref: "#/components/schemas/TransportStatus" } }
+        can_handoff: { type: boolean }
+        lifecycle_version: { type: integer, minimum: 1 }
         sla: { $ref: "#/components/schemas/Sla" }
-      required: [id, type, priority, status, visual_status, tier, sla]
+      required:
+        [
+          id,
+          type,
+          priority,
+          status,
+          visual_status,
+          tier,
+          claimed_by_me,
+          available_to_claim,
+          handoff_required,
+          allowed_transitions,
+          can_handoff,
+          lifecycle_version,
+          sla,
+        ]
     EvsQueueEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }
@@ -2603,27 +2652,71 @@ components:
           isolation_required,
           sla,
         ]
+    TransportStatus:
+      type: string
+      enum:
+        [
+          requested,
+          accepted,
+          queued,
+          assigned,
+          dispatched,
+          arrived_pickup,
+          patient_ready,
+          patient_not_ready,
+          picked_up,
+          en_route,
+          arrived_destination,
+          handoff_started,
+          handoff_complete,
+          escalated,
+          completed,
+          canceled,
+          failed,
+        ]
     StatusTransition:
-      {
-        type: object,
-        properties:
-          {
-            status: { type: string },
-            assigned_team: { type: string },
-            note: { type: string },
-            version:
-              { type: string, description: Optimistic-concurrency token. },
-          },
-        required: [status],
-      }
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/TransportStatus" }
+        reason:
+          type: string
+          maxLength: 500
+          description: "Required for patient_not_ready, escalated, canceled, and failed."
+        note: { type: string, maxLength: 500 }
+        lifecycle_version:
+          type: integer
+          minimum: 0
+          description: Version from the last server response; keeps retries stable while separating later commands with the same target status.
+      required: [status]
     Handoff:
       type: object
       properties:
         handoff_to: { type: string }
+        receiver_role: { type: string }
+        acceptance_status:
+          { type: string, enum: [accepted, accepted_with_risks] }
+        accepted_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
         handoff_summary: { type: string }
-        documents: { type: array, items: { type: string } }
-        outstanding_risks: { type: array, items: { type: string } }
-      required: [handoff_to]
+        lifecycle_version:
+          type: integer
+          minimum: 0
+          description: Version from the last server response; included in the native retry-key material.
+        documents:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            properties:
+              type: { type: string, maxLength: 80 }
+              reference: { type: string, maxLength: 200 }
+            required: [type, reference]
+        outstanding_risks:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 300 }
+          description: Required and non-empty when acceptance_status is accepted_with_risks.
+      required: [handoff_to, receiver_role, acceptance_status]
 
     # ---- Staffing / Improvement ----
     StaffingOverviewEnvelope:

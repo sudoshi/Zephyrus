@@ -53,6 +53,25 @@ class AuthServiceProvider extends ServiceProvider
         'house_supervisor',
     ];
 
+    /** @var list<string> */
+    private const TRANSPORT_DISPATCH_ROLES = [
+        'super_admin', 'superuser', 'admin', 'ops_leader', 'house_supervisor',
+        'capacity_lead', 'transport_dispatcher', 'transfer_center',
+    ];
+
+    /** @var list<string> */
+    private const TRANSPORT_REQUEST_ROLES = [
+        ...self::TRANSPORT_DISPATCH_ROLES,
+        'bed_manager', 'charge_nurse', 'hospitalist', 'intensivist', 'case_manager',
+        'discharge_coordinator', 'ed_nurse', 'or_nurse',
+    ];
+
+    /** @var list<string> */
+    private const TRANSPORT_FIELD_ROLES = [
+        ...self::TRANSPORT_DISPATCH_ROLES,
+        'transport',
+    ];
+
     /**
      * Roles allowed to create governed Eddy action proposals or mint the scoped
      * draft token used by the agent callback. Plain authenticated accounts can
@@ -126,6 +145,24 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manageStaffingOperations', fn (User $user): bool => in_array(
             self::canonicalRole((string) $user->role),
             self::STAFFING_OPERATION_ROLES,
+            true,
+        ));
+
+        Gate::define('requestTransportOperations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::TRANSPORT_REQUEST_ROLES,
+            true,
+        ));
+
+        Gate::define('manageTransportDispatch', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::TRANSPORT_DISPATCH_ROLES,
+            true,
+        ));
+
+        Gate::define('progressTransportOperations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::TRANSPORT_FIELD_ROLES,
             true,
         ));
 

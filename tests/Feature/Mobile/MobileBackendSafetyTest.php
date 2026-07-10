@@ -112,7 +112,7 @@ class MobileBackendSafetyTest extends TestCase
         $transport = $this->transportRequest(['status' => 'requested']);
         $transportPath = "/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport";
         $transportHeaders = ['Idempotency-Key' => 'mobile-replay-transport-assign-1'];
-        $transportBody = ['status' => 'assigned', 'assigned_team' => 'Mobile transport'];
+        $transportBody = ['status' => 'assigned'];
 
         $this->withHeaders($transportHeaders)->postJson($transportPath, $transportBody)->assertOk();
         $this->withHeaders($transportHeaders)->postJson($transportPath, $transportBody)->assertOk();
@@ -184,12 +184,10 @@ class MobileBackendSafetyTest extends TestCase
 
         $this->withHeaders($headers)->postJson($path, [
             'status' => 'assigned',
-            'assigned_team' => 'Team A',
         ])->assertOk();
 
         $this->withHeaders($headers)->postJson($path, [
-            'status' => 'assigned',
-            'assigned_team' => 'Team B',
+            'status' => 'dispatched',
         ])->assertStatus(409);
 
         $this->assertSame(1, DB::table('prod.transport_events')
@@ -290,20 +288,28 @@ class MobileBackendSafetyTest extends TestCase
         $user = $this->actingAsMobile(['mobile:read', 'mobile:act']);
         $transport = $this->transportRequest(['status' => 'requested']);
 
-        $this->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport", [
-            'status' => 'assigned',
-            'assigned_team' => 'Mobile transport',
-        ])->assertOk();
+        $this->withHeader('Idempotency-Key', 'mobile-transport-event-claim')
+            ->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport", [
+                'status' => 'assigned',
+            ])->assertOk();
 
         $this->assertOneOperationalEvent('transport.claimed', $user, 'transport', 'transport_request');
 
+        foreach (['dispatched', 'arrived_pickup', 'picked_up', 'en_route', 'arrived_destination'] as $index => $status) {
+            $this->withHeader('Idempotency-Key', "mobile-transport-event-progress-{$index}")
+                ->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport", [
+                    'status' => $status,
+                ])->assertOk();
+        }
         OperationalEvent::query()->delete();
-        $transport = $transport->fresh();
 
-        $this->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/handoff?persona=transport", [
-            'handoff_to' => '3 West charge',
-            'handoff_summary' => 'Arrived to destination.',
-        ])->assertOk();
+        $this->withHeader('Idempotency-Key', 'mobile-transport-event-handoff')
+            ->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/handoff?persona=transport", [
+                'handoff_to' => '3 West charge',
+                'receiver_role' => 'charge_nurse',
+                'acceptance_status' => 'accepted',
+                'handoff_summary' => 'Arrived to destination.',
+            ])->assertOk();
 
         $this->assertOneOperationalEvent('transport.handoff_completed', $user, 'transport', 'transport_request');
     }
@@ -415,14 +421,13 @@ class MobileBackendSafetyTest extends TestCase
         $transport = $this->transportRequest(['status' => 'requested']);
 
         $this->mock(OperationalActivityLedger::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('replay')->once()->andReturn(null);
             $mock->shouldReceive('record')->once()->andThrow(new RuntimeException('ledger unavailable'));
         });
 
-        $this->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport", [
-            'status' => 'assigned',
-            'assigned_team' => 'Mobile transport',
-        ])->assertStatus(500);
+        $this->withHeader('Idempotency-Key', 'mobile-transport-ledger-rollback')
+            ->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport", [
+                'status' => 'assigned',
+            ])->assertStatus(500);
 
         $this->assertSame('requested', $transport->fresh()->status);
     }
@@ -481,7 +486,7 @@ class MobileBackendSafetyTest extends TestCase
             'activity' => $activityBody,
             'for-you' => $forYouBody,
             'rtdc-bed-requests' => $this->getJson('/api/mobile/v1/rtdc/bed-requests')->assertOk()->getContent(),
-            'transport-queue' => $this->getJson('/api/mobile/v1/transport/queue')->assertOk()->getContent(),
+            'transport-queue' => $this->getJson('/api/mobile/v1/transport/queue?persona=transport')->assertOk()->getContent(),
             'evs-queue' => $this->getJson('/api/mobile/v1/evs/queue')->assertOk()->getContent(),
             'altitude-home' => $this->getJson('/api/mobile/v1/altitude/home?persona=bed_manager')->assertOk()->getContent(),
             'altitude-workspace' => $this->getJson('/api/mobile/v1/altitude/workspace/rtdc?persona=bed_manager')->assertOk()->getContent(),

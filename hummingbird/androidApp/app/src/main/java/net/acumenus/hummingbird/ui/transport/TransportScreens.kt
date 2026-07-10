@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -180,9 +181,21 @@ fun TransportJobsScreen(
                                 onClick = { onOpenJob(job, queue.webLink) },
                                 inlineAction = TransportInlineAction("Claim", vm.workingJobId == job.id) {
                                     view.hbConfirmHaptic()
-                                    vm.claim(bearer, job.id)
+                                    vm.claim(bearer, job.id, job.lifecycleVersion)
                                 },
                             )
+                        }
+                    }
+
+                    if (queue.hasMore) {
+                        item {
+                            OutlinedButton(
+                                onClick = { vm.loadMore(bearer) },
+                                enabled = !vm.loadingMore,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            ) {
+                                Text(if (vm.loadingMore) "Loading…" else "Load more trips")
+                            }
                         }
                     }
                 }
@@ -208,6 +221,9 @@ fun TransportJobDetailScreen(
     val bearer = auth.accessToken ?: ""
     val uriHandler = LocalUriHandler.current
     var status by remember(job.id) { mutableStateOf(job.status) }
+    var allowedTransitions by remember(job.id) { mutableStateOf(job.allowedTransitions) }
+    var canHandoff by remember(job.id) { mutableStateOf(job.canHandoff) }
+    var lifecycleVersion by remember(job.id) { mutableIntStateOf(job.lifecycleVersion) }
     var showHandoff by remember(job.id) { mutableStateOf(false) }
     val working = vm.workingJobId == job.id
 
@@ -233,14 +249,21 @@ fun TransportJobDetailScreen(
         bottomBar = {
             TransportPrimaryActionBar(
                 status = status,
+                allowedTransitions = allowedTransitions,
+                canHandoff = canHandoff,
+                handoffRequired = job.handoffRequired,
                 working = working,
                 onAdvance = { next ->
                     if (next == HANDOFF_SENTINEL) {
                         showHandoff = true
                     } else {
-                        vm.advance(bearer, job.id, next)
-                        status = next
-                        if (next == "completed") onBack()
+                        vm.advance(bearer, job.id, next, lifecycleVersion) { updated ->
+                            status = updated.status
+                            allowedTransitions = updated.allowedTransitions
+                            canHandoff = updated.canHandoff
+                            lifecycleVersion = updated.lifecycleVersion
+                            if (updated.status == "completed") onBack()
+                        }
                     }
                 },
             )
@@ -285,10 +308,23 @@ fun TransportJobDetailScreen(
     if (showHandoff) {
         HandoffSheet(
             onDismiss = { showHandoff = false },
-            onComplete = { handoffTo, summary ->
-                vm.handoff(bearer, job.id, handoffTo, summary)
-                status = "handoff_complete"
-                showHandoff = false
+            onComplete = { handoffTo, receiverRole, acceptanceStatus, outstandingRisk, summary ->
+                vm.handoff(
+                    bearer,
+                    job.id,
+                    handoffTo,
+                    receiverRole,
+                    acceptanceStatus,
+                    outstandingRisk,
+                    summary,
+                    lifecycleVersion,
+                ) { updated ->
+                    status = updated.status
+                    allowedTransitions = updated.allowedTransitions
+                    canHandoff = updated.canHandoff
+                    lifecycleVersion = updated.lifecycleVersion
+                    showHandoff = false
+                }
             },
         )
     }
@@ -460,15 +496,28 @@ private fun TransportStepRow(step: TransportStep, status: String) {
 }
 
 @Composable
-private fun TransportPrimaryActionBar(status: String, working: Boolean, onAdvance: (String) -> Unit) {
-    val next = nextTransportAction(status)
+private fun TransportPrimaryActionBar(
+    status: String,
+    allowedTransitions: List<String>,
+    canHandoff: Boolean,
+    handoffRequired: Boolean,
+    working: Boolean,
+    onAdvance: (String) -> Unit,
+) {
+    val next = nextTransportAction(status, allowedTransitions, canHandoff, handoffRequired)
     val view = LocalView.current
     Column(Modifier.fillMaxWidth().background(Z.surface).padding(16.dp)) {
         if (next == null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = CapacityStatus.SUCCESS.color, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Trip complete", color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (status in listOf("completed", "canceled", "failed")) statusLabel(status)
+                    else "Awaiting an authorized dispatch action",
+                    color = Z.ink,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         } else {
             Button(
@@ -490,9 +539,12 @@ private fun TransportPrimaryActionBar(status: String, working: Boolean, onAdvanc
 @Composable
 fun HandoffSheet(
     onDismiss: () -> Unit,
-    onComplete: (String, String?) -> Unit,
+    onComplete: (String, String, String, String?, String?) -> Unit,
 ) {
     var handoffTo by remember { mutableStateOf("") }
+    var receiverRole by remember { mutableStateOf("") }
+    var acceptanceStatus by remember { mutableStateOf("accepted") }
+    var outstandingRisk by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Z.bg) {
@@ -506,6 +558,36 @@ fun HandoffSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
+                value = receiverRole,
+                onValueChange = { receiverRole = it },
+                label = { Text("Receiver role") },
+                placeholder = { Text("RN, paramedic, transport lead") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf(
+                    "accepted" to "Accepted",
+                    "accepted_with_risks" to "With risks",
+                ).forEach { (value, label) ->
+                    OutlinedButton(
+                        onClick = { acceptanceStatus = value },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (acceptanceStatus == value) Z.primary.copy(alpha = 0.14f) else Z.surface,
+                        ),
+                    ) { Text(label) }
+                }
+            }
+            if (acceptanceStatus == "accepted_with_risks") {
+                OutlinedTextField(
+                    value = outstandingRisk,
+                    onValueChange = { outstandingRisk = it },
+                    label = { Text("Outstanding risk") },
+                    placeholder = { Text("Risk the receiver explicitly accepted") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            OutlinedTextField(
                 value = summary,
                 onValueChange = { summary = it },
                 label = { Text("Summary (optional)") },
@@ -518,8 +600,17 @@ fun HandoffSheet(
                     Text("Cancel")
                 }
                 Button(
-                    onClick = { onComplete(handoffTo.trim(), summary.takeIf { it.isNotBlank() }) },
-                    enabled = handoffTo.isNotBlank(),
+                    onClick = {
+                        onComplete(
+                            handoffTo.trim(),
+                            receiverRole.trim(),
+                            acceptanceStatus,
+                            outstandingRisk.trim().takeIf { it.isNotBlank() },
+                            summary.takeIf { it.isNotBlank() },
+                        )
+                    },
+                    enabled = handoffTo.isNotBlank() && receiverRole.isNotBlank() &&
+                        (acceptanceStatus != "accepted_with_risks" || outstandingRisk.isNotBlank()),
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 ) {
                     Text("Complete")
@@ -608,26 +699,39 @@ private fun isTransportStepDone(step: TransportStep, status: String): Boolean {
     return transportRank(status) > stepRank
 }
 
-private fun nextTransportAction(status: String): TransportAction? = when (status) {
-    "requested", "accepted", "queued" -> TransportAction("Claim this trip", "assigned")
-    "assigned" -> TransportAction("Start dispatch", "dispatched")
-    "dispatched" -> TransportAction("Arrived at pickup", "arrived_pickup")
-    "arrived_pickup", "patient_ready", "patient_not_ready" -> TransportAction("Picked up", "picked_up")
-    "picked_up" -> TransportAction("En route", "en_route")
-    "en_route" -> TransportAction("Arrived at destination", "arrived_destination")
-    "arrived_destination", "handoff_started" -> TransportAction("Complete handoff", HANDOFF_SENTINEL)
-    "handoff_complete" -> TransportAction("Mark trip complete", "completed")
-    else -> null
+private fun nextTransportAction(
+    status: String,
+    allowedTransitions: List<String>,
+    canHandoff: Boolean,
+    handoffRequired: Boolean,
+): TransportAction? {
+    if (canHandoff && handoffRequired && status in listOf("arrived_destination", "handoff_started")) {
+        return TransportAction("Complete handoff", HANDOFF_SENTINEL)
+    }
+    if (status == "escalated") {
+        val recovery = allowedTransitions.firstOrNull { it !in listOf("canceled", "failed") }
+        return recovery?.let { TransportAction("Resume — ${statusLabel(it)}", it) }
+    }
+
+    val preferred = when (status) {
+        "requested", "accepted", "queued" -> TransportAction("Claim this trip", "assigned")
+        "assigned" -> TransportAction("Start dispatch", "dispatched")
+        "dispatched" -> TransportAction("Arrived at pickup", "arrived_pickup")
+        "arrived_pickup", "patient_ready", "patient_not_ready" -> TransportAction("Picked up", "picked_up")
+        "picked_up" -> TransportAction("En route", "en_route")
+        "en_route" -> TransportAction("Arrived at destination", "arrived_destination")
+        "arrived_destination", "handoff_complete" -> TransportAction("Mark trip complete", "completed")
+        else -> null
+    }
+
+    return preferred?.takeIf { it.status in allowedTransitions }
 }
 
 private fun availableTransportJobs(jobs: List<TransportJob>): List<TransportJob> =
-    jobs.filter { isTransportClaimable(it.status) }
+    jobs.filter { it.availableToClaim }
 
 private fun claimedTransportJobs(jobs: List<TransportJob>): List<TransportJob> =
-    jobs.filterNot { isTransportClaimable(it.status) }
-
-private fun isTransportClaimable(status: String): Boolean =
-    status in listOf("requested", "accepted", "queued")
+    jobs.filter { it.claimedByMe }
 
 private fun transportBannerText(metrics: TransportMetrics): String {
     val parts = listOfNotNull(

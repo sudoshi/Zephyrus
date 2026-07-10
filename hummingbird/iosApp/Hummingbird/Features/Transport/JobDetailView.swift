@@ -2,28 +2,34 @@ import SwiftUI
 
 /// A single transport job: the route, a lifecycle stepper, and one big primary action that
 /// advances the job through `Claim → dispatch → pickup → en route → arrived → handoff →
-/// complete`. The handoff step opens a structured sheet. Writes go through the parent VM
-/// (mobile:act); the view optimistically advances its local status so the button stays live.
+/// complete`. The handoff step opens a structured sheet. The server supplies the legal next
+/// transitions and every mutation returns the authoritative lifecycle state.
 struct JobDetailView: View {
     let job: TransportJob
     let webLink: String?
-    let advance: (Int, String) async -> Void
-    let handoff: (Int, String, String?) async -> Void
+    let advance: (Int, String, Int) async -> TransportJob?
+    let handoff: (Int, String, String, String, String?, String?, Int) async -> TransportJob?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var status: String
+    @State private var allowedTransitions: [String]
+    @State private var canHandoff: Bool
+    @State private var lifecycleVersion: Int
     @State private var showHandoff = false
     @State private var working = false
 
     init(job: TransportJob, webLink: String?,
-         advance: @escaping (Int, String) async -> Void,
-         handoff: @escaping (Int, String, String?) async -> Void) {
+         advance: @escaping (Int, String, Int) async -> TransportJob?,
+         handoff: @escaping (Int, String, String, String, String?, String?, Int) async -> TransportJob?) {
         self.job = job
         self.webLink = webLink
         self.advance = advance
         self.handoff = handoff
         _status = State(initialValue: job.status)
+        _allowedTransitions = State(initialValue: job.allowedTransitions)
+        _canHandoff = State(initialValue: job.canHandoff)
+        _lifecycleVersion = State(initialValue: job.lifecycleVersion)
     }
 
     var body: some View {
@@ -57,12 +63,14 @@ struct JobDetailView: View {
         .safeAreaInset(edge: .bottom) { primaryBar }
         .sensoryFeedback(.success, trigger: status)
         .sheet(isPresented: $showHandoff) {
-            HandoffSheet { to, summary in
+            HandoffSheet { to, role, acceptance, risk, summary in
                 Task {
                     working = true
-                    await handoff(job.id, to, summary)
-                    status = "handoff_complete"
-                    syncActivity("handoff_complete")
+                    if let updated = await handoff(
+                        job.id, to, role, acceptance, risk, summary, lifecycleVersion
+                    ) {
+                        apply(updated)
+                    }
                     working = false
                     showHandoff = false
                 }
@@ -143,17 +151,21 @@ struct JobDetailView: View {
                     } else {
                         Task {
                             working = true
-                            await advance(job.id, n.status)
-                            status = n.status
-                            syncActivity(n.status)
+                            if let updated = await advance(job.id, n.status, lifecycleVersion) {
+                                apply(updated)
+                                if updated.status == "completed" { dismiss() }
+                            }
                             working = false
-                            if n.status == "completed" { dismiss() }
                         }
                     }
                 }
             }
         } else {
-            HBCompletionBanner(icon: "checkmark.seal.fill", text: "Trip complete")
+            let terminal = ["completed", "canceled", "failed"].contains(status)
+            HBCompletionBanner(
+                icon: terminal ? "checkmark.seal.fill" : "lock.shield.fill",
+                text: terminal ? statusLabel(status) : "Awaiting an authorized dispatch action"
+            )
         }
     }
 
@@ -199,6 +211,14 @@ struct JobDetailView: View {
 
     private let handoffSentinel = "__handoff__"
 
+    private func apply(_ updated: TransportJob) {
+        status = updated.status
+        allowedTransitions = updated.allowedTransitions
+        canHandoff = updated.canHandoff
+        lifecycleVersion = updated.lifecycleVersion
+        syncActivity(updated.status)
+    }
+
     /// Mirror this trip onto the lock screen / Dynamic Island after each lifecycle tap.
     private func syncActivity(_ newStatus: String) {
         JobActivityController.sync(
@@ -211,26 +231,39 @@ struct JobDetailView: View {
     }
 
     private func nextAction(after s: String) -> (label: String, status: String)? {
-        switch s {
-        case "requested", "accepted", "queued": return ("Claim this trip", "assigned")
-        case "assigned": return ("Start — dispatch", "dispatched")
-        case "dispatched": return ("Arrived at pickup", "arrived_pickup")
-        case "arrived_pickup", "patient_ready", "patient_not_ready": return ("Picked up", "picked_up")
-        case "picked_up": return ("En route", "en_route")
-        case "en_route": return ("Arrived at destination", "arrived_destination")
-        case "arrived_destination", "handoff_started": return ("Complete handoff", handoffSentinel)
-        case "handoff_complete": return ("Mark trip complete", "completed")
-        default: return nil
+        if canHandoff && job.handoffRequired && ["arrived_destination", "handoff_started"].contains(s) {
+            return ("Complete handoff", handoffSentinel)
         }
+        if s == "escalated",
+           let recovery = allowedTransitions.first(where: { !["canceled", "failed"].contains($0) }) {
+            return ("Resume — \(statusLabel(recovery))", recovery)
+        }
+
+        let preferred: (label: String, status: String)? = switch s {
+        case "requested", "accepted", "queued": ("Claim this trip", "assigned")
+        case "assigned": ("Start — dispatch", "dispatched")
+        case "dispatched": ("Arrived at pickup", "arrived_pickup")
+        case "arrived_pickup", "patient_ready", "patient_not_ready": ("Picked up", "picked_up")
+        case "picked_up": ("En route", "en_route")
+        case "en_route": ("Arrived at destination", "arrived_destination")
+        case "arrived_destination", "handoff_complete": ("Mark trip complete", "completed")
+        default: nil
+        }
+
+        guard let preferred, allowedTransitions.contains(preferred.status) else { return nil }
+        return preferred
     }
 }
 
-/// The structured handoff capture at the destination (handoff_to + optional summary).
+/// Append-only receiver acceptance evidence captured at the destination.
 struct HandoffSheet: View {
-    let onComplete: (String, String?) -> Void
+    let onComplete: (String, String, String, String?, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var handoffTo = ""
+    @State private var receiverRole = ""
+    @State private var acceptanceStatus = "accepted"
+    @State private var outstandingRisk = ""
     @State private var summary = ""
     @FocusState private var focusedField: String?
 
@@ -239,6 +272,24 @@ struct HandoffSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Z.s4) {
                     field("HANDING OFF TO", text: $handoffTo, placeholder: "Receiving nurse / unit")
+                    field("RECEIVER ROLE", text: $receiverRole, placeholder: "RN, paramedic, transport lead")
+                    VStack(alignment: .leading, spacing: Z.s2) {
+                        Text("ACCEPTANCE")
+                            .font(.system(size: 11, weight: .semibold)).tracking(0.5)
+                            .foregroundStyle(Z.inkMuted)
+                        Picker("Acceptance", selection: $acceptanceStatus) {
+                            Text("Accepted").tag("accepted")
+                            Text("With risks").tag("accepted_with_risks")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    if acceptanceStatus == "accepted_with_risks" {
+                        field(
+                            "OUTSTANDING RISK",
+                            text: $outstandingRisk,
+                            placeholder: "Risk the receiver explicitly accepted"
+                        )
+                    }
                     field("SUMMARY (OPTIONAL)", text: $summary, placeholder: "Anything the receiver should know")
                 }
                 .padding(Z.s4)
@@ -253,10 +304,19 @@ struct HandoffSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Complete") {
                         onComplete(handoffTo.trimmingCharacters(in: .whitespaces),
+                                   receiverRole.trimmingCharacters(in: .whitespaces),
+                                   acceptanceStatus,
+                                   outstandingRisk.trimmingCharacters(in: .whitespaces).isEmpty
+                                       ? nil : outstandingRisk.trimmingCharacters(in: .whitespaces),
                                    summary.isEmpty ? nil : summary)
                     }
                     .font(.system(size: 16, weight: .semibold)).tint(Z.primary)
-                    .disabled(handoffTo.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(
+                        handoffTo.trimmingCharacters(in: .whitespaces).isEmpty ||
+                        receiverRole.trimmingCharacters(in: .whitespaces).isEmpty ||
+                        (acceptanceStatus == "accepted_with_risks" &&
+                         outstandingRisk.trimmingCharacters(in: .whitespaces).isEmpty)
+                    )
                 }
             }
         }

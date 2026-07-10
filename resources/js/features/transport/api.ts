@@ -4,6 +4,7 @@ import { sourceFreshnessSchema } from '@/features/operations/sourceFreshness';
 import type {
   CreateEnterpriseWritebackDraftInput,
   CreateRegionalTransferDecisionInput,
+  CompleteTransportHandoffInput,
   CreateTransportRequestInput,
   DiscoverEnterpriseFhirInput,
   EnterpriseConnectorSummary,
@@ -15,8 +16,42 @@ import type {
   RegionalRouteSimulationRun,
   TransportOverview,
   TransportRequest,
+  TransportRequestPage,
   TransportStatus,
 } from './types';
+
+let fallbackCommandSequence = 0;
+
+export function transportCommandKey(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return `transport-${uuid}`;
+  fallbackCommandSequence += 1;
+  return `transport-${Date.now().toString(36)}-${fallbackCommandSequence.toString(36)}`;
+}
+
+function commandConfig(idempotencyKey = transportCommandKey()) {
+  return { headers: { 'Idempotency-Key': idempotencyKey } };
+}
+
+const handoffEvidenceSchema = z.object({
+  evidence_uuid: z.string(),
+  handoff_to: z.string(),
+  receiver_role: z.string(),
+  acceptance_status: z.enum(['accepted', 'accepted_with_risks']),
+  accepted_at: z.string().nullable(),
+  handoff_summary: z.string().nullable(),
+  documents: z.array(z.object({ type: z.string(), reference: z.string() })),
+  outstanding_risks: z.array(z.string()),
+});
+
+const assignmentSchema = z.object({
+  assignment_uuid: z.string(),
+  resource_key: z.string().nullable(),
+  resource_type: z.enum(['transporter', 'team', 'vendor']).nullable(),
+  resource_name: z.string().nullable(),
+  capacity_units: z.number(),
+  reserved_from: z.string().nullable(),
+});
 
 const requestSchema = z.object({
   transport_request_id: z.number(),
@@ -61,6 +96,19 @@ const requestSchema = z.object({
   segments: z.array(z.record(z.string(), z.unknown())),
   risk_flags: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]),
   handoff: z.record(z.string(), z.unknown()),
+  handoff_required: z.boolean(),
+  handoff_evidence: handoffEvidenceSchema.nullable(),
+  active_assignment: assignmentSchema.nullable(),
+  lifecycle_version: z.number(),
+  allowed_transitions: z.array(z.enum([
+    'requested', 'accepted', 'queued', 'assigned', 'dispatched', 'arrived_pickup',
+    'patient_ready', 'patient_not_ready', 'picked_up', 'en_route', 'arrived_destination',
+    'handoff_started', 'handoff_complete', 'completed', 'canceled', 'escalated', 'failed',
+  ])),
+  permissions: z.object({
+    can_assign: z.boolean(),
+    can_handoff: z.boolean(),
+  }),
   metadata: z.record(z.string(), z.unknown()),
   sla: z.object({
     minutes_until_due: z.number().nullable(),
@@ -77,6 +125,7 @@ const optionSchema = z.object({
   capacity: z.number().optional(),
   busy: z.number().optional(),
   capabilities: z.array(z.string()).optional(),
+  source: z.string().optional(),
 });
 
 const overviewSchema = z.object({
@@ -378,23 +427,45 @@ export async function fetchTransportOverview(): Promise<TransportOverview> {
   return envelope(overviewSchema).parse(res.data).data;
 }
 
-export async function fetchTransportRequests(params: Record<string, string | undefined> = {}): Promise<TransportRequest[]> {
+export async function fetchTransportRequests(params: Record<string, string | undefined> = {}): Promise<TransportRequestPage> {
   const res = await axios.get('/api/transport/requests', { params });
-  return envelope(z.array(requestSchema)).parse(res.data).data;
+  const parsed = z.object({
+    data: z.array(requestSchema),
+    meta: z.object({
+      per_page: z.number(),
+      count: z.number(),
+      has_more: z.boolean(),
+      next_cursor: z.string().nullable(),
+      previous_cursor: z.string().nullable(),
+    }),
+    links: z.object({ next: z.string().nullable(), previous: z.string().nullable() }),
+  }).parse(res.data);
+
+  return { items: parsed.data, meta: parsed.meta, links: parsed.links };
 }
 
-export async function createTransportRequest(input: CreateTransportRequestInput): Promise<TransportRequest> {
-  const res = await axios.post('/api/transport/requests', input);
+export async function createTransportRequest(input: CreateTransportRequestInput, idempotencyKey?: string): Promise<TransportRequest> {
+  const res = await axios.post('/api/transport/requests', input, commandConfig(idempotencyKey));
   return envelope(requestSchema).parse(res.data).data;
 }
 
-export async function assignTransportRequest(id: number, input: { assigned_team?: string; assigned_vendor?: string; note?: string }): Promise<TransportRequest> {
-  const res = await axios.post(`/api/transport/requests/${id}/assign`, input);
+export async function assignTransportRequest(id: number, input: { resource_key: string; capacity_units?: number; note?: string }, idempotencyKey?: string): Promise<TransportRequest> {
+  const res = await axios.post(`/api/transport/requests/${id}/assign`, input, commandConfig(idempotencyKey));
   return envelope(requestSchema).parse(res.data).data;
 }
 
-export async function updateTransportStatus(id: number, status: TransportStatus, note?: string): Promise<TransportRequest> {
-  const res = await axios.post(`/api/transport/requests/${id}/status`, { status, note });
+export async function updateTransportStatus(id: number, status: TransportStatus, reason?: string, idempotencyKey?: string): Promise<TransportRequest> {
+  const res = await axios.post(`/api/transport/requests/${id}/status`, { status, reason }, commandConfig(idempotencyKey));
+  return envelope(requestSchema).parse(res.data).data;
+}
+
+export async function completeTransportHandoff(id: number, input: CompleteTransportHandoffInput, idempotencyKey?: string): Promise<TransportRequest> {
+  const res = await axios.post(`/api/transport/requests/${id}/handoff`, input, commandConfig(idempotencyKey));
+  return envelope(requestSchema).parse(res.data).data;
+}
+
+export async function cancelTransportRequest(id: number, reason: string, idempotencyKey?: string): Promise<TransportRequest> {
+  const res = await axios.post(`/api/transport/requests/${id}/cancel`, { reason }, commandConfig(idempotencyKey));
   return envelope(requestSchema).parse(res.data).data;
 }
 

@@ -2,8 +2,15 @@ import { Clock3, Truck } from 'lucide-react';
 import TransportLayout from './TransportLayout';
 import { OperationalDataError, SourceFreshnessBanner } from '@/Components/Operations/OperationalDataState';
 import { MetricTile, sampleRequest, TransportRequestRow } from './components';
-import { useAssignTransportRequest, useCreateTransportRequest, useTransportOverview, useUpdateTransportStatus } from '@/features/transport/hooks';
-import type { TransportRequest, TransportStatus } from '@/features/transport/types';
+import {
+  useAssignTransportRequest,
+  useCancelTransportRequest,
+  useCompleteTransportHandoff,
+  useCreateTransportRequest,
+  useTransportOverview,
+  useUpdateTransportStatus,
+} from '@/features/transport/hooks';
+import type { CompleteTransportHandoffInput, TransportRequest, TransportStatus } from '@/features/transport/types';
 import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 export default function Dashboard() {
@@ -11,17 +18,39 @@ export default function Dashboard() {
   const createRequest = useCreateTransportRequest();
   const assignRequest = useAssignTransportRequest();
   const updateStatus = useUpdateTransportStatus();
+  const cancelRequest = useCancelTransportRequest();
+  const completeHandoff = useCompleteTransportHandoff();
 
   function assign(request: TransportRequest) {
-    assignRequest.mutate({
-      id: request.transport_request_id,
-      assignedTeam: request.request_type === 'inpatient' || request.request_type === 'ems' ? 'Porter Pool' : undefined,
-      assignedVendor: request.request_type === 'discharge' ? 'Ride Health' : request.request_type === 'transfer' ? 'Contracted Ambulance' : undefined,
-    });
+    const preferVendor = request.request_type === 'discharge' || request.request_type === 'care_transition';
+    const preferred = preferVendor ? data?.vendor_options ?? [] : data?.resource_options ?? [];
+    const fallback = preferVendor ? data?.resource_options ?? [] : data?.vendor_options ?? [];
+    const options = [...preferred, ...fallback];
+    const resource = options.find((option) =>
+      (option.available ?? 0) > 0
+      && (!option.capabilities?.length || option.capabilities.includes(request.transport_mode)),
+    );
+    if (!resource) {
+      window.alert(`No configured resource has capacity for ${request.transport_mode} transport.`);
+      return;
+    }
+    assignRequest.mutate({ id: request.transport_request_id, resourceKey: resource.key });
   }
 
   function status(request: TransportRequest, nextStatus: TransportStatus) {
-    updateStatus.mutate({ id: request.transport_request_id, status: nextStatus });
+    if (nextStatus === 'canceled') {
+      const reason = window.prompt('Why is this transport being canceled?')?.trim();
+      if (reason) cancelRequest.mutate({ id: request.transport_request_id, reason });
+      return;
+    }
+    const needsReason = ['patient_not_ready', 'escalated', 'failed'].includes(nextStatus);
+    const reason = needsReason ? window.prompt(`Reason for ${nextStatus.replaceAll('_', ' ')}:`)?.trim() : undefined;
+    if (needsReason && !reason) return;
+    updateStatus.mutate({ id: request.transport_request_id, status: nextStatus, reason });
+  }
+
+  function handoff(request: TransportRequest, input: CompleteTransportHandoffInput) {
+    completeHandoff.mutate({ id: request.transport_request_id, input });
   }
 
   if (isLoading) {
@@ -85,7 +114,7 @@ export default function Dashboard() {
           </div>
           {data.queue.length ? (
             data.queue.map((request) => (
-              <TransportRequestRow key={request.transport_request_id} request={request} onAssign={assign} onStatus={status} />
+              <TransportRequestRow key={request.transport_request_id} request={request} onAssign={assign} onStatus={status} onHandoff={handoff} />
             ))
           ) : (
             <div className="rounded-md border border-dashed border-healthcare-border p-6 dark:border-healthcare-border-dark">

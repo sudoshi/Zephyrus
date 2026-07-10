@@ -26,9 +26,14 @@ struct Meta: Decodable {
     let stale: Bool?
     let version: Int?
     let count: Int?
+    let perPage: Int?
+    let hasMore: Bool?
     let nextCursor: String?
+    let previousCursor: String?
 
-    enum CodingKeys: String, CodingKey { case asOf, stale, version, count, nextCursor }
+    enum CodingKeys: String, CodingKey {
+        case asOf, stale, version, count, perPage, hasMore, nextCursor, previousCursor
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -38,7 +43,10 @@ struct Meta: Decodable {
         // floors asset — decode leniently so one shape doesn't break the other envelope.
         version = try? c.decodeIfPresent(Int.self, forKey: .version)
         count = try? c.decodeIfPresent(Int.self, forKey: .count)
+        perPage = try? c.decodeIfPresent(Int.self, forKey: .perPage)
+        hasMore = try? c.decodeIfPresent(Bool.self, forKey: .hasMore)
         nextCursor = try? c.decodeIfPresent(String.self, forKey: .nextCursor)
+        previousCursor = try? c.decodeIfPresent(String.self, forKey: .previousCursor)
     }
 }
 
@@ -237,6 +245,13 @@ struct TransportJob: Decodable, Identifiable {
     let mode: String?
     let neededAt: String?
     let patientContextRef: String?
+    let claimedByMe: Bool
+    let availableToClaim: Bool
+    let resourceName: String?
+    let handoffRequired: Bool
+    let allowedTransitions: [String]
+    let canHandoff: Bool
+    let lifecycleVersion: Int
     let sla: TransportSla
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? tier) }

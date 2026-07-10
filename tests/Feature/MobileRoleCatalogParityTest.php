@@ -269,10 +269,12 @@ class MobileRoleCatalogParityTest extends TestCase
 
         $this->assertStringContainsString('class TransportViewModel(app: Application) : AndroidViewModel(app)', $transportViewModel);
         $this->assertStringContainsString('api.transportQueue(bearer)', $transportViewModel);
-        $this->assertStringContainsString('api.transportStatus(bearer, id, status)', $transportViewModel);
-        $this->assertStringContainsString('api.transportHandoff(bearer, id, handoffTo, summary)', $transportViewModel);
-        $this->assertStringContainsString('fun claim(bearer: String, id: Int)', $transportViewModel);
-        $this->assertStringContainsString('api.transportStatus(bearer, id, "assigned")', $transportViewModel);
+        $this->assertStringContainsString('api.transportStatus(bearer, id, status, lifecycleVersion)', $transportViewModel);
+        $this->assertStringContainsString('receiverRole: String', $transportViewModel);
+        $this->assertStringContainsString('acceptanceStatus: String', $transportViewModel);
+        $this->assertStringContainsString('api.transportHandoff(', $transportViewModel);
+        $this->assertStringContainsString('fun claim(bearer: String, id: Int, lifecycleVersion: Int)', $transportViewModel);
+        $this->assertStringContainsString('api.transportStatus(bearer, id, "assigned", lifecycleVersion)', $transportViewModel);
 
         $this->assertStringContainsString('import net.acumenus.hummingbird.ui.transport.TransportJobsScreen', $mainScreen);
         $this->assertStringContainsString('import net.acumenus.hummingbird.ui.transport.TransportJobDetailScreen', $mainScreen);
@@ -291,8 +293,12 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('TransportSectionLabel("My trips (${myTrips.size})")', $transportScreen);
         $this->assertStringContainsString('TransportSectionLabel("Available trips (${availableTrips.size})")', $transportScreen);
         $this->assertStringContainsString('TransportInlineAction("Claim", vm.workingJobId == job.id)', $transportScreen);
-        $this->assertStringContainsString('vm.claim(bearer, job.id)', $transportScreen);
-        $this->assertStringContainsString('private fun isTransportClaimable(status: String): Boolean', $transportScreen);
+        $this->assertStringContainsString('vm.claim(bearer, job.id, job.lifecycleVersion)', $transportScreen);
+        $this->assertStringContainsString('jobs.filter { it.availableToClaim }', $transportScreen);
+        $this->assertStringContainsString('jobs.filter { it.claimedByMe }', $transportScreen);
+        $this->assertStringContainsString('allowedTransitions: List<String>', $transportScreen);
+        $this->assertStringContainsString('receiverRole.trim()', $transportScreen);
+        $this->assertStringContainsString('acceptanceStatus', $transportScreen);
         $this->assertStringContainsString('Text("Structured handoff"', $transportScreen);
         $this->assertStringContainsString('Text("Explain trip signal")', $transportScreen);
         $this->assertStringContainsString('Text("Open transport-safe patient context")', $transportScreen);

@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock3, Play, Route, Send, UserPlus, XCircle } from 'lucide-react';
-import type { CreateTransportRequestInput, TransportPriority, TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
+import type { CompleteTransportHandoffInput, CreateTransportRequestInput, TransportPriority, TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
 import { formatRelativeDurationMinutes } from '@/lib/duration';
+import { useState } from 'react';
 
 export const typeLabels: Record<TransportRequestType, string> = {
   inpatient: 'Inpatient',
@@ -66,12 +67,21 @@ export function TransportRequestRow({
   request,
   onAssign,
   onStatus,
+  onHandoff,
 }: {
   request: TransportRequest;
   onAssign?: (request: TransportRequest) => void;
   onStatus?: (request: TransportRequest, status: TransportStatus) => void;
+  onHandoff?: (request: TransportRequest, input: CompleteTransportHandoffInput) => void;
 }) {
-  const canMove = !['completed', 'canceled', 'failed'].includes(request.status);
+  const [showHandoff, setShowHandoff] = useState(false);
+  const [handoffTo, setHandoffTo] = useState('');
+  const [receiverRole, setReceiverRole] = useState('registered_nurse');
+  const [summary, setSummary] = useState('');
+  const [risks, setRisks] = useState('');
+  const canMove = request.permissions.can_assign
+    || request.permissions.can_handoff
+    || request.allowed_transitions.length > 0;
   const slaLabel = request.sla.minutes_until_due === null
     ? request.sla.label
     : formatRelativeDurationMinutes(request.sla.minutes_until_due);
@@ -104,12 +114,14 @@ export function TransportRequestRow({
             <span className={request.sla.at_risk ? 'font-semibold text-healthcare-critical dark:text-healthcare-critical-dark' : ''}>{slaLabel}</span>
             {request.assigned_team ? <span>Team: {request.assigned_team}</span> : null}
             {request.assigned_vendor ? <span>Vendor: {request.assigned_vendor}</span> : null}
+            {request.active_assignment?.resource_name ? <span>Reserved: {request.active_assignment.resource_name}</span> : null}
             {request.clinical_service ? <span>Service: {request.clinical_service}</span> : null}
+            {request.handoff_required ? <span>Structured handoff required</span> : <span>No handoff required</span>}
           </div>
         </div>
         {canMove && (
           <div className="flex flex-wrap gap-2">
-            {onAssign && (
+            {onAssign && request.permissions.can_assign && (
               <button
                 type="button"
                 onClick={() => onAssign(request)}
@@ -118,41 +130,106 @@ export function TransportRequestRow({
                 <UserPlus className="h-4 w-4" /> Assign
               </button>
             )}
-            {onStatus && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onStatus(request, 'dispatched')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
-                >
-                  <Send className="h-4 w-4" /> Dispatch
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onStatus(request, 'en_route')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm/[18px] font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark"
-                >
-                  <Play className="h-4 w-4" /> En Route
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onStatus(request, 'completed')}
-                  className="inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-sm/[18px] font-medium text-white hover:bg-healthcare-success/90"
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Complete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onStatus(request, 'canceled')}
-                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-critical/30 px-3 py-1.5 text-sm/[18px] font-medium text-healthcare-critical hover:bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:text-healthcare-critical-dark dark:hover:bg-healthcare-critical/20"
-                >
-                  <XCircle className="h-4 w-4" /> Cancel
-                </button>
-              </>
-            )}
+            {onStatus && request.allowed_transitions
+              .filter((status) => status !== 'assigned' && status !== 'handoff_complete')
+              .map((status) => {
+                const destructive = ['canceled', 'failed'].includes(status);
+                const positive = status === 'completed';
+                const Icon = status === 'completed'
+                  ? CheckCircle2
+                  : status === 'canceled' || status === 'failed'
+                    ? XCircle
+                    : status === 'dispatched'
+                      ? Send
+                      : Play;
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => onStatus(request, status)}
+                    className={positive
+                      ? 'inline-flex items-center gap-1 rounded-md bg-healthcare-success px-3 py-1.5 text-sm font-medium text-white hover:bg-healthcare-success/90'
+                      : destructive
+                        ? 'inline-flex items-center gap-1 rounded-md border border-healthcare-critical/30 px-3 py-1.5 text-sm font-medium text-healthcare-critical hover:bg-healthcare-critical/10 dark:border-healthcare-critical/40 dark:text-healthcare-critical-dark dark:hover:bg-healthcare-critical/20'
+                        : 'inline-flex items-center gap-1 rounded-md border border-healthcare-border px-3 py-1.5 text-sm font-medium hover:bg-healthcare-hover dark:border-healthcare-border-dark dark:hover:bg-healthcare-hover-dark'}
+                  >
+                    <Icon className="h-4 w-4" /> {statusLabels[status]}
+                  </button>
+                );
+              })}
+            {onHandoff && request.permissions.can_handoff ? (
+              <button
+                type="button"
+                onClick={() => setShowHandoff((visible) => !visible)}
+                className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Structured handoff
+              </button>
+            ) : null}
           </div>
         )}
       </div>
+      {showHandoff && onHandoff ? (
+        <form
+          className="mt-4 grid gap-3 border-t border-healthcare-border pt-4 md:grid-cols-2 dark:border-healthcare-border-dark"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const outstandingRisks = risks.split('\n').map((risk) => risk.trim()).filter(Boolean);
+            onHandoff(request, {
+              handoff_to: handoffTo.trim(),
+              receiver_role: receiverRole.trim(),
+              acceptance_status: outstandingRisks.length > 0 ? 'accepted_with_risks' : 'accepted',
+              handoff_summary: summary.trim() || undefined,
+              outstanding_risks: outstandingRisks,
+            });
+            setShowHandoff(false);
+          }}
+        >
+          <label className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Receiver
+            <input
+              required
+              value={handoffTo}
+              onChange={(event) => setHandoffTo(event.target.value)}
+              className="mt-1 w-full rounded-md border border-healthcare-border bg-healthcare-background px-3 py-2 font-normal dark:border-healthcare-border-dark dark:bg-healthcare-background-dark"
+              placeholder="Receiving clinician or service"
+            />
+          </label>
+          <label className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Receiver role
+            <input
+              required
+              value={receiverRole}
+              onChange={(event) => setReceiverRole(event.target.value)}
+              className="mt-1 w-full rounded-md border border-healthcare-border bg-healthcare-background px-3 py-2 font-normal dark:border-healthcare-border-dark dark:bg-healthcare-background-dark"
+            />
+          </label>
+          <label className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Summary
+            <textarea
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              className="mt-1 min-h-20 w-full rounded-md border border-healthcare-border bg-healthcare-background px-3 py-2 font-normal dark:border-healthcare-border-dark dark:bg-healthcare-background-dark"
+            />
+          </label>
+          <label className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Outstanding risks (one per line)
+            <textarea
+              value={risks}
+              onChange={(event) => setRisks(event.target.value)}
+              className="mt-1 min-h-20 w-full rounded-md border border-healthcare-border bg-healthcare-background px-3 py-2 font-normal dark:border-healthcare-border-dark dark:bg-healthcare-background-dark"
+            />
+          </label>
+          <div className="flex gap-2 md:col-span-2">
+            <button type="submit" className="rounded-md bg-healthcare-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+              Record accepted handoff
+            </button>
+            <button type="button" onClick={() => setShowHandoff(false)} className="rounded-md border border-healthcare-border px-4 py-2 text-sm font-semibold dark:border-healthcare-border-dark">
+              Close
+            </button>
+          </div>
+        </form>
+      ) : null}
     </div>
   );
 }
@@ -188,7 +265,6 @@ export function sampleRequest(type: TransportRequestType = 'inpatient'): CreateT
     patient_ref: `patient-${Math.floor(1000 + Math.random() * 8999)}`,
     encounter_ref: `enc-${Math.floor(10000 + Math.random() * 89999)}`,
     needed_at: now.toISOString(),
-    requested_by: 'Zephyrus Transport',
   } satisfies Partial<CreateTransportRequestInput>;
 
   if (type === 'transfer') {

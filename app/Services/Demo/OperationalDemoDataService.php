@@ -76,6 +76,11 @@ final class OperationalDemoDataService
         }
 
         return DB::transaction(function () use ($anchor, $units, $blueprint): array {
+            // The transport ledgers reject even FK-cascade deletion by default.
+            // This transaction-local flag is the sole sanctioned reset path for
+            // rows selected by the explicit synthetic ownership markers below.
+            DB::statement("SELECT set_config('zephyrus.allow_transport_ledger_reset', 'on', true)");
+
             // Adopt only rows carrying the prior seeder's explicit ownership
             // marker. Unowned historical plans and operational rows are never
             // selected by date, status, or missing metadata.
@@ -964,6 +969,7 @@ final class OperationalDemoDataService
         $handoff = str_contains($status, 'handoff') || $status === 'completed'
             ? ['sending_unit' => $scenario['origin'], 'receiving_location' => $scenario['destination'], 'identity_verified' => true]
             : [];
+        $handoffRequired = in_array($scenario['type'], (array) config('transport.handoff_required_types', []), true);
 
         $request = TransportRequest::create([
             'request_uuid' => $this->uuid("transport:{$key}:{$requestedAt->toISOString()}"),
@@ -994,6 +1000,8 @@ final class OperationalDemoDataService
             ]],
             'risk_flags' => $scenario['risk_flags'],
             'handoff' => $handoff,
+            'handoff_required' => $handoffRequired,
+            'lifecycle_version' => count($timeline),
             'metadata' => $this->metadata([
                 'resource_type' => $scenario['vendor'] ? 'external_vendor' : 'internal_team',
                 'equipment_check_required' => in_array($scenario['mode'], ['stretcher', 'bed', 'critical_care', 'als'], true),
@@ -1016,7 +1024,111 @@ final class OperationalDemoDataService
             ]);
         }
 
+        $this->createTransportGovernanceArtifacts(
+            $request,
+            $scenario,
+            $timeline,
+            $assignedAt,
+            $terminalAt,
+            $key,
+        );
+
         return count($timeline);
+    }
+
+    /**
+     * Keep the deterministic scenario compatible with the governed runtime tables.
+     * Synthetic reset remains request-owned; FK cascades remove these rows before
+     * the next stable-key projection.
+     *
+     * @param  array<string,mixed>  $scenario
+     * @param  list<array{type:string,from:?string,to:string,at:Carbon,payload:array<string,mixed>}>  $timeline
+     */
+    private function createTransportGovernanceArtifacts(
+        TransportRequest $request,
+        array $scenario,
+        array $timeline,
+        ?Carbon $assignedAt,
+        ?Carbon $terminalAt,
+        string $key,
+    ): void {
+        if (! Schema::hasTable('prod.transport_resources') || ! Schema::hasTable('prod.transport_assignments')) {
+            return;
+        }
+
+        $resourceName = (string) ($scenario['vendor'] ?: $scenario['team']);
+        if ($assignedAt !== null && $resourceName !== '') {
+            $resourceType = $scenario['vendor'] ? 'vendor' : 'team';
+            $configured = collect(config('transport.resources', []))->first(
+                fn (array $resource): bool => mb_strtolower((string) $resource['name']) === mb_strtolower($resourceName),
+            );
+            $resourceKey = (string) ($configured['key'] ?? 'scenario-'.$resourceType.'-'.substr(hash('sha256', $resourceName), 0, 24));
+            $resource = DB::table('prod.transport_resources')->where('resource_key', $resourceKey)->first();
+            $busy = $resource ? (int) DB::table('prod.transport_assignments')
+                ->where('transport_resource_id', $resource->transport_resource_id)
+                ->where('status', 'active')
+                ->whereNull('released_at')
+                ->sum('capacity_units') : 0;
+            $capacity = max(1, (int) ($configured['capacity'] ?? 1), $busy + ($terminalAt === null ? 1 : 0));
+            $resourceValues = [
+                'resource_type' => $resourceType,
+                'display_name' => $resourceName,
+                'capacity' => $capacity,
+                'capabilities' => json_encode(array_values($configured['capabilities'] ?? [$scenario['mode']])),
+                'metadata' => json_encode($this->metadata(['scenario_owned' => true])),
+                'source' => self::OWNER,
+                'is_active' => true,
+                'updated_at' => now(),
+            ];
+            if ($resource) {
+                DB::table('prod.transport_resources')
+                    ->where('transport_resource_id', $resource->transport_resource_id)
+                    ->update($resourceValues);
+                $resourceId = (int) $resource->transport_resource_id;
+            } else {
+                $resourceId = (int) DB::table('prod.transport_resources')->insertGetId([
+                    'resource_uuid' => $this->uuid("transport-resource:{$resourceKey}"),
+                    'resource_key' => $resourceKey,
+                    ...$resourceValues,
+                    'created_at' => now(),
+                ], 'transport_resource_id');
+            }
+
+            $assignmentStatus = $terminalAt === null ? 'active' : $request->status;
+            DB::table('prod.transport_assignments')->insert([
+                'assignment_uuid' => $this->uuid("transport-assignment:{$key}"),
+                'transport_request_id' => $request->transport_request_id,
+                'transport_resource_id' => $resourceId,
+                'capacity_units' => 1,
+                'status' => $assignmentStatus,
+                'reserved_from' => $assignedAt,
+                'released_at' => $terminalAt,
+                'metadata' => json_encode($this->metadata(['scenario_owned' => true])),
+                'created_at' => $assignedAt,
+                'updated_at' => $terminalAt ?? $assignedAt,
+            ]);
+        }
+
+        if (! $request->handoff_required || ! Schema::hasTable('prod.transport_handoff_evidence')) {
+            return;
+        }
+        $handoffAt = collect($timeline)->firstWhere('type', 'transport.handoff_complete')['at'] ?? null;
+        if (! $handoffAt instanceof Carbon) {
+            return;
+        }
+
+        DB::table('prod.transport_handoff_evidence')->insert([
+            'evidence_uuid' => $this->uuid("transport-handoff:{$key}"),
+            'transport_request_id' => $request->transport_request_id,
+            'handoff_to' => $scenario['destination'].' receiver',
+            'receiver_role' => $scenario['type'] === 'ems' ? 'emergency_department_clinician' : 'receiving_clinician',
+            'acceptance_status' => 'accepted',
+            'accepted_at' => $handoffAt,
+            'handoff_summary' => 'Synthetic governed handoff evidence.',
+            'documents' => json_encode([]),
+            'outstanding_risks' => json_encode([]),
+            'created_at' => $handoffAt,
+        ]);
     }
 
     /** @return list<array{type:string,from:?string,to:string,at:Carbon,payload:array<string,mixed>}> */

@@ -52,8 +52,52 @@ export interface TransportRequest {
   segments: Record<string, unknown>[];
   risk_flags: string[] | Record<string, unknown>;
   handoff: Record<string, unknown>;
+  handoff_required: boolean;
+  handoff_evidence: TransportHandoffEvidence | null;
+  active_assignment: TransportAssignment | null;
+  lifecycle_version: number;
+  allowed_transitions: TransportStatus[];
+  permissions: {
+    can_assign: boolean;
+    can_handoff: boolean;
+  };
   metadata: Record<string, unknown>;
   sla: TransportSla;
+}
+
+export interface TransportAssignment {
+  assignment_uuid: string;
+  resource_key: string | null;
+  resource_type: 'transporter' | 'team' | 'vendor' | null;
+  resource_name: string | null;
+  capacity_units: number;
+  reserved_from: string | null;
+}
+
+export interface TransportHandoffEvidence {
+  evidence_uuid: string;
+  handoff_to: string;
+  receiver_role: string;
+  acceptance_status: 'accepted' | 'accepted_with_risks';
+  accepted_at: string | null;
+  handoff_summary: string | null;
+  documents: { type: string; reference: string }[];
+  outstanding_risks: string[];
+}
+
+export interface TransportRequestPage {
+  items: TransportRequest[];
+  meta: {
+    per_page: number;
+    count: number;
+    has_more: boolean;
+    next_cursor: string | null;
+    previous_cursor: string | null;
+  };
+  links: {
+    next: string | null;
+    previous: string | null;
+  };
 }
 
 export interface TransportOverview {
@@ -91,6 +135,7 @@ export interface TransportOption {
   capacity?: number;
   busy?: number;
   capabilities?: string[];
+  source?: string;
 }
 
 export interface CreateTransportRequestInput {
@@ -102,12 +147,19 @@ export interface CreateTransportRequestInput {
   destination: string;
   transport_mode: string;
   clinical_service?: string | null;
-  requested_by?: string | null;
   needed_at?: string | null;
-  assigned_team?: string | null;
-  assigned_vendor?: string | null;
   risk_flags?: string[] | Record<string, unknown>;
   metadata?: Record<string, unknown>;
+}
+
+export interface CompleteTransportHandoffInput {
+  handoff_to: string;
+  receiver_role: string;
+  acceptance_status: 'accepted' | 'accepted_with_risks';
+  accepted_at?: string;
+  handoff_summary?: string;
+  documents?: { type: string; reference: string }[];
+  outstanding_risks?: string[];
 }
 
 export interface EnterpriseConnectorPlaybook {
