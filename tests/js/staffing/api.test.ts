@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchStaffingOverview, fetchStaffingRequests, fetchStaffingWorkforce } from '@/features/staffing/api';
+import { fetchStaffingCandidates, fetchStaffingOverview, fetchStaffingRequests, fetchStaffingWorkforce, offerStaffingFulfillment, transitionStaffingFulfillment } from '@/features/staffing/api';
 
 vi.mock('axios');
 const mocked = vi.mocked(axios, true);
@@ -47,6 +47,39 @@ const request = {
   is_synthetic: true,
   freshness_status: 'expired',
   sla: { minutes_until_due: null, at_risk: false, label: 'Expired synthetic request' },
+  fulfillment: {
+    available: true,
+    state: 'unfilled',
+    offered_count: 0,
+    accepted_count: 0,
+    filled_count: 0,
+    remaining_count: 2,
+    latest: null,
+    active: [],
+    actions: { can_offer: true },
+  },
+} as const;
+
+const fulfillment = {
+  fulfillment_uuid: 'b49d0c07-b5cc-4ab1-ad77-00cbab6ef576',
+  staffing_request_id: 1,
+  staff_member_id: 42,
+  staff_member_name: 'Avery A. Adams',
+  status: 'offered',
+  source: 'float_pool',
+  version: 1,
+  role_code: 'critical_care_nurse',
+  unit_id: 3,
+  starts_at: '2026-07-10T11:00:00Z',
+  ends_at: '2026-07-10T19:00:00Z',
+  timezone: 'America/New_York',
+  validation: {},
+  offered_at: '2026-07-10T10:00:00Z',
+  accepted_at: null,
+  filled_at: null,
+  released_at: null,
+  canceled_at: null,
+  actions: { can_accept: true, can_fill: false, can_release: false, can_cancel: true },
 } as const;
 
 describe('staffing operational API contract', () => {
@@ -56,6 +89,7 @@ describe('staffing operational API contract', () => {
     mocked.get.mockResolvedValue({
       data: {
         data: {
+          permissions: { manage: true },
           source,
           metrics: {
             open_requests: 1,
@@ -130,6 +164,7 @@ describe('staffing operational API contract', () => {
           coverage_model: 'in_house',
           preferred_shift: 'night',
           availability: 'available',
+          availability_source: 'canonical-materializer',
           credential_status: 'valid',
           credentials: ['RN', 'BLS'],
           eligible_float_units: ['Medical ICU', 'Surgical ICU'],
@@ -150,5 +185,46 @@ describe('staffing operational API contract', () => {
     mocked.get.mockResolvedValue({ data: { data: [{ ...request, metadata: [] }] } });
 
     await expect(fetchStaffingRequests()).rejects.toThrow();
+  });
+
+  it('parses eligibility evidence and sends idempotency keys on lifecycle writes', async () => {
+    mocked.get.mockResolvedValueOnce({
+      data: {
+        data: [{
+          staff_member_id: 42,
+          display_name: 'Avery A. Adams',
+          role_code: 'critical_care_nurse',
+          role_label: 'Critical Care Nurse',
+          unit_id: 3,
+          coverage_model: 'float',
+          eligible: true,
+          eligibility_state: 'eligible',
+          reason_codes: [],
+          qualification_requirements: [{ qualification_code: 'role.critical_care_nurse', display_name: 'Critical Care Nurse role qualification', verified: true }],
+          availability: { covering_windows: 1, blocking_windows: 0, timezone: 'America/New_York' },
+          overlapping_assignments: 0,
+          shift: { starts_at: '2026-07-10T11:00:00Z', ends_at: '2026-07-10T19:00:00Z', timezone: 'America/New_York' },
+        }],
+        meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
+        shift: { starts_at: '2026-07-10T11:00:00Z', ends_at: '2026-07-10T19:00:00Z', timezone: 'America/New_York' },
+      },
+    });
+    expect((await fetchStaffingCandidates(1)).data[0].eligible).toBe(true);
+
+    mocked.post.mockResolvedValueOnce({ data: { data: fulfillment } });
+    await offerStaffingFulfillment(1, { staff_member_id: 42, source: 'float_pool' }, 'offer-key-1');
+    expect(mocked.post).toHaveBeenLastCalledWith(
+      '/api/staffing/requests/1/fulfillments',
+      { staff_member_id: 42, source: 'float_pool' },
+      { headers: { 'Idempotency-Key': 'offer-key-1' } },
+    );
+
+    mocked.post.mockResolvedValueOnce({ data: { data: { ...fulfillment, status: 'accepted', version: 2, actions: { can_accept: false, can_fill: true, can_release: true, can_cancel: true } } } });
+    await transitionStaffingFulfillment(fulfillment.fulfillment_uuid, 'accepted', 'accept-key-1');
+    expect(mocked.post).toHaveBeenLastCalledWith(
+      `/api/staffing/fulfillments/${fulfillment.fulfillment_uuid}/transition`,
+      { status: 'accepted' },
+      { headers: { 'Idempotency-Key': 'accept-key-1' } },
+    );
   });
 });

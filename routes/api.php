@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\Staffing\StaffingController;
+use App\Http\Controllers\Api\Staffing\StaffingFulfillmentController;
 use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
@@ -254,11 +255,18 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('staffing')->group(f
     Route::get('/plans', [StaffingController::class, 'plans']);
     Route::get('/workforce', [StaffingController::class, 'workforce']);
     Route::get('/requests', [StaffingController::class, 'index']);
-    Route::post('/requests', [StaffingController::class, 'store']);
+    Route::post('/requests', [StaffingController::class, 'store'])->middleware('can:manageStaffingOperations');
+    Route::get('/requests/{staffingRequestId}/candidates', [StaffingFulfillmentController::class, 'candidates']);
+    Route::get('/requests/{staffingRequestId}/fulfillments', [StaffingFulfillmentController::class, 'index']);
+    Route::post('/requests/{staffingRequestId}/fulfillments', [StaffingFulfillmentController::class, 'store'])
+        ->middleware('can:manageStaffingOperations');
+    Route::post('/fulfillments/{fulfillmentUuid}/transition', [StaffingFulfillmentController::class, 'transition'])
+        ->middleware('can:manageStaffingOperations')
+        ->whereUuid('fulfillmentUuid');
     Route::get('/requests/{staffingRequestId}', [StaffingController::class, 'show']);
-    Route::post('/requests/{staffingRequestId}/assign', [StaffingController::class, 'assign']);
-    Route::post('/requests/{staffingRequestId}/status', [StaffingController::class, 'status']);
-    Route::post('/requests/{staffingRequestId}/cancel', [StaffingController::class, 'cancel']);
+    Route::post('/requests/{staffingRequestId}/assign', [StaffingController::class, 'assign'])->middleware('can:manageStaffingOperations');
+    Route::post('/requests/{staffingRequestId}/status', [StaffingController::class, 'status'])->middleware('can:manageStaffingOperations');
+    Route::post('/requests/{staffingRequestId}/cancel', [StaffingController::class, 'cancel'])->middleware('can:manageStaffingOperations');
     Route::get('/resources', [StaffingController::class, 'resources']);
 });
 
@@ -607,6 +615,7 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
 
     // Staffing coordinator (P10) — gaps + open requests; the fill action is a mobile:act write.
     Route::get('/staffing/overview', [MobileStaffingController::class, 'overview']);
+    Route::get('/staffing/requests/{id}/candidates', [MobileStaffingController::class, 'candidates']);
     Route::post('/staffing/requests/{id}/fill', [MobileStaffingController::class, 'fill'])
         ->middleware(CheckForAnyAbility::class.':mobile:act');
 

@@ -273,7 +273,6 @@ private fun actionsFor(item: ForYouItem, vm: ForYouViewModel, bearer: String, ro
         ForYouAction("Approve", CapacityStatus.SUCCESS) { vm.approveOpsAction(bearer, item, role) },
         ForYouAction("Reject", CapacityStatus.WARNING) { vm.rejectOpsAction(bearer, item, role) },
     )
-    item.id.startsWith("staffing-") -> listOf(ForYouAction("Fill") { vm.fillStaffingRequest(bearer, item, role) })
     else -> emptyList()
 }
 
@@ -281,7 +280,8 @@ private fun supportsDrill(id: String): Boolean =
     id.startsWith("bedreq-") ||
         id.startsWith("barrier-") ||
         id.startsWith("transport-") ||
-        id.startsWith("evs-")
+        id.startsWith("evs-") ||
+        id.startsWith("staffing-")
 
 private fun metaLine(item: ForYouItem): String? {
     val parts = listOfNotNull(item.unit, relTime(item.at))

@@ -18,9 +18,9 @@ class StaffingApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_create_assign_and_fill_staffing_request(): void
+    public function test_create_and_source_selection_cannot_bypass_canonical_fulfillment(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'staffing_coordinator']);
         $unitId = $this->seedUnit('7 West', '7W');
 
         $created = $this->actingAs($user)->postJson('/api/staffing/requests', [
@@ -49,21 +49,22 @@ class StaffingApiTest extends TestCase
 
         $this->actingAs($user)->postJson("/api/staffing/requests/{$created['staffing_request_id']}/assign", [
             'assigned_source' => 'float_pool',
-            'assigned_staff_ref' => 'float-rn-12',
             'owner_name' => 'House Supervisor',
         ])->assertOk()
-            ->assertJsonPath('data.status', 'assigned')
+            ->assertJsonPath('data.status', 'sourcing')
             ->assertJsonPath('data.assigned_source', 'float_pool');
 
         $this->actingAs($user)->postJson("/api/staffing/requests/{$created['staffing_request_id']}/status", [
             'status' => 'filled',
             'payload' => ['filled_by' => 'float-rn-12'],
             'note' => 'Float pool RN accepted the shift.',
-        ])->assertOk()
-            ->assertJsonPath('data.status', 'filled')
-            ->assertJsonPath('data.resolution_payload.filled_by', 'float-rn-12');
+        ])->assertUnprocessable();
 
         $this->assertDatabaseHas('prod.staffing_events', [
+            'staffing_request_id' => $created['staffing_request_id'],
+            'event_type' => 'staffing.sourcing',
+        ]);
+        $this->assertDatabaseMissing('prod.staffing_events', [
             'staffing_request_id' => $created['staffing_request_id'],
             'event_type' => 'staffing.filled',
         ]);
@@ -94,7 +95,7 @@ class StaffingApiTest extends TestCase
         Carbon::setTestNow('2026-07-09T16:00:00Z');
 
         try {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['role' => 'staffing_coordinator']);
             $unitId = $this->seedUnit('7 West', '7W');
 
             $this->actingAs($user)->postJson('/api/staffing/requests', [
@@ -115,7 +116,7 @@ class StaffingApiTest extends TestCase
 
     public function test_plans_endpoint_returns_unit_risk_rollup(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'staffing_coordinator']);
         $unitId = $this->seedUnit('5 South', '5S');
         $this->seedPlan($unitId, '5 South', 'rn', required: 5, scheduled: 3, actual: 3, minimumSafe: 4, status: 'critical_gap');
 
@@ -133,7 +134,7 @@ class StaffingApiTest extends TestCase
 
     public function test_create_rejects_invalid_role(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'staffing_coordinator']);
 
         $this->actingAs($user)->postJson('/api/staffing/requests', [
             'unit_label' => '7 West',
@@ -147,7 +148,7 @@ class StaffingApiTest extends TestCase
 
     public function test_empty_staffing_maps_are_json_objects_and_missing_coverage_is_unknown(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'staffing_coordinator']);
 
         $response = $this->actingAs($user)->postJson('/api/staffing/requests', [
             'unit_label' => '7 West',

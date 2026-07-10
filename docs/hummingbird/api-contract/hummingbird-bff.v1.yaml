@@ -916,10 +916,33 @@ paths:
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /staffing/requests/{id}/candidates:
+    get:
+      tags: [staffing]
+      summary: Canonical staffing candidates with qualification, availability, and conflict evidence.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: eligible_only, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          {
+            description: Candidate page,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/StaffingCandidatePageEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /staffing/requests/{id}/fill:
     post:
       tags: [staffing]
-      summary: Assign a source and mark a staffing request filled. Requires mobile:act.
+      summary: Fill with a named, server-validated canonical staff member. Requires mobile:act.
       parameters:
         [{ name: id, in: path, required: true, schema: { type: string } }]
       requestBody:
@@ -2648,10 +2671,56 @@ components:
     StaffingFill:
       type: object
       properties:
-        assigned_source: { type: string, maxLength: 120 }
+        staff_member_id: { type: integer, minimum: 1 }
+        assigned_source:
+          { type: string, enum: [float_pool, overtime, agency, on_call] }
         owner_name:
           { oneOf: [{ type: string, maxLength: 120 }, { type: "null" }] }
-      required: [assigned_source]
+      required: [staff_member_id, assigned_source]
+    StaffingCandidatePageEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                data:
+                  { type: array, items: { $ref: "#/components/schemas/StaffingCandidate" } }
+                meta:
+                  type: object
+                  properties:
+                    current_page: { type: integer }
+                    last_page: { type: integer }
+                    per_page: { type: integer }
+                    total: { type: integer }
+                  required: [current_page, last_page, per_page, total]
+                shift:
+                  type: object
+                  properties:
+                    starts_at: { type: string, format: date-time }
+                    ends_at: { type: string, format: date-time }
+                    timezone: { type: string }
+                  required: [starts_at, ends_at, timezone]
+              required: [data, meta, shift]
+    StaffingCandidate:
+      type: object
+      properties:
+        staff_member_id: { type: integer }
+        display_name: { type: string }
+        role_code: { type: string }
+        role_label: { type: string }
+        eligible: { type: boolean }
+        eligibility_state:
+          { type: string, enum: [eligible, unqualified, unavailable, conflicted] }
+        reason_codes: { type: array, items: { type: string } }
+        qualification_requirements:
+          { type: array, items: { type: object, additionalProperties: true } }
+        availability: { type: object, additionalProperties: true }
+        overlapping_assignments: { type: integer }
+        shift: { type: object, additionalProperties: true }
+      required:
+        [staff_member_id, display_name, role_code, role_label, eligible, eligibility_state, reason_codes, overlapping_assignments]
     StaffingRequestEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }

@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StaffingOffice from '@/Pages/Staffing/StaffingOffice';
 import {
-  useAssignStaffingRequest,
+  useOfferStaffingFulfillment,
+  useStaffingCandidates,
   useStaffingOverview,
   useStaffingWorkforce,
-  useUpdateStaffingStatus,
+  useTransitionStaffingFulfillment,
 } from '@/features/staffing/hooks';
 
 vi.mock('@/Components/Dashboard/DashboardLayout', () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
@@ -52,6 +53,7 @@ const workforce = {
 } as const;
 
 const overview = {
+  permissions: { manage: true },
   source: {},
   metrics: { open_requests: 0, at_risk_units: 0, critical_gaps: 0, unfilled_requests: 0, total_gap_headcount: 0, coverage_pct: 98, stat_requests: 0 },
   coverage: { required_count: 100, available_count: 98, total_gap_headcount: 2, coverage_pct: 98, below_minimum_safe: 0 },
@@ -83,6 +85,7 @@ describe('Staffing Office workforce roster', () => {
           coverage_model: 'in_house',
           preferred_shift: 'night',
           availability: 'available',
+          availability_source: 'canonical-materializer',
           credential_status: 'valid',
           credentials: ['RN', 'BLS'],
           eligible_float_units: ['Medical ICU', 'Surgical ICU'],
@@ -96,8 +99,9 @@ describe('Staffing Office workforce roster', () => {
       isFetching: false,
       refetch: vi.fn(),
     } as never);
-    vi.mocked(useAssignStaffingRequest).mockReturnValue({ isPending: false, mutate: vi.fn() } as never);
-    vi.mocked(useUpdateStaffingStatus).mockReturnValue({ isPending: false, mutate: vi.fn() } as never);
+    vi.mocked(useStaffingCandidates).mockReturnValue({ data: undefined, isLoading: false, isError: false } as never);
+    vi.mocked(useOfferStaffingFulfillment).mockReturnValue({ isPending: false, mutate: vi.fn(), error: null } as never);
+    vi.mocked(useTransitionStaffingFulfillment).mockReturnValue({ isPending: false, mutate: vi.fn(), error: null } as never);
   });
 
   it('renders roster posture, directory controls, and truthful unknown pool capacity', () => {
@@ -161,6 +165,17 @@ describe('Staffing Office workforce roster', () => {
             minutes_until_due: 61.516666666666666,
             at_risk: false,
             label: '61.516666666666666m remaining',
+          },
+          fulfillment: {
+            available: true,
+            state: 'unfilled',
+            offered_count: 0,
+            accepted_count: 0,
+            filled_count: 0,
+            remaining_count: 2,
+            latest: null,
+            active: [],
+            actions: { can_offer: true },
           },
         }],
       },

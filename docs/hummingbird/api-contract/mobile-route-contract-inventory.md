@@ -44,6 +44,7 @@ npx @redocly/cli lint docs/hummingbird/api-contract/hummingbird-bff.v1.yaml
 | GET    | `/rtdc/census`                               |
 | GET    | `/rtdc/house`                                |
 | GET    | `/staffing/overview`                         |
+| GET    | `/staffing/requests/{id}/candidates`         |
 | GET    | `/transport/queue`                           |
 | POST   | `/activity/{eventUuid}/ack`                  |
 | POST   | `/devices`                                   |

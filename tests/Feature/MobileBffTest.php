@@ -43,7 +43,7 @@ class MobileBffTest extends TestCase
         ['POST', '/api/mobile/v1/transport/requests/1/handoff', ['handoff_to' => '3 West']],
         ['POST', '/api/mobile/v1/evs/requests/1/status', ['status' => 'assigned']],
         ['POST', '/api/mobile/v1/ops/approvals/00000000-0000-0000-0000-000000000000/decision', ['decision' => 'approved']],
-        ['POST', '/api/mobile/v1/staffing/requests/1/fill', ['assigned_source' => 'float_pool']],
+        ['POST', '/api/mobile/v1/staffing/requests/1/fill', ['staff_member_id' => 1, 'assigned_source' => 'float_pool']],
         ['POST', '/api/mobile/v1/eddy/approvals/00000000-0000-0000-0000-000000000000/decision', ['decision' => 'approved']],
     ];
 
@@ -323,6 +323,18 @@ class MobileBffTest extends TestCase
             'origin' => 'hummingbird',
             'pinned_context' => [],
         ]);
+        $staffingRequest = StaffingRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_label' => '3 West',
+            'role' => 'rn',
+            'shift_date' => now()->toDateString(),
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'urgent',
+            'status' => 'requested',
+            'headcount_needed' => 1,
+            'is_deleted' => false,
+        ]);
 
         return [
             '/activity' => '/api/mobile/v1/activity?persona=bed_manager',
@@ -354,6 +366,7 @@ class MobileBffTest extends TestCase
             '/rtdc/census' => '/api/mobile/v1/rtdc/census',
             '/rtdc/house' => '/api/mobile/v1/rtdc/house',
             '/staffing/overview' => '/api/mobile/v1/staffing/overview',
+            '/staffing/requests/{id}/candidates' => "/api/mobile/v1/staffing/requests/{$staffingRequest->staffing_request_id}/candidates?persona=staffing_coordinator",
             '/transport/queue' => '/api/mobile/v1/transport/queue',
         ];
     }

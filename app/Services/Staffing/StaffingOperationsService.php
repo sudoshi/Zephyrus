@@ -14,9 +14,23 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class StaffingOperationsService
 {
+    /** @var array<string,list<string>> */
+    private const LEGACY_TRANSITIONS = [
+        'requested' => ['open', 'sourcing', 'escalated', 'canceled', 'unfilled'],
+        'open' => ['sourcing', 'escalated', 'canceled', 'unfilled'],
+        'sourcing' => ['open', 'escalated', 'canceled', 'unfilled'],
+        'assigned' => ['open', 'completed', 'canceled', 'escalated'],
+        'filled' => ['completed', 'canceled'],
+        'escalated' => ['open', 'sourcing', 'canceled', 'unfilled'],
+        'unfilled' => ['open', 'canceled'],
+        'completed' => [],
+        'canceled' => [],
+    ];
+
     public const ACTIVE_REQUEST_STATUSES = [
         'requested',
         'open',
@@ -34,6 +48,8 @@ class StaffingOperationsService
         'respiratory' => 'Respiratory Therapist',
         'unit_secretary' => 'Unit Secretary',
     ];
+
+    public function __construct(private readonly CanonicalStaffingService $canonical) {}
 
     public function list(array $filters = []): LengthAwarePaginator
     {
@@ -121,17 +137,26 @@ class StaffingOperationsService
     public function assign(StaffingRequest $request, array $data, ?int $actorUserId): StaffingRequest
     {
         return DB::transaction(function () use ($request, $data, $actorUserId): StaffingRequest {
+            $request = StaffingRequest::query()
+                ->where('staffing_request_id', $request->staffing_request_id)
+                ->where('is_deleted', false)
+                ->lockForUpdate()
+                ->firstOrFail();
             $from = $request->status;
+            if (! in_array('sourcing', self::LEGACY_TRANSITIONS[$from] ?? [], true)) {
+                throw ValidationException::withMessages([
+                    'status' => "The request cannot enter sourcing from {$from}.",
+                ]);
+            }
             $request->update([
-                'status' => 'assigned',
+                'status' => 'sourcing',
                 'assigned_source' => $data['assigned_source'] ?? $request->assigned_source,
-                'assigned_staff_ref' => $data['assigned_staff_ref'] ?? $request->assigned_staff_ref,
+                'assigned_staff_ref' => null,
                 'owner_name' => $data['owner_name'] ?? $request->owner_name,
-                'assigned_at' => now(),
                 'updated_by_user_id' => $actorUserId,
             ]);
 
-            $this->recordEvent($request, 'staffing.assigned', $from, 'assigned', $data, $actorUserId);
+            $this->recordEvent($request, 'staffing.sourcing', $from, 'sourcing', $data, $actorUserId);
 
             return $request->refresh();
         });
@@ -140,21 +165,43 @@ class StaffingOperationsService
     public function transition(StaffingRequest $request, string $status, array $payload, ?int $actorUserId): StaffingRequest
     {
         return DB::transaction(function () use ($request, $status, $payload, $actorUserId): StaffingRequest {
+            $request = StaffingRequest::query()
+                ->where('staffing_request_id', $request->staffing_request_id)
+                ->where('is_deleted', false)
+                ->lockForUpdate()
+                ->firstOrFail();
             $from = $request->status;
+            if (! in_array($status, self::LEGACY_TRANSITIONS[$from] ?? [], true)) {
+                throw ValidationException::withMessages([
+                    'status' => "Illegal staffing request transition: {$from} -> {$status}. Person assignment and fill must use the canonical fulfillment workflow.",
+                ]);
+            }
+            $summary = null;
+            if (in_array($status, ['completed', 'canceled'], true)) {
+                $summary = $this->canonical->summaryForRequest($request);
+            }
+            if ($status === 'completed') {
+                if (($summary['filled_count'] ?? 0) < (int) $request->headcount_needed) {
+                    throw ValidationException::withMessages([
+                        'status' => 'A staffing request cannot complete until canonical fulfillments cover its required headcount.',
+                    ]);
+                }
+            }
+            if ($status === 'canceled' && (($summary['offered_count'] ?? 0) + ($summary['accepted_count'] ?? 0) + ($summary['filled_count'] ?? 0)) > 0) {
+                throw ValidationException::withMessages([
+                    'status' => 'Cancel or release every active canonical fulfillment before canceling the staffing request.',
+                ]);
+            }
             $updates = [
                 'status' => $status,
                 'updated_by_user_id' => $actorUserId,
             ];
 
-            if ($status === 'filled' && $request->filled_at === null) {
-                $updates['filled_at'] = now();
-            }
-
             if (in_array($status, ['completed', 'canceled', 'unfilled'], true) && $request->completed_at === null) {
                 $updates['completed_at'] = now();
             }
 
-            if (in_array($status, ['filled', 'completed'], true)) {
+            if ($status === 'completed') {
                 $updates['resolution_payload'] = $payload;
             }
 
@@ -309,6 +356,7 @@ class StaffingOperationsService
                 ? ($this->isSyntheticRequest($request) ? 'expired' : 'stale')
                 : 'current',
             'sla' => $this->sla($request),
+            'fulfillment' => $this->canonical->summaryForRequest($request),
         ];
     }
 
@@ -498,6 +546,7 @@ class StaffingOperationsService
     private function serializeWorkforceMember(object $row): array
     {
         $metadata = $this->decodeJsonMap($row->member_metadata);
+        $canonical = $this->canonical->workforceState((int) $row->staff_member_id);
 
         return [
             'staff_member_id' => (int) $row->staff_member_id,
@@ -513,9 +562,12 @@ class StaffingOperationsService
             'fte' => (float) $row->fte,
             'coverage_model' => $row->coverage_model,
             'preferred_shift' => data_get($metadata, 'preferred_shift'),
-            'availability' => (string) data_get($metadata, 'availability', $row->member_active ? 'available' : 'inactive'),
-            'credential_status' => (string) data_get($metadata, 'credential_status', 'unknown'),
-            'credentials' => array_values((array) data_get($metadata, 'credentials', [])),
+            'availability' => (string) ($canonical['availability'] ?? data_get($metadata, 'availability', $row->member_active ? 'available' : 'inactive')),
+            'availability_source' => $canonical['availability_source'] ?? null,
+            'credential_status' => (string) ($canonical['credential_status'] ?? data_get($metadata, 'credential_status', 'unknown')),
+            'credentials' => $canonical === null
+                ? array_values((array) data_get($metadata, 'credentials', []))
+                : array_values(array_map(fn (array $qualification): string => (string) $qualification['display_name'], $canonical['qualifications'])),
             'eligible_float_units' => array_values((array) data_get($metadata, 'eligible_float_units', [])),
             'is_active' => (bool) $row->member_active && (bool) $row->assignment_active,
             'is_synthetic' => data_get($metadata, 'data_origin') === 'synthetic',
