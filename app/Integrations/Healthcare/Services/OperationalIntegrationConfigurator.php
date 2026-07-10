@@ -35,9 +35,15 @@ class OperationalIntegrationConfigurator
                     ->where('credential_key', 'epic-smart-backend')
                     ->first()
                 : null;
-            $resolvedClientId = filled($clientId) ? trim((string) $clientId) : ($existingCredential?->client_id ?: $settings['client_id']);
-            $resolvedKeyRef = filled($privateKeyRef) ? trim((string) $privateKeyRef) : ($existingCredential?->jwks_secret_ref ?: $settings['private_key_ref']);
-            $resolvedKeyId = filled($keyId) ? trim((string) $keyId) : ($this->decodeMap($existingCredential?->metadata ?? null)['key_id'] ?? $settings['key_id']);
+            $resolvedClientId = $this->normalizedOptionalString(
+                filled($clientId) ? $clientId : ($existingCredential?->client_id ?: $settings['client_id']),
+            );
+            $resolvedKeyRef = $this->normalizedOptionalString(
+                filled($privateKeyRef) ? $privateKeyRef : ($existingCredential?->jwks_secret_ref ?: $settings['private_key_ref']),
+            );
+            $resolvedKeyId = $this->normalizedOptionalString(
+                filled($keyId) ? $keyId : ($this->decodeMap($existingCredential?->metadata ?? null)['key_id'] ?? $settings['key_id']),
+            );
             $credentialsReady = filled($resolvedClientId) && filled($resolvedKeyRef);
 
             if ($activate && ! $credentialsReady) {
@@ -297,6 +303,13 @@ class OperationalIntegrationConfigurator
     private function stableUuid(string $table, array $keys, string $uuidColumn): string
     {
         return (string) (DB::table($table)->where($keys)->value($uuidColumn) ?? Str::uuid());
+    }
+
+    private function normalizedOptionalString(mixed $value): ?string
+    {
+        $normalized = trim((string) ($value ?? ''));
+
+        return $normalized === '' ? null : $normalized;
     }
 
     /** @return array<string, mixed> */
