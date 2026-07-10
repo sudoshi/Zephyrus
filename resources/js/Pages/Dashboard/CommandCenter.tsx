@@ -251,10 +251,13 @@ export default function CommandCenter({
       <Head title="Operations Command Center · Zephyrus" />
       {/* P4a: the RoleSwitcher moved to persistent app chrome (TopNavbar) —
           it is no longer page-local header content. */}
+      {/* Keep the mount selector in the command-center header so House, Units,
+          Departments, and Service Lines remain available without consuming a
+          separate content row. A wall stays pinned to its configured scope. */}
       <PageContentLayout
         title="Hospital Operations Command Center"
         subtitle="House-wide demand, capacity, flow & forecast"
-        headerContent={null}
+        headerContent={cockpitActive && !wall ? <ScopePicker activeToken={scopeToken} /> : null}
       >
         {/* P8 WS-6b: recovery announcement (stale → fresh) for SR users, app-wide.
             The banner announces onset; this announces the recovery it can't. */}
@@ -270,14 +273,6 @@ export default function CommandCenter({
           onRetry={handleRefresh}
           className="mb-3"
         />
-        {/* P8 WS-5: the mount scope picker — switch altitude (house / unit /
-            department / service line) from any mount. Hidden on a wall preset
-            (a wall is pinned to its configured scope). */}
-        {cockpitActive && !wall && (
-          <div className="mb-3 flex items-center gap-2">
-            <ScopePicker activeToken={scopeToken} />
-          </div>
-        )}
         {cockpitActive ? (
           <ErrorBoundary
             fallback={(error?: Error) => (

@@ -480,6 +480,64 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /flow/demo-scenarios:
+    get:
+      tags: [flow]
+      summary:
+        Available synthetic Patient Flow scenarios and their enabled state.
+        Scenario data is explicitly labeled and remains separate from live
+        operational projections.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /flow/occupancy/history:
+    get:
+      tags: [flow]
+      summary:
+        Persona-lensed persisted occupancy history for Patient Flow review.
+      parameters:
+        - name: persona
+          in: query
+          schema: { $ref: "#/components/schemas/MobilePersonaId" }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: asOf, in: query, schema: { type: string, format: date-time } }
+        - { name: service_line, in: query, schema: { type: string } }
+        - { name: floor, in: query, schema: { type: integer } }
+        - { name: scenario, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          {
+            description: Invalid occupancy-history window,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Error" } },
+              },
+          }
+
   /flow/window:
     get:
       tags: [flow]
@@ -1138,7 +1196,7 @@ paths:
   /eddy/context/{scopeRef}:
     get:
       tags: [eddy]
-      summary: Eddy-safe context packet for a drill, patient lens, event, or scope.
+      summary: Eddy-safe context packet for a drill, patient lens, event, or flow scope.
       parameters:
         [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
       responses:
@@ -1733,7 +1791,12 @@ components:
         generated_at: { type: string, format: date-time }
         persona: { $ref: "#/components/schemas/MobilePersona" }
         phi_policy: { type: object, additionalProperties: true }
-        context: { type: object, additionalProperties: true }
+        context:
+          {
+            type: object,
+            additionalProperties: true,
+            description: "Event/patient/activity context; authorized house/floor flow scopes may include patient_flow_4d with aggregate-safe current_metrics, top_barriers, redaction, lineage, and action_allowlist.",
+          }
         questions_supported: { type: array, items: { type: string } }
       required:
         [scope_ref, scope_type, generated_at, persona, phi_policy, context]

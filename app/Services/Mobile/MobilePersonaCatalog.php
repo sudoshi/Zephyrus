@@ -114,7 +114,7 @@ class MobilePersonaCatalog
         }
 
         $appRole = $this->canonical($user->role ?? null);
-        if (in_array($appRole, ['admin', 'super_admin'], true)) {
+        if (in_array($appRole, ['admin', 'super_admin', 'superuser'], true)) {
             return true;
         }
 

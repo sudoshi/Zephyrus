@@ -13,6 +13,7 @@ import type {
   RegionalTransferCandidate,
 } from '@/features/transport/types';
 import { Bot, Building2, CheckCircle2, Clock3, GitBranch, Layers, PlayCircle, RefreshCcw, Route, ShieldAlert } from 'lucide-react';
+import { formatDurationMinutes } from '@/lib/duration';
 
 export default function Transfers() {
   return (
@@ -161,7 +162,7 @@ function RegionalTransferPanel() {
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                       <span>{candidate.availableBeds} beds</span>
                       <span>{candidate.icuAvailableBeds} ICU</span>
-                      <span>{candidate.transportMinutes} min</span>
+                      <span>{formatDurationMinutes(candidate.transportMinutes)}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1">
                       {candidate.rationale.required_capabilities.map((capability) => (
@@ -257,7 +258,7 @@ function RegionalComparisonDashboard({ rows }: { rows: RegionalComparisonRow[] }
                 <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.availableBeds}/{row.staffedBeds}</td>
                 <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.icuAvailableBeds}</td>
                 <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.edBoarders}</td>
-                <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.transportMinutes}m</td>
+                <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDurationMinutes(row.transportMinutes)}</td>
                 <td className="py-2 pr-3 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.topChoiceCount}</td>
                 <td className="py-2 pr-3">
                   <span className={`rounded px-2 py-0.5 font-semibold ${
@@ -347,7 +348,7 @@ function ScenarioCard({ scenario }: { scenario: RegionalRouteScenario }) {
         <span>{scenario.acceptedTransfers} accept</span>
         <span>{scenario.deferredTransfers} defer</span>
         <span>{scenario.netAvailableBeds} beds</span>
-        <span>{scenario.totalTransportMinutes}m</span>
+        <span>{formatDurationMinutes(scenario.totalTransportMinutes)}</span>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   Plus, ArrowRight, CheckCircle, Clock, AlertCircle,
   RefreshCcw, Target, Activity, TrendingUp, TrendingDown
 } from 'lucide-react';
+import { formatProcessDuration } from '@/Components/Process/formatDuration';
 
 const Active = ({ cycles }) => {
   // Helper function for status icons
@@ -211,7 +212,7 @@ const Active = ({ cycles }) => {
                   <div className="flex items-center gap-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>Source: Discharge Barriers</span>
                     <span>Frequency: 24 reports this month</span>
-                    <span>Avg Delay: 2.5 hours</span>
+                    <span>Avg Delay: {formatProcessDuration(2.5, 'hours')}</span>
                   </div>
                 </div>
                 <button className="text-healthcare-primary dark:text-healthcare-primary-dark hover:text-healthcare-primary/80 text-sm">
@@ -233,7 +234,7 @@ const Active = ({ cycles }) => {
                   <div className="flex items-center gap-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     <span>Source: Staff Reports</span>
                     <span>Frequency: 15 reports this month</span>
-                    <span>Avg Delay: 45 minutes</span>
+                    <span>Avg Delay: {formatProcessDuration(45)}</span>
                   </div>
                 </div>
                 <button className="text-healthcare-primary dark:text-healthcare-primary-dark hover:text-healthcare-primary/80 text-sm">
@@ -297,7 +298,7 @@ const Active = ({ cycles }) => {
                   
                   <div className="border-t border-healthcare-border dark:border-healthcare-border-dark mt-4 pt-4">
                     <div className="flex items-center justify-between text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                      <span>Last Updated: {cycle.lastUpdated}</span>
+                      <span>Last Updated: {formatProcessDuration(cycle.lastUpdated)}</span>
                       <span>Phase: {cycle.currentPhase}</span>
                       <span>Owner: {cycle.owner}</span>
                     </div>

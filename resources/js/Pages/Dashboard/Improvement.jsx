@@ -13,6 +13,7 @@ import ChronicCarePanel from '@/Components/Process/ChronicCarePanel';
 import ProcessIntelligenceCard from '@/Components/Process/ProcessIntelligenceCard';
 import ProcessIntelligenceModal from '@/Components/Process/ProcessIntelligenceModal';
 import DischargeProcessFailures from '@/Components/Process/DischargeProcessFailures';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Improvement workflow dashboard rebuilt on the gold-standard design system: the
 // care-transition KPI wall is one MetricGrid; every bespoke Card wrapping a
@@ -34,9 +35,9 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
       definition: 'Patient satisfaction rate is 92 percent, up 4 percent.',
     }),
     metric({
-      key: 'care-response-time', label: 'Care Response Time', value: 8, display: '8 min',
-      status: 'success', goodWhenDown: true, caption: '-2 min vs prior period',
-      definition: 'Average care response time is 8 minutes, improved by 2 minutes.',
+      key: 'care-response-time', label: 'Care Response Time', value: 8, display: formatDurationMinutes(8),
+      status: 'success', goodWhenDown: true, caption: `-${formatDurationMinutes(2)} vs prior period`,
+      definition: `Average care response time is ${formatDurationMinutes(8)}, improved by ${formatDurationMinutes(2)}.`,
     }),
     metric({
       key: 'clinical-outcomes', label: 'Clinical Outcomes', value: 94, display: '94/100',
@@ -206,8 +207,8 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                       title="Transport Intelligence"
                       icon={Truck}
                       primaryMetric={{
-                        value: "12min",
-                        trend: "-2min",
+                        value: formatDurationMinutes(12),
+                        trend: formatDurationMinutes(-2),
                         label: "Avg Response Time"
                       }}
                       secondaryMetrics={[
@@ -231,7 +232,7 @@ const Improvement = ({ auth, stats = {}, cycles = [] }) => {
                       secondaryMetrics={[
                         { label: "Monitoring Effectiveness", value: "97%", trend: "+3%" },
                         { label: "Care Plan Adherence", value: "92%", trend: "+4%" },
-                        { label: "Response Time", value: "8min", trend: "-3min" }
+                        { label: "Response Time", value: formatDurationMinutes(8), trend: formatDurationMinutes(-3) }
                       ]}
                       healthScore={96}
                       onClick={() => setSelectedProcess('home')}

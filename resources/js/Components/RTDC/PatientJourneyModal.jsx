@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import PatientJourney from './PatientJourney';
 import Card from '@/Components/Dashboard/Card';
+import { formatDurationSeconds } from '@/lib/duration';
 
 const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
   const modalRef = useRef(null);
@@ -28,11 +29,11 @@ const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
   if (!isOpen) return null;
 
   const calculateLOS = () => {
-    if (!patient?.admitDate) return 0;
+    if (!patient?.admitDate) return formatDurationSeconds(0);
     const admitDate = new Date(patient.admitDate);
     const currentDate = new Date();
     const diffTime = Math.abs(currentDate - admitDate);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return formatDurationSeconds(diffTime / 1000);
   };
 
   const StatusPill = ({ label, value, color }) => (
@@ -82,7 +83,7 @@ const PatientJourneyModal = ({ isOpen, onClose, patient }) => {
             <div className="mt-4 flex gap-4">
               <StatusPill 
                 label="LOS"
-                value={`${calculateLOS()} days`}
+                value={calculateLOS()}
                 color="bg-healthcare-primary/20 text-healthcare-primary dark:text-healthcare-primary-dark"
               />
               <StatusPill 

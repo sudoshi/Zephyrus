@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthViewModel
-import net.acumenus.hummingbird.data.EvsSla
 import net.acumenus.hummingbird.data.StaffingMetrics
 import net.acumenus.hummingbird.data.StaffingReq
 import net.acumenus.hummingbird.data.UnitAtRisk
@@ -298,7 +297,7 @@ private fun StaffingRequestRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StaffingPriorityChip(request)
             Spacer(Modifier.weight(1f))
-            Text(slaLabel(request.sla), color = if (request.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+            Text(request.sla.label, color = if (request.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         }
         Text("${request.roleLabel ?: "Staff"} / ${request.unitLabel ?: "-"}", color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Button(
@@ -319,7 +318,7 @@ private fun StaffingRequestDetailCard(request: StaffingReq) {
         Text("${request.roleLabel ?: "Staff"} / ${request.unitLabel ?: "-"}", color = Z.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         request.headcountNeeded?.let { StaffingDetailLine("Headcount", "$it") }
         StaffingDetailLine("Status", request.status)
-        StaffingDetailLine("SLA", slaLabel(request.sla))
+        StaffingDetailLine("SLA", request.sla.label)
         Text("Filling assigns Float Pool and closes the request through the governed staffing lifecycle.", color = Z.inkMuted, fontSize = 13.sp)
     }
 }
@@ -379,9 +378,4 @@ private fun StaffingError(text: String, onRetry: (() -> Unit)? = null) {
 @Composable
 private fun StaffingSectionLabel(text: String) {
     Text(text, color = Z.inkMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-}
-
-private fun slaLabel(sla: EvsSla): String {
-    val minutes = sla.minutesUntilDue ?: return sla.label
-    return if (minutes < 0) "${kotlin.math.abs(minutes)}m overdue" else "${minutes}m remaining"
 }

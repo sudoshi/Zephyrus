@@ -16,6 +16,9 @@ import {
   cn,
 } from "@heroui/react";
 import {Icon} from "@iconify/react";
+import {formatDurationMinutes} from "@/lib/duration";
+
+const exerciseTime = `${formatDurationMinutes(25)} / ${formatDurationMinutes(120)}`;
 
 type ChartData = {
   name: string;
@@ -45,7 +48,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
   {
@@ -58,7 +61,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
   {
@@ -71,7 +74,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
   {
@@ -84,7 +87,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
   {
@@ -97,7 +100,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
   {
@@ -110,7 +113,7 @@ const data: CircleChartProps[] = [
     chartData: [
       {name: "Calories", value: 200, valueText: "1,623/2,000 kcal"},
       {name: "Steps", value: 350, valueText: "8,328/10,000 steps"},
-      {name: "Exercise", value: 250, valueText: "25/120 min"},
+      {name: "Exercise", value: 250, valueText: exerciseTime},
     ],
   },
 ];

@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatProcessDuration } from './formatDuration';
 
 const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, overallMetrics }) => {
   if (!isOpen) return null;
@@ -18,7 +19,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
         <div className="healthcare-card p-4">
           <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
           <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
-            {overallMetrics?.avgTotalTime || '0m'}
+            {formatProcessDuration(overallMetrics?.avgTotalTime ?? 0)}
           </div>
         </div>
         <div className="healthcare-card p-4">
@@ -53,7 +54,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
             <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
-              {selectedNode.data.metrics?.avgTime || '0m'}
+              {formatProcessDuration(selectedNode.data.metrics?.avgTime ?? 0)}
             </div>
           </div>
         </div>
@@ -67,7 +68,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
                 </span>
                 <div className="text-right">
                   <div className="text-healthcare-info dark:text-healthcare-info-dark">{metrics.count} cases</div>
-                  <div className="text-healthcare-success dark:text-healthcare-success-dark">{metrics.avgTime}</div>
+                  <div className="text-healthcare-success dark:text-healthcare-success-dark">{formatProcessDuration(metrics.avgTime)}</div>
                 </div>
               </div>
             ))}
@@ -93,7 +94,7 @@ const ProcessMetricsModal = ({ isOpen, onClose, selectedNode, selectedEdge, over
           <div>
             <div className="text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Average Time</div>
             <div className="text-2xl font-semibold text-healthcare-success dark:text-healthcare-success-dark">
-              {selectedEdge.data?.avgTime || '0m'}
+              {formatProcessDuration(selectedEdge.data?.avgTime ?? 0)}
             </div>
           </div>
         </div>

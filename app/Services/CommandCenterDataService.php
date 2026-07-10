@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Services\Analytics\MetricLineageService;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\Rtdc\HouseCensusService;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -835,8 +836,8 @@ class CommandCenterDataService
             'subgroups' => [
                 ['key' => 'ed', 'label' => 'Emergency', 'metrics' => [
                     $this->metric(
-                        'ed_d2p', 'Door-to-Provider', $d2p, 'min', "{$d2p}m",
-                        20, '<20m', $this->bandHighBad($d2p, 30, 20),
+                        'ed_d2p', 'Door-to-Provider', $d2p, 'min', DurationFormatter::minutes($d2p),
+                        20, '<'.DurationFormatter::minutes(20), $this->bandHighBad($d2p, 30, 20),
                         $trends['ed_d2p'], 'down', true, '/dashboard/emergency',
                         'Median arrival to provider evaluation.'
                     ),
@@ -848,16 +849,16 @@ class CommandCenterDataService
                         $fm['lwbs_detail']
                     ),
                     $this->metric(
-                        'ed_los', 'ED LOS (disch)', $edLos, 'min', "{$edLos}m",
-                        150, '<150m', $this->bandHighBad($edLos, 200, 150),
+                        'ed_los', 'ED LOS (disch)', $edLos, 'min', DurationFormatter::minutes($edLos),
+                        150, '<'.DurationFormatter::minutes(150), $this->bandHighBad($edLos, 200, 150),
                         $trends['ed_los'], 'down', true, '/dashboard/emergency',
                         'Median ED length of stay, discharged patients.'
                     ),
                 ]],
                 ['key' => 'ip', 'label' => 'Inpatient', 'metrics' => [
                     $this->metric(
-                        'adm_to_bed', 'Admit→Bed', $admToBed, 'min', "{$admToBed}m",
-                        60, '<60m', $this->bandHighBad($admToBed, 90, 60),
+                        'adm_to_bed', 'Admit→Bed', $admToBed, 'min', DurationFormatter::minutes($admToBed),
+                        60, '<'.DurationFormatter::minutes(60), $this->bandHighBad($admToBed, 90, 60),
                         $trends['adm_to_bed'], 'down', true, '/rtdc/bed-placement',
                         'Admit decision to bed assigned.'
                     ),
@@ -883,8 +884,8 @@ class CommandCenterDataService
                         'Used block minutes / allocated block minutes.'
                     ),
                     $this->metric(
-                        'turnover', 'Turnover', $turnover, 'min', "{$turnover}m",
-                        25, '<25m', $this->bandHighBad($turnover, 35, 25),
+                        'turnover', 'Turnover', $turnover, 'min', DurationFormatter::minutes($turnover),
+                        25, '<'.DurationFormatter::minutes(25), $this->bandHighBad($turnover, 35, 25),
                         $trends['turnover'], 'down', true, '/dashboard/perioperative',
                         'Median room turnover time.'
                     ),
@@ -1016,14 +1017,14 @@ class CommandCenterDataService
                     'Observed LOS vs geometric-mean LOS.'
                 ),
                 $this->metric(
-                    'excess_days', 'Excess Bed-Days', $om['excess_days'], 'days', (string) $om['excess_days'],
+                    'excess_days', 'Excess Bed-Days', $om['excess_days'], 'bed-days', $om['excess_days'].' bed-days',
                     null, null, $om['excess_days'] > 100 ? 'warning' : 'success',
                     $trends['excess_days'], 'down', true, '/dashboard/improvement',
                     'Avoidable bed-days vs GMLOS this period.'
                 ),
                 $this->metric(
-                    'diversion', 'Diversion Hours', $om['diversion'], 'h', "{$om['diversion']}h",
-                    0, '0h', $om['diversion'] > 0 ? 'warning' : 'success',
+                    'diversion', 'Diversion Hours', $om['diversion'], 'h', DurationFormatter::minutes($om['diversion'] * 60),
+                    0, DurationFormatter::minutes(0), $om['diversion'] > 0 ? 'warning' : 'success',
                     $trends['diversion'], 'down', true, '/dashboard/improvement',
                     'Capacity-related ED diversion hours.'
                 ),
@@ -1317,7 +1318,7 @@ class CommandCenterDataService
                     'baseline' => self::OBJ_ED_BOARDING_BASELINE,
                     'progressPct' => $boardingPct,
                     'status' => $this->bandProgress($boardingPct),
-                    'display' => "{$edBoardingMinutes}→<".self::OBJ_ED_BOARDING_TARGET.' min',
+                    'display' => DurationFormatter::minutes($edBoardingMinutes).'→<'.DurationFormatter::minutes(self::OBJ_ED_BOARDING_TARGET),
                 ],
                 [
                     'label' => 'Discharge by noon',

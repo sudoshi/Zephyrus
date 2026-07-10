@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
+import { formatDurationForUnit } from '@/lib/duration';
 
 const sectionDefinitions = {
     hub: {
@@ -373,6 +374,8 @@ function StatusPill({ status, children }) {
 }
 
 function MetricTile({ metric }) {
+    const durationDisplay = formatDurationForUnit(Number(metric.value), metric.unit);
+
     return (
         <div className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
             <div className="flex items-start justify-between gap-3">
@@ -382,11 +385,13 @@ function MetricTile({ metric }) {
                     </p>
                     <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-3xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                            {String(metric.value)}
+                            {durationDisplay ?? String(metric.value)}
                         </span>
-                        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            {metric.unit}
-                        </span>
+                        {durationDisplay === null && (
+                            <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                {metric.unit}
+                            </span>
+                        )}
                     </div>
                 </div>
                 <StatusPill status={metric.status}>{metric.status}</StatusPill>

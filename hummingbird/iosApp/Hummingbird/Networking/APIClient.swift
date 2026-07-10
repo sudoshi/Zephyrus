@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Where the BFF lives, resolved per build so the same source runs against the right host:
 /// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
@@ -278,6 +279,25 @@ struct APIClient {
         return (try Self.decoder.decode(Envelope<FlowWindowData>.self, from: data), data)
     }
 
+    /// GET /api/mobile/v1/flow/demo-scenarios — discover demo/history handoff scenarios.
+    func flowDemoScenarios(persona: String?, bearer: String) async throws -> Envelope<[FlowDemoScenario]> {
+        try await getEnvelope(path: withPersona("/api/mobile/v1/flow/demo-scenarios", persona),
+                              bearer: bearer, as: [FlowDemoScenario].self)
+    }
+
+    /// GET /api/mobile/v1/flow/occupancy/history — disk-ready occupancy history, persona-redacted.
+    func flowOccupancyHistory(persona: String?, from: String? = nil, to: String? = nil,
+                              asOf: String? = nil, serviceLine: String? = nil,
+                              floor: Int? = nil, demo: String? = nil,
+                              scenario: String? = nil, limit: Int? = nil,
+                              bearer: String) async throws -> Envelope<FlowOccupancyHistoryData> {
+        try await getEnvelope(path: flowOccupancyHistoryPath(persona: persona, from: from, to: to,
+                                                             asOf: asOf, serviceLine: serviceLine,
+                                                             floor: floor, demo: demo,
+                                                             scenario: scenario, limit: limit),
+                              bearer: bearer, as: FlowOccupancyHistoryData.self)
+    }
+
     private func flowWindowPath(persona: String?, scope: String?, since: String?) -> String {
         var path = withPersona("/api/mobile/v1/flow/window", persona)
         if let scope, !scope.isEmpty {
@@ -285,6 +305,38 @@ struct APIClient {
         }
         if let since, !since.isEmpty {
             path += "\(path.contains("?") ? "&" : "?")since=\(Self.queryValue(since))"
+        }
+        return path
+    }
+
+    private func flowOccupancyHistoryPath(persona: String?, from: String?, to: String?,
+                                          asOf: String?, serviceLine: String?,
+                                          floor: Int?, demo: String?,
+                                          scenario: String?, limit: Int?) -> String {
+        var path = withPersona("/api/mobile/v1/flow/occupancy/history", persona)
+        if let from, !from.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")from=\(Self.queryValue(from))"
+        }
+        if let to, !to.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")to=\(Self.queryValue(to))"
+        }
+        if let asOf, !asOf.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")asOf=\(Self.queryValue(asOf))"
+        }
+        if let serviceLine, !serviceLine.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")service_line=\(Self.queryValue(serviceLine))"
+        }
+        if let floor {
+            path += "\(path.contains("?") ? "&" : "?")floor=\(floor)"
+        }
+        if let demo, !demo.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")demo=\(Self.queryValue(demo))"
+        }
+        if let scenario, !scenario.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")scenario=\(Self.queryValue(scenario))"
+        }
+        if let limit {
+            path += "\(path.contains("?") ? "&" : "?")limit=\(limit)"
         }
         return path
     }
@@ -337,7 +389,8 @@ struct APIClient {
     }
 
     private static func queryValue(_ raw: String) -> String {
-        raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? raw
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        return raw.addingPercentEncoding(withAllowedCharacters: allowed) ?? raw
     }
 
     private func getEnvelope<T: Decodable>(path: String, bearer: String, as: T.Type) async throws -> Envelope<T> {
@@ -353,9 +406,13 @@ struct APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bearer { req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
-        if let body {
+        let bodyData = body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) }
+        if let idempotencyKey = Self.mobileIdempotencyKey(method: method, path: path, bodyData: bodyData) {
+            req.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        }
+        if body != nil {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+            req.httpBody = bodyData
         }
         req.timeoutInterval = 15
 
@@ -373,6 +430,17 @@ struct APIClient {
             throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
         }
         return data
+    }
+
+    internal static func mobileIdempotencyKey(method: String, path: String, bodyData: Data?) -> String? {
+        guard method.uppercased() == "POST", path.hasPrefix("/api/mobile/v1/") else { return nil }
+        let bodyString = bodyData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        let material = "\(method.uppercased())\n\(path)\n\(bodyString)"
+        let digest = SHA256.hash(data: Data(material.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+
+        return "hb-\(digest)"
     }
 
     private static func errorMessage(from data: Data, status: Int) -> String {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Analytics;
 
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -127,7 +128,7 @@ class DataQualityAgentService
                     'sourceKey' => $sourceKey,
                     'lineage' => "{$sourceName} {$freshnessColumn}",
                     'measuredValue' => $source['freshnessLabel'],
-                    'thresholdValue' => "{$source['expectedLagMinutes']}m expected / {$source['warningLagMinutes']}m warning",
+                    'thresholdValue' => DurationFormatter::minutes((float) $source['expectedLagMinutes']).' expected / '.DurationFormatter::minutes((float) $source['warningLagMinutes']).' warning',
                     'recommendedAction' => $recordCount === 0
                         ? "Confirm {$source['label']} ingestion is configured and producing records."
                         : "Review {$source['label']} source latency and upstream job health.",

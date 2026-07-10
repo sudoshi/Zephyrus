@@ -16,10 +16,13 @@ use App\Services\Flow\ForwardProjectionService;
 use App\Services\Flow\OperationalTimelineService;
 use App\Services\Flow\Spaces3dAssetService;
 use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
+use App\Services\PatientFlow\PatientFlowScenarioRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * The 48-hour Flow Window — FLOW-WINDOW-PLAN §6.4 (W4, D1).
@@ -55,6 +58,8 @@ class FlowController extends Controller
         private readonly ForwardProjectionService $projections,
         private readonly DutyProjectionService $dutyProjections,
         private readonly Spaces3dAssetService $spaces3dAsset,
+        private readonly PatientFlowOccupancyHistoryService $occupancyHistory,
+        private readonly PatientFlowScenarioRegistry $scenarios,
     ) {}
 
     public function floors(Request $request): JsonResponse
@@ -98,6 +103,42 @@ class FlowController extends Controller
             'ETag' => $etag,
             'Cache-Control' => 'private, max-age=86400',
         ]);
+    }
+
+    public function demoScenarios(): JsonResponse
+    {
+        return $this->envelope(
+            $this->scenarios->all(),
+            meta: [
+                'enabled_keys' => $this->scenarios->enabledKeys(),
+                'source_mode' => 'synthetic_demo',
+            ],
+            links: ['web' => url('/rtdc/patient-flow-navigator')],
+        );
+    }
+
+    public function occupancyHistory(Request $request): JsonResponse
+    {
+        try {
+            $roleId = $this->personas->fromRequest($request);
+            $lens = $this->lens->lensFor($roleId);
+        } catch (AuthorizationException $exception) {
+            return $this->forbidden($exception->getMessage());
+        }
+
+        try {
+            return $this->envelope(
+                $this->occupancyHistory->history($lens, $roleId, $this->historyFilters($request), $request->user()),
+                links: ['web' => url('/rtdc/patient-flow-navigator')],
+            );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_occupancy_history_window',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 422);
+        }
     }
 
     public function window(Request $request): JsonResponse
@@ -250,6 +291,21 @@ class FlowController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function historyFilters(Request $request): array
+    {
+        return [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'asOf' => $request->query('asOf'),
+            'service_line' => $request->query('service_line'),
+            'floor' => $request->query('floor'),
+            'demo' => $request->query('demo'),
+            'scenario' => $request->query('scenario'),
+            'limit' => $request->query('limit', 120),
+        ];
     }
 
     /** @return list<array<string, mixed>> census checkpoints in scope (t > since on a delta) */

@@ -93,4 +93,46 @@ class MetricValueTest extends TestCase
         $this->assertSame('88.5%', MetricValue::fromDefinition(88.5, $pctDef, $engine)->display);
         $this->assertSame('1,250', MetricValue::fromDefinition(1250.0, $this->nedocsDefinition(), $engine)->display);
     }
+
+    public function test_default_display_decomposes_elapsed_time_units(): void
+    {
+        $engine = new StatusEngine;
+
+        foreach ([
+            ['unit' => 'min', 'value' => 90.525, 'expected' => '1 hr 30 min 32 sec'],
+            ['unit' => 'hours', 'value' => 1.525, 'expected' => '1 hr 31 min 30 sec'],
+            ['unit' => 'seconds', 'value' => 90.5, 'expected' => '1 min 31 sec'],
+        ] as $case) {
+            $definition = new MetricDefinition([
+                'metric_key' => 'duration.test',
+                'label' => 'Duration',
+                'unit' => $case['unit'],
+                'direction' => 'down',
+                'warn_edge' => null,
+                'crit_edge' => null,
+            ]);
+
+            $this->assertSame(
+                $case['expected'],
+                MetricValue::fromDefinition($case['value'], $definition, $engine)->display,
+            );
+        }
+    }
+
+    public function test_avoidable_days_are_preserved_as_a_compound_bed_day_measure(): void
+    {
+        $definition = new MetricDefinition([
+            'metric_key' => 'service.avoidable_days',
+            'label' => 'Avoidable days',
+            'unit' => 'days',
+            'direction' => 'down',
+            'warn_edge' => 101,
+            'crit_edge' => 200,
+        ]);
+
+        $metric = MetricValue::fromDefinition(101.0, $definition, new StatusEngine);
+
+        $this->assertSame('101 bed-days', $metric->display);
+        $this->assertSame('bed-days', $metric->unit);
+    }
 }

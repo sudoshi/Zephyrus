@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { LineChart, Line, AreaChart, Area } from 'recharts';
 import { Clock, TrendingUp, AlertTriangle, Activity } from 'lucide-react';
 import MetricChart from '../Common/MetricChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const PredictiveAnalysis = ({ 
   cascadeData,
@@ -20,11 +21,8 @@ const PredictiveAnalysis = ({
     }));
 
     return Array.from({ length: intervals }, (_, i) => {
-      const timePoint = timeframe === 'hour' 
-        ? `${i * 5}m`
-        : timeframe === 'shift'
-        ? `${i + 1}h`
-        : `${i + 1}h`;
+      const elapsedMinutes = timeframe === 'hour' ? i * 5 : (i + 1) * 60;
+      const timePoint = formatDurationMinutes(elapsedMinutes);
 
       const predictions = baseData.map(process => {
         // Simulate impact changes over time

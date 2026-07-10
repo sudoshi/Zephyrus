@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { z } from 'zod';
+import { sourceFreshnessSchema } from '@/features/operations/sourceFreshness';
 import type {
   CreateEnterpriseWritebackDraftInput,
   CreateRegionalTransferDecisionInput,
@@ -73,10 +74,13 @@ const optionSchema = z.object({
   name: z.string(),
   type: z.string().optional(),
   available: z.number().optional(),
+  capacity: z.number().optional(),
+  busy: z.number().optional(),
   capabilities: z.array(z.string()).optional(),
 });
 
 const overviewSchema = z.object({
+  source: sourceFreshnessSchema,
   metrics: z.object({
     active: z.number(),
     at_risk: z.number(),

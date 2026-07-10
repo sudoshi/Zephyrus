@@ -75,9 +75,9 @@ class PatientFlowRebaseSyntheticCommand extends Command
 
         DB::transaction(function () use ($interval): void {
             // Every timestamp family that participates in the replay story.
-            $updated = DB::update("UPDATE flow_core.flow_events
+            $updated = DB::update('UPDATE flow_core.flow_events
                 SET occurred_at = occurred_at + ?::interval,
-                    recorded_at = recorded_at + ?::interval", [$interval, $interval]);
+                    recorded_at = recorded_at + ?::interval', [$interval, $interval]);
             $this->line("  flow_core.flow_events: {$updated} rows");
 
             $updated = DB::update('UPDATE flow_core.encounters

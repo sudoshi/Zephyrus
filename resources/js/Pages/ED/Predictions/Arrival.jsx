@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import TrendChart from '@/Components/Common/TrendChart';
+import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 // ED Arrival Prediction rebuilt on the gold-standard design system: the KPI wall
 // is one MetricGrid of KpiTiles, the forecast curve / diurnal profile / hourly
@@ -66,23 +67,23 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
     const kpiMetrics = [
         metric({
             key: 'next-12h',
-            label: kpis.next12h.label,
+            label: `Predicted arrivals (next ${formatDurationHours(12)})`,
             value: Number(kpis.next12h.value ?? 0),
             display: integerFormatter(kpis.next12h.value),
             status: 'info',
             trajectory: predicted12hSeries,
             caption: kpis.next12h.description || undefined,
-            definition: 'Total predicted ED arrivals across the next 12 hours.',
+            definition: `Total predicted ED arrivals across the next ${formatDurationHours(12)}.`,
         }),
         metric({
             key: 'next-24h',
-            label: kpis.next24h.label,
+            label: `Predicted arrivals (next ${formatDurationHours(24)})`,
             value: Number(kpis.next24h.value ?? 0),
             display: integerFormatter(kpis.next24h.value),
             status: 'info',
             trajectory: predictedSeries,
             caption: kpis.next24h.description || undefined,
-            definition: 'Total predicted ED arrivals across the next 24 hours.',
+            definition: `Total predicted ED arrivals across the next ${formatDurationHours(24)}.`,
         }),
         metric({
             key: 'peak-hour',
@@ -95,12 +96,12 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
         }),
         metric({
             key: 'current-rate',
-            label: kpis.currentRate.label,
+            label: `Arrivals (last ${formatDurationMinutes(60)})`,
             value: Number(kpis.currentRate.value ?? 0),
             display: integerFormatter(kpis.currentRate.value),
             status: 'info',
             caption: kpis.currentRate.description || undefined,
-            definition: 'Observed ED arrivals over the last 60 minutes, against the expected rate.',
+            definition: `Observed ED arrivals over the last ${formatDurationMinutes(60)}, against the expected rate.`,
         }),
     ];
 
@@ -114,8 +115,8 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                     <div className="flex items-center gap-2 rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-1.5 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
                         <Icon icon="heroicons:cpu-chip" className="h-4 w-4 text-healthcare-info dark:text-healthcare-info-dark" />
                         <span>
-                            {meta?.horizonHours ?? 24}h horizon
-                            {meta?.historyDays ? ` · ${meta.historyDays}d history` : ''}
+                            {formatDurationHours(Number(meta?.horizonHours ?? 24))} horizon
+                            {meta?.historyDays ? ` · ${formatDurationHours(Number(meta.historyDays) * 24)} history` : ''}
                         </span>
                     </div>
                 }
@@ -139,14 +140,14 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                     <Section
                         title="Forecast roll-up"
                         icon="heroicons:chart-bar-square"
-                        summary={`${meta?.horizonHours ?? 24}h horizon${meta?.historyDays ? ` · ${meta.historyDays}d history` : ''}`}
+                        summary={`${formatDurationHours(Number(meta?.horizonHours ?? 24))} horizon${meta?.historyDays ? ` · ${formatDurationHours(Number(meta.historyDays) * 24)} history` : ''}`}
                     >
                         <MetricGrid metrics={kpiMetrics} />
                     </Section>
 
                     {/* Forecast curve */}
                     <Section
-                        title={`Arrival Forecast — Next ${meta?.horizonHours ?? 24} Hours`}
+                        title={`Arrival Forecast — Next ${formatDurationHours(Number(meta?.horizonHours ?? 24))}`}
                         icon="heroicons:presentation-chart-line"
                         summary="Predicted arrivals per hour with a 90% confidence band, overlaid on the historical hourly average"
                     >
@@ -206,7 +207,7 @@ const Arrival = ({ kpis = EMPTY_KPIS, forecast = [], hourlyProfile = [], meta = 
                             className="lg:col-span-2"
                             title="Hourly Forecast Board"
                             icon="heroicons:table-cells"
-                            summary="Next 12 hours, with confidence range"
+                            summary={`Next ${formatDurationHours(12)}, with confidence range`}
                         >
                             <Panel>
                                 {hasForecast ? (

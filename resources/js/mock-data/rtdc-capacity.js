@@ -68,7 +68,7 @@ export const capacityData = {
             status: 'critical',
             details: {
                 lastUpdated: '13:55',
-                boardingTime: '6.5 hours',
+                boardingTime: '6 hr 30 min 0 sec',
                 notes: 'High boarding times, multiple critical patients'
             }
         },

@@ -19,7 +19,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     var live by mutableStateOf(false); private set
     private var bearerToken = ""
     private val realtime = RealtimeClient(
-        ApiClient.REVERB_HOST, ApiClient.REVERB_PORT, ApiClient.REVERB_KEY, "hospital.beds",
+        ApiClient.REVERB_SCHEME, ApiClient.REVERB_HOST, ApiClient.REVERB_PORT, ApiClient.REVERB_KEY, "hospital.beds",
         onEvent = { viewModelScope.launch { load(bearerToken) } },
         onState = { connected -> viewModelScope.launch { live = connected } },
     )

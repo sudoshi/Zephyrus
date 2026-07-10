@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { z } from 'zod';
+import { sourceFreshnessSchema } from '@/features/operations/sourceFreshness';
 import type {
   AssignStaffingRequestInput,
   CreateStaffingRequestInput,
   StaffingOverview,
   StaffingRequest,
   StaffingRequestStatus,
+  StaffingWorkforceDirectory,
+  StaffingWorkforceFilters,
 } from './types';
 
 const slaSchema = z.object({
@@ -65,6 +68,8 @@ const requestSchema = z.object({
   risk_flags: z.array(z.unknown()),
   resolution_payload: z.record(z.string(), z.unknown()),
   metadata: z.record(z.string(), z.unknown()),
+  is_synthetic: z.boolean(),
+  freshness_status: z.enum(['current', 'stale', 'expired']),
   sla: slaSchema,
 });
 
@@ -72,7 +77,7 @@ const coverageSchema = z.object({
   required_count: z.number(),
   available_count: z.number(),
   total_gap_headcount: z.number(),
-  coverage_pct: z.number(),
+  coverage_pct: z.number().nullable(),
   below_minimum_safe: z.number(),
 });
 
@@ -95,22 +100,83 @@ const roleGapSchema = z.object({
   available_count: z.number(),
 });
 
+const workforceMetricsSchema = z.object({
+  total_members: z.number(),
+  active_members: z.number(),
+  inactive_members: z.number(),
+  active_fte: z.number(),
+  role_count: z.number(),
+  unit_count: z.number(),
+  hospital_wide_members: z.number(),
+  synthetic_members: z.number(),
+  credential_attention: z.number(),
+  unavailable_members: z.number(),
+});
+
+const workforceRoleSchema = z.object({
+  role_code: z.string(),
+  role_label: z.string(),
+  role_category: z.string(),
+  active_count: z.number(),
+  fte: z.number(),
+});
+
+const workforceSummarySchema = z.object({
+  available: z.boolean(),
+  metrics: workforceMetricsSchema,
+  by_role: z.array(workforceRoleSchema),
+  by_employment: z.array(z.object({ key: z.string(), label: z.string(), count: z.number() })),
+  by_shift: z.array(z.object({ shift: shiftEnum, label: z.string(), count: z.number() })),
+  assumptions: z.object({
+    roster_window: z.object({ start: z.string(), end: z.string() }).nullable(),
+    annual_coverage_days: z.number(),
+    shift_hours: z.number(),
+    productive_hours_per_fte: z.number(),
+    relief_factor: z.number(),
+    not_a_regulatory_ratio: z.boolean(),
+  }).nullable(),
+});
+
+const workforceMemberSchema = z.object({
+  staff_member_id: z.number(),
+  display_name: z.string(),
+  role_code: z.string(),
+  role_label: z.string(),
+  role_category: z.string(),
+  unit_id: z.number().nullable(),
+  unit_label: z.string(),
+  service_line_code: z.string(),
+  employee_type: z.string().nullable(),
+  employment_class: z.string(),
+  fte: z.number(),
+  coverage_model: z.string().nullable(),
+  preferred_shift: shiftEnum.nullable(),
+  availability: z.string(),
+  credential_status: z.string(),
+  credentials: z.array(z.string()),
+  eligible_float_units: z.array(z.string()),
+  is_active: z.boolean(),
+  is_synthetic: z.boolean(),
+});
+
 const overviewSchema = z.object({
+  source: sourceFreshnessSchema,
   metrics: z.object({
     open_requests: z.number(),
     at_risk_units: z.number(),
     critical_gaps: z.number(),
     unfilled_requests: z.number(),
     total_gap_headcount: z.number(),
-    coverage_pct: z.number(),
+    coverage_pct: z.number().nullable(),
     stat_requests: z.number(),
   }),
   coverage: coverageSchema,
+  workforce: workforceSummarySchema,
   units_at_risk: z.array(unitAtRiskSchema),
   by_role: z.array(roleGapSchema),
   queue: z.array(requestSchema),
   resource_options: z.array(
-    z.object({ key: z.string(), name: z.string(), type: z.string(), available: z.number() }),
+    z.object({ key: z.string(), name: z.string(), type: z.string(), available: z.number().nullable() }),
   ),
 });
 
@@ -119,6 +185,19 @@ const envelope = <T>(schema: z.ZodType<T>) => z.object({ data: schema });
 export async function fetchStaffingOverview(): Promise<StaffingOverview> {
   const res = await axios.get('/api/staffing/overview');
   return envelope(overviewSchema).parse(res.data).data;
+}
+
+export async function fetchStaffingWorkforce(params: StaffingWorkforceFilters = {}): Promise<StaffingWorkforceDirectory> {
+  const res = await axios.get('/api/staffing/workforce', { params });
+  return z.object({
+    data: z.array(workforceMemberSchema),
+    meta: z.object({
+      current_page: z.number(),
+      last_page: z.number(),
+      per_page: z.number(),
+      total: z.number(),
+    }),
+  }).parse(res.data);
 }
 
 export async function fetchStaffingRequests(params: { status?: StaffingRequestStatus } = {}): Promise<StaffingRequest[]> {

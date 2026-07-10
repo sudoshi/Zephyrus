@@ -34,31 +34,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.acumenus.hummingbird.ui.components.formatOperationalOffset
 import net.acumenus.hummingbird.ui.theme.Z
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.abs
 
 private val hourFmt = DateTimeFormatter.ofPattern("HH:mm")
 
 internal fun flowClock(ms: Long): String =
     hourFmt.format(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()))
 
-/** "−4h 12m" / "+6h" style offset from now — review vs prediction at a glance. */
-internal fun flowOffsetLabel(t: Long, nowMs: Long): String {
-    val deltaMin = (t - nowMs) / 60_000L
-    if (deltaMin == 0L) return "now"
-    val sign = if (deltaMin < 0) "−" else "+"
-    val absMin = abs(deltaMin)
-    val h = absMin / 60
-    val m = absMin % 60
-    return when {
-        h == 0L -> "$sign${m}m"
-        m == 0L -> "$sign${h}h"
-        else -> "$sign${h}h ${m}m"
-    }
-}
+/** Whole-second offset from now — review vs prediction at a glance. */
+internal fun flowOffsetLabel(t: Long, nowMs: Long): String = formatOperationalOffset(t - nowMs)
 
 /** Tabular digits so time readouts don't jitter while scrubbing. */
 internal val flowTabularNums = TextStyle(fontFeatureSettings = "tnum")

@@ -2,6 +2,7 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ForecastState } from '@/types/commandCenter';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationHours } from '@/lib/duration';
 import { Panel } from './Panel';
 
 export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
@@ -30,7 +31,7 @@ export function ForecastCurve({ forecast }: { forecast: ForecastState }) {
             <YAxis domain={[60, 100]} width={28} tick={{ fontSize: 10 }} />
             <Tooltip
               formatter={((value: number, name: string) => [`${value}%`, name]) as never}
-              labelFormatter={((h: number) => `+${h}h`) as never}
+              labelFormatter={((hours: number) => `+${formatDurationHours(hours)}`) as never}
             />
             <Area type="monotone" dataKey="upperPct" stroke="none" fill="var(--info)" fillOpacity={0.18} />
             <Area type="monotone" dataKey="lowerPct" stroke="none" fill={panelFill} fillOpacity={1} />

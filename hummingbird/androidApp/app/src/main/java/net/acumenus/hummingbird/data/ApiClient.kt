@@ -2,12 +2,14 @@ package net.acumenus.hummingbird.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.acumenus.hummingbird.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.security.MessageDigest
 
 /**
  * Thin coroutine API client for the Hummingbird BFF. The Android emulator reaches the Mac
@@ -17,11 +19,11 @@ import java.net.URLEncoder
 class ApiClient(private val baseUrl: String = BASE_URL) {
 
     companion object {
-        // The Android emulator reaches the Mac host loopback via 10.0.2.2.
-        const val BASE_URL = "http://10.0.2.2:8001"
-        const val REVERB_HOST = "10.0.2.2"
-        const val REVERB_PORT = 8080
-        const val REVERB_KEY = "zephyrus-key"
+        val BASE_URL: String = BuildConfig.ZEPHYRUS_BASE_URL
+        val REVERB_SCHEME: String = BuildConfig.ZEPHYRUS_REVERB_SCHEME
+        val REVERB_HOST: String = BuildConfig.ZEPHYRUS_REVERB_HOST
+        val REVERB_PORT: Int = BuildConfig.ZEPHYRUS_REVERB_PORT
+        val REVERB_KEY: String = BuildConfig.ZEPHYRUS_REVERB_KEY
     }
 
 
@@ -250,6 +252,37 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         since: String? = null,
     ): FlowWindowData = flowWindowRaw(bearer, persona, scope, since).data
 
+    suspend fun flowDemoScenarios(bearer: String, persona: String): List<FlowDemoScenario> = withContext(Dispatchers.IO) {
+        val root = getEnvelope(withPersona("/api/mobile/v1/flow/demo-scenarios", persona), bearer)
+        root.optJSONArray("data").objects().map(::parseFlowDemoScenario)
+    }
+
+    suspend fun flowOccupancyHistory(
+        bearer: String,
+        persona: String,
+        from: String? = null,
+        to: String? = null,
+        asOf: String? = null,
+        serviceLine: String? = null,
+        floor: Int? = null,
+        demo: String? = null,
+        scenario: String? = null,
+        limit: Int? = null,
+    ): FlowOccupancyHistory = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append(withPersona("/api/mobile/v1/flow/occupancy/history", persona))
+            if (!from.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("from=").append(urlPart(from))
+            if (!to.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("to=").append(urlPart(to))
+            if (!asOf.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("asOf=").append(urlPart(asOf))
+            if (!serviceLine.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("service_line=").append(urlPart(serviceLine))
+            if (floor != null) append(if (contains('?')) '&' else '?').append("floor=").append(floor)
+            if (!demo.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("demo=").append(urlPart(demo))
+            if (!scenario.isNullOrBlank()) append(if (contains('?')) '&' else '?').append("scenario=").append(urlPart(scenario))
+            if (limit != null) append(if (contains('?')) '&' else '?').append("limit=").append(limit)
+        }
+        parseFlowOccupancyHistory(getEnvelope(path, bearer).getJSONObject("data"))
+    }
+
     /**
      * Flow window with the raw envelope text retained so the caller can persist the last
      * FULL payload to the offline cache without re-serializing the hand-parsed DTOs.
@@ -310,6 +343,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             readTimeout = 15000
             setRequestProperty("Accept", "application/json")
             bearer?.let { setRequestProperty("Authorization", "Bearer $it") }
+            mobileIdempotencyKey(method, path, body)?.let { setRequestProperty("Idempotency-Key", it) }
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
@@ -326,6 +360,15 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         } finally {
             conn.disconnect()
         }
+    }
+
+    internal fun mobileIdempotencyKey(method: String, path: String, body: String?): String? {
+        val verb = method.uppercase()
+        if (verb != "POST" || !path.startsWith("/api/mobile/v1/")) return null
+        val material = "$verb\n$path\n${body.orEmpty()}"
+        val digest = MessageDigest.getInstance("SHA-256").digest(material.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        return "hb-$digest"
     }
 
     /** The envelope's `error.code` (e.g. "invalid_since"), when present. */
@@ -817,6 +860,59 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         )
     }
 
+    private fun parseFlowDemoScenario(o: JSONObject): FlowDemoScenario = FlowDemoScenario(
+        key = o.optString("key"),
+        label = o.optStringOrNull("label") ?: o.optString("key"),
+        enabled = o.optBoolean("enabled", o.optString("status") == "enabled"),
+        historySupported = o.optBoolean("history_supported", false),
+        sourceMode = o.optStringOrNull("source_mode"),
+    )
+
+    private fun parseFlowOccupancyHistory(data: JSONObject): FlowOccupancyHistory {
+        val window = data.optJSONObject("window") ?: JSONObject()
+        val lens = data.optJSONObject("lens") ?: JSONObject()
+        val summary = data.optJSONObject("summary") ?: JSONObject()
+
+        return FlowOccupancyHistory(
+            window = FlowHistoryWindow(
+                from = window.optString("from"),
+                to = window.optString("to"),
+                limit = window.optInt("limit", 120),
+            ),
+            lens = FlowHistoryLens(
+                roleId = lens.optString("role_id"),
+                patientDots = lens.optString("patient_dots", "none"),
+                projectionKinds = lens.optJSONArray("projection_kinds").strings(),
+            ),
+            scenario = data.optStringOrNull("scenario"),
+            history = data.optJSONArray("history").objects().map(::parseFlowHistorySnapshot),
+            summary = FlowHistorySummary(
+                snapshots = summary.optInt("snapshots"),
+                activePatientCount = summary.optInt("active_patient_count"),
+                sourceMode = summary.optString("source_mode", "snapshot"),
+                redacted = summary.optBoolean("redacted", true),
+            ),
+        )
+    }
+
+    private fun parseFlowHistorySnapshot(o: JSONObject): FlowHistorySnapshot = FlowHistorySnapshot(
+        snapshotAt = o.optStringOrNull("snapshot_at"),
+        activePatientCount = o.optInt("active_patient_count"),
+        occupancyDetailCount = o.optJSONArray("occupancy_details")?.length() ?: 0,
+        timerStatusCounts = intMap(o.optJSONObject("timer_status_counts")),
+    )
+
+    private fun intMap(o: JSONObject?): Map<String, Int> {
+        if (o == null) return emptyMap()
+        val out = mutableMapOf<String, Int>()
+        val keys = o.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            out[key] = o.optInt(key)
+        }
+        return out
+    }
+
     private fun parseFlowBedStatus(o: JSONObject): FlowBedStatus = FlowBedStatus(
         bedId = o.optInt("bed_id"),
         unitId = o.optIntOrNull("unit_id"),
@@ -1135,6 +1231,20 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         o.optJSONArray("activity")?.let {
             fields += DisplayField("Activity events", "${it.length()}")
         }
+        o.optJSONObject("patient_flow_4d")?.let { flow ->
+            fields += DisplayField("Surface", humanize(flow.optString("surface", "patient_flow_4d")))
+            flow.optJSONObject("current_metrics")?.let { metrics ->
+                fields += DisplayField("Active patients", metrics.optInt("active", 0).toString())
+                fields += DisplayField("Delayed", metrics.optInt("delayed", 0).toString())
+                fields += DisplayField("Watch", metrics.optInt("watch", 0).toString())
+            }
+            flow.optJSONArray("top_barriers")?.let {
+                fields += DisplayField("Top barriers", "${it.length()}")
+            }
+            flow.optJSONObject("redaction")?.optStringOrNull("patient_dots")?.let {
+                fields += DisplayField("Patient dots", humanize(it))
+            }
+        }
         if (fields.isEmpty()) fields += safeFields(o)
         return fields
     }
@@ -1203,7 +1313,7 @@ private fun JSONObject.optIsolation(key: String): String? {
     return when (raw) {
         is Boolean -> if (raw) "isolation" else null
         JSONObject.NULL -> null
-        else -> raw.toString().takeIf { it.isNotBlank() }
+        else -> raw?.toString()?.takeIf { it.isNotBlank() }
     }
 }
 

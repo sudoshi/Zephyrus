@@ -363,7 +363,7 @@ private fun TransportJobRow(
                 Spacer(Modifier.weight(1f))
                 Text(
                     job.sla.label,
-                    color = if ((job.sla.minutesUntilDue ?: 0) < 0) CapacityStatus.CRITICAL.color else Z.inkMuted,
+                    color = if (job.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.Monospace,
@@ -407,7 +407,7 @@ private fun TransportRouteCard(job: TransportJob, status: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             JobPriorityChip(job)
             Spacer(Modifier.weight(1f))
-            Text(job.sla.label, color = if ((job.sla.minutesUntilDue ?: 0) < 0) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+            Text(job.sla.label, color = if (job.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
         }
         Text(transportRoute(job), color = Z.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

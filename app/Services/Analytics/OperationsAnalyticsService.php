@@ -8,6 +8,7 @@ use App\Services\Ops\OperationsRecommendationService;
 use App\Services\Ops\OperationsSimulationService;
 use App\Services\Rtdc\HouseCensusService;
 use App\Services\Transport\TransportOperationsService;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -702,12 +703,12 @@ class OperationsAnalyticsService
             return 'no records';
         }
 
-        $minutes = max(0, $timestamp->diffInMinutes(now()));
-        if ($minutes < 90) {
-            return "{$minutes}m ago";
+        $seconds = max(0, (int) round($timestamp->diffInSeconds(now())));
+        if ($seconds < 90 * 60) {
+            return DurationFormatter::seconds($seconds).' ago';
         }
-        if ($minutes < 60 * 48) {
-            return round($minutes / 60).'h ago';
+        if ($seconds < 60 * 60 * 48) {
+            return DurationFormatter::seconds($seconds).' ago';
         }
 
         return $timestamp->toDateString();

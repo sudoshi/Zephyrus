@@ -108,14 +108,20 @@ struct ORBoardView: View {
                 bar
                 cell("\(m.available)", "Open", tone: nil)
                 bar
-                cell("\(m.avgTurnoverMin)m", "Turnover avg", tone: nil)
+                cell(OperationalDuration.minutes(Double(m.avgTurnoverMin)), "Turnover avg", tone: nil, duration: true)
             }
         }
     }
 
-    private func cell(_ v: String, _ l: String, tone: CapacityStatus?) -> some View {
+    private func cell(_ v: String, _ l: String, tone: CapacityStatus?, duration: Bool = false) -> some View {
         VStack(spacing: 2) {
-            Text(v).font(.system(size: 24, weight: .semibold)).monospacedDigit().foregroundStyle(tone.map { Z.status($0) } ?? Z.ink)
+            Text(v)
+                .font(.system(size: duration ? 15 : 24, weight: .semibold))
+                .monospacedDigit()
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(tone.map { Z.status($0) } ?? Z.ink)
             Text(l).font(.system(size: 11)).foregroundStyle(Z.inkMuted)
         }.frame(maxWidth: .infinity)
     }
@@ -152,14 +158,18 @@ struct ORBoardView: View {
                     orStatusChip(r)
                     Spacer()
                     if let rem = r.timeRemaining, r.current != nil {
-                        Text("~\(rem)m left").font(.system(size: 13, weight: .medium)).monospacedDigit().foregroundStyle(Z.inkMuted)
+                        Text("~\(OperationalDuration.minutes(Double(rem))) left")
+                            .font(.system(size: 11, weight: .medium)).monospacedDigit().multilineTextAlignment(.trailing)
+                            .foregroundStyle(Z.inkMuted)
                     } else if let t = r.turnoverMin {
-                        Text("ready ~\(t)m").font(.system(size: 13, weight: .medium)).monospacedDigit().foregroundStyle(Z.status(.warning))
+                        Text("ready ~\(OperationalDuration.minutes(Double(t)))")
+                            .font(.system(size: 11, weight: .medium)).monospacedDigit().multilineTextAlignment(.trailing)
+                            .foregroundStyle(Z.status(.warning))
                     }
                 }
                 if let c = r.current {
                     Text(c.procedure).font(.system(size: 15, weight: .medium)).foregroundStyle(Z.ink)
-                    Text("\(c.surgeon) · \(c.elapsed)m elapsed of \(c.expectedDuration)m")
+                    Text("\(c.surgeon) · \(OperationalDuration.minutes(Double(c.elapsed))) elapsed of \(OperationalDuration.minutes(Double(c.expectedDuration)))")
                         .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
                     ProgressView(value: Double(min(c.elapsed, c.expectedDuration)), total: Double(max(c.expectedDuration, 1)))
                         .tint(Z.status(r.capacity))

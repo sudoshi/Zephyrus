@@ -2,6 +2,7 @@ import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import type { KpiMetric } from '@/Components/system';
 import { ShieldAlert, Activity } from 'lucide-react';
+import { formatDurationHours } from '@/lib/duration';
 
 /**
  * RTDC › Predictions › Risk Assessment
@@ -106,6 +107,16 @@ const TIER_LABEL: Record<TierKey, string> = {
   moderate: 'Moderate',
   low: 'Low',
 };
+
+const formatDays = (value: number) => formatDurationHours(value * 24);
+
+function formatSignals(row: WatchlistRow): readonly string[] {
+  return row.signals.map((signal) =>
+    signal.includes('over GMLOS')
+      ? `+${formatDays(row.overageDays)} over GMLOS`
+      : signal
+  );
+}
 
 function RiskBadge({ tier, risk }: { tier: TierKey; risk: number }) {
   return (
@@ -220,7 +231,7 @@ export default function RiskAssessment({
                             </div>
                             {row.signals.length > 0 && (
                               <div className="mt-0.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                {row.signals.join(' · ')}
+                                {formatSignals(row).join(' · ')}
                               </div>
                             )}
                           </td>
@@ -229,7 +240,7 @@ export default function RiskAssessment({
                             <div className="text-xs">{row.unitType}</div>
                           </td>
                           <td className="py-2 pr-3 align-top text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                            {row.losDays.toFixed(1)} / {row.gmlosDays.toFixed(1)}d
+                            {formatDays(row.losDays)} / {formatDays(row.gmlosDays)}
                           </td>
                           <td className="py-2 pl-3 align-top text-right">
                             <RiskBadge tier={row.tier} risk={row.risk} />

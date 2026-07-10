@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Icon } from '@iconify/react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import generateMockDischargeData from '@/utils/generateMockDischargeData';
+import { formatDurationHours } from '@/lib/duration';
 
 const DischargePriorities = (props) => {
   const mockData = {
@@ -98,7 +99,7 @@ const DischargePriorities = (props) => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                    LOS: {patient.los}/{patient.expectedLos} days
+                    LOS: {formatDurationHours(patient.los == null ? null : Number(patient.los) * 24)} / {formatDurationHours(patient.expectedLos == null ? null : Number(patient.expectedLos) * 24)}
                   </p>
                   <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     Unit Capacity: {patient.unitCapacity}

@@ -4,6 +4,7 @@ import MonthToDateSection from './MonthToDateSection';
 import { Icon } from '@iconify/react';
 import { syntheticData } from '../../mock-data/dashboard';
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Perioperative ("OR Manager Home") body rebuilt on the gold-standard design
 // system: the quick-stats KPI wall is now one MetricGrid of KpiTiles and the
@@ -39,8 +40,8 @@ const DashboardOverview = ({ overview = syntheticData }) => {
             definition: 'Total cases scheduled or performed today.',
         }),
         metric({
-            key: 'avg-turnover', label: 'Avg Turnover', value: 32, display: '32m',
-            status: 'critical', caption: '+4m vs. last month', goodWhenDown: true,
+            key: 'avg-turnover', label: 'Avg Turnover', value: 32, display: formatDurationMinutes(32),
+            status: 'critical', caption: `+${formatDurationMinutes(4)} vs. last month`, goodWhenDown: true,
             definition: 'Average room turnover time between cases.',
         }),
     ];

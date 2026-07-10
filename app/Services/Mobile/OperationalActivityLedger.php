@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class OperationalActivityLedger
 {
@@ -17,6 +18,34 @@ class OperationalActivityLedger
         private readonly PersonaRelayPolicy $relayPolicy,
         private readonly MobilePersonaCatalog $personas,
     ) {}
+
+    /** @return array<string, mixed>|null */
+    public function replay(string $eventType, array $attributes = []): ?array
+    {
+        if (! $this->hasReplayIdentity($attributes)) {
+            return null;
+        }
+
+        if (! Schema::hasTable('ops.operational_events')) {
+            return null;
+        }
+
+        $scope = $attributes['scope'] ?? [];
+        $actorRole = $this->actorRole($attributes);
+        $eventUuid = $this->eventUuid($eventType, $attributes, $scope, $actorRole);
+        $fingerprint = $this->idempotencyFingerprint($eventType, $attributes, $scope, $actorRole);
+
+        $event = OperationalEvent::query()
+            ->with(['targets', 'entities'])
+            ->where('event_uuid', $eventUuid)
+            ->first();
+
+        if ($event) {
+            $this->assertMatchingFingerprint($event, $fingerprint);
+        }
+
+        return $event ? $this->shape($event) : null;
+    }
 
     /** @return array<string, mixed>|null */
     public function record(string $eventType, array $attributes = []): ?array
@@ -29,9 +58,7 @@ class OperationalActivityLedger
         $status = $attributes['status'] ?? [];
         $recommendation = $attributes['recommendation'] ?? [];
         $domain = (string) ($attributes['domain'] ?? $this->domainFor($eventType));
-        $actorRole = isset($attributes['actor_role'])
-            ? $this->personas->normalize($attributes['actor_role'])
-            : null;
+        $actorRole = $this->actorRole($attributes);
         $relay = $attributes['relay'] ?? $this->relayPolicy->forEvent(
             $eventType,
             $domain,
@@ -42,10 +69,28 @@ class OperationalActivityLedger
             'push_safe' => true,
             'requires_detail_auth' => ! empty($scope['patient_ref']) || ! empty($scope['encounter_ref']),
         ], $attributes['phi_policy'] ?? []);
+        $eventUuid = $this->eventUuid($eventType, $attributes, $scope, $actorRole);
+        $fingerprint = $this->idempotencyFingerprint($eventType, $attributes, $scope, $actorRole);
 
-        return DB::transaction(function () use ($attributes, $eventType, $domain, $actorRole, $scope, $status, $recommendation, $relay, $phiPolicy): array {
+        return DB::transaction(function () use ($attributes, $eventType, $domain, $actorRole, $scope, $status, $recommendation, $relay, $phiPolicy, $eventUuid, $fingerprint): array {
+            $existing = OperationalEvent::query()
+                ->with(['targets', 'entities'])
+                ->where('event_uuid', $eventUuid)
+                ->first();
+
+            if ($existing) {
+                $this->assertMatchingFingerprint($existing, $fingerprint);
+
+                return $this->shape($existing);
+            }
+
+            $payload = $attributes['payload'] ?? [];
+            if ($fingerprint !== null) {
+                $payload['_idempotency_fingerprint'] = $fingerprint;
+            }
+
             $event = OperationalEvent::create([
-                'event_uuid' => $attributes['event_uuid'] ?? (string) Str::uuid(),
+                'event_uuid' => $eventUuid,
                 'event_type' => $eventType,
                 'occurred_at' => $attributes['occurred_at'] ?? now(),
                 'actor_user_id' => $attributes['actor_user_id'] ?? null,
@@ -57,7 +102,7 @@ class OperationalActivityLedger
                 'recommendation' => $recommendation,
                 'relay' => $relay,
                 'phi_policy' => $phiPolicy,
-                'payload' => $attributes['payload'] ?? [],
+                'payload' => $payload,
             ]);
 
             $this->storeTargets($event, $relay);
@@ -294,6 +339,101 @@ class OperationalActivityLedger
         $key = (string) config('app.key', 'zephyrus');
 
         return 'ptok_'.substr(hash_hmac('sha256', $patientRef, $key), 0, 24);
+    }
+
+    private function eventUuid(string $eventType, array $attributes, array $scope, ?string $actorRole): string
+    {
+        if (! empty($attributes['event_uuid']) && is_string($attributes['event_uuid']) && Str::isUuid($attributes['event_uuid'])) {
+            return $attributes['event_uuid'];
+        }
+
+        $key = $attributes['idempotency_key'] ?? null;
+        if (! is_string($key) || trim($key) === '') {
+            return (string) Str::uuid();
+        }
+
+        $hash = hash('sha256', implode('|', [
+            'hummingbird-mobile-ledger',
+            $eventType,
+            (string) ($attributes['actor_user_id'] ?? ''),
+            (string) $actorRole,
+            (string) ($attributes['source_surface'] ?? 'hummingbird'),
+            json_encode($this->idempotencyScope($scope), JSON_THROW_ON_ERROR),
+            mb_substr(trim($key), 0, 200),
+        ]));
+
+        return sprintf(
+            '%s-%s-5%s-%s%s-%s',
+            substr($hash, 0, 8),
+            substr($hash, 8, 4),
+            substr($hash, 13, 3),
+            dechex((hexdec($hash[16]) & 0x3) | 0x8),
+            substr($hash, 17, 3),
+            substr($hash, 20, 12),
+        );
+    }
+
+    private function actorRole(array $attributes): ?string
+    {
+        return isset($attributes['actor_role'])
+            ? $this->personas->normalize($attributes['actor_role'])
+            : null;
+    }
+
+    private function hasReplayIdentity(array $attributes): bool
+    {
+        if (! empty($attributes['event_uuid']) && is_string($attributes['event_uuid']) && Str::isUuid($attributes['event_uuid'])) {
+            return true;
+        }
+
+        $key = $attributes['idempotency_key'] ?? null;
+
+        return is_string($key) && trim($key) !== '';
+    }
+
+    private function idempotencyFingerprint(string $eventType, array $attributes, array $scope, ?string $actorRole): ?string
+    {
+        if (! $this->hasReplayIdentity($attributes)) {
+            return null;
+        }
+
+        return hash('sha256', json_encode([
+            'event_type' => $eventType,
+            'actor_user_id' => (string) ($attributes['actor_user_id'] ?? ''),
+            'actor_role' => (string) $actorRole,
+            'source_surface' => (string) ($attributes['source_surface'] ?? 'hummingbird'),
+            'scope' => $this->idempotencyScope($scope),
+            'request' => $attributes['idempotency_payload'] ?? [
+                'status' => $attributes['status'] ?? [],
+                'recommendation' => $attributes['recommendation'] ?? [],
+                'payload' => $attributes['payload'] ?? [],
+            ],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    private function assertMatchingFingerprint(OperationalEvent $event, ?string $fingerprint): void
+    {
+        $existing = $event->payload['_idempotency_fingerprint'] ?? null;
+
+        if ($fingerprint !== null && is_string($existing) && $existing !== $fingerprint) {
+            throw new ConflictHttpException('Idempotency-Key was already used for a different mobile write payload.');
+        }
+    }
+
+    private function idempotencyScope(array $scope): array
+    {
+        return collect($scope)
+            ->only([
+                'action_uuid',
+                'approval_uuid',
+                'barrier_id',
+                'bed_request_id',
+                'evs_request_id',
+                'staffing_request_id',
+                'transport_request_id',
+            ])
+            ->sortKeys()
+            ->all();
     }
 
     private function entityRefForPayload(string $entityType, string $entityRef): ?string

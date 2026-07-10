@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\Demo\OperationalDemoDataService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -122,8 +123,8 @@ class DemoTuningSeeder extends Seeder
         DB::update("
             UPDATE prod.transport_requests
             SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*150) - 40)||' minutes')::interval
-            WHERE is_deleted = false AND status NOT IN ('completed', 'canceled', 'failed')
-        ");
+            WHERE requested_by = ? AND is_deleted = false AND status NOT IN ('completed', 'canceled', 'failed')
+        ", [OperationalDemoDataService::OWNER]);
         DB::update("
             UPDATE prod.evs_requests
             SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 30)||' minutes')::interval
@@ -131,44 +132,14 @@ class DemoTuningSeeder extends Seeder
         ");
     }
 
-    /** 5. (Re)build today's staffing plans (UTC date) from the latest prior day, with real gaps. */
+    /** 5. Keep only the scenario-owned staffing request targets near the current rehearsal window. */
     private function staffingToday(): void
     {
-        DB::delete("DELETE FROM prod.staffing_plans WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today'");
-
-        DB::insert("
-            INSERT INTO prod.staffing_plans
-              (plan_uuid, unit_id, unit_label, role, shift_date, shift, required_count, scheduled_count,
-               actual_count, minimum_safe_count, census, ratio_target, status, notes, created_at, updated_at, is_deleted)
-            SELECT gen_random_uuid(), unit_id, unit_label, role, (now() AT TIME ZONE 'UTC')::date, shift,
-                   required_count, scheduled_count, actual_count, minimum_safe_count, census, ratio_target,
-                   'balanced', 'demo-today', now(), now(), false
-            FROM prod.staffing_plans
-            WHERE shift_date = (
-                SELECT max(shift_date) FROM prod.staffing_plans
-                WHERE shift_date < (now() AT TIME ZONE 'UTC')::date AND (notes IS DISTINCT FROM 'demo-today')
-            )
-        ");
-
-        DB::update("
-            UPDATE prod.staffing_plans
-            SET scheduled_count = greatest(required_count - 2, 0), actual_count = greatest(required_count - 2, 0),
-                minimum_safe_count = greatest(required_count - 1, 1), status = 'critical_gap'
-            WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today' AND role = 'rn'
-              AND unit_id IN (SELECT unit_id FROM prod.units WHERE abbreviation = 'MICU')
-        ");
-        DB::update("
-            UPDATE prod.staffing_plans
-            SET scheduled_count = greatest(required_count - 1, 0), actual_count = greatest(required_count - 1, 0),
-                minimum_safe_count = greatest(required_count - 1, 1), status = 'gap'
-            WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today' AND role = 'rn'
-              AND unit_id IN (SELECT unit_id FROM prod.units WHERE abbreviation IN ('6E', 'SICU', '7E'))
-        ");
         DB::update("
             UPDATE prod.staffing_requests
             SET needed_by = (now() AT TIME ZONE 'UTC') + ((floor(random()*180) - 30)||' minutes')::interval
-            WHERE status IN ('requested', 'open', 'sourcing', 'escalated')
-        ");
+            WHERE requested_by = ? AND status IN ('requested', 'open', 'sourcing', 'escalated')
+        ", [OperationalDemoDataService::OWNER]);
     }
 
     /** 6. Round-robin the four flagship attendings across the anchor day so the board varies. */

@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
+import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 // ED Resource Analytics rebuilt on the gold-standard design system: the KPI wall
 // is one MetricGrid of KpiTiles, the occupancy / throughput charts and the
@@ -21,6 +22,8 @@ const ESI_BADGE = {
     4: 'bg-healthcare-info/15 text-healthcare-info dark:text-healthcare-info-dark',
     5: 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark',
 };
+
+const formatBedHours = (value) => `${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} bed-hr`;
 
 // Occupancy band -> status token + label. Earned urgency: only sustained
 // crowding (>=90%) reads critical; <50% reads as comfortable headroom.
@@ -151,8 +154,9 @@ export default function Resources({
                 key: 'bed-hours',
                 label: 'Bed-Hours Used',
                 value: Number(kpis.bedHours ?? 0),
+                display: formatBedHours(kpis.bedHours),
                 status: 'info',
-                caption: `last ${kpis.windowHours}h`,
+                caption: `last ${formatDurationHours(kpis.windowHours ?? null)}`,
                 definition: 'Total occupied bed-hours consumed across the window.',
             }),
             metric({
@@ -160,7 +164,7 @@ export default function Resources({
                 label: 'Arrivals',
                 value: Number(kpis.totalArrivals ?? 0),
                 status: 'info',
-                caption: `last ${kpis.windowHours}h`,
+                caption: `last ${formatDurationHours(kpis.windowHours ?? null)}`,
                 definition: 'ED arrivals registered in the window.',
             }),
             metric({
@@ -168,7 +172,7 @@ export default function Resources({
                 label: 'Departures',
                 value: Number(kpis.totalDischarges ?? 0),
                 status: 'info',
-                caption: `last ${kpis.windowHours}h`,
+                caption: `last ${formatDurationHours(kpis.windowHours ?? null)}`,
                 definition: 'Completed ED departures (discharge or admit) in the window.',
             }),
             metric({
@@ -184,7 +188,7 @@ export default function Resources({
                 key: 'median-los',
                 label: 'Median LOS',
                 value: Number(kpis.avgLos ?? 0),
-                display: `${kpis.avgLos} min`,
+                display: formatDurationMinutes(kpis.avgLos ?? null),
                 status: kpis.avgLos > 240 ? 'warning' : 'success',
                 goodWhenDown: true,
                 caption: 'completed visits',
@@ -198,7 +202,7 @@ export default function Resources({
             <Head title="Resource Analytics - Emergency" />
             <PageContentLayout
                 title="ED Resource Analytics"
-                subtitle="Utilization, occupancy, and throughput over the last 12 hours"
+                subtitle={`Utilization, occupancy, and throughput over the last ${formatDurationHours(12)}`}
             >
                 {!kpis ? (
                     <Panel className="p-4">
@@ -210,7 +214,7 @@ export default function Resources({
                         <Section
                             title="Capacity & throughput"
                             icon="heroicons:squares-2x2"
-                            summary={`Occupancy, flow, and turnover · last ${kpis.windowHours}h`}
+                            summary={`Occupancy, flow, and turnover · last ${formatDurationHours(kpis.windowHours ?? null)}`}
                         >
                             <MetricGrid metrics={kpiMetrics} />
                         </Section>
@@ -263,7 +267,7 @@ export default function Resources({
                         <Section
                             title="Bed-Hours by Acuity"
                             icon="heroicons:rectangle-stack"
-                            summary={`Occupied bed-hours consumed per ESI tier over the last ${kpis.windowHours} hours`}
+                            summary={`Occupied bed-hours consumed per ESI tier over the last ${formatDurationHours(kpis.windowHours ?? null)}`}
                         >
                             <Panel className="p-4">
                                 {hasBedHours ? (
@@ -299,7 +303,7 @@ export default function Resources({
                                                             {row.visits}
                                                         </td>
                                                         <td className="px-4 py-3 text-right text-sm font-medium tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                            {row.bedHours.toLocaleString()}
+                                                            {formatBedHours(row.bedHours)}
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center space-x-3">

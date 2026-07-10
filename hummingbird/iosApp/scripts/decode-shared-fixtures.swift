@@ -69,7 +69,7 @@ enum DecodeSharedFixtures {
                     "EVS flow window bed status vocabulary drifted.")
 
         let flowFloors = try decode("mobile-flow-floors.json", as: Envelope<FlowFloorsDocument>.self, root: root, decoder: decoder)
-        try require(flowFloors.data.version == "v1-2b3e9f90ad5d", "Flow floors plates version drifted.")
+        try require(flowFloors.data.version == "v1-a8f91dc9a9e4", "Flow floors plates version drifted.")
         try require(flowFloors.data.floors.first?.spaces.count == 4, "Flow floors plate count drifted.")
         try require(flowFloors.data.floors.first?.bounds.count == 4, "Flow floors bounds shape drifted.")
         try require(flowFloors.data.floors.contains { floor in floor.spaces.contains { $0.bedId == 693 && $0.rect.count == 4 } },

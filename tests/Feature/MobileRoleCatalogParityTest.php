@@ -418,7 +418,8 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringNotContainsString('patient_ref', $capacityScreen);
 
         $this->assertStringContainsString("BedRequest::pending()->orderBy('created_at')->get()", $rtdcController);
-        $this->assertStringContainsString("\$this->ledger->record(\$validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected'", $rtdcController);
+        $this->assertStringContainsString("\$eventType = \$validated['action'] === 'accepted' ? 'bed_request.placed' : 'recommendation.rejected'", $rtdcController);
+        $this->assertStringContainsString('$this->ledger->record($eventType', $rtdcController);
         $this->assertStringContainsString("'status' => \$fresh->status", $rtdcController);
     }
 

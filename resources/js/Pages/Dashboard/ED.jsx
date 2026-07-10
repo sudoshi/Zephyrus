@@ -8,6 +8,7 @@ import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import AlertsAndPredictions from '@/Components/ED/AlertsAndPredictions';
 import ResourceManagement from '@/Components/ED/ResourceManagement';
 import { edMetrics, performanceMetrics, patientStatusBoard, alertsData } from '@/mock-data/ed';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Emergency Department workflow dashboard, rebuilt on the gold-standard design
 // system. The top-line department + performance numbers form one MetricGrid hero
@@ -16,6 +17,18 @@ import { edMetrics, performanceMetrics, patientStatusBoard, alertsData } from '@
 // Resource Management and Alerts/Predictions composites keep their own surfaces.
 // All values flow from live props (edMetrics / performanceMetrics / board /
 // alerts); mock-data is only the dev fallback — nothing is fabricated here.
+
+const formatMinutes = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationMinutes(null);
+    const minutes = Number(value);
+
+    return formatDurationMinutes(Number.isFinite(minutes) ? minutes : null);
+};
+const formatTargetTime = (value) => {
+    const minutes = Number.parseFloat(value);
+
+    return Number.isFinite(minutes) ? formatDurationMinutes(minutes) : value;
+};
 
 const EDDashboard = ({
     edMetrics: edMetricsProp = edMetrics,
@@ -53,14 +66,14 @@ const EDDashboard = ({
         metric({
             key: 'waiting-room', label: 'Waiting room', value: Number(cs.waitingRoom),
             status: waitingStatus, goodWhenDown: true, trajectory: waitTrajectory,
-            caption: `${cs.averageWaitTime} min avg wait`,
+            caption: `${formatMinutes(cs.averageWaitTime)} avg wait`,
             definition: 'Patients in the waiting room awaiting a treatment space.',
         }),
         metric({
             key: 'door-to-provider', label: 'Door to provider', value: Number(perf.doorToProvider.current),
-            display: `${perf.doorToProvider.current} min`, status: d2pStatus, goodWhenDown: true,
-            target: Number(perf.doorToProvider.target), targetDisplay: `${perf.doorToProvider.target} min target`,
-            caption: `${perf.doorToProvider.trend === 'up' ? '+' : '-'}${perf.doorToProvider.trendValue} min vs prior`,
+            display: formatMinutes(perf.doorToProvider.current), status: d2pStatus, goodWhenDown: true,
+            target: Number(perf.doorToProvider.target), targetDisplay: `${formatMinutes(perf.doorToProvider.target)} target`,
+            caption: `${perf.doorToProvider.trend === 'up' ? '+' : '-'}${formatMinutes(Math.abs(Number(perf.doorToProvider.trendValue) || 0))} vs prior`,
             definition: 'Median time from arrival to first provider contact.',
         }),
         metric({
@@ -114,7 +127,7 @@ const EDDashboard = ({
                                                 {data.count} patients
                                             </span>
                                             <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
-                                                Target: {data.targetTime}
+                                                Target: {formatTargetTime(data.targetTime)}
                                             </span>
                                         </div>
                                     </div>
@@ -142,6 +155,8 @@ const EDDashboard = ({
                                             dataKey: 'hour',
                                             type: 'category',
                                         }}
+                                        yAxis={{ formatter: formatMinutes }}
+                                        tooltip={{ formatter: formatMinutes }}
                                     />
                                 </div>
                             </Panel>
@@ -185,7 +200,7 @@ const EDDashboard = ({
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-sm tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    {patient.waitTime} min
+                                                    {formatMinutes(patient.waitTime)}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {patient.nextAction}

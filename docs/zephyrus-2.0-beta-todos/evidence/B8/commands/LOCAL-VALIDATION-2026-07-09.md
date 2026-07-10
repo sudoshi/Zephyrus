@@ -1,0 +1,62 @@
+# Local Validation - 2026-07-09
+
+date: 2026-07-09
+cwd: `/home/smudoshi/Github/Zephyrus`
+branch: `feat/hummingbird-4d-service-line-eddy`
+commit: `fe78ba2` post-review hardening tranche
+environment: local development checkout
+
+## Passed Commands
+
+| Command | Exit | Result |
+| --- | --- | --- |
+| `git diff --check` | 0 | No whitespace errors |
+| `git diff --name-only -- '*.php' | xargs -r php -l` | 0 | Changed PHP files parse cleanly |
+| `git diff --name-only -- '*.php' | xargs -r ./vendor/bin/pint --test` | 0 | 22 changed PHP files style-clean after scoped Pint fix |
+| `php artisan route:list --path=api/patient-flow` | 0 | 13 Patient Flow routes, including `demo-scenarios` and `occupancy/history` |
+| `php artisan test` | 0 | 1 skipped, 661 passed, 6810 assertions |
+| `php artisan test --filter=ApiAuthorizationTest` | 0 | 5 tests, 59 assertions |
+| `php artisan test --filter=ApiRouteSmokeTest` | 0 | 4 tests, 94 assertions |
+| `php artisan test --filter=PatientFlowApiTest` | 0 | 3 tests, 167 assertions |
+| `php artisan test --filter=FlowWindowTest` | 0 | 22 tests, 811 assertions |
+| `php artisan test --filter=MobileBackendSafetyTest` | 0 | 17 tests, 244 assertions |
+| `php artisan test --filter=EddyActionTest` | 0 | 10 tests, 109 assertions |
+| `php artisan test --filter=SyntheticHealthcareConnectorTest` | 0 | 9 tests, 74 assertions |
+| `php artisan test --filter='MobileBackendSafetyTest|FlowWindowTest|PatientFlowApiTest|EddyActionTest|ApiAuthorizationTest|ApiRouteSmokeTest' --compact` | 0 | 70 tests, 1566 assertions after recursive Patient Flow redaction and role-spelling regressions |
+| `npm run test` | 0 | 61 test files, 277 tests |
+| `npm run test:e2e` | 0 | 2 skipped, 16 passed before post-review auth UI fix |
+| `npx playwright test tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --reporter=line` | 0 | 17 passed, 2 skipped after post-review auth UI fix |
+| `npx playwright test tests/e2e/navigation.spec.ts tests/e2e/rtdc-huddle.spec.ts --project=chromium` | 0 | 11/11 targeted Chromium E2E tests passed |
+| `./scripts/check-ui-canon.sh` | 0 | Passed with existing arbitrary-line-height warnings only |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew test` | 0 | Android unit tests pass |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew assembleDebug` | 0 | Android debug APK build passes |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew testDebugUnitTest` | 0 | Android debug unit tests pass after release/debug transport split |
+| `cd hummingbird/androidApp && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew assembleRelease` | 0 | Android release APK build passes with HTTPS/WSS defaults |
+| `npm run build` | 0 | Production Vite build passes with existing large-chunk warnings |
+
+## Corrected Validation Error
+
+An attempted parallel run of `EddyActionTest` and `SyntheticHealthcareConnectorTest` failed with Laravel `RefreshDatabase` migration races and PostgreSQL deadlocks. Both suites passed when rerun sequentially. Do not run DB-refresh feature suites in parallel against the same test database.
+
+## Corrected Harness Issues
+
+- `resources/views/app.blade.php` no longer asks Vite for a page-specific `.jsx` asset beside the TypeScript Inertia entrypoint. This fixed local production-build page boot failures for TSX-backed pages.
+- Playwright now runs serially with one worker because `php artisan serve`, SSE streams, and shared session/database state are not safe under high-concurrency E2E execution.
+- E2E specs now use the actual login/demo route behavior, block long-lived cockpit streams where appropriate, and close the command palette with Escape.
+- The local E2E harness requires a valid `APP_KEY` and `DB_*` values pinned into the `php artisan serve` process when shell/dotenv state would otherwise resolve to defaults. The final post-review run used file sessions, the configured PostgreSQL database, and production-built assets.
+- `Login.jsx` now renders `errors.general`, matching `LoginRequest::authenticate()` failed-credential responses.
+- Android Gradle/Kotlin on this checkout requires Java 17 locally; the default OpenJDK 25 runtime fails Gradle/Kotlin version parsing.
+
+## Not Run Or Known-Limited
+
+- `xcodegen generate` and `xcodebuild`, because `swift`, `xcodebuild`, and `xcodegen` were unavailable on this Linux host.
+- Production `./deploy.sh` subsequently passed from a clean, current branch at commit `fe78ba2`; deployment evidence is archived under `evidence/B8/deploy/DEPLOYMENT-RESULT-2026-07-09.md`.
+- iOS compile/build validation after post-review APIClient changes remains blocked by the same missing macOS/Xcode toolchain.
+
+## Requirements Covered
+
+- `PRD-GATE-AUTO-001`
+- `PRD-GATE-AUTO-002`
+- `PRD-GATE-AUTO-003`
+- `PRD-HB-006` for Android only
+- `PRD-GATE-AUTO-004` for Android only

@@ -95,7 +95,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     {
         $this->enableCopilot();
         $this->seedBottleneck();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $result = app(ArenaCopilotService::class)->draftPdsa($user, 'bottleneck');
 
@@ -116,7 +116,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     {
         $this->enableCopilot();
         $this->seedConformance('sepsis', 'quality.sepsis_conformance', 48.3, 60, 31);
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $result = app(ArenaCopilotService::class)->draftCorrection($user, 'sepsis');
 

@@ -14,6 +14,7 @@ import org.json.JSONObject
  * Foreground real-time tier — the app still polls as a fallback.
  */
 class RealtimeClient(
+    private val scheme: String,
     private val host: String,
     private val port: Int,
     private val key: String,
@@ -40,7 +41,7 @@ class RealtimeClient(
 
     private fun connect() {
         if (!running) return
-        val url = "ws://$host:$port/app/$key?protocol=7&client=hummingbird-android&version=1.0"
+        val url = "$scheme://$host:$port/app/$key?protocol=7&client=hummingbird-android&version=1.0"
         ws = client.newWebSocket(Request.Builder().url(url).build(), object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
                 val obj = runCatching { JSONObject(text) }.getOrNull() ?: return

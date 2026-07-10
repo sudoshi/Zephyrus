@@ -25,7 +25,7 @@ const Panel = ({
             {title}
           </h2>
           {headerRight && (
-            <div className="flex items-center">
+            <div className="panel-label-control flex items-center text-base">
               {headerRight}
             </div>
           )}

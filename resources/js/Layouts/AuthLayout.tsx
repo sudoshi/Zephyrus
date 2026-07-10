@@ -25,7 +25,7 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Zephyrus guest/auth shell — "split-elegant" cinematic sign-in.
- * Full-bleed hummingbird slideshow → left brand panel (aurora + headline +
+ * Full-bleed wind/wave slideshow → left brand panel (aurora + headline +
  * domain map + capability pills) → right glass card (per-page `children`).
  * Dark-only; visuals come from the scoped `.zauth` stylesheet in
  * resources/css/auth.css.
@@ -133,7 +133,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           <div className="za-brand-bottom">
             <span className="za-dot" />
-            <span>Acumenus Data Sciences &middot; Wellstack.ai</span>
+            <span>Acumenus Data Sciences</span>
           </div>
         </section>
 

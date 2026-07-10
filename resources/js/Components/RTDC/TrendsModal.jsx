@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import { trendUtils } from '@/mock-data/rtdc-trends';
 import { services, serviceCategories } from '@/mock-data/rtdc';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const timeRanges = [
     { id: '24h', label: 'Last 24 Hours' },
@@ -108,7 +109,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
         return {
             min: Math.min(...values),
             max: Math.max(...values),
-            avg: Math.round(values.reduce((a, b) => a + b, 0) / values.length),
+            avg: values.reduce((a, b) => a + b, 0) / values.length,
             peak: sortedData.reduce((peak, point) => 
                 point.value > peak.value ? point : peak
             , sortedData[0]),
@@ -317,14 +318,15 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 xAxis={{ dataKey: 'time' }}
                                                 yAxis={{ 
                                                     domain: ['auto', 'auto'],
-                                                    label: 'Minutes'
+                                                    label: 'Duration',
+                                                    formatter: (value) => formatDurationMinutes(Number(value)),
                                                 }}
                                                 referenceLines={[
                                                     {
                                                         y: 60,
                                                         color: 'rgb(34, 197, 94)',
                                                         strokeDasharray: '3 3',
-                                                        label: 'Goal: 60 min'
+                                                        label: `Goal: ${formatDurationMinutes(60)}`
                                                     }
                                                 ]}
                                             />
@@ -338,7 +340,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                         Time
                                                     </th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                        Wait Time (min)
+                                                        Wait Duration
                                                     </th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                         Status
@@ -352,7 +354,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                             {new Date(point.time).toLocaleTimeString()}
                                                         </td>
                                                         <td className="px-4 py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                            {point.value}
+                                                            {formatDurationMinutes(point.value)}
                                                         </td>
                                                         <td className="px-4 py-2">
                                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -388,7 +390,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                     Average Wait Time
                                                 </dt>
                                                 <dd className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    {stats?.avg} min
+                                                    {formatDurationMinutes(stats?.avg)}
                                                 </dd>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
@@ -397,7 +399,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                         Min
                                                     </dt>
                                                     <dd className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                        {stats?.min} min
+                                                        {formatDurationMinutes(stats?.min)}
                                                     </dd>
                                                 </div>
                                                 <div>
@@ -405,7 +407,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                         Max
                                                     </dt>
                                                     <dd className="text-lg font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                        {stats?.max} min
+                                                        {formatDurationMinutes(stats?.max)}
                                                     </dd>
                                                 </div>
                                             </div>
@@ -472,7 +474,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 Critical
                                             </span>
                                             <span className="text-sm font-medium text-healthcare-critical dark:text-healthcare-critical-dark">
-                                                &gt; 120 min
+                                                &gt; {formatDurationMinutes(120)}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -480,7 +482,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 Warning
                                             </span>
                                             <span className="text-sm font-medium text-healthcare-warning dark:text-healthcare-warning-dark">
-                                                90-120 min
+                                                {formatDurationMinutes(90)} - {formatDurationMinutes(120)}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -488,7 +490,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 Moderate
                                             </span>
                                             <span className="text-sm font-medium text-healthcare-warning dark:text-healthcare-warning-dark">
-                                                60-90 min
+                                                {formatDurationMinutes(60)} - {formatDurationMinutes(90)}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -496,7 +498,7 @@ const TrendsModal = ({ isOpen, onClose, data, units }) => {
                                                 Normal
                                             </span>
                                             <span className="text-sm font-medium text-healthcare-success dark:text-healthcare-success-dark">
-                                                &lt; 60 min
+                                                &lt; {formatDurationMinutes(60)}
                                             </span>
                                         </div>
                                     </div>

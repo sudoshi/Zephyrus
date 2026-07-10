@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, Play, Route, Send, UserPlus, XCircle } from 'lucide-react';
 import type { CreateTransportRequestInput, TransportPriority, TransportRequest, TransportRequestType, TransportStatus } from '@/features/transport/types';
+import { formatRelativeDurationMinutes } from '@/lib/duration';
 
 export const typeLabels: Record<TransportRequestType, string> = {
   inpatient: 'Inpatient',
@@ -71,6 +72,9 @@ export function TransportRequestRow({
   onStatus?: (request: TransportRequest, status: TransportStatus) => void;
 }) {
   const canMove = !['completed', 'canceled', 'failed'].includes(request.status);
+  const slaLabel = request.sla.minutes_until_due === null
+    ? request.sla.label
+    : formatRelativeDurationMinutes(request.sla.minutes_until_due);
 
   return (
     <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -97,7 +101,7 @@ export function TransportRequestRow({
             <span>{request.destination}</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            <span className={request.sla.at_risk ? 'font-semibold text-healthcare-critical dark:text-healthcare-critical-dark' : ''}>{request.sla.label}</span>
+            <span className={request.sla.at_risk ? 'font-semibold text-healthcare-critical dark:text-healthcare-critical-dark' : ''}>{slaLabel}</span>
             {request.assigned_team ? <span>Team: {request.assigned_team}</span> : null}
             {request.assigned_vendor ? <span>Vendor: {request.assigned_vendor}</span> : null}
             {request.clinical_service ? <span>Service: {request.clinical_service}</span> : null}

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -59,6 +60,222 @@ class MobileBackendSafetyTest extends TestCase
             ->assertOk();
 
         $this->assertOneOperationalEvent('barrier.resolved', $user, 'charge_nurse', 'barrier');
+    }
+
+    public function test_mobile_idempotency_key_replay_does_not_duplicate_activity_ledger_rows(): void
+    {
+        $user = $this->actingAsMobile(['mobile:read', 'mobile:act']);
+        $barrier = Barrier::create([
+            'category' => 'placement',
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        $path = "/api/mobile/v1/rtdc/barriers/{$barrier->barrier_id}/resolve?persona=charge_nurse";
+        $headers = ['Idempotency-Key' => 'mobile-replay-barrier-resolution-1'];
+
+        $this->withHeaders($headers)->postJson($path)->assertOk();
+        $this->withHeaders($headers)->postJson($path)->assertOk();
+
+        $this->assertSame('resolved', $barrier->fresh()->status);
+
+        $event = $this->assertOneOperationalEvent('barrier.resolved', $user, 'charge_nurse', 'barrier');
+        $this->assertSame($event->event_uuid, OperationalEvent::query()->first()?->event_uuid);
+    }
+
+    public function test_mobile_idempotency_key_replay_does_not_duplicate_domain_audit_rows(): void
+    {
+        $user = $this->actingAsMobile(['mobile:read', 'mobile:act']);
+
+        $bedRequest = BedRequest::create([
+            'patient_ref' => 'SECRET-MRN-BED-REPLAY',
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $bedPath = "/api/mobile/v1/rtdc/bed-requests/{$bedRequest->bed_request_id}/decision?persona=bed_manager";
+        $bedHeaders = ['Idempotency-Key' => 'mobile-replay-bed-reject-1'];
+        $bedBody = ['action' => 'rejected', 'reason' => 'No staffed destination.'];
+
+        $this->withHeaders($bedHeaders)->postJson($bedPath, $bedBody)->assertOk();
+        $this->withHeaders($bedHeaders)->postJson($bedPath, $bedBody)->assertOk();
+
+        $this->assertSame(1, DB::table('prod.bed_placement_decisions')
+            ->where('bed_request_id', $bedRequest->bed_request_id)
+            ->count());
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'recommendation.rejected')->count());
+
+        $transport = $this->transportRequest(['status' => 'requested']);
+        $transportPath = "/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport";
+        $transportHeaders = ['Idempotency-Key' => 'mobile-replay-transport-assign-1'];
+        $transportBody = ['status' => 'assigned', 'assigned_team' => 'Mobile transport'];
+
+        $this->withHeaders($transportHeaders)->postJson($transportPath, $transportBody)->assertOk();
+        $this->withHeaders($transportHeaders)->postJson($transportPath, $transportBody)->assertOk();
+
+        $this->assertSame(1, DB::table('prod.transport_events')
+            ->where('transport_request_id', $transport->transport_request_id)
+            ->count());
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'transport.claimed')->count());
+
+        $evs = $this->evsRequest(['status' => 'requested']);
+        $evsPath = "/api/mobile/v1/evs/requests/{$evs->evs_request_id}/status?persona=evs";
+        $evsHeaders = ['Idempotency-Key' => 'mobile-replay-evs-assign-1'];
+        $evsBody = ['status' => 'assigned', 'assigned_team' => 'EVS mobile'];
+
+        $this->withHeaders($evsHeaders)->postJson($evsPath, $evsBody)->assertOk();
+        $this->withHeaders($evsHeaders)->postJson($evsPath, $evsBody)->assertOk();
+
+        $this->assertSame(1, DB::table('prod.evs_events')
+            ->where('evs_request_id', $evs->evs_request_id)
+            ->count());
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'evs.claimed')->count());
+
+        $staffing = StaffingRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_label' => '3 West',
+            'role' => 'rn',
+            'shift_date' => now()->toDateString(),
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'urgent',
+            'status' => 'requested',
+            'headcount_needed' => 1,
+            'is_deleted' => false,
+        ]);
+        $staffingPath = "/api/mobile/v1/staffing/requests/{$staffing->staffing_request_id}/fill?persona=staffing_coordinator";
+        $staffingHeaders = ['Idempotency-Key' => 'mobile-replay-staffing-fill-1'];
+        $staffingBody = ['assigned_source' => 'float_pool', 'owner_name' => 'Float pool lead'];
+
+        $this->withHeaders($staffingHeaders)->postJson($staffingPath, $staffingBody)->assertOk();
+        $this->withHeaders($staffingHeaders)->postJson($staffingPath, $staffingBody)->assertOk();
+
+        $this->assertSame(2, DB::table('prod.staffing_events')
+            ->where('staffing_request_id', $staffing->staffing_request_id)
+            ->count());
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'staffing.request_filled')->count());
+
+        $approval = $this->approvalFor($user, source: 'rules');
+        $approvalPath = "/api/mobile/v1/ops/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead";
+        $approvalHeaders = ['Idempotency-Key' => 'mobile-replay-approval-approve-1'];
+        $approvalBody = ['decision' => 'approved', 'reason' => 'Matches current plan.'];
+
+        $this->withHeaders($approvalHeaders)->postJson($approvalPath, $approvalBody)->assertOk();
+        $this->withHeaders($approvalHeaders)->postJson($approvalPath, $approvalBody)->assertOk();
+
+        $this->assertSame('approved', $approval->fresh()->status);
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'recommendation.approved')->count());
+    }
+
+    public function test_mobile_idempotency_key_rejects_same_key_different_payload_before_mutation(): void
+    {
+        $this->actingAsMobile(['mobile:read', 'mobile:act']);
+        $transport = $this->transportRequest(['status' => 'requested']);
+        $path = "/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=transport";
+        $headers = ['Idempotency-Key' => 'mobile-replay-transport-conflict-1'];
+
+        $this->withHeaders($headers)->postJson($path, [
+            'status' => 'assigned',
+            'assigned_team' => 'Team A',
+        ])->assertOk();
+
+        $this->withHeaders($headers)->postJson($path, [
+            'status' => 'assigned',
+            'assigned_team' => 'Team B',
+        ])->assertStatus(409);
+
+        $this->assertSame(1, DB::table('prod.transport_events')
+            ->where('transport_request_id', $transport->transport_request_id)
+            ->count());
+        $this->assertSame(1, OperationalEvent::query()->where('event_type', 'transport.claimed')->count());
+    }
+
+    public function test_mobile_ops_approvals_require_capacity_lead_persona(): void
+    {
+        $transportUser = $this->actingAsPersonaMobile(['mobile:read', 'mobile:act'], 'transport');
+        $approval = $this->approvalFor($transportUser, source: 'rules');
+
+        $this->getJson('/api/mobile/v1/ops/inbox?persona=transport')
+            ->assertForbidden();
+
+        $this->postJson("/api/mobile/v1/ops/approvals/{$approval->approval_uuid}/decision?persona=transport", [
+            'decision' => 'approved',
+        ])->assertForbidden();
+
+        $this->assertSame('pending', $approval->fresh()->status);
+
+        $this->actingAsPersonaMobile(['mobile:read', 'mobile:act'], 'capacity_lead');
+
+        $this->getJson('/api/mobile/v1/ops/inbox?persona=capacity_lead')
+            ->assertOk()
+            ->assertJsonPath('data.0.approval_uuid', $approval->approval_uuid);
+
+        $this->postJson("/api/mobile/v1/ops/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead", [
+            'decision' => 'approved',
+        ])->assertOk();
+
+        $this->assertSame('approved', $approval->fresh()->status);
+    }
+
+    public function test_mobile_write_routes_require_matching_persona(): void
+    {
+        $this->actingAsMobile(['mobile:read', 'mobile:act']);
+
+        $bedRequest = BedRequest::create([
+            'patient_ref' => 'SECRET-MRN-WRITE-GATE',
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $this->postJson("/api/mobile/v1/rtdc/bed-requests/{$bedRequest->bed_request_id}/decision?persona=transport", [
+            'action' => 'rejected',
+            'reason' => 'Wrong persona should not decide.',
+        ])->assertForbidden();
+        $this->assertSame('pending', $bedRequest->fresh()->status);
+        $this->assertSame(0, DB::table('prod.bed_placement_decisions')->count());
+
+        $barrier = Barrier::create([
+            'category' => 'placement',
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+        $this->postJson("/api/mobile/v1/rtdc/barriers/{$barrier->barrier_id}/resolve?persona=transport")
+            ->assertForbidden();
+        $this->assertSame('open', $barrier->fresh()->status);
+
+        $transport = $this->transportRequest(['status' => 'requested']);
+        $this->postJson("/api/mobile/v1/transport/requests/{$transport->transport_request_id}/status?persona=evs", [
+            'status' => 'assigned',
+            'assigned_team' => 'Wrong team',
+        ])->assertForbidden();
+        $this->assertSame('requested', $transport->fresh()->status);
+
+        $evs = $this->evsRequest(['status' => 'requested']);
+        $this->postJson("/api/mobile/v1/evs/requests/{$evs->evs_request_id}/status?persona=transport", [
+            'status' => 'assigned',
+            'assigned_team' => 'Wrong team',
+        ])->assertForbidden();
+        $this->assertSame('requested', $evs->fresh()->status);
+
+        $staffing = StaffingRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_label' => '3 West',
+            'role' => 'rn',
+            'shift_date' => now()->toDateString(),
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'urgent',
+            'status' => 'requested',
+            'headcount_needed' => 1,
+            'is_deleted' => false,
+        ]);
+        $this->postJson("/api/mobile/v1/staffing/requests/{$staffing->staffing_request_id}/fill?persona=transport", [
+            'assigned_source' => 'float_pool',
+        ])->assertForbidden();
+        $this->assertSame('requested', $staffing->fresh()->status);
+        $this->assertSame(0, OperationalEvent::query()->count());
     }
 
     public function test_transport_status_and_handoff_writes_emit_exactly_one_operational_event_each(): void
@@ -172,6 +389,7 @@ class MobileBackendSafetyTest extends TestCase
         ]);
 
         $this->mock(OperationalActivityLedger::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('replay')->once()->andReturn(null);
             $mock->shouldReceive('record')->once()->andThrow(new RuntimeException('ledger unavailable'));
         });
 
@@ -187,6 +405,7 @@ class MobileBackendSafetyTest extends TestCase
         $transport = $this->transportRequest(['status' => 'requested']);
 
         $this->mock(OperationalActivityLedger::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('replay')->once()->andReturn(null);
             $mock->shouldReceive('record')->once()->andThrow(new RuntimeException('ledger unavailable'));
         });
 
@@ -308,6 +527,63 @@ class MobileBackendSafetyTest extends TestCase
             $this->assertStringNotContainsString($rawEncounterRef, $body);
             $this->assertStringNotContainsString('ops:approve', $body);
         }
+    }
+
+    public function test_eddy_context_packet_includes_patient_flow_4d_context_for_flow_scopes(): void
+    {
+        $this->assertSame(0, Artisan::call('facility:import-catalog', [
+            'path' => base_path('tests/Fixtures/facility/model_catalog_fixture.json'),
+            '--facility-code' => 'ZEPHYRUS-500',
+            '--facility-name' => 'Mobile Eddy Flow Context Facility',
+            '--source-name' => 'mobile-eddy-flow-context-catalog',
+            '--map-operational' => true,
+        ]));
+        config([
+            'patient_flow.demo_barriers_enabled' => true,
+            'patient_flow.demo_barriers_replace_replay' => true,
+        ]);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+
+        $bedManager = $this->getJson('/api/mobile/v1/eddy/context/house?persona=bed_manager')
+            ->assertOk()
+            ->assertJsonPath('data.scope_type', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.surface', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.role.id', 'bed_manager')
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.patient_identifiers_included', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'context' => [
+                        'patient_flow_4d' => [
+                            'current_metrics',
+                            'top_barriers' => [['barrier_code', 'label', 'owner_role', 'eddy_summary']],
+                            'barrier_owner_map',
+                            'recommended_focus_areas',
+                            'source_lineage' => ['timer_sources', 'demo_scenario', 'generated_from'],
+                            'action_allowlist',
+                        ],
+                    ],
+                ],
+            ])
+            ->json('data.context.patient_flow_4d');
+
+        $this->assertNotEmpty($bedManager['top_barriers']);
+        $this->assertContains('draft_huddle_summary', $bedManager['action_allowlist']);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'executive');
+
+        $executiveBody = $this->getJson('/api/mobile/v1/eddy/context/house?persona=executive')
+            ->assertOk()
+            ->assertJsonPath('data.scope_type', 'patient_flow_4d')
+            ->assertJsonPath('data.context.patient_flow_4d.role.id', 'executive')
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.patient_identifiers_included', false)
+            ->assertJsonPath('data.context.patient_flow_4d.redaction.aggregate_only', true)
+            ->getContent();
+
+        $this->assertStringNotContainsString('"patient_id"', $executiveBody);
+        $this->assertStringNotContainsString('"patient_display_id"', $executiveBody);
+        $this->assertStringNotContainsString('"encounter_id"', $executiveBody);
+        $this->assertStringNotContainsString('DEMO-FLOW-', $executiveBody);
     }
 
     public function test_scoped_user_cannot_spoof_an_unassigned_persona(): void

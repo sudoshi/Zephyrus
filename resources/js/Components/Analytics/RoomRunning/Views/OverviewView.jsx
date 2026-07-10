@@ -4,6 +4,7 @@ import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import { useDarkMode } from '@/Contexts/DarkModeContext';
 import getChartTheme from '@/utils/chartTheme';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const OverviewView = ({ filters, data }) => {
   const mockRoomRunning = data;
@@ -361,7 +362,7 @@ const OverviewView = ({ filters, data }) => {
           </Panel>
           
           <Panel title="Avg. Case Duration" isSubpanel dropLightIntensity="medium">
-            <div className="text-2xl font-semibold">{locationData.averageCaseDuration} min</div>
+            <div className="text-2xl font-semibold">{formatDurationMinutes(locationData.averageCaseDuration)}</div>
             <p className="text-xs text-muted-foreground">Average case duration</p>
           </Panel>
         </div>

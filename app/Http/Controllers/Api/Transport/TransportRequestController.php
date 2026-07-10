@@ -23,7 +23,7 @@ class TransportRequestController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $page = $this->transport->list($request->only(['request_type', 'status', 'priority']));
+        $page = $this->transport->list($request->only(['request_type', 'status', 'priority', 'scope']));
 
         return response()->json([
             'data' => collect($page->items())->map(fn (TransportRequest $transportRequest) => $this->transport->serializeRequest($transportRequest))->values(),

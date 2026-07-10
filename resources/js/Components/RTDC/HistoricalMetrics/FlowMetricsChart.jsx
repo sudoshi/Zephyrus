@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const FlowMetricsChart = ({ data }) => {
     const currentData = data[data.length - 1];
@@ -57,12 +58,9 @@ const FlowMetricsChart = ({ data }) => {
                                 <span className="text-sm font-medium">{metric.label}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-1">
-                                    <span className="text-xl font-semibold">{Math.round(metric.current)}</span>
-                                    <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                        {metric.unit}
-                                    </span>
-                                </div>
+                                <span className="text-xl font-semibold tabular-nums">
+                                    {formatDurationMinutes(Number(metric.current))}
+                                </span>
                                 <div className={`flex items-center space-x-1 text-sm ${
                                     metric.trend > 0 
                                         ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
@@ -97,7 +95,7 @@ const FlowMetricsChart = ({ data }) => {
                                 }),
                         }}
                         yAxis={{
-                            formatter: (value) => `${Math.round(value)}m`,
+                            formatter: (value) => formatDurationMinutes(Number(value)),
                         }}
                     />
             </Card.Content>

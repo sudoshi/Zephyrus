@@ -6,6 +6,7 @@ import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationHours } from '@/lib/duration';
 
 /**
  * ED › Predictions › Acuity Prediction
@@ -158,7 +159,7 @@ export default function Acuity({
     const kpiMetrics = [
         metric({
             key: 'predicted-arrivals', label: 'Predicted arrivals', value: Number(kpis.predictedArrivals ?? 0),
-            status: 'info', caption: `Next ${kpis.horizonHours} hours`,
+            status: 'info', caption: `Next ${formatDurationHours(kpis.horizonHours ?? null)}`,
             definition: 'Forecast patient arrivals over the prediction horizon.',
         }),
         metric({
@@ -185,7 +186,7 @@ export default function Acuity({
             <Head title="Acuity Prediction - Emergency" />
             <PageContentLayout
                 title="Acuity Prediction"
-                subtitle="Predicted ESI acuity mix for incoming patients over the next 4 hours"
+                subtitle={`Predicted ESI acuity mix for incoming patients over the next ${formatDurationHours(Number(kpis.horizonHours ?? 4))}`}
                 headerContent={
                     <div className="flex items-center space-x-2 rounded-lg bg-healthcare-background dark:bg-healthcare-background-dark px-3 py-2">
                         <Icon
@@ -207,7 +208,7 @@ export default function Acuity({
                     <Section
                         title="Acuity forecast"
                         icon="heroicons:cpu-chip"
-                        summary={`Next ${kpis.horizonHours} hours · calibrated on ${kpis.sampleSize} visits`}
+                        summary={`Next ${formatDurationHours(kpis.horizonHours ?? null)} · calibrated on ${kpis.sampleSize} visits`}
                     >
                         <MetricGrid metrics={kpiMetrics} />
                     </Section>

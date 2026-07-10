@@ -148,8 +148,8 @@ struct StaffingView: View {
                 HStack(spacing: Z.s2) {
                     priorityChip(r)
                     Spacer()
-                    Text(slaLabel(r.sla)).font(.system(size: 12, weight: .medium)).monospacedDigit()
-                        .foregroundStyle((r.sla.minutesUntilDue ?? 0) < 0 ? Z.status(.critical) : Z.inkMuted)
+                    Text(r.sla.label).font(.system(size: 12, weight: .medium)).monospacedDigit()
+                        .foregroundStyle(r.sla.atRisk ? Z.status(.critical) : Z.inkMuted)
                 }
                 Text("\(r.roleLabel ?? "Staff") · \(r.unitLabel ?? "—")").font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
                 NavigationLink {
@@ -185,13 +185,6 @@ struct StaffingView: View {
         .padding(.horizontal, Z.s2).padding(.vertical, Z.s1)
         .background(Capsule().fill(Z.status(r.capacity).opacity(0.15)))
         .overlay(Capsule().strokeBorder(Z.status(r.capacity).opacity(0.35), lineWidth: 1))
-    }
-
-    /// Round the (float) minutes-until-due to a clean label (the service surfaces it unrounded).
-    private func slaLabel(_ s: EvsSla) -> String {
-        guard let m = s.minutesUntilDue else { return "No target" }
-        let mins = Int(m.rounded())
-        return mins < 0 ? "\(abs(mins))m overdue" : "\(mins)m remaining"
     }
 
     private func sectionLabel(_ t: String) -> some View {

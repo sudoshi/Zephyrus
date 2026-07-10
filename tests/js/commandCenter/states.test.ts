@@ -32,11 +32,11 @@ describe('relativeTimeFrom', () => {
   });
 
   it('ages into minutes', () => {
-    expect(relativeTimeFrom('2026-06-22T12:00:00Z', base + 3 * 60_000)).toBe('3 min ago');
+    expect(relativeTimeFrom('2026-06-22T12:00:00Z', base + 3 * 60_000)).toBe('3 min 0 sec ago');
   });
 
   it('ages into hours', () => {
-    expect(relativeTimeFrom('2026-06-22T12:00:00Z', base + 2 * 3_600_000)).toBe('2 hr ago');
+    expect(relativeTimeFrom('2026-06-22T12:00:00Z', base + 2 * 3_600_000)).toBe('2 hr 0 min 0 sec ago');
   });
 
   it('degrades gracefully on an unparseable timestamp', () => {

@@ -13,6 +13,7 @@ import {
 import { Button } from '@/Components/ui/button';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 import DarkModeToggle from '@/Components/Common/DarkModeToggle';
+import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 // Icons (using lucide-react)
 import { 
@@ -849,7 +850,7 @@ export const SurgicalTimeline = ({
                 {surgicalCase.time}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {surgicalCase.duration} mins
+                {formatDurationMinutes(surgicalCase.duration)}
               </p>
             </div>
           </div>
@@ -1299,7 +1300,12 @@ export const CaseDurationAnalysis = ({
             textAnchor="end"
             height={80}
           />
-          <YAxis yAxisId="time" label={{ value: 'Duration (min)', angle: -90, position: 'insideLeft' }}/>
+          <YAxis
+            yAxisId="time"
+            width={110}
+            tickFormatter={(value) => formatDurationMinutes(Number(value))}
+            label={{ value: 'Duration', angle: -90, position: 'insideLeft' }}
+          />
           <YAxis yAxisId="cases" orientation="right" label={{ value: 'Cases', angle: 90, position: 'insideRight' }}/>
           <Tooltip
             contentStyle={{ 
@@ -1308,7 +1314,9 @@ export const CaseDurationAnalysis = ({
               borderRadius: '0.375rem',
               color: 'rgb(243, 244, 246)'
             }}
-            formatter={(val) => `${val}`}
+            formatter={(value, name) => name === 'Case Count'
+              ? `${value}`
+              : formatDurationMinutes(Number(value))}
           />
           <Legend />
           <Bar yAxisId="time" dataKey="planned" fill="#3B82F6" name="Planned Duration" />
@@ -1615,7 +1623,7 @@ export const ORStatusBoard = ({
                 </div>
                 <div>
                   <span className="text-gray-600 dark:text-gray-400">Duration: </span>
-                  <span className="text-gray-900 dark:text-gray-100">{room.duration} min</span>
+                  <span className="text-gray-900 dark:text-gray-100">{formatDurationMinutes(room.duration)}</span>
                 </div>
               </div>
               {room.progress !== undefined && (
@@ -2524,7 +2532,7 @@ export default function DesignCardsPage() {
     metrics: [
       { label: 'Cases', value: '245', trend: 'up', change: '+12%' },
       { label: 'Utilization', value: '85%', trend: 'up', change: '+5%' },
-      { label: 'Turnover Time', value: '25m', trend: 'down', change: '-3m' },
+      { label: 'Turnover Time', value: formatDurationMinutes(25), trend: 'down', change: formatDurationMinutes(-3) },
       { label: 'First Case Delay', value: '8%', trend: 'neutral', change: '0%' }
     ]
   };
@@ -2547,9 +2555,9 @@ export default function DesignCardsPage() {
     trend: 2.5,
     details: [
       { label: 'Total Cases', value: '245' },
-      { label: 'Avg Duration', value: '125 min' },
+      { label: 'Avg Duration', value: formatDurationMinutes(125) },
       { label: 'First Case On-Time', value: '92%' },
-      { label: 'Turnover Time', value: '25 min' }
+      { label: 'Turnover Time', value: formatDurationMinutes(25) }
     ]
   };
   const surgeonData = Array.from({ length: 20 }, (_, i) => ({
@@ -2565,9 +2573,9 @@ export default function DesignCardsPage() {
       revenue: 2500000,
       growth: 12,
       metrics: [
-        { label: 'Avg Duration', value: '120 min' },
+        { label: 'Avg Duration', value: formatDurationMinutes(120) },
         { label: 'Utilization', value: '85%' },
-        { label: 'Turnover', value: '25 min' }
+        { label: 'Turnover', value: formatDurationMinutes(25) }
       ]
     },
     {
@@ -2576,9 +2584,9 @@ export default function DesignCardsPage() {
       revenue: 1800000,
       growth: -5,
       metrics: [
-        { label: 'Avg Duration', value: '90 min' },
+        { label: 'Avg Duration', value: formatDurationMinutes(90) },
         { label: 'Utilization', value: '78%' },
-        { label: 'Turnover', value: '22 min' }
+        { label: 'Turnover', value: formatDurationMinutes(22) }
       ]
     }
   ];
@@ -2688,8 +2696,8 @@ export default function DesignCardsPage() {
     },
     {
       metric: 'Turnover Time',
-      value: '32 min',
-      expected: '25-30 min',
+      value: formatDurationMinutes(32),
+      expected: `${formatDurationMinutes(25)} - ${formatDurationMinutes(30)}`,
       deviation: 15,
       severity: 'medium',
       trend: 'up'
@@ -2732,7 +2740,7 @@ export default function DesignCardsPage() {
       impact: 10,
       description: 'Reschedule staff shifts to align with predicted peak demand',
       actions: [
-        'Move shift start times by 30 min for Team B',
+        `Move shift start times by ${formatDurationMinutes(30)} for Team B`,
         'Add on-call staff for Monday AM high demand',
       ]
     },
@@ -2889,7 +2897,7 @@ export default function DesignCardsPage() {
         />
         <MetricCard
           title="Avg LOS"
-          value="3.2 days"
+          value={formatDurationHours(3.2 * 24)}
           change="-5.1%"
           trend="down"
         />

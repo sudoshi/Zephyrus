@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Icon } from '@iconify/react';
 import { Alert, AlertDescription } from "@/Components/ui/Alert";
+import { formatDurationMinutes } from '@/lib/duration';
 
 const StatusDot = ({ status, pulse = false }) => {
   const colors = {
@@ -133,7 +134,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 <div className="grid grid-cols-2 gap-1">
                   <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Expected Duration:</span>
                   <span className="tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                    {procedure.expectedDuration} mins
+                    {formatDurationMinutes(procedure.expectedDuration)}
                   </span>
                 </div>
               </div>
@@ -172,7 +173,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Journey so far</span>
                   <span className="tabular-nums block text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                    {procedure.journey} mins
+                    {formatDurationMinutes(procedure.journey)}
                   </span>
                 </div>
               </div>
@@ -264,11 +265,11 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Transport Time</span>
-                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">12 mins</p>
+                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDurationMinutes(12)}</p>
                 </div>
                 <div className="bg-healthcare-background dark:bg-healthcare-background-dark p-3 rounded-lg">
                   <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Duration</span>
-                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">55 mins</p>
+                  <p className="tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDurationMinutes(55)}</p>
                 </div>
               </div>
 
@@ -278,7 +279,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                 </h3>
                 <div className="flex justify-between text-sm">
                   <span className="text-healthcare-info dark:text-healthcare-info-dark">Duration:</span>
-                  <span className="tabular-nums text-healthcare-info-dark dark:text-healthcare-info-light">8 mins</span>
+                  <span className="tabular-nums text-healthcare-info-dark dark:text-healthcare-info-light">{formatDurationMinutes(8)}</span>
                 </div>
               </div>
 

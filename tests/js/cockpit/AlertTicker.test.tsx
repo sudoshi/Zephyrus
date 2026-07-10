@@ -60,6 +60,6 @@ describe('AlertTicker', () => {
       openedAt: new Date(Date.now() - 25 * 60_000).toISOString(),
     }];
     render(<AlertTicker alerts={opened} />);
-    expect(screen.getByText('25m')).toBeInTheDocument();
+    expect(screen.getByText('25 min 0 sec')).toBeInTheDocument();
   });
 });

@@ -5,11 +5,14 @@ import { parseTime, positionFor } from '@/features/patientFlowNavigator/statePro
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
 import type { ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
 import type {
+  OccupancyInsight,
+  OccupancyTimerStatus,
   PatientFlowEvent,
   PatientFlowLocations,
   PatientVisibleState,
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
+import { formatDurationMinutes, formatRelativeDurationMinutes } from '@/lib/duration';
 
 /**
  * Three.js scene lifecycle for the 4D Navigator — no React in here.
@@ -86,11 +89,17 @@ export class NavigatorScene {
 
   private heatMultiMaterial: THREE.MeshStandardMaterial;
 
+  private occupancyMaterials = new Map<OccupancyTimerStatus, THREE.MeshStandardMaterial>();
+
+  private timerPipMaterials = new Map<OccupancyTimerStatus, THREE.MeshStandardMaterial>();
+
   private tokenGeometry = new THREE.SphereGeometry(1.65, 18, 12);
 
   private ghostGeometry = new THREE.SphereGeometry(1.45, 14, 10);
 
-  private heatGeometry = new THREE.CylinderGeometry(1.9, 1.9, 1, 18, 1);
+  private heatGeometry = new THREE.CylinderGeometry(2.7, 2.7, 0.18, 40, 1);
+
+  private timerPipGeometry = new THREE.CylinderGeometry(0.28, 0.28, 0.42, 12, 1);
 
   private forecastGeometry = new THREE.CylinderGeometry(2.6, 2.6, 1, 18, 1);
 
@@ -300,33 +309,98 @@ export class NavigatorScene {
     }
   }
 
-  /** Bucketed rebuild: census-heat pillars. Returns occupied-location count. */
-  rebuildHeat(states: PatientVisibleState[], locations: PatientFlowLocations, layerVisible: boolean): number {
+  /** Bucketed rebuild: overhead occupancy disks with stay/timer state. */
+  rebuildHeat(insights: OccupancyInsight[], layerVisible: boolean): number {
     this.clearGroup(this.heatLayer);
     if (!layerVisible) return 0;
 
-    const occupancy = new Map<string, number>();
-    for (const state of states) {
-      const loc = state.event.to_location;
-      if (loc) occupancy.set(loc, (occupancy.get(loc) ?? 0) + 1);
-    }
+    const stackByLocation = new Map<string, number>();
 
-    for (const [loc, count] of occupancy.entries()) {
-      const position = positionFor(locations, loc);
-      if (!position) continue;
-      const marker = new THREE.Mesh(this.heatGeometry, count > 1 ? this.heatMultiMaterial : this.heatSingleMaterial);
-      marker.position.set(position.x, position.y + 2 + count * 0.42, position.z);
-      marker.scale.set(1 + count * 0.12, Math.max(1, count * 1.2), 1 + count * 0.12);
+    for (const insight of insights) {
+      const stack = stackByLocation.get(insight.location) ?? 0;
+      stackByLocation.set(insight.location, stack + 1);
+      const stayHours = insight.stayMinutes / 60;
+      const radiusScale = Math.min(2.25, 0.78 + Math.sqrt(Math.max(0.25, stayHours)) * 0.2);
+      const marker = new THREE.Mesh(this.heatGeometry, this.occupancyMaterialFor(insight.primaryStatus));
+      marker.position.set(insight.position.x, insight.position.y + 3.5 + stack * 0.34, insight.position.z);
+      marker.scale.set(radiusScale, 1, radiusScale);
       marker.userData = {
         kind: 'occupancy-marker',
-        location: loc,
-        active_patient_count: count,
-        location_name: locations[loc]?.name,
+        location: insight.location,
+        location_name: insight.locationName,
+        service_line: insight.serviceLine,
+        unit: insight.unitCode,
+        stay_duration: formatDurationMinutes(insight.stayMinutes),
+        arrived_at: insight.arrivedAt,
+        came_from: insight.cameFrom,
+        next_move: insight.nextMove,
+        next_move_at: insight.nextMoveAt,
+        status: insight.primaryStatus,
+        blockers: insight.blockers.join(', '),
+        barrier_reasons: insight.barrierReasons?.join(' | '),
+        barrier_codes: insight.barrierCodes?.join(', '),
+        barrier_labels: insight.barrierLabels?.join(' | '),
+        owner_roles: insight.ownerRoles?.join(', '),
+        delay_impacts: insight.delayImpacts?.join(' | '),
+        rtdc_metrics: insight.rtdcMetrics?.join(', '),
+        eddy_summaries: insight.eddySummaries?.join(' | '),
+        timers: insight.timers.map((timer) => {
+          const target = timer.minutesRemaining === null
+            ? 'No target'
+            : formatRelativeDurationMinutes(timer.minutesRemaining);
+          const status = target.toLowerCase().endsWith(timer.status.toLowerCase()) ? '' : ` ${timer.status}`;
+
+          return `${timer.label}: ${target}${status}${timer.reason ? ` because ${timer.reason}` : ''}`;
+        }).join(' | '),
+        ...Object.fromEntries(
+          insight.timers.slice(0, 6).map((timer, index) => [
+            `timer_${index + 1}`,
+            `${timer.label}${timer.dueAt ? ` due ${timer.dueAt}` : ''}${timer.minutesRemaining !== null ? ` (${formatRelativeDurationMinutes(timer.minutesRemaining)})` : ''} · ${timer.status} · ${timer.source}${timer.reason ? ` · ${timer.reason}` : ''}`,
+          ]),
+        ),
+        ...(insight.patientDisplayId ? { patient_display_id: insight.patientDisplayId } : {}),
+        ...(insight.patientId ? { patient_id: insight.patientId } : {}),
+        ...(insight.encounterId ? { encounter_id: insight.encounterId } : {}),
+        ...(insight.patientContextRef ? { patient_context_ref: insight.patientContextRef } : {}),
       };
       this.heatLayer.add(marker);
+
+      insight.timers.slice(0, 4).forEach((timer, index) => {
+        const angle = (index / 4) * Math.PI * 2 + Math.PI / 4;
+        const distance = 3.25 * radiusScale;
+        const pip = new THREE.Mesh(this.timerPipGeometry, this.timerPipMaterialFor(timer.status));
+        pip.position.set(
+          insight.position.x + Math.cos(angle) * distance,
+          insight.position.y + 3.92 + stack * 0.34,
+          insight.position.z + Math.sin(angle) * distance,
+        );
+        pip.userData = {
+          kind: 'occupancy-timer',
+          location: insight.location,
+          timer: timer.label,
+          due_at: timer.dueAt,
+          time_to_target: timer.minutesRemaining === null
+            ? 'No target'
+            : formatRelativeDurationMinutes(timer.minutesRemaining),
+          status: timer.status,
+          source: timer.source,
+          reason: timer.reason,
+          barrier_code: timer.barrierCode,
+          barrier_label: timer.barrierLabel,
+          barrier_category: timer.barrierCategory,
+          owner_role: timer.ownerRole,
+          blocks: timer.blocks,
+          impact: timer.impact,
+          rtdc_metrics: timer.rtdcMetrics?.join(', '),
+          eddy_summary: timer.eddySummary,
+          recommended_focus: timer.recommendedFocus,
+          ...(insight.patientDisplayId ? { patient_display_id: insight.patientDisplayId } : {}),
+        };
+        this.heatLayer.add(pip);
+      });
     }
 
-    return occupancy.size;
+    return stackByLocation.size;
   }
 
   /**
@@ -416,11 +490,14 @@ export class NavigatorScene {
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());
     this.forecastMaterials.forEach((material) => material.dispose());
+    this.occupancyMaterials.forEach((material) => material.dispose());
+    this.timerPipMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
     this.tokenGeometry.dispose();
     this.ghostGeometry.dispose();
     this.heatGeometry.dispose();
+    this.timerPipGeometry.dispose();
     this.forecastGeometry.dispose();
     this.orbit.dispose();
     this.renderer.dispose();
@@ -506,6 +583,41 @@ export class NavigatorScene {
     return material;
   }
 
+  private occupancyMaterialFor(status: OccupancyTimerStatus): THREE.MeshStandardMaterial {
+    let material = this.occupancyMaterials.get(status);
+    if (!material) {
+      const color = status === 'delayed' ? 0xf06755 : status === 'watch' ? 0xe0a33f : 0x77c06f;
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive: status === 'delayed' ? 0x5a140d : status === 'watch' ? 0x4a3210 : 0x143d17,
+        transparent: true,
+        opacity: status === 'ok' ? 0.58 : 0.74,
+        roughness: 0.52,
+        metalness: 0,
+        depthWrite: false,
+      });
+      this.occupancyMaterials.set(status, material);
+    }
+    return material;
+  }
+
+  private timerPipMaterialFor(status: OccupancyTimerStatus): THREE.MeshStandardMaterial {
+    let material = this.timerPipMaterials.get(status);
+    if (!material) {
+      const color = status === 'delayed' ? 0xff8a75 : status === 'watch' ? 0xffd166 : 0x93e088;
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: status === 'ok' ? 0.18 : 0.42,
+        transparent: true,
+        opacity: 0.88,
+        depthWrite: false,
+      });
+      this.timerPipMaterials.set(status, material);
+    }
+    return material;
+  }
+
   /**
    * Remove children of a group, disposing only per-mesh geometries (trail
    * lines). Shared geometries and all materials are cached (patientMaterials /
@@ -519,6 +631,7 @@ export class NavigatorScene {
       if (child.geometry && child.geometry !== this.tokenGeometry
         && child.geometry !== this.ghostGeometry
         && child.geometry !== this.heatGeometry
+        && child.geometry !== this.timerPipGeometry
         && child.geometry !== this.forecastGeometry) {
         child.geometry.dispose();
       }

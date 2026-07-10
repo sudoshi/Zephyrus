@@ -12,6 +12,7 @@ use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
 use App\Support\Hospital\HospitalManifest;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -144,7 +145,7 @@ class FlowMetrics extends BaseMetrics
 
         $wait = $measures->get('request_to_pickup_min')['value'] ?? null;
 
-        return $wait !== null ? round((float) $wait, 1) : null;
+        return $wait !== null ? (float) $wait : null;
     }
 
     /**
@@ -168,7 +169,7 @@ class FlowMetrics extends BaseMetrics
         return [
             'avg' => $stats['avg_min'],
             'sub' => $stats['p90_min'] !== null
-                ? "p90 {$stats['p90_min']} min · {$stats['completed']} turns"
+                ? 'p90 '.DurationFormatter::minutes((float) $stats['p90_min'])." · {$stats['completed']} turns"
                 : null,
         ];
     }

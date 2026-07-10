@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react';
 import CaseForm from './CaseForm';
 import { mockCases, mockReferenceData } from '@/mock-data/cases';
 import { mockServices } from '@/mock-data/dashboard';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const CaseList = () => {
     const [cases, setCases] = useState(mockCases);
@@ -179,7 +180,7 @@ const CaseList = () => {
                                             })}
                                         </div>
                                         <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            {Math.round(orCase.estimated_duration / 60)} hrs
+                                            {formatDurationMinutes(orCase.estimated_duration)}
                                         </div>
                                     </div>
                                 </td>

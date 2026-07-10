@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { usePage } from '@inertiajs/react';
 import { TopNavbar } from '@/Components/Navigation/TopNavbar';
@@ -7,6 +7,10 @@ import { TopNavbar } from '@/Components/Navigation/TopNavbar';
 // CommandPalette pulls in cmdk; stub it to keep this test focused on the bar.
 vi.mock('@/components/ui/CommandPalette', () => ({
   CommandPalette: () => null,
+}));
+
+vi.mock('@/Components/cockpit/ScopePicker', () => ({
+  ScopePicker: () => null,
 }));
 
 function mockPage(overrides: Record<string, unknown>) {
@@ -21,56 +25,57 @@ function mockPage(overrides: Record<string, unknown>) {
 describe('TopNavbar', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders the brand link, the Cockpit home link, and the non-admin domain triggers', () => {
+  it('renders only the section-level desktop controls', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
     expect(screen.getByRole('link', { name: /^Zephyrus$/ })).toHaveAttribute('href', '/dashboard');
-    // COCKPIT is a plain link (the one home), not a dropdown trigger.
-    expect(screen.getByRole('link', { name: /Cockpit/ })).toHaveAttribute('href', '/dashboard');
-    for (const label of [
-      'RTDC',
-      'Emergency',
-      'Perioperative',
-      'Transport',
-      'Staffing',
-      'Patient Flow',
-      'Analytics',
-      'Improvement',
-    ]) {
+    expect(screen.getByRole('button', { name: /^Cockpit$/ })).toHaveAttribute('aria-current', 'page');
+    for (const label of ['Workspaces', 'Study']) {
       expect(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') })).toBeInTheDocument();
     }
-  });
-
-  it('renders the four altitude sections as labelled groups (P4a)', () => {
-    mockPage({ is_admin: true });
-    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
-    for (const section of ['Cockpit', 'Workspaces', 'Study', 'Admin']) {
-      expect(screen.getByRole('group', { name: section })).toBeInTheDocument();
+    for (const oldTopLevelDomain of ['RTDC', 'Emergency', 'Transport', 'Patient Flow', 'Analytics']) {
+      expect(screen.queryByRole('button', { name: new RegExp(`^${oldTopLevelDomain}$`, 'i') }))
+        .not.toBeInTheDocument();
     }
   });
 
-  it('renders the RoleSwitcher as persistent chrome (P4a)', () => {
+  it('renders the RoleSwitcher inside the Cockpit menu', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Cockpit$/ }));
     expect(screen.getByRole('tablist', { name: /view/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Executive/ })).toBeInTheDocument();
   });
 
-  it('hides the Admin trigger for non-admins', () => {
+  it('keeps Admin out of the primary bar for every user', () => {
     mockPage({ is_admin: false });
-    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    const { rerender } = render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    expect(screen.queryByRole('button', { name: /^Admin$/ })).not.toBeInTheDocument();
+
+    mockPage({ is_admin: true });
+    rerender(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
     expect(screen.queryByRole('button', { name: /^Admin$/ })).not.toBeInTheDocument();
   });
 
-  it('shows the Admin trigger for admins', () => {
-    mockPage({ is_admin: true });
-    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
-    expect(screen.getByRole('button', { name: /Admin/i })).toBeInTheDocument();
+  it('shows Integrations only from the server capability', () => {
+    mockPage({ is_admin: true, can: { view_integrations: false } });
+    const { rerender } = render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    expect(screen.queryByRole('link', { name: /^Integrations$/ })).not.toBeInTheDocument();
+
+    mockPage({ is_admin: false, can: { view_integrations: true } });
+    rerender(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    expect(screen.getByRole('link', { name: /^Integrations$/ })).toHaveAttribute('href', '/integrations');
   });
 
   it('exposes a search button that opens the command palette', () => {
     mockPage({ is_admin: false });
     render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+  });
+
+  it('has no horizontally scrolling primary navigation container', () => {
+    mockPage({ is_admin: false });
+    render(<TopNavbar isDarkMode={false} setIsDarkMode={() => {}} />);
+    expect(screen.getByRole('navigation', { name: 'Primary' }).innerHTML).not.toContain('overflow-x-auto');
   });
 });

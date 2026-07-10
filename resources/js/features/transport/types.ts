@@ -1,3 +1,5 @@
+import type { SourceFreshness } from '@/features/operations/sourceFreshness';
+
 export type TransportRequestType = 'inpatient' | 'transfer' | 'discharge' | 'ems' | 'care_transition';
 export type TransportPriority = 'routine' | 'urgent' | 'stat';
 export type TransportStatus =
@@ -55,6 +57,7 @@ export interface TransportRequest {
 }
 
 export interface TransportOverview {
+  source: SourceFreshness;
   metrics: {
     active: number;
     at_risk: number;
@@ -85,6 +88,8 @@ export interface TransportOption {
   name: string;
   type?: string;
   available?: number;
+  capacity?: number;
+  busy?: number;
   capabilities?: string[];
 }
 

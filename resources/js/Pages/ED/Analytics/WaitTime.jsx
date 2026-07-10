@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
+import { formatDurationHours, formatDurationMinutes } from '@/lib/duration';
 
 // ED Wait Time rebuilt on the gold-standard design system: the KPI wall is one
 // MetricGrid of KpiTiles, the trend chart / distribution list / per-ESI table
@@ -12,13 +13,7 @@ import TrendChart from '@/Components/Analytics/Common/TrendChart';
 // live `prod` schema (seeded ed_visits); the page renders zeros / empty states
 // rather than fabricating data. Lower-is-better intervals breach to 'warning';
 // on/under target reads 'success'. Status is always paired with an icon + label.
-const formatMinutes = (value) => {
-    const v = Number.isFinite(value) ? value : 0;
-    if (v < 60) return `${v}m`;
-    const h = Math.floor(v / 60);
-    const m = v % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-};
+const formatMinutes = (value) => formatDurationMinutes(Number.isFinite(value) ? value : null);
 
 const esiBadgeClass = (esi) => {
     switch (esi) {
@@ -135,7 +130,7 @@ export default function WaitTime({ window: win, kpis, distributions, byEsi, tren
             <Head title="ED Wait Time - Emergency" />
             <PageContentLayout
                 title="Wait Time"
-                subtitle={`Door-to-provider, door-to-disposition, and length-of-stay across the last ${windowHours}h`}
+                subtitle={`Door-to-provider, door-to-disposition, and length-of-stay across the last ${formatDurationHours(windowHours)}`}
                 headerContent={
                     <div className="flex items-center space-x-2 rounded-lg bg-healthcare-background dark:bg-healthcare-background-dark px-3 py-2">
                         <Icon icon="heroicons:users" className="w-4 h-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" aria-hidden="true" />
@@ -150,7 +145,7 @@ export default function WaitTime({ window: win, kpis, distributions, byEsi, tren
                     <Section
                         title="Wait-time intervals"
                         icon="heroicons:clock"
-                        summary={`Median intervals vs target · last ${windowHours}h · ${visitCount} visits`}
+                        summary={`Median intervals vs target · last ${formatDurationHours(windowHours)} · ${visitCount} visits`}
                     >
                         <MetricGrid metrics={kpiMetrics} />
                     </Section>
@@ -169,7 +164,7 @@ export default function WaitTime({ window: win, kpis, distributions, byEsi, tren
                                         <TrendChart
                                             data={trend}
                                             xAxis={{ dataKey: 'hour', type: 'category' }}
-                                            yAxis={{ formatter: (v) => `${v}m` }}
+                                            yAxis={{ formatter: (v) => formatDurationMinutes(Number(v)) }}
                                             series={[
                                                 {
                                                     dataKey: 'doorToProvider',

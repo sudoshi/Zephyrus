@@ -5,6 +5,7 @@ import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
 import BarChart from '@/Components/Dashboard/Charts/BarChart';
 import { Icon } from '@iconify/react';
+import { formatDurationHours } from '@/lib/duration';
 
 // ED Resource Optimization (Predictions). Answers one operational question for
 // the next 8h horizon: does the on-shift roster cover the staffing/bed load
@@ -18,6 +19,12 @@ import { Icon } from '@iconify/react';
 
 // --- demo fallbacks (used only when no live props arrive) -------------------
 const DEMO_AVAILABLE = { nurses: 6, providers: 3, beds: 40 };
+
+const formatRecommendationTime = (value) => {
+  const match = String(value).match(/^Next\s+(\d+(?:\.\d+)?)h$/i);
+
+  return match ? `Next ${formatDurationHours(Number(match[1]))}` : value;
+};
 
 const DEMO_FORECAST = [
   { hour: '14:00', predictedArrivals: 7, weightedDemand: 16.4, requiredNurses: 6, requiredProviders: 3, requiredBeds: 11, availableNurses: 6, availableProviders: 3, availableBeds: 40, status: 'optimal' },
@@ -238,7 +245,7 @@ export default function Resources({
       <Head title="Resource Optimization - Emergency" />
       <PageContentLayout
         title="Resource Optimization"
-        subtitle="Recommended staffing & bed allocation for the next 8h, from predicted arrivals and acuity"
+        subtitle={`Recommended staffing & bed allocation for the next ${formatDurationHours(rows.length)}, from predicted arrivals and acuity`}
         headerContent={
           <div className="flex items-center gap-2 rounded-md bg-healthcare-surface dark:bg-healthcare-surface-dark px-3 py-1.5 shadow-sm">
             <Icon
@@ -249,7 +256,7 @@ export default function Resources({
             <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {hoursAtRisk === 0
                 ? 'Roster covers all forecast hours'
-                : `${hoursAtRisk} of ${rows.length} hours under pressure`}
+                : `${formatDurationHours(hoursAtRisk)} of ${formatDurationHours(rows.length)} under pressure`}
             </span>
           </div>
         }
@@ -259,7 +266,7 @@ export default function Resources({
           <Section
             title="Resource pressure"
             icon="heroicons:cpu-chip"
-            summary={`${totalPredicted} predicted arrivals across the next ${rows.length} hours`}
+            summary={`${totalPredicted} predicted arrivals across the next ${formatDurationHours(rows.length)}`}
           >
             <MetricGrid metrics={kpiMetrics} />
           </Section>
@@ -268,7 +275,7 @@ export default function Resources({
           <Section
             title={`Required vs available — ${view.label}`}
             icon="heroicons:chart-bar"
-            summary={`${totalPredicted} predicted arrivals across the next ${rows.length} hours`}
+            summary={`${totalPredicted} predicted arrivals across the next ${formatDurationHours(rows.length)}`}
             actions={
               <div
                 className="inline-flex rounded-md bg-healthcare-background dark:bg-healthcare-background-dark p-0.5"
@@ -445,7 +452,7 @@ export default function Resources({
                           {rec.detail}
                         </p>
                         <p className="mt-1 text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                          {rec.hour}
+                          {formatRecommendationTime(rec.hour)}
                         </p>
                       </div>
                     </div>

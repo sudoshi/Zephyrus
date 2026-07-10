@@ -496,8 +496,5 @@ func altitudeRelativeTime(_ raw: String?) -> String? {
     guard let raw else { return nil }
     let date = ISO8601DateFormatter().date(from: raw) ?? ISO8601DateFormatter.flexible.date(from: raw)
     guard let date else { return nil }
-    if abs(Date().timeIntervalSince(date)) < 60 { return "now" }
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .abbreviated
-    return formatter.localizedString(for: date, relativeTo: Date())
+    return OperationalDuration.age(since: date)
 }

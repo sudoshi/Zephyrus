@@ -4,6 +4,7 @@ import ScoreCard from '../Common/ScoreCard';
 import AlertPanel from '../Common/AlertPanel';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import ProcessTimeline from './ProcessTimeline';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const CascadeAnalysis = ({ metrics }) => {
   const [activeTab, setActiveTab] = useState('timeline');
@@ -78,7 +79,7 @@ const CascadeAnalysis = ({ metrics }) => {
           alerts={criticalProcesses.map(process => ({
             title: process.name,
             message: `${Math.round(process.severity * 100)}% severity impact`,
-            value: `${process.timeImpact}min delay`
+            value: `${formatDurationMinutes(process.timeImpact)} delay`
           }))}
         />
       </div>

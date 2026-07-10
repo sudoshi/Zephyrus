@@ -5,6 +5,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { StudyLink } from '@/Components/Common/StudyLink';
 import { Section, MetricGrid, Panel, EmptyState, metric } from '@/Components/system';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // ED Triage rebuilt on the gold-standard design system: the KPI wall is one
 // MetricGrid of KpiTiles, the triage board and the acuity/longest-wait sidebars
@@ -45,19 +46,18 @@ const TONE_BG = {
     info: 'bg-healthcare-info/15 dark:bg-healthcare-info-dark/20',
 };
 
-const formatWait = (minutes) => {
-    const m = Math.max(0, Number(minutes) || 0);
-    if (m < 60) return `${m}m`;
-    const h = Math.floor(m / 60);
-    const rem = m % 60;
-    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+const formatWait = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationMinutes(null);
+    const minutes = Number(value);
+
+    return formatDurationMinutes(Number.isFinite(minutes) ? Math.max(0, minutes) : null);
 };
 
 const formatClock = (iso) => {
     if (!iso) return '--:--';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '--:--';
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 };
 
 const EsiBadge = ({ esi, label }) => (
@@ -163,10 +163,10 @@ export default function Triage({
         }),
         metric({
             key: 'door-to-triage', label: 'Median Door-to-Triage', value: Number(k.medianDoorToTriage ?? 0),
-            display: `${k.medianDoorToTriage ?? 0}m`, target: 10, targetDisplay: '10m', goodWhenDown: true,
+            display: formatWait(k.medianDoorToTriage ?? 0), target: 10, targetDisplay: formatWait(10), goodWhenDown: true,
             status: (k.medianDoorToTriage ?? 0) <= 10 ? 'success' : 'warning',
-            caption: 'Target: 10m',
-            definition: 'Median time from arrival to triage completion. Target 10 minutes.',
+            caption: `Target: ${formatWait(10)}`,
+            definition: `Median time from arrival to triage completion. Target ${formatWait(10)}.`,
         }),
     ];
 

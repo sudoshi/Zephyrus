@@ -2,6 +2,7 @@ import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, EmptyState, metric, STATUS_VAR } from '@/Components/system';
 import TrendChart, { formatters } from '@/Components/Common/TrendChart';
 import { Icon } from '@iconify/react';
+import { formatDurationHours } from '@/lib/duration';
 
 // RTDC Performance Metrics rebuilt on the gold-standard design system: the KPI
 // wall is one MetricGrid of KpiTiles (status dot + value + gauge + target +
@@ -10,6 +11,18 @@ import { Icon } from '@iconify/react';
 // page renders zeros / empty states rather than fabricating data.
 
 const num = (v, d = 2) => Number(v ?? 0).toFixed(d);
+const formatHours = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationHours(null);
+    const hours = Number(value);
+
+    return formatDurationHours(Number.isFinite(hours) ? hours : null);
+};
+const formatDays = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationHours(null);
+    const days = Number(value);
+
+    return formatDurationHours(Number.isFinite(days) ? days * 24 : null);
+};
 
 export default function Performance({
   kpis = null,
@@ -31,19 +44,19 @@ export default function Performance({
   const relStatus = (k.forecastReliability ?? 0) >= 85 ? 'success' : (k.forecastReliability ?? 0) >= 70 ? 'warning' : 'critical';
 
   const kpiMetrics = [
-    metric({ key: 'avg-los', label: 'Avg LOS vs GMLOS', value: Number(k.avgLos ?? 0), display: `${num(k.avgLos)}d`,
-      status: losStatus, target: Number(k.gmlos ?? 0), targetDisplay: `${num(k.gmlos)}d GMLOS`,
-      caption: `${k.dischargedTotal ?? 0} discharges · ${(k.losDelta ?? 0) >= 0 ? '+' : ''}${num(k.losDelta)}d vs reference`,
+    metric({ key: 'avg-los', label: 'Avg LOS vs GMLOS', value: Number(k.avgLos ?? 0), display: formatDays(k.avgLos),
+      status: losStatus, target: Number(k.gmlos ?? 0), targetDisplay: `${formatDays(k.gmlos)} GMLOS`,
+      caption: `${k.dischargedTotal ?? 0} discharges · ${(k.losDelta ?? 0) >= 0 ? '+' : ''}${formatDays(k.losDelta)} vs reference`,
       definition: 'Average observed length of stay against the geometric-mean LOS reference.' }),
     metric({ key: 'discharge-noon', label: 'Discharge by noon', value: Number(k.dischargeByNoonRate ?? 0), unit: '%',
       status: noonStatus, target: 50, caption: `Completed before 12:00 (n=${k.dischargedTotal ?? 0})`,
       definition: 'Share of discharges completed before noon. Target 50%.' }),
-    metric({ key: 'ed-boarding', label: 'ED boarding', value: Number(k.avgBoardingHours ?? 0), display: `${num(k.avgBoardingHours, 1)}h`,
-      status: boardStatus, target: 2, targetDisplay: '2h', goodWhenDown: true,
-      caption: `${k.boardedCount ?? 0} admits · ${num(k.totalBoardingHours, 1)}h total board time`,
+    metric({ key: 'ed-boarding', label: 'ED boarding', value: Number(k.avgBoardingHours ?? 0), display: formatHours(k.avgBoardingHours),
+      status: boardStatus, target: 2, targetDisplay: formatHours(2), goodWhenDown: true,
+      caption: `${k.boardedCount ?? 0} admits · ${formatHours(k.totalBoardingHours)} total board time`,
       definition: 'Mean time admitted ED patients wait for an inpatient bed.' }),
     metric({ key: 'turnaround', label: 'Bed-request turnaround', value: Number(k.avgTurnaroundHours ?? 0),
-      display: (k.placedCount ?? 0) > 0 ? `${num(k.avgTurnaroundHours, 1)}h` : '—', status: 'info', goodWhenDown: true,
+      display: (k.placedCount ?? 0) > 0 ? formatHours(k.avgTurnaroundHours) : '—', status: 'info', goodWhenDown: true,
       caption: (k.placedCount ?? 0) > 0 ? `${k.placedCount} requests placed in window` : 'No completed placements in window',
       definition: 'Time from bed request to placement.' }),
     metric({ key: 'forecast-reliability', label: 'Forecast reliability', value: Number(k.forecastReliability ?? 0), unit: '%',
@@ -70,10 +83,10 @@ export default function Performance({
   }
 
   return (
-    <RTDCPageLayout title="Performance Metrics" subtitle={`Throughput and forecast reliability · trailing ${windowDays} days`}>
+    <RTDCPageLayout title="Performance Metrics" subtitle={`Throughput and forecast reliability · trailing ${formatDays(windowDays)}`}>
       <div className="flex flex-col gap-5">
         <Section title="Throughput & reliability" icon="heroicons:chart-bar-square"
-                 summary={`Trailing ${windowDays} days · ${k.dischargedTotal ?? 0} discharges`}>
+                 summary={`Trailing ${formatDays(windowDays)} · ${k.dischargedTotal ?? 0} discharges`}>
           <MetricGrid metrics={kpiMetrics} />
         </Section>
 
@@ -116,8 +129,8 @@ export default function Performance({
                     {losByType.map((row) => (
                       <tr key={row.type} className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark transition-colors duration-200">
                         <td className="px-3 py-2 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark whitespace-nowrap">{row.label}</td>
-                        <td className="px-3 py-2 text-sm text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.avgLos.toFixed(2)}d</td>
-                        <td className="px-3 py-2 text-sm text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{row.gmlos.toFixed(2)}d</td>
+                        <td className="px-3 py-2 text-sm text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDays(row.avgLos)}</td>
+                        <td className="px-3 py-2 text-sm text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{formatDays(row.gmlos)}</td>
                         <td className="px-3 py-2 text-sm text-right tabular-nums font-semibold whitespace-nowrap" style={{ color: STATUS_VAR[row.status] }}>{row.index.toFixed(2)}×</td>
                         <td className="px-3 py-2 text-sm text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{row.discharged}</td>
                       </tr>

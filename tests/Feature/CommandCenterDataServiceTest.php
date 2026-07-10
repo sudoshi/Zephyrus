@@ -107,6 +107,23 @@ class CommandCenterDataServiceTest extends TestCase
         $this->assertTrue($data['focus']['matched']);
     }
 
+    public function test_excess_bed_days_are_not_reinterpreted_as_elapsed_hours(): void
+    {
+        $dashboard = (new CommandCenterDataService)->build();
+        $metric = collect($dashboard['outcomes']['metrics'])->firstWhere('key', 'excess_days');
+
+        $this->assertSame('bed-days', $metric['unit']);
+        $this->assertStringEndsWith(' bed-days', $metric['display']);
+        $this->assertStringNotContainsString(' hr', $metric['display']);
+
+        $drilldown = app(CommandCenterDrilldownService::class)->build('metric:excess_days');
+        $panel = collect($drilldown['panels'])->firstWhere('key', 'outcomes');
+        $drillMetric = collect($panel['metrics'])->firstWhere('key', 'excess_days');
+
+        $this->assertStringEndsWith(' bed-days', $drillMetric['history'][0]['display']);
+        $this->assertStringNotContainsString(' hr', $drillMetric['history'][0]['display']);
+    }
+
     /** @return list<array<string,mixed>> */
     private function allMetrics(array $data): array
     {

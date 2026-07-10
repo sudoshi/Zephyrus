@@ -199,7 +199,7 @@ struct BedTurnsView: View {
                     Spacer()
                     Text(turn.sla.label)
                         .font(.system(size: 12, weight: .medium)).monospacedDigit()
-                        .foregroundStyle((turn.sla.minutesUntilDue ?? 0) < 0 ? Z.status(.critical) : Z.inkMuted)
+                        .foregroundStyle(turn.sla.atRisk ? Z.status(.critical) : Z.inkMuted)
                 }
                 Text(turn.locationLabel ?? "—")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(Z.ink)

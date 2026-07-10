@@ -4,7 +4,10 @@ namespace App\Services\Transport;
 
 use App\Models\Transport\TransportEvent;
 use App\Models\Transport\TransportRequest;
+use App\Support\Api\JsonMap;
 use App\Support\Hospital\HospitalManifest;
+use App\Support\Operations\DurationFormatter;
+use App\Support\Operations\SourceFreshness;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +37,20 @@ class TransportOperationsService
         'escalated',
     ];
 
+    public const DISPATCH_STATUSES = [
+        'requested',
+        'accepted',
+        'queued',
+        'assigned',
+        'dispatched',
+        'arrived_pickup',
+        'patient_ready',
+        'patient_not_ready',
+        'escalated',
+    ];
+
+    public const TERMINAL_STATUSES = ['completed', 'canceled', 'failed'];
+
     public function list(array $filters = []): LengthAwarePaginator
     {
         return TransportRequest::query()
@@ -41,6 +58,9 @@ class TransportOperationsService
             ->forType($filters['request_type'] ?? null)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['priority'] ?? null, fn ($query, $priority) => $query->where('priority', $priority))
+            ->when(($filters['scope'] ?? null) === 'active', fn ($query) => $query->whereIn('status', self::ACTIVE_STATUSES))
+            ->when(($filters['scope'] ?? null) === 'dispatch', fn ($query) => $query->whereIn('status', self::DISPATCH_STATUSES))
+            ->when(($filters['scope'] ?? null) === 'history', fn ($query) => $query->whereIn('status', self::TERMINAL_STATUSES))
             ->orderByRaw("CASE priority WHEN 'stat' THEN 0 WHEN 'urgent' THEN 1 ELSE 2 END")
             ->orderByRaw('needed_at NULLS LAST')
             ->orderByDesc('transport_request_id')
@@ -50,12 +70,11 @@ class TransportOperationsService
     public function overview(): array
     {
         $active = TransportRequest::active()->get();
-        $allToday = TransportRequest::query()
-            ->where('is_deleted', false)
-            ->whereDate('requested_at', Carbon::today())
-            ->get();
-
-        $completedToday = $allToday->where('status', 'completed')->count();
+        $completedToday = TransportEvent::query()
+            ->where('event_type', 'transport.completed')
+            ->whereDate('occurred_at', Carbon::today())
+            ->distinct('transport_request_id')
+            ->count('transport_request_id');
         $atRisk = $active->filter(fn (TransportRequest $request) => $this->isAtRisk($request))->count();
 
         return [
@@ -68,8 +87,9 @@ class TransportOperationsService
                 'discharge_rides' => $active->where('request_type', 'discharge')->count(),
                 'ems_inbound' => $active->where('request_type', 'ems')->count(),
             ],
-            'by_type' => $this->countsBy($active, 'request_type'),
-            'by_status' => $this->countsBy($active, 'status'),
+            'source' => $this->sourceFreshness(),
+            'by_type' => JsonMap::from($this->countsBy($active, 'request_type')),
+            'by_status' => JsonMap::from($this->countsBy($active, 'status')),
             'queue' => $active
                 ->sort(function (TransportRequest $a, TransportRequest $b) {
                     $priority = $this->priorityRank($a->priority) <=> $this->priorityRank($b->priority);
@@ -163,9 +183,9 @@ class TransportOperationsService
         $nonDeleted = TransportRequest::query()
             ->where('is_deleted', false)
             ->where('requested_at', '>=', $windowStart)
-            ->get(['assigned_team', 'status']);
+            ->get(['assigned_team', 'assigned_vendor', 'status']);
         $totalRequests = $nonDeleted->count();
-        $vendorAssigned = $nonDeleted->filter(fn (TransportRequest $request) => $this->isVendorTeam($request->assigned_team))->count();
+        $vendorAssigned = $nonDeleted->filter(fn (TransportRequest $request) => filled($request->assigned_vendor))->count();
         $canceled = $nonDeleted->where('status', 'canceled')->count();
         $vendorShare = $totalRequests > 0 ? round(($vendorAssigned / $totalRequests) * 100, 1) : null;
         $cancellationRate = $totalRequests > 0 ? round(($canceled / $totalRequests) * 100, 1) : null;
@@ -212,7 +232,7 @@ class TransportOperationsService
                 'label' => 'Avoidable bed-hours attributed to transport',
                 'value' => round($avoidableDelayMinutes / 60, 1),
                 'unit' => 'hrs',
-                'caption' => round($avoidableDelayMinutes).' delay min',
+                'caption' => DurationFormatter::minutes($avoidableDelayMinutes).' attributable delay',
             ],
             [
                 'key' => 'vendor_acceptance_cancellation',
@@ -241,24 +261,7 @@ class TransportOperationsService
             return null;
         }
 
-        return round(array_sum($values) / count($values), 1);
-    }
-
-    private function isVendorTeam(?string $team): bool
-    {
-        if ($team === null || $team === '') {
-            return false;
-        }
-
-        $needle = strtolower($team);
-
-        foreach (['partner', 'transport', 'vendor', 'ambulance', 'ems', 'rideshare', 'uber', 'lyft'] as $token) {
-            if (str_contains($needle, $token)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_sum($values) / count($values);
     }
 
     public function create(array $data, ?int $actorUserId): TransportRequest
@@ -318,7 +321,12 @@ class TransportOperationsService
             }
 
             $request->update($updates);
-            $this->recordEvent($request, "transport.{$status}", $from, $status, $payload, $actorUserId);
+            $eventType = match ($status) {
+                'arrived_pickup' => 'transport.arrived',
+                'patient_not_ready' => 'transport.not_ready',
+                default => "transport.{$status}",
+            };
+            $this->recordEvent($request, $eventType, $from, $status, $payload, $actorUserId);
 
             return $request->refresh();
         });
@@ -372,8 +380,8 @@ class TransportOperationsService
             'external_id' => $request->external_id,
             'segments' => $request->segments ?? [],
             'risk_flags' => $request->risk_flags ?? [],
-            'handoff' => $request->handoff ?? [],
-            'metadata' => $request->metadata ?? [],
+            'handoff' => JsonMap::from($request->handoff),
+            'metadata' => JsonMap::from($request->metadata),
             'sla' => $this->sla($request),
         ];
     }
@@ -393,13 +401,49 @@ class TransportOperationsService
 
     public function resourceOptions(): array
     {
+        $active = TransportRequest::active()->get(['assigned_team', 'transport_mode']);
+        $internalName = $this->hospital->transport()['internal_team']['name'];
+        $internalBusy = $active->where('assigned_team', $internalName)->count();
+        $criticalBusy = $active
+            ->whereIn('transport_mode', ['critical_care', 'als'])
+            ->whereNotNull('assigned_team')
+            ->count();
+
         return [
-            ['key' => 'porter_pool', 'name' => $this->hospital->transport()['internal_team']['name'], 'type' => 'internal_team', 'available' => 7],
-            ['key' => 'discharge_lounge', 'name' => 'Discharge Lounge', 'type' => 'handoff_area', 'available' => 5],
-            ['key' => 'wheelchair_bank', 'name' => 'Wheelchair Bank', 'type' => 'equipment', 'available' => 18],
-            ['key' => 'stretcher_pool', 'name' => 'Stretcher Pool', 'type' => 'equipment', 'available' => 9],
-            ['key' => 'critical_care_team', 'name' => 'Critical Care Transport', 'type' => 'specialty_team', 'available' => 2],
+            ['key' => 'porter_pool', 'name' => $internalName, 'type' => 'internal_team', 'capacity' => 26, 'busy' => $internalBusy, 'available' => max(0, 26 - $internalBusy)],
+            ['key' => 'critical_care_team', 'name' => 'Critical Care Transport', 'type' => 'specialty_team', 'capacity' => 4, 'busy' => $criticalBusy, 'available' => max(0, 4 - $criticalBusy)],
+            ['key' => 'discharge_lounge', 'name' => 'Discharge Lounge', 'type' => 'handoff_area', 'capacity' => 12, 'busy' => 7, 'available' => 5],
+            ['key' => 'wheelchair_bank', 'name' => 'Wheelchair Bank', 'type' => 'equipment', 'capacity' => 32, 'busy' => 14, 'available' => 18],
+            ['key' => 'stretcher_pool', 'name' => 'Stretcher Pool', 'type' => 'equipment', 'capacity' => 18, 'busy' => 9, 'available' => 9],
+            ['key' => 'bed_mover_pool', 'name' => 'Bed Mover Pool', 'type' => 'equipment', 'capacity' => 10, 'busy' => 4, 'available' => 6],
+            ['key' => 'portable_oxygen', 'name' => 'Portable Oxygen Fleet', 'type' => 'equipment', 'capacity' => 24, 'busy' => 9, 'available' => 15],
         ];
+    }
+
+    /** @return array<string,mixed> */
+    private function sourceFreshness(): array
+    {
+        $latestEvent = TransportEvent::query()->orderByDesc('occurred_at')->first(['occurred_at']);
+        $latestRequest = TransportRequest::query()
+            ->where('is_deleted', false)
+            ->orderByDesc('updated_at')
+            ->first(['updated_at', 'metadata', 'requested_by']);
+        $lastObservedAt = collect([$latestEvent?->occurred_at, $latestRequest?->updated_at])
+            ->filter()
+            ->sortByDesc(fn (Carbon $value): int => $value->getTimestamp())
+            ->first();
+
+        return SourceFreshness::make(
+            key: 'prod.transport_operations',
+            label: 'Transport operations data',
+            lastObservedAt: $lastObservedAt,
+            expectedCadenceMinutes: 15,
+            staleAfterMinutes: 60,
+            synthetic: (bool) data_get($latestRequest?->metadata, 'synthetic', false)
+                || data_get($latestRequest?->metadata, 'data_origin') === 'synthetic'
+                || $latestRequest?->requested_by === 'demo-seeder'
+                || str_starts_with((string) $latestRequest?->requested_by, 'operations-demo:'),
+        );
     }
 
     private function recordEvent(TransportRequest $request, string $eventType, ?string $from, ?string $to, array $payload, ?int $actorUserId): TransportEvent
@@ -444,17 +488,19 @@ class TransportOperationsService
             return false;
         }
 
-        return $request->needed_at->isPast() && ! in_array($request->status, ['completed', 'canceled', 'failed'], true);
+        return $request->needed_at->isPast() && ! in_array($request->status, self::TERMINAL_STATUSES, true);
     }
 
     private function sla(TransportRequest $request): array
     {
-        $minutesUntilDue = $request->needed_at ? now()->diffInMinutes($request->needed_at, false) : null;
+        $minutesUntilDue = $request->needed_at
+            ? ((int) round(now()->diffInSeconds($request->needed_at, false))) / 60
+            : null;
 
         return [
             'minutes_until_due' => $minutesUntilDue,
             'at_risk' => $this->isAtRisk($request),
-            'label' => $minutesUntilDue === null ? 'No target' : ($minutesUntilDue < 0 ? abs($minutesUntilDue).'m overdue' : $minutesUntilDue.'m remaining'),
+            'label' => DurationFormatter::relativeMinutes($minutesUntilDue),
         ];
     }
 }

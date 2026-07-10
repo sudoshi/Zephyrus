@@ -77,6 +77,7 @@ const ResourcePlanning = () => {
     const hoursDelta = (reqHours.value ?? 0) - (reqHours.previousValue ?? 0);
     const sign = (v) => `${v > 0 ? '+' : ''}${v}`;
     const utilValue = Number(projUtil.value ?? 0);
+    const formatOrHours = (value) => `${Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} OR-hr`;
 
     const kpiMetrics = [
         metric({
@@ -115,10 +116,10 @@ const ResourcePlanning = () => {
             key: 'required-or-hours',
             label: 'Required OR-Hours',
             value: Number(reqHours.value ?? 0),
-            display: `${Number(reqHours.value ?? 0).toLocaleString()} hrs`,
+            display: formatOrHours(reqHours.value),
             status: 'info',
             trajectory: orHoursTrajectory,
-            caption: `${sign(hoursDelta)} hrs vs current`,
+            caption: `${hoursDelta > 0 ? '+' : ''}${formatOrHours(hoursDelta)} vs current`,
             definition: 'Projected operating-room hours required to meet forecasted demand.',
         }),
     ];
@@ -188,13 +189,14 @@ const ResourcePlanning = () => {
                                             />
                                             <YAxis
                                                 tick={{ fill: axisColor, fontSize: 12 }}
+                                                tickFormatter={(value) => Number(value).toLocaleString(undefined, { maximumFractionDigits: 1 })}
                                                 width={56}
                                                 label={{ value: 'OR-hours / mo', angle: -90, position: 'insideLeft', style: { fill: axisColor, fontSize: 12 } }}
                                             />
                                             <Tooltip
                                                 contentStyle={{ backgroundColor: surfaceColor, borderColor: gridColor, color: axisColor, borderRadius: 8 }}
                                                 labelStyle={{ color: axisColor }}
-                                                formatter={(value, name) => [`${value} hrs`, name]}
+                                                formatter={(value, name) => [formatOrHours(value), name]}
                                             />
                                             <Legend wrapperStyle={{ fontSize: 12, color: axisColor }} />
                                             {/* Confidence band: upper as filled area, lower masks it back to baseline */}

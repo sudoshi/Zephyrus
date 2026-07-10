@@ -3,6 +3,7 @@ import { AlertTriangle, Activity, Clock, Users, ArrowRight } from 'lucide-react'
 import MetricChart from '../Common/MetricChart';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorState from './ErrorState';
+import { formatProcessDuration } from '../../formatDuration';
 
 const ActionDetails = ({ action }) => {
   const [state, setState] = useState({
@@ -200,7 +201,7 @@ const ActionDetails = ({ action }) => {
                       {phase.phase}
                     </span>
                     <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                      {phase.time}
+                      {formatProcessDuration(phase.time)}
                     </span>
                   </div>
                 </div>
