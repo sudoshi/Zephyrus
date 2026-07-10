@@ -1,6 +1,14 @@
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createIntegrationCredential, fetchIntegrationControlPlane, updateIntegrationCredential } from '@/features/integrations/api';
+import {
+  createIntegrationCredential,
+  fetchIntegrationControlPlane,
+  previewIntegrationReplay,
+  queueEpicFhirPoll,
+  queueIntegrationHealthCheck,
+  queueIntegrationReplay,
+  updateIntegrationCredential,
+} from '@/features/integrations/api';
 
 vi.mock('axios');
 const mocked = vi.mocked(axios, true);
@@ -16,6 +24,9 @@ const emptySnapshot = {
     degradedSources: 0,
     staleSources: 0,
     failedSources: 0,
+    protocolHealthySources: 0,
+    protocolDegradedSources: 0,
+    protocolFailedSources: 0,
     endpoints: 0,
     capabilities: 0,
     credentials: 0,
@@ -34,6 +45,8 @@ const emptySnapshot = {
     terminologyMaps: 0,
     writebackDrafts: 0,
     configurationAudits: 0,
+    queuedJobs: 0,
+    failedQueueJobs: 0,
   },
   sources: [],
   endpoints: [],
@@ -117,5 +130,35 @@ describe('integration control-plane API', () => {
     expect(created.credentialType).toBe('smart_backend_services');
     expect(updated.status).toBe('disabled');
     expect(mocked.patch).toHaveBeenCalledWith('/api/admin/integrations/sources/3/credentials/9', { is_active: false });
+  });
+
+  it('queues governed protocol, poll, and replay operations with their required contracts', async () => {
+    mocked.post
+      .mockResolvedValueOnce({ data: { data: { runId: 10, runUuid: 'run-health', status: 'queued', created: true } } })
+      .mockResolvedValueOnce({ data: { data: { runId: 11, runUuid: 'run-poll', status: 'queued', created: true, resourceType: 'Encounter' } } })
+      .mockResolvedValueOnce({ data: { data: {
+        eligibleEvents: 2, totalMatchingEvents: 2, truncated: false,
+        oldestAtIso: '2026-07-10T10:00:00Z', newestAtIso: '2026-07-10T11:00:00Z',
+        byEventType: [{ eventType: 'EncounterStarted', count: 2 }],
+        scope: {
+          sourceId: 3, from: '2026-07-10T09:00:00Z', to: '2026-07-10T12:00:00Z',
+          eventTypes: ['EncounterStarted'], projectionStatuses: ['pending', 'failed'], limit: 50,
+        },
+        mutation: false,
+      } } })
+      .mockResolvedValueOnce({ data: { data: { replayJobId: 12, replayUuid: 'replay-uuid', status: 'queued', created: true } } });
+
+    await queueIntegrationHealthCheck(3);
+    await queueEpicFhirPoll(3, 'Encounter');
+    const input = { source_id: 3, from: '2026-07-10T09:00:00Z', to: '2026-07-10T12:00:00Z', limit: 50 };
+    const preview = await previewIntegrationReplay(input);
+    await queueIntegrationReplay(input, 'replay-key-1');
+
+    expect(preview.mutation).toBe(false);
+    expect(mocked.post).toHaveBeenNthCalledWith(1, '/api/admin/integrations/sources/3/health-check');
+    expect(mocked.post).toHaveBeenNthCalledWith(2, '/api/admin/integrations/sources/3/fhir/poll', { resource_type: 'Encounter' });
+    expect(mocked.post).toHaveBeenNthCalledWith(4, '/api/admin/integrations/enterprise/replays', input, {
+      headers: { 'Idempotency-Key': 'replay-key-1' },
+    });
   });
 });

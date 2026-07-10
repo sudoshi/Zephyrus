@@ -80,7 +80,7 @@ Pre-PR local evidence on the isolated security branch:
 - [x] W1.4 Do not fetch agent-inbox or patient-detail data in wall mode.
 - [x] W1.5 Preserve current desk-mode drill, patient, inbox, lens, and Eddy behavior without duplication.
 - [x] W1.6 Add component tests proving wall mode is chromeless/non-interactive and desk mode remains interactive.
-- [ ] W1.7 Publish as its own bounded PR, run full CI, merge, and deploy from `main`.
+- [x] W1.7 Publish as its own bounded PR, run full CI, merge, and deploy from `main`.
 
 Pre-PR local evidence on the isolated wall-lockdown branch:
 
@@ -89,17 +89,37 @@ Pre-PR local evidence on the isolated wall-lockdown branch:
 - `npx tsc --noEmit`: passed.
 - `npm run build`: production build passed.
 - `scripts/check-ui-canon.sh`: passed; one pre-existing dashboard raw-palette match was converted to the canonical healthcare token to restore the ratchet from 77 to its baseline of 76.
+- PR #16 passed all five exact-head CI checks, merged as `356b5004d856eac0cb67c1b05cb07f23a309c935`, and was deployed through `./deploy.sh` from clean/current `main`.
+- Runtime parity checks matched local/production source and manifest hashes; the public wall URL returned 200 and the deployed bundle omitted patient lens, inbox, drill URL state, and Eddy wall controls.
 
 ## Integrations operational runtime
 
-- [ ] I1.1 Replace the synchronous production queue posture with supervised asynchronous workers, retry/backoff policy, failed-job visibility, and deploy-safe restart behavior.
-- [ ] I1.2 Add protocol-aware health checks for FHIR R4/SMART and HL7 v2 rather than configuration-presence checks.
-- [ ] I1.3 Add audited replay controls with bounded source/time/event scope, dry-run preview, idempotency, and operator authorization.
-- [ ] I1.4 Configure one real Epic FHIR R4/SMART source, endpoint, secret reference, capabilities, and watermark without committing credentials.
-- [ ] I1.5 Prove SMART backend-service authentication, CapabilityStatement compatibility, minimal read scope, polling, canonical mapping, projection, and watermark advancement.
-- [ ] I1.6 Add the first real HL7 v2 ADT source through the machine-authenticated canonical ingress established in S1.
-- [ ] I1.7 Exercise failure, dead-letter, replay, recovery, stale-watermark, secret-rotation, and rollback paths.
-- [ ] I1.8 Publish configuration/runbook evidence while keeping environment-specific secrets outside Git.
+- [x] I1.1a Change the repository/runtime default to the database queue and add an `integrations,default` worker with bounded timeout, backoff, memory, and lifecycle settings.
+- [x] I1.1b Add a hardened systemd unit plus deploy-time install/restart/active verification; keep first-run migrations explicit through `DEPLOY_RUN_MIGRATIONS=1`.
+- [ ] I1.1c Install the unit in production, change production from `sync` to `database`, and prove scheduler → database job → worker completion.
+- [x] I1.2 Add protocol-aware health checks for FHIR R4/SMART and HL7 v2 rather than configuration-presence checks; keep protocol health separate from data freshness.
+- [x] I1.3 Add audited replay controls with bounded source/time/event scope, read-only preview, idempotency, and strict operator authorization. Execution excludes already-projected events.
+- [x] I1.4a Add an idempotent real Epic public-sandbox source with official FHIR, SMART-discovery, and token endpoints; never commit credentials.
+- [ ] I1.4b Configure that source in production and complete a live discovery run.
+- [x] I1.5a Prove RS384 SMART client assertion construction, five-minute JWT lifetime, minimal Encounter/Location scope, FHIR 4.0.1 compatibility, version retention, provenance, pagination bounds, and watermark advancement in integration tests.
+- [ ] I1.5b Complete a real Epic token exchange and poll. External gate: registered Epic non-production client ID plus an approved private-key reference.
+- [x] I1.6a Operationalize the S1 HL7 boundary with source-governance and bounded machine-token commands plus protocol health.
+- [ ] I1.6b Configure/activate the first real production HL7 v2 ADT source and deliver a test ADT through raw → canonical → Patient Flow projection → provenance. External gate: executed interface/BAA/PHI approval and sender identity.
+- [x] I1.7a Exercise discovery-only activation, unsafe/unresolved credentials, bounded retry/backoff, dead-letter recovery, replay idempotency/conflict, strict authorization, FHIR lineage, and worker dispatch in tests.
+- [ ] I1.7b Exercise live token/poll failure, dead-letter recovery, source staleness, credential rotation, worker restart, and rollback in production.
+- [x] I1.8 Publish `docs/operations/INTEGRATIONS-RUNTIME-RUNBOOK.md` while keeping environment-specific secrets outside Git.
+
+Current isolated branch evidence:
+
+- `IntegrationOperationalRuntimeTest`: seven end-to-end feature tests and 64 assertions cover idempotent source configuration, queued live discovery, RSA-signed SMART authentication, versioned FHIR persistence/provenance/watermarking, exhausted-retry dead-letter recovery, replay, HL7 governance/token issuance, and authorization.
+- `tests/js/integrations/api.test.ts`: operator API schemas and health/poll/replay request contracts pass.
+- `npx tsc --noEmit`: passed after adding operator controls to FHIR, HL7, and replay panels.
+- `bash -n deploy.sh` and `systemd-analyze verify deploy/systemd/zephyrus-queue-worker.service`: repository unit and deploy script validated (host-wide verifier emitted unrelated unreadable-unit notices only).
+- Repository `./vendor/bin/pint --test`: 890 files passed.
+- Full `php artisan test`: exit 0 with 7,471 assertions; the isolated worktree reported its known missing-local-environment `file_get_contents` warnings but no failing test.
+- Full `npx vitest run --coverage`: 81 files and 343 tests passed; `npm run build` and `scripts/check-ui-canon.sh` passed.
+- Clean Arena environment: 17 pytest tests passed.
+- Production pre-change audit: `QUEUE_CONNECTION=sync`, no Zephyrus worker, no endpoints/watermarks/FHIR or SMART rows, and only the synthetic non-PHI HL7 file source. No Epic client identity or private-key reference exists on the host.
 
 ## Staffing operations completion
 

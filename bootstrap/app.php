@@ -69,5 +69,11 @@ return $builder
         // and cache the worst hand-off synchronization wait as a flow-domain
         // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
         $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
+        // Governed integration runtime: dispatch protocol checks to the dedicated
+        // database-backed queue. Health observations never advance data cursors.
+        $schedule->job(new \App\Jobs\DispatchScheduledIntegrationHealthChecks)
+            ->everyFiveMinutes()->withoutOverlapping();
+        $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
+            ->everyFifteenMinutes()->withoutOverlapping();
     })
     ->create();

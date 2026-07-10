@@ -26,8 +26,13 @@ class IntegrationHealthController extends Controller
                 'degradedSources' => $snapshot['counts']['degradedSources'],
                 'staleSources' => $snapshot['counts']['staleSources'],
                 'failedSources' => $snapshot['counts']['failedSources'],
+                'protocolHealthySources' => $snapshot['counts']['protocolHealthySources'],
+                'protocolDegradedSources' => $snapshot['counts']['protocolDegradedSources'],
+                'protocolFailedSources' => $snapshot['counts']['protocolFailedSources'],
                 'openDeadLetters' => $snapshot['counts']['openDeadLetters'],
                 'pendingProjectionEvents' => $snapshot['counts']['pendingProjectionEvents'],
+                'queuedJobs' => $snapshot['counts']['queuedJobs'],
+                'failedQueueJobs' => $snapshot['counts']['failedQueueJobs'],
             ],
         ]]);
     }

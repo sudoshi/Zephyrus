@@ -84,7 +84,8 @@ class ApiAuthorizationTest extends TestCase
         ])->assertForbidden();
         $this->actingAs($superuser)->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
             'source_key' => 'epic.fhir.sandbox',
-        ])->assertStatus(501);
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('source_id');
     }
 
     public function test_mobile_bff_requires_sanctum_read_and_act_abilities(): void

@@ -20,9 +20,23 @@ class SecretReference implements ValidationRule
             && (filled($parts['host'] ?? null) || filled($parts['path'] ?? null));
 
         if (! in_array($scheme, $allowed, true) || ! $hasLocation) {
-            $fail('Credential values must be references to an approved secret manager.');
+            $fail('Credential values must be references to an approved secret provider.');
 
             return;
+        }
+
+        if ($scheme === 'file') {
+            $path = (string) ($parts['path'] ?? '');
+            $root = rtrim((string) config('integrations.secret_file_root'), '/');
+            if (filled($parts['host'] ?? null)
+                || $path === ''
+                || ! str_starts_with($path, $root.'/')
+                || str_contains($path, '/../')
+                || str_ends_with($path, '/..')) {
+                $fail('File credential references must point beneath the configured integration secret root.');
+
+                return;
+            }
         }
 
         if (isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) {

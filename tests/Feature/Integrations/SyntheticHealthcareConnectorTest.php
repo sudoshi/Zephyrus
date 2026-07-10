@@ -4,11 +4,13 @@ namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\DTO\ReplayRequest;
 use App\Integrations\Healthcare\DTO\WebhookEnvelope;
+use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Integrations\Healthcare\Synthetic\SyntheticHealthcareConnector;
 use App\Models\User;
 use Database\Seeders\IntegrationConnectorTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -221,23 +223,31 @@ class SyntheticHealthcareConnectorTest extends TestCase
         ]);
     }
 
-    public function test_fabricated_fhir_capability_discovery_is_disabled(): void
+    public function test_fhir_discovery_queues_a_real_check_and_ignores_fabricated_capabilities(): void
     {
         $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
+        $source = app(SourceRegistryService::class)->ensureSource([
+            'source_key' => 'epic.fhir.sandbox',
+            'vendor' => 'Epic',
+            'interface_type' => 'fhir_r4',
+            'active_status' => 'testing',
+        ]);
+        Queue::fake();
 
         $this->actingAs($user)
             ->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
-                'source_key' => 'epic.fhir.sandbox',
-                'vendor' => 'Epic',
+                'source_id' => $source->source_id,
                 'fhir_version' => '4.0.1',
                 'client_id' => 'zephyrus-system-client',
             ])
-            ->assertStatus(501)
-            ->assertJsonPath('error.code', 'fhir_discovery_not_configured');
+            ->assertAccepted()
+            ->assertJsonPath('data.status', 'queued');
 
         $this->assertSame(0, DB::table('integration.fhir_client_connections')->count());
         $this->assertSame(0, DB::table('integration.smart_backend_credentials')->count());
-        $this->assertSame(0, DB::table('integration.sources')->count());
+        $this->assertSame(0, DB::table('integration.source_capabilities')->count());
+        $this->assertSame(1, DB::table('integration.sources')->count());
+        $this->assertDatabaseHas('raw.ingest_runs', ['source_id' => $source->source_id, 'run_type' => 'protocol_health', 'status' => 'queued']);
     }
 
     public function test_writeback_draft_creates_pending_ops_approval_gate(): void
