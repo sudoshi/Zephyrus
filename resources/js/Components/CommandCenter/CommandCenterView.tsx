@@ -8,11 +8,14 @@ import { ForecastCurve } from './ForecastCurve';
 
 interface CommandCenterViewProps {
   data: CommandCenterData;
-  onRefresh: () => void;
+  /** Desk-only manual refresh. Omit for wall mode. */
+  onRefresh?: () => void;
   updatedLabel: string;
   refreshing?: boolean;
   aging?: boolean;
   stale?: boolean;
+  /** Static wall fallback: suppress every link/control in the legacy grammar. */
+  interactive?: boolean;
 }
 
 export function CommandCenterView({
@@ -22,6 +25,7 @@ export function CommandCenterView({
   refreshing = false,
   aging = false,
   stale = false,
+  interactive = true,
 }: CommandCenterViewProps) {
   const role = useCommandCenterStore((s) => s.role);
 
@@ -48,15 +52,17 @@ export function CommandCenterView({
           )}
           Updated {updatedLabel}
         </span>
-        <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Refresh data"
-                className="inline-flex items-center gap-1 rounded-md border border-healthcare-border dark:border-healthcare-border-dark
-                           bg-healthcare-surface dark:bg-healthcare-surface-dark
-                           px-2 py-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
-                           shadow-sm transition-colors duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark
-                           disabled:cursor-not-allowed disabled:opacity-60">
-          <span className={refreshing ? 'inline-block motion-safe:animate-spin' : 'inline-block'} aria-hidden="true">{'⟳'}</span>
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
+        {interactive && onRefresh && (
+          <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Refresh data"
+                  className="inline-flex items-center gap-1 rounded-md border border-healthcare-border dark:border-healthcare-border-dark
+                             bg-healthcare-surface dark:bg-healthcare-surface-dark
+                             px-2 py-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
+                             shadow-sm transition-colors duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark
+                             disabled:cursor-not-allowed disabled:opacity-60">
+            <span className={refreshing ? 'inline-block motion-safe:animate-spin' : 'inline-block'} aria-hidden="true">{'⟳'}</span>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        )}
       </div>
 
       {/* The loud stale banner now lives app-chrome-wide (StaleDataBanner in
@@ -64,11 +70,11 @@ export function CommandCenterView({
           aging dot above and the sr-only recovery announcement. */}
 
       <HeroWall role={role} strain={data.strain} heroMetrics={data.heroMetrics}
-                objectives={data.objectives} detailed={detailed} />
+                objectives={data.objectives} detailed={detailed} interactive={interactive} />
 
       {bands.map((band) => (
         <div key={band.key} className="flex flex-col gap-2">
-          <Band band={band} detailed={detailed} />
+          <Band band={band} detailed={detailed} interactive={interactive} />
           {band.key === 'capacity' && showHeatStrip && <UnitHeatStrip units={data.unitCensus} />}
           {band.key === 'forecast' && <ForecastCurve forecast={data.forecastDetail} />}
         </div>

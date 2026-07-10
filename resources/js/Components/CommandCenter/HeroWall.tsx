@@ -11,9 +11,10 @@ interface HeroWallProps {
   heroMetrics: KpiMetric[];
   objectives: Objective[];
   detailed?: boolean;
+  interactive?: boolean;
 }
 
-export function HeroWall({ role, strain, heroMetrics, objectives, detailed = false }: HeroWallProps) {
+export function HeroWall({ role, strain, heroMetrics, objectives, detailed = false, interactive = true }: HeroWallProps) {
   if (role === 'executive') {
     return (
       <div aria-label="OKR scoreboard">
@@ -26,7 +27,7 @@ export function HeroWall({ role, strain, heroMetrics, objectives, detailed = fal
     <div className="grid gap-2"
          style={{ gridTemplateColumns: 'minmax(240px, 1.3fr) repeat(auto-fit, minmax(168px, 1fr))' }}>
       <StrainIndex strain={strain} />
-      {heroMetrics.map((m) => <KpiTile key={m.key} metric={m} detailed={detailed} />)}
+      {heroMetrics.map((m) => <KpiTile key={m.key} metric={m} detailed={detailed} interactive={interactive} />)}
     </div>
   );
 }

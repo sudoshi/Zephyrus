@@ -16,7 +16,8 @@ interface CommandBarProps {
   refreshing: boolean;
   aging: boolean;
   stale: boolean;
-  onRefresh: () => void;
+  /** Desk-only manual refresh. Omit for a static wall presentation. */
+  onRefresh?: () => void;
   /** P6 WS-5: opens the in-cockpit ActionInboxModal (governed action queue). */
   onOpenInbox?: () => void;
   /** Pending-approval count for the inbox affordance (amber only when > 0). */
@@ -134,20 +135,22 @@ export function CommandBar({
         <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
           Updated {updatedLabel}
         </span>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={refreshing}
-          aria-label="Refresh data"
-          className="inline-flex items-center gap-1 rounded-md border border-healthcare-border dark:border-healthcare-border-dark
-                     bg-healthcare-surface dark:bg-healthcare-surface-dark
-                     px-2 py-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
-                     shadow-sm transition-colors duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark
-                     disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span className={refreshing ? 'inline-block motion-safe:animate-spin' : 'inline-block'} aria-hidden="true">{'⟳'}</span>
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh data"
+            className="inline-flex items-center gap-1 rounded-md border border-healthcare-border dark:border-healthcare-border-dark
+                       bg-healthcare-surface dark:bg-healthcare-surface-dark
+                       px-2 py-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark
+                       shadow-sm transition-colors duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark
+                       disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className={refreshing ? 'inline-block motion-safe:animate-spin' : 'inline-block'} aria-hidden="true">{'⟳'}</span>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        )}
         <Clock />
       </span>
     </Surface>

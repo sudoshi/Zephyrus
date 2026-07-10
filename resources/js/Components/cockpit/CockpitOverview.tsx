@@ -27,11 +27,11 @@ interface CockpitOverviewProps {
   refreshing: boolean;
   aging: boolean;
   stale: boolean;
-  onRefresh: () => void;
+  onRefresh?: () => void;
   /** D2: held drill state — P3 opens the matching DrillModal from this. */
   activeDrill: CockpitDrillDomain | null;
-  onDrillChange: (domain: CockpitDrillDomain | null) => void;
-  /** D2: ?display=wall — P2 wires the flag; P8 builds full wall mode on it. */
+  onDrillChange?: (domain: CockpitDrillDomain | null) => void;
+  /** Static kiosk presentation: preserve live data, remove every control. */
   wall?: boolean;
   /** P6 WS-4: ticker → EddyDock hand-off (wired by the page when Eddy is on). */
   onAlertEngage?: (alert: CockpitAlert) => void;
@@ -82,15 +82,16 @@ export function CockpitOverview({
   briefPanel,
 }: CockpitOverviewProps) {
   const okrsFirst = role === 'executive';
-  const scorecard = <OkrScorecard okrs={sections.okrs} onDrill={onDrillChange} />;
-  const grid = <DomainGrid domains={sections.domains} onDrill={onDrillChange} />;
+  const deskDrill = wall ? undefined : onDrillChange;
+  const scorecard = <OkrScorecard okrs={sections.okrs} onDrill={deskDrill} />;
+  const grid = <DomainGrid domains={sections.domains} onDrill={deskDrill} />;
 
   return (
     <div
       className="flex flex-col gap-3"
       data-testid="cockpit-overview"
       data-display={wall ? 'wall' : undefined}
-      data-drill={activeDrill ?? undefined}
+      data-drill={!wall ? activeDrill ?? undefined : undefined}
     >
       <CommandBar
         facility={sections.facility}
@@ -99,22 +100,22 @@ export function CockpitOverview({
         refreshing={refreshing}
         aging={aging}
         stale={stale}
-        onRefresh={onRefresh}
-        onOpenInbox={onOpenInbox}
-        inboxCount={inboxCount}
+        onRefresh={wall ? undefined : onRefresh}
+        onOpenInbox={wall ? undefined : onOpenInbox}
+        inboxCount={wall ? undefined : inboxCount}
       />
 
       {/* The loud stale banner now lives app-chrome-wide (StaleDataBanner in
           CommandCenter) so it fires at every scope, not just the house overview.
           CommandBar still carries the subtle aging/stale cue for this surface. */}
 
-      <AlertTicker alerts={sections.alerts} onEngage={onAlertEngage} />
+      <AlertTicker alerts={sections.alerts} onEngage={wall ? undefined : onAlertEngage} />
       <CensusStrip census={sections.census} />
 
       {okrsFirst ? scorecard : grid}
       {/* P6 WS-5: the executive persona reads the narrative brief right after
           its Outcomes scorecard; other roles never mount the panel. */}
-      {okrsFirst && briefPanel}
+      {okrsFirst && !wall && briefPanel}
       {okrsFirst ? grid : scorecard}
 
       <Legend asOf={sections.asOf} />

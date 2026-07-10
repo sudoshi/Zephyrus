@@ -11,8 +11,9 @@
 // D2 deep links (load-bearing for P4a's redirects): ?drill={domain} is read on
 // mount, held in state, kept in sync with pushState/popstate so Back works —
 // the DrillModal (P3) auto-opens from this state, and ESC/backdrop/Back all
-// close it through the same handler. ?display=wall is wired through to the
-// overview (P8 builds full wall mode on it).
+// close it through the same handler. ?display=wall switches the same live
+// surface into its static, chromeless presentation: interaction deep links are
+// stripped and no drill, patient, inbox, or assistant surface is mounted.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
@@ -36,7 +37,6 @@ import { CockpitOverview } from '@/Components/cockpit/CockpitOverview';
 import { ScopedFaceView } from '@/Components/cockpit/ScopedFaceView';
 import { ScopePicker } from '@/Components/cockpit/ScopePicker';
 import { StaleDataBanner } from '@/Components/cockpit/StaleDataBanner';
-import { useIdleReset } from '@/features/cockpit/useIdleReset';
 import { useCockpitStream } from '@/features/cockpit/useCockpitStream';
 import { DrillModal } from '@/Components/cockpit/DrillModal';
 import { PatientLensModal } from '@/Components/cockpit/PatientLensModal';
@@ -53,12 +53,6 @@ const STALE_MS = REFRESH_MS * 2.5;
 // One overdue refresh ⇒ "aging": a quiet amber cue before the loud stale banner.
 const AGING_MS = REFRESH_MS * 1.4;
 const TICK_MS = 15_000;
-// P8 WS-5 auto-timeout-to-glance: after this much inactivity a wall mount closes
-// any open drill/patient overlay and returns to its glance (the CMIO PHI
-// mitigation for an always-on screen). Keeps the mount's ?scope — a unit wall
-// returns to its unit face, not the house.
-const WALL_IDLE_MS = 120_000;
-
 function urlParam(name: string): string | null {
   if (typeof window === 'undefined') return null;
   return new URLSearchParams(window.location.search).get(name);
@@ -75,6 +69,18 @@ function drillFromUrl(): CockpitDrillDomain | null {
 function patientFromUrl(): string | null {
   const param = urlParam('patient');
   return isPatientContextRef(param) ? param : null;
+}
+
+/** Remove desk-only interaction state without disturbing the mounted scope. */
+function stripWallInteractionParams(): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  const hasInteractionState = url.searchParams.has('drill') || url.searchParams.has('patient');
+  url.searchParams.delete('drill');
+  url.searchParams.delete('patient');
+  if (hasInteractionState) {
+    window.history.replaceState(window.history.state, '', url);
+  }
 }
 
 /** Seed TanStack's freshness clock from the payload's own timestamp. */
@@ -124,39 +130,48 @@ export default function CommandCenter({
   // freshness — not the house snapshot's. null off a scoped mount ⇒ no fetch.
   const scopedToken = isScopedMount(scopeToken) ? scopeToken : null;
   const faceQuery = useCockpitFace(scopedToken);
-  const [drill, setDrill] = useState<CockpitDrillDomain | null>(drillFromUrl);
-  const [patient, setPatient] = useState<string | null>(patientFromUrl);
+  const [drill, setDrill] = useState<CockpitDrillDomain | null>(() => wall ? null : drillFromUrl());
+  const [patient, setPatient] = useState<string | null>(() => wall ? null : patientFromUrl());
 
   // Drill state ↔ URL: pushState on change so drills are shareable and the
   // browser Back button walks drill history (popstate syncs state back).
   const handleDrillChange = useCallback((domain: CockpitDrillDomain | null) => {
+    if (wall) return;
     setDrill(domain);
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     if (domain) url.searchParams.set('drill', domain);
     else url.searchParams.delete('drill');
     window.history.pushState(window.history.state, '', url);
-  }, []);
+  }, [wall]);
 
   // Patient lens ↔ URL: same pushState/popstate discipline as the drill, so the
   // A2P descent is shareable and Back closes it (WS-4 sets this from a row).
   const handlePatientChange = useCallback((contextRef: string | null) => {
+    if (wall) return;
     setPatient(contextRef);
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     if (contextRef) url.searchParams.set('patient', contextRef);
     else url.searchParams.delete('patient');
     window.history.pushState(window.history.state, '', url);
-  }, []);
+  }, [wall]);
 
   useEffect(() => {
     const onPopState = () => {
+      if (wall) {
+        setDrill(null);
+        setPatient(null);
+        stripWallInteractionParams();
+        return;
+      }
       setDrill(drillFromUrl());
       setPatient(patientFromUrl());
     };
+    onPopState();
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  }, [wall]);
 
   // Tick a clock so the freshness label and stale detection stay truthful even
   // when no fresh payload arrives. A silently failed refresh must surface.
@@ -164,21 +179,6 @@ export default function CommandCenter({
     const id = setInterval(() => setNowMs(Date.now()), TICK_MS);
     return () => clearInterval(id);
   }, []);
-
-  // P8 WS-5 auto-timeout-to-glance: on a wall mount, inactivity walks any open
-  // drill/patient overlay back to the mount's glance (scope preserved). No-op off
-  // the wall — a staffed desk keeps whatever it drilled into.
-  useIdleReset({
-    enabled: wall,
-    timeoutMs: WALL_IDLE_MS,
-    // Only walk back overlays that are actually open — a resting wall (nothing
-    // drilled) must not push history every idle tick. useIdleReset refs the latest
-    // onIdle, so drill/patient here are current.
-    onIdle: () => {
-      if (drill) handleDrillChange(null);
-      if (patient) handlePatientChange(null);
-    },
-  });
 
   const handleRefresh = useCallback(() => {
     void query.refetch();
@@ -208,7 +208,7 @@ export default function CommandCenter({
 
   // P6 WS-5: the governed action queue in the cockpit — one fetch per mount
   // (no polling; the useDecideApproval mutation invalidates on decisions).
-  const inbox = useAgentInbox();
+  const inbox = useAgentInbox(!wall);
   const [inboxOpen, setInboxOpen] = useState(false);
   const pendingApprovals = inbox.data?.summary.pendingApprovals ?? 0;
 
@@ -270,20 +270,24 @@ export default function CommandCenter({
         <StaleDataBanner
           stale={stale}
           updatedLabel={updatedLabel}
-          onRetry={handleRefresh}
+          onRetry={wall ? undefined : handleRefresh}
           className="mb-3"
         />
         {cockpitActive ? (
           <ErrorBoundary
             fallback={(error?: Error) => (
-              <CommandCenterError detail={error?.message} onRetry={handleRefresh} />
+              <CommandCenterError detail={error?.message} onRetry={wall ? undefined : handleRefresh} />
             )}
           >
             {scopedMount ? (
               // P8 WS-2b: a non-house mount — the scope's own altitude face,
               // fetched from /api/cockpit/face and rendered with the same
               // Tile / DataTable primitives the house grid and drills use.
-              <ScopedFaceView scopeToken={scopeToken as string} onPatientDrill={handlePatientChange} />
+              <ScopedFaceView
+                scopeToken={scopeToken as string}
+                interactive={!wall}
+                onPatientDrill={wall ? undefined : handlePatientChange}
+              />
             ) : (
               <>
                 <CockpitOverview
@@ -294,44 +298,47 @@ export default function CommandCenter({
                   aging={aging}
                   stale={stale}
                   onRefresh={handleRefresh}
-                  activeDrill={drill}
+                  activeDrill={wall ? null : drill}
                   onDrillChange={handleDrillChange}
                   wall={wall}
-                  onAlertEngage={eddyEnabled ? handleAlertEngage : undefined}
-                  onOpenInbox={() => setInboxOpen(true)}
+                  onAlertEngage={!wall && eddyEnabled ? handleAlertEngage : undefined}
+                  onOpenInbox={!wall ? () => setInboxOpen(true) : undefined}
                   inboxCount={pendingApprovals}
-                  briefPanel={role === 'executive' ? <ExecutiveBriefPanel /> : undefined}
+                  briefPanel={!wall && role === 'executive' ? <ExecutiveBriefPanel /> : undefined}
                 />
                 {/* A2 drill (P3): opens from panel/OKR headers AND from ?drill=
                     deep links; closing (ESC, backdrop, ×) clears the URL param. */}
-                <DrillModal domain={drill} onClose={() => handleDrillChange(null)} onPatientDrill={handlePatientChange} />
+                {!wall && (
+                  <DrillModal domain={drill} onClose={() => handleDrillChange(null)} onPatientDrill={handlePatientChange} />
+                )}
                 {/* P6 WS-5: the AgentInbox queue as an in-cockpit modal. */}
-                <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
+                {!wall && <ActionInboxModal open={inboxOpen} onClose={() => setInboxOpen(false)} />}
               </>
             )}
             {/* P8 WS-3: the A2P patient lens overlays ANY mount (house or
                 scoped) — ?patient={ptok} opens it; WS-4 wires bed/board rows. */}
-            <PatientLensModal contextRef={patient} onClose={() => handlePatientChange(null)} />
+            {!wall && <PatientLensModal contextRef={patient} onClose={() => handlePatientChange(null)} />}
           </ErrorBoundary>
         ) : parsed.ok ? (
           <ErrorBoundary
             fallback={(error?: Error) => (
-              <CommandCenterError detail={error?.message} onRetry={handleRefresh} />
+              <CommandCenterError detail={error?.message} onRetry={wall ? undefined : handleRefresh} />
             )}
           >
             <CommandCenterView
               data={parsed.data}
-              onRefresh={handleRefresh}
+              onRefresh={wall ? undefined : handleRefresh}
               refreshing={refreshing}
               updatedLabel={updatedLabel}
               aging={aging}
               stale={stale}
+              interactive={!wall}
             />
           </ErrorBoundary>
         ) : (
           <CommandCenterError
             detail={sections.ok ? parsed.error : sections.error}
-            onRetry={handleRefresh}
+            onRetry={wall ? undefined : handleRefresh}
           />
         )}
       </PageContentLayout>

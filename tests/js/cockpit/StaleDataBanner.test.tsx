@@ -38,4 +38,11 @@ describe('StaleDataBanner', () => {
     expect(screen.getByRole('button', { name: /retry now/i })).toBeInTheDocument();
     expect(screen.queryByText(/Data aging/i)).not.toBeInTheDocument();
   });
+
+  it('keeps the wall stale warning visible without mounting a retry control', () => {
+    render(<StaleDataBanner stale updatedLabel="4 min ago" />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Live updates interrupted/i);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });

@@ -27,7 +27,8 @@ export function okrProgressPct(card: OkrCard): number | null {
 
 interface OkrScorecardProps {
   okrs: OkrCard[];
-  onDrill: (domain: CockpitDrillDomain) => void;
+  /** Omit for static wall mode so the section heading has no control semantics. */
+  onDrill?: (domain: CockpitDrillDomain) => void;
 }
 
 export function OkrScorecard({ okrs, onDrill }: OkrScorecardProps) {
@@ -35,20 +36,26 @@ export function OkrScorecard({ okrs, onDrill }: OkrScorecardProps) {
 
   return (
     <section aria-label="Executive OKR scorecard" data-testid="cockpit-okr-scorecard" className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => onDrill('okr')}
-        aria-haspopup="dialog"
-        aria-label="Open OKR scorecard drill-down"
-        className="-m-1 flex w-fit items-center gap-2 rounded p-1 text-left transition-colors hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark"
-      >
+      {onDrill ? (
+        <button
+          type="button"
+          onClick={() => onDrill('okr')}
+          aria-haspopup="dialog"
+          aria-label="Open OKR scorecard drill-down"
+          className="-m-1 flex w-fit items-center gap-2 rounded p-1 text-left transition-colors hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark"
+        >
+          <span className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            Executive OKR Scorecard
+          </span>
+          <span aria-hidden="true" className="text-sm leading-none text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            {'⤢'}
+          </span>
+        </button>
+      ) : (
         <span className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
           Executive OKR Scorecard
         </span>
-        <span aria-hidden="true" className="text-sm leading-none text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-          {'⤢'}
-        </span>
-      </button>
+      )}
 
       <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         {okrs.map((card) => {

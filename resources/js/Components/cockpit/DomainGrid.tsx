@@ -101,7 +101,8 @@ function DomainGauge({ metric }: { metric: CockpitMetricValue }) {
 
 interface DomainGridProps {
   domains: Record<string, CockpitDomain>;
-  onDrill: (domain: CockpitDrillDomain) => void;
+  /** Omit for static wall mode so panel headers are semantic text, not controls. */
+  onDrill?: (domain: CockpitDrillDomain) => void;
 }
 
 export function DomainGrid({ domains, onDrill }: DomainGridProps) {
@@ -124,7 +125,7 @@ export function DomainGrid({ domains, onDrill }: DomainGridProps) {
             title={DOMAIN_TITLES[key]}
             accent={panelAccent(domain.tiles)}
             meta={domain.provenance !== 'live' ? <ProvenanceBadge label={domain.provenance === 'demo' ? 'demo' : 'partial'} /> : undefined}
-            onDrill={() => onDrill(key)}
+            onDrill={onDrill ? () => onDrill(key) : undefined}
             className="min-w-0"
           >
             {gauge && <DomainGauge metric={gauge} />}

@@ -56,8 +56,8 @@
 - [x] S1.23 Test that JSON, FHIR, and SSE payloads contain no internal patient/encounter references.
 - [x] S1.24 Test old-route removal plus anonymous, browser-session, missing-ability, wildcard-token, and explicit-machine-token ingress outcomes.
 - [x] S1.25 Test source-state enforcement, canonical lineage, provenance, rejected raw retention, and duplicate delivery.
-- [ ] S1.26 Run focused tests, repository Pint, the full Laravel suite, frontend checks, and full branch CI.
-- [ ] S1.27 Merge the security PR and redeploy the merged `main` commit through `./deploy.sh`.
+- [x] S1.26 Run focused tests, repository Pint, the full Laravel suite, frontend checks, and full branch CI.
+- [x] S1.27 Merge the security PR and redeploy the merged `main` commit through `./deploy.sh`.
 
 Pre-PR local evidence on the isolated security branch:
 
@@ -68,17 +68,27 @@ Pre-PR local evidence on the isolated security branch:
 - `npx vitest run --coverage`: 80 files and 330 tests passed.
 - `npm run build`: production build passed.
 - `python -m pytest tests -q` in a clean Arena dependency environment: 17 passed.
-- Exact-head GitHub CI, merge, and post-merge deployment remain open gates.
+- Exact-head GitHub CI passed all five required checks on PR #15.
+- PR #15 merged as `2905664a058e7ba15ff9c6d941e67c090f562c09`; the security head remains an ancestor of `main`.
+- `./deploy.sh` completed from clean/current `main`; Apache was active, the forced vhost redirected to login, runtime hashes matched, anonymous machine ingress returned 401, and the retired browser route returned 404.
 
 ## Patient Flow 4D wall-display lockdown
 
-- [ ] W1.1 Treat wall mode as a render-only surface: no drill, patient, lens, inbox, alert-engagement, or Eddy controls may mount.
-- [ ] W1.2 Remove interactive semantics, focus targets, hover affordances, and pointer handlers from wall-mode tiles and overlays.
-- [ ] W1.3 Ignore or strip drill/patient URL state when wall mode is active.
-- [ ] W1.4 Do not fetch agent-inbox or patient-detail data in wall mode.
-- [ ] W1.5 Preserve current desk-mode drill, patient, inbox, lens, and Eddy behavior without duplication.
-- [ ] W1.6 Add component tests proving wall mode is chromeless/non-interactive and desk mode remains interactive.
+- [x] W1.1 Treat wall mode as a render-only surface: no drill, patient, lens, inbox, alert-engagement, or Eddy controls may mount.
+- [x] W1.2 Remove interactive semantics, focus targets, hover affordances, and pointer handlers from wall-mode tiles and overlays.
+- [x] W1.3 Ignore or strip drill/patient URL state when wall mode is active.
+- [x] W1.4 Do not fetch agent-inbox or patient-detail data in wall mode.
+- [x] W1.5 Preserve current desk-mode drill, patient, inbox, lens, and Eddy behavior without duplication.
+- [x] W1.6 Add component tests proving wall mode is chromeless/non-interactive and desk mode remains interactive.
 - [ ] W1.7 Publish as its own bounded PR, run full CI, merge, and deploy from `main`.
+
+Pre-PR local evidence on the isolated wall-lockdown branch:
+
+- Focused wall/desk suite: nine files and 60 tests passed.
+- Full Vitest suite: 81 files and 342 tests passed.
+- `npx tsc --noEmit`: passed.
+- `npm run build`: production build passed.
+- `scripts/check-ui-canon.sh`: passed; one pre-existing dashboard raw-palette match was converted to the canonical healthcare token to restore the ratchet from 77 to its baseline of 76.
 
 ## Integrations operational runtime
 

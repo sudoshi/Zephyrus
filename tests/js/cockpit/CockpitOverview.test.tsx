@@ -120,11 +120,47 @@ describe('CockpitOverview', () => {
     expect(onDrillChange).toHaveBeenCalledWith('okr');
   });
 
-  it('wires ?display=wall and the held drill state onto the root (P8 / P3 seams)', () => {
-    renderOverview({ wall: true, activeDrill: 'rtdc' });
+  it('renders wall mode as a static surface even when desk callbacks are supplied', () => {
+    const onDrillChange = vi.fn();
+    const onRefresh = vi.fn();
+    const onOpenInbox = vi.fn();
+    const onAlertEngage = vi.fn();
+    renderOverview({
+      wall: true,
+      role: 'executive',
+      activeDrill: 'rtdc',
+      onDrillChange,
+      onRefresh,
+      onOpenInbox,
+      onAlertEngage,
+      inboxCount: 2,
+      briefPanel: <button type="button">Desk-only brief action</button>,
+    });
+
     const root = screen.getByTestId('cockpit-overview');
     expect(root.dataset.display).toBe('wall');
-    expect(root.dataset.drill).toBe('rtdc');
+    expect(root.dataset.drill).toBeUndefined();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('Desk-only brief action')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inbox/)).not.toBeInTheDocument();
+  });
+
+  it('preserves refresh, inbox, alert engagement, and drill controls in desk mode', () => {
+    const onDrillChange = vi.fn();
+    const onRefresh = vi.fn();
+    const onOpenInbox = vi.fn();
+    const onAlertEngage = vi.fn();
+    renderOverview({ onDrillChange, onRefresh, onOpenInbox, onAlertEngage, inboxCount: 2 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }));
+    fireEvent.click(screen.getByRole('button', { name: /Open action inbox/ }));
+    fireEvent.click(screen.getByTestId('cockpit-alert-ed.nedocs'));
+    fireEvent.click(screen.getByRole('button', { name: 'Open Emergency drill-down' }));
+
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(onOpenInbox).toHaveBeenCalledTimes(1);
+    expect(onAlertEngage).toHaveBeenCalledWith(sections.alerts[0]);
+    expect(onDrillChange).toHaveBeenCalledWith('ed');
   });
 
   it('delegates the loud stale banner to app chrome (no longer inline)', () => {
