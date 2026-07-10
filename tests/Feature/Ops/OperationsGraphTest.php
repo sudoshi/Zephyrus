@@ -74,6 +74,23 @@ class OperationsGraphTest extends TestCase
         $this->assertSame(1, $payload['edge_types']['contains_bed']);
     }
 
+    public function test_projector_serializes_rebuilds_with_a_transaction_scoped_lock(): void
+    {
+        $this->seedOperationalFixture();
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
+
+        app(OperationsGraphProjector::class)->rebuild();
+
+        $this->assertTrue(
+            collect($queries)->contains(
+                fn (string $sql): bool => str_contains($sql, 'pg_advisory_xact_lock')
+            )
+        );
+    }
+
     public function test_ops_graph_api_returns_snapshot_and_node_timeline(): void
     {
         $user = User::factory()->create();
@@ -262,6 +279,8 @@ class OperationsGraphTest extends TestCase
             ->assertJsonPath('data.summary.activeActions', 2)
             ->assertJsonPath('data.approvals.0.status', 'pending')
             ->assertJsonPath('data.actions.0.status', 'draft');
+
+        $this->assertDatabaseCount('ops.state_snapshots', 0);
     }
 
     public function test_ops_action_lifecycle_can_approve_assign_start_and_complete(): void
