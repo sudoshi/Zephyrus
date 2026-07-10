@@ -25,6 +25,19 @@ describe('CommandCenterView', () => {
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the classic wall fallback without a manual refresh control', () => {
+    render(
+      <CommandCenterView
+        data={commandCenterFixture}
+        updatedLabel="just now"
+        onRefresh={() => {}}
+        interactive={false}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /refresh data/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('shows the OKR scoreboard when role is executive', () => {
     useCommandCenterStore.setState({ role: 'executive', serviceLine: null });
     render(<CommandCenterView data={commandCenterFixture} onRefresh={() => {}} updatedLabel="just now" />);

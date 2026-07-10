@@ -42,6 +42,11 @@ describe('Band', () => {
     expect(screen.getByText('First-Case On-Time')).toBeInTheDocument();
   });
 
+  it('suppresses the band drill link on a static wall', () => {
+    render(<Band band={flat} interactive={false} />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('shows an empty state instead of a blank grid when a flat band has no metrics', () => {
     render(<Band band={{ ...flat, metrics: [] }} />);
     expect(screen.getByText('No capacity metrics reporting')).toBeInTheDocument();

@@ -49,6 +49,20 @@ describe('DashboardLayout (unified shell)', () => {
     expect(skip).toHaveAttribute('href', '#main-content');
   });
 
+  it('replaces desk navigation with non-focusable wall identity chrome', () => {
+    render(
+      <DashboardLayout wall>
+        <span>wall content</span>
+      </DashboardLayout>
+    );
+
+    expect(screen.queryByTestId('topnavbar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Skip to content')).not.toBeInTheDocument();
+    expect(screen.getByText('Zephyrus · Operations Cockpit')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders ChangePasswordModal when must_change_password is set', () => {
     stubPage({ id: 1, name: 'Temp User', must_change_password: true });
 

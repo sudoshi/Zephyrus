@@ -65,7 +65,16 @@ function DetailVisualization({ metric }: { metric: KpiMetric }) {
   );
 }
 
-export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detailed?: boolean }) {
+export function KpiTile({
+  metric,
+  detailed = false,
+  interactive = true,
+}: {
+  metric: KpiMetric;
+  detailed?: boolean;
+  /** False for static wall/print surfaces; drill links become plain panels. */
+  interactive?: boolean;
+}) {
   const color = STATUS_VAR[metric.status];
   const arrow = metric.trajectory
     ? metric.trajectory.direction === 'up' ? '▲'
@@ -153,7 +162,7 @@ export function KpiTile({ metric, detailed = false }: { metric: KpiMetric; detai
     </Panel>
   );
 
-  if (metric.drillHref) {
+  if (interactive && metric.drillHref) {
     return (
       <Link href={metric.drillHref} className="block h-full" data-testid={`kpi-${metric.key}`}>
         {body}

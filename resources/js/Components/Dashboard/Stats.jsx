@@ -8,7 +8,7 @@ const Stats = ({ title, value, description, trend, icon }) => {
     };
 
     return (
-        <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm border border-healthcare-border dark:border-healthcare-border-dark hover:border-indigo-100 transition-all duration-200 group">
+        <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm border border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary/30 dark:hover:border-healthcare-primary-dark/30 transition-all duration-200 group">
             <div className="flex items-center justify-between">
                 <div className="flex items-center">
                     {icon && (

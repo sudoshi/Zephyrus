@@ -5,8 +5,8 @@ export function useAgentDefinitions() {
   return useQuery({ queryKey: ['ops', 'agent-definitions'], queryFn: fetchAgentDefinitions });
 }
 
-export function useAgentInbox() {
-  return useQuery({ queryKey: ['ops', 'agent-inbox'], queryFn: fetchAgentInbox });
+export function useAgentInbox(enabled = true) {
+  return useQuery({ queryKey: ['ops', 'agent-inbox'], queryFn: fetchAgentInbox, enabled });
 }
 
 export function useRunAgent() {
