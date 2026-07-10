@@ -74,6 +74,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Whether this account can use the web administration surfaces.
+     *
+     * The scalar prod.users.role value is the app-level role of record, while
+     * Spatie roles remain supported for older and externally provisioned
+     * accounts. The standard demo admin intentionally uses the scalar role.
+     */
+    public function isAdministrator(): bool
+    {
+        $role = str_replace([' ', '-'], '_', strtolower(trim((string) $this->role)));
+
+        return in_array($role, ['admin', 'super_admin'], true)
+            || $this->hasRole(['admin', 'super-admin', 'super_admin']);
+    }
+
+    /**
      * Units this user is associated with (the assignment model that powers the
      * mobile "For You" queue and notification routing — "assigned to me / my unit").
      */

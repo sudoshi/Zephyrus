@@ -183,6 +183,27 @@ describe('navigationConfig', () => {
     }
   });
 
+  it('organizes Study analytics and improvement into task-oriented groups', () => {
+    const study = NAV_SECTIONS.find((section) => section.key === 'study')!;
+    const analytics = study.domains.find((domain) => domain.key === 'analytics')!;
+    const improvement = study.domains.find((domain) => domain.key === 'improvement')!;
+
+    expect(analytics.groups.map((group) => group.title)).toEqual([
+      'Overview',
+      'Process Analysis',
+      'Planning',
+      'Perioperative Performance',
+      'Capacity Trends',
+      'ED & Transport Trends',
+    ]);
+    expect(improvement.groups.map((group) => group.title)).toEqual(['Diagnose', 'Run & Learn']);
+
+    for (const domain of study.domains) {
+      const leafHrefs = domain.groups.flatMap((group) => group.items.map((item) => item.href));
+      expect(leafHrefs).toHaveLength(new Set(leafHrefs).size);
+    }
+  });
+
   it('keeps administration in user-menu/palette projections only', () => {
     expect(visibleDomains(USER_ACCESS).map((d) => d.key)).not.toContain('admin');
     expect(visibleDomains(ADMIN_ACCESS).map((d) => d.key)).toContain('admin');

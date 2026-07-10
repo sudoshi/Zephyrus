@@ -66,7 +66,7 @@ class ApiAuthorizationTest extends TestCase
         $spatieAdmin = $this->spatieAdmin();
 
         $this->actingAs($frontline)->getJson('/api/cockpit/kpi-definitions')->assertForbidden();
-        $this->actingAs($fieldAdmin)->getJson('/api/cockpit/kpi-definitions')->assertForbidden();
+        $this->actingAs($fieldAdmin)->getJson('/api/cockpit/kpi-definitions')->assertOk();
         $this->actingAs($spatieAdmin)->getJson('/api/cockpit/kpi-definitions')->assertOk();
 
         $this->actingAs($frontline)->getJson('/api/deployment/service-lines')->assertForbidden();

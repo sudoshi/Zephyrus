@@ -5,6 +5,7 @@ import { NAV_SECTIONS } from '@/config/navigationConfig';
 import { SectionMenuPanel } from '@/Components/Navigation/SectionMenuPanel';
 
 const workspaces = NAV_SECTIONS.find((section) => section.key === 'workspaces')!;
+const study = NAV_SECTIONS.find((section) => section.key === 'study')!;
 
 describe('SectionMenuPanel', () => {
   it('projects workspace domains behind one section-level control', () => {
@@ -75,5 +76,37 @@ describe('SectionMenuPanel', () => {
       'href',
       '/staffing/administration',
     );
+  });
+
+  it('renders the Study menu in task order without duplicate dashboard destinations', () => {
+    render(
+      <SectionMenuPanel
+        section={study}
+        access={{ isAdmin: false }}
+        url="/analytics/arena"
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual([
+      'Overview',
+      'Process Analysis',
+      'Planning',
+      'Perioperative Performance',
+      'Capacity Trends',
+      'ED & Transport Trends',
+    ]);
+    expect(document.querySelectorAll('a[href="/analytics"]')).toHaveLength(1);
+    expect(screen.queryByRole('link', { name: 'Operations Intelligence' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Improvement' }));
+
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual(['Diagnose', 'Run & Learn']);
+    expect(document.querySelectorAll('a[href="/improvement/active"]')).toHaveLength(1);
+    expect(screen.queryByRole('link', { name: 'Active Cycles', exact: true })).toBeInTheDocument();
   });
 });

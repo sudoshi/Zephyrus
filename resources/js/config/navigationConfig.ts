@@ -270,44 +270,34 @@ const ANALYTICS: NavDomain = {
   ],
   groups: [
     {
-      title: 'Control',
+      title: 'Overview',
       items: [
         { label: 'Intelligence Hub', href: '/analytics', icon: BarChart3 },
         { label: 'Live Signals', href: '/analytics/live', icon: Activity },
+        { label: 'Executive Brief', href: '/ops/executive-brief', icon: FileText },
+        { label: 'Agent Inbox', href: '/ops/agent-inbox', icon: Bot },
         { label: 'Data Quality', href: '/analytics/data-quality', icon: Shield },
       ],
     },
     {
-      title: 'Operations Console',
-      items: [
-        { label: 'Agent Inbox', href: '/ops/agent-inbox', icon: Bot },
-        { label: 'Executive Brief', href: '/ops/executive-brief', icon: FileText },
-      ],
-    },
-    {
-      title: 'Patterns',
+      title: 'Process Analysis',
       items: [
         { label: 'Retrospective Review', href: '/analytics/retrospective', icon: TrendingUp },
         { label: 'Process Intelligence', href: '/analytics/process-intelligence', icon: Workflow },
         // Part X (X1) — object-centric process maps discovered from the OCEL log.
         { label: 'Patient-Flow Arena', href: '/analytics/arena', icon: GitBranch },
+        { label: 'Opportunity Portfolio', href: '/analytics/opportunities', icon: AlertCircle },
       ],
     },
     {
-      title: 'Forecast',
+      title: 'Planning',
       items: [
         { label: 'Predictive Planning', href: '/analytics/predictive', icon: LineChart },
         { label: 'Scenario Workbench', href: '/analytics/workbench', icon: Search },
       ],
     },
     {
-      title: 'Improve',
-      items: [
-        { label: 'Opportunity Portfolio', href: '/analytics/opportunities', icon: AlertCircle },
-      ],
-    },
-    {
-      title: 'Surgical Deep Dives',
+      title: 'Perioperative Performance',
       items: [
         { label: 'Block Utilization', href: '/analytics/block-utilization', icon: BarChart3 },
         { label: 'OR Utilization', href: '/analytics/or-utilization', icon: Gauge },
@@ -319,12 +309,17 @@ const ANALYTICS: NavDomain = {
     // P5: per-domain retrospective pages, re-homed from their workspaces —
     // the temporal split ("now" = workspace, "over time" = Study).
     {
-      title: 'Domain Trends',
+      title: 'Capacity Trends',
       items: [
         { label: 'RTDC Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
         { label: 'RTDC Performance', href: '/rtdc/analytics/performance', icon: LineChart },
         { label: 'RTDC Resources', href: '/rtdc/analytics/resources', icon: Boxes },
         { label: 'RTDC Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
+      ],
+    },
+    {
+      title: 'ED & Transport Trends',
+      items: [
         { label: 'ED Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
         { label: 'ED Resources', href: '/ed/analytics/resources', icon: Boxes },
         { label: 'Transport Analytics', href: '/transport/analytics', icon: BarChart3 },
@@ -350,7 +345,7 @@ const IMPROVEMENT: NavDomain = {
       ],
     },
     {
-      title: 'Improve',
+      title: 'Run & Learn',
       items: [
         { label: 'Active Cycles', href: '/improvement/active', icon: RefreshCcw },
         { label: 'PDSA Cycles', href: '/improvement/pdsa', icon: Repeat },

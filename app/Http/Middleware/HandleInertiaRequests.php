@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
                     ['must_change_password' => (bool) $request->user()->must_change_password]
                 ) : null,
                 'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
-                'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
+                'is_admin' => $request->user()?->isAdministrator() ?? false,
                 'can' => [
                     'view_enterprise_setup' => $request->user()
                         ? Gate::forUser($request->user())->allows('viewDeploymentConsole')
