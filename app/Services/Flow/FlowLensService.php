@@ -2,9 +2,12 @@
 
 namespace App\Services\Flow;
 
+use App\Models\Evs\EvsRequest;
+use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
+use App\Services\Mobile\MobilePersonaCatalog;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Schema;
 
@@ -23,8 +26,27 @@ use Illuminate\Support\Facades\Schema;
  */
 class FlowLensService
 {
+    private const IDENTIFIER_KEYS = [
+        '_patient_ref',
+        'patient_ref',
+        'patient_id',
+        'patient_display_id',
+        'patient_name',
+        'patient_ids',
+        'patient_refs',
+        'downstream_patient_refs',
+        'encounter_id',
+        'encounter_ref',
+        'raw_message_hash',
+        'mrn',
+        'medical_record_number',
+        'message_control_id',
+        'attending_provider_hash',
+    ];
+
     public function __construct(
         private readonly MobilePatientContextService $patientContext,
+        private readonly MobilePersonaCatalog $personas,
     ) {}
 
     /** @return array<string, mixed> */
@@ -104,16 +126,112 @@ class FlowLensService
             return $policy;
         }
 
-        // unit policy: depth only inside a unit the user shares.
-        if ($scope['type'] !== 'unit' && $scope['type'] !== 'patient') {
-            return 'none';
-        }
-
         if ($scope['type'] === 'patient') {
             return 'unit'; // patientScope() already authorized the specific patient
         }
 
-        return $this->userSharesUnit($user, (int) $scope['unit_id']) ? 'unit' : 'none';
+        // Broad-access operators may assume any persona. In an empty/bootstrap
+        // facility there is no unit row to resolve, but the request must remain
+        // safely usable (it will contain no patient rows because the visible
+        // unit set is empty).
+        if ($this->personas->isBroadAccessUser($user)) {
+            return 'unit';
+        }
+
+        $visibleUnitIds = $this->visibleUnitIds($user);
+        if ($scope['type'] === 'unit' && ! in_array((int) $scope['unit_id'], $visibleUnitIds, true)) {
+            return 'none';
+        }
+
+        // At house/floor scope a unit-depth persona receives patient rows only
+        // for their assigned units. The row filter applies that intersection.
+        return $visibleUnitIds === [] ? 'none' : 'unit';
+    }
+
+    /** @return list<int> */
+    public function visibleUnitIds(?User $user): array
+    {
+        if (! $user || ! Schema::hasTable('prod.units')) {
+            return [];
+        }
+
+        $query = $this->personas->isBroadAccessUser($user)
+            ? Unit::query()->where('is_deleted', false)
+            : $user->units()->where('prod.units.is_deleted', false);
+
+        return $query
+            ->pluck('prod.units.unit_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return list<string> patient refs visible to an active task-depth role */
+    public function taskPatientRefs(string $roleId): array
+    {
+        $query = match ($roleId) {
+            'transport' => TransportRequest::query()->active(),
+            'evs' => EvsRequest::query()->active(),
+            default => null,
+        };
+
+        if ($query === null) {
+            return [];
+        }
+
+        return $query
+            ->whereNotNull('patient_ref')
+            ->pluck('patient_ref')
+            ->map(fn ($ref): string => (string) $ref)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Whether a raw patient row is inside the requested spatial/patient scope.
+     *
+     * @param  array{type: string, floor: ?int, unit_id: ?int, patient_ref?: ?string}  $scope
+     */
+    public function rowInScope(array $row, array $scope): bool
+    {
+        return match ($scope['type']) {
+            'patient' => $this->patientRefForRow($row) !== null
+                && hash_equals((string) ($scope['patient_ref'] ?? ''), (string) $this->patientRefForRow($row)),
+            'unit' => isset($row['unit_id']) && (int) $row['unit_id'] === (int) $scope['unit_id'],
+            'floor' => $this->floorForRow($row) !== null
+                && $this->floorForRow($row) === (int) $scope['floor'],
+            default => true,
+        };
+    }
+
+    /**
+     * Whether a scoped row may carry patient context for the effective depth.
+     *
+     * @param  array{type: string, floor: ?int, unit_id: ?int, patient_ref?: ?string}  $scope
+     * @param  list<int>  $visibleUnitIds
+     * @param  list<string>  $taskRefs
+     */
+    public function canViewPatientRow(
+        array $row,
+        string $depth,
+        array $scope,
+        array $visibleUnitIds = [],
+        array $taskRefs = [],
+    ): bool {
+        $patientRef = $this->patientRefForRow($row);
+        if ($patientRef === null || ! $this->rowInScope($row, $scope)) {
+            return false;
+        }
+
+        return match ($depth) {
+            'full' => true,
+            'task' => in_array($patientRef, $taskRefs, true),
+            'unit' => $scope['type'] === 'patient'
+                || (isset($row['unit_id']) && in_array((int) $row['unit_id'], $visibleUnitIds, true)),
+            default => false,
+        };
     }
 
     /**
@@ -124,25 +242,62 @@ class FlowLensService
      *
      * @param  array{type: string, floor: ?int, unit_id: ?int}  $scope
      * @param  list<string>  $taskRefs  patient refs visible to a task-depth role
+     * @param  list<int>  $visibleUnitIds  unit ids visible to a unit-depth role
      * @return array<string, mixed>
      */
-    public function redactRow(array $row, string $depth, array $scope, array $taskRefs = []): array
-    {
-        $patientRef = $row['_patient_ref'] ?? null;
-        unset($row['_patient_ref']);
+    public function redactRow(
+        array $row,
+        string $depth,
+        array $scope,
+        array $taskRefs = [],
+        array $visibleUnitIds = [],
+    ): array {
+        $patientRef = $this->patientRefForRow($row);
+        $hadPatientId = array_key_exists('patient_id', $row);
+        $hadPatientDisplay = array_key_exists('patient_display_id', $row);
+        $encounterRef = isset($row['encounter_id']) && is_scalar($row['encounter_id'])
+            ? (string) $row['encounter_id']
+            : null;
+        $originalKey = isset($row['key']) && is_scalar($row['key']) ? (string) $row['key'] : null;
 
         $allowed = match (true) {
             $patientRef === null => false,
             $depth === 'none' => false,
             $depth === 'full' => true,
             $depth === 'task' => in_array($patientRef, $taskRefs, true),
-            // unit depth: the shared-unit check happened in
-            // effectivePatientDepth(); keep identity only inside the scoped unit.
-            default => ($row['unit_id'] ?? null) !== null
-                && (($scope['unit_id'] ?? null) === null || $row['unit_id'] === $scope['unit_id']),
+            $depth === 'unit' && $scope['type'] === 'patient' => true,
+            $depth === 'unit' => ($row['unit_id'] ?? null) !== null
+                && in_array((int) $row['unit_id'], $visibleUnitIds, true),
+            default => false,
         };
 
-        if (! $allowed) {
+        $row = $this->stripIdentifierKeys($row);
+
+        if ($patientRef !== null && $originalKey !== null) {
+            $row['key'] = $this->opaqueRef('flow-row', $patientRef, 'flow_')
+                .(($row['location'] ?? null) ? ':'.$row['location'] : '');
+        }
+
+        if ($allowed && $patientRef !== null) {
+            $patientContextRef = $this->patientContext->contextRefFor($patientRef);
+            $row['patient_context_ref'] = $patientContextRef;
+
+            if ($hadPatientId) {
+                $row['patient_id'] = $patientContextRef;
+            }
+
+            if ($hadPatientDisplay) {
+                $row['patient_display_id'] = 'Patient '.strtoupper(substr((string) $patientContextRef, -6));
+            }
+
+            if ($encounterRef !== null && $encounterRef !== '') {
+                $row['encounter_id'] = $this->opaqueRef('encounter', $encounterRef, 'etok_');
+            }
+
+            if (($row['entity']['type'] ?? null) === 'patient') {
+                $row['entity']['ref'] = $patientContextRef;
+            }
+        } else {
             $row['patient_context_ref'] = null;
             if (($row['entity']['type'] ?? null) === 'patient') {
                 $row['entity'] = null;
@@ -150,6 +305,15 @@ class FlowLensService
         }
 
         return $row;
+    }
+
+    public function opaqueRef(string $kind, string $value, string $prefix): string
+    {
+        return $prefix.substr(hash_hmac(
+            'sha256',
+            $kind.'|'.$value,
+            (string) config('app.key', 'zephyrus'),
+        ), 0, 24);
     }
 
     /**
@@ -209,6 +373,17 @@ class FlowLensService
         }
 
         if (! $unit) {
+            if ($user && $arg === null && $this->personas->isBroadAccessUser($user)) {
+                return [
+                    'type' => 'house',
+                    'floor' => null,
+                    'unit_id' => null,
+                    'patient_ref' => null,
+                    'patient_context_ref' => null,
+                    'label' => 'House',
+                ];
+            }
+
             throw new AuthorizationException('Unit scope requires a known unit (unit:{id} or unit:{abbr}), or an assigned unit for this user.');
         }
 
@@ -263,13 +438,43 @@ class FlowLensService
         return $user->units()->where('prod.units.is_deleted', false)->first();
     }
 
-    private function userSharesUnit(?User $user, int $unitId): bool
+    private function patientRefForRow(array $row): ?string
     {
-        if (! $user || ! Schema::hasTable('prod.user_unit')) {
-            return false;
+        foreach (['_patient_ref', 'patient_ref', 'patient_id'] as $key) {
+            $value = $row[$key] ?? null;
+            if (is_scalar($value) && trim((string) $value) !== '' && ! str_starts_with((string) $value, 'ptok_')) {
+                return (string) $value;
+            }
         }
 
-        return $user->units()->wherePivot('unit_id', $unitId)->exists();
+        return null;
+    }
+
+    private function floorForRow(array $row): ?int
+    {
+        foreach (['location_floor', 'floor'] as $key) {
+            if (isset($row[$key]) && is_numeric($row[$key])) {
+                return (int) $row[$key];
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<array-key, mixed> $value */
+    private function stripIdentifierKeys(array $value): array
+    {
+        $redacted = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key) && in_array(strtolower($key), self::IDENTIFIER_KEYS, true)) {
+                continue;
+            }
+
+            $redacted[$key] = is_array($item) ? $this->stripIdentifierKeys($item) : $item;
+        }
+
+        return $redacted;
     }
 
     private function floorForUnit(Unit $unit): ?int

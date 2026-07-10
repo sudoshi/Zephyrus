@@ -94,6 +94,11 @@ class OccupancyInsightProjector
 
             $item = [
                 'key' => $patientRef.':'.$locationCode,
+                // Internal authorization bridge. PatientFlowOccupancyContextService
+                // always passes the projected row through FlowLensService before
+                // it leaves the process.
+                '_patient_ref' => $event['patient_id'] ?? null,
+                'unit_id' => $event['unit_id'] ?? null,
                 'location' => $locationCode,
                 'location_name' => $event['location_name'] ?? $loc['name'] ?? null,
                 'unit_code' => $event['unit_code'] ?? $loc['unit_code'] ?? null,

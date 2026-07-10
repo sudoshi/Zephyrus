@@ -21,8 +21,9 @@ use Symfony\Component\HttpFoundation\Response;
  * — and users with no Hummingbird persona at all — get an explicit 403,
  * exactly mirroring their A2P matrix.
  *
- * The resolved lens is attached to the request (`flow_lens`, `flow_role_id`)
- * so downstream controllers can reuse it without re-resolving.
+ * `scoped` and `scoped-patients` additionally resolve the canonical Flow
+ * Window scope and attach the effective depth plus unit/task grants. This is
+ * the web API equivalent of Mobile FlowController's server-side clamp.
  */
 class EnforceFlowLens
 {
@@ -40,12 +41,41 @@ class EnforceFlowLens
             return $this->forbidden($exception->getMessage());
         }
 
-        if ($requirement === 'patients' && $lens['patient_dots'] === 'none') {
+        if (in_array($requirement, ['patients', 'scoped-patients'], true) && $lens['patient_dots'] === 'none') {
             return $this->forbidden('This persona has no patient-level flow access.');
         }
 
         $request->attributes->set('flow_lens', $lens);
         $request->attributes->set('flow_role_id', $roleId);
+
+        if (in_array($requirement, ['scoped', 'scoped-patients'], true)) {
+            $requestedScope = $request->query('scope');
+            if ($requestedScope !== null && ! is_string($requestedScope)) {
+                return $this->forbidden('Flow scope must be a string.');
+            }
+
+            try {
+                $scope = $this->lens->resolveScope($lens, $requestedScope, $request->user());
+                $depth = $this->lens->effectivePatientDepth($lens, $scope, $request->user());
+            } catch (AuthorizationException $exception) {
+                return $this->forbidden($exception->getMessage());
+            }
+
+            if ($requirement === 'scoped-patients' && $depth === 'none') {
+                return $this->forbidden('The resolved flow scope grants no patient-level access.');
+            }
+
+            $request->attributes->set('flow_scope', $scope);
+            $request->attributes->set('flow_patient_depth', $depth);
+            $request->attributes->set(
+                'flow_task_patient_refs',
+                $depth === 'task' ? $this->lens->taskPatientRefs($roleId) : [],
+            );
+            $request->attributes->set(
+                'flow_visible_unit_ids',
+                $depth === 'unit' ? $this->lens->visibleUnitIds($request->user()) : [],
+            );
+        }
 
         return $next($request);
     }

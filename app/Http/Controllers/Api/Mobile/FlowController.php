@@ -6,8 +6,6 @@ use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Bed;
 use App\Models\CensusSnapshot;
-use App\Models\Evs\EvsRequest;
-use App\Models\Transport\TransportRequest;
 use App\Services\Flow\DutyProjectionService;
 use App\Services\Flow\FloorPlateAssetService;
 use App\Services\Flow\FloorRollupService;
@@ -170,7 +168,8 @@ class FlowController extends Controller
 
         $layers = $this->lens->clampLayers($lens, $request->query('layers'));
         $depth = $this->lens->effectivePatientDepth($lens, $scope, $request->user());
-        $taskRefs = $depth === 'task' ? $this->taskPatientRefs($roleId) : [];
+        $taskRefs = $depth === 'task' ? $this->lens->taskPatientRefs($roleId) : [];
+        $visibleUnitIds = $depth === 'unit' ? $this->lens->visibleUnitIds($request->user()) : [];
 
         $payload = [
             'window' => [
@@ -219,14 +218,14 @@ class FlowController extends Controller
                 ));
             }
             $payload['events'] = array_map(
-                fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs),
+                fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $events,
             );
         }
 
         if (in_array('projections', $layers, true)) {
             $payload['projections'] = array_map(
-                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $this->projections->projections($from->max($now), $to, $scope, $lens['projection_kinds']),
             );
         }
@@ -237,7 +236,7 @@ class FlowController extends Controller
         // even on a `?since=` delta (it is current worklist, not append-only).
         if (in_array('duties', $layers, true)) {
             $payload['duties'] = array_map(
-                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $this->dutyProjections->duties($now, $lens['duty_kinds'] ?? [], $this->scopeUnitIds($scope)),
             );
         }
@@ -400,20 +399,6 @@ class FlowController extends Controller
     private function floorRollup(): array
     {
         return $this->floorRollup ??= $this->floors->floors();
-    }
-
-    /** @return list<string> patient refs visible to a task-scoped role */
-    private function taskPatientRefs(string $roleId): array
-    {
-        return match ($roleId) {
-            'transport' => TransportRequest::query()
-                ->where('is_deleted', false)->whereNotNull('patient_ref')
-                ->distinct()->pluck('patient_ref')->all(),
-            'evs' => EvsRequest::query()
-                ->where('is_deleted', false)->whereNotNull('patient_ref')
-                ->distinct()->pluck('patient_ref')->all(),
-            default => [],
-        };
     }
 
     private function invalidSince(CarbonImmutable $from, CarbonImmutable $to): JsonResponse

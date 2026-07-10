@@ -2,33 +2,20 @@
 
 namespace App\Services\PatientFlow;
 
-use App\Models\Evs\EvsRequest;
+use App\Models\Bed;
 use App\Models\PatientFlow\OccupancySnapshot;
-use App\Models\Transport\TransportRequest;
+use App\Models\Unit;
 use App\Models\User;
-use App\Services\Mobile\MobilePatientContextService;
+use App\Services\Flow\FlowLensService;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 use Throwable;
 
 class PatientFlowOccupancyHistoryService
 {
-    private const DETAIL_IDENTIFIER_KEYS = [
-        'patient_ref',
-        '_patient_ref',
-        'patient_id',
-        'patient_display_id',
-        'patient_name',
-        'encounter_id',
-        'encounter_ref',
-        'downstream_patient_refs',
-        'mrn',
-        'medical_record_number',
-    ];
-
     public function __construct(
         private readonly PatientFlowScenarioRegistry $scenarios,
-        private readonly MobilePatientContextService $patients,
+        private readonly FlowLensService $flowLens,
     ) {}
 
     /**
@@ -36,8 +23,16 @@ class PatientFlowOccupancyHistoryService
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
-    public function history(array $lens, string $roleId, array $filters, ?User $user = null): array
-    {
+    public function history(
+        array $lens,
+        string $roleId,
+        array $filters,
+        ?User $user = null,
+        ?array $scope = null,
+        ?string $effectiveDepth = null,
+        array $taskPatientRefs = [],
+        array $visibleUnitIds = [],
+    ): array {
         $to = $this->time('to', $filters['to'] ?? $filters['asOf'] ?? null, CarbonImmutable::now());
         $from = $this->time('from', $filters['from'] ?? null, $to->subHours(24));
         if ($from->greaterThan($to)) {
@@ -46,9 +41,14 @@ class PatientFlowOccupancyHistoryService
 
         $limit = max(1, min(500, (int) ($filters['limit'] ?? 120)));
         $scenario = $this->scenarioKey($filters);
-        $depth = (string) ($lens['patient_dots'] ?? 'none');
-        $unitIds = $depth === 'unit' ? $this->visibleUnitIds($user) : [];
-        $taskPatientRefs = $depth === 'task' ? $this->taskPatientRefs($roleId) : [];
+        $scope ??= ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null, 'patient_context_ref' => null, 'label' => 'House'];
+        $depth = $effectiveDepth ?? (string) ($lens['patient_dots'] ?? 'none');
+        $unitIds = $depth === 'unit'
+            ? ($visibleUnitIds ?: $this->flowLens->visibleUnitIds($user))
+            : [];
+        $taskPatientRefs = $depth === 'task'
+            ? ($taskPatientRefs ?: $this->flowLens->taskPatientRefs($roleId))
+            : [];
 
         $query = OccupancySnapshot::query()
             ->with('facilitySpace')
@@ -57,8 +57,20 @@ class PatientFlowOccupancyHistoryService
             ->orderBy('facility_space_id')
             ->limit($limit);
 
-        if (($filters['floor'] ?? null) !== null && $filters['floor'] !== '' && $filters['floor'] !== 'all') {
-            $query->whereHas('facilitySpace', fn ($space) => $space->where('floor_number', (int) $filters['floor']));
+        $floor = $scope['type'] === 'floor'
+            ? $scope['floor']
+            : (($filters['floor'] ?? null) !== null && $filters['floor'] !== '' && $filters['floor'] !== 'all'
+                ? (int) $filters['floor']
+                : null);
+        if ($floor !== null) {
+            $query->whereHas('facilitySpace', fn ($space) => $space->where('floor_number', (int) $floor));
+        }
+
+        if ($scope['type'] === 'unit') {
+            $spaceIds = $this->spaceIdsForUnit((int) $scope['unit_id']);
+            $spaceIds === []
+                ? $query->whereRaw('1 = 0')
+                : $query->whereIn('facility_space_id', $spaceIds);
         }
 
         if (($filters['service_line'] ?? null) !== null && $filters['service_line'] !== '' && $filters['service_line'] !== 'all') {
@@ -66,9 +78,19 @@ class PatientFlowOccupancyHistoryService
             $query->whereHas('facilitySpace', fn ($space) => $space->where('service_line_code', $serviceLine));
         }
 
-        $snapshots = $query->get()->map(function (OccupancySnapshot $snapshot) use ($depth, $scenario, $taskPatientRefs, $unitIds): array {
+        $snapshots = $query->get()->map(function (OccupancySnapshot $snapshot) use ($depth, $scenario, $scope, $taskPatientRefs, $unitIds): array {
             $space = $snapshot->facilitySpace;
             $details = is_array($snapshot->occupancy_details) ? $snapshot->occupancy_details : [];
+
+            $details = array_map(function (mixed $detail) use ($space): mixed {
+                if (! is_array($detail)) {
+                    return $detail;
+                }
+
+                $detail['location_floor'] ??= $space?->floor_number;
+
+                return $detail;
+            }, $details);
 
             return [
                 'snapshot_at' => $snapshot->snapshot_at?->toIso8601String(),
@@ -83,7 +105,7 @@ class PatientFlowOccupancyHistoryService
                 'active_patient_count' => (int) $snapshot->active_patient_count,
                 'service_line_counts' => $snapshot->service_line_counts ?: [],
                 'acuity_counts' => $snapshot->acuity_counts ?: [],
-                'occupancy_details' => $this->detailsForDepth($details, $depth, $unitIds, $taskPatientRefs),
+                'occupancy_details' => $this->detailsForDepth($details, $depth, $scope, $unitIds, $taskPatientRefs),
                 'timer_status_counts' => $snapshot->timer_status_counts ?: [],
                 'service_line_timer_counts' => $snapshot->service_line_timer_counts ?: [],
                 'persona_timer_counts' => $snapshot->persona_timer_counts ?: [],
@@ -108,6 +130,13 @@ class PatientFlowOccupancyHistoryService
                 'role_id' => $roleId,
                 'patient_dots' => $depth,
                 'projection_kinds' => $lens['projection_kinds'] ?? [],
+            ],
+            'scope' => [
+                'type' => $scope['type'],
+                'floor' => $scope['floor'],
+                'unit_id' => $scope['unit_id'],
+                'patient_context_ref' => $scope['patient_context_ref'] ?? null,
+                'label' => $scope['label'] ?? ucfirst((string) $scope['type']),
             ],
             'scenario' => $scenario,
             'history' => $snapshots,
@@ -139,58 +168,35 @@ class PatientFlowOccupancyHistoryService
 
     /**
      * @param  array<int, mixed>  $details
+     * @param  array<string, mixed>  $scope
      * @param  list<int>  $unitIds
      * @param  list<string>  $taskPatientRefs
      * @return list<array<string, mixed>>
      */
-    private function detailsForDepth(array $details, string $depth, array $unitIds, array $taskPatientRefs): array
+    private function detailsForDepth(array $details, string $depth, array $scope, array $unitIds, array $taskPatientRefs): array
     {
-        if ($depth === 'full') {
-            return $this->redactDetails(array_values(array_filter($details, 'is_array')));
+        $redacted = [];
+        foreach ($details as $detail) {
+            if (! is_array($detail)) {
+                continue;
+            }
+
+            $patientRef = $this->patientRefForDetail($detail);
+            if ($patientRef === null) {
+                continue;
+            }
+
+            $detail['_patient_ref'] = $patientRef;
+            unset($detail['patient_ref'], $detail['patient_id'], $detail['patient_display_id'], $detail['encounter_id']);
+
+            if (! $this->flowLens->canViewPatientRow($detail, $depth, $scope, $unitIds, $taskPatientRefs)) {
+                continue;
+            }
+
+            $redacted[] = $this->flowLens->redactRow($detail, $depth, $scope, $taskPatientRefs, $unitIds);
         }
 
-        if ($depth === 'unit') {
-            return $this->redactDetails(array_values(array_filter(
-                $details,
-                fn (mixed $detail): bool => is_array($detail)
-                    && isset($detail['unit_id'])
-                    && in_array((int) $detail['unit_id'], $unitIds, true),
-            )));
-        }
-
-        if ($depth === 'task') {
-            return $this->redactDetails(array_values(array_filter(
-                $details,
-                fn (mixed $detail): bool => is_array($detail)
-                    && isset($detail['patient_ref'])
-                    && in_array((string) $detail['patient_ref'], $taskPatientRefs, true),
-            )));
-        }
-
-        return [];
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $details
-     * @return list<array<string, mixed>>
-     */
-    private function redactDetails(array $details): array
-    {
-        return array_map(fn (array $detail): array => $this->redactDetail($detail), $details);
-    }
-
-    /** @param array<string, mixed> $detail */
-    private function redactDetail(array $detail): array
-    {
-        $patientRef = $this->patientRefForDetail($detail);
-
-        $detail = $this->stripIdentifierKeys($detail);
-
-        if ($patientRef !== null) {
-            $detail['patient_context_ref'] = $this->patients->contextRefFor($patientRef);
-        }
-
-        return $detail;
+        return $redacted;
     }
 
     /** @param array<string, mixed> $detail */
@@ -204,22 +210,6 @@ class PatientFlowOccupancyHistoryService
         }
 
         return null;
-    }
-
-    /** @param array<array-key, mixed> $value */
-    private function stripIdentifierKeys(array $value): array
-    {
-        $redacted = [];
-
-        foreach ($value as $key => $item) {
-            if (is_string($key) && in_array($key, self::DETAIL_IDENTIFIER_KEYS, true)) {
-                continue;
-            }
-
-            $redacted[$key] = is_array($item) ? $this->stripIdentifierKeys($item) : $item;
-        }
-
-        return $redacted;
     }
 
     /** @param array<string, mixed> $filters */
@@ -236,42 +226,22 @@ class PatientFlowOccupancyHistoryService
     }
 
     /** @return list<int> */
-    private function visibleUnitIds(?User $user): array
+    private function spaceIdsForUnit(int $unitId): array
     {
-        if (! $user) {
-            return [];
+        $spaceIds = Bed::query()
+            ->where('is_deleted', false)
+            ->where('unit_id', $unitId)
+            ->whereNotNull('facility_space_id')
+            ->pluck('facility_space_id');
+
+        $unitSpaceId = Unit::query()
+            ->where('is_deleted', false)
+            ->whereKey($unitId)
+            ->value('facility_space_id');
+        if ($unitSpaceId !== null) {
+            $spaceIds->push($unitSpaceId);
         }
 
-        return $user->units()
-            ->pluck('prod.units.unit_id')
-            ->map(fn ($id): int => (int) $id)
-            ->values()
-            ->all();
-    }
-
-    /** @return list<string> */
-    private function taskPatientRefs(string $roleId): array
-    {
-        $query = match ($roleId) {
-            'transport' => TransportRequest::query()
-                ->where('is_deleted', false)
-                ->whereNotIn('status', ['completed', 'cancelled', 'canceled']),
-            'evs' => EvsRequest::query()
-                ->where('is_deleted', false)
-                ->whereNotIn('status', ['completed', 'cancelled', 'canceled']),
-            default => null,
-        };
-
-        if ($query === null) {
-            return [];
-        }
-
-        return $query
-            ->whereNotNull('patient_ref')
-            ->pluck('patient_ref')
-            ->map(fn ($ref): string => (string) $ref)
-            ->unique()
-            ->values()
-            ->all();
+        return $spaceIds->map(fn ($id): int => (int) $id)->unique()->values()->all();
     }
 }

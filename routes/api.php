@@ -157,7 +157,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
 
     // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
     // requires a flow lens whose patient_dots policy is not `none`.
-    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')->group(function () {
+    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped-patients')->group(function () {
         Route::get('/events', [PatientFlowController::class, 'events']);
         Route::get('/tracks', [PatientFlowController::class, 'tracks']);
         Route::get('/state', [PatientFlowController::class, 'state']);
@@ -169,14 +169,22 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // aggregate-safe: items are persona-clamped and identity-redacted by
     // the same lens the mobile window uses.
     Route::get('/projections', [PatientFlowController::class, 'projections'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
     Route::get('/occupancy/history', [PatientFlowController::class, 'occupancyHistory'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
     Route::get('/occupancy', [PatientFlowController::class, 'occupancy'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
-
-    Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
 });
+
+// Machine-to-machine ingress only. This route intentionally lives outside the
+// browser-session Patient Flow group and writes through raw -> canonical ->
+// projection/provenance before acknowledging an ADT message.
+Route::post('/integrations/v1/patient-flow/hl7v2', [PatientFlowIngestController::class, 'hl7v2'])
+    ->middleware([
+        'auth:sanctum',
+        \App\Http\Middleware\RequireMachineToken::class.':integration:patient-flow:ingest',
+        'throttle:120,1',
+    ]);
 
 // RTDC — Real-Time Demand Capacity (web session auth)
 // The `web` group provides StartSession (reads the session cookie) so the Inertia SPA

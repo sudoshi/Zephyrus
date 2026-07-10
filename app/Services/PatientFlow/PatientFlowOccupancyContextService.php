@@ -31,18 +31,21 @@ class PatientFlowOccupancyContextService
         CarbonImmutable $time,
         array $filters = [],
         bool $includeEddyContext = false,
+        ?array $scope = null,
+        ?string $depth = null,
+        array $taskRefs = [],
+        array $visibleUnitIds = [],
     ): array {
         $filters = $this->normalizedFilters($filters, $time);
         $events = $this->events->serializeEvents($this->events->filteredEvents($filters));
         $locations = $this->locations->allNavigatorLocations($this->facilityCode());
 
-        $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
+        $scope ??= ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null, 'patient_context_ref' => null, 'label' => 'House'];
+        $depth ??= ($lens['patient_dots'] ?? null) === 'full' ? 'full' : 'none';
+        $effectiveLens = $lens;
+        $effectiveLens['patient_dots'] = $depth;
         $rawProjections = $this->projections->projections($time, $time->addHours(24), $scope, $lens['projection_kinds']);
-        $depth = ($lens['patient_dots'] ?? null) === 'full' ? 'full' : 'none';
-        $projections = array_map(
-            fn (array $item): array => $this->flowLens->redactRow($item, $depth, $scope),
-            $rawProjections,
-        );
+        $projections = $rawProjections;
 
         $demoScenario = null;
         $demoEnabled = $this->demoBarriersEnabled($filters);
@@ -65,6 +68,11 @@ class PatientFlowOccupancyContextService
                 'replaces_stale_replay' => $staleReplay,
             ];
         }
+
+        $events = array_values(array_filter(
+            $events,
+            fn (array $event): bool => $this->flowLens->rowInScope($event, $scope),
+        ));
 
         $operational = $demoEnabled
             ? [
@@ -93,15 +101,33 @@ class PatientFlowOccupancyContextService
             locations: $locations,
             projections: $projections,
             asOf: $time->toIso8601String(),
-            lens: $lens,
+            lens: $effectiveLens,
             operationalBarriers: $operational['records'],
+        );
+
+        $payload['occupancy'] = array_map(
+            fn (array $item): array => $this->flowLens->redactRow(
+                $item,
+                $depth,
+                $scope,
+                $taskRefs,
+                $visibleUnitIds,
+            ),
+            $payload['occupancy'],
         );
 
         $response = $payload + [
             'lens' => [
                 'role_id' => $roleId,
-                'patient_dots' => $lens['patient_dots'],
+                'patient_dots' => $depth,
                 'projection_kinds' => $lens['projection_kinds'],
+            ],
+            'scope' => [
+                'type' => $scope['type'],
+                'floor' => $scope['floor'],
+                'unit_id' => $scope['unit_id'],
+                'patient_context_ref' => $scope['patient_context_ref'] ?? null,
+                'label' => $scope['label'] ?? ucfirst((string) $scope['type']),
             ],
             'operational_barrier_sources' => $operational['sources'],
             'projection_window' => [
@@ -115,12 +141,12 @@ class PatientFlowOccupancyContextService
         if ($includeEddyContext) {
             $response['eddy_context'] = $this->eddyContext->build(
                 $payload,
-                $lens,
+                $effectiveLens,
                 $roleId,
                 $time,
                 $filters,
                 $demoScenario,
-                $this->contextScope($filters),
+                $this->contextScope($filters, $scope),
             );
         }
 
@@ -187,15 +213,21 @@ class PatientFlowOccupancyContextService
     }
 
     /** @param array<string, mixed> $filters */
-    private function contextScope(array $filters): array
+    private function contextScope(array $filters, array $resolvedScope): array
     {
         $scope = [
-            'type' => 'house',
-            'label' => 'House',
+            'type' => $resolvedScope['type'],
+            'label' => $resolvedScope['label'] ?? ucfirst((string) $resolvedScope['type']),
             'filters' => $this->contextFilters($filters),
         ];
 
-        if (isset($filters['floor']) && $filters['floor'] !== '' && $filters['floor'] !== 'all') {
+        foreach (['floor', 'unit_id', 'patient_context_ref'] as $key) {
+            if (($resolvedScope[$key] ?? null) !== null) {
+                $scope[$key] = $resolvedScope[$key];
+            }
+        }
+
+        if ($resolvedScope['type'] === 'house' && isset($filters['floor']) && $filters['floor'] !== '' && $filters['floor'] !== 'all') {
             $floor = (int) $filters['floor'];
             $scope['type'] = 'floor';
             $scope['floor'] = $floor;
