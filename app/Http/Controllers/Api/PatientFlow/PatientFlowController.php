@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api\PatientFlow;
 
 use App\Http\Controllers\Controller;
 use App\Models\PatientFlow\FlowEvent;
+use App\Services\Flow\FlowLensService;
 use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
-use App\Services\PatientFlow\FlowEventRepository;
+use App\Services\PatientFlow\PatientFlowEventAccessService;
 use App\Services\PatientFlow\PatientFlowOccupancyContextService;
 use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
 use App\Services\PatientFlow\PatientFlowScenarioRegistry;
@@ -22,7 +23,8 @@ use InvalidArgumentException;
 class PatientFlowController extends Controller
 {
     public function __construct(
-        private readonly FlowEventRepository $events,
+        private readonly PatientFlowEventAccessService $eventAccess,
+        private readonly FlowLensService $flowLens,
         private readonly FacilitySpaceLocationResolver $locations,
         private readonly PatientStateProjector $stateProjector,
         private readonly FhirBundleFactory $fhir,
@@ -87,19 +89,27 @@ class PatientFlowController extends Controller
 
     public function events(Request $request): JsonResponse
     {
-        return response()->json($this->events->serializeEvents(
-            $this->events->filteredEvents($this->filters($request)),
-        ));
+        try {
+            return $this->patientJson($this->eventAccess->rows($request, $this->filters($request)));
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
     }
 
     public function tracks(Request $request): JsonResponse
     {
+        try {
+            $events = $this->eventAccess->rows($request, $this->filters($request));
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
+
         $tracks = [];
-        foreach ($this->events->serializeEvents($this->events->filteredEvents($this->filters($request))) as $event) {
+        foreach ($events as $event) {
             $tracks[$event['patient_id']][] = $event;
         }
 
-        return response()->json($tracks);
+        return $this->patientJson($tracks);
     }
 
     public function state(Request $request): JsonResponse
@@ -110,10 +120,14 @@ class PatientFlowController extends Controller
             $filters['to'] = $request->query('asOf');
         }
 
-        $events = $this->events->serializeEvents($this->events->filteredEvents($filters));
+        try {
+            $events = $this->eventAccess->rows($request, $filters);
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
         $state = $this->stateProjector->reconstruct($events, $request->query('asOf'));
 
-        return response()->json([
+        return $this->patientJson([
             'asOf' => $request->query('asOf'),
             'activePatients' => count($state),
             'patients' => array_values($state),
@@ -154,13 +168,18 @@ class PatientFlowController extends Controller
         $roleId = (string) $request->attributes->get('flow_role_id');
         $asOf = is_string($request->query('asOf')) ? $request->query('asOf') : null;
         $time = $asOf ? CarbonImmutable::parse($asOf) : CarbonImmutable::now();
+        $context = $this->eventAccess->context($request);
 
-        return response()->json($this->occupancyContext->build(
+        return $this->patientJson($this->occupancyContext->build(
             $lens,
             $roleId,
             $time,
             $this->filters($request),
             $this->includes($request, 'eddy_context'),
+            $context['scope'],
+            $context['depth'],
+            $context['task_refs'],
+            $context['visible_unit_ids'],
         ));
     }
 
@@ -169,11 +188,21 @@ class PatientFlowController extends Controller
         /** @var array<string, mixed> $lens */
         $lens = $request->attributes->get('flow_lens');
         $roleId = (string) $request->attributes->get('flow_role_id');
+        $context = $this->eventAccess->context($request);
 
         try {
-            return response()->json($this->occupancyHistory->history($lens, $roleId, $this->filters($request), $request->user()));
+            return $this->patientJson($this->occupancyHistory->history(
+                $lens,
+                $roleId,
+                $this->filters($request),
+                $request->user(),
+                $context['scope'],
+                $context['depth'],
+                $context['task_refs'],
+                $context['visible_unit_ids'],
+            ));
         } catch (InvalidArgumentException $exception) {
-            return response()->json([
+            return $this->patientJson([
                 'error' => [
                     'code' => 'invalid_occupancy_history_window',
                     'message' => $exception->getMessage(),
@@ -196,24 +225,34 @@ class PatientFlowController extends Controller
 
         $now = \Carbon\CarbonImmutable::now();
         $to = $now->addHours(24);
-        $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
+        $context = $this->eventAccess->context($request);
+        $scope = $context['scope'];
+        $depth = $context['depth'];
 
         $items = app(\App\Services\Flow\ForwardProjectionService::class)
             ->projections($now, $to, $scope, $lens['projection_kinds']);
 
-        // Same redaction implementation as the mobile window. At house scope
-        // only `full` keeps identity — unit/task depths collapse to none here
-        // (the web ghost layer is aggregate for those roles).
-        $depth = $lens['patient_dots'] === 'full' ? 'full' : 'none';
-        $lensService = app(\App\Services\Flow\FlowLensService::class);
         $items = array_map(
-            fn (array $item): array => $lensService->redactRow($item, $depth, $scope),
+            fn (array $item): array => $this->flowLens->redactRow(
+                $item,
+                $depth,
+                $scope,
+                $context['task_refs'],
+                $context['visible_unit_ids'],
+            ),
             $items,
         );
 
-        return response()->json([
+        return $this->patientJson([
             'window' => ['from' => $now->toIso8601String(), 'to' => $to->toIso8601String()],
-            'lens' => ['role_id' => $roleId, 'projection_kinds' => $lens['projection_kinds'], 'patient_dots' => $lens['patient_dots']],
+            'lens' => ['role_id' => $roleId, 'projection_kinds' => $lens['projection_kinds'], 'patient_dots' => $depth],
+            'scope' => [
+                'type' => $scope['type'],
+                'floor' => $scope['floor'],
+                'unit_id' => $scope['unit_id'],
+                'patient_context_ref' => $scope['patient_context_ref'],
+                'label' => $scope['label'],
+            ],
             'projections' => $items,
             'generated_at' => now()->toJSON(),
         ]);
@@ -223,7 +262,7 @@ class PatientFlowController extends Controller
     {
         $eventId = $request->query('event_id');
         if (! is_string($eventId) || $eventId === '') {
-            return response()->json(['error' => 'event_id is required'], 422);
+            return $this->patientJson(['error' => 'event_id is required'], 422);
         }
 
         $event = FlowEvent::query()
@@ -231,11 +270,11 @@ class PatientFlowController extends Controller
             ->whereKey($eventId)
             ->first();
 
-        if (! $event) {
-            return response()->json(['error' => 'event_id not found'], 404);
+        if (! $event || ! ($payload = $this->eventAccess->event($request, $event))) {
+            return $this->patientJson(['error' => 'event_id not found'], 404);
         }
 
-        return response()->json($this->fhir->make($event));
+        return $this->patientJson($this->fhir->makeFromPayload($payload));
     }
 
     /**
@@ -308,6 +347,25 @@ class PatientFlowController extends Controller
             fn (string $value): string => strtolower(trim($value)),
             explode(',', (string) $request->query('include', '')),
         )), true);
+    }
+
+    /** @param array<string, mixed>|list<mixed> $payload */
+    private function patientJson(array $payload, int $status = 200): JsonResponse
+    {
+        return response()->json($payload, $status)->withHeaders([
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    private function invalidPatientFilter(InvalidArgumentException $exception): JsonResponse
+    {
+        return $this->patientJson([
+            'error' => [
+                'code' => 'invalid_patient_context_ref',
+                'message' => $exception->getMessage(),
+            ],
+        ], 422);
     }
 
     /** @param array<string,array<string,mixed>> $locations */

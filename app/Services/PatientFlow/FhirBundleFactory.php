@@ -2,18 +2,17 @@
 
 namespace App\Services\PatientFlow;
 
-use App\Models\PatientFlow\FlowEvent;
-
 class FhirBundleFactory
 {
-    public function __construct(private readonly FlowEventRepository $events) {}
-
     /**
+     * Build only from a payload that has already crossed its authorization and
+     * redaction boundary. Patient Flow web callers must use this method.
+     *
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    public function make(FlowEvent $event): array
+    public function makeFromPayload(array $payload): array
     {
-        $payload = $this->events->serializeEvent($event);
         $locationId = $payload['to_location'] ?: 'unknown';
 
         $encounter = [
