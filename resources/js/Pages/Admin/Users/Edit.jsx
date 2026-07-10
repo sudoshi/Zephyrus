@@ -17,7 +17,7 @@ export default function Edit({ auth, user }) {
 
     const submit = (e) => {
         e.preventDefault();
-        put(route('users.update', user.id));
+        put(`/users/${user.id}`);
     };
 
     return (
@@ -31,7 +31,7 @@ export default function Edit({ auth, user }) {
                             Edit User: {user.name}
                         </h1>
                         <Link
-                            href={route('users.index')}
+                            href="/users"
                             className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-secondary-dark transition-colors duration-300"
                         >
                             Back to Users

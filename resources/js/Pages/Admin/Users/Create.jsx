@@ -17,7 +17,7 @@ export default function Create({ auth }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('users.store'), {
+        post('/users', {
             onSuccess: () => reset(),
         });
     };
@@ -33,7 +33,7 @@ export default function Create({ auth }) {
                             Create New User
                         </h1>
                         <Link
-                            href={route('users.index')}
+                            href="/users"
                             className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-secondary-dark transition-colors duration-300"
                         >
                             Back to Users
