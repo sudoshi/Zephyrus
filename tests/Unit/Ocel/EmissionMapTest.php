@@ -183,6 +183,77 @@ class EmissionMapTest extends TestCase
         $this->assertSame('transport-request', $events[0]->activity);
     }
 
+    public function test_barrier_fans_into_opened_and_resolved_events(): void
+    {
+        $row = (object) [
+            'barrier_id' => 55,
+            'encounter_id' => 12,
+            'unit_id' => 7,
+            'category' => 'placement',
+            'reason_code' => 'no_bed',
+            'status' => 'resolved',
+            'opened_at' => '2026-06-29T10:00:00-04:00',
+            'resolved_at' => '2026-06-29T14:30:00-04:00',
+            'unit_abbreviation' => '5West',
+        ];
+
+        $events = EmissionMap::forBarrier($row);
+        $this->assertCount(2, $events);
+        $this->assertSame(['barrier_opened', 'barrier_resolved'], array_map(fn ($e) => $e->activity, $events));
+        $this->assertSame(['bar-55-opened', 'bar-55-resolved'], array_map(fn ($e) => $e->id, $events));
+
+        // One first-class Barrier subject, linked to its unit via O2O `in`.
+        $this->assertSame('barrier-55', $this->objectByType($events[0], 'Barrier')['id']);
+        $this->assertSame('unit-5west', $this->objectByType($events[0], 'Unit')['id']);
+        $this->assertContains(['from' => 'barrier-55', 'to' => 'unit-5west', 'qualifier' => 'in'], $events[0]->o2o);
+
+        // status carried as a time-varying object_change: open → resolved.
+        $this->assertSame('status', $events[0]->changes[0]['attr']);
+        $this->assertSame('open', $events[0]->changes[0]['value']);
+        $this->assertSame('resolved', $events[1]->changes[0]['value']);
+
+        // PHI: the numeric encounter_id is hashed to enc-<hash>, never surfaced raw.
+        $barrier = $this->objectByType($events[0], 'Barrier');
+        $this->assertSame('enc-'.EmissionMap::hashRef('12'), $barrier['attrs']['encounter_ref']);
+        $this->assertArrayNotHasKey('encounter_id', $barrier['attrs']);
+    }
+
+    public function test_unresolved_barrier_emits_only_opened(): void
+    {
+        $row = (object) [
+            'barrier_id' => 88, 'encounter_id' => null, 'unit_id' => 3,
+            'category' => 'logistical', 'reason_code' => null, 'status' => 'open',
+            'opened_at' => '2026-06-29T09:00:00-04:00', 'resolved_at' => null,
+            'unit_abbreviation' => '3E',
+        ];
+
+        $events = EmissionMap::forBarrier($row);
+        $this->assertCount(1, $events);
+        $this->assertSame('barrier_opened', $events[0]->activity);
+        $this->assertSame('bar-88-opened', $events[0]->id);
+    }
+
+    public function test_house_level_barrier_skips_the_unit_link(): void
+    {
+        $row = (object) [
+            'barrier_id' => 90, 'encounter_id' => null, 'unit_id' => null,
+            'category' => 'social', 'reason_code' => null, 'status' => 'open',
+            'opened_at' => '2026-06-29T09:00:00-04:00', 'resolved_at' => null,
+            'unit_abbreviation' => null,
+        ];
+
+        $events = EmissionMap::forBarrier($row);
+        $this->assertCount(1, $events);
+        $this->assertCount(1, $events[0]->objects); // only the Barrier itself
+        $this->assertSame('Barrier', $events[0]->objects[0]['type']);
+        $this->assertSame([], $events[0]->o2o);
+    }
+
+    public function test_barrier_without_opened_at_is_skipped(): void
+    {
+        $this->assertSame([], EmissionMap::forBarrier((object) ['barrier_id' => 1, 'opened_at' => null]));
+    }
+
     public function test_hash_ref_is_deterministic_and_phi_free(): void
     {
         $this->assertSame(EmissionMap::hashRef('MRN-123'), EmissionMap::hashRef('MRN-123'));
