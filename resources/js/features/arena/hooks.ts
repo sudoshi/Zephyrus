@@ -1,6 +1,6 @@
 // resources/js/features/arena/hooks.ts
 import { useQuery } from '@tanstack/react-query';
-import { fetchArenaConformance, fetchArenaMap, fetchArenaNarrative, fetchArenaPerformance, fetchArenaSummary, type ArenaMapParams } from './api';
+import { fetchArenaConformance, fetchArenaMap, fetchArenaNarrative, fetchArenaPerformance, fetchArenaReview, fetchArenaSummary, type ArenaMapParams } from './api';
 
 // Discovered maps are server-cached in arena.maps; a 60s client staleTime keeps
 // the Study responsive to filter changes without re-hitting the sidecar on every
@@ -47,5 +47,16 @@ export function useArenaNarrative(enabled: boolean) {
     queryFn: fetchArenaNarrative,
     enabled,
     staleTime: 60_000,
+  });
+}
+
+// The 48-Hour Flow Review artifact. `retry: false` because the /review endpoint
+// may 404 until the backend loop ships — the movement falls back to the fixture.
+export function useArenaReview(windowRef?: string) {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'review', windowRef ?? 'latest'],
+    queryFn: () => fetchArenaReview(windowRef),
+    staleTime: 60_000,
+    retry: false,
   });
 }
