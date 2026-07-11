@@ -191,6 +191,8 @@ export interface PatientLayerState {
   ghosts: boolean;
   /** Open operational barrier markers (present-state; seam 4b). */
   barriers: boolean;
+  /** Virtual Rounds stop rings (seam 4b sibling; plan §8.1). */
+  rounds: boolean;
 }
 
 export interface PatientVisibleState {

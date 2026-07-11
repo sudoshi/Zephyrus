@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
 import type { BarrierCell, BarrierSeverity, ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
+import { ROUND_STOP_COLORS } from '@/features/virtualRounds/roundsScene';
+import type { RoundStopCell } from '@/features/virtualRounds/roundsScene';
 import type {
   PatientFlowEvent,
   PatientFlowLocations,
@@ -85,6 +87,8 @@ export class NavigatorScene {
 
   private barrierLayer = new THREE.Group();
 
+  private roundsLayer = new THREE.Group();
+
   private baseObjects: THREE.Object3D[] = [];
 
   private tokenByPatient = new Map<string, THREE.Mesh>();
@@ -98,6 +102,12 @@ export class NavigatorScene {
   private forecastMaterials = new Map<string, THREE.MeshStandardMaterial>();
 
   private barrierMaterials = new Map<BarrierSeverity, THREE.MeshStandardMaterial>();
+
+  private roundMaterials = new Map<string, THREE.MeshStandardMaterial>();
+
+  private roundStopMeshByUuid = new Map<string, THREE.Mesh>();
+
+  private focusedRoundStopUuid: string | null = null;
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
@@ -114,6 +124,10 @@ export class NavigatorScene {
   // A diamond, distinct from every other layer's shape — a barrier reads as a
   // marker, not census/forecast volume.
   private barrierGeometry = new THREE.OctahedronGeometry(2.1);
+
+  // A flat ring, distinct from spheres/pillars/diamonds — a round stop reads
+  // as "someone still has to visit here", not census or a barrier.
+  private roundGeometry = new THREE.TorusGeometry(2.2, 0.42, 10, 26);
 
   private raycaster = new THREE.Raycaster();
 
@@ -149,6 +163,7 @@ export class NavigatorScene {
     this.raycaster.setFromCamera(pointer, this.camera);
     const hits = this.raycaster.intersectObjects(
       [
+        ...this.roundsLayer.children,
         ...this.barrierLayer.children,
         ...this.patientLayer.children,
         ...this.ghostLayer.children,
@@ -194,7 +209,7 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer);
 
     this.heatSingleMaterial = new THREE.MeshStandardMaterial({
       color: 0x77c06f,
@@ -440,6 +455,117 @@ export class NavigatorScene {
     }
   }
 
+  /**
+   * Rounds overlay rebuild: one flat ring per round stop, colored by round
+   * state (never coral — a round state is work, not a breach). Pinned stops
+   * scale up; the opaque stop payload rides in userData for the inspector.
+   * No patient identifier ever enters this layer (plan §8.1).
+   */
+  rebuildRounds(cells: RoundStopCell[], layerVisible: boolean): void {
+    this.clearGroup(this.roundsLayer);
+    this.roundStopMeshByUuid.clear();
+    // The focused mesh (if any) was just removed with the group; drop the
+    // clone so it never dangles. Focus re-applies below without re-flying.
+    this.focusedRoundMaterial?.dispose();
+    this.focusedRoundMaterial = null;
+    this.focusedRoundMesh = null;
+    if (!layerVisible) return;
+
+    const stackByAnchor = new Map<string, number>();
+    for (const cell of cells) {
+      const { anchor, stop } = cell;
+      const anchorKey = `${anchor.x.toFixed(1)}|${anchor.z.toFixed(1)}`;
+      const stack = stackByAnchor.get(anchorKey) ?? 0;
+      stackByAnchor.set(anchorKey, stack + 1);
+
+      const mesh = new THREE.Mesh(this.roundGeometry, this.roundMaterialFor(stop.status, stop.pinned));
+      mesh.position.set(anchor.x, anchor.y + 4.5 + stack * 3.4, anchor.z);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.scale.setScalar(stop.pinned ? 1.25 : 1);
+      mesh.userData = {
+        kind: 'round-stop',
+        round_patient_uuid: stop.round_patient_uuid,
+        status: stop.status,
+        queue_position: stop.queue_position,
+        priority_band: stop.priority_band,
+        ...(stop.bed ? { bed: stop.bed } : {}),
+        ...(stop.pinned ? { pinned: true } : {}),
+        ...(stop.discharge_ready ? { discharge_ready: true } : {}),
+        ...(stop.missing_input ? { missing_input: true } : {}),
+      };
+      this.roundsLayer.add(mesh);
+      this.roundStopMeshByUuid.set(stop.round_patient_uuid, mesh);
+    }
+
+    if (this.focusedRoundStopUuid) {
+      this.applyRoundFocus(this.focusedRoundStopUuid, false);
+    }
+  }
+
+  /**
+   * Guided-tour focus: highlight one stop and fly the camera to it. Returns
+   * false when the stop is not currently placed (wrong floor / no anchor) so
+   * the orchestrator can fall back to the board. Pass null to clear.
+   */
+  focusRoundStop(roundPatientUuid: string | null): boolean {
+    this.focusedRoundStopUuid = roundPatientUuid;
+    this.clearRoundFocusMaterial();
+
+    if (roundPatientUuid === null) return true;
+
+    return this.applyRoundFocus(roundPatientUuid);
+  }
+
+  private focusedRoundMaterial: THREE.MeshStandardMaterial | null = null;
+
+  private focusedRoundMesh: THREE.Mesh | null = null;
+
+  private clearRoundFocusMaterial(): void {
+    if (this.focusedRoundMesh && this.focusedRoundMesh.userData?.kind === 'round-stop') {
+      const status = String(this.focusedRoundMesh.userData.status ?? 'queued');
+      const pinned = Boolean(this.focusedRoundMesh.userData.pinned);
+      this.focusedRoundMesh.material = this.roundMaterialFor(status, pinned);
+    }
+    this.focusedRoundMaterial?.dispose();
+    this.focusedRoundMaterial = null;
+    this.focusedRoundMesh = null;
+  }
+
+  private applyRoundFocus(roundPatientUuid: string, fly = true): boolean {
+    const mesh = this.roundStopMeshByUuid.get(roundPatientUuid);
+    if (!mesh) return false;
+
+    // Focused ring gets its own (non-shared) brighter material so the pulse
+    // never leaks onto same-status siblings; the clone is disposed on unfocus.
+    const base = mesh.material as THREE.MeshStandardMaterial;
+    const focused = base.clone();
+    focused.emissiveIntensity = 2.4;
+    mesh.material = focused;
+    this.focusedRoundMaterial = focused;
+    this.focusedRoundMesh = mesh;
+    if (fly) {
+      this.focusOn([{ x: mesh.position.x, y: mesh.position.y, z: mesh.position.z }]);
+    }
+    return true;
+  }
+
+  private roundMaterialFor(status: string, pinned: boolean): THREE.MeshStandardMaterial {
+    const colorHex = pinned ? 0xeaa640 : (ROUND_STOP_COLORS[status as keyof typeof ROUND_STOP_COLORS] ?? 0x94a3b8);
+    const key = `${colorHex}`;
+    let material = this.roundMaterials.get(key);
+    if (!material) {
+      const color = new THREE.Color(colorHex);
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive: color.clone().multiplyScalar(0.28),
+        roughness: 0.4,
+        metalness: 0,
+      });
+      this.roundMaterials.set(key, material);
+    }
+    return material;
+  }
+
   focusOn(points: Array<{ x: number; y: number; z: number }>): void {
     if (!points.length) return;
     const box = new THREE.Box3();
@@ -470,11 +596,14 @@ export class NavigatorScene {
     this.clearGroup(this.ghostLayer);
     this.clearGroup(this.forecastLayer);
     this.clearGroup(this.barrierLayer);
+    this.clearGroup(this.roundsLayer);
+    this.roundStopMeshByUuid.clear();
     this.patientMaterials.forEach((material) => material.dispose());
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());
     this.forecastMaterials.forEach((material) => material.dispose());
     this.barrierMaterials.forEach((material) => material.dispose());
+    this.roundMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
     this.tokenGeometry.dispose();
@@ -482,6 +611,7 @@ export class NavigatorScene {
     this.heatGeometry.dispose();
     this.forecastGeometry.dispose();
     this.barrierGeometry.dispose();
+    this.roundGeometry.dispose();
     this.orbit.dispose();
     this.renderer.dispose();
   }
@@ -596,7 +726,8 @@ export class NavigatorScene {
         && child.geometry !== this.ghostGeometry
         && child.geometry !== this.heatGeometry
         && child.geometry !== this.forecastGeometry
-        && child.geometry !== this.barrierGeometry) {
+        && child.geometry !== this.barrierGeometry
+        && child.geometry !== this.roundGeometry) {
         child.geometry.dispose();
       }
     }

@@ -41,6 +41,9 @@ class DatabaseSeeder extends Seeder
             // Runs AFTER CommandCenterDemoSeeder because surgical safety attaches to
             // its seeded prod.or_cases. Idempotent (tag/cohort delete-then-insert).
             ClinicalPathwaySeeder::class,
+            // Virtual Rounds pilot templates (rounds.templates). Idempotent by
+            // (name, version); template UUIDs are minted once and preserved.
+            RoundTemplateSeeder::class,
             // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
             // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
             // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.

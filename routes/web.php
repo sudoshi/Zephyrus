@@ -109,6 +109,9 @@ Route::middleware(['auth'])
             Route::get('/unit-huddle', [RTDCDashboardController::class, 'unitHuddle'])->name('unit-huddle');
             Route::get('/service-huddle', [RTDCDashboardController::class, 'serviceHuddle'])->name('service-huddle');
             Route::get('/bed-placement', [RTDCDashboardController::class, 'bedPlacement'])->name('bed-placement');
+            // Virtual Rounds board (gated by VIRTUAL_ROUNDS_ENABLED — 404 when off).
+            Route::get('/virtual-rounds', [RTDCDashboardController::class, 'virtualRounds'])->name('virtual-rounds')
+                ->middleware(\App\Http\Middleware\EnsureRoundsEnabled::class);
 
             // Predictions Routes
             Route::prefix('predictions')->name('predictions.')->group(function () {

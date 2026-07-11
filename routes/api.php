@@ -179,6 +179,46 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
 });
 
+// Virtual Rounds — asynchronous/hybrid multidisciplinary rounds workflow
+// (docs/superpowers/plans/2026-07-11-virtual-rounds-4d-eddy-implementation-plan.md §10.1).
+// Gated by VIRTUAL_ROUNDS_ENABLED (404 when off). Mutations accept an
+// Idempotency-Key header and expected versions; conflicts return 409 with the
+// current projection. All patient authorization is server-side.
+Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRoundsEnabled::class])
+    ->prefix('rounds')->group(function () {
+        Route::get('/templates', [\App\Http\Controllers\Api\Rounds\RoundTemplateController::class, 'index']);
+        Route::get('/scopes', [\App\Http\Controllers\Api\Rounds\RoundScopeController::class, 'index']);
+
+        Route::get('/runs', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'index']);
+        Route::post('/runs', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'store']);
+        Route::get('/runs/{runUuid}', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'show']);
+        Route::post('/runs/{runUuid}/start', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'start']);
+        Route::post('/runs/{runUuid}/pause', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'pause']);
+        Route::post('/runs/{runUuid}/resume', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'resume']);
+        Route::post('/runs/{runUuid}/complete', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'complete']);
+        Route::post('/runs/{runUuid}/cancel', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'cancel']);
+        Route::get('/runs/{runUuid}/board', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'board']);
+        Route::get('/runs/{runUuid}/scene', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'scene']);
+        Route::post('/runs/{runUuid}/cohort/reconcile', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'reconcile']);
+        Route::patch('/runs/{runUuid}/queue', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'queue']);
+
+        Route::get('/patients/{roundPatientUuid}', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'show']);
+        Route::post('/patients/{roundPatientUuid}/mark-ready', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'markReady']);
+        Route::post('/patients/{roundPatientUuid}/complete', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'complete']);
+        Route::post('/patients/{roundPatientUuid}/reopen', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'reopen']);
+        Route::post('/patients/{roundPatientUuid}/defer', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'defer']);
+        Route::post('/patients/{roundPatientUuid}/skip', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'skip']);
+        Route::post('/patients/{roundPatientUuid}/pin', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'pin']);
+        Route::post('/patients/{roundPatientUuid}/contributions', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'store']);
+        Route::post('/patients/{roundPatientUuid}/questions', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'store']);
+        Route::post('/patients/{roundPatientUuid}/tasks', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'store']);
+
+        Route::post('/contributions/{contributionUuid}/submit', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'submit']);
+        Route::post('/contributions/{contributionUuid}/withdraw', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'withdraw']);
+        Route::post('/questions/{questionUuid}/resolve', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'resolve']);
+        Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
+    });
+
 // RTDC — Real-Time Demand Capacity (web session auth)
 // The `web` group provides StartSession (reads the session cookie) so the Inertia SPA
 // authenticates via the web guard. Without it these routes 401 in the browser because
