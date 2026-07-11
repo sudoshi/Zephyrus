@@ -186,7 +186,7 @@ class DemoTuningSeeder extends Seeder
             ->whereIn('requested_by', $demoSources)
             ->update([
                 'needed_at' => DB::raw(
-                    "CASE WHEN random() < 0.10 ".
+                    'CASE WHEN random() < 0.10 '.
                     "THEN (now() AT TIME ZONE 'UTC') - ((floor(random()*30) + 1)||' minutes')::interval ".
                     "ELSE (now() AT TIME ZONE 'UTC') + ((floor(random()*160) + 10)||' minutes')::interval END"
                 ),

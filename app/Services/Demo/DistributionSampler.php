@@ -24,6 +24,7 @@ final class DistributionSampler
      * Deterministic weighted choice. Returns the KEY of $weights.
      *
      * @template T of array-key
+     *
      * @param  array<T,int|float>  $weights  value => weight
      * @return T
      */

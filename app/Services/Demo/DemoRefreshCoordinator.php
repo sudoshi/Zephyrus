@@ -32,9 +32,7 @@ final class DemoRefreshCoordinator
 
     private const SEED_VERSION = '2026-07-10-wave1';
 
-    public function __construct(private readonly DemoInvariantService $invariants)
-    {
-    }
+    public function __construct(private readonly DemoInvariantService $invariants) {}
 
     /**
      * @return array{refreshId:string,status:string,anchor:string,durationMs:int,
