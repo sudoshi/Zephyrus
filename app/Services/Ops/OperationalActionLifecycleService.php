@@ -14,6 +14,10 @@ class OperationalActionLifecycleService
 {
     private const TERMINAL_STATUSES = ['completed', 'rejected', 'overridden', 'expired'];
 
+    public function __construct(
+        private readonly CorrectiveActionExecutor $executor = new CorrectiveActionExecutor,
+    ) {}
+
     /** @return array<string,mixed> */
     public function inbox(): array
     {
@@ -95,6 +99,12 @@ class OperationalActionLifecycleService
                     'approved_by_user_id' => $userId,
                     'approved_at' => now(),
                 ])->save();
+
+                // Seam 2 (Part X): a human just approved — now, and only now, the
+                // governed draft becomes a real domain row. A no-op for action types
+                // that don't materialize; atomic within this transaction so a write
+                // failure rolls the whole approval back.
+                $this->executor->materialize($action);
             } else {
                 $action->fill([
                     'status' => 'rejected',

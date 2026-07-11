@@ -4,6 +4,8 @@ namespace App\Domain\Arena;
 
 use App\Domain\Ocel\OcelJsonExporter;
 use App\Models\Barrier;
+use App\Models\Ops\Approval;
+use App\Services\Ops\CorrectiveActionExecutor;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -76,6 +78,7 @@ class FlowReviewService
             $conformance,
             $this->openHumanBarriers($to),
             $prior,
+            $this->pendingCorrectiveActions(),
             $from,
             $to,
         );
@@ -151,6 +154,21 @@ class FlowReviewService
                 'opened_at' => optional($b->opened_at)->toIso8601String() ?? $to->toIso8601String(),
             ])
             ->all();
+    }
+
+    /**
+     * How many governed corrective-action drafts are awaiting a human decision —
+     * the "actions pending" the Review surfaces. Counts pending approvals whose
+     * action materializes a domain row on approval (the copilot's two draft types),
+     * so it tracks the P3 executor's inbox, not every Eddy proposal. Global (not
+     * window-clipped): the approval queue has no bearing on the review window.
+     */
+    private function pendingCorrectiveActions(): int
+    {
+        return Approval::query()
+            ->where('status', 'pending')
+            ->whereHas('action', fn ($q) => $q->whereIn('action_type', CorrectiveActionExecutor::MATERIALIZES))
+            ->count();
     }
 
     /**

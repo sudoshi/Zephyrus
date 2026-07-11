@@ -70,6 +70,7 @@ final class FlowReviewComposer
      * @param  array<int, array<string, mixed>>|null  $conformance  sidecar /conformance list (or null if down)
      * @param  array<int, array<string, mixed>>  $humanBarriers  normalised open prod.barriers rows
      * @param  array<string, mixed>|null  $prior  the previous artifact, for deltas + new-barrier diffing
+     * @param  int  $actionsPending  corrective-action drafts awaiting human approval (the P3 plane)
      * @return array<string, mixed>
      */
     public static function compose(
@@ -78,6 +79,7 @@ final class FlowReviewComposer
         ?array $conformance,
         array $humanBarriers,
         ?array $prior,
+        int $actionsPending,
         CarbonInterface $from,
         CarbonInterface $to,
     ): array {
@@ -132,7 +134,7 @@ final class FlowReviewComposer
             ],
             'prior_window_label' => self::priorWindowLabel($prior),
             'generated_at' => $to->toIso8601String(),
-            'stats' => self::stats($barriers, $newCount, $handoffs, $priorMedians, $conformance ?? [], $prior, $nodeActivity),
+            'stats' => self::stats($barriers, $newCount, $actionsPending, $handoffs, $priorMedians, $conformance ?? [], $prior, $nodeActivity),
             'barriers' => array_values($barriers),
             'map' => self::normaliseMap($discover),
             'performance_index' => $handoffs,
@@ -380,7 +382,7 @@ final class FlowReviewComposer
      * @param  array<string, string>  $nodeActivity
      * @return array<string, mixed>
      */
-    private static function stats(array $barriers, int $newCount, array $handoffs, array $priorMedians, array $conformance, ?array $prior, array $nodeActivity): array
+    private static function stats(array $barriers, int $newCount, int $actionsPending, array $handoffs, array $priorMedians, array $conformance, ?array $prior, array $nodeActivity): array
     {
         // Worst hand-off overall (barrier or not) — the headline sync-wait.
         $worstHandoff = ['label' => 'None', 'value_label' => '—', 'delta_pct' => null];
@@ -419,9 +421,10 @@ final class FlowReviewComposer
         return [
             'open_barriers' => count($barriers),
             'new_barriers' => $newCount,
-            // No auto-drafting in this pass — corrective-action drafting rides the
-            // governed AI plane (Phase-3 executor), so nothing is pending yet.
-            'actions_pending' => 0,
+            // Corrective-action drafts awaiting a human decision on the governed AI
+            // plane (propose_pdsa_cycle / propose_pathway_correction). Counted by the
+            // orchestrator; on approval the P3 executor materializes the domain row.
+            'actions_pending' => $actionsPending,
             'worst_handoff' => $worstHandoff,
             'worst_pathway' => $worstPathway,
         ];

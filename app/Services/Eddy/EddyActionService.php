@@ -195,6 +195,10 @@ class EddyActionService
                 'recommendation_type' => $spec['recommendation_type'],
                 'scope_type' => $surface,
                 'scope_key' => $proposal['scope_key'] ?? null,
+                // Part X seam 3: the open prod.barriers row this proposal answers, so
+                // an approved corrective action can be traced back to its barrier
+                // (null for proposals not born of a barrier).
+                'barrier_id' => $proposal['barrier_id'] ?? null,
                 'title' => $title,
                 'rationale' => $proposal['rationale'] ?? null,
                 'risk_level' => $spec['risk'],
