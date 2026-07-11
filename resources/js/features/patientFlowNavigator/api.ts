@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   PatientFlowAmbient,
+  PatientFlowBarriersResponse,
   PatientFlowEvent,
   PatientFlowLocations,
   PatientFlowProjectionsResponse,
@@ -26,6 +27,15 @@ export async function fetchPatientFlowSummary(): Promise<PatientFlowSummary> {
 
 export async function fetchPatientFlowLocations(): Promise<PatientFlowLocations> {
   const response = await axios.get<PatientFlowLocations>('/api/patient-flow/locations');
+  return response.data;
+}
+
+// Open operational barriers overlay. Aggregate + patient-free, so no lens is
+// required; pass a unit_id to scope to one unit.
+export async function fetchPatientFlowBarriers(unitId?: number): Promise<PatientFlowBarriersResponse> {
+  const response = await axios.get<PatientFlowBarriersResponse>('/api/patient-flow/barriers', {
+    params: { unit_id: unitId },
+  });
   return response.data;
 }
 

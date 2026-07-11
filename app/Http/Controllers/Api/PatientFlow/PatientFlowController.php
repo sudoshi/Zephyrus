@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\PatientFlow;
 
 use App\Http\Controllers\Controller;
+use App\Models\Barrier;
 use App\Models\PatientFlow\FlowEvent;
 use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
@@ -42,6 +43,7 @@ class PatientFlowController extends Controller
             'min_occurred_at' => DB::table('flow_core.flow_events')->min('occurred_at'),
             'max_occurred_at' => DB::table('flow_core.flow_events')->max('occurred_at'),
             'live_events' => 0,
+            'open_barriers' => (int) Barrier::query()->open()->count(),
             'ambient_signals' => $ambient['summary']['eventCount'],
             'ambient_confidence' => $ambient['summary']['averageConfidence'],
             'ambient_confidence_level' => $ambient['summary']['confidenceLevel'],
@@ -98,6 +100,48 @@ class PatientFlowController extends Controller
     public function ambient(): JsonResponse
     {
         return response()->json($this->ambientSignals->summary($this->facilityCode()));
+    }
+
+    /**
+     * Open operational barriers for the Navigator overlay. The flagship 48h spine
+     * was barrier-blind — it read flow_core.flow_events only — so a bed/placement
+     * hold never showed on the map next to the flow it was choking. This surfaces
+     * the currently-open prod.barriers, each carrying its numeric unit_id so the
+     * FE can anchor it to the unit's location centroid (buildProjectionPlacementIndex);
+     * house-level barriers (unit_id null) render chronobar/HUD-only. ?unit_id filters.
+     *
+     * Aggregate + patient-free: identity linkage stays lens-redacted (encounter_ref
+     * is deferred to the lens-aware follow-up), so it sits with the other aggregate
+     * reads and is safe for every persona.
+     */
+    public function barriers(Request $request): JsonResponse
+    {
+        $open = Barrier::query()
+            ->open()
+            ->with('unit')
+            ->when($request->filled('unit_id'), fn ($q) => $q->where('unit_id', $request->integer('unit_id')))
+            ->orderBy('opened_at')
+            ->get()
+            ->map(fn (Barrier $b): array => [
+                'barrier_id' => (int) $b->barrier_id,
+                'unit_id' => $b->unit_id,
+                'unit_label' => $b->unit?->name,
+                'category' => (string) $b->category,
+                'reason_code' => $b->reason_code,
+                'description' => $b->description,
+                'owner' => $b->owner,
+                'status' => (string) $b->status,
+                'opened_at' => optional($b->opened_at)->toJSON(),
+                // Patient identity stays lens-redacted; population is a follow-up.
+                'encounter_ref' => null,
+            ])
+            ->values();
+
+        return response()->json([
+            'generated_at' => now()->toJSON(),
+            'count' => $open->count(),
+            'open_barriers' => $open,
+        ]);
     }
 
     /**
