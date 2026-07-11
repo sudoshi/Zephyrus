@@ -1,51 +1,111 @@
 #!/bin/bash
 # Deploy script for Zephyrus
 
-# Exit on error
-set -e
+set -Eeuo pipefail
 
-# Check if we're in the development directory
-if [[ "$(pwd)" != "/home/smudoshi/Github/Zephyrus"* ]]; then
-    echo "❌ Error: This script must be run from the development directory"
-    echo "📂 Current directory: $(pwd)"
-    echo "📂 Expected directory: /home/smudoshi/Github/Zephyrus"
+EXPECTED_REPOSITORY_ROOT="/home/smudoshi/Github/Zephyrus"
+REPOSITORY_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+
+# Production releases must originate from the canonical main checkout. Other
+# worktrees are useful for development, but are not release sources.
+if [[ "$REPOSITORY_ROOT" != "$EXPECTED_REPOSITORY_ROOT" ]]; then
+    echo "❌ Error: This script must be run from the canonical development checkout"
+    echo "📂 Current repository: ${REPOSITORY_ROOT:-not a Git worktree}"
+    echo "📂 Expected repository: $EXPECTED_REPOSITORY_ROOT"
+    exit 1
+fi
+cd "$REPOSITORY_ROOT"
+
+CURRENT_BRANCH="$(git branch --show-current)"
+UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+if [[ "$CURRENT_BRANCH" != "main" || "$UPSTREAM" != "origin/main" ]]; then
+    echo "❌ Error: Production deployments must come from main tracking origin/main"
+    echo "🌿 Current branch: ${CURRENT_BRANCH:-detached HEAD}"
+    echo "📡 Current upstream: ${UPSTREAM:-none}"
     exit 1
 fi
 
-# Check for uncommitted changes
-if [[ -n $(git status -s) ]]; then
+# Check for uncommitted or untracked source before resolving the release.
+if [[ -n "$(git status --porcelain=v1 --untracked-files=normal)" ]]; then
     echo "❌ Error: You have uncommitted changes"
     echo "💡 Please commit or stash your changes before deploying"
     git status
     exit 1
 fi
 
-# Check if we're behind the remote
 echo "📡 Checking remote status..."
-git fetch origin
-LOCAL=$(git rev-parse @)
-REMOTE=$(git rev-parse @{u})
-BASE=$(git merge-base @ @{u})
+git fetch --quiet origin main
+RELEASE_COMMIT="$(git rev-parse HEAD)"
+REMOTE_COMMIT="$(git rev-parse origin/main)"
 
-if [ $LOCAL = $REMOTE ]; then
-    echo "✅ Local branch is up to date"
-elif [ $LOCAL = $BASE ]; then
-    echo "❌ Error: Your local branch is behind the remote"
-    echo "💡 Please pull the latest changes before deploying"
+if [[ "$RELEASE_COMMIT" != "$REMOTE_COMMIT" ]]; then
+    echo "❌ Error: main must exactly match origin/main before deploying"
+    echo "🏠 Local main:  $RELEASE_COMMIT"
+    echo "📡 Origin main: $REMOTE_COMMIT"
+    exit 1
+fi
+echo "✅ main is current at $RELEASE_COMMIT"
+
+if [[ ! -f "$REPOSITORY_ROOT/vendor/autoload.php" ]]; then
+    echo "❌ Error: Composer dependencies are missing; run composer install"
+    exit 1
+fi
+if [[ ! -d "$REPOSITORY_ROOT/node_modules" ]]; then
+    echo "❌ Error: Node dependencies are missing; run npm install"
     exit 1
 fi
 
+RELEASE_TEMP="$(mktemp -d "${TMPDIR:-/tmp}/zephyrus-release.XXXXXX")"
+RELEASE_ROOT="$RELEASE_TEMP/release"
+IMMUTABLE_HELPER="$RELEASE_TEMP/create-release-snapshot.sh"
+
+cleanup_release() {
+    rm -rf "$RELEASE_TEMP"
+}
+trap cleanup_release EXIT
+
+# Load the snapshot helper from the release commit itself, then archive that
+# same commit. A concurrent writer may change the checkout after this point,
+# but rsync and the asset build only read from RELEASE_ROOT.
+git show "$RELEASE_COMMIT:scripts/deployment/create-release-snapshot.sh" > "$IMMUTABLE_HELPER"
+chmod 0700 "$IMMUTABLE_HELPER"
+"$IMMUTABLE_HELPER" "$REPOSITORY_ROOT" "$RELEASE_COMMIT" "$RELEASE_ROOT"
+
+# Composer dependencies are not tracked. Freeze the currently installed,
+# lockfile-backed dependency tree into the otherwise commit-only release tree.
+echo "📦 Freezing Composer dependencies into the release snapshot..."
+mkdir -p "$RELEASE_ROOT/vendor"
+rsync -a --delete "$REPOSITORY_ROOT/vendor/" "$RELEASE_ROOT/vendor/"
+
 echo "🚀 Starting deployment process..."
-
-# Switch to the project directory
-cd "$(dirname "$0")"
-
 echo "Building assets..."
-# Build assets
-NODE_ENV=production npm run build
+
+# Reuse the installed build toolchain without exposing the release payload to
+# mutable application source. The symlink is removed before publication.
+ln -s "$REPOSITORY_ROOT/node_modules" "$RELEASE_ROOT/node_modules"
+(
+    cd "$RELEASE_ROOT"
+    NODE_ENV=production npm run build
+)
+rm "$RELEASE_ROOT/node_modules"
+
+if [[ ! -f "$RELEASE_ROOT/public/build/manifest.json" ]]; then
+    echo "❌ Error: Production asset manifest was not generated"
+    exit 1
+fi
+
+# Do not publish an older snapshot if main advanced while assets were building.
+echo "📡 Revalidating release commit before publication..."
+git fetch --quiet origin main
+REMOTE_COMMIT="$(git rev-parse origin/main)"
+if [[ "$RELEASE_COMMIT" != "$REMOTE_COMMIT" ]]; then
+    echo "❌ Error: origin/main advanced while the release was building"
+    echo "📦 Prepared commit: $RELEASE_COMMIT"
+    echo "📡 Origin main:     $REMOTE_COMMIT"
+    exit 1
+fi
 
 echo "Syncing to production..."
-# Sync to production (excluding node_modules, .git, etc)
 sudo rsync -av --exclude 'node_modules' \
             --exclude '.git' \
             --exclude '.env' \
@@ -57,13 +117,21 @@ sudo rsync -av --exclude 'node_modules' \
             --exclude 'arena/.venv' \
             --exclude '__pycache__' \
             --exclude '.pytest_cache' \
-            /home/smudoshi/Github/Zephyrus/ /var/www/Zephyrus/
+            "$RELEASE_ROOT/" /var/www/Zephyrus/
 
 echo "Setting permissions..."
 # rsync -a preserves dev (smudoshi) ownership, but Apache/PHP-FPM runs as www-data.
 # The ENTIRE tree must be www-data-owned or vendor/autoload reads fail with a
 # site-wide 500 (e.g. "Permission denied" on vendor/.../functions_include.php).
 sudo chown -R www-data:www-data /var/www/Zephyrus
+
+DEPLOYED_COMMIT="$(sudo cat /var/www/Zephyrus/.release-commit)"
+if [[ "$DEPLOYED_COMMIT" != "$RELEASE_COMMIT" ]]; then
+    echo "❌ Error: Deployed commit marker does not match the prepared release"
+    echo "📦 Prepared commit: $RELEASE_COMMIT"
+    echo "🚀 Deployed marker: $DEPLOYED_COMMIT"
+    exit 1
+fi
 
 echo "Clearing Laravel caches..."
 # Clear Laravel caches
@@ -194,7 +262,7 @@ if ! sudo -u www-data test -w /var/www/Zephyrus/storage; then
 fi
 
 echo "✅ All checks passed!"
-echo "🎉 Deployment completed successfully!"
+echo "🎉 Deployment completed successfully at commit $RELEASE_COMMIT!"
 
 # Print helpful information
 echo "
