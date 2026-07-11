@@ -105,3 +105,18 @@ export async function fetchArenaCapacity(): Promise<unknown> {
   const res = await axios.get('/api/arena/capacity');
   return res.data;
 }
+
+// --- 48-Hour Flow Review (persisted artifact; the /review endpoint lands in the
+// backend loop phase — until then the FE renders a fixture, see reviewFixture.ts) ---
+
+export async function fetchArenaReview(windowRef?: string): Promise<unknown> {
+  const res = await axios.get('/api/arena/review', {
+    params: { window: windowRef || undefined },
+  });
+  return res.data;
+}
+
+export async function runArenaReview(): Promise<unknown> {
+  const res = await axios.post('/api/arena/review/run');
+  return res.data;
+}

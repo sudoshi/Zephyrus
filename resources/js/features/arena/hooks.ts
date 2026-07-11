@@ -9,6 +9,7 @@ import {
   fetchArenaPetriNet,
   fetchArenaProcessModel,
   fetchArenaProcessModels,
+  fetchArenaReview,
   fetchArenaSummary,
   type ArenaMapParams,
 } from './api';
@@ -92,5 +93,16 @@ export function useArenaNarrative(enabled: boolean) {
     queryFn: fetchArenaNarrative,
     enabled,
     staleTime: 60_000,
+  });
+}
+
+// The 48-Hour Flow Review artifact. `retry: false` because the /review endpoint
+// may 404 until the backend loop ships — the movement falls back to the fixture.
+export function useArenaReview(windowRef?: string) {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'review', windowRef ?? 'latest'],
+    queryFn: () => fetchArenaReview(windowRef),
+    staleTime: 60_000,
+    retry: false,
   });
 }
