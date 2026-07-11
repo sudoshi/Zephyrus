@@ -32,13 +32,15 @@ class ArenaService
      * A discovered object-centric map for the given scope, cached in arena.maps.
      *
      * @param  array<int, string>|null  $objectTypes
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>
      */
-    public function map(?array $objectTypes = null, ?int $minFreq = null, string $scope = 'house', bool $force = false): array
+    public function map(?array $objectTypes = null, ?int $minFreq = null, string $scope = 'house', bool $force = false, ?array $filters = null): array
     {
         $signature = $this->sourceSignature();
         $normTypes = $this->normaliseTypes($objectTypes);
-        $cacheKey = sha1($scope.'|'.json_encode($normTypes).'|'.(int) $minFreq.'|'.$signature);
+        $filterSig = $this->filterSignature($filters);
+        $cacheKey = sha1($scope.'|'.json_encode($normTypes).'|'.(int) $minFreq.'|'.$filterSig.'|'.$signature);
         $ttl = (int) config('services.arena.cache_ttl', 900);
 
         $cached = DB::table('arena.maps')->where('cache_key', $cacheKey)->first();
@@ -47,7 +49,7 @@ class ArenaService
         }
 
         $doc = $this->exporter->export();
-        $result = $this->client->discover($doc, $normTypes, $minFreq);
+        $result = $this->client->discover($doc, $normTypes, $minFreq, $filters);
 
         if ($result === null) {
             $fallback = $cached ?? DB::table('arena.maps')->where('scope', $scope)->orderByDesc('mined_at')->first();
@@ -101,12 +103,13 @@ class ArenaService
      * Conformance of the current OCEL log against the reference care pathways
      * (Part X §X.7). Uncached — a Study read, not a polled surface.
      *
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>
      */
-    public function conformance(?string $pathway = null): array
+    public function conformance(?string $pathway = null, ?array $filters = null): array
     {
         $doc = $this->exporter->export();
-        $results = $this->client->conformance($doc, $pathway);
+        $results = $this->client->conformance($doc, $pathway, $filters);
 
         if ($results === null) {
             return ['available' => false, 'reason' => 'sidecar_unavailable'];
@@ -120,18 +123,29 @@ class ArenaService
      * Study read.
      *
      * @param  array<int, string>|null  $objectTypes
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>
      */
-    public function performance(?array $objectTypes = null, int $top = 25): array
+    public function performance(?array $objectTypes = null, int $top = 25, ?array $filters = null): array
     {
         $doc = $this->exporter->export();
-        $result = $this->client->performance($doc, $objectTypes, $top);
+        $result = $this->client->performance($doc, $objectTypes, $top, $filters);
 
         if ($result === null) {
             return ['available' => false, 'reason' => 'sidecar_unavailable'];
         }
 
         return ['available' => true] + $result;
+    }
+
+    /** A stable fingerprint of the filter pipeline for cache keying (order-sensitive). */
+    private function filterSignature(?array $filters): string
+    {
+        if (empty($filters)) {
+            return 'nofilter';
+        }
+
+        return sha1(json_encode(array_values($filters)));
     }
 
     /** A cheap fingerprint of the OCEL log; changes when the projection changes. */

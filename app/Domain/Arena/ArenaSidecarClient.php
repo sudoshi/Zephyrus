@@ -54,9 +54,10 @@ class ArenaSidecarClient
      *
      * @param  array<string, mixed>  $ocel
      * @param  array<int, string>|null  $objectTypes
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>|null
      */
-    public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null): ?array
+    public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null, ?array $filters = null): ?array
     {
         $body = ['ocel' => $ocel];
         if ($objectTypes !== null) {
@@ -64,6 +65,9 @@ class ArenaSidecarClient
         }
         if ($minFreq !== null) {
             $body['activity_min_freq'] = $minFreq;
+        }
+        if (! empty($filters)) {
+            $body['filters'] = array_values($filters);
         }
 
         return $this->post('/discover', $body);
@@ -75,13 +79,17 @@ class ArenaSidecarClient
      *
      * @param  array<string, mixed>  $ocel
      * @param  array<int, string>|null  $objectTypes
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>|null
      */
-    public function performance(array $ocel, ?array $objectTypes = null, int $top = 25): ?array
+    public function performance(array $ocel, ?array $objectTypes = null, int $top = 25, ?array $filters = null): ?array
     {
         $body = ['ocel' => $ocel, 'top' => $top];
         if ($objectTypes !== null) {
             $body['object_types'] = array_values($objectTypes);
+        }
+        if (! empty($filters)) {
+            $body['filters'] = array_values($filters);
         }
 
         return $this->post('/performance', $body);
@@ -92,13 +100,17 @@ class ArenaSidecarClient
      * pathways (Part X §X.7). Returns a list of per-pathway results, or null.
      *
      * @param  array<string, mixed>  $ocel
+     * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<int, array<string, mixed>>|null
      */
-    public function conformance(array $ocel, ?string $pathway = null): ?array
+    public function conformance(array $ocel, ?string $pathway = null, ?array $filters = null): ?array
     {
         $body = ['ocel' => $ocel];
         if ($pathway !== null) {
             $body['pathway'] = $pathway;
+        }
+        if (! empty($filters)) {
+            $body['filters'] = array_values($filters);
         }
         $result = $this->post('/conformance', $body);
 

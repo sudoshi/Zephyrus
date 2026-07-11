@@ -184,7 +184,7 @@ class ArenaCopilotGovernanceTest extends TestCase
         {
             public function __construct() {}
 
-            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null): ?array
+            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null, ?array $filters = null): ?array
             {
                 return ['object_types' => ['Encounter'], 'nodes' => [], 'edges' => [['source' => 'a', 'target' => 'b', 'object_type' => 'Encounter', 'frequency' => 1]], 'stats' => []];
             }
@@ -210,7 +210,7 @@ class ArenaCopilotGovernanceTest extends TestCase
         {
             public function __construct() {}
 
-            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null): ?array
+            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null, ?array $filters = null): ?array
             {
                 return ['object_types' => ['Encounter'], 'nodes' => [['id' => 'a', 'activity' => 'a', 'frequency' => 1, 'object_types' => ['Encounter']]], 'edges' => [], 'stats' => []];
             }

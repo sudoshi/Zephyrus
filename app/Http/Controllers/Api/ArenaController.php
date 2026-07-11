@@ -40,7 +40,7 @@ class ArenaController extends Controller
             : null;
         $top = $request->filled('top') ? max(1, min(200, (int) $request->query('top'))) : 25;
 
-        $payload = $this->arena->performance($types, $top);
+        $payload = $this->arena->performance($types, $top, filters: $this->filtersFrom($request));
         $status = ($payload['available'] ?? true) === false ? 503 : 200;
 
         return response()->json($payload, $status);
@@ -53,7 +53,7 @@ class ArenaController extends Controller
     public function conformance(Request $request): JsonResponse
     {
         $pathway = $request->filled('pathway') ? (string) $request->query('pathway') : null;
-        $payload = $this->arena->conformance($pathway);
+        $payload = $this->arena->conformance($pathway, filters: $this->filtersFrom($request));
         $status = ($payload['available'] ?? true) === false ? 503 : 200;
 
         return response()->json($payload, $status);
@@ -76,10 +76,26 @@ class ArenaController extends Controller
         $scope = (string) ($request->query('scope', 'house'));
         $force = $request->boolean('force');
 
-        $payload = $this->arena->map($types, $minFreq, $scope !== '' ? $scope : 'house', $force);
+        $payload = $this->arena->map($types, $minFreq, $scope !== '' ? $scope : 'house', $force, filters: $this->filtersFrom($request));
 
         $status = ($payload['available'] ?? true) === false ? 503 : 200;
 
         return response()->json($payload, $status);
+    }
+
+    /**
+     * Validate the optional filter pipeline from the request. Returns a plain
+     * array the sidecar accepts, or null when absent.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function filtersFrom(Request $request): ?array
+    {
+        $validated = $request->validate([
+            'filters' => ['sometimes', 'array', 'max:12'],
+            'filters.*.kind' => ['required_with:filters', 'string', 'in:object_type,event_type,time_frame,event_attribute'],
+        ]);
+
+        return $validated['filters'] ?? null;
     }
 }
