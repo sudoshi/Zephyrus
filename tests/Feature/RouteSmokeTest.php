@@ -13,7 +13,10 @@ class RouteSmokeTest extends TestCase
         $user = User::query()->first();
         $this->assertNotNull($user, 'seeded user required');
 
-        $skip = ['logout', 'login', 'register', 'password.', 'verification.', 'storage.', 'sanctum.'];
+        // 'up/demo' is a health endpoint: it answers 503 by design when demo mode is
+        // off or the rolling-demo data is unhealthy (correct health semantics), so it
+        // is not a "page" and must not be asserted for a 2xx render.
+        $skip = ['logout', 'login', 'register', 'password.', 'verification.', 'storage.', 'sanctum.', 'up/demo'];
         $failures = [];
         $checked = 0;
 
