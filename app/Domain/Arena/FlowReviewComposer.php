@@ -71,6 +71,7 @@ final class FlowReviewComposer
      * @param  array<int, array<string, mixed>>  $humanBarriers  normalised open prod.barriers rows
      * @param  array<string, mixed>|null  $prior  the previous artifact, for deltas + new-barrier diffing
      * @param  int  $actionsPending  corrective-action drafts awaiting human approval (the P3 plane)
+     * @param  array<string, array<string, mixed>>  $correctiveActions  per-barrier-id {draft?, prior_outcome} (P4/P5)
      * @return array<string, mixed>
      */
     public static function compose(
@@ -80,6 +81,7 @@ final class FlowReviewComposer
         array $humanBarriers,
         ?array $prior,
         int $actionsPending,
+        array $correctiveActions,
         CarbonInterface $from,
         CarbonInterface $to,
     ): array {
@@ -108,6 +110,17 @@ final class FlowReviewComposer
             self::careBarriers($conformance ?? [], $priorCareRates, $nodeIds, $edgeSet),
             self::humanBarriers($humanBarriers, $to, $nodeIds, $edgeSet),
         );
+
+        // P4/P5: fold each barrier's governed corrective action (pending draft +
+        // prior re-measure outcome) back onto it, matched by review-barrier id.
+        if ($correctiveActions !== []) {
+            foreach ($barriers as &$barrier) {
+                if (isset($correctiveActions[$barrier['id']])) {
+                    $barrier['corrective_action'] = $correctiveActions[$barrier['id']];
+                }
+            }
+            unset($barrier);
+        }
 
         usort($barriers, function (array $a, array $b): int {
             $bySeverity = self::SEVERITY_RANK[$a['severity']] <=> self::SEVERITY_RANK[$b['severity']];

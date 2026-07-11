@@ -4,11 +4,16 @@ namespace Tests\Feature\Arena;
 
 use App\Domain\Arena\FlowReviewService;
 use App\Models\Barrier;
+use App\Models\Ops\Intervention;
+use App\Models\Ops\InterventionMetric;
+use App\Models\Ops\OperationalAction;
+use App\Models\Ops\Recommendation;
 use App\Models\User;
 use App\Services\Eddy\EddyActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -117,6 +122,87 @@ class FlowReviewServiceTest extends TestCase
         $out = app(FlowReviewService::class)->run();
 
         $this->assertSame(1, $out['stats']['actions_pending']);
+    }
+
+    public function test_run_surfaces_a_pending_draft_on_its_barrier(): void
+    {
+        $this->enable();
+        $this->fakeSidecar();
+        $this->seedOpenBarrier();
+
+        // A governed correction drafted against the review's care barrier (P4).
+        $actor = User::factory()->create();
+        app(EddyActionService::class)->propose($actor, [
+            'action_type' => 'propose_pathway_correction',
+            'title' => 'Sepsis order-set: abx pre-selected at triage',
+            'rationale' => 'abx late',
+            'surface' => 'arena',
+            'target_ref' => 'care-sepsis',
+            'params' => ['pathway' => 'sepsis'],
+        ], approve: false);
+
+        $out = app(FlowReviewService::class)->run();
+
+        $care = collect($out['barriers'])->firstWhere('id', 'care-sepsis');
+        $this->assertNotNull($care);
+        $draft = $care['corrective_action']['draft'];
+        $this->assertSame('propose_pathway_correction', $draft['action_type']);
+        $this->assertSame('pending', $draft['status']);
+        $this->assertFalse($draft['approved']);
+        $this->assertIsInt($draft['approval_id']); // the id the review's Approve button posts to
+        $this->assertNull($care['corrective_action']['prior_outcome']);
+    }
+
+    public function test_run_surfaces_prior_outcome_from_a_completed_intervention(): void
+    {
+        $this->enable();
+        $this->fakeSidecar();
+        $this->seedOpenBarrier();
+
+        // A completed corrective action against the flow barrier, with a measured
+        // time-based intervention metric — the re-measure loop (P5).
+        $rec = Recommendation::create([
+            'recommendation_uuid' => (string) Str::uuid(),
+            'recommendation_type' => 'eddy_pdsa_cycle',
+            'scope_type' => 'arena',
+            'target_ref' => 'flow-assign_bed-transport',
+            'title' => 'Pre-page transport on bed_assigned',
+            'risk_level' => 'medium',
+            'status' => 'completed',
+            'created_by_source' => 'eddy',
+            'evidence' => ['tier' => 'T2'],
+        ]);
+        $action = OperationalAction::create([
+            'action_uuid' => (string) Str::uuid(),
+            'recommendation_id' => $rec->recommendation_id,
+            'action_type' => 'propose_pdsa_cycle',
+            'status' => 'completed',
+            'payload' => [],
+        ]);
+        $intervention = Intervention::create([
+            'intervention_uuid' => (string) Str::uuid(),
+            'action_id' => $action->action_id,
+            'intervention_type' => 'pdsa_cycle',
+            'title' => 'Pre-page transport',
+            'status' => 'completed',
+        ]);
+        InterventionMetric::create([
+            'intervention_id' => $intervention->intervention_id,
+            'metric_key' => 'handoff_median',
+            'label' => 'median wait',
+            'unit' => 'seconds',
+            'direction' => 'down',
+            'delta_value' => -3240,
+            'is_primary' => true,
+        ]);
+
+        $out = app(FlowReviewService::class)->run();
+
+        $flow = collect($out['barriers'])->firstWhere('id', 'flow-assign_bed-transport');
+        $this->assertNotNull($flow);
+        $outcome = $flow['corrective_action']['prior_outcome'];
+        $this->assertSame(-3240, $outcome['moved_sec']); // seconds shaved off the median
+        $this->assertSame('median wait', $outcome['label']);
     }
 
     public function test_get_serves_the_cached_artifact(): void

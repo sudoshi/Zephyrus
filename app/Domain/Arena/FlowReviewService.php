@@ -5,6 +5,10 @@ namespace App\Domain\Arena;
 use App\Domain\Ocel\OcelJsonExporter;
 use App\Models\Barrier;
 use App\Models\Ops\Approval;
+use App\Models\Ops\Intervention;
+use App\Models\Ops\InterventionMetric;
+use App\Models\Ops\OperationalAction;
+use App\Models\Ops\Recommendation;
 use App\Services\Ops\CorrectiveActionExecutor;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +83,7 @@ class FlowReviewService
             $this->openHumanBarriers($to),
             $prior,
             $this->pendingCorrectiveActions(),
+            $this->correctiveActionsByBarrier(),
             $from,
             $to,
         );
@@ -169,6 +174,126 @@ class FlowReviewService
             ->where('status', 'pending')
             ->whereHas('action', fn ($q) => $q->whereIn('action_type', CorrectiveActionExecutor::MATERIALIZES))
             ->count();
+    }
+
+    /**
+     * Fold each review barrier's governed corrective action back onto it (P4/P5),
+     * keyed by the review-barrier id the draft was raised against (target_ref).
+     * Two facets per barrier: the PENDING draft awaiting approval (P4) and the
+     * PRIOR OUTCOME of the last completed action's measured intervention (P5).
+     * Newest recommendation wins for the pending draft; the newest completed one
+     * supplies the outcome.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function correctiveActionsByBarrier(): array
+    {
+        $recs = Recommendation::query()
+            ->whereNotNull('target_ref')
+            ->whereIn('recommendation_type', ['eddy_pdsa_cycle', 'eddy_pathway_correction'])
+            ->with(['actions.approvals'])
+            ->orderByDesc('recommendation_id')
+            ->get();
+
+        $out = [];
+        foreach ($recs as $rec) {
+            $ref = (string) $rec->target_ref;
+            $entry = $out[$ref] ?? [];
+            $action = $rec->actions->sortByDesc('action_id')->first();
+            if ($action === null) {
+                continue;
+            }
+
+            if (! isset($entry['draft'])) {
+                $pending = $action->approvals->firstWhere('status', 'pending');
+                if ($pending !== null && $action->status === 'draft') {
+                    $entry['draft'] = [
+                        'action_uuid' => (string) $action->action_uuid,
+                        'action_type' => (string) $action->action_type,
+                        'tier' => $rec->evidence['tier'] ?? null,
+                        'risk' => (string) $rec->risk_level,
+                        'title' => (string) $rec->title,
+                        'status' => 'pending',
+                        'approved' => false,
+                        'approval_uuid' => (string) $pending->approval_uuid,
+                        'approval_id' => (int) $pending->approval_id,
+                    ];
+                }
+            }
+
+            if (! array_key_exists('prior_outcome', $entry) && $action->status === 'completed') {
+                $entry['prior_outcome'] = $this->priorOutcomeForAction($action);
+            }
+
+            if ($entry !== []) {
+                $out[$ref] = $entry;
+            }
+        }
+
+        // The schema requires prior_outcome to be present (nullable) whenever a
+        // corrective_action exists — default it to null for draft-only barriers.
+        foreach ($out as &$entry) {
+            if (! array_key_exists('prior_outcome', $entry)) {
+                $entry['prior_outcome'] = null;
+            }
+        }
+        unset($entry);
+
+        return $out;
+    }
+
+    /**
+     * The re-measured outcome of a completed corrective action (P5): the primary,
+     * time-based metric of the intervention it produced, expressed as seconds
+     * moved (negative = improved). Null when there is no intervention, no primary
+     * metric, or the metric is not a duration.
+     *
+     * @return array{label: string, moved_sec: int}|null
+     */
+    private function priorOutcomeForAction(OperationalAction $action): ?array
+    {
+        $pdsaId = data_get($action->payload, 'pdsa_cycle_id');
+        $intervention = Intervention::query()
+            ->where(function ($query) use ($action, $pdsaId) {
+                $query->where('action_id', $action->action_id);
+                if ($pdsaId) {
+                    $query->orWhere('pdsa_cycle_id', $pdsaId);
+                }
+            })
+            ->latest('intervention_id')
+            ->first();
+        if ($intervention === null) {
+            return null;
+        }
+
+        $metric = InterventionMetric::query()
+            ->where('intervention_id', $intervention->intervention_id)
+            ->where('is_primary', true)
+            ->first();
+        if ($metric === null || $metric->delta_value === null) {
+            return null;
+        }
+
+        $seconds = $this->metricToSeconds((float) $metric->delta_value, (string) $metric->unit);
+        if ($seconds === null) {
+            return null;
+        }
+
+        return [
+            'label' => (string) ($metric->label ?: 'last action moved'),
+            'moved_sec' => (int) round($seconds),
+        ];
+    }
+
+    /** Convert a metric delta to seconds, or null when the unit is not a duration. */
+    private function metricToSeconds(float $value, string $unit): ?float
+    {
+        return match (strtolower(trim($unit))) {
+            'seconds', 'second', 'sec', 's' => $value,
+            'minutes', 'minute', 'min', 'm' => $value * 60,
+            'hours', 'hour', 'hr', 'h' => $value * 3600,
+            default => null,
+        };
     }
 
     /**

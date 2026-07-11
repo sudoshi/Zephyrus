@@ -199,6 +199,9 @@ class EddyActionService
                 // an approved corrective action can be traced back to its barrier
                 // (null for proposals not born of a barrier).
                 'barrier_id' => $proposal['barrier_id'] ?? null,
+                // Part X P4: the REVIEW barrier id this action targets (flow/care/human),
+                // so the 48h Review can fold the draft + outcome back onto the barrier.
+                'target_ref' => $proposal['target_ref'] ?? null,
                 'title' => $title,
                 'rationale' => $proposal['rationale'] ?? null,
                 'risk_level' => $spec['risk'],
