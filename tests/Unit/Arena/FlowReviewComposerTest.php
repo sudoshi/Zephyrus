@@ -98,7 +98,7 @@ class FlowReviewComposerTest extends TestCase
         ];
     }
 
-    private function compose(?array $prior = null, int $actionsPending = 0): array
+    private function compose(?array $prior = null, int $actionsPending = 0, array $correctiveActions = []): array
     {
         $to = Carbon::parse(self::TO);
 
@@ -109,6 +109,7 @@ class FlowReviewComposerTest extends TestCase
             $this->humanBarriers(),
             $prior,
             $actionsPending,
+            $correctiveActions,
             $to->copy()->subHours(48),
             $to,
         );
@@ -225,6 +226,28 @@ class FlowReviewComposerTest extends TestCase
         $out = $this->compose(null, 3);
 
         $this->assertSame(3, $out['stats']['actions_pending']);
+    }
+
+    public function test_corrective_actions_are_folded_onto_their_barrier(): void
+    {
+        // The orchestrator supplies a per-barrier-id map; the composer attaches it
+        // verbatim to the matching barrier and leaves the rest untouched (P4/P5).
+        $draft = ['action_uuid' => 'uuid-1', 'action_type' => 'propose_pathway_correction', 'status' => 'pending', 'approved' => false];
+        $out = $this->compose(null, 1, [
+            'care-sepsis' => ['draft' => $draft, 'prior_outcome' => null],
+            'flow-assign_bed-transport' => ['prior_outcome' => ['label' => 'median wait', 'moved_sec' => -3240]],
+        ]);
+
+        $care = $this->barrier($out, 'care-sepsis');
+        $this->assertSame($draft, $care['corrective_action']['draft']);
+        $this->assertNull($care['corrective_action']['prior_outcome']);
+
+        $flow = $this->barrier($out, 'flow-assign_bed-transport');
+        $this->assertSame(-3240, $flow['corrective_action']['prior_outcome']['moved_sec']);
+        $this->assertArrayNotHasKey('draft', $flow['corrective_action']);
+
+        // A barrier with no entry carries no corrective_action key.
+        $this->assertArrayNotHasKey('corrective_action', $this->barrier($out, 'human-77'));
     }
 
     public function test_prior_artifact_drives_deltas_and_new_barrier_count(): void

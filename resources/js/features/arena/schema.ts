@@ -182,6 +182,8 @@ export const arenaDraftActionSchema = z.object({
   status: z.string(),
   approved: z.boolean(),
   approval_uuid: z.string().optional(),
+  // The pending approval's id — what the review's Approve button posts a decision to.
+  approval_id: z.number().optional(),
 });
 
 export const arenaDraftResponseSchema = z.object({
