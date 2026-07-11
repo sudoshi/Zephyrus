@@ -78,6 +78,12 @@ return $builder
             ->everyFiveMinutes()->withoutOverlapping();
         $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
             ->everyFifteenMinutes()->withoutOverlapping();
+        // Flow Reconciliation: rebuild the 48-Hour Flow Review baseline artifact
+        // (arena.reviews) on a slow cadence — the window is 48h wide, so a 6-hourly
+        // refresh keeps GET /api/arena/review fresh without hammering the sidecar.
+        // The command no-ops when ARENA_ENABLED is off; the huddle's Run-review is
+        // the other trigger. Needs a running schedule runner.
+        $schedule->command('arena:review:run')->everySixHours()->withoutOverlapping();
         if (config('staffing.materialization_schedule_enabled', true)) {
             $schedule->command('staffing:materialize-canonical')
                 ->dailyAt((string) config('staffing.materialization_schedule_time', '04:10'))

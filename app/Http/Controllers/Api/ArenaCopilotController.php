@@ -57,9 +57,16 @@ class ArenaCopilotController extends Controller
     {
         $validated = $request->validate([
             'focus' => ['required', 'string', 'in:bottleneck,sepsis,surgical_safety'],
+            'barrier_id' => ['nullable', 'integer'],
+            'target_ref' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $payload = $this->copilot->draftPdsa($request->user(), $validated['focus']);
+        $payload = $this->copilot->draftPdsa(
+            $request->user(),
+            $validated['focus'],
+            $validated['barrier_id'] ?? null,
+            $validated['target_ref'] ?? null,
+        );
 
         return response()->json($payload, ($payload['available'] ?? true) === false ? 503 : 200);
     }
@@ -69,9 +76,16 @@ class ArenaCopilotController extends Controller
     {
         $validated = $request->validate([
             'pathway' => ['required', 'string', 'in:sepsis,surgical_safety'],
+            'barrier_id' => ['nullable', 'integer'],
+            'target_ref' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $payload = $this->copilot->draftCorrection($request->user(), $validated['pathway']);
+        $payload = $this->copilot->draftCorrection(
+            $request->user(),
+            $validated['pathway'],
+            $validated['barrier_id'] ?? null,
+            $validated['target_ref'] ?? null,
+        );
 
         return response()->json($payload, ($payload['available'] ?? true) === false ? 503 : 200);
     }

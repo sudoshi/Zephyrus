@@ -38,6 +38,9 @@ final class OcelCatalog
             'OR Case' => ['lens' => 'surgical', 'source_system' => 'prod.or_cases', 'emitted' => true],
             'OR Suite' => ['lens' => 'surgical', 'source_system' => 'prod.or_cases', 'emitted' => true],
             'Transport Job' => ['lens' => 'logistics', 'source_system' => 'prod.transport_requests', 'emitted' => true],
+            // The RTDC operational barrier as a first-class object with its own
+            // opened→resolved lifecycle (flow-reconciliation loop).
+            'Barrier' => ['lens' => 'flow', 'source_system' => 'prod.barriers', 'emitted' => true],
             // Declared for the catalog; emitted by later Arena phases.
             'Order' => ['lens' => 'clinical', 'source_system' => 'flow_core.flow_events', 'emitted' => false],
             'EVS Task' => ['lens' => 'logistics', 'source_system' => 'prod.evs_tasks', 'emitted' => false],
@@ -113,6 +116,9 @@ final class OcelCatalog
             'transport-request' => 'transport',
             'transport-pickup' => 'transport',
             'transport-dropoff' => 'transport',
+            // Barriers (RTDC operational impediments → the flow-reconciliation loop)
+            'barrier_opened' => 'flow',
+            'barrier_resolved' => 'flow',
         ];
     }
 }

@@ -175,7 +175,7 @@ class ArenaCopilotService
      * OperationalAction(draft) → Approval(pending) via the Eddy plane — no
      * prod.pdsa_cycles row is written until a human approves (§X.8.3).
      */
-    public function draftPdsa(User $actor, string $focus): array
+    public function draftPdsa(User $actor, string $focus, ?int $barrierId = null, ?string $targetRef = null): array
     {
         if (! $this->enabled()) {
             return $this->unavailable();
@@ -191,6 +191,11 @@ class ArenaCopilotService
             'title' => $content['title'],
             'rationale' => $content['hypothesis'],
             'surface' => 'arena',
+            // Part X seam 3: carry the barrier (if the draft was raised from one) so
+            // approval can link the resulting PDSA cycle back to it.
+            'barrier_id' => $barrierId,
+            // Part X P4: the review-barrier id this draft answers.
+            'target_ref' => $targetRef,
             'params' => ['pdsa' => $content, 'focus' => $focus, 'proposed_status' => 'planned'],
             'runner_up' => $content['runner_up'],
             'alert_key' => null,
@@ -203,7 +208,7 @@ class ArenaCopilotService
      * Draft a governed pathway-correction for a conformance deviation. Lands pending
      * on the Eddy plane exactly like a PDSA draft.
      */
-    public function draftCorrection(User $actor, string $pathway): array
+    public function draftCorrection(User $actor, string $pathway, ?int $barrierId = null, ?string $targetRef = null): array
     {
         if (! $this->enabled()) {
             return $this->unavailable();
@@ -224,6 +229,10 @@ class ArenaCopilotService
             'title' => $title,
             'rationale' => $rationale,
             'surface' => 'arena',
+            // Part X seam 3: link back to the barrier when the correction was raised from one.
+            'barrier_id' => $barrierId,
+            // Part X P4: the review-barrier id this correction answers.
+            'target_ref' => $targetRef,
             'params' => ['pathway' => $pathway, 'conformance_pct' => $rate, 'deviant' => (int) $row->deviant, 'cases' => (int) $row->cases],
             'runner_up' => 'Escalate the pathway to the quality lead for manual review.',
             'alert_key' => null,

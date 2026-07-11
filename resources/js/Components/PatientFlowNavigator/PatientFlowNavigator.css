@@ -190,6 +190,18 @@
   background: #e0a33f;
 }
 
+/* Open-barrier opened-at marker: a short amber notch from the top edge. */
+.patient-flow-chronobar-barrier {
+  position: absolute;
+  top: -2px;
+  height: 5px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #eaa640;
+  box-shadow: 0 0 3px rgba(234, 166, 64, 0.7);
+}
+
 .patient-flow-chronobar input[type='range'] {
   width: 100%;
   accent-color: #e0a33f;

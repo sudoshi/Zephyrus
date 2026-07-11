@@ -91,17 +91,59 @@ export async function postArenaAuthorMap(types?: string[]): Promise<unknown> {
   return res.data;
 }
 
-export async function postArenaDraftPdsa(focus: string): Promise<unknown> {
-  const res = await axios.post('/api/arena/copilot/draft-pdsa', { focus });
+// The draft endpoints accept an optional target_ref (the review-barrier id this
+// draft answers) + barrier_id (a real prod.barriers row), so the 48h Review can
+// fold the resulting pending draft back onto the barrier it was raised from.
+export interface ArenaDraftTarget {
+  target_ref?: string;
+  barrier_id?: number;
+}
+
+export async function postArenaDraftPdsa(focus: string, target: ArenaDraftTarget = {}): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/draft-pdsa', {
+    focus,
+    target_ref: target.target_ref,
+    barrier_id: target.barrier_id,
+  });
   return res.data;
 }
 
-export async function postArenaDraftCorrection(pathway: string): Promise<unknown> {
-  const res = await axios.post('/api/arena/copilot/draft-correction', { pathway });
+export async function postArenaDraftCorrection(pathway: string, target: ArenaDraftTarget = {}): Promise<unknown> {
+  const res = await axios.post('/api/arena/copilot/draft-correction', {
+    pathway,
+    target_ref: target.target_ref,
+    barrier_id: target.barrier_id,
+  });
+  return res.data;
+}
+
+// Approve (or reject) a pending governed action from the Review. The web ops route
+// binds the approval by its id; on approval the P3 executor materializes the PDSA.
+export async function postArenaApproveAction(
+  approvalId: number,
+  decision: 'approved' | 'rejected' = 'approved',
+  reason?: string,
+): Promise<unknown> {
+  const res = await axios.post(`/api/ops/approvals/${approvalId}/decision`, { decision, reason });
   return res.data;
 }
 
 export async function fetchArenaCapacity(): Promise<unknown> {
   const res = await axios.get('/api/arena/capacity');
+  return res.data;
+}
+
+// --- 48-Hour Flow Review (persisted artifact; the /review endpoint lands in the
+// backend loop phase — until then the FE renders a fixture, see reviewFixture.ts) ---
+
+export async function fetchArenaReview(windowRef?: string): Promise<unknown> {
+  const res = await axios.get('/api/arena/review', {
+    params: { window: windowRef || undefined },
+  });
+  return res.data;
+}
+
+export async function runArenaReview(): Promise<unknown> {
+  const res = await axios.post('/api/arena/review/run');
   return res.data;
 }

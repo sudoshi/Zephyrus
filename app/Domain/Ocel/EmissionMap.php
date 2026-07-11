@@ -336,6 +336,85 @@ final class EmissionMap
     }
 
     /**
+     * prod.barriers → up to two OCEL events (barrier_opened → barrier_resolved)
+     * over one first-class Barrier object, carrying the barrier's status as a
+     * time-varying object_change — the raw material for "how long do placement
+     * barriers stay open, per unit" (the flow-reconciliation loop's re-measure).
+     *
+     * Identity note (§X.3.4): a barrier's encounter_id/unit_id are NUMERIC prod
+     * FKs, a different identity space than the flow-lens Encounter (hashed string
+     * ref) / Unit (slugged location code). We therefore do NOT mint a parallel
+     * Encounter object — the encounter is carried as a de-identified `encounter_ref`
+     * attr. The Unit IS linked (O2O `in`) via its abbreviation slug, which merges
+     * with the flow lens' `unit-<code>` object when the codes align and otherwise
+     * groups barriers per unit consistently.
+     *
+     * @param  object  $row  a prod.barriers row LEFT JOINed to its unit
+     * @return array<int, EmittedEvent>
+     */
+    public static function forBarrier(object $row): array
+    {
+        if (empty($row->barrier_id) || empty($row->opened_at)) {
+            return [];
+        }
+
+        $barrierId = 'barrier-'.$row->barrier_id;
+        $barrierObj = ['id' => $barrierId, 'type' => 'Barrier', 'qualifier' => 'subject', 'attrs' => array_filter([
+            'category' => $row->category ?? null,
+            'reason_code' => $row->reason_code ?? null,
+            'unit_id' => isset($row->unit_id) ? (int) $row->unit_id : null,
+            'encounter_ref' => ! empty($row->encounter_id) ? 'enc-'.self::hashRef((string) $row->encounter_id) : null,
+        ], fn ($v) => $v !== null)];
+
+        $objects = [$barrierObj];
+        $o2o = [];
+
+        if (! empty($row->unit_abbreviation)) {
+            $unitId = 'unit-'.self::slug($row->unit_abbreviation);
+            $objects[] = ['id' => $unitId, 'type' => 'Unit', 'qualifier' => 'location'];
+            $o2o[] = ['from' => $barrierId, 'to' => $unitId, 'qualifier' => 'in'];
+        }
+
+        $attrs = array_filter([
+            'category' => $row->category ?? null,
+            'reason_code' => $row->reason_code ?? null,
+        ], fn ($v) => $v !== null);
+
+        $events = [];
+
+        $openedAt = Carbon::parse($row->opened_at);
+        $events[] = new EmittedEvent(
+            id: 'bar-'.$row->barrier_id.'-opened',
+            activity: 'barrier_opened',
+            timestamp: $openedAt,
+            sourceSystem: 'prod.barriers',
+            sourceRef: (string) $row->barrier_id,
+            objects: $objects,
+            o2o: $o2o,
+            attrs: $attrs,
+            changes: [['object_id' => $barrierId, 'attr' => 'status', 'value' => 'open', 'at' => $openedAt]],
+        );
+
+        // Only emit the close when the barrier has actually resolved.
+        if (! empty($row->resolved_at)) {
+            $resolvedAt = Carbon::parse($row->resolved_at);
+            $events[] = new EmittedEvent(
+                id: 'bar-'.$row->barrier_id.'-resolved',
+                activity: 'barrier_resolved',
+                timestamp: $resolvedAt,
+                sourceSystem: 'prod.barriers',
+                sourceRef: (string) $row->barrier_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+                changes: [['object_id' => $barrierId, 'attr' => 'status', 'value' => 'resolved', 'at' => $resolvedAt]],
+            );
+        }
+
+        return $events;
+    }
+
+    /**
      * Normalise a jsonb column that Postgres/PDO may hand back as a JSON string
      * or (already-decoded) array.
      *

@@ -35,6 +35,7 @@ export interface PatientFlowSummary {
   min_occurred_at: string | null;
   max_occurred_at: string | null;
   live_events: number;
+  open_barriers?: number;
   ambient_signals?: number;
   ambient_confidence?: number;
   ambient_confidence_level?: string;
@@ -45,6 +46,28 @@ export interface PatientFlowSummary {
   data_extent: PatientFlowDataExtent;
   suggested_initial_time: string | null;
   generated_at: string;
+}
+
+// An open operational barrier for the Navigator overlay (GET /api/patient-flow/barriers).
+// unit_id anchors it to a unit's location centroid; a null unit_id is house-level.
+// encounter_ref stays lens-redacted (null) until the lens-aware follow-up lands.
+export interface NavigatorBarrier {
+  barrier_id: number;
+  unit_id: number | null;
+  unit_label: string | null;
+  category: 'medical' | 'logistical' | 'placement' | 'social';
+  reason_code: string | null;
+  description: string | null;
+  owner: string | null;
+  status: 'open' | 'resolved';
+  opened_at: string | null;
+  encounter_ref: string | null;
+}
+
+export interface PatientFlowBarriersResponse {
+  generated_at: string;
+  count: number;
+  open_barriers: NavigatorBarrier[];
 }
 
 export interface PatientFlowLocation {
@@ -189,6 +212,8 @@ export interface PatientLayerState {
   heat: boolean;
   /** Projection ghost layer (future half of the 48h window). */
   ghosts: boolean;
+  /** Open operational barrier markers (present-state; seam 4b). */
+  barriers: boolean;
 }
 
 export interface PatientVisibleState {

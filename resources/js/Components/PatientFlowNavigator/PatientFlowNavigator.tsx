@@ -3,6 +3,7 @@ import { usePage } from '@inertiajs/react';
 import {
   createPatientFlowEventSource,
   fetchPatientFlowAmbient,
+  fetchPatientFlowBarriers,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
   fetchPatientFlowOccupancy,
@@ -24,6 +25,7 @@ import {
   ENTITY_PROJECTION_KINDS,
   aggregatesAt,
   anchorForProjection,
+  buildBarrierCells,
   buildProjectionPlacementIndex,
   confidenceOpacity,
   floorForProjection,
@@ -36,6 +38,7 @@ import type {
   FlowLens,
   FlowPatientDots,
   FlowUnitSummary,
+  NavigatorBarrier,
   OccupancyEddyContext,
   OccupancyInsight,
   OccupancySummary,
@@ -131,7 +134,7 @@ function parseHandoff(): HandoffParams {
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
   if (!lens) {
-    return { base: true, tokens: true, trails: true, heat: true, ghosts: true };
+    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true };
   }
   const has = (layer: string): boolean => lens.layers.includes(layer);
   const dots = lens.patient_dots !== 'none';
@@ -141,6 +144,9 @@ function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerSt
     trails: has('events') && dots,
     heat: has('snapshots'),
     ghosts: has('projections') && lens.projection_kinds.length > 0,
+    // Barriers carry no patient identity (aggregate operational signal), so
+    // every lens sees them by default — the operator can toggle them off.
+    barriers: true,
   };
 }
 
@@ -233,6 +239,7 @@ export default function PatientFlowNavigator({
     occupancy: OccupancyInsight[];
     summary: OccupancySummary;
   } | null>(null);
+  const barriersRef = useRef<NavigatorBarrier[]>([]);
   const currentTimeRef = useRef(handoff.t ?? nowMs);
   const speedRef = useRef(60);
   const playingRef = useRef(false);
@@ -251,6 +258,7 @@ export default function PatientFlowNavigator({
   const [locations, setLocations] = useState<PatientFlowLocations>({});
   const [events, setEvents] = useState<PatientFlowEvent[]>([]);
   const [projections, setProjections] = useState<ProjectionItem[]>([]);
+  const [barriers, setBarriers] = useState<NavigatorBarrier[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
   const [barrierFinder, setBarrierFinder] = useState(false);
@@ -277,6 +285,14 @@ export default function PatientFlowNavigator({
     [events],
   );
   const historical = summary?.source.freshness === 'stale' && dataEnd !== null;
+
+  // When each open barrier began, for chronobar ticks (past half only).
+  const barrierTicks = useMemo(
+    () => barriers
+      .map((barrier) => (barrier.opened_at ? Date.parse(barrier.opened_at) : Number.NaN))
+      .filter((ms) => Number.isFinite(ms) && ms <= nowMs),
+    [barriers, nowMs],
+  );
 
   const placementIndex = useMemo(
     () => buildProjectionPlacementIndex(locations, units),
@@ -307,6 +323,7 @@ export default function PatientFlowNavigator({
       );
     }
     controls.push({ key: 'heat', label: 'Census', id: 'flow-layer-census' });
+    controls.push({ key: 'barriers', label: 'Barriers', id: 'flow-layer-barriers' });
     if (!lens || (lens.layers.includes('projections') && lens.projection_kinds.length > 0)) {
       controls.push({ key: 'ghosts', label: 'Forecast', id: 'flow-layer-forecast' });
     }
@@ -356,6 +373,7 @@ export default function PatientFlowNavigator({
       barrierFinderRef.current ? 'barriers' : 'all',
       eventsRef.current.length,
       projectionsRef.current.length,
+      barriersRef.current.length,
       Object.keys(locationsRef.current).length,
     ].join('|');
     if (bucketKey === lastBucketKeyRef.current) return;
@@ -413,6 +431,13 @@ export default function PatientFlowNavigator({
     setForecast(aggregates && timeMs > nowMs ? aggregates : null);
     setOccupancy(occupancySummary);
 
+    // Open-barrier markers — present-state, so shown at every scrub position
+    // (not gated on past/future), just placed on their unit + floor-filtered.
+    const barrierCells = layersRef.current.barriers
+      ? buildBarrierCells(barriersRef.current, index, floorFilter, nowMs)
+      : [];
+    scene.rebuildBarriers(barrierCells, layersRef.current.barriers);
+
     setMetrics({
       active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
       events: eventsRef.current.filter((event) => parseTime(event.occurred_at) <= timeMs).length,
@@ -429,13 +454,14 @@ export default function PatientFlowNavigator({
     layersRef.current = layers;
     barrierFinderRef.current = barrierFinder;
     projectionsRef.current = projections;
+    barriersRef.current = barriers;
     speedRef.current = speed;
     playingRef.current = playing;
     liveRef.current = live;
     tracksRef.current = tracks;
     placementIndexRef.current = placementIndex;
     refreshScene();
-  }, [events, locations, filters, layers, barrierFinder, projections, speed, playing, live, tracks, placementIndex, refreshScene]);
+  }, [events, locations, filters, layers, barrierFinder, projections, barriers, speed, playing, live, tracks, placementIndex, refreshScene]);
 
   useEffect(() => {
     barrierFinderRef.current = barrierFinder;
@@ -566,6 +592,22 @@ export default function PatientFlowNavigator({
       cancelled = true;
     };
   }, [lens]);
+
+  // Open barriers overlay — aggregate + patient-free (no lens needed); a failure
+  // only hides the overlay, never the navigator.
+  useEffect(() => {
+    let cancelled = false;
+    fetchPatientFlowBarriers()
+      .then((payload) => {
+        if (!cancelled) setBarriers(payload.open_barriers);
+      })
+      .catch(() => {
+        if (!cancelled) setBarriers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Handoff scope=unit:{id|abbr} → that unit's floor, once derivable.
   useEffect(() => {
@@ -767,6 +809,7 @@ export default function PatientFlowNavigator({
             historical={historical}
             freshness={summary?.source.freshness ?? 'missing'}
             forecast={forecast}
+            barrierTicks={barrierTicks}
             onScrub={handleScrub}
           />
         )}

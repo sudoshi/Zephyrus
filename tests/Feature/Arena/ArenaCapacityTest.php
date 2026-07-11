@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Arena;
 
-use App\Domain\Arena\ArenaSidecarClient;
 use App\Domain\Arena\ArenaService;
+use App\Domain\Arena\ArenaSidecarClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -19,7 +19,7 @@ class ArenaCapacityTest extends TestCase
             'arena:8100/capacity' => Http::response(['objects' => [], 'stats' => ['objects' => 0]], 200),
         ]);
 
-        $client = new ArenaSidecarClient();
+        $client = new ArenaSidecarClient;
         $payload = ['initial' => [], 'operations' => []];
         $out = $client->capacity($payload, 'occupied_beds');
 

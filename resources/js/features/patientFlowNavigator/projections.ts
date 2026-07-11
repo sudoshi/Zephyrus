@@ -1,5 +1,6 @@
 import type {
   FlowUnitSummary,
+  NavigatorBarrier,
   PatientFlowLocations,
   ProjectionConfidence,
   ProjectionItem,
@@ -117,6 +118,59 @@ export function buildProjectionPlacementIndex(
   }
 
   return { unitAnchors, unitFloors, unitCodeById, roomAnchors, roomFloors };
+}
+
+// ---------------------------------------------------------------------------
+// Open-barrier overlay (seam 4b) — present-state markers, NOT projections.
+// A barrier is placed at its unit's centroid (house-level barriers have no
+// anchor and surface only in the chronobar / count). Severity is earned from
+// how long it has stood open, mirroring FlowReviewComposer::humanSeverity so
+// the navigator and the 48h Review speak one language.
+// ---------------------------------------------------------------------------
+
+export type BarrierSeverity = 'critical' | 'warning' | 'watch';
+
+const BARRIER_CRITICAL_MS = 48 * 3_600_000;
+const BARRIER_WARNING_MS = 24 * 3_600_000;
+
+export interface BarrierCell {
+  anchor: ProjectionAnchor;
+  severity: BarrierSeverity;
+  barrier: NavigatorBarrier;
+}
+
+/** Open-age → severity band (≥48h critical, ≥24h warning, else watch). */
+export function barrierSeverity(openedAtMs: number | null, nowMs: number): BarrierSeverity {
+  const age = openedAtMs === null || !Number.isFinite(openedAtMs) ? 0 : Math.max(0, nowMs - openedAtMs);
+  if (age >= BARRIER_CRITICAL_MS) return 'critical';
+  if (age >= BARRIER_WARNING_MS) return 'warning';
+  return 'watch';
+}
+
+/**
+ * Place open barriers on the model: one cell per barrier whose unit resolves to
+ * a scene anchor and passes the floor filter. House-level (null unit_id) and
+ * un-anchored units are dropped here (they still count in the HUD/chronobar).
+ */
+export function buildBarrierCells(
+  barriers: NavigatorBarrier[],
+  index: ProjectionPlacementIndex,
+  floorFilter: string,
+  nowMs: number,
+): BarrierCell[] {
+  const cells: BarrierCell[] = [];
+  for (const barrier of barriers) {
+    if (barrier.status !== 'open' || barrier.unit_id === null) continue;
+    const anchor = index.unitAnchors.get(barrier.unit_id);
+    if (!anchor) continue;
+    if (floorFilter !== 'all') {
+      const floor = index.unitFloors.get(barrier.unit_id);
+      if (floor === undefined || String(floor) !== floorFilter) continue;
+    }
+    const openedAtMs = barrier.opened_at ? Date.parse(barrier.opened_at) : null;
+    cells.push({ anchor, severity: barrierSeverity(openedAtMs, nowMs), barrier });
+  }
+  return cells;
 }
 
 /** Scene anchor for an entity-bearing projection, or null when unplaceable. */

@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
-import type { ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
+import type { BarrierCell, BarrierSeverity, ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
 import type {
   OccupancyInsight,
   OccupancyTimerStatus,
@@ -51,6 +51,19 @@ const GHOST_COLORS: Record<string, number> = {
   scheduled_or_case: 0x60a5fa, // blue
 };
 
+/**
+ * Open-barrier marker palette — the earned-urgency ration (watch sky / warning
+ * amber / critical coral), the same status language the 48h Review map paints.
+ * Coral is reserved for a barrier standing open past 48h — a real breach.
+ */
+const BARRIER_COLORS: Record<BarrierSeverity, { color: number; emissive: number }> = {
+  critical: { color: 0xf06755, emissive: 0x5a140d }, // coral
+  warning: { color: 0xeaa640, emissive: 0x4a2e08 }, // amber
+  watch: { color: 0x38bdf8, emissive: 0x0c3a4d }, // sky
+};
+
+const BARRIER_SCALE: Record<BarrierSeverity, number> = { critical: 1.3, warning: 1.1, watch: 1 };
+
 const HOME_POSITION = new THREE.Vector3(88, 104, 162);
 const HOME_TARGET = new THREE.Vector3(0, 48, 0);
 
@@ -73,6 +86,8 @@ export class NavigatorScene {
 
   private forecastLayer = new THREE.Group();
 
+  private barrierLayer = new THREE.Group();
+
   private baseObjects: THREE.Object3D[] = [];
 
   private tokenByPatient = new Map<string, THREE.Mesh>();
@@ -84,6 +99,8 @@ export class NavigatorScene {
   private ghostMaterials = new Map<string, THREE.MeshStandardMaterial>();
 
   private forecastMaterials = new Map<string, THREE.MeshStandardMaterial>();
+
+  private barrierMaterials = new Map<BarrierSeverity, THREE.MeshStandardMaterial>();
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
@@ -102,6 +119,10 @@ export class NavigatorScene {
   private timerPipGeometry = new THREE.CylinderGeometry(0.28, 0.28, 0.42, 12, 1);
 
   private forecastGeometry = new THREE.CylinderGeometry(2.6, 2.6, 1, 18, 1);
+
+  // A diamond, distinct from every other layer's shape — a barrier reads as a
+  // marker, not census/forecast volume.
+  private barrierGeometry = new THREE.OctahedronGeometry(2.1);
 
   private raycaster = new THREE.Raycaster();
 
@@ -137,6 +158,7 @@ export class NavigatorScene {
     this.raycaster.setFromCamera(pointer, this.camera);
     const hits = this.raycaster.intersectObjects(
       [
+        ...this.barrierLayer.children,
         ...this.patientLayer.children,
         ...this.ghostLayer.children,
         ...this.heatLayer.children,
@@ -181,7 +203,7 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer);
 
     this.heatSingleMaterial = new THREE.MeshStandardMaterial({
       color: 0x77c06f,
@@ -457,6 +479,41 @@ export class NavigatorScene {
     }
   }
 
+  /**
+   * Present-state rebuild: open-barrier markers floating above their unit,
+   * stacked when a unit carries more than one. Patient-free (encounter_ref is
+   * server-redacted), so the full row rides in userData for the inspector.
+   */
+  rebuildBarriers(cells: BarrierCell[], layerVisible: boolean): void {
+    this.clearGroup(this.barrierLayer);
+    if (!layerVisible) return;
+
+    const stackByAnchor = new Map<string, number>();
+    for (const cell of cells) {
+      const { anchor, severity, barrier } = cell;
+      const anchorKey = `${anchor.x.toFixed(1)}|${anchor.z.toFixed(1)}`;
+      const stack = stackByAnchor.get(anchorKey) ?? 0;
+      stackByAnchor.set(anchorKey, stack + 1);
+
+      const mesh = new THREE.Mesh(this.barrierGeometry, this.barrierMaterialFor(severity));
+      mesh.position.set(anchor.x, anchor.y + 9 + stack * 5.2, anchor.z);
+      mesh.scale.setScalar(BARRIER_SCALE[severity]);
+      mesh.userData = {
+        kind: 'barrier',
+        severity,
+        barrier_id: barrier.barrier_id,
+        category: barrier.category,
+        status: barrier.status,
+        ...(barrier.unit_label ? { unit: barrier.unit_label } : {}),
+        ...(barrier.reason_code ? { reason_code: barrier.reason_code } : {}),
+        ...(barrier.description ? { description: barrier.description } : {}),
+        ...(barrier.owner ? { owner: barrier.owner } : {}),
+        ...(barrier.opened_at ? { opened_at: barrier.opened_at } : {}),
+      };
+      this.barrierLayer.add(mesh);
+    }
+  }
+
   focusOn(points: Array<{ x: number; y: number; z: number }>): void {
     if (!points.length) return;
     const box = new THREE.Box3();
@@ -486,12 +543,14 @@ export class NavigatorScene {
     this.clearGroup(this.heatLayer);
     this.clearGroup(this.ghostLayer);
     this.clearGroup(this.forecastLayer);
+    this.clearGroup(this.barrierLayer);
     this.patientMaterials.forEach((material) => material.dispose());
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());
     this.forecastMaterials.forEach((material) => material.dispose());
     this.occupancyMaterials.forEach((material) => material.dispose());
     this.timerPipMaterials.forEach((material) => material.dispose());
+    this.barrierMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
     this.tokenGeometry.dispose();
@@ -499,6 +558,7 @@ export class NavigatorScene {
     this.heatGeometry.dispose();
     this.timerPipGeometry.dispose();
     this.forecastGeometry.dispose();
+    this.barrierGeometry.dispose();
     this.orbit.dispose();
     this.renderer.dispose();
   }
@@ -618,6 +678,22 @@ export class NavigatorScene {
     return material;
   }
 
+  private barrierMaterialFor(severity: BarrierSeverity): THREE.MeshStandardMaterial {
+    let material = this.barrierMaterials.get(severity);
+    if (!material) {
+      const { color, emissive } = BARRIER_COLORS[severity];
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive,
+        emissiveIntensity: 0.9,
+        roughness: 0.35,
+        metalness: 0,
+      });
+      this.barrierMaterials.set(severity, material);
+    }
+    return material;
+  }
+
   /**
    * Remove children of a group, disposing only per-mesh geometries (trail
    * lines). Shared geometries and all materials are cached (patientMaterials /
@@ -632,7 +708,8 @@ export class NavigatorScene {
         && child.geometry !== this.ghostGeometry
         && child.geometry !== this.heatGeometry
         && child.geometry !== this.timerPipGeometry
-        && child.geometry !== this.forecastGeometry) {
+        && child.geometry !== this.forecastGeometry
+        && child.geometry !== this.barrierGeometry) {
         child.geometry.dispose();
       }
     }
