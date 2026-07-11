@@ -856,6 +856,14 @@ class CommandCenterDemoSeeder extends Seeder
         $elapsedDays = max(1, (int) $monthStart->diffInDays(now()));
         $rows = [];
 
+        // Afternoon-peaked discharge hour (FEEDBACK Wave 2): a uniform 0–23h gave ~50%
+        // discharge-before-noon, which no hospital achieves. This lands ~30% before noon.
+        $sampler = new \App\Services\Demo\DistributionSampler;
+        $dischargeHourWeights = [
+            0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 2, 6 => 3, 7 => 4, 8 => 6, 9 => 8, 10 => 9, 11 => 10,
+            12 => 14, 13 => 16, 14 => 16, 15 => 14, 16 => 12, 17 => 10, 18 => 8, 19 => 6, 20 => 5, 21 => 4, 22 => 2, 23 => 1,
+        ];
+
         for ($i = 1; $i <= 1284; $i++) {
             $seed = 70400 + $i;
             $isObs = $i <= 159; // ≈12.4%
@@ -863,7 +871,7 @@ class CommandCenterDemoSeeder extends Seeder
             $cost = 8000 + $this->seededRand($seed + 1, 0, 7800);            // mean ≈11,900
             $dischargedAt = $monthStart->copy()
                 ->addDays($this->seededRand($seed + 2, 0, $elapsedDays))
-                ->addHours($this->seededRand($seed + 3, 0, 23));
+                ->addHours((int) $sampler->weightedPick($dischargeHourWeights, $seed + 3));
             if ($dischargedAt->greaterThan(now())) {
                 $dischargedAt = now()->copy()->subHours(1);
             }
@@ -1395,7 +1403,9 @@ class CommandCenterDemoSeeder extends Seeder
         $dispositions = $this->deterministicShuffle($dispositions, 20260622);
 
         // ESI weight: mostly 2-4, rarely 1 or 5.
-        $esiWeights = [1 => 5, 2 => 25, 3 => 45, 4 => 20, 5 => 5];
+        // ESI-3-dominant pyramid (FEEDBACK Wave 2). ESI-1 is deliberately rare in walk-in
+        // throughput — the true ESI-1 resuscitations are the ventilated crowding cohort below.
+        $esiWeights = [1 => 1, 2 => 25, 3 => 46, 4 => 23, 5 => 5];
         $esiPool = [];
         foreach ($esiWeights as $level => $weight) {
             for ($w = 0; $w < $weight; $w++) {
@@ -1502,6 +1512,7 @@ class CommandCenterDemoSeeder extends Seeder
         // little and the crowding term must carry the score: 34 patients
         // currently in the department (none admitted → boarders unchanged),
         // 8 still waiting for a provider, 4 on ventilators.
+        $sampler = new \App\Services\Demo\DistributionSampler;
         for ($k = 1; $k <= 34; $k++) {
             $seed = 20260701 + $k * 17;
             $arrivedAt = now()->subMinutes($this->seededRand($seed, 20, 360));
@@ -1509,11 +1520,20 @@ class CommandCenterDemoSeeder extends Seeder
             $ventilated = $k <= 4; // 4 critical, on vents
             $triagedAt = $arrivedAt->copy()->addMinutes($this->seededRand($seed + 1, 3, 10));
 
+            // A boarding cohort skews higher-acuity but is not all ESI-2: vents are ESI-1,
+            // undifferentiated waiters are ESI-2/3, the rest sample an ESI-3-modal pyramid
+            // (FEEDBACK Wave 2 — keeps ESI-3 the modal class overall).
+            $esiLevelCrowd = $ventilated
+                ? 1
+                : ($waiting
+                    ? $sampler->weightedPick([2 => 2, 3 => 3], $seed + 5)
+                    : $sampler->weightedPick([2 => 30, 3 => 45, 4 => 20, 5 => 5], $seed + 5));
+
             EdVisit::create([
                 'patient_ref' => sprintf('sim-ed-crowd-%02d', $k),
                 'arrived_at' => $arrivedAt,
                 'triaged_at' => $triagedAt,
-                'esi_level' => $ventilated ? 1 : ($waiting ? 3 : 2),
+                'esi_level' => $esiLevelCrowd,
                 'is_ventilated' => $ventilated,
                 'provider_seen_at' => $waiting ? null : $triagedAt->copy()->addMinutes($this->seededRand($seed + 2, 5, 20)),
                 'disposition' => null, // still in ED, undispositioned

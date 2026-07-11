@@ -22,7 +22,12 @@ use Illuminate\Support\Facades\DB;
  */
 class DemoTuningSeeder extends Seeder
 {
-    private const TARGET_OCCUPANCY = 0.85;
+    // Per-unit-type occupancy target (FEEDBACK Wave 2): ICUs run hotter than med/surg —
+    // a flat number across every type reads as a global target, not a real house. Each value
+    // sits inside its config('hospital.plausibility_targets.occupancy_by_unit_type') band, and
+    // populateOccupancy() only fills UP, so med/surg settles near its current ~85% while ICU and
+    // step-down are pulled higher — a differentiated, believable house.
+    private const OCCUPANCY_TARGET = ['icu' => 0.92, 'step_down' => 0.86, 'med_surg' => 0.84];
 
     /** Acuity mix by unit type: [tier => weight]. ICUs skew high, med/surg low. */
     private const ACUITY = [
@@ -121,9 +126,13 @@ class DemoTuningSeeder extends Seeder
             ORDER BY u.unit_id
         ");
 
+        $sampler = new \App\Services\Demo\DistributionSampler;
         $seq = 0;
         foreach ($units as $u) {
-            $goal = (int) round(self::TARGET_OCCUPANCY * (int) $u->staffed_bed_count);
+            // Per-type target + a small deterministic per-unit jitter so units within a type vary.
+            $base = self::OCCUPANCY_TARGET[$u->type] ?? 0.82;
+            $target = $base + $sampler->valueInBand([-0.02, 0.02], (int) $u->unit_id);
+            $goal = (int) round($target * (int) $u->staffed_bed_count);
             $delta = $goal - (int) $u->occ;
             if ($delta <= 0) {
                 continue;
@@ -152,17 +161,41 @@ class DemoTuningSeeder extends Seeder
         }
     }
 
-    /** 4. Refresh active transport/EVS SLAs to a near-now spread (UTC-aligned wall clock). */
+    /**
+     * 4. Refresh transport/EVS SLAs to a near-now spread and a plausible priority mix
+     *    (FEEDBACK Wave 2). Active demo transport gets a needed_at spread that leaves ~15%
+     *    intentionally overdue (was a stat-heavy, mostly-overdue queue). Priority is
+     *    re-weighted to a routine-dominant ~70/20/10 mix, keyed off the request id so it is
+     *    stable per request across refreshes (idempotent). Only synthetic sources are touched;
+     *    user-created requests are preserved.
+     */
     private function refreshSlas(): void
     {
-        DB::update("
-            UPDATE prod.transport_requests
-            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*150) - 40)||' minutes')::interval
-            WHERE is_deleted = false AND status NOT IN ('completed', 'canceled', 'failed')
-        ");
+        $demoSources = ['demo-seeder', 'operations-demo:summit-500-current-operations-v1'];
+        $priorityMix = DB::raw(
+            "CASE WHEN transport_request_id % 10 < 7 THEN 'routine' ".
+            "WHEN transport_request_id % 10 < 9 THEN 'urgent' ELSE 'stat' END"
+        );
+
+        // Active: near-now due time (~15% overdue) + priority mix.
+        DB::table('prod.transport_requests')
+            ->whereNull('completed_at')
+            ->whereIn('requested_by', $demoSources)
+            ->update([
+                'needed_at' => DB::raw("(now() AT TIME ZONE 'UTC') + ((floor(random()*170) - 25)||' minutes')::interval"),
+                'priority' => $priorityMix,
+                'updated_at' => DB::raw('now()'),
+            ]);
+
+        // Completed history: fix only the priority mix (leave the timestamps as history).
+        DB::table('prod.transport_requests')
+            ->whereNotNull('completed_at')
+            ->whereIn('requested_by', $demoSources)
+            ->update(['priority' => $priorityMix]);
+
         DB::update("
             UPDATE prod.evs_requests
-            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 30)||' minutes')::interval
+            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 20)||' minutes')::interval
             WHERE status NOT IN ('completed', 'canceled', 'failed')
         ");
     }
