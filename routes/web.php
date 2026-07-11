@@ -22,6 +22,10 @@ use Inertia\Inertia;
 // Process Analysis API Routes
 Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
 
+// Rolling-demo health (FEEDBACK Wave 5) — public status for uptime monitors: last refresh,
+// source freshness, scheduler liveness. 200 healthy / 503 not. No PHI.
+Route::get('/up/demo', \App\Http\Controllers\DemoHealthController::class);
+
 // Root route - redirect to login or dashboard based on auth state
 Route::get('/', function (Request $request) {
     if (auth()->check()) {
