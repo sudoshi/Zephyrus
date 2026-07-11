@@ -55,4 +55,24 @@ class RoundsSeedDemoCommandTest extends TestCase
         $this->assertSame('cancelled', $original->fresh()->status);
         $this->assertGreaterThan(0, $current->patients()->count());
     }
+
+    public function test_refresh_retires_every_open_run_so_a_daily_pass_never_leaks_stragglers(): void
+    {
+        $commands = app(\App\Services\Rounds\RoundCommandService::class);
+        $make = fn () => $commands->createRun($this->admin, [
+            'template_uuid' => $this->roundsTemplate->template_uuid,
+            'scope_type' => 'unit',
+            'scope_key' => (string) $this->roundsUnit->unit_id,
+        ]);
+        $a = $make();
+        $b = $make();
+        $this->assertSame(2, RoundRun::query()->open()->where('scope_key', (string) $this->roundsUnit->unit_id)->count());
+
+        $this->runSeeder(['--refresh' => true]);
+
+        // Both prior open runs are retired; the fresh cohort is the only board.
+        $this->assertSame(1, RoundRun::query()->open()->where('scope_key', (string) $this->roundsUnit->unit_id)->count());
+        $this->assertSame('cancelled', $a->fresh()->status);
+        $this->assertSame('cancelled', $b->fresh()->status);
+    }
 }
