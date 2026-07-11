@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 
 from app import performance
 from app.config import get_settings
+from app.filters import parse_filters
 from app.models import PerformanceRequest, PerformanceResponse
 from app.ocel_loader import PM4PY_AVAILABLE, OcelUnavailable, resolve_ocel_path
 
@@ -26,8 +27,12 @@ async def analyze_performance(req: PerformanceRequest) -> PerformanceResponse:
         object_types = object_types[: settings.arena_max_object_types]
 
     try:
+        filters = parse_filters(req.filters)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
         with resolve_ocel_path(req.ocel_path, req.ocel) as path:
-            result = performance.analyze(path, object_types=object_types, top=req.top)
+            result = performance.analyze(path, object_types=object_types, top=req.top, filters=filters)
         return PerformanceResponse(**result)
     except OcelUnavailable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

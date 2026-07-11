@@ -46,10 +46,15 @@ def discover(
     path: str,
     object_types: list[str] | None = None,
     activity_min_freq: int | None = None,
+    filters: "list[BaseFilter] | None" = None,
 ) -> dict[str, Any]:
     """Discover the object-centric DFG for the (optionally filtered) object types."""
+    from app.filters import BaseFilter, apply_filters  # noqa: F401
+
     settings = get_settings()
     ocel = read_ocel(path)
+    if filters:
+        ocel = apply_filters(ocel, filters)
 
     all_ots = list(pm4py.ocel_get_object_types(ocel))  # type: ignore[union-attr]
     ots = [ot for ot in all_ots if object_types is None or ot in object_types]
