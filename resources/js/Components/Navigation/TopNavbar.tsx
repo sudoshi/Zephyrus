@@ -20,7 +20,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
   const page = usePage<PageProps>();
   const url = page.url ?? '';
   const isAdmin = Boolean(page.props.auth?.is_admin);
-  const access: NavigationAccess = { isAdmin, can: page.props.auth?.can };
+  const access: NavigationAccess = { isAdmin, can: page.props.auth?.can, features: page.props.features };
   const sections = visibleSections(access);
   const centeredSections = sections.filter((section) => ['cockpit', 'workspaces', 'study'].includes(section.key));
   const utilitySections = sections.filter((section) => !['cockpit', 'workspaces', 'study'].includes(section.key));

@@ -42,16 +42,27 @@ class RoundCompletionService
         $policy ??= $this->policyFor($patient->run);
         $freshnessHours = (int) ($policy['freshness_hours'] ?? 24);
 
-        $submitted = $patient->contributions()
+        // Prefer eager-loaded relations — the board projects 28+ patients at
+        // once, so a per-patient query here is an N+1 on the hot path. Single-
+        // patient callers (transitions) leave the relations unloaded and fall
+        // back to a scoped query. Status/round_patient filters run in-memory so
+        // the loaded collections need only the rows, not a re-query.
+        $submitted = ($patient->relationLoaded('contributions')
+            ? $patient->contributions
+            : $patient->contributions()->get(['round_patient_id', 'author_role', 'section_code', 'submitted_at', 'status']))
             ->where('status', 'submitted')
-            ->get(['author_role', 'section_code', 'submitted_at']);
+            ->values();
 
-        $waivedRoles = $patient->run->participants()
+        $run = $patient->run;
+        $participants = $run->relationLoaded('participants')
+            ? $run->participants
+            : $run->participants()->get(['round_patient_id', 'role_code', 'waived_by', 'waiver_reason', 'status']);
+
+        $waivedRoles = $participants
             ->where('status', 'waived')
-            ->where(function ($q) use ($patient) {
-                $q->whereNull('round_patient_id')->orWhere('round_patient_id', $patient->round_patient_id);
-            })
-            ->get(['role_code', 'waived_by', 'waiver_reason']);
+            ->filter(fn ($p) => $p->round_patient_id === null
+                || (int) $p->round_patient_id === (int) $patient->round_patient_id)
+            ->values();
 
         $waived = $waivedRoles->map(fn ($p) => [
             'role' => $p->role_code,
@@ -93,7 +104,9 @@ class RoundCompletionService
             }
         }
 
-        $openTasks = $patient->tasks()->whereIn('status', ['open', 'in_progress'])->count();
+        $openTasks = $patient->relationLoaded('tasks')
+            ? $patient->tasks->whereIn('status', ['open', 'in_progress'])->count()
+            : $patient->tasks()->whereIn('status', ['open', 'in_progress'])->count();
 
         $hardMissing = array_values(array_filter($missing, fn ($m) => $m['requirement'] === 'hard'));
         $blockedByTasks = ! empty($policy['block_on_open_tasks']) && $openTasks > 0;

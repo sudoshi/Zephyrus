@@ -60,9 +60,16 @@ export interface NavigationCapabilities {
   readonly view_user_audit?: boolean;
 }
 
+/** Server-shared feature flags (Inertia `features` prop). A leaf gated on a
+ *  disabled feature is hidden — never rendered as a dead link that 404s. */
+export interface NavigationFeatures {
+  readonly virtual_rounds?: boolean;
+}
+
 export interface NavigationAccess {
   readonly isAdmin: boolean;
   readonly can?: NavigationCapabilities;
+  readonly features?: NavigationFeatures;
 }
 
 export interface NavLeaf {
@@ -72,6 +79,8 @@ export interface NavLeaf {
   readonly adminOnly?: boolean;
   readonly requiredCapability?: keyof NavigationCapabilities;
   readonly adminOrCapability?: keyof NavigationCapabilities;
+  /** Hidden unless this server-shared feature flag is on. */
+  readonly requiredFeature?: keyof NavigationFeatures;
 }
 
 export interface NavGroup {
@@ -124,7 +133,12 @@ const RTDC: NavDomain = {
       items: [
         { label: 'Bed Tracking', href: '/rtdc/bed-tracking', icon: Activity },
         { label: 'Patient Flow 4D', href: '/rtdc/patient-flow-navigator', icon: Workflow },
-        { label: 'Virtual Rounds', href: '/rtdc/virtual-rounds', icon: Stethoscope },
+        {
+          label: 'Virtual Rounds',
+          href: '/rtdc/virtual-rounds',
+          icon: Stethoscope,
+          requiredFeature: 'virtual_rounds',
+        },
         { label: 'Bed Placement', href: '/rtdc/bed-placement', icon: ClipboardList },
         { label: 'Ancillary Services', href: '/rtdc/ancillary-services', icon: Boxes },
         { label: 'Global Huddle', href: '/rtdc/global-huddle', icon: Users },
@@ -462,6 +476,7 @@ export function visibleDomains(access: NavigationAccess): readonly NavDomain[] {
 }
 
 export function isLeafVisible(item: NavLeaf, access: NavigationAccess): boolean {
+  if (item.requiredFeature && access.features?.[item.requiredFeature] !== true) return false;
   if (item.adminOnly && !access.isAdmin) return false;
   if (item.adminOrCapability) {
     return access.isAdmin || access.can?.[item.adminOrCapability] === true;

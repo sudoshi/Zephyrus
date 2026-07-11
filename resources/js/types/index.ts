@@ -30,6 +30,9 @@ export interface PageProps {
   arena?: {
     ai_enabled: boolean;
   };
+  features?: {
+    virtual_rounds?: boolean;
+  };
   flash?: {
     message?: string;
     error?: string;
