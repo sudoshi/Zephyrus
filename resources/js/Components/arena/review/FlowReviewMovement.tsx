@@ -117,7 +117,9 @@ export function FlowReviewMovement({ aiEnabled, canApprove, lensLabel }: Props) 
         />
         <BarrierRail barriers={barriers} selectedId={effectiveSelectedId} onSelect={setSelectedBarrierId} />
       </div>
-      <CorrectiveActionPanel barrier={selectedBarrier} aiEnabled={aiEnabled} canApprove={canApprove} />
+      {/* key remounts the panel per barrier so its approve/draft mutation state
+          (and the deviant-cases toggle) never leaks onto the next selection. */}
+      <CorrectiveActionPanel key={effectiveSelectedId ?? 'none'} barrier={selectedBarrier} aiEnabled={aiEnabled} canApprove={canApprove} />
     </div>
   );
 }

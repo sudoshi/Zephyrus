@@ -4,6 +4,7 @@
 // Review: Approve posts the governed decision (the P3 executor materializes the
 // PDSA), and Draft raises a governed correction targeting the barrier. These pin
 // the two wires — the right endpoint, the right ids — without a backend.
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -88,6 +89,43 @@ describe('CorrectiveActionPanel', () => {
     await waitFor(() =>
       expect(postArenaDraftCorrection).toHaveBeenCalledWith('sepsis', { target_ref: 'care-sepsis' }),
     );
+  });
+
+  it('remounts on barrier change so approve state never leaks (the movement key)', async () => {
+    // Mirrors FlowReviewMovement's `key={barrier.id}`: changing barrier remounts
+    // the panel, resetting the mutation. Without the key, barrier #2 would show a
+    // stale "Approved ✓" and a disabled button (the bug this guards).
+    function Harness() {
+      const [id, setId] = useState('flow-1');
+      const barrier: RankedBarrier = {
+        ...base,
+        id,
+        corrective_action: {
+          draft: { action_uuid: 'u', action_type: 'propose_pdsa_cycle', status: 'pending', approved: false, approval_id: id === 'flow-1' ? 1 : 2 },
+          prior_outcome: null,
+        },
+      };
+      return (
+        <>
+          <button type="button" onClick={() => setId('flow-2')}>next</button>
+          <CorrectiveActionPanel key={id} barrier={barrier} aiEnabled canApprove />
+        </>
+      );
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <Harness />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve & open PDSA/ }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Approved ✓/ })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'next' }));
+
+    const approve = screen.getByRole('button', { name: /Approve & open PDSA/ });
+    expect(approve).toBeEnabled(); // fresh state for barrier #2, not the leaked "Approved ✓"
   });
 
   it('offers no Draft for a human barrier (resolved operationally)', () => {
