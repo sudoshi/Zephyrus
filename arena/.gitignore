@@ -1,0 +1,6 @@
+# Local dev virtualenv (built with uv; never committed — prod uses /opt/arena-sidecar/venv)
+.venv/
+# pytest / tooling caches
+.pytest_cache/
+__pycache__/
+*.pyc
