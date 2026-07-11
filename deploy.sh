@@ -91,6 +91,63 @@ fi
 sudo systemctl enable --now zephyrus-queue-worker.service
 sudo systemctl restart zephyrus-queue-worker.service
 
+# --- Arena OCPM sidecar (Part X) -----------------------------------------
+# The rsync above ships fresh arena/ code into the deployed tree, but the
+# sidecar runs from a SEPARATE uv-managed venv (ExecStart=/opt/arena-sidecar/
+# venv/bin/uvicorn, WorkingDirectory=/var/www/Zephyrus/arena). New code only
+# goes live on a service restart, and changed requirements.txt needs a dep
+# sync — neither of which the plain code sync does. Everything here is
+# best-effort: the sidecar is gated by ARENA_ENABLED and its absence must
+# never fail the core web deploy. Override the venv path with ARENA_VENV.
+ARENA_SERVICE="zephyrus-arena.service"
+ARENA_VENV="${ARENA_VENV:-/opt/arena-sidecar/venv}"
+ARENA_PORT="${ARENA_PORT:-8101}"
+ARENA_REQ="/var/www/Zephyrus/arena/requirements.txt"
+ARENA_REQ_MARKER="/opt/arena-sidecar/.requirements.sha256"
+# LoadState is readable unprivileged (unlike `systemctl cat`, which needs to
+# read the root-only unit file and would false-negative for the deploy user).
+if [[ "$(systemctl show "$ARENA_SERVICE" -p LoadState --value 2>/dev/null)" == "loaded" ]] \
+   && [[ -x "$ARENA_VENV/bin/python" ]]; then
+    echo "Refreshing the Arena OCPM sidecar (Part X)..."
+    # Sync venv deps only when requirements.txt actually changed — uv install
+    # hits the network, so a checksum marker keeps no-op deploys fast.
+    if [[ -f "$ARENA_REQ" ]]; then
+        UV_BIN="$(command -v uv || echo "$HOME/.local/bin/uv")"
+        if [[ -x "$UV_BIN" ]]; then
+            NEW_SUM="$(sha256sum "$ARENA_REQ" | awk '{print $1}')"
+            OLD_SUM="$(sudo cat "$ARENA_REQ_MARKER" 2>/dev/null || true)"
+            if [[ "$NEW_SUM" != "$OLD_SUM" ]]; then
+                echo "  requirements.txt changed — syncing venv deps via uv..."
+                if VIRTUAL_ENV="$ARENA_VENV" "$UV_BIN" pip install -r "$ARENA_REQ"; then
+                    echo "$NEW_SUM" | sudo tee "$ARENA_REQ_MARKER" >/dev/null
+                    echo "  ✅ Arena venv deps synced"
+                else
+                    echo "  ⚠️  uv pip install failed — sidecar may run stale deps; check manually."
+                fi
+            else
+                echo "  requirements.txt unchanged — skipping dep sync."
+            fi
+        else
+            echo "  ⚠️  uv not found — skipping Arena dep sync (venv left as-is)."
+        fi
+    fi
+    # Restart to pick up freshly rsynced code, then health-gate (non-fatal).
+    if sudo systemctl restart "$ARENA_SERVICE"; then
+        sleep 2
+        if systemctl is-active --quiet "$ARENA_SERVICE" \
+           && curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${ARENA_PORT}/health" | grep -q '^2'; then
+            echo "  ✅ Arena sidecar healthy on :${ARENA_PORT}"
+        else
+            echo "  ⚠️  Arena sidecar not healthy — check: sudo journalctl -u ${ARENA_SERVICE} -n 50"
+        fi
+    else
+        echo "  ⚠️  Failed to restart ${ARENA_SERVICE} — check: sudo systemctl status ${ARENA_SERVICE}"
+    fi
+else
+    echo "Arena sidecar not installed on this host — skipping."
+fi
+# -------------------------------------------------------------------------
+
 echo "🔄 Restarting Apache..."
 # Restart Apache
 sudo systemctl restart apache2
