@@ -43,6 +43,8 @@ def fitness(
       - fitness_token_based_replay(flat, net, im, fm) → dict with log_fitness +
         percentage_of_fitting_traces keys
     """
+    if pm4py is None:  # pragma: no cover - the route guards with _require_engine first
+        raise RuntimeError("pm4py is unavailable in this sidecar build")
     settings = get_settings()
     ocel = read_ocel(path)
     if filters:
