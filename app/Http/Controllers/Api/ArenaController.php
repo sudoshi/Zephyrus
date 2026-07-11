@@ -59,6 +59,14 @@ class ArenaController extends Controller
         return response()->json($payload, $status);
     }
 
+    public function petrinet(Request $request): JsonResponse
+    {
+        $payload = $this->arena->petrinet($this->filtersFrom($request));
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
     /**
      * A discovered object-centric map. Query params:
      *   ?types=Encounter,Bed   restrict to these object types

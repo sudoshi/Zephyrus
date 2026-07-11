@@ -33,6 +33,11 @@ async def model_fitness(req: ModelFitnessRequest) -> ModelFitnessResponse:
         edges = [edge.model_dump() for edge in req.proposed_edges]
         with resolve_ocel_path(req.ocel_path, req.ocel) as path:
             result = copilot.model_fitness(path, edges, fitness_floor=req.fitness_floor)
+            cross = copilot.structural_cross_check(
+                path, edges, structural_floor=get_settings().arena_ai_structural_floor
+            )
+        result["structural_fitness_by_type"] = cross["structural_fitness_by_type"]
+        result["structural_warnings"] = cross["structural_warnings"]
         return ModelFitnessResponse(**result)
     except OcelUnavailable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

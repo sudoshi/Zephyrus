@@ -138,6 +138,24 @@ class ArenaService
         return ['available' => true] + $result;
     }
 
+    /**
+     * Object-centric Petri net for the current OCEL log (§XO.2). Uncached — a Study read.
+     *
+     * @param  array<int, array<string, mixed>>|null  $filters
+     * @return array<string, mixed>
+     */
+    public function petrinet(?array $filters = null): array
+    {
+        $doc = $this->exporter->export();
+        $result = $this->client->petrinet($doc, $filters);
+
+        if ($result === null) {
+            return ['available' => false, 'reason' => 'sidecar_unavailable'];
+        }
+
+        return ['available' => true] + $result;
+    }
+
     /** A stable fingerprint of the filter pipeline for cache keying (order-sensitive). */
     private function filterSignature(?array $filters): string
     {

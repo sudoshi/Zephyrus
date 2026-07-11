@@ -63,6 +63,15 @@ export async function fetchArenaPerformance(types?: string[], top?: number, filt
   return res.data;
 }
 
+export async function fetchArenaPetriNet(filters?: ArenaFilter[]): Promise<unknown> {
+  const res = await axios.get('/api/arena/petrinet', {
+    params: {
+      filters: filters && filters.length > 0 ? JSON.stringify(filters) : undefined,
+    },
+  });
+  return res.data;
+}
+
 // --- X4 governed AI copilot (routes 404 unless ARENA_AI_ENABLED) ---
 
 export async function fetchArenaNarrative(): Promise<unknown> {

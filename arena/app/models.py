@@ -162,3 +162,42 @@ class ModelFitnessResponse(BaseModel):
     invented_edges: list[FitnessEvidenceEdge]  # proposed arcs the log never exhibits
     missing_edges: list[FitnessEvidenceEdge]    # busy real arcs the model omits (top by frequency)
     reason: str | None = None            # why withheld: empty_model | no_reference_behavior | below_fitness_floor
+
+    # --- XO.2 additive structural cross-check (default-empty => non-breaking) ---
+    structural_fitness_by_type: dict[str, float] = Field(default_factory=dict)
+    structural_warnings: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PetriNetRequest(OcelSource):
+    """OC Petri-net discovery request. Inherits the OCEL source + filter pipeline."""
+
+
+class PetriNetPlace(BaseModel):
+    id: str
+    initial: bool
+    final: bool
+
+
+class PetriNetTransition(BaseModel):
+    id: str
+    label: str | None  # null => silent (tau) transition
+
+
+class PetriNetArc(BaseModel):
+    source: str
+    target: str
+    variable: bool  # variable arc => synchronization across object counts
+    weight: int
+
+
+class PetriNetSubnet(BaseModel):
+    object_type: str
+    places: list[PetriNetPlace]
+    transitions: list[PetriNetTransition]
+    arcs: list[PetriNetArc]
+
+
+class PetriNetResponse(BaseModel):
+    object_types: list[str]
+    nets: list[PetriNetSubnet]
+    stats: dict[str, int]
