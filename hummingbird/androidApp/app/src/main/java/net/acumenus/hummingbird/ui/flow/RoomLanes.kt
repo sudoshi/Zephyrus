@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import net.acumenus.hummingbird.data.FlowProjection
 import net.acumenus.hummingbird.data.FlowTimelineEvent
 import net.acumenus.hummingbird.data.FlowWindowData
+import net.acumenus.hummingbird.ui.components.formatOperationalMinutes
 import net.acumenus.hummingbird.ui.theme.Z
 import kotlin.math.abs
 
@@ -247,7 +248,7 @@ fun RoomLanes(
                         if (case.driftMin > 0) {
                             drawText(
                                 textMeasurer = textMeasurer,
-                                text = "+${case.driftMin}m",
+                                text = "+${formatOperationalMinutes(case.driftMin, compact = true)}",
                                 topLeft = Offset(left, top - 11.dp.toPx()),
                                 style = TextStyle(
                                     color = Z.statusWarning.copy(alpha = laneAlpha),

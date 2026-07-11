@@ -187,7 +187,7 @@ struct RoomLanesView: View {
                 .frame(width: barWidth, height: 14)
 
                 if bar.driftMinutes > 0 {
-                    Text("+\(bar.driftMinutes)m")
+                    Text("+\(OperationalDuration.minutes(Double(bar.driftMinutes), compact: true))")
                         .font(.system(size: 9, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(Z.status(.warning))
                         .offset(y: -12)
@@ -218,7 +218,9 @@ struct RoomLanesView: View {
 
     private func caseAccessibilityText(_ bar: CaseBar) -> String {
         var parts = [bar.projection.label ?? "Scheduled case"]
-        if bar.driftMinutes > 0 { parts.append("running \(bar.driftMinutes) minutes behind schedule") }
+        if bar.driftMinutes > 0 {
+            parts.append("running \(OperationalDuration.minutes(Double(bar.driftMinutes))) behind schedule")
+        }
         return parts.joined(separator: ", ")
     }
 

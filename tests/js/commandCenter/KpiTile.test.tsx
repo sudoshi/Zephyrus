@@ -31,6 +31,11 @@ describe('KpiTile', () => {
     expect(screen.getByTestId('kpi-x').closest('a')).toBeNull();
   });
 
+  it('renders a drillable metric as a plain panel on a static wall', () => {
+    render(<KpiTile metric={base} interactive={false} />);
+    expect(screen.getByTestId('kpi-occupancy').closest('a')).toBeNull();
+  });
+
   it('renders source trust when lineage metadata is available', () => {
     render(<KpiTile metric={{
       ...base,

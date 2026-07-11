@@ -17,6 +17,12 @@ class DatabaseSeeder extends Seeder
             // ran only via the rtdc:demo-reset command, so a bare `db:seed` left the
             // RTDC spine empty.) RtdcSeeder is idempotent (firstOrCreate).
             RtdcSeeder::class,
+            // Connector definitions are explicit templates, never observed-health
+            // records. Loading the Integrations page never mutates this catalog.
+            IntegrationConnectorTemplateSeeder::class,
+            // Reference projection is explicit and precedes any scenario-owned
+            // workforce rows. Demo roll-forward never mutates the taxonomy.
+            StaffingReferenceSeeder::class,
             // ProviderRegistrySeeder seeds the full clinical provider roster
             // (prod.providers, NPIs 17000000xx) plus the service-line catalog
             // (prod.specialties / prod.services) from the HospitalManifest. It
@@ -41,6 +47,10 @@ class DatabaseSeeder extends Seeder
             // Runs AFTER CommandCenterDemoSeeder because surgical safety attaches to
             // its seeded prod.or_cases. Idempotent (tag/cohort delete-then-insert).
             ClinicalPathwaySeeder::class,
+            // ACUM-OPS-OCEL-001 reference-model registry. These are seeded,
+            // explicitly non-observed bounded flows for the Arena landscape;
+            // live/discovered evidence remains in ocel.events + arena.maps.
+            OcelProcessLandscapeSeeder::class,
             // Virtual Rounds pilot templates (rounds.templates). Idempotent by
             // (name, version); template UUIDs are minted once and preserved.
             RoundTemplateSeeder::class,

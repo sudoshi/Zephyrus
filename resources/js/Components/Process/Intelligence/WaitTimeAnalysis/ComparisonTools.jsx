@@ -9,6 +9,7 @@ import {
   Calendar
 } from 'lucide-react';
 import MetricChart from '../Common/MetricChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ComparisonTools = ({
   data,
@@ -145,15 +146,15 @@ const ComparisonTools = ({
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-healthcare-text-secondary">Current</span>
-                  <span className="font-medium text-healthcare-text-primary">{item.current}min</span>
+                  <span className="font-medium text-healthcare-text-primary">{formatDurationMinutes(item.current)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-healthcare-text-secondary">Benchmark</span>
-                  <span className="font-medium text-healthcare-info">{item.benchmark}min</span>
+                  <span className="font-medium text-healthcare-info">{formatDurationMinutes(item.benchmark)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-healthcare-text-secondary">Target</span>
-                  <span className="font-medium text-healthcare-success">{item.target}min</span>
+                  <span className="font-medium text-healthcare-success">{formatDurationMinutes(item.target)}</span>
                 </div>
               </div>
             </div>
@@ -163,7 +164,10 @@ const ComparisonTools = ({
         <MetricChart
           title="Performance Trends"
           height="64"
-          yAxisLabel="Minutes"
+          yAxisLabel="Duration"
+          yAxisTickFormatter={formatDurationMinutes}
+          yAxisWidth={108}
+          tooltipFormatter={formatDurationMinutes}
           xAxisDataKey="timestamp"
         >
           <LineChart data={trendData}>
@@ -229,7 +233,10 @@ const ComparisonTools = ({
           <MetricChart
             title="Target vs Actual"
             height="64"
-            yAxisLabel="Minutes"
+            yAxisLabel="Duration"
+            yAxisTickFormatter={formatDurationMinutes}
+            yAxisWidth={108}
+            tooltipFormatter={formatDurationMinutes}
             xAxisDataKey="step"
           >
             <BarChart data={performanceData}>

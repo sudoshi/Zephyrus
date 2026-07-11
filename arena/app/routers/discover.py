@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from app import discovery
+from app import discovery, petrinet
 from app.config import get_settings
-from app.models import DiscoverRequest, DiscoverResponse, OcelSource, SummaryResponse
+from app.filters import parse_filters
+from app.models import DiscoverRequest, DiscoverResponse, OcelSource, PetriNetRequest, PetriNetResponse, SummaryResponse
 from app.ocel_loader import PM4PY_AVAILABLE, OcelUnavailable, resolve_ocel_path
 
 router = APIRouter(tags=["arena"])
@@ -39,12 +40,32 @@ async def discover_map(req: DiscoverRequest) -> DiscoverResponse:
     if object_types is not None:
         object_types = object_types[: settings.arena_max_object_types]
     try:
+        filters = parse_filters(req.filters)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
         with resolve_ocel_path(req.ocel_path, req.ocel) as path:
             result = discovery.discover(
                 path,
                 object_types=object_types,
                 activity_min_freq=req.activity_min_freq,
+                filters=filters,
             )
         return DiscoverResponse(**result)
+    except OcelUnavailable as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/discover/petrinet", response_model=PetriNetResponse)
+async def discover_petrinet(req: PetriNetRequest) -> PetriNetResponse:
+    _require_engine()
+    try:
+        filters = parse_filters(req.filters)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        with resolve_ocel_path(req.ocel_path, req.ocel) as path:
+            result = petrinet.discover(path, filters=filters)
+        return PetriNetResponse(**result)
     except OcelUnavailable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

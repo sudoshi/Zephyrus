@@ -1,15 +1,20 @@
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
+import { OperationalDataError, SourceFreshnessBanner } from '@/Components/Operations/OperationalDataState';
 import { KpiTile, metric } from '@/Components/system';
-import { useAssignStaffingRequest, useStaffingOverview, useUpdateStaffingStatus } from '@/features/staffing/hooks';
+import { useOfferStaffingFulfillment, useStaffingCandidates, useStaffingOverview, useStaffingWorkforce, useTransitionStaffingFulfillment } from '@/features/staffing/hooks';
 import type {
   StaffingAssignedSource,
   StaffingRequest,
   StaffingRoleGap,
+  StaffingShift,
   StaffingUnitAtRisk,
+  StaffingWorkforceSummary,
 } from '@/features/staffing/types';
 import { Head } from '@inertiajs/react';
-import { AlertTriangle, CheckCircle2, ShieldAlert, UserCog, Users } from 'lucide-react';
+import { AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronLeft, ChevronRight, Search, ShieldAlert, UserCog, Users } from 'lucide-react';
+import { useDeferredValue, useEffect, useState } from 'react';
+import { formatRelativeDurationMinutes } from '@/lib/duration';
 
 const SOURCE_LABELS: Record<StaffingAssignedSource, string> = {
   float_pool: 'Float',
@@ -110,11 +115,24 @@ function RoleGapBar({ row }: { row: StaffingRoleGap }) {
   );
 }
 
-function RequestRow({ request }: { request: StaffingRequest }) {
-  const assign = useAssignStaffingRequest();
-  const updateStatus = useUpdateStaffingStatus();
-  const isActive = !['filled', 'completed', 'canceled', 'unfilled'].includes(request.status);
-  const sources: StaffingAssignedSource[] = ['float_pool', 'overtime', 'agency', 'on_call'];
+function RequestRow({ request, canManage }: { request: StaffingRequest; canManage: boolean }) {
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [staffMemberId, setStaffMemberId] = useState<number | null>(null);
+  const [source, setSource] = useState<StaffingAssignedSource>('float_pool');
+  const candidates = useStaffingCandidates(request.staffing_request_id, showCandidates && canManage);
+  const offer = useOfferStaffingFulfillment();
+  const transition = useTransitionStaffingFulfillment();
+  const isActive = request.freshness_status !== 'expired' && !['filled', 'completed', 'canceled', 'unfilled'].includes(request.status);
+  const latest = request.fulfillment.latest;
+  const visibleFulfillments = request.fulfillment.active.length > 0
+    ? request.fulfillment.active
+    : latest ? [latest] : [];
+  const hasPendingOffer = request.fulfillment.active.some((fulfillment) => fulfillment.status === 'offered');
+  const isPending = offer.isPending || transition.isPending;
+  const actionError = offer.error ?? transition.error;
+  const slaLabel = request.sla.minutes_until_due === null
+    ? request.sla.label
+    : formatRelativeDurationMinutes(request.sla.minutes_until_due);
 
   return (
     <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -129,43 +147,230 @@ function RequestRow({ request }: { request: StaffingRequest }) {
             </span>
           </div>
           <div className="mt-0.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Need {request.headcount_needed} · {request.shift} shift · {request.sla.label}
+            Need {request.headcount_needed} · {request.shift} shift · {slaLabel}
             {request.assigned_source ? ` · ${SOURCE_LABELS[request.assigned_source]}` : ''}
+            {request.fulfillment.available && ` · ${request.fulfillment.filled_count}/${request.headcount_needed} canonically filled`}
           </div>
         </div>
-        <span className={CHIP}>{request.status}</span>
+        <span className={CHIP}>{request.freshness_status === 'expired' ? 'expired demo' : request.status}</span>
       </div>
 
-      {isActive && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {request.status !== 'assigned' &&
-            sources.map((source) => (
-              <button
-                key={source}
-                type="button"
-                disabled={assign.isPending}
-                onClick={() => assign.mutate({ id: request.staffing_request_id, input: { assigned_source: source, owner_name: 'Staffing office' } })}
-                className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary hover:bg-healthcare-background disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5"
-              >
-                {SOURCE_LABELS[source]}
-              </button>
-            ))}
-          <button
-            type="button"
-            disabled={updateStatus.isPending}
-            onClick={() => updateStatus.mutate({ id: request.staffing_request_id, status: 'filled' })}
-            className="ml-auto inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
-          >
-            <CheckCircle2 className="size-3.5" /> Mark filled
+      {visibleFulfillments.map((fulfillment) => (
+        <div key={fulfillment.fulfillment_uuid} className="mt-3 flex flex-wrap items-center gap-2 rounded-md bg-healthcare-background px-3 py-2 text-xs dark:bg-white/5">
+          <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            {fulfillment.staff_member_name}
+          </span>
+          <span className={CHIP}>{fulfillment.status}</span>
+          {canManage && fulfillment.actions.can_accept && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'accepted' })} className="rounded-md bg-healthcare-primary px-2.5 py-1 font-semibold text-white disabled:opacity-60">Accept offer</button>
+          )}
+          {canManage && fulfillment.actions.can_fill && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'filled' })} className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-2.5 py-1 font-semibold text-white disabled:opacity-60"><CheckCircle2 className="size-3.5" /> Fill shift</button>
+          )}
+          {canManage && fulfillment.actions.can_release && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'released' })} className="rounded-md border border-healthcare-border px-2.5 py-1 font-medium text-healthcare-text-secondary disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">Release</button>
+          )}
+          {canManage && fulfillment.actions.can_cancel && fulfillment.status !== 'filled' && (
+            <button type="button" disabled={isPending} onClick={() => transition.mutate({ fulfillmentUuid: fulfillment.fulfillment_uuid, status: 'canceled' })} className="rounded-md border border-healthcare-border px-2.5 py-1 font-medium text-healthcare-text-secondary disabled:opacity-60 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">Cancel offer</button>
+          )}
+        </div>
+      ))}
+
+      {isActive && canManage && request.fulfillment.actions.can_offer && !hasPendingOffer && (
+        <div className="mt-3 space-y-2">
+          <button type="button" onClick={() => setShowCandidates((value) => !value)} className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary hover:bg-healthcare-background dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-white/5">
+            {showCandidates ? 'Hide candidates' : 'Find qualified, available staff'}
           </button>
+          {showCandidates && (
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={staffMemberId ?? ''} onChange={(event) => setStaffMemberId(event.target.value ? Number(event.target.value) : null)} aria-label="Qualified staffing candidate" className="h-9 min-w-64 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+                <option value="">{candidates.isLoading ? 'Checking qualifications and availability...' : 'Select eligible staff member'}</option>
+                {candidates.data?.data.map((candidate) => (
+                  <option key={candidate.staff_member_id} value={candidate.staff_member_id} disabled={!candidate.eligible}>
+                    {candidate.display_name} · {candidate.role_label}{candidate.eligible ? '' : ` · ${candidate.eligibility_state}`}
+                  </option>
+                ))}
+              </select>
+              <select value={source} onChange={(event) => setSource(event.target.value as StaffingAssignedSource)} aria-label="Staffing fulfillment source" className="h-9 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+                {(Object.keys(SOURCE_LABELS) as StaffingAssignedSource[]).map((key) => <option key={key} value={key}>{SOURCE_LABELS[key]}</option>)}
+              </select>
+              <button type="button" disabled={staffMemberId === null || isPending} onClick={() => staffMemberId !== null && offer.mutate({ id: request.staffing_request_id, input: { staff_member_id: staffMemberId, source } })} className="rounded-md bg-healthcare-primary px-3 py-2 text-xs font-semibold text-white disabled:opacity-60">Create governed offer</button>
+              {candidates.isError && <span className="text-xs text-healthcare-critical dark:text-healthcare-critical-dark">Candidate safety checks are unavailable; no offer can be created.</span>}
+              {!candidates.isLoading && candidates.data?.data.filter((candidate) => candidate.eligible).length === 0 && <span className="text-xs text-healthcare-warning dark:text-healthcare-warning-dark">No staff currently pass role, unit, qualification, availability, and conflict checks.</span>}
+            </div>
+          )}
+          {showCandidates && candidates.data && candidates.data.data.some((candidate) => !candidate.eligible) && (
+            <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Ineligible in this page: {(['unqualified', 'unavailable', 'conflicted'] as const).map((state) => {
+                const count = candidates.data.data.filter((candidate) => candidate.eligibility_state === state).length;
+                return count > 0 ? `${count} ${state}` : null;
+              }).filter(Boolean).join(' · ')}. Disabled candidates cannot be offered.
+            </div>
+          )}
         </div>
       )}
+      {actionError && <div className="mt-2 text-xs text-healthcare-critical dark:text-healthcare-critical-dark">The staffing action was rejected. Refresh the candidate check and try again.</div>}
     </div>
   );
 }
 
+function WorkforceSection({ workforce }: { workforce: StaffingWorkforceSummary }) {
+  const [search, setSearch] = useState('');
+  const [role, setRole] = useState('');
+  const [shift, setShift] = useState<StaffingShift | ''>('');
+  const [status, setStatus] = useState<'active' | 'inactive' | ''>('active');
+  const [page, setPage] = useState(1);
+  const deferredSearch = useDeferredValue(search.trim());
+  const directory = useStaffingWorkforce({
+    q: deferredSearch || undefined,
+    role: role || undefined,
+    shift: shift || undefined,
+    status: status || undefined,
+    page,
+    per_page: 25,
+  });
+
+  useEffect(() => {
+    setPage(1);
+  }, [deferredSearch, role, shift, status]);
+
+  if (!workforce.available) {
+    return (
+      <section className="border-t border-healthcare-border pt-4 dark:border-healthcare-border-dark">
+        <div className="flex items-center gap-2">
+          <BriefcaseBusiness className="size-5 text-healthcare-primary" />
+          <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Workforce roster</h2>
+        </div>
+        <div className="mt-3 rounded-md border border-healthcare-warning/30 bg-healthcare-warning/5 p-4 text-sm text-healthcare-text-secondary dark:bg-healthcare-warning/10 dark:text-healthcare-text-secondary-dark">
+          Workforce alignment data is not available.
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4 border-t border-healthcare-border pt-4 dark:border-healthcare-border-dark">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <BriefcaseBusiness className="size-5 text-healthcare-primary" />
+            <h2 className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Workforce roster</h2>
+          </div>
+          {workforce.assumptions && (
+            <div className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              {workforce.assumptions.productive_hours_per_fte.toLocaleString()} productive h/FTE · {workforce.assumptions.relief_factor.toFixed(2)} relief · through {workforce.assumptions.roster_window?.end ?? 'current window'}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {workforce.by_shift.map((row) => (
+            <span key={row.shift} className={CHIP}>{row.label}: {row.count.toLocaleString()}</span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MetricTile label="Active people" value={workforce.metrics.active_members} />
+        <MetricTile label="Active FTE" value={workforce.metrics.active_fte.toLocaleString()} />
+        <MetricTile label="Roster roles" value={workforce.metrics.role_count} />
+        <MetricTile label="Credential attention" value={workforce.metrics.credential_attention} tone={workforce.metrics.credential_attention > 0 ? 'risk' : 'good'} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.45fr)]">
+        <div className="overflow-hidden rounded-md border border-healthcare-border dark:border-healthcare-border-dark">
+          <div className="grid grid-cols-2 border-b border-healthcare-border bg-healthcare-background px-3 py-2 text-xs font-semibold uppercase text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-white/5 dark:text-healthcare-text-secondary-dark sm:grid-cols-4">
+            <span>Role</span><span>Category</span><span className="hidden sm:block">People</span><span className="hidden text-right sm:block">FTE</span>
+          </div>
+          {workforce.by_role.slice(0, 10).map((row) => (
+            <div key={row.role_code} className="grid grid-cols-2 border-b border-healthcare-border px-3 py-2 text-sm last:border-b-0 dark:border-healthcare-border-dark sm:grid-cols-4">
+              <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.role_label}</span>
+              <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{row.role_category.replaceAll('_', ' ')}</span>
+              <span className="hidden text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark sm:block">{row.active_count.toLocaleString()}</span>
+              <span className="hidden text-right font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark sm:block">{row.fte.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+          <div className="text-xs font-semibold uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Employment mix</div>
+          <div className="mt-2 space-y-2">
+            {workforce.by_employment.map((row) => (
+              <div key={row.key} className="flex items-center justify-between text-sm">
+                <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{row.label}</span>
+                <span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-56 flex-1">
+            <span className="sr-only">Search workforce</span>
+            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search staff, role, unit, or service"
+              className="h-9 w-full rounded-md border border-healthcare-border bg-healthcare-surface pl-9 pr-3 text-sm text-healthcare-text-primary outline-none focus:border-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+            />
+          </label>
+          <select aria-label="Filter by role" value={role} onChange={(event) => setRole(event.target.value)} className="h-9 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+            <option value="">All roles</option>
+            {workforce.by_role.map((row) => <option key={row.role_code} value={row.role_code}>{row.role_label}</option>)}
+          </select>
+          <select aria-label="Filter by shift" value={shift} onChange={(event) => setShift(event.target.value as StaffingShift | '')} className="h-9 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+            <option value="">All shifts</option><option value="day">Day</option><option value="evening">Evening</option><option value="night">Night</option>
+          </select>
+          <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value as 'active' | 'inactive' | '')} className="h-9 rounded-md border border-healthcare-border bg-healthcare-surface px-2 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark">
+            <option value="">All status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        {directory.isError ? (
+          <OperationalDataError title="Workforce directory unavailable" error={directory.error} onRetry={() => void directory.refetch()} />
+        ) : (
+          <div className="overflow-x-auto rounded-md border border-healthcare-border dark:border-healthcare-border-dark">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-healthcare-background text-xs uppercase text-healthcare-text-secondary dark:bg-white/5 dark:text-healthcare-text-secondary-dark">
+                <tr><th className="px-3 py-2">Staff member</th><th className="px-3 py-2">Role</th><th className="px-3 py-2">Home</th><th className="px-3 py-2">Shift</th><th className="px-3 py-2">Employment</th><th className="px-3 py-2 text-right">FTE</th></tr>
+              </thead>
+              <tbody>
+                {directory.isLoading ? (
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading workforce directory...</td></tr>
+                ) : directory.data?.data.length ? directory.data.data.map((member) => (
+                  <tr key={`${member.staff_member_id}-${member.role_code}-${member.unit_id ?? 'hospital'}`} className="border-t border-healthcare-border dark:border-healthcare-border-dark">
+                    <td className="px-3 py-2"><div className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.display_name}</div><div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.availability}{!['valid', 'verified'].includes(member.credential_status) ? ` · credential ${member.credential_status}` : ''}</div></td>
+                    <td className="px-3 py-2 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.role_label}</td>
+                    <td className="px-3 py-2"><div className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.unit_label}</div>{member.eligible_float_units.length > 1 && <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.eligible_float_units.length} eligible units</div>}</td>
+                    <td className="px-3 py-2 capitalize text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.preferred_shift ?? 'Variable'}</td>
+                    <td className="px-3 py-2 capitalize text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{member.employment_class.replaceAll('_', ' ')}</td>
+                    <td className="px-3 py-2 text-right font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{member.fte.toFixed(2)}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={6} className="px-3 py-6 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No workforce records match the filters.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {directory.data && directory.data.meta.total > 0 && (
+          <div className="flex items-center justify-between text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            <span>{directory.data.meta.total.toLocaleString()} assignments · page {directory.data.meta.current_page} of {directory.data.meta.last_page}</span>
+            <div className="flex gap-1">
+              <button type="button" title="Previous page" aria-label="Previous page" disabled={page <= 1 || directory.isFetching} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-8 place-items-center rounded-md border border-healthcare-border disabled:opacity-40 dark:border-healthcare-border-dark"><ChevronLeft className="size-4" /></button>
+              <button type="button" title="Next page" aria-label="Next page" disabled={page >= directory.data.meta.last_page || directory.isFetching} onClick={() => setPage((value) => value + 1)} className="grid size-8 place-items-center rounded-md border border-healthcare-border disabled:opacity-40 dark:border-healthcare-border-dark"><ChevronRight className="size-4" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function StaffingOffice() {
-  const { data, isLoading } = useStaffingOverview();
+  const { data, error, isError, isLoading, refetch } = useStaffingOverview();
 
   return (
     <DashboardLayout>
@@ -175,18 +380,27 @@ export default function StaffingOffice() {
         subtitle="Live coverage posture, unit gaps, and governed gap-mitigation across float, overtime, agency, and on-call sources"
         headerContent={null}
       >
-        {isLoading || !data ? (
+        {isLoading ? (
           <div className="rounded-md border border-healthcare-border p-6 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
             Loading staffing posture...
           </div>
+        ) : isError || !data ? (
+          <OperationalDataError title="Staffing posture unavailable" error={error} onRetry={() => void refetch()} />
         ) : (
           <div className="space-y-4">
+            <SourceFreshnessBanner source={data.source} onRetry={() => void refetch()} />
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <MetricTile label="Coverage" value={`${data.metrics.coverage_pct}%`} tone={data.metrics.coverage_pct < 90 ? 'risk' : 'good'} />
+              <MetricTile
+                label="Coverage"
+                value={data.metrics.coverage_pct === null ? 'Unknown' : `${data.metrics.coverage_pct}%`}
+                tone={data.metrics.coverage_pct === null ? 'neutral' : data.metrics.coverage_pct < 90 ? 'risk' : 'good'}
+              />
               <MetricTile label="Units at risk" value={data.metrics.at_risk_units} tone={data.metrics.at_risk_units > 0 ? 'risk' : 'good'} />
               <MetricTile label="Gap headcount" value={data.metrics.total_gap_headcount} tone={data.metrics.total_gap_headcount > 0 ? 'risk' : 'neutral'} />
               <MetricTile label="Open requests" value={data.metrics.open_requests} />
             </div>
+
+            <WorkforceSection workforce={data.workforce} />
 
             <section className="space-y-3">
               <div className="flex items-center gap-2">
@@ -196,8 +410,14 @@ export default function StaffingOffice() {
                 </h2>
               </div>
               {data.units_at_risk.length === 0 ? (
-                <div className="rounded-md border border-healthcare-success/30 bg-healthcare-success/5 p-4 text-sm text-healthcare-text-secondary dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10 dark:text-healthcare-text-secondary-dark">
-                  All units are at or above target for the current shift.
+                <div className={`rounded-md border p-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark ${
+                  data.coverage.coverage_pct === null
+                    ? 'border-healthcare-warning/30 bg-healthcare-warning/5 dark:border-healthcare-warning/30 dark:bg-healthcare-warning/10'
+                    : 'border-healthcare-success/30 bg-healthcare-success/5 dark:border-healthcare-success-dark/30 dark:bg-healthcare-success-dark/10'
+                }`}>
+                  {data.coverage.coverage_pct === null
+                    ? 'No current-shift requirements are available, so coverage and unit risk are unknown.'
+                    : 'All units are at or above target for the current shift.'}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -232,7 +452,7 @@ export default function StaffingOffice() {
                 <div className="flex flex-wrap gap-2">
                   {data.resource_options.map((option) => (
                     <span key={option.key} className={CHIP}>
-                      {option.name}: {option.available}
+                      {option.name}: {option.available === null ? 'Unknown' : option.available}
                     </span>
                   ))}
                 </div>
@@ -244,7 +464,7 @@ export default function StaffingOffice() {
               ) : (
                 <div className="space-y-3">
                   {data.queue.map((request) => (
-                    <RequestRow key={request.staffing_request_id} request={request} />
+                    <RequestRow key={request.staffing_request_id} request={request} canManage={data.permissions.manage} />
                   ))}
                 </div>
               )}

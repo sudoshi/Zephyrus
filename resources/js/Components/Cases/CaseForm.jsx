@@ -5,6 +5,30 @@ import Select from '@/Components/BlockSchedule/Select';
 import { Icon } from '@iconify/react';
 import { mockReferenceData } from '@/mock-data/cases';
 import { mockServices } from '@/mock-data/dashboard';
+import { formatDurationMinutes } from '@/lib/duration';
+
+const toNonNegativeInteger = (value) => {
+    const numeric = Number(value);
+
+    return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric)) : 0;
+};
+
+export const splitDurationMinutes = (value) => {
+    if (value === '' || value === null || value === undefined) {
+        return { hours: '', minutes: '' };
+    }
+
+    const totalMinutes = toNonNegativeInteger(value);
+
+    return {
+        hours: Math.floor(totalMinutes / 60),
+        minutes: totalMinutes % 60,
+    };
+};
+
+export const combineDurationParts = (hours, minutes) => (
+    toNonNegativeInteger(hours) * 60 + Math.min(59, toNonNegativeInteger(minutes))
+);
 
 const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
     const [formData, setFormData] = useState({
@@ -45,7 +69,7 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
                 ...initialData,
                 surgery_date: initialData.surgery_date,
                 scheduled_start_time: initialData.scheduled_start_time.split('T')[1].substring(0, 5),
-                estimated_duration: Math.round(initialData.estimated_duration / 60)
+                estimated_duration: toNonNegativeInteger(initialData.estimated_duration)
             });
         } else {
             setFormData({
@@ -74,13 +98,28 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
         }));
     };
 
+    const durationParts = splitDurationMinutes(formData.estimated_duration);
+    const durationMinutes = formData.estimated_duration === ''
+        ? null
+        : toNonNegativeInteger(formData.estimated_duration);
+
+    const handleDurationPartChange = (part, value) => {
+        const currentHours = durationParts.hours === '' ? 0 : durationParts.hours;
+        const currentMinutes = durationParts.minutes === '' ? 0 : durationParts.minutes;
+        const nextDuration = part === 'hours'
+            ? combineDurationParts(value, currentMinutes)
+            : combineDurationParts(currentHours, value);
+
+        handleInputChange('estimated_duration', nextDuration);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         // Format the data
         const data = {
             ...formData,
-            estimated_duration: parseInt(formData.estimated_duration) * 60,
+            estimated_duration: toNonNegativeInteger(formData.estimated_duration),
             scheduled_start_time: `${formData.surgery_date}T${formData.scheduled_start_time}:00`,
             service_name: mockServices.find(s => s.service_id.toString() === formData.service_id)?.name,
             room_name: rooms.find(r => r.room_id.toString() === formData.room_id)?.name,
@@ -216,17 +255,40 @@ const CaseForm = ({ isOpen, onClose, onSubmit, initialData = null }) => {
 
                     <div>
                         <label className="block text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-1">
-                            Estimated Duration (hours)
+                            Estimated Duration
                         </label>
-                        <input
-                            type="number"
-                            min="0.5"
-                            step="0.5"
-                            value={formData.estimated_duration}
-                            onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                            className="block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            required
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                            <label className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                Hours
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={durationParts.hours}
+                                    onChange={(e) => handleDurationPartChange('hours', e.target.value)}
+                                    aria-label="Estimated duration hours"
+                                    className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    required
+                                />
+                            </label>
+                            <label className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                Minutes
+                                <input
+                                    type="number"
+                                    min={durationParts.hours === '' || durationParts.hours === 0 ? 15 : 0}
+                                    max="59"
+                                    step="1"
+                                    value={durationParts.minutes}
+                                    onChange={(e) => handleDurationPartChange('minutes', e.target.value)}
+                                    aria-label="Estimated duration minutes"
+                                    className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    required
+                                />
+                            </label>
+                        </div>
+                        <div className="mt-1 text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            {durationMinutes === null ? 'No duration entered' : formatDurationMinutes(durationMinutes)}
+                        </div>
                     </div>
 
                     <div>

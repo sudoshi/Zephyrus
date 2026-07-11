@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Carbon;
 
 /**
@@ -517,8 +518,9 @@ class CommandCenterDrilldownService
 
         return match ($unit) {
             '%' => "{$formatted}%",
-            'min' => "{$formatted}m",
-            'h' => "{$formatted}h",
+            'min' => DurationFormatter::minutes((float) $value),
+            'h' => DurationFormatter::minutes((float) $value * 60),
+            'bed-days' => $formatted.' bed-days',
             'x' => number_format((float) $value, 2),
             default => $formatted,
         };

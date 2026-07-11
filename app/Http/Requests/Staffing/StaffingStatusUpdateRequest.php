@@ -14,7 +14,7 @@ class StaffingStatusUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|in:requested,open,sourcing,assigned,filled,completed,canceled,escalated,unfilled',
+            'status' => 'required|in:requested,open,sourcing,completed,canceled,escalated,unfilled',
             'note' => 'nullable|string|max:500',
             'payload' => 'nullable|array',
         ];

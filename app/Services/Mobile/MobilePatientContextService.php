@@ -171,14 +171,14 @@ class MobilePatientContextService
         if ($roleId === 'transport') {
             return TransportRequest::query()
                 ->where('patient_ref', $patientRef)
-                ->where('is_deleted', false)
+                ->active()
                 ->exists();
         }
 
         if ($roleId === 'evs') {
             return EvsRequest::query()
                 ->where('patient_ref', $patientRef)
-                ->where('is_deleted', false)
+                ->active()
                 ->exists();
         }
 

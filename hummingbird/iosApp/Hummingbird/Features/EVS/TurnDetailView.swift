@@ -63,7 +63,7 @@ struct TurnDetailView: View {
                     Spacer()
                     Text(turn.sla.label)
                         .font(.system(size: 13, weight: .medium)).monospacedDigit()
-                        .foregroundStyle((turn.sla.minutesUntilDue ?? 0) < 0 ? Z.status(.critical) : Z.inkMuted)
+                        .foregroundStyle(turn.sla.atRisk ? Z.status(.critical) : Z.inkMuted)
                 }
                 Text(turn.locationLabel ?? "—")
                     .font(.system(size: 22, weight: .semibold)).foregroundStyle(Z.ink)

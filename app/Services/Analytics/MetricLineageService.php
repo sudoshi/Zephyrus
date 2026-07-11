@@ -6,6 +6,7 @@ use App\Models\Ops\DataQualityFinding;
 use App\Models\Ops\MetricDefinition;
 use App\Models\Ops\MetricLineage;
 use App\Models\Ops\SourceFreshness;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -181,7 +182,7 @@ class MetricLineageService
             'cancellations' => $this->metric('Cancellations', 'command-center', 'Cancelled surgical cases in the review window.', 'Perioperative operations', 'cases', 'down', ['surgical_throughput']),
             'readmission' => $this->metric('30-Day Readmission', 'command-center', 'Discharged encounters with a subsequent admission inside 30 days.', 'Quality and throughput', '%', 'down', ['encounters']),
             'los_gmlos' => $this->metric('LOS / GMLOS', 'command-center', 'Actual length of stay divided by geometric mean length of stay.', 'Quality and throughput', 'x', 'down', ['encounters']),
-            'excess_days' => $this->metric('Excess Days', 'command-center', 'Bed days above expected GMLOS across completed encounters.', 'Quality and throughput', 'days', 'down', ['encounters']),
+            'excess_days' => $this->metric('Excess Bed-Days', 'command-center', 'Bed-days above expected GMLOS across completed encounters.', 'Quality and throughput', 'bed-days', 'down', ['encounters']),
             'diversion' => $this->metric('Diversion Hours', 'command-center', 'Operational diversion time detected from ED flow and event records.', 'Emergency operations', 'hours', 'down', ['ed_flow', 'process_events']),
             'pdsa_active' => $this->metric('Active PDSA', 'command-center', 'Active improvement cycles available to absorb operational opportunities.', 'Improvement governance council', 'cycles', 'neutral', ['improvement_work']),
             'pred_discharges' => $this->metric('Discharges 24h', 'command-center', 'RTDC definite plus probable discharges forecast for the next 24 hours.', 'Capacity management', 'pts', 'up', ['rtdc_predictions']),
@@ -548,12 +549,12 @@ class MetricLineageService
             return 'no records';
         }
 
-        $minutes = max(0, (int) $timestamp->diffInMinutes(now()));
-        if ($minutes < 90) {
-            return "{$minutes}m ago";
+        $seconds = max(0, (int) round($timestamp->diffInSeconds(now())));
+        if ($seconds < 90 * 60) {
+            return DurationFormatter::seconds($seconds).' ago';
         }
-        if ($minutes < 60 * 48) {
-            return round($minutes / 60).'h ago';
+        if ($seconds < 60 * 60 * 48) {
+            return DurationFormatter::seconds($seconds).' ago';
         }
 
         return $timestamp->toDateString();

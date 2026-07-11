@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import MetricCard from '@/Components/ui/MetricCard';
 import Panel from '@/Components/ui/Panel';
+import { formatDurationHours } from '@/lib/duration';
 
 const BlockView = ({ filters, data }) => {
   // Extract filter values from the new filter structure
@@ -277,7 +278,7 @@ const BlockView = ({ filters, data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Average Block Duration</span>
-                <span className="font-medium">4.2 hours</span>
+                <span className="font-medium">{formatDurationHours(4.2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Blocks per Service</span>

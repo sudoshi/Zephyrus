@@ -1,6 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignTransportRequest,
+  cancelTransportRequest,
+  completeTransportHandoff,
   createEnterpriseWritebackDraft,
   createRegionalTransferAgentDraft,
   createRegionalTransferDecision,
@@ -17,6 +19,7 @@ import {
 } from './api';
 import type {
   CreateEnterpriseWritebackDraftInput,
+  CompleteTransportHandoffInput,
   CreateRegionalTransferDecisionInput,
   CreateTransportRequestInput,
   DiscoverEnterpriseFhirInput,
@@ -28,10 +31,17 @@ export function useTransportOverview() {
   return useQuery({ queryKey: ['transport', 'overview'], queryFn: fetchTransportOverview });
 }
 
-export function useTransportRequests(requestType?: TransportRequestType) {
-  return useQuery({
-    queryKey: ['transport', 'requests', requestType ?? 'all'],
-    queryFn: () => fetchTransportRequests(requestType ? { request_type: requestType } : {}),
+export function useTransportRequests(requestType?: TransportRequestType, scope: 'active' | 'dispatch' | 'history' = 'active') {
+  return useInfiniteQuery({
+    queryKey: ['transport', 'requests', requestType ?? 'all', scope],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => fetchTransportRequests({
+      request_type: requestType,
+      scope,
+      cursor: pageParam,
+    }),
+    getNextPageParam: (lastPage) => lastPage.meta.next_cursor ?? undefined,
+    getPreviousPageParam: (firstPage) => firstPage.meta.previous_cursor ?? undefined,
   });
 }
 
@@ -66,8 +76,8 @@ export function useAssignTransportRequest() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, assignedTeam, assignedVendor }: { id: number; assignedTeam?: string; assignedVendor?: string }) =>
-      assignTransportRequest(id, { assigned_team: assignedTeam, assigned_vendor: assignedVendor }),
+    mutationFn: ({ id, resourceKey }: { id: number; resourceKey: string }) =>
+      assignTransportRequest(id, { resource_key: resourceKey }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transport'] });
     },
@@ -78,7 +88,31 @@ export function useUpdateTransportStatus() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: TransportStatus }) => updateTransportStatus(id, status),
+    mutationFn: ({ id, status, reason }: { id: number; status: TransportStatus; reason?: string }) =>
+      updateTransportStatus(id, status, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transport'] });
+    },
+  });
+}
+
+export function useCompleteTransportHandoff() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: CompleteTransportHandoffInput }) =>
+      completeTransportHandoff(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transport'] });
+    },
+  });
+}
+
+export function useCancelTransportRequest() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => cancelTransportRequest(id, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transport'] });
     },

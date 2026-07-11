@@ -51,6 +51,88 @@ export const arenaSummarySchema = z.object({
   activities: z.record(z.string(), z.number()),
 });
 
+export const arenaProcessModelSummarySchema = z.object({
+  process_id: z.string(),
+  process_number: z.number(),
+  domain_code: z.string(),
+  domain_name: z.string(),
+  name: z.string(),
+  core_interaction: z.string(),
+  improvement_question: z.string(),
+  evidence_grade: z.string(),
+  priority: z.string(),
+  interaction_pattern: z.string(),
+  implementation_wave: z.string(),
+  current_readiness: z.enum(['partial_projection', 'source_present_not_projected', 'reference_only']),
+  readiness_note: z.string(),
+});
+
+export const arenaProcessLandscapeIndexSchema = z.object({
+  available: z.literal(true),
+  document: z.object({
+    id: z.string(),
+    version: z.string(),
+    date: z.string(),
+    catalog_count: z.number(),
+    requested_count_note: z.string(),
+    data_basis: z.literal('seeded_reference_models'),
+    observed_claim: z.literal(false),
+  }),
+  counts: z.object({
+    models: z.number(),
+    domains: z.number(),
+    priorities: z.record(z.string(), z.number()),
+    readiness: z.record(z.string(), z.number()),
+    waves: z.record(z.string(), z.number()),
+  }),
+  projection: z.object({
+    projected_events: z.number(),
+    projected_objects: z.number(),
+    source_systems: z.number(),
+    declared_object_types: z.number(),
+    emitted_object_types: z.number(),
+    target_object_types: z.number(),
+    catalog_activities: z.number(),
+  }),
+  domains: z.array(z.object({ code: z.string(), name: z.string(), count: z.number() })),
+  models: z.array(arenaProcessModelSummarySchema),
+});
+
+export const arenaProcessModelNodeSchema = z.object({
+  node_key: z.string(),
+  activity: z.string(),
+  label: z.string(),
+  node_kind: z.enum(['trigger', 'event', 'decision', 'exception', 'outcome']),
+  ordinal: z.number(),
+  object_types: z.array(z.string()),
+  required: z.boolean(),
+  source_basis: z.string(),
+  observed_count: z.number(),
+});
+
+export const arenaProcessModelEdgeSchema = z.object({
+  edge_key: z.string(),
+  source_node_key: z.string(),
+  target_node_key: z.string(),
+  label: z.string(),
+  relationship_type: z.string(),
+  ordinal: z.number(),
+  is_exception: z.boolean(),
+});
+
+export const arenaProcessModelDetailSchema = z.object({
+  available: z.literal(true),
+  data_basis: z.literal('seeded_reference_model'),
+  observed_claim: z.literal(false),
+  model: arenaProcessModelSummarySchema.extend({
+    core_objects: z.array(z.string()),
+    source_document: z.string(),
+    catalog_version: z.number(),
+  }),
+  nodes: z.array(arenaProcessModelNodeSchema),
+  edges: z.array(arenaProcessModelEdgeSchema),
+});
+
 export const arenaDeviationSchema = z.object({
   code: z.string(),
   label: z.string(),
@@ -194,6 +276,46 @@ export const arenaDraftResponseSchema = z.object({
   pdsa: z.record(z.string(), z.string()).optional(),
 });
 
+export const arenaPetriNetResponseSchema = z.object({
+  available: z.boolean().optional(),
+  object_types: z.array(z.string()).default([]),
+  nets: z.array(z.object({
+    object_type: z.string(),
+    places: z.array(z.object({ id: z.string(), initial: z.boolean(), final: z.boolean() })),
+    transitions: z.array(z.object({ id: z.string(), label: z.string().nullable() })),
+    arcs: z.array(z.object({ source: z.string(), target: z.string(), variable: z.boolean(), weight: z.number() })),
+  })).default([]),
+  stats: z.record(z.string(), z.number()).default({}),
+});
+export type ArenaPetriNet = z.infer<typeof arenaPetriNetResponseSchema>;
+
+export const arenaCapacityResponseSchema = z.object({
+  available: z.boolean().optional(),
+  objects: z.array(z.object({
+    object_id: z.string(),
+    item_type: z.string(),
+    series: z.array(z.object({ time: z.string(), value: z.number() })),
+    peak: z.number(),
+    nadir: z.number(),
+    current: z.number(),
+  })).default([]),
+  stats: z.record(z.string(), z.number()).default({}),
+});
+export type ArenaCapacity = z.infer<typeof arenaCapacityResponseSchema>;
+
+export const arenaFilterSchema = z.object({
+  kind: z.enum(['object_type', 'event_type', 'time_frame', 'event_attribute']),
+  object_types: z.array(z.string()).optional(),
+  activities: z.array(z.string()).optional(),
+  name: z.string().optional(),
+  values: z.array(z.string()).optional(),
+  start: z.string().optional(),
+  end: z.string().optional(),
+  mode: z.enum(['include', 'exclude']).optional(),
+});
+
+export type ArenaFilter = z.infer<typeof arenaFilterSchema>;
+
 export type ArenaHandoff = z.infer<typeof arenaHandoffSchema>;
 export type ArenaSyncWait = z.infer<typeof arenaSyncWaitSchema>;
 export type ArenaNarrativeResponse = z.infer<typeof arenaNarrativeResponseSchema>;
@@ -205,5 +327,10 @@ export type ArenaEdge = z.infer<typeof arenaEdgeSchema>;
 export type ArenaOcdfg = z.infer<typeof arenaOcdfgSchema>;
 export type ArenaMapResponse = z.infer<typeof arenaMapResponseSchema>;
 export type ArenaSummary = z.infer<typeof arenaSummarySchema>;
+export type ArenaProcessModelSummary = z.infer<typeof arenaProcessModelSummarySchema>;
+export type ArenaProcessLandscapeIndex = z.infer<typeof arenaProcessLandscapeIndexSchema>;
+export type ArenaProcessModelNode = z.infer<typeof arenaProcessModelNodeSchema>;
+export type ArenaProcessModelEdge = z.infer<typeof arenaProcessModelEdgeSchema>;
+export type ArenaProcessModelDetail = z.infer<typeof arenaProcessModelDetailSchema>;
 export type ArenaPathwayConformance = z.infer<typeof arenaPathwayConformanceSchema>;
 export type ArenaConformanceResponse = z.infer<typeof arenaConformanceResponseSchema>;

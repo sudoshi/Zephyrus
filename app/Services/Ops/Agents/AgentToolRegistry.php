@@ -5,6 +5,7 @@ namespace App\Services\Ops\Agents;
 use App\Models\User;
 use App\Services\Analytics\OperationsAnalyticsService;
 use App\Services\Ops\InterventionAttributionService;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -198,7 +199,7 @@ class AgentToolRegistry
                 'status' => $sourceFreshnessStatus,
                 'detail' => $censusLagMinutes === null
                     ? 'Capacity census has no timestamped observations.'
-                    : "Latest capacity census is {$censusLagMinutes} minutes old.",
+                    : 'Latest capacity census is '.DurationFormatter::minutes($censusLagMinutes).' old.',
                 'recommendedAction' => 'Confirm census feed freshness before acting on capacity-agent findings.',
             ],
             [

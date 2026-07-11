@@ -15,7 +15,6 @@ class AssignStaffingRequestRequest extends FormRequest
     {
         return [
             'assigned_source' => 'required|in:float_pool,overtime,agency,on_call',
-            'assigned_staff_ref' => 'nullable|string|max:120',
             'owner_name' => 'nullable|string|max:120',
         ];
     }

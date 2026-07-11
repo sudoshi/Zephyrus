@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Modal from '@/Components/Common/Modal';
 import { Sparkline } from '@/Components/cockpit/Sparkline';
+import { formatDurationForUnit } from '@/lib/duration';
 
 // Zephyrus 2.0 P3 rewrite. The old component fabricated its entire body —
 // a Math.random() hourly chart and a synthetic service table — and ignored
@@ -16,17 +17,24 @@ import { Sparkline } from '@/Components/cockpit/Sparkline';
 const MetricDetail = ({ metric }) => {
     const points = metric.trajectory?.points ?? [];
     const previous = points.length >= 2 ? points[0] : null;
-    const delta = previous !== null ? Math.round((metric.value - previous) * 10) / 10 : null;
+    const delta = previous !== null ? metric.value - previous : null;
     const suffix = metric.unit === '%' ? '%' : metric.unit ? ` ${metric.unit}` : '';
+    const formatValue = (value, signed = false) => {
+        const duration = formatDurationForUnit(value, metric.unit);
+        const scalar = Number.isInteger(value) ? value : Math.round(value * 10) / 10;
+        const display = duration ?? `${scalar}${suffix}`;
+
+        return signed && value >= 0 ? `+${display}` : display;
+    };
     const stats = [
         { title: 'Current', icon: 'heroicons:clock', value: metric.display, label: metric.caption ?? '' },
         previous !== null
-            && { title: 'Previous period', icon: 'heroicons:chart-bar', value: `${previous}${suffix}`, label: 'prior calendar month' },
+            && { title: 'Previous period', icon: 'heroicons:chart-bar', value: formatValue(previous), label: 'prior calendar month' },
         delta !== null
             && {
                 title: 'Change',
                 icon: delta >= 0 ? 'heroicons:arrow-trending-up' : 'heroicons:arrow-trending-down',
-                value: `${delta >= 0 ? '+' : ''}${delta}${suffix}`,
+                value: formatValue(delta, true),
                 label: 'vs. previous period',
             },
     ].filter(Boolean);

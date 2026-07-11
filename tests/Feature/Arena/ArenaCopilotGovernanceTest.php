@@ -95,7 +95,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     {
         $this->enableCopilot();
         $this->seedBottleneck();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $result = app(ArenaCopilotService::class)->draftPdsa($user, 'bottleneck');
 
@@ -116,7 +116,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     {
         $this->enableCopilot();
         $this->seedConformance('sepsis', 'quality.sepsis_conformance', 48.3, 60, 31);
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'bed_manager']);
 
         $result = app(ArenaCopilotService::class)->draftCorrection($user, 'sepsis');
 
@@ -184,7 +184,7 @@ class ArenaCopilotGovernanceTest extends TestCase
         {
             public function __construct() {}
 
-            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null): ?array
+            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null, ?array $filters = null): ?array
             {
                 return ['object_types' => ['Encounter'], 'nodes' => [], 'edges' => [['source' => 'a', 'target' => 'b', 'object_type' => 'Encounter', 'frequency' => 1]], 'stats' => []];
             }
@@ -210,7 +210,7 @@ class ArenaCopilotGovernanceTest extends TestCase
         {
             public function __construct() {}
 
-            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null): ?array
+            public function discover(array $ocel, ?array $objectTypes = null, ?int $minFreq = null, ?array $filters = null): ?array
             {
                 return ['object_types' => ['Encounter'], 'nodes' => [['id' => 'a', 'activity' => 'a', 'frequency' => 1, 'object_types' => ['Encounter']]], 'edges' => [], 'stats' => []];
             }

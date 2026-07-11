@@ -90,13 +90,12 @@ The backend serves as a thin layer that passes data to React via Inertia.js — 
 
 ### Frontend (React + Inertia + HeroUI + Tailwind)
 
-**Entry point:** `resources/js/app.jsx` — bootstraps Inertia with the `Providers` wrapper.
+**Entry point:** `resources/js/app.tsx` — bootstraps Inertia with the `Providers` wrapper.
 
-**Provider hierarchy** (in `Providers/HeroUIProvider.jsx`):
-`HeroUIProvider` → `ModeProvider` → `DashboardProvider`
+**Provider hierarchy** (in `Providers/HeroUIProvider.tsx`):
+`QueryClientProvider` → `HeroUIProvider` → `ModeProvider`
 
 **Key contexts:**
-- `DashboardContext` — Manages active workflow (superuser/rtdc/perioperative/emergency/improvement), navigation items per workflow, and workflow switching via Inertia router
 - `ModeContext` — Toggles between `dev` (mock data) and `live` (API) mode, persisted in sessionStorage
 
 **Data fetching pattern:** `services/data-service.js` provides a `DataService` class that checks `ModeContext`. In `dev` mode it returns mock data from `mock-data/`; in `live` mode it hits `/api/` endpoints. Use `DataService.useDataService()` hook in components.
@@ -138,4 +137,4 @@ Do not use automated GitHub Actions deploy jobs, ad hoc SSH command blocks, dire
 - New pages: Create a React component in `Pages/`, add an Inertia route in `routes/web.php`, and create a controller method that calls `Inertia::render()`.
 - New API endpoints: Add to `routes/api.php` with a controller in `Http/Controllers/Api/`.
 - Mock data for development: Add mock data files in `resources/js/mock-data/` and wire them into `DataService`.
-- Workflow navigation: To add items to a workflow's nav menu, update `workflowNavigationConfig` in `Contexts/DashboardContext.jsx`.
+- Navigation: `resources/js/config/navigationConfig.ts` is the single source for the desktop section menu, mobile drawer, command palette, and active route ownership. Do not create a parallel workflow navigation list.

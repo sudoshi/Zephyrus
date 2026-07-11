@@ -11,6 +11,7 @@ import {
     ReferenceLine
 } from 'recharts';
 import  { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const DualBarChart = ({ 
     data,
@@ -64,7 +65,7 @@ const DualBarChart = ({
                         <div>
                             <p className="text-sm">
                                 Room Turnover: 
-                                <span className="font-medium ml-1">{data.room} min</span>
+                                <span className="font-medium ml-1">{formatDurationMinutes(data.room)}</span>
                                 <span
                                     className={`ml-2 text-xs ${
                                         data.room <= roomTarget
@@ -77,15 +78,15 @@ const DualBarChart = ({
                                             : negativeVarianceColor
                                     }}
                                 >
-                                    ({data.room <= roomTarget ? '✓' : `+${data.room - roomTarget}`})
+                                    ({data.room <= roomTarget ? '✓' : `+${formatDurationMinutes(data.room - roomTarget)}`})
                                 </span>
                             </p>
-                            <p className="text-xs">Target: {roomTarget} min</p>
+                            <p className="text-xs">Target: {formatDurationMinutes(roomTarget)}</p>
                         </div>
                         <div>
                             <p className="text-sm">
                                 Procedure Turnover: 
-                                <span className="font-medium ml-1">{data.procedure} min</span>
+                                <span className="font-medium ml-1">{formatDurationMinutes(data.procedure)}</span>
                                 <span
                                     className={`ml-2 text-xs ${
                                         data.procedure <= procedureTarget
@@ -98,15 +99,15 @@ const DualBarChart = ({
                                             : negativeVarianceColor
                                     }}
                                 >
-                                    ({data.procedure <= procedureTarget ? '✓' : `+${data.procedure - procedureTarget}`})
+                                    ({data.procedure <= procedureTarget ? '✓' : `+${formatDurationMinutes(data.procedure - procedureTarget)}`})
                                 </span>
                             </p>
-                            <p className="text-xs">Target: {procedureTarget} min</p>
+                            <p className="text-xs">Target: {formatDurationMinutes(procedureTarget)}</p>
                         </div>
                         <div className="pt-1 border-t" style={{ borderColor: colors.border }}>
                             <p className="text-sm">
                                 Total Time: 
-                                <span className="font-medium ml-1">{data.total} min</span>
+                                <span className="font-medium ml-1">{formatDurationMinutes(data.total)}</span>
                             </p>
                         </div>
                     </div>
@@ -150,15 +151,16 @@ const DualBarChart = ({
                     />
                     <YAxis 
                         label={{ 
-                            value: 'Minutes', 
+                            value: 'Duration',
                             angle: -90, 
                             position: 'insideLeft',
                             fill: axisTickColor,
                             fontSize: 14
                         }}
                         tick={{ fill: axisTickColor, fontSize: 14 }}
+                        tickFormatter={(value) => formatDurationMinutes(Number(value))}
                         tickSize={10}
-                        width={60}
+                        width={120}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend 

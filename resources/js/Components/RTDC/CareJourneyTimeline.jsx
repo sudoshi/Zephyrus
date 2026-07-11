@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import { formatRelativeDurationMinutes } from '@/lib/duration';
 
 const CareJourneyTimeline = ({ patient }) => {
     // Calculate progress percentage based on admission date and estimated discharge date
@@ -17,16 +18,13 @@ const CareJourneyTimeline = ({ patient }) => {
         return Math.min(Math.max(progress, 0), 100); // Clamp between 0 and 100
     };
 
-    // Get remaining days until discharge
-    const getRemainingDays = () => {
-        if (!patient?.dischargePlan?.estimatedDischargeDate) return 0;
+    const getMinutesUntilDischarge = () => {
+        if (!patient?.dischargePlan?.estimatedDischargeDate) return null;
         
         const dischargeDate = new Date(patient.dischargePlan.estimatedDischargeDate);
         const currentDate = new Date();
-        const diffTime = Math.abs(dischargeDate - currentDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        return diffDays;
+
+        return (dischargeDate - currentDate) / (1000 * 60);
     };
 
     // Get status color based on progress
@@ -37,7 +35,7 @@ const CareJourneyTimeline = ({ patient }) => {
     };
 
     const progress = calculateProgress();
-    const remainingDays = getRemainingDays();
+    const minutesUntilDischarge = getMinutesUntilDischarge();
     const statusColor = getStatusColor(progress);
 
     return (
@@ -52,7 +50,10 @@ const CareJourneyTimeline = ({ patient }) => {
                     <span className="text-sm font-medium">Care Journey Progress</span>
                 </div>
                 <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    {remainingDays} days until discharge
+                    {formatRelativeDurationMinutes(minutesUntilDischarge, {
+                        future: 'until discharge',
+                        past: 'past estimated discharge',
+                    })}
                 </span>
             </div>
 

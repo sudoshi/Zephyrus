@@ -12,6 +12,7 @@ import { Surface } from '@/Components/ui/Surface';
 import { COCKPIT_STATE_TO_LEVEL, statusStyle, type StatusStyle } from './statusStyle';
 import { Sparkline } from './Sparkline';
 import { ProvenanceBadge } from './ProvenanceBadge';
+import { formatMetricTarget } from './metricFormatting';
 
 function valueColoring(s: StatusStyle): { className: string; style?: { color: string } } {
   return s.valuePrimary
@@ -23,12 +24,6 @@ function isDemo(metric: CockpitMetricValue): boolean {
   return metric.metadata?.provenance === 'demo';
 }
 
-function targetLabel(metric: CockpitMetricValue): string | null {
-  if (metric.target == null) return null;
-  const unit = metric.unit === '%' ? '%' : metric.unit ? ` ${metric.unit}` : '';
-  return `Target ${metric.target}${unit}`;
-}
-
 export interface TileProps {
   metric: CockpitMetricValue;
   /** Render the trend sparkline when ≥2 points exist (default true). */
@@ -38,7 +33,7 @@ export interface TileProps {
 export function Tile({ metric, sparkline = true }: TileProps) {
   const s = statusStyle(COCKPIT_STATE_TO_LEVEL[metric.status]);
   const value = valueColoring(s);
-  const target = targetLabel(metric);
+  const target = formatMetricTarget(metric.target, metric.unit);
 
   return (
     <Surface className="flex h-full flex-col gap-1 p-3" data-testid={`cockpit-tile-${metric.key}`}>

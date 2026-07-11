@@ -5,6 +5,26 @@ export interface Vector3Payload {
   level?: number;
 }
 
+export type PatientFlowFreshness = 'fresh' | 'stale' | 'missing' | 'degraded';
+
+export interface PatientFlowSource {
+  mode: 'live' | 'synthetic' | 'seeded' | 'derived' | 'fallback';
+  system: string;
+  scenario_id: string | null;
+  generated_at: string;
+  last_event_at: string | null;
+  expected_cadence_seconds: number;
+  freshness: PatientFlowFreshness;
+  stale_after_seconds: number;
+  lineage: string[];
+}
+
+export interface PatientFlowDataExtent {
+  first_event_at: string | null;
+  last_event_at: string | null;
+  event_count: number;
+}
+
 export interface PatientFlowSummary {
   messages: number;
   normalized_events: number;
@@ -22,6 +42,9 @@ export interface PatientFlowSummary {
   facility_code: string;
   model_url: string;
   tileset_url?: string;
+  source: PatientFlowSource;
+  data_extent: PatientFlowDataExtent;
+  suggested_initial_time: string | null;
   generated_at: string;
 }
 
@@ -200,6 +223,173 @@ export interface PatientVisibleState {
   event: PatientFlowEvent;
   position: { x: number; y: number; z: number };
   recent: PatientFlowEvent[];
+  arrivedAt: string;
+  cameFrom?: string | null;
+  nextEvent?: PatientFlowEvent | null;
+}
+
+export type OccupancyTimerKind = 'stay' | 'arrival_transport' | 'next_transport' | 'evs' | 'readiness';
+export type OccupancyTimerStatus = 'ok' | 'watch' | 'delayed';
+export type OccupancyTimerClassification = 'duration_risk' | 'projected_risk' | 'projected_barrier' | 'verified_barrier';
+
+export interface OccupancyTimerVerification {
+  status: 'verified' | 'inferred' | 'unverified' | string;
+  assertion?: string | null;
+  sourceStatus?: string | null;
+  assertedAt?: string | null;
+  observedAt?: string | null;
+  matchedBy?: string | null;
+}
+
+export interface OccupancyTimerProvenance {
+  sourceTable?: string | null;
+  sourceRecordId?: string | null;
+  recordType?: string | null;
+}
+
+export interface OccupancyTimer {
+  kind: OccupancyTimerKind;
+  label: string;
+  dueAt: string | null;
+  minutesRemaining: number | null;
+  status: OccupancyTimerStatus;
+  source: string;
+  reason?: string | null;
+  barrierCode?: string | null;
+  barrierLabel?: string | null;
+  barrierCategory?: string | null;
+  ownerRole?: string | null;
+  blocks?: string | null;
+  impact?: string | null;
+  rtdcMetrics?: string[];
+  eddySummary?: string | null;
+  recommendedFocus?: string | null;
+  sourceReasonCode?: string | null;
+  owner?: string | null;
+  riskCode?: string | null;
+  riskLabel?: string | null;
+  riskCategory?: string | null;
+  classification?: OccupancyTimerClassification;
+  verified?: boolean;
+  verification?: OccupancyTimerVerification;
+  provenance?: OccupancyTimerProvenance;
+}
+
+export interface OccupancyInsight {
+  key: string;
+  location: string;
+  locationName?: string | null;
+  unitCode?: string | null;
+  serviceLine?: string | null;
+  patientDisplayId?: string | null;
+  patientId?: string | null;
+  encounterId?: string | null;
+  patientContextRef?: string | null;
+  position: { x: number; y: number; z: number };
+  stayMinutes: number;
+  arrivedAt?: string | null;
+  cameFrom?: string | null;
+  nextMove?: string | null;
+  nextMoveAt?: string | null;
+  primaryStatus: OccupancyTimerStatus;
+  timers: OccupancyTimer[];
+  blockers: string[];
+  barrierReasons?: string[];
+  barrierCodes?: string[];
+  barrierLabels?: string[];
+  ownerRoles?: string[];
+  delayImpacts?: string[];
+  rtdcMetrics?: string[];
+  eddySummaries?: string[];
+  barrierOwnerMap?: Record<string, { label?: string | null; ownerRole?: string | null }>;
+}
+
+export interface OccupancyServiceLineSummary {
+  serviceLine: string;
+  occupied: number;
+  delayed: number;
+  watch: number;
+  avgStayMinutes: number;
+}
+
+export interface OccupancyPersonaSummary {
+  transport: number;
+  evs: number;
+  bedManager: number;
+  capacity: number;
+}
+
+export interface OccupancySummary {
+  active: number;
+  delayed: number;
+  watch: number;
+  transportDelays: number;
+  evsDelays: number;
+  readyToMove: number;
+  durationRisks?: number;
+  verifiedBarriers?: number;
+  avgStayMinutes: number;
+  serviceLines: OccupancyServiceLineSummary[];
+  persona: OccupancyPersonaSummary;
+  topBarriers?: Array<{
+    barrierCode?: string | null;
+    label: string;
+    reason?: string | null;
+    ownerRole?: string | null;
+    barrierCategory?: string | null;
+    rtdcMetrics?: string[];
+    eddySummary?: string | null;
+    recommendedFocus?: string | null;
+    verifiedCount?: number;
+    sources?: string[];
+    count: number;
+    serviceLines: string[];
+  }>;
+}
+
+export interface OccupancyEddyContext {
+  surface: 'patient_flow_4d';
+  role: {
+    id: string;
+    patient_dots: FlowPatientDots;
+    scope_default: string;
+  };
+  scope: {
+    type: string;
+    filters: {
+      floor?: string | null;
+      service_line?: string | null;
+      category?: string | null;
+    };
+  };
+  as_of: string;
+  redaction: {
+    patient_dots: FlowPatientDots;
+    patient_identifiers_included: boolean;
+    aggregate_only: boolean;
+  };
+  current_metrics: Record<string, unknown>;
+  affected_service_lines: OccupancyServiceLineSummary[];
+  top_barriers: Array<{
+    barrier_code?: string | null;
+    label: string;
+    category?: string | null;
+    reason?: string | null;
+    owner_role?: string | null;
+    count: number;
+    service_lines: string[];
+    rtdc_metrics: string[];
+    eddy_summary?: string | null;
+    recommended_focus?: string | null;
+  }>;
+  barrier_owner_map: Record<string, { label?: string | null; owner_role?: string | null; count: number }>;
+  recommended_focus_areas: string[];
+  source_lineage: {
+    timer_sources: Record<string, number>;
+    demo_scenario?: Record<string, unknown> | null;
+    generated_from: string;
+  };
+  action_allowlist: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +421,7 @@ export interface ProjectionEntity {
 export interface ProjectionItem {
   t: string;
   kind: ProjectionKind;
+  timer_kind?: OccupancyTimerKind | null;
   confidence: ProjectionConfidence;
   unit_id: number | null;
   bed_id: number | null;
@@ -243,6 +434,12 @@ export interface ProjectionItem {
   ends_at: string | null;
   derived: boolean;
   provenance: ProjectionProvenance;
+  reason?: string | null;
+  barrier_code?: string | null;
+  owner_role?: string | null;
+  blocks?: string | null;
+  impact?: string | null;
+  _patient_ref?: string | null;
 }
 
 export interface PatientFlowProjectionsResponse {

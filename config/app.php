@@ -153,7 +153,8 @@ return [
          */
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
+        // Laravel 11 auto-discovers app listeners during Application::configure().
+        // Registering the legacy EventServiceProvider here duplicates every listener.
         App\Providers\RouteServiceProvider::class,
     ],
 

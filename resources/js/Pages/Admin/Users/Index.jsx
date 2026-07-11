@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
@@ -16,7 +16,7 @@ export default function Index({ auth, users }) {
                             Users
                         </h1>
                         <Link
-                            href={route('users.create')}
+                            href="/users/create"
                             className="inline-flex items-center px-4 py-2 bg-healthcare-info dark:bg-healthcare-info-dark text-white rounded-md hover:bg-healthcare-info-dark dark:hover:bg-healthcare-info transition-colors duration-300"
                         >
                             <Icon icon="heroicons:plus" className="w-5 h-5 mr-2" />
@@ -89,13 +89,13 @@ export default function Index({ auth, users }) {
                                                 <td className="px-4 py-2.5 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end space-x-2">
                                                         <Link
-                                                            href={route('users.edit', user.id)}
+                                                            href={`/users/${user.id}/edit`}
                                                             className="text-healthcare-info dark:text-healthcare-info-dark hover:text-healthcare-info-dark dark:hover:text-healthcare-info transition-colors duration-300"
                                                         >
                                                             <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
                                                         </Link>
                                                         <Link
-                                                            href={route('users.destroy', user.id)}
+                                                            href={`/users/${user.id}`}
                                                             method="delete"
                                                             as="button"
                                                             className="text-healthcare-critical dark:text-healthcare-critical-dark hover:text-healthcare-critical-dark dark:hover:text-healthcare-critical transition-colors duration-300"

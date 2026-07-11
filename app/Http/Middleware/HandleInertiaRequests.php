@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -37,7 +38,27 @@ class HandleInertiaRequests extends Middleware
                     ['must_change_password' => (bool) $request->user()->must_change_password]
                 ) : null,
                 'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
-                'is_admin' => $request->user() ? $request->user()->hasRole(['super-admin', 'admin']) : false,
+                'is_admin' => $request->user()?->isAdministrator() ?? false,
+                'can' => [
+                    'view_administration' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewAdministration')
+                        : false,
+                    'view_user_audit' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewUserAudit')
+                        : false,
+                    'view_enterprise_setup' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewDeploymentConsole')
+                        : false,
+                    'manage_staffing_alignment' => $request->user()
+                        ? Gate::forUser($request->user())->allows('manageDeploymentConfig')
+                        : false,
+                    'view_integrations' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewIntegrations')
+                        : false,
+                    'manage_integrations' => $request->user()
+                        ? Gate::forUser($request->user())->allows('manageIntegrations')
+                        : false,
+                ],
             ],
             // Eddy ships disabled — the dock only mounts when this is true.
             'eddy' => [

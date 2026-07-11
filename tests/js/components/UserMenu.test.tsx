@@ -3,17 +3,41 @@ import { getUserMenuItems } from '@/Components/Navigation/UserMenu';
 
 describe('getUserMenuItems', () => {
   it('shows Profile and Logout for a normal user, no User Management', () => {
-    const labels = getUserMenuItems(false).map((i) => i.label);
+    const labels = getUserMenuItems({ isAdmin: false }).map((i) => i.label);
     expect(labels).toEqual(['Profile', 'Logout']);
   });
 
-  it('includes User Management for an admin', () => {
-    const labels = getUserMenuItems(true).map((i) => i.label);
-    expect(labels).toEqual(['Profile', 'User Management', 'Logout']);
+  it('moves general administration links into the admin user menu', () => {
+    const labels = getUserMenuItems({ isAdmin: true }).map((i) => i.label);
+    expect(labels).toEqual([
+      'Profile',
+      'Administration Overview',
+      'User Audit',
+      'User Management',
+      'Cockpit Thresholds',
+      'Logout',
+    ]);
+  });
+
+  it('supports delegated administration and audit capabilities', () => {
+    const labels = getUserMenuItems({
+      isAdmin: false,
+      can: { view_administration: true, view_user_audit: true },
+    }).map((i) => i.label);
+
+    expect(labels).toEqual(['Profile', 'Administration Overview', 'User Audit', 'Logout']);
+  });
+
+  it('shows Enterprise Setup only from its server capability', () => {
+    const labels = getUserMenuItems({
+      isAdmin: false,
+      can: { view_enterprise_setup: true },
+    }).map((i) => i.label);
+    expect(labels).toEqual(['Profile', 'Enterprise Setup', 'Logout']);
   });
 
   it('marks Logout as an action, not a link', () => {
-    const logout = getUserMenuItems(false).find((i) => i.label === 'Logout')!;
+    const logout = getUserMenuItems({ isAdmin: false }).find((i) => i.label === 'Logout')!;
     expect(logout.action).toBe('logout');
     expect(logout.href).toBeUndefined();
   });

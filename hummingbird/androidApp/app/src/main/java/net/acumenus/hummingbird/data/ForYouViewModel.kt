@@ -80,14 +80,6 @@ class ForYouViewModel(app: Application) : AndroidViewModel(app) {
         decideOpsAction(bearer, item, role, "rejected")
     }
 
-    fun fillStaffingRequest(bearer: String, item: ForYouItem, role: MobileRole) {
-        val id = refId(item.id, "staffing-") ?: return
-        mutate(item.id) {
-            api.fillStaffingRequest(bearer, id, role.title)
-            items = api.forYou(bearer, role.id)
-        }
-    }
-
     private fun decideOpsAction(bearer: String, item: ForYouItem, role: MobileRole, decision: String) {
         val approvalUuid = refString(item.id, "ops-approval-") ?: return
         mutate(item.id) {

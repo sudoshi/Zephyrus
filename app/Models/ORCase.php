@@ -29,7 +29,6 @@ class ORCase extends Model
         'case_type_id',
         'case_class_id',
         'patient_class_id',
-        'procedure_name',
         'created_by',
         'modified_by',
         'is_deleted',
@@ -178,13 +177,13 @@ class ORCase extends Model
     }
 
     // Accessors & Mutators
-    protected function statusCode(): Attribute
+    public function getStatusCodeAttribute(): string
     {
-        return Attribute::make(
-            get: function () {
-                return strtolower($this->status()->first()->code ?? '');
-            }
-        );
+        if ($this->relationLoaded('status')) {
+            return strtolower($this->status?->code ?? '');
+        }
+
+        return strtolower($this->status()->value('code') ?? '');
     }
 
     protected function journeyProgress(): Attribute

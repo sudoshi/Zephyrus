@@ -1,13 +1,6 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="512" height="512" rx="100" fill="#3B82F6"/>
-  
-  <!-- Stylized Z for Zephyrus -->
-  <path d="M128 128H384M128 384H384M384 128L128 384" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-  
-  <!-- Medical cross symbol -->
-  <circle cx="256" cy="256" r="80" fill="#3B82F6" stroke="white" stroke-width="16"/>
-  <rect x="236" y="196" width="40" height="120" rx="8" fill="white"/>
-  <rect x="196" y="236" width="120" height="40" rx="8" fill="white"/>
+  <path d="M128 165H263C298 165 320 142 320 109C320 77 296 53 266 53C235 53 212 77 209 109" stroke="#14B8F4" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 229H421C454 229 480 203 480 170C480 138 456 117 425 117C393 117 371 141 371 171" stroke="#14B8F4" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 293H347C385 293 416 323 416 361C416 399 387 427 352 427C316 427 288 397 288 350" stroke="#14B8F4" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

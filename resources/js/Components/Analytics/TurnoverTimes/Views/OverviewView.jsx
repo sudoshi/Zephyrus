@@ -4,6 +4,17 @@ import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
+
+const formatDistributionRange = (range) => {
+  const bounded = range.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?) min$/i);
+  if (bounded) {
+    return `${formatDurationMinutes(Number(bounded[1]))} - ${formatDurationMinutes(Number(bounded[2]))}`;
+  }
+
+  const openEnded = range.match(/^(\d+(?:\.\d+)?)\+ min$/i);
+  return openEnded ? `${formatDurationMinutes(Number(openEnded[1]))}+` : range;
+};
 
 const OverviewView = ({ filters, data = null }) => {
   // Extract filter values
@@ -31,7 +42,7 @@ const OverviewView = ({ filters, data = null }) => {
   const distributionData = useMemo(() => {
     return Object.entries(locationData.turnoverDistribution).map(([range, count]) => ({
       id: range,
-      label: range,
+      label: formatDistributionRange(range),
       value: count
     }));
   }, [locationData]);
@@ -82,12 +93,12 @@ const OverviewView = ({ filters, data = null }) => {
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Panel title="Median Turnover Time" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-semibold">{locationData.medianTurnoverTime} min</div>
+          <div className="text-3xl font-semibold">{formatDurationMinutes(locationData.medianTurnoverTime)}</div>
           <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Median time between cases</p>
         </Panel>
         
         <Panel title="Average Turnover Time" isSubpanel dropLightIntensity="medium">
-          <div className="text-3xl font-semibold">{locationData.averageTurnoverTime} min</div>
+          <div className="text-3xl font-semibold">{formatDurationMinutes(locationData.averageTurnoverTime)}</div>
           <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Average time between cases</p>
         </Panel>
         
@@ -158,7 +169,7 @@ const OverviewView = ({ filters, data = null }) => {
             data={roomComparisonData}
             keys={['Median Turnover', 'Average Turnover']}
             indexBy="room"
-            margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 130, bottom: 50, left: 125 }}
             padding={0.3}
             groupMode="grouped"
             valueScale={{ type: 'linear' }}
@@ -179,10 +190,13 @@ const OverviewView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
+              legend: 'Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}

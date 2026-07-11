@@ -4,10 +4,13 @@ namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\DTO\ReplayRequest;
 use App\Integrations\Healthcare\DTO\WebhookEnvelope;
+use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Integrations\Healthcare\Synthetic\SyntheticHealthcareConnector;
 use App\Models\User;
+use Database\Seeders\IntegrationConnectorTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -186,76 +189,70 @@ class SyntheticHealthcareConnectorTest extends TestCase
 
     public function test_integration_health_endpoint_reports_status(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
         app(SyntheticHealthcareConnector::class)->healthCheck();
         app(SyntheticHealthcareConnector::class)->poll(new \App\Integrations\Healthcare\DTO\PollRequest(messages: []));
 
         $this->actingAs($user)->getJson('/api/admin/integrations/health')
             ->assertOk()
-            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.status', 'healthy')
             ->assertJsonPath('data.counts.sources', 1)
-            ->assertJsonPath('data.sources.0.source_key', 'synthetic.command_center');
+            ->assertJsonPath('data.sources.0.sourceKey', 'synthetic.command_center')
+            ->assertJsonPath('data.sources.0.healthStatus', 'healthy');
     }
 
-    public function test_enterprise_connector_summary_seeds_playbooks_and_coexistence_adapters(): void
+    public function test_enterprise_connector_summary_reads_explicit_templates(): void
     {
-        $user = User::factory()->create();
+        $this->seed(IntegrationConnectorTemplateSeeder::class);
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
 
         $response = $this->actingAs($user)
             ->getJson('/api/admin/integrations/enterprise')
             ->assertOk()
             ->assertJsonPath('data.counts.connectorPlaybooks', 3)
             ->assertJsonPath('data.counts.coexistenceAdapters', 3)
-            ->assertJsonPath('data.counts.interfaceEngines', 1);
+            ->assertJsonPath('data.counts.interfaceEngines', 1)
+            ->assertJsonPath('data.playbooks.0.status', 'template');
 
         $this->assertContains('epic', array_column($response->json('data.playbooks'), 'vendorKey'));
         $this->assertContains('teletracking_coexistence', array_column($response->json('data.coexistenceAdapters'), 'adapterKey'));
         $this->assertDatabaseHas('integration.interface_engines', [
             'engine_key' => 'interface-engine-boundary',
             'engine_type' => 'hl7v2_mllp_gateway',
+            'status' => 'template',
         ]);
     }
 
-    public function test_fhir_capability_discovery_records_connection_capabilities_and_smart_lifecycle(): void
+    public function test_fhir_discovery_queues_a_real_check_and_ignores_fabricated_capabilities(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
+        $source = app(SourceRegistryService::class)->ensureSource([
+            'source_key' => 'epic.fhir.sandbox',
+            'vendor' => 'Epic',
+            'interface_type' => 'fhir_r4',
+            'active_status' => 'testing',
+        ]);
+        Queue::fake();
 
-        $response = $this->actingAs($user)
+        $this->actingAs($user)
             ->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
-                'source_key' => 'epic.fhir.sandbox',
-                'vendor' => 'Epic',
+                'source_id' => $source->source_id,
                 'fhir_version' => '4.0.1',
                 'client_id' => 'zephyrus-system-client',
             ])
-            ->assertOk()
-            ->assertJsonPath('data.sourceKey', 'epic.fhir.sandbox')
-            ->assertJsonPath('data.fhirVersion', '4.0.1')
-            ->assertJsonPath('data.smartCredentialStatus', 'planned');
+            ->assertAccepted()
+            ->assertJsonPath('data.status', 'queued');
 
-        $sourceId = $response->json('data.sourceId');
-        $this->assertDatabaseHas('integration.fhir_client_connections', [
-            'source_id' => $sourceId,
-            'connection_key' => 'default-r4',
-            'status' => 'discovered',
-        ]);
-        $this->assertDatabaseHas('integration.source_capabilities', [
-            'source_id' => $sourceId,
-            'resource_type' => 'Task',
-            'capability_type' => 'fhir_resource',
-            'operation' => 'search',
-            'supported' => true,
-        ]);
-        $this->assertDatabaseHas('integration.smart_backend_credentials', [
-            'source_id' => $sourceId,
-            'credential_key' => 'backend-services-default',
-            'status' => 'planned',
-            'client_id' => 'zephyrus-system-client',
-        ]);
+        $this->assertSame(0, DB::table('integration.fhir_client_connections')->count());
+        $this->assertSame(0, DB::table('integration.smart_backend_credentials')->count());
+        $this->assertSame(0, DB::table('integration.source_capabilities')->count());
+        $this->assertSame(1, DB::table('integration.sources')->count());
+        $this->assertDatabaseHas('raw.ingest_runs', ['source_id' => $source->source_id, 'run_type' => 'protocol_health', 'status' => 'queued']);
     }
 
     public function test_writeback_draft_creates_pending_ops_approval_gate(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
 
         $response = $this->actingAs($user)
             ->postJson('/api/admin/integrations/enterprise/writeback-drafts', [

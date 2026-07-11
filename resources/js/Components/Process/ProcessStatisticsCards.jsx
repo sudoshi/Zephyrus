@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ProcessStatisticsCards = ({ statistics }) => {
   if (!statistics) return null;
@@ -20,7 +21,7 @@ const ProcessStatisticsCards = ({ statistics }) => {
           <CardTitle>Avg Duration</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-semibold">{statistics.averageDuration} mins</p>
+          <p className="text-2xl font-semibold">{formatDurationMinutes(statistics.averageDuration)}</p>
         </CardContent>
       </Card>
       

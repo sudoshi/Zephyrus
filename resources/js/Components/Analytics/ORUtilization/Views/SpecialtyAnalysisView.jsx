@@ -2,6 +2,7 @@ import React from 'react';
 import Panel from '@/Components/ui/Panel';
 import { BarChart } from '@/Components/ui/charts/BarChart';
 import { PieChart } from '@/Components/ui/charts/PieChart';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // P5: mock-bundle fallbacks removed — specialty slices render from the live
 // OrUtilizationService payload only. The fabricated case-duration-accuracy
@@ -156,7 +157,7 @@ const SpecialtyAnalysisView = ({ data }) => {
                 data={formatSpecialtyTurnoverData()}
                 keys={['turnoverTime']}
                 indexBy="specialty"
-                margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+                margin={{ top: 20, right: 20, bottom: 50, left: 120 }}
                 padding={0.3}
                 axisBottom={{
                   tickSize: 5,
@@ -170,11 +171,13 @@ const SpecialtyAnalysisView = ({ data }) => {
                   tickSize: 5,
                   tickPadding: 5,
                   tickRotation: 0,
-                  legend: 'Minutes',
+                  legend: 'Duration',
                   legendPosition: 'middle',
-                  legendOffset: -50
+                  legendOffset: -105,
+                  format: formatDurationMinutes
                 }}
-                labelFormat={value => `${value} min`}
+                valueFormat={formatDurationMinutes}
+                enableLabel={false}
                 colorScheme="secondary"
                 labelSkipWidth={12}
                 labelSkipHeight={12}

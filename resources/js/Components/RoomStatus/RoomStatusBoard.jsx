@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Card from '@/Components/Dashboard/Card';
 import { Icon } from '@iconify/react';
 import { mockRoomStatus, mockRoomMetrics } from '@/mock-data/room-status';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const RoomStatusBoard = () => {
     const [rooms, setRooms] = useState(mockRoomStatus);
@@ -36,12 +37,6 @@ const RoomStatusBoard = () => {
         const now = new Date();
         const elapsed = (now - start) / 1000 / 60; // minutes
         return Math.min(Math.round((elapsed / duration) * 100), 100);
-    };
-
-    const formatDuration = (minutes) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     };
 
     if (loading) {
@@ -84,7 +79,7 @@ const RoomStatusBoard = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Average Turnover</div>
-                                <div className="mt-1 text-2xl font-semibold">{metrics.average_turnover}m</div>
+                                <div className="mt-1 text-2xl font-semibold">{formatDurationMinutes(metrics.average_turnover)}</div>
                             </div>
                             <div className="p-3 bg-healthcare-success bg-opacity-10 dark:bg-healthcare-success-dark dark:bg-opacity-20 rounded-full">
                                 <Icon icon="heroicons:clock" className="w-6 h-6 text-healthcare-success dark:text-healthcare-success-dark" />
@@ -142,7 +137,7 @@ const RoomStatusBoard = () => {
                                         <div className="text-right">
                             <div className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Case Time</div>
                             <div className="text-healthcare-success dark:text-healthcare-success-dark font-medium">
-                                {formatDuration(Math.round((new Date() - new Date(room.or_in_time)) / 1000 / 60))}
+                                {formatDurationMinutes((new Date() - new Date(room.or_in_time)) / 1000 / 60)}
                             </div>
                                         </div>
                                     )}
@@ -179,7 +174,7 @@ const RoomStatusBoard = () => {
                                             </div>
                                         </div>
                                         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                            Estimated Duration: {formatDuration(room.current_case.estimated_duration)}
+                                            Estimated Duration: {formatDurationMinutes(room.current_case.estimated_duration)}
                                         </div>
                                     </div>
                                 ) : room.next_case ? (
@@ -191,7 +186,7 @@ const RoomStatusBoard = () => {
                                                 {new Date(room.next_case.scheduled_start_time).toLocaleTimeString('en-US', {
                                                     hour: 'numeric',
                                                     minute: '2-digit'
-                                                })} • {formatDuration(room.next_case.estimated_duration)}
+                                                })} • {formatDurationMinutes(room.next_case.estimated_duration)}
                                             </div>
                                         </div>
                                     </div>

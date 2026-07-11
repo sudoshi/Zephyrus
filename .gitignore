@@ -3,6 +3,7 @@
 /public/build
 /public/hot
 /public/storage
+/coverage/
 /storage/*.key
 /storage/pail
 /vendor
@@ -40,6 +41,9 @@ config.local.php
 
 # Playwright MCP scratch captures (per-session browser artifacts)
 /.playwright-mcp/
+
+# Firecrawl research captures (untrusted, per-session web artifacts)
+/.firecrawl/
 
 # Deployment specific
 /public/mix-manifest.json

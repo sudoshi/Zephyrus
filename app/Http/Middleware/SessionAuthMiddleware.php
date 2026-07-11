@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\Audit\UserAuditRecorder;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +32,23 @@ class SessionAuthMiddleware
                 'email' => 'admin@example.com',
                 'password' => bcrypt('password'),
                 'workflow_preference' => 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
             ]
         );
+
+        if ($user->must_change_password || ! in_array($user->role, ['admin', 'bed_manager'], true)) {
+            $user->forceFill([
+                'workflow_preference' => $user->workflow_preference ?: 'superuser',
+                'must_change_password' => false,
+                'role' => 'admin',
+                'is_active' => true,
+            ])->save();
+        }
+
+        $request->attributes->set(UserAuditRecorder::AUTH_METHOD_ATTRIBUTE, 'demo');
+        $request->attributes->set(UserAuditRecorder::SOURCE_SURFACE_ATTRIBUTE, 'web');
 
         // Log the user in
         Auth::login($user);

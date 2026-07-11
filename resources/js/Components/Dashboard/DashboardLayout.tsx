@@ -72,10 +72,12 @@ const DashboardLayout = ({ children, fullBleed = false, wall = false }: Dashboar
 
     return (
         <DarkModeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
-            {/* Skip to content link for accessibility */}
-            <a href="#main-content" className="skip-to-content">
-                Skip to content
-            </a>
+            {/* Desk keyboard navigation only. A wall has no focusable chrome. */}
+            {!wall && (
+                <a href="#main-content" className="skip-to-content">
+                    Skip to content
+                </a>
+            )}
             <div className="min-h-screen bg-healthcare-background dark:bg-healthcare-background-dark transition-colors duration-300">
                 {/* Force password change modal — preserved per auth-system rules
                     (a wall is authenticated; the gate still applies). */}

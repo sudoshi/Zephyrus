@@ -480,6 +480,64 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /flow/demo-scenarios:
+    get:
+      tags: [flow]
+      summary:
+        Available synthetic Patient Flow scenarios and their enabled state.
+        Scenario data is explicitly labeled and remains separate from live
+        operational projections.
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /flow/occupancy/history:
+    get:
+      tags: [flow]
+      summary:
+        Persona-lensed persisted occupancy history for Patient Flow review.
+      parameters:
+        - name: persona
+          in: query
+          schema: { $ref: "#/components/schemas/MobilePersonaId" }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: asOf, in: query, schema: { type: string, format: date-time } }
+        - { name: service_line, in: query, schema: { type: string } }
+        - { name: floor, in: query, schema: { type: integer } }
+        - { name: scenario, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 } }
+      responses:
+        "200":
+          {
+            description: OK,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Envelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          {
+            description: Invalid occupancy-history window,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Error" } },
+              },
+          }
+
   /flow/window:
     get:
       tags: [flow]
@@ -739,7 +797,16 @@ paths:
   /transport/queue:
     get:
       tags: [transport]
-      summary: My queue + available transport jobs (role-scoped).
+      summary: Cursor-paginated queue containing only this transporter's assignments and unclaimed work.
+      parameters:
+        - { name: persona, in: query, schema: { type: string, enum: [transport], default: transport } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 1000 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { name: priority, in: query, schema: { type: string, enum: [routine, urgent, stat] } }
+        -
+          name: status
+          in: query
+          schema: { $ref: "#/components/schemas/TransportStatus" }
       responses:
         "200":
           {
@@ -758,9 +825,15 @@ paths:
   /transport/requests/{id}/status:
     post:
       tags: [transport]
-      summary: Progress a transport request through its 17-status lifecycle. Delegates to TransportOperationsService.
+      summary: Claim or perform one server-authorized transition in the canonical transport lifecycle.
       parameters:
-        [{ name: id, in: path, required: true, schema: { type: string } }]
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        -
+          name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable per-command retry key. Reuse only when retrying the same payload.
+          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
       requestBody:
         {
           required: true,
@@ -780,9 +853,15 @@ paths:
   /transport/requests/{id}/handoff:
     post:
       tags: [transport]
-      summary: Structured handoff (handoff_to, summary, documents[], outstanding_risks[]).
+      summary: Record append-only receiver acceptance evidence and complete the governed handoff.
       parameters:
-        [{ name: id, in: path, required: true, schema: { type: string } }]
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        -
+          name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable per-command retry key. Reuse only when retrying the same payload.
+          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
       requestBody:
         {
           required: true,
@@ -858,10 +937,33 @@ paths:
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /staffing/requests/{id}/candidates:
+    get:
+      tags: [staffing]
+      summary: Canonical staffing candidates with qualification, availability, and conflict evidence.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: eligible_only, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          {
+            description: Candidate page,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/StaffingCandidatePageEnvelope" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
   /staffing/requests/{id}/fill:
     post:
       tags: [staffing]
-      summary: Assign a source and mark a staffing request filled. Requires mobile:act.
+      summary: Fill with a named, server-validated canonical staff member. Requires mobile:act.
       parameters:
         [{ name: id, in: path, required: true, schema: { type: string } }]
       requestBody:
@@ -1138,7 +1240,7 @@ paths:
   /eddy/context/{scopeRef}:
     get:
       tags: [eddy]
-      summary: Eddy-safe context packet for a drill, patient lens, event, or scope.
+      summary: Eddy-safe context packet for a drill, patient lens, event, or flow scope.
       parameters:
         [{ name: scopeRef, in: path, required: true, schema: { type: string } }]
       responses:
@@ -1225,6 +1327,11 @@ components:
             oneOf: [{ type: string }, { type: "null" }],
             description: ETag/version for optimistic concurrency.,
           }
+        count: { type: integer, minimum: 0 }
+        per_page: { type: integer, minimum: 1, maximum: 100 }
+        has_more: { type: boolean }
+        next_cursor: { oneOf: [{ type: string }, { type: "null" }] }
+        previous_cursor: { oneOf: [{ type: string }, { type: "null" }] }
       required: [as_of, stale, version]
     Links:
       type: object
@@ -1733,7 +1840,12 @@ components:
         generated_at: { type: string, format: date-time }
         persona: { $ref: "#/components/schemas/MobilePersona" }
         phi_policy: { type: object, additionalProperties: true }
-        context: { type: object, additionalProperties: true }
+        context:
+          {
+            type: object,
+            additionalProperties: true,
+            description: "Event/patient/activity context; authorized house/floor flow scopes may include patient_flow_4d with aggregate-safe current_metrics, top_barriers, redaction, lineage, and action_allowlist.",
+          }
         questions_supported: { type: array, items: { type: string } }
       required:
         [scope_ref, scope_type, generated_at, persona, phi_policy, context]
@@ -2463,8 +2575,31 @@ components:
         needed_at:
           { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
         patient_context_ref: { oneOf: [{ type: string }, { type: "null" }] }
+        claimed_by_me: { type: boolean }
+        available_to_claim: { type: boolean }
+        resource_name: { oneOf: [{ type: string }, { type: "null" }] }
+        handoff_required: { type: boolean }
+        allowed_transitions:
+          { type: array, items: { $ref: "#/components/schemas/TransportStatus" } }
+        can_handoff: { type: boolean }
+        lifecycle_version: { type: integer, minimum: 1 }
         sla: { $ref: "#/components/schemas/Sla" }
-      required: [id, type, priority, status, visual_status, tier, sla]
+      required:
+        [
+          id,
+          type,
+          priority,
+          status,
+          visual_status,
+          tier,
+          claimed_by_me,
+          available_to_claim,
+          handoff_required,
+          allowed_transitions,
+          can_handoff,
+          lifecycle_version,
+          sla,
+        ]
     EvsQueueEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }
@@ -2517,27 +2652,71 @@ components:
           isolation_required,
           sla,
         ]
+    TransportStatus:
+      type: string
+      enum:
+        [
+          requested,
+          accepted,
+          queued,
+          assigned,
+          dispatched,
+          arrived_pickup,
+          patient_ready,
+          patient_not_ready,
+          picked_up,
+          en_route,
+          arrived_destination,
+          handoff_started,
+          handoff_complete,
+          escalated,
+          completed,
+          canceled,
+          failed,
+        ]
     StatusTransition:
-      {
-        type: object,
-        properties:
-          {
-            status: { type: string },
-            assigned_team: { type: string },
-            note: { type: string },
-            version:
-              { type: string, description: Optimistic-concurrency token. },
-          },
-        required: [status],
-      }
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/TransportStatus" }
+        reason:
+          type: string
+          maxLength: 500
+          description: "Required for patient_not_ready, escalated, canceled, and failed."
+        note: { type: string, maxLength: 500 }
+        lifecycle_version:
+          type: integer
+          minimum: 0
+          description: Version from the last server response; keeps retries stable while separating later commands with the same target status.
+      required: [status]
     Handoff:
       type: object
       properties:
         handoff_to: { type: string }
+        receiver_role: { type: string }
+        acceptance_status:
+          { type: string, enum: [accepted, accepted_with_risks] }
+        accepted_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
         handoff_summary: { type: string }
-        documents: { type: array, items: { type: string } }
-        outstanding_risks: { type: array, items: { type: string } }
-      required: [handoff_to]
+        lifecycle_version:
+          type: integer
+          minimum: 0
+          description: Version from the last server response; included in the native retry-key material.
+        documents:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            properties:
+              type: { type: string, maxLength: 80 }
+              reference: { type: string, maxLength: 200 }
+            required: [type, reference]
+        outstanding_risks:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 300 }
+          description: Required and non-empty when acceptance_status is accepted_with_risks.
+      required: [handoff_to, receiver_role, acceptance_status]
 
     # ---- Staffing / Improvement ----
     StaffingOverviewEnvelope:
@@ -2585,10 +2764,56 @@ components:
     StaffingFill:
       type: object
       properties:
-        assigned_source: { type: string, maxLength: 120 }
+        staff_member_id: { type: integer, minimum: 1 }
+        assigned_source:
+          { type: string, enum: [float_pool, overtime, agency, on_call] }
         owner_name:
           { oneOf: [{ type: string, maxLength: 120 }, { type: "null" }] }
-      required: [assigned_source]
+      required: [staff_member_id, assigned_source]
+    StaffingCandidatePageEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                data:
+                  { type: array, items: { $ref: "#/components/schemas/StaffingCandidate" } }
+                meta:
+                  type: object
+                  properties:
+                    current_page: { type: integer }
+                    last_page: { type: integer }
+                    per_page: { type: integer }
+                    total: { type: integer }
+                  required: [current_page, last_page, per_page, total]
+                shift:
+                  type: object
+                  properties:
+                    starts_at: { type: string, format: date-time }
+                    ends_at: { type: string, format: date-time }
+                    timezone: { type: string }
+                  required: [starts_at, ends_at, timezone]
+              required: [data, meta, shift]
+    StaffingCandidate:
+      type: object
+      properties:
+        staff_member_id: { type: integer }
+        display_name: { type: string }
+        role_code: { type: string }
+        role_label: { type: string }
+        eligible: { type: boolean }
+        eligibility_state:
+          { type: string, enum: [eligible, unqualified, unavailable, conflicted] }
+        reason_codes: { type: array, items: { type: string } }
+        qualification_requirements:
+          { type: array, items: { type: object, additionalProperties: true } }
+        availability: { type: object, additionalProperties: true }
+        overlapping_assignments: { type: integer }
+        shift: { type: object, additionalProperties: true }
+      required:
+        [staff_member_id, display_name, role_code, role_label, eligible, eligibility_state, reason_codes, overlapping_assignments]
     StaffingRequestEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }

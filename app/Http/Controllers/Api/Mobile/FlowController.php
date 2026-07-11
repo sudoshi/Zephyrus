@@ -6,8 +6,6 @@ use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
 use App\Models\Bed;
 use App\Models\CensusSnapshot;
-use App\Models\Evs\EvsRequest;
-use App\Models\Transport\TransportRequest;
 use App\Services\Flow\DutyProjectionService;
 use App\Services\Flow\FloorPlateAssetService;
 use App\Services\Flow\FloorRollupService;
@@ -16,10 +14,13 @@ use App\Services\Flow\ForwardProjectionService;
 use App\Services\Flow\OperationalTimelineService;
 use App\Services\Flow\Spaces3dAssetService;
 use App\Services\Mobile\MobilePersonaCatalog;
+use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
+use App\Services\PatientFlow\PatientFlowScenarioRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * The 48-hour Flow Window — FLOW-WINDOW-PLAN §6.4 (W4, D1).
@@ -55,6 +56,8 @@ class FlowController extends Controller
         private readonly ForwardProjectionService $projections,
         private readonly DutyProjectionService $dutyProjections,
         private readonly Spaces3dAssetService $spaces3dAsset,
+        private readonly PatientFlowOccupancyHistoryService $occupancyHistory,
+        private readonly PatientFlowScenarioRegistry $scenarios,
     ) {}
 
     public function floors(Request $request): JsonResponse
@@ -100,6 +103,42 @@ class FlowController extends Controller
         ]);
     }
 
+    public function demoScenarios(): JsonResponse
+    {
+        return $this->envelope(
+            $this->scenarios->all(),
+            meta: [
+                'enabled_keys' => $this->scenarios->enabledKeys(),
+                'source_mode' => 'synthetic_demo',
+            ],
+            links: ['web' => url('/rtdc/patient-flow-navigator')],
+        );
+    }
+
+    public function occupancyHistory(Request $request): JsonResponse
+    {
+        try {
+            $roleId = $this->personas->fromRequest($request);
+            $lens = $this->lens->lensFor($roleId);
+        } catch (AuthorizationException $exception) {
+            return $this->forbidden($exception->getMessage());
+        }
+
+        try {
+            return $this->envelope(
+                $this->occupancyHistory->history($lens, $roleId, $this->historyFilters($request), $request->user()),
+                links: ['web' => url('/rtdc/patient-flow-navigator')],
+            );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json([
+                'error' => [
+                    'code' => 'invalid_occupancy_history_window',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 422);
+        }
+    }
+
     public function window(Request $request): JsonResponse
     {
         try {
@@ -129,7 +168,8 @@ class FlowController extends Controller
 
         $layers = $this->lens->clampLayers($lens, $request->query('layers'));
         $depth = $this->lens->effectivePatientDepth($lens, $scope, $request->user());
-        $taskRefs = $depth === 'task' ? $this->taskPatientRefs($roleId) : [];
+        $taskRefs = $depth === 'task' ? $this->lens->taskPatientRefs($roleId) : [];
+        $visibleUnitIds = $depth === 'unit' ? $this->lens->visibleUnitIds($request->user()) : [];
 
         $payload = [
             'window' => [
@@ -178,14 +218,14 @@ class FlowController extends Controller
                 ));
             }
             $payload['events'] = array_map(
-                fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs),
+                fn (array $event): array => $this->lens->redactRow($event, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $events,
             );
         }
 
         if (in_array('projections', $layers, true)) {
             $payload['projections'] = array_map(
-                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $this->projections->projections($from->max($now), $to, $scope, $lens['projection_kinds']),
             );
         }
@@ -196,7 +236,7 @@ class FlowController extends Controller
         // even on a `?since=` delta (it is current worklist, not append-only).
         if (in_array('duties', $layers, true)) {
             $payload['duties'] = array_map(
-                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs),
+                fn (array $item): array => $this->lens->redactRow($item, $depth, $scope, $taskRefs, $visibleUnitIds),
                 $this->dutyProjections->duties($now, $lens['duty_kinds'] ?? [], $this->scopeUnitIds($scope)),
             );
         }
@@ -250,6 +290,21 @@ class FlowController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function historyFilters(Request $request): array
+    {
+        return [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'asOf' => $request->query('asOf'),
+            'service_line' => $request->query('service_line'),
+            'floor' => $request->query('floor'),
+            'demo' => $request->query('demo'),
+            'scenario' => $request->query('scenario'),
+            'limit' => $request->query('limit', 120),
+        ];
     }
 
     /** @return list<array<string, mixed>> census checkpoints in scope (t > since on a delta) */
@@ -344,20 +399,6 @@ class FlowController extends Controller
     private function floorRollup(): array
     {
         return $this->floorRollup ??= $this->floors->floors();
-    }
-
-    /** @return list<string> patient refs visible to a task-scoped role */
-    private function taskPatientRefs(string $roleId): array
-    {
-        return match ($roleId) {
-            'transport' => TransportRequest::query()
-                ->where('is_deleted', false)->whereNotNull('patient_ref')
-                ->distinct()->pluck('patient_ref')->all(),
-            'evs' => EvsRequest::query()
-                ->where('is_deleted', false)->whereNotNull('patient_ref')
-                ->distinct()->pluck('patient_ref')->all(),
-            default => [],
-        };
     }
 
     private function invalidSince(CarbonImmutable $from, CarbonImmutable $to): JsonResponse

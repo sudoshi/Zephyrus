@@ -5,6 +5,7 @@ namespace App\Support\Cockpit;
 use App\Enums\CockpitStatus;
 use App\Models\Ops\MetricDefinition;
 use App\Services\Cockpit\StatusEngine;
+use App\Support\Operations\DurationFormatter;
 
 /**
  * Immutable canonical metric value (spec §3.1) — the ONE shape every
@@ -47,7 +48,10 @@ final readonly class MetricValue
         StatusEngine $engine,
         array $overrides = [],
     ): self {
-        $unit = $definition->unit;
+        // Existing installations may still carry the original ambiguous unit.
+        $unit = $definition->metric_key === 'service.avoidable_days'
+            ? 'bed-days'
+            : $definition->unit;
 
         return new self(
             key: $definition->metric_key,
@@ -74,6 +78,9 @@ final readonly class MetricValue
 
         return match ($unit) {
             '%' => $formatted.'%',
+            's', 'sec', 'secs', 'second', 'seconds' => DurationFormatter::seconds($value),
+            'm', 'min', 'mins', 'minute', 'minutes' => DurationFormatter::minutes($value),
+            'h', 'hr', 'hrs', 'hour', 'hours' => DurationFormatter::minutes($value * 60),
             null, '' => $formatted,
             default => $formatted.' '.$unit,
         };

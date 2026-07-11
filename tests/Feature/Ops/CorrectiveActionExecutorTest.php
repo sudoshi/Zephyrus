@@ -35,7 +35,8 @@ class CorrectiveActionExecutorTest extends TestCase
     /** Create a pending governed draft via the real Eddy plane (notifier no-ops in tests). */
     private function propose(string $actionType, array $params, ?int $barrierId, string $rationale = 'Because the hand-off is slow.'): OperationalAction
     {
-        $actor = User::factory()->create();
+        // T2 proposals require the bed_manager minimum role (Eddy governance gate).
+        $actor = User::factory()->create(['role' => 'bed_manager']);
         $result = app(EddyActionService::class)->propose($actor, [
             'action_type' => $actionType,
             'title' => 'Reduce assign_bed → transport wait',

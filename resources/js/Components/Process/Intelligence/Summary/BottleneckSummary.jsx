@@ -5,6 +5,7 @@ import ScoreCard from '../Common/ScoreCard';
 import AlertPanel from '../Common/AlertPanel';
 import MetricChart, { ChartTooltip } from '../Common/MetricChart';
 import ActionModal from './ActionModal';
+import { formatDurationHours } from '@/lib/duration';
 
 const BottleneckSummary = ({ metrics }) => {
   const predictions = metrics?.predictions || {
@@ -160,7 +161,7 @@ const BottleneckSummary = ({ metrics }) => {
           title: suggestion.action.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
           severity: Math.round(suggestion.impact * 100),
           impact: 'High',
-          timeframe: 'Next 24 hours'
+          timeframe: `Next ${formatDurationHours(24)}`
         });
       });
 

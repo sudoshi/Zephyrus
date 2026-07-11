@@ -54,11 +54,10 @@ import net.acumenus.hummingbird.data.MobileRoleCatalog
 import net.acumenus.hummingbird.data.QueueFilter
 import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
+import net.acumenus.hummingbird.ui.components.formatOperationalAge
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import net.acumenus.hummingbird.ui.theme.Z
-import java.time.Duration
-import java.time.Instant
 import java.time.OffsetDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -274,7 +273,6 @@ private fun actionsFor(item: ForYouItem, vm: ForYouViewModel, bearer: String, ro
         ForYouAction("Approve", CapacityStatus.SUCCESS) { vm.approveOpsAction(bearer, item, role) },
         ForYouAction("Reject", CapacityStatus.WARNING) { vm.rejectOpsAction(bearer, item, role) },
     )
-    item.id.startsWith("staffing-") -> listOf(ForYouAction("Fill") { vm.fillStaffingRequest(bearer, item, role) })
     else -> emptyList()
 }
 
@@ -282,7 +280,8 @@ private fun supportsDrill(id: String): Boolean =
     id.startsWith("bedreq-") ||
         id.startsWith("barrier-") ||
         id.startsWith("transport-") ||
-        id.startsWith("evs-")
+        id.startsWith("evs-") ||
+        id.startsWith("staffing-")
 
 private fun metaLine(item: ForYouItem): String? {
     val parts = listOfNotNull(item.unit, relTime(item.at))
@@ -317,11 +316,5 @@ private fun emptyQueue(role: MobileRole): String = when (role.queueFilter) {
 private fun relTime(at: String?): String? {
     if (at == null) return null
     val inst = runCatching { OffsetDateTime.parse(at).toInstant() }.getOrNull() ?: return null
-    val mins = Duration.between(inst, Instant.now()).toMinutes()
-    return when {
-        mins < 1 -> "just now"
-        mins < 60 -> "${mins}m ago"
-        mins < 1440 -> "${mins / 60}h ago"
-        else -> "${mins / 1440}d ago"
-    }
+    return formatOperationalAge(inst)
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
+import { formatProcessDuration } from './formatDuration';
 
 const MetricItem = ({ label, value, subValue }) => (
   <div className="p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
@@ -31,7 +32,7 @@ const ProcessMetricsPanel = ({
               />
               <MetricItem
                 label="Average Time"
-                value={selectedNode.data.metrics.avgTime}
+                value={formatProcessDuration(selectedNode.data.metrics.avgTime)}
               />
             </div>
             
@@ -47,7 +48,7 @@ const ProcessMetricsPanel = ({
                       <span className="font-medium capitalize">{cohort}</span>
                       <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <span className="mr-4">{data.count} patients</span>
-                        <span>{data.avgTime}</span>
+                        <span>{formatProcessDuration(data.avgTime)}</span>
                       </div>
                     </div>
                   ))}
@@ -76,7 +77,7 @@ const ProcessMetricsPanel = ({
               />
               <MetricItem
                 label="Average Time"
-                value={selectedEdge.data.avgTime}
+                value={formatProcessDuration(selectedEdge.data.avgTime)}
                 subValue="Per patient"
               />
             </div>
@@ -93,7 +94,7 @@ const ProcessMetricsPanel = ({
                       <span className="font-medium capitalize">{cohort}</span>
                       <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                         <span className="mr-4">{metrics.count} patients</span>
-                        <span>{metrics.avgTime}</span>
+                        <span>{formatProcessDuration(metrics.avgTime)}</span>
                       </div>
                     </div>
                   ))}
@@ -119,7 +120,7 @@ const ProcessMetricsPanel = ({
           />
           <MetricItem
             label="Average Total Time"
-            value={overallMetrics.avgTotalTime}
+            value={formatProcessDuration(overallMetrics.avgTotalTime)}
           />
           <MetricItem
             label="Active Cases"

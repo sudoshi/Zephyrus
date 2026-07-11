@@ -7,6 +7,7 @@ use App\Domain\Arena\Copilot\CopilotLlm;
 use App\Domain\Ocel\OcelJsonExporter;
 use App\Models\User;
 use App\Services\Eddy\EddyActionService;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -259,7 +260,7 @@ class ArenaCopilotService
         try {
             $bottleneck = DB::table('arena.performance_signals')->where('metric_key', 'flow.worst_handoff_wait')->first();
             if ($bottleneck !== null) {
-                $facts[] = ['claim' => 'worst hand-off wait', 'source' => 'arena.performance_signals', 'value' => round((float) $bottleneck->value).' min at '.$bottleneck->context];
+                $facts[] = ['claim' => 'worst hand-off wait', 'source' => 'arena.performance_signals', 'value' => DurationFormatter::minutes((float) $bottleneck->value).' at '.$bottleneck->context];
             }
         } catch (\Throwable) {
         }
@@ -298,11 +299,11 @@ class ArenaCopilotService
                 return null;
             }
             $ctx = (string) $row->context;
-            $val = round((float) $row->value);
+            $val = (float) $row->value;
 
             return [
                 'title' => "Reduce hand-off wait — {$ctx}",
-                'objective' => "Cut the worst object-side hand-off wait ({$val} min) at {$ctx}.",
+                'objective' => 'Cut the worst object-side hand-off wait ('.DurationFormatter::minutes($val).") at {$ctx}.",
                 'hypothesis' => "The synchronization constraint is {$ctx}; reducing the wait there should relieve downstream flow.",
                 'plan' => "Instrument the {$ctx} hand-off, pilot a pull-signal / parallelized preparation, and measure the median wait weekly.",
                 'prediction' => "A 25% reduction in the {$ctx} wait within four PDSA weeks.",

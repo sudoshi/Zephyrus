@@ -4,6 +4,7 @@ import { ProgressBar, CaseStatusBadge } from './StatusIndicator';
 import CareJourneyModal from './CareJourneyModal';
 import CareJourneyCard from './CareJourneyCard';
 import { Section, MetricGrid, Panel, metric, STATUS_VAR } from '@/Components/system';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Case Management instrument rebuilt on the gold-standard design system: the KPI
 // wall is one MetricGrid of KpiTiles (status dot + value + gauge + target +
@@ -75,13 +76,13 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
       key: 'turnover',
       label: 'Turnover Time',
       value: 24,
-      display: '24m',
+      display: formatDurationMinutes(24),
       status: 'success',
       target: 25,
-      targetDisplay: '25m target',
+      targetDisplay: `${formatDurationMinutes(25)} target`,
       trajectory: [22, 24, 23, 22],
       goodWhenDown: true,
-      caption: 'Last 4 turnovers · last 22m · ↓ 1m',
+      caption: `Last 4 turnovers · last ${formatDurationMinutes(22)} · ↓ ${formatDurationMinutes(1)}`,
       definition: 'Average room turnover time between consecutive cases.',
     }),
   ];
@@ -283,11 +284,11 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
                               <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">{proc.startTime}</span>
                             </div>
                             <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                              Duration: {proc.expectedDuration} min
+                              Duration: {formatDurationMinutes(proc.expectedDuration)}
                             </div>
                             {progressStatus === 'delayed' && (
                               <div className="text-xs text-healthcare-error dark:text-healthcare-error-dark">
-                                Delay: ~15-30 min
+                                Delay: ~{formatDurationMinutes(15)} - {formatDurationMinutes(30)}
                               </div>
                             )}
                           </div>

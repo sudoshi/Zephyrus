@@ -4,6 +4,7 @@ namespace App\Models\Transport;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TransportRequest extends Model
 {
@@ -35,6 +36,9 @@ class TransportRequest extends Model
         'segments',
         'risk_flags',
         'handoff',
+        'handoff_required',
+        'escalated_from_status',
+        'lifecycle_version',
         'metadata',
         'created_by_user_id',
         'updated_by_user_id',
@@ -50,6 +54,8 @@ class TransportRequest extends Model
         'segments' => 'array',
         'risk_flags' => 'array',
         'handoff' => 'array',
+        'handoff_required' => 'boolean',
+        'lifecycle_version' => 'integer',
         'metadata' => 'array',
         'is_deleted' => 'boolean',
     ];
@@ -57,6 +63,24 @@ class TransportRequest extends Model
     public function events(): HasMany
     {
         return $this->hasMany(TransportEvent::class, 'transport_request_id', 'transport_request_id');
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(TransportAssignment::class, 'transport_request_id', 'transport_request_id');
+    }
+
+    public function activeAssignment(): HasOne
+    {
+        return $this->hasOne(TransportAssignment::class, 'transport_request_id', 'transport_request_id')
+            ->where('status', 'active')
+            ->whereNull('released_at')
+            ->latestOfMany('transport_assignment_id');
+    }
+
+    public function handoffEvidence(): HasOne
+    {
+        return $this->hasOne(TransportHandoffEvidence::class, 'transport_request_id', 'transport_request_id');
     }
 
     public function scopeActive($query)

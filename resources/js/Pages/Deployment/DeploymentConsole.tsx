@@ -191,10 +191,10 @@ export default function DeploymentConsole() {
 
   return (
     <DashboardLayout>
-      <Head title="Deployment Console" />
+      <Head title="Enterprise Setup" />
       <PageContentLayout
-        title="Deployment Console"
-        subtitle="IDN geography, capability matrix, transfer network, and per-facility deployment readiness"
+        title="Enterprise Setup"
+        subtitle="IDN geography, capability mapping, transfer network, facility spaces, and operational readiness"
         headerContent={organizations.data && organizations.data.length > 0 ? orgPickerContent : null}
       >
         {organizations.isLoading ? (

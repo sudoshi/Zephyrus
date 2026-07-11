@@ -7,6 +7,7 @@ use App\Services\Evs\EvsOperationsService;
 use App\Services\Operations\RoomStatusService;
 use App\Services\Staffing\StaffingOperationsService;
 use App\Services\Transport\TransportOperationsService;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -187,7 +188,7 @@ class DrillBuilder
                     'text' => 'ESI '.$esi,
                     'status' => $esi <= 2 ? 'critical' : ($esi === 3 ? 'warning' : 'neutral'),
                 ]],
-                'los' => ['v' => $patient['losMinutes'].'m', 'status' => $patient['losMinutes'] > 240 ? 'warning' : 'neutral'],
+                'los' => ['v' => DurationFormatter::minutes((float) $patient['losMinutes']), 'status' => $patient['losMinutes'] > 240 ? 'warning' : 'neutral'],
                 'provider' => ['v' => (string) $patient['provider'], 'dim' => true],
                 'status' => ['tag' => ['text' => (string) $patient['status'], 'status' => (string) $patient['statusTone']]],
             ];
@@ -292,14 +293,10 @@ class DrillBuilder
         ];
     }
 
-    /** Fractional hours → "Xh Ym" (or "Ym" under an hour). */
+    /** Fractional hours rendered as a whole-second operational duration. */
     private function hoursLabel(float $hours): string
     {
-        $totalMinutes = (int) round($hours * 60);
-        $h = intdiv($totalMinutes, 60);
-        $m = $totalMinutes % 60;
-
-        return $h > 0 ? "{$h}h {$m}m" : "{$m}m";
+        return DurationFormatter::minutes($hours * 60);
     }
 
     /** @return array<string, mixed> */
@@ -326,10 +323,12 @@ class DrillBuilder
                 'case' => $case['procedure'] ?? ($room['nextCase']['procedure'] ?? '—'),
                 'surgeon' => ['v' => $case['provider'] ?? '—', 'dim' => true],
                 'start' => $case['startTime'] ?? ($room['nextCase']['startTime'] ?? '—'),
-                'elapsed' => $case !== null ? $case['elapsed'].'m' : ($room['turnoverTime'] !== null ? $room['turnoverTime'].'m turn' : '—'),
+                'elapsed' => $case !== null
+                    ? DurationFormatter::minutes((float) $case['elapsed'])
+                    : ($room['turnoverTime'] !== null ? DurationFormatter::minutes((float) $room['turnoverTime']).' turn' : '—'),
                 // P7: minutes over the scheduled duration, only when delayed.
                 'delay' => $delay !== null && $delay > 0
-                    ? ['v' => '+'.$delay.'m', 'status' => 'critical', 'strong' => true]
+                    ? ['v' => '+'.DurationFormatter::minutes((float) $delay), 'status' => 'critical', 'strong' => true]
                     : ['v' => '—', 'dim' => true],
             ];
         }
@@ -395,7 +394,7 @@ class DrillBuilder
                 'bay' => ['v' => 'PACU '.($i + 1), 'strong' => true],
                 'patient' => ['v' => (string) $bay->patient_id, 'dim' => true],
                 'procedure' => (string) $bay->primary_procedure,
-                'dwell' => ['v' => $mins.'m', 'status' => $held ? 'critical' : 'neutral'],
+                'dwell' => ['v' => DurationFormatter::minutes($mins), 'status' => $held ? 'critical' : 'neutral'],
                 'state' => ['tag' => [
                     'text' => $held ? 'boarding' : 'recovering',
                     'status' => $held ? 'critical' : 'success',
@@ -409,7 +408,7 @@ class DrillBuilder
                 ['key' => 'bay', 'header' => 'Bay', 'align' => 'left'],
                 ['key' => 'patient', 'header' => 'Patient', 'align' => 'left'],
                 ['key' => 'procedure', 'header' => 'Procedure', 'align' => 'left'],
-                ['key' => 'dwell', 'header' => 'In PACU', 'align' => 'right', 'note' => 'held >75m = boarding'],
+                ['key' => 'dwell', 'header' => 'In PACU', 'align' => 'right', 'note' => 'held >1 hr 15 min 0 sec = boarding'],
                 ['key' => 'state', 'header' => 'Status', 'align' => 'right'],
             ],
             'rows' => $rows,
@@ -452,7 +451,7 @@ class DrillBuilder
     {
         $measureRows = array_map(fn (array $m): array => [
             'measure' => ['v' => (string) $m['label'], 'strong' => true],
-            'value' => $m['value'] !== null ? trim($m['value'].' '.$m['unit']) : '—',
+            'value' => $this->measureValue($m['value'], (string) $m['unit'], (string) $m['key']),
             'context' => ['v' => (string) $m['caption'], 'dim' => true],
         ], $this->transport->measures());
 
@@ -496,6 +495,39 @@ class DrillBuilder
         ];
     }
 
+    private function measureValue(mixed $value, string $unit, string $key): string
+    {
+        if ($value === null) {
+            return '—';
+        }
+
+        if ($key === 'avoidable_bed_hours') {
+            return $value.' bed-hr';
+        }
+
+        return $this->durationValue($value, $unit) ?? trim($value.' '.$unit);
+    }
+
+    private function targetValue(mixed $value, string $unit): string
+    {
+        if ($value === null) {
+            return '—';
+        }
+
+        return $this->durationValue($value, $unit)
+            ?? ($unit !== '' ? trim($value.' '.$unit) : (string) $value);
+    }
+
+    private function durationValue(mixed $value, string $unit): ?string
+    {
+        return match (strtolower(trim($unit))) {
+            's', 'sec', 'secs', 'second', 'seconds' => DurationFormatter::seconds((float) $value),
+            'm', 'min', 'mins', 'minute', 'minutes' => DurationFormatter::minutes((float) $value),
+            'h', 'hr', 'hrs', 'hour', 'hours' => DurationFormatter::minutes((float) $value * 60),
+            default => null,
+        };
+    }
+
     /** @param list<array<string, mixed>> $tiles
      * @return array<string, mixed> */
     private function okrTable(array $tiles): array
@@ -508,7 +540,7 @@ class DrillBuilder
                 'objective' => ['v' => (string) ($okr['objective'] ?? '—'), 'strong' => true],
                 'keyResult' => (string) ($okr['keyResult'] ?? $okr['label']),
                 'actual' => ['v' => (string) $okr['display'], 'strong' => true, 'status' => $canon],
-                'target' => ['v' => $okr['target'] !== null ? (string) $okr['target'] : '—', 'dim' => true],
+                'target' => ['v' => $this->targetValue($okr['target'], (string) ($okr['unit'] ?? '')), 'dim' => true],
                 'owner' => (string) ($okr['owner'] ?? '—'),
                 'status' => ['chip' => $canon],
             ];
@@ -544,7 +576,7 @@ class DrillBuilder
             $rows[] = [
                 'measure' => ['v' => (string) $tile['label'], 'strong' => true],
                 'value' => ['v' => (string) $tile['display'], 'strong' => true, 'status' => $canon],
-                'target' => ['v' => $tile['target'] !== null ? (string) $tile['target'] : '—', 'dim' => true],
+                'target' => ['v' => $this->targetValue($tile['target'], (string) ($tile['unit'] ?? '')), 'dim' => true],
                 'source' => ['tag' => ['text' => $demo ? 'demo' : 'live', 'status' => $demo ? 'neutral' : 'success']],
                 'status' => ['chip' => $canon],
             ];

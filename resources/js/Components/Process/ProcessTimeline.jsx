@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ProcessTimeline = ({ data }) => {
   if (!data || data.length === 0) return null;
@@ -24,18 +25,31 @@ const ProcessTimeline = ({ data }) => {
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="hour" />
-              <YAxis />
-              <Tooltip />
+              <YAxis yAxisId="count" orientation="left" />
+              <YAxis
+                yAxisId="duration"
+                orientation="right"
+                tickFormatter={(value) => formatDurationMinutes(Number(value))}
+                width={110}
+              />
+              <Tooltip
+                formatter={(value, name) => [
+                  name === 'Process Duration' ? formatDurationMinutes(value) : value,
+                  name,
+                ]}
+              />
               <Legend />
               <Line 
                 type="monotone" 
                 dataKey="activePatients" 
+                yAxisId="count"
                 stroke="#8884d8" 
                 name="Active Patients"
               />
               <Line 
                 type="monotone" 
                 dataKey="duration" 
+                yAxisId="duration"
                 stroke="#82ca9d" 
                 name="Process Duration"
               />

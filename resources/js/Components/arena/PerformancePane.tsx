@@ -7,12 +7,7 @@
 // patient-side at discharge). Durations are trimmed to plausible hand-offs.
 import type { ArenaHandoff, ArenaSyncWait } from '@/features/arena/schema';
 import { objectTypeColor } from './objectTypePalette';
-
-function fmtDuration(seconds: number): string {
-  if (seconds < 90) return `${Math.round(seconds)}s`;
-  if (seconds < 5400) return `${Math.round(seconds / 60)}m`;
-  return `${(seconds / 3600).toFixed(1)}h`;
-}
+import { formatDurationSeconds } from '@/lib/duration';
 
 function TypeDot({ type, orderedTypes }: { type: string; orderedTypes: string[] }) {
   return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: objectTypeColor(type, orderedTypes) }} />;
@@ -55,8 +50,8 @@ export function PerformancePane({
                     </span>
                   </span>
                 </td>
-                <td className="py-1.5 text-right tabular-nums font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{fmtDuration(h.median_sec)}</td>
-                <td className="py-1.5 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{fmtDuration(h.p90_sec)}</td>
+                <td className="py-1.5 text-right tabular-nums font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDurationSeconds(h.median_sec)}</td>
+                <td className="py-1.5 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{formatDurationSeconds(h.p90_sec)}</td>
                 <td className="py-1.5 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{h.count}</td>
               </tr>
             ))}
@@ -89,7 +84,7 @@ export function PerformancePane({
                     {s.object_type}
                   </span>
                 </td>
-                <td className="py-1.5 text-right tabular-nums font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{fmtDuration(s.median_wait_sec)}</td>
+                <td className="py-1.5 text-right tabular-nums font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{formatDurationSeconds(s.median_wait_sec)}</td>
                 <td className="py-1.5 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{s.count}</td>
               </tr>
             ))}

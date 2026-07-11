@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ops\MetricDefinition;
+use App\Services\Audit\UserAuditRecorder;
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\ScopedFaceBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
@@ -12,6 +13,7 @@ use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -25,6 +27,7 @@ class CockpitController extends Controller
     public function __construct(
         private readonly SnapshotBuilder $builder,
         private readonly HospitalManifest $manifest,
+        private readonly UserAuditRecorder $audit,
     ) {}
 
     public function snapshot(Request $request): JsonResponse|Response
@@ -144,17 +147,46 @@ class CockpitController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $definition = MetricDefinition::query()->where('metric_key', $metricKey)->firstOrFail();
+        $definition = DB::transaction(function () use ($request, $metricKey, $validated): MetricDefinition {
+            $definition = MetricDefinition::query()->where('metric_key', $metricKey)->firstOrFail();
+            $before = $definition->only(array_keys($validated));
+            $definition->fill($validated)->save();
 
-        $before = $definition->only(array_keys($validated));
-        $definition->fill($validated)->save();
+            $changes = [];
+            foreach (['ok_edge', 'warn_edge', 'crit_edge', 'refresh_secs', 'is_active'] as $field) {
+                if (array_key_exists($field, $validated) && $definition->wasChanged($field)) {
+                    $changes[$field] = [
+                        'from' => $before[$field] ?? null,
+                        'to' => $definition->{$field},
+                    ];
+                }
+            }
+            if (array_key_exists('alert_template', $validated)) {
+                $changes['alert_template_changed'] = [
+                    'from' => false,
+                    'to' => $definition->wasChanged('alert_template'),
+                ];
+            }
 
-        Log::info('cockpit.kpi_definition.updated', [
-            'metric_key' => $metricKey,
-            'actor_id' => $request->user()?->getKey(),
-            'before' => $before,
-            'after' => $definition->only(array_keys($validated)),
-        ]);
+            $this->audit->record('administration.cockpit_threshold.updated', 'administration', 'success', [
+                'request' => $request,
+                'target_type' => 'cockpit_metric',
+                'target_id' => $metricKey,
+                'changes' => $changes,
+                'metadata' => [
+                    'metric_key' => $metricKey,
+                    'changed_fields' => array_values(array_keys($validated)),
+                ],
+            ]);
+
+            Log::info('cockpit.kpi_definition.updated', [
+                'metric_key' => $metricKey,
+                'actor_id' => $request->user()?->getKey(),
+                'changed_fields' => array_values(array_keys($validated)),
+            ]);
+
+            return $definition;
+        });
 
         return response()->json(['key' => $metricKey, 'edges' => $definition->edges()]);
     }

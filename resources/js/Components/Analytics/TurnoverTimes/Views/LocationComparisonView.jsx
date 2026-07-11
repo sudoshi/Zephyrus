@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const LocationComparisonView = ({ filters, data = null }) => {
   // Extract filter values
@@ -111,7 +112,7 @@ const LocationComparisonView = ({ filters, data = null }) => {
             data={locationComparisonData}
             keys={['Median Turnover', 'Average Turnover']}
             indexBy="location"
-            margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 130, bottom: 50, left: 125 }}
             padding={0.3}
             groupMode="grouped"
             valueScale={{ type: 'linear' }}
@@ -132,10 +133,13 @@ const LocationComparisonView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
+              legend: 'Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}

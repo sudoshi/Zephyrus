@@ -20,6 +20,11 @@ class OperationsGraphProjector
     public function rebuild(): StateSnapshot
     {
         return DB::transaction(function (): StateSnapshot {
+            DB::selectOne(
+                'SELECT pg_advisory_xact_lock(hashtext(current_database()), hashtext(?))',
+                [self::PROJECTOR]
+            );
+
             $this->nodeIdsByKey = [];
 
             OperationsEdge::query()->delete();

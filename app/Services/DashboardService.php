@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PdsaCycle;
 use App\Models\User;
 use App\Support\Hospital\HospitalManifest;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -126,13 +127,13 @@ class DashboardService
         }
 
         $affected = (int) $row->affected;
-        $excess = round((float) $row->excess_days, 1);
+        $excess = (float) $row->excess_days;
         $impact = round(min(95.0, 35.0 + $affected * 1.8 + $excess * 4), 1);
 
         return [
             'type' => 'Discharge Documentation Delays',
             'location' => $row->unit_name,
-            'avgDelay' => $excess.' days over GMLOS',
+            'avgDelay' => DurationFormatter::minutes($excess * 24 * 60).' over GMLOS',
             'patientsAffected' => $affected,
             'stressScore' => $affected >= 20 ? 3 : ($affected >= 8 ? 2 : 1),
             'cascadingImpact' => 'Bed availability pressure, downstream admission delays',
@@ -168,7 +169,7 @@ class DashboardService
                     ->selectRaw('EXTRACT(EPOCH FROM (lead(scheduled_start_time) OVER (PARTITION BY room_id, surgery_date ORDER BY scheduled_start_time) - (scheduled_start_time + (scheduled_duration || \' minutes\')::interval))) / 60.0 as turnover_min');
             }, 'gaps')
             ->whereNotNull('turnover_min')
-            ->selectRaw('count(*) filter (where turnover_min > 30) as over_target, round(avg(turnover_min)::numeric, 0) as avg_turnover')
+            ->selectRaw('count(*) filter (where turnover_min > 30) as over_target, avg(turnover_min) as avg_turnover')
             ->first();
 
         $overTarget = $row ? (int) $row->over_target : 0;
@@ -176,13 +177,13 @@ class DashboardService
             return null;
         }
 
-        $avgTurnover = (int) ($row->avg_turnover ?? 30);
+        $avgTurnover = (float) ($row->avg_turnover ?? 30);
         $impact = round(min(90.0, 30.0 + $overTarget * 0.6), 1);
 
         return [
             'type' => 'OR to PACU Handoff',
             'location' => 'Surgical Services',
-            'avgDelay' => $avgTurnover.' mins',
+            'avgDelay' => DurationFormatter::minutes($avgTurnover),
             'patientsAffected' => $overTarget,
             'stressScore' => $overTarget >= 40 ? 3 : ($overTarget >= 15 ? 2 : 1),
             'cascadingImpact' => 'OR schedule slippage, extended PACU hours',

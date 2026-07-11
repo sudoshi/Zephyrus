@@ -7,16 +7,15 @@ use App\Services\Demo\DemoInvariantService;
 use Illuminate\Console\Command;
 
 /**
- * Read-only pre-demo gate + CI check (plan §11 / FEEDBACK Wave 0 + Wave 6).
+ * Read-only demo coherence + plausibility gate (a runtime companion to the B1 trust
+ * foundation, which validates only in PHPUnit).
  *
  * Runs App\Services\Demo\DemoInvariantService against the current database and reports
  * temporal, capacity, freshness, and plausibility findings. SELECT-only — safe to run
- * against the canonical demo host. Exit code:
+ * against the canonical demo host after a demo reset / zephyrus:demo-roll-forward, or in CI.
+ * Exit code:
  *   0  no critical finding failed
  *   1  a critical finding failed (or, with --strict, any finding failed)
- *
- * This is the `--validate-only` half of the eventual `zephyrus:demo-refresh`; it exists
- * on its own first so a reviewer can gate a demo before the write pipeline is built.
  *
  *   php artisan zephyrus:demo-validate
  *   php artisan zephyrus:demo-validate --anchor=now --json

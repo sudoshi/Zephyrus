@@ -4,6 +4,7 @@
 // doubt, show nothing rather than risk showing the wrong numbers.
 import { useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { formatDurationSeconds } from '@/lib/duration';
 
 /**
  * Relative-time label derived from an ISO timestamp and a caller-supplied
@@ -15,11 +16,7 @@ export function relativeTimeFrom(iso: string, nowMs: number): string {
   if (Number.isNaN(t)) return 'an unknown time';
   const s = Math.max(0, Math.round((nowMs - t) / 1000));
   if (s < 30) return 'just now';
-  if (s < 90) return '1 min ago';
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 5400) return '1 hr ago';
-  if (s < 86_400) return `${Math.round(s / 3600)} hr ago`;
-  return `${Math.round(s / 86_400)} d ago`;
+  return `${formatDurationSeconds(s)} ago`;
 }
 
 export function CommandCenterError({ detail, onRetry }: { detail?: string; onRetry?: () => void }) {

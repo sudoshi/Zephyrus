@@ -5,30 +5,51 @@ namespace App\Http\Controllers\Api\PatientFlow;
 use App\Http\Controllers\Controller;
 use App\Models\Barrier;
 use App\Models\PatientFlow\FlowEvent;
+use App\Services\Flow\FlowLensService;
 use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
-use App\Services\PatientFlow\FlowEventRepository;
+use App\Services\PatientFlow\PatientFlowEventAccessService;
+use App\Services\PatientFlow\PatientFlowOccupancyContextService;
+use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
+use App\Services\PatientFlow\PatientFlowScenarioRegistry;
 use App\Services\PatientFlow\PatientStateProjector;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use InvalidArgumentException;
 
 class PatientFlowController extends Controller
 {
     public function __construct(
-        private readonly FlowEventRepository $events,
+        private readonly PatientFlowEventAccessService $eventAccess,
+        private readonly FlowLensService $flowLens,
         private readonly FacilitySpaceLocationResolver $locations,
         private readonly PatientStateProjector $stateProjector,
         private readonly FhirBundleFactory $fhir,
         private readonly AmbientSignalService $ambientSignals,
+        private readonly PatientFlowOccupancyContextService $occupancyContext,
+        private readonly PatientFlowOccupancyHistoryService $occupancyHistory,
+        private readonly PatientFlowScenarioRegistry $scenarios,
     ) {}
 
     public function summary(): JsonResponse
     {
         $eventCount = (int) DB::table('flow_core.flow_events')->count();
         $ambient = $this->ambientSignals->summary($this->facilityCode());
+        $generatedAt = CarbonImmutable::now();
+        $firstEventValue = DB::table('flow_core.flow_events')->min('occurred_at');
+        $lastEventValue = DB::table('flow_core.flow_events')->max('occurred_at');
+        $firstEventAt = $firstEventValue ? CarbonImmutable::parse((string) $firstEventValue)->toJSON() : null;
+        $lastEventAt = $lastEventValue ? CarbonImmutable::parse((string) $lastEventValue)->toJSON() : null;
+        $latestEvent = FlowEvent::query()
+            ->with('source')
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('flow_event_id')
+            ->first();
+        $source = $this->sourceEnvelope($latestEvent, $generatedAt);
 
         return response()->json([
             'messages' => (int) DB::table('raw.inbound_messages as messages')
@@ -40,8 +61,8 @@ class PatientFlowController extends Controller
             'locations' => count($this->locations->allNavigatorLocations($this->facilityCode())),
             'movement_events' => (int) DB::table('flow_core.flow_events')->where('event_category', 'movement')->count(),
             'clinical_context_events' => (int) DB::table('flow_core.flow_events')->where('event_category', '<>', 'movement')->count(),
-            'min_occurred_at' => DB::table('flow_core.flow_events')->min('occurred_at'),
-            'max_occurred_at' => DB::table('flow_core.flow_events')->max('occurred_at'),
+            'min_occurred_at' => $firstEventAt,
+            'max_occurred_at' => $lastEventAt,
             'live_events' => 0,
             'open_barriers' => (int) Barrier::query()->open()->count(),
             'ambient_signals' => $ambient['summary']['eventCount'],
@@ -50,7 +71,14 @@ class PatientFlowController extends Controller
             'facility_code' => $this->facilityCode(),
             'model_url' => (string) config('facility_models.zep_500.model_url'),
             'tileset_url' => (string) config('facility_models.zep_500.tileset_url'),
-            'generated_at' => now()->toJSON(),
+            'source' => $source,
+            'data_extent' => [
+                'first_event_at' => $firstEventAt,
+                'last_event_at' => $lastEventAt,
+                'event_count' => $eventCount,
+            ],
+            'suggested_initial_time' => $lastEventAt,
+            'generated_at' => $generatedAt->toJSON(),
         ]);
     }
 
@@ -63,19 +91,27 @@ class PatientFlowController extends Controller
 
     public function events(Request $request): JsonResponse
     {
-        return response()->json($this->events->serializeEvents(
-            $this->events->filteredEvents($this->filters($request)),
-        ));
+        try {
+            return $this->patientJson($this->eventAccess->rows($request, $this->filters($request)));
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
     }
 
     public function tracks(Request $request): JsonResponse
     {
+        try {
+            $events = $this->eventAccess->rows($request, $this->filters($request));
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
+
         $tracks = [];
-        foreach ($this->events->serializeEvents($this->events->filteredEvents($this->filters($request))) as $event) {
+        foreach ($events as $event) {
             $tracks[$event['patient_id']][] = $event;
         }
 
-        return response()->json($tracks);
+        return $this->patientJson($tracks);
     }
 
     public function state(Request $request): JsonResponse
@@ -86,10 +122,14 @@ class PatientFlowController extends Controller
             $filters['to'] = $request->query('asOf');
         }
 
-        $events = $this->events->serializeEvents($this->events->filteredEvents($filters));
+        try {
+            $events = $this->eventAccess->rows($request, $filters);
+        } catch (InvalidArgumentException $exception) {
+            return $this->invalidPatientFilter($exception);
+        }
         $state = $this->stateProjector->reconstruct($events, $request->query('asOf'));
 
-        return response()->json([
+        return $this->patientJson([
             'asOf' => $request->query('asOf'),
             'activePatients' => count($state),
             'patients' => array_values($state),
@@ -100,6 +140,77 @@ class PatientFlowController extends Controller
     public function ambient(): JsonResponse
     {
         return response()->json($this->ambientSignals->summary($this->facilityCode()));
+    }
+
+    public function demoScenarios(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->scenarios->all(),
+            'meta' => [
+                'enabled_keys' => $this->scenarios->enabledKeys(),
+                'source_mode' => 'synthetic_demo',
+                'generated_at' => now()->toJSON(),
+            ],
+        ]);
+    }
+
+    /**
+     * Disk-ready occupancy detail contract for the 4D viewer.
+     *
+     * Unlike /events and /state, this endpoint is aggregate-safe: it computes
+     * from patient-flow replay internally, then applies the active persona lens
+     * to omit patient identity for roles whose `patient_dots` policy does not
+     * allow it. It is the backend home for duration, origin, next move, timer,
+     * delay, service-line compounding, and persona roll-up details.
+     */
+    public function occupancy(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $lens */
+        $lens = $request->attributes->get('flow_lens');
+        $roleId = (string) $request->attributes->get('flow_role_id');
+        $asOf = is_string($request->query('asOf')) ? $request->query('asOf') : null;
+        $time = $asOf ? CarbonImmutable::parse($asOf) : CarbonImmutable::now();
+        $context = $this->eventAccess->context($request);
+
+        return $this->patientJson($this->occupancyContext->build(
+            $lens,
+            $roleId,
+            $time,
+            $this->filters($request),
+            $this->includes($request, 'eddy_context'),
+            $context['scope'],
+            $context['depth'],
+            $context['task_refs'],
+            $context['visible_unit_ids'],
+        ));
+    }
+
+    public function occupancyHistory(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $lens */
+        $lens = $request->attributes->get('flow_lens');
+        $roleId = (string) $request->attributes->get('flow_role_id');
+        $context = $this->eventAccess->context($request);
+
+        try {
+            return $this->patientJson($this->occupancyHistory->history(
+                $lens,
+                $roleId,
+                $this->filters($request),
+                $request->user(),
+                $context['scope'],
+                $context['depth'],
+                $context['task_refs'],
+                $context['visible_unit_ids'],
+            ));
+        } catch (InvalidArgumentException $exception) {
+            return $this->patientJson([
+                'error' => [
+                    'code' => 'invalid_occupancy_history_window',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 422);
+        }
     }
 
     /**
@@ -158,24 +269,34 @@ class PatientFlowController extends Controller
 
         $now = \Carbon\CarbonImmutable::now();
         $to = $now->addHours(24);
-        $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
+        $context = $this->eventAccess->context($request);
+        $scope = $context['scope'];
+        $depth = $context['depth'];
 
         $items = app(\App\Services\Flow\ForwardProjectionService::class)
             ->projections($now, $to, $scope, $lens['projection_kinds']);
 
-        // Same redaction implementation as the mobile window. At house scope
-        // only `full` keeps identity — unit/task depths collapse to none here
-        // (the web ghost layer is aggregate for those roles).
-        $depth = $lens['patient_dots'] === 'full' ? 'full' : 'none';
-        $lensService = app(\App\Services\Flow\FlowLensService::class);
         $items = array_map(
-            fn (array $item): array => $lensService->redactRow($item, $depth, $scope),
+            fn (array $item): array => $this->flowLens->redactRow(
+                $item,
+                $depth,
+                $scope,
+                $context['task_refs'],
+                $context['visible_unit_ids'],
+            ),
             $items,
         );
 
-        return response()->json([
+        return $this->patientJson([
             'window' => ['from' => $now->toIso8601String(), 'to' => $to->toIso8601String()],
-            'lens' => ['role_id' => $roleId, 'projection_kinds' => $lens['projection_kinds'], 'patient_dots' => $lens['patient_dots']],
+            'lens' => ['role_id' => $roleId, 'projection_kinds' => $lens['projection_kinds'], 'patient_dots' => $depth],
+            'scope' => [
+                'type' => $scope['type'],
+                'floor' => $scope['floor'],
+                'unit_id' => $scope['unit_id'],
+                'patient_context_ref' => $scope['patient_context_ref'],
+                'label' => $scope['label'],
+            ],
             'projections' => $items,
             'generated_at' => now()->toJSON(),
         ]);
@@ -185,7 +306,7 @@ class PatientFlowController extends Controller
     {
         $eventId = $request->query('event_id');
         if (! is_string($eventId) || $eventId === '') {
-            return response()->json(['error' => 'event_id is required'], 422);
+            return $this->patientJson(['error' => 'event_id is required'], 422);
         }
 
         $event = FlowEvent::query()
@@ -193,11 +314,11 @@ class PatientFlowController extends Controller
             ->whereKey($eventId)
             ->first();
 
-        if (! $event) {
-            return response()->json(['error' => 'event_id not found'], 404);
+        if (! $event || ! ($payload = $this->eventAccess->event($request, $event))) {
+            return $this->patientJson(['error' => 'event_id not found'], 404);
         }
 
-        return response()->json($this->fhir->make($event));
+        return $this->patientJson($this->fhir->makeFromPayload($payload));
     }
 
     /**
@@ -212,6 +333,8 @@ class PatientFlowController extends Controller
             'category' => $request->query('category'),
             'service_line' => $request->query('service_line'),
             'floor' => $request->query('floor'),
+            'demo' => $request->query('demo'),
+            'scenario' => $request->query('scenario'),
             'limit' => $request->query('limit', 5000),
         ];
     }
@@ -219,6 +342,74 @@ class PatientFlowController extends Controller
     private function facilityCode(): string
     {
         return (string) config('facility_models.zep_500.facility_code', 'ZEPHYRUS-500');
+    }
+
+    /** @return array<string, mixed> */
+    private function sourceEnvelope(?FlowEvent $latestEvent, CarbonImmutable $generatedAt): array
+    {
+        $expectedCadence = max(1, (int) config('patient_flow.expected_cadence_seconds', 300));
+        $staleAfter = max($expectedCadence, (int) config('patient_flow.stale_after_seconds', 900));
+        $lastEventAt = $latestEvent?->occurred_at?->toImmutable();
+        $sourceKey = $latestEvent?->source?->source_key;
+        $metadata = is_array($latestEvent?->metadata) ? $latestEvent->metadata : [];
+        $sourceSystem = $sourceKey
+            ?: (is_string($metadata['source_system'] ?? null) ? $metadata['source_system'] : null)
+            ?: $latestEvent?->source_protocol
+            ?: 'patient-flow';
+        $sourceName = strtolower((string) $sourceSystem);
+        $dataOrigin = strtolower((string) ($metadata['data_origin'] ?? ''));
+        $synthetic = $dataOrigin === 'synthetic'
+            || str_contains($sourceName, 'synthetic')
+            || str_contains($sourceName, 'demo');
+        $seeded = str_contains($sourceName, 'seed');
+
+        $freshness = 'missing';
+        if ($lastEventAt) {
+            $ageSeconds = max(0, $lastEventAt->diffInSeconds($generatedAt, false));
+            $freshness = $ageSeconds > $staleAfter ? 'stale' : 'fresh';
+        }
+
+        return [
+            'mode' => $synthetic ? 'synthetic' : ($seeded ? 'seeded' : 'live'),
+            'system' => $sourceSystem,
+            'scenario_id' => null,
+            'generated_at' => $generatedAt->toJSON(),
+            'last_event_at' => $lastEventAt?->toJSON(),
+            'expected_cadence_seconds' => $expectedCadence,
+            'freshness' => $freshness,
+            'stale_after_seconds' => $staleAfter,
+            'lineage' => array_values(array_filter([
+                'flow_core.flow_events',
+                $sourceKey ? 'integration.sources:'.$sourceKey : null,
+            ])),
+        ];
+    }
+
+    private function includes(Request $request, string $feature): bool
+    {
+        return in_array($feature, array_filter(array_map(
+            fn (string $value): string => strtolower(trim($value)),
+            explode(',', (string) $request->query('include', '')),
+        )), true);
+    }
+
+    /** @param array<string, mixed>|list<mixed> $payload */
+    private function patientJson(array $payload, int $status = 200): JsonResponse
+    {
+        return response()->json($payload, $status)->withHeaders([
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    private function invalidPatientFilter(InvalidArgumentException $exception): JsonResponse
+    {
+        return $this->patientJson([
+            'error' => [
+                'code' => 'invalid_patient_context_ref',
+                'message' => $exception->getMessage(),
+            ],
+        ], 422);
     }
 
     /** @param array<string,array<string,mixed>> $locations */

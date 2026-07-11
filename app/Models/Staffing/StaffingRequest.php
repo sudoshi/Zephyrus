@@ -62,6 +62,11 @@ class StaffingRequest extends Model
         return $this->hasMany(StaffingEvent::class, 'staffing_request_id', 'staffing_request_id');
     }
 
+    public function fulfillments(): HasMany
+    {
+        return $this->hasMany(StaffingRequestFulfillment::class, 'staffing_request_id', 'staffing_request_id');
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(StaffingPlan::class, 'staffing_plan_id', 'staffing_plan_id');

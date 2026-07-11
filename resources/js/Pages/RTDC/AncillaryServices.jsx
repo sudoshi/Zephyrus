@@ -10,6 +10,7 @@ import { trendUtils } from '@/mock-data/rtdc-trends';
 import { Icon } from '@iconify/react';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import TrendsModal from '@/Components/RTDC/TrendsModal';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Ancillary Services rebuilt on the gold-standard design system: the summary
 // KPIs are a single MetricGrid of KpiTiles (status dot + value + caption); the
@@ -23,6 +24,18 @@ const getStatusClasses = (value) => {
     if (value > 90) return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
     if (value > 60) return 'bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning/20 dark:text-healthcare-warning-dark';
     return 'bg-healthcare-success/10 text-healthcare-success dark:bg-healthcare-success/20 dark:text-healthcare-success-dark';
+};
+
+const formatMinutes = (value) => {
+    if (value === null || value === undefined || value === '') return formatDurationMinutes(null);
+    const minutes = Number(value);
+
+    return formatDurationMinutes(Number.isFinite(minutes) ? minutes : null);
+};
+const formatConfiguredAverage = (value) => {
+    const minutes = Number.parseFloat(value);
+
+    return Number.isFinite(minutes) ? formatDurationMinutes(minutes) : value;
 };
 
 const AncillaryServices = ({ unitServices = null }) => {
@@ -102,7 +115,7 @@ const AncillaryServices = ({ unitServices = null }) => {
             status: metrics.criticalDelays > 5 ? 'critical' : metrics.criticalDelays > 0 ? 'warning' : 'success',
             goodWhenDown: true,
             caption: 'Services over their category delay threshold',
-            definition: 'Service entries whose current wait exceeds the category threshold (120 min imaging, 90 min otherwise).',
+            definition: `Service entries whose current wait exceeds the category threshold (${formatMinutes(120)} imaging, ${formatMinutes(90)} otherwise).`,
         }),
         metric({
             key: 'active-requests',
@@ -121,7 +134,7 @@ const AncillaryServices = ({ unitServices = null }) => {
             target: 75,
             goodWhenDown: true,
             caption: 'Mean wait as a share of the service window',
-            definition: 'Average request wait time across services expressed against a 180-minute service window.',
+            definition: `Average request wait time across services expressed against a ${formatMinutes(180)} service window.`,
         }),
         metric({
             key: 'cross-dept-impact',
@@ -142,7 +155,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                 data={data.trend}
                 series={[{ dataKey: 'value', name: 'Wait Time', color: '#3B82F6' }]}
                 xAxis={{ dataKey: 'time' }}
-                yAxis={{ domain: ['auto', 'auto'] }}
+                yAxis={{ domain: ['auto', 'auto'], formatter: formatMinutes }}
                 height={200}
             />
         );
@@ -216,17 +229,14 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                             </span>
                                                         </div>
                                                         <div className="ml-auto flex items-center space-x-2">
-                                                            <span className="text-sm font-semibold tabular-nums">
-                                                                {service.value}
-                                                            </span>
-                                                            <span className="text-xs opacity-75">
-                                                                min
+                                                            <span className="whitespace-nowrap text-sm font-semibold tabular-nums">
+                                                                {formatMinutes(service.value)}
                                                             </span>
                                                         </div>
 
                                                         {/* Tooltip */}
                                                         <div className="absolute invisible group-hover/service:visible opacity-0 group-hover/service:opacity-100 transition-all duration-200 z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg whitespace-nowrap">
-                                                            Avg Time: {serviceInfo?.avgTime}
+                                                            Avg Time: {formatConfiguredAverage(serviceInfo?.avgTime)}
                                                         </div>
                                                     </div>
                                                 );
@@ -325,14 +335,11 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                                     : serviceId
                                                             );
                                                         }}
-                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${getStatusClasses(
+                                                        className={`flex items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${getStatusClasses(
                                                             service.value
                                                         )}`}
                                                     >
-                                                        <span>{service.value}</span>
-                                                        <span className="text-xs opacity-75">
-                                                            min
-                                                        </span>
+                                                        <span>{formatMinutes(service.value)}</span>
                                                     </div>
 
                                                     {expandedService === serviceId && (
@@ -345,11 +352,11 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                             </p>
                                                             <p className="text-sm mb-1">
                                                                 <strong>Current Wait:</strong>{' '}
-                                                                {service.value} min
+                                                                {formatMinutes(service.value)}
                                                             </p>
                                                             <p className="text-sm mb-1">
                                                                 <strong>Average Time:</strong>{' '}
-                                                                {serviceInfo?.avgTime}
+                                                                {formatConfiguredAverage(serviceInfo?.avgTime)}
                                                             </p>
                                                             <p className="text-sm mb-2">
                                                                 <strong>Criteria:</strong>{' '}
@@ -365,7 +372,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                                         color: '#3B82F6'
                                                                     }]}
                                                                     xAxis={{ dataKey: 'time' }}
-                                                                    yAxis={{ domain: ['auto', 'auto'] }}
+                                                                    yAxis={{ domain: ['auto', 'auto'], formatter: formatMinutes }}
                                                                     height={200}
                                                                 />
                                                             </div>
@@ -514,11 +521,11 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                     </h4>
                                                     <div className="mb-4">
                                                         <span
-                                                            className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
+                                                            className={`inline-flex whitespace-nowrap px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
                                                                 service.value
                                                             )}`}
                                                         >
-                                                            Current Wait: {service.value} min
+                                                            Current Wait: {formatMinutes(service.value)}
                                                         </span>
                                                     </div>
                                                     <p className="text-sm mb-2">
@@ -526,7 +533,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                     </p>
                                                     <p className="text-sm mb-1">
                                                         <strong>Average Time:</strong>{' '}
-                                                        {serviceInfo?.avgTime}
+                                                        {formatConfiguredAverage(serviceInfo?.avgTime)}
                                                     </p>
                                                     <p className="text-sm mb-1">
                                                         <strong>Criteria:</strong>{' '}

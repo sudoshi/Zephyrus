@@ -11,14 +11,19 @@ use App\Models\Staffing\StaffingRequest;
 use App\Services\Staffing\StaffingOperationsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class StaffingController extends Controller
 {
     public function __construct(private readonly StaffingOperationsService $staffing) {}
 
-    public function overview(): JsonResponse
+    public function overview(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->staffing->overview()]);
+        return response()->json(['data' => array_merge($this->staffing->overview(), [
+            'permissions' => [
+                'manage' => Gate::forUser($request->user())->allows('manageStaffingOperations'),
+            ],
+        ])]);
     }
 
     public function plans(): JsonResponse
@@ -32,6 +37,13 @@ class StaffingController extends Controller
                 'plans' => $plans->map(fn (StaffingPlan $plan) => $this->staffing->serializePlan($plan))->values(),
             ],
         ]);
+    }
+
+    public function workforce(Request $request): JsonResponse
+    {
+        return response()->json($this->staffing->workforceDirectory($request->only([
+            'q', 'role', 'shift', 'status', 'page', 'per_page',
+        ])));
     }
 
     public function index(Request $request): JsonResponse

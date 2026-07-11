@@ -9,6 +9,7 @@ import Input from '@/Components/ui/input';
 import { DatePicker } from '@/Components/ui/flowbite/DatePicker';
 import Textarea from '@/Components/ui/textarea';
 import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
+import { formatProcessDuration } from '@/Components/Process/formatDuration';
 
 // Process types with their respective colors
 const PROCESS_TYPES = {
@@ -284,7 +285,7 @@ const rootCausesToItems = (rootCauses) => {
 
     const patientCount = rc.impactedPatients ?? ((hash % 40) + 10);
     const details =
-      `Impacts ${patientCount} patients with an average delay of ${rc.avgDelay ?? 'n/a'}. ` +
+      `Impacts ${patientCount} patients with an average delay of ${formatProcessDuration(rc.avgDelay, 'minutes', 'n/a')}. ` +
       `${rc.impactDetails ?? 'Downstream flow effects observed.'}`;
 
     // Stable date inside the last ~6 months, derived from rank so it is filterable.
@@ -303,7 +304,7 @@ const rootCausesToItems = (rootCauses) => {
       ocelData: {
         eventCount: 100 + (hash % 900),
         objectInteractions: 10 + (hash % 50),
-        averagePathLength: `${(2 + (hash % 50) / 10).toFixed(1)} hours`,
+        averagePathLength: formatProcessDuration(2 + (hash % 50) / 10, 'hours'),
         commonPathways: [
           `${rc.location ?? 'Unit'} → Assessment → Order Processing`,
           `${rc.location ?? 'Unit'} → Handoff → Disposition`,

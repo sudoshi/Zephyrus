@@ -14,6 +14,7 @@ use App\Models\Unit;
 use App\Services\Ed\ArrivalPredictionService;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Support\Hospital\HospitalManifest;
+use App\Support\Operations\DurationFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -548,7 +549,7 @@ class ForwardProjectionService
             entity: null,
             patientRef: null,
             bedId: null,
-            label: 'Surge probability · next 24h',
+            label: 'Surge probability · next '.DurationFormatter::minutes(24 * 60),
             service: 'command_center_surge_heuristic',
             reliability: $reliability,
             value: $surgePct,

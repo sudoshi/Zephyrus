@@ -45,6 +45,8 @@ class EddyKnowledgeCuratorTest extends TestCase
         $this->assertSame('resolved_barriers', $k->curated_from['origin']);
         $this->assertSame('logistical', $k->curated_from['category']);
         $this->assertSame(3, $k->curated_from['sample_size']);
+        $this->assertStringContainsString('approximately 2 hr 0 min 0 sec', $k->body);
+        $this->assertStringNotContainsString('2.0h', $k->body);
     }
 
     public function test_curation_is_idempotent_no_duplicates(): void

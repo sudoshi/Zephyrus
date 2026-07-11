@@ -4,12 +4,14 @@
 // (which proxies to the PHI-free OCPM sidecar and caches in arena.maps).
 // Returns `unknown`; the page parses with the Zod schema at the boundary.
 import axios from 'axios';
+import type { ArenaFilter } from './schema';
 
 export interface ArenaMapParams {
   types?: string[];
   minFreq?: number;
   scope?: string;
   force?: boolean;
+  filters?: ArenaFilter[];
 }
 
 export async function fetchArenaMap(params: ArenaMapParams = {}): Promise<unknown> {
@@ -19,6 +21,7 @@ export async function fetchArenaMap(params: ArenaMapParams = {}): Promise<unknow
       min_freq: params.minFreq,
       scope: params.scope,
       force: params.force ? 1 : undefined,
+      filters: params.filters && params.filters.length > 0 ? JSON.stringify(params.filters) : undefined,
     },
   });
   return res.data;
@@ -29,18 +32,41 @@ export async function fetchArenaSummary(): Promise<unknown> {
   return res.data;
 }
 
-export async function fetchArenaConformance(pathway?: string): Promise<unknown> {
+export async function fetchArenaProcessModels(): Promise<unknown> {
+  const res = await axios.get('/api/arena/models');
+  return res.data;
+}
+
+export async function fetchArenaProcessModel(processId: string): Promise<unknown> {
+  const res = await axios.get(`/api/arena/models/${encodeURIComponent(processId)}`);
+  return res.data;
+}
+
+export async function fetchArenaConformance(pathway?: string, filters?: ArenaFilter[]): Promise<unknown> {
   const res = await axios.get('/api/arena/conformance', {
-    params: { pathway: pathway || undefined },
+    params: {
+      pathway: pathway || undefined,
+      filters: filters && filters.length > 0 ? JSON.stringify(filters) : undefined,
+    },
   });
   return res.data;
 }
 
-export async function fetchArenaPerformance(types?: string[], top?: number): Promise<unknown> {
+export async function fetchArenaPerformance(types?: string[], top?: number, filters?: ArenaFilter[]): Promise<unknown> {
   const res = await axios.get('/api/arena/performance', {
     params: {
       types: types && types.length > 0 ? types.join(',') : undefined,
       top,
+      filters: filters && filters.length > 0 ? JSON.stringify(filters) : undefined,
+    },
+  });
+  return res.data;
+}
+
+export async function fetchArenaPetriNet(filters?: ArenaFilter[]): Promise<unknown> {
+  const res = await axios.get('/api/arena/petrinet', {
+    params: {
+      filters: filters && filters.length > 0 ? JSON.stringify(filters) : undefined,
     },
   });
   return res.data;
@@ -114,5 +140,10 @@ export async function fetchArenaReview(windowRef?: string): Promise<unknown> {
 
 export async function runArenaReview(): Promise<unknown> {
   const res = await axios.post('/api/arena/review/run');
+  return res.data;
+}
+
+export async function fetchArenaCapacity(): Promise<unknown> {
+  const res = await axios.get('/api/arena/capacity');
   return res.data;
 }

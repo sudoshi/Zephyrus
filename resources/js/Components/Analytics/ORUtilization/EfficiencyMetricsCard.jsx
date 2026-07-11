@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Card } from '@/Components/ui/flowbite';
 import { Clock, BarChart2, TrendingUp, Users } from 'lucide-react';
+import { formatDurationMinutes } from '@/lib/duration';
 
 /**
  * Component for displaying efficiency metrics in the OR Utilization Dashboard
@@ -16,8 +17,8 @@ const EfficiencyMetricsCard = ({
   // Format values for display
   const formattedEfficiencyRatio = efficiencyRatio ? `${efficiencyRatio.toFixed(1)}%` : 'N/A';
   const formattedCasesPerDay = casesPerDay ? casesPerDay.toFixed(1) : 'N/A';
-  const formattedTurnoverTime = turnoverTime ? `${turnoverTime} min` : 'N/A';
-  const formattedCaseDuration = caseDuration ? `${caseDuration} min` : 'N/A';
+  const formattedTurnoverTime = formatDurationMinutes(turnoverTime, 'N/A');
+  const formattedCaseDuration = formatDurationMinutes(caseDuration, 'N/A');
   
   // Determine color based on efficiency ratio
   const getEfficiencyColor = (ratio) => {
@@ -113,7 +114,7 @@ const EfficiencyMetricsCard = ({
         <ul className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark space-y-1">
           <li className="flex items-start">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-healthcare-primary dark:bg-healthcare-primary-dark mt-1.5 mr-2"></span>
-            <span>Reducing turnover time by 5 minutes could increase efficiency ratio by approximately 2-3%.</span>
+            <span>Reducing turnover time by {formatDurationMinutes(5)} could increase efficiency ratio by approximately 2-3%.</span>
           </li>
           <li className="flex items-start">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-healthcare-primary dark:bg-healthcare-primary-dark mt-1.5 mr-2"></span>

@@ -76,11 +76,19 @@ const gridFace = {
   sub: 'House-wide operations overview',
 };
 
-function renderFace(scopeToken = 'unit:MICU', onPatientDrill?: (ref: string) => void) {
+function renderFace(
+  scopeToken = 'unit:MICU',
+  onPatientDrill?: (ref: string) => void,
+  interactive = true,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ScopedFaceView scopeToken={scopeToken} onPatientDrill={onPatientDrill} />
+      <ScopedFaceView
+        scopeToken={scopeToken}
+        onPatientDrill={onPatientDrill}
+        interactive={interactive}
+      />
     </QueryClientProvider>,
   );
 }
@@ -135,6 +143,17 @@ describe('ScopedFaceView', () => {
     expect(onPatientDrill).toHaveBeenCalledWith('ptok_micu001');
   });
 
+  it('renders scoped wall faces without breadcrumb or patient-row controls', async () => {
+    const onPatientDrill = vi.fn();
+    mockedFetch.mockResolvedValue(drillFace);
+    renderFace('unit:MICU', onPatientDrill, false);
+
+    await screen.findByText('Bed 3');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('navigation')).queryByRole('link')).not.toBeInTheDocument();
+    expect(onPatientDrill).not.toHaveBeenCalled();
+  });
+
   it('shows the honest empty state when there is no live census (never fabricated)', async () => {
     mockedFetch.mockResolvedValue(emptyFace);
     renderFace();
@@ -155,6 +174,15 @@ describe('ScopedFaceView', () => {
     expect(link).toHaveAttribute('href', '/dashboard');
   });
 
+  it('keeps a wall-mode house bounce informational rather than navigable', async () => {
+    mockedFetch.mockResolvedValue(gridFace);
+    renderFace('unit:GHOST', undefined, false);
+
+    await screen.findByText('Mounted at Summit Regional Medical Center.');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('House cockpit')).toBeInTheDocument();
+  });
+
   it('degrades to an in-place error card with retry when the payload breaks contract', async () => {
     mockedFetch.mockResolvedValue({ scope: gridFace.scope, render: 'face', title: 'broken' }); // missing kpis/tables
     renderFace();
@@ -173,5 +201,13 @@ describe('ScopedFaceView', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.getByText(/Request failed/)).toBeInTheDocument();
+  });
+
+  it('keeps wall-mode error state visible without a retry control', async () => {
+    mockedFetch.mockRejectedValue(new Error('Request failed with status code 500'));
+    renderFace('unit:MICU', undefined, false);
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

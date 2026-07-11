@@ -19,7 +19,10 @@ return $builder
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append([
+            \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\AuditUserRequests::class,
+        ]);
 
         $middleware->web(
             append: [
@@ -55,6 +58,11 @@ return $builder
         // Nightly full reconcile: re-project the trailing window and diff
         // projected counts against prod.*/flow_core.* source counts (§X.3.3).
         $schedule->command('ocel:project --days=90 --reconcile')->dailyAt('02:30');
+        if (config('demo_data.enabled') && config('demo_data.schedule_enabled')) {
+            $schedule->command('zephyrus:demo-roll-forward --commit')
+                ->dailyAt((string) config('demo_data.schedule_time', '05:15'))
+                ->withoutOverlapping();
+        }
         // Zephyrus 2.0 Part X (X3): recompute care-pathway conformance on its own
         // cadence and cache the rate for the cockpit. ARENA_ENABLED-gated (no-op
         // when off). Off the per-minute snapshot path — the heavy sidecar call
@@ -85,6 +93,19 @@ return $builder
             // FEEDBACK Wave 5: nightly retention so the unattended 15-min refresh doesn't grow the
             // demo DB without bound (census/occupancy checkpoints + the refresh ledger).
             $schedule->command('zephyrus:demo-prune')->dailyAt('03:20')->withoutOverlapping();
+        }
+
+        // Governed integration runtime: dispatch protocol checks to the dedicated
+        // database-backed queue. Health observations never advance data cursors.
+        $schedule->job(new \App\Jobs\DispatchScheduledIntegrationHealthChecks)
+            ->everyFiveMinutes()->withoutOverlapping();
+        $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
+            ->everyFifteenMinutes()->withoutOverlapping();
+        if (config('staffing.materialization_schedule_enabled', true)) {
+            $schedule->command('staffing:materialize-canonical')
+                ->dailyAt((string) config('staffing.materialization_schedule_time', '04:10'))
+                ->withoutOverlapping(180)
+                ->runInBackground();
         }
     })
     ->create();

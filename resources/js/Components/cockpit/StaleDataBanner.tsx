@@ -7,8 +7,8 @@ export interface StaleDataBannerProps {
   aging?: boolean;
   /** Human-readable label for when the data was last known good (e.g. "2 min ago"). */
   updatedLabel: string;
-  /** Invoked when the operator asks to re-fetch from the "Retry now" affordance. */
-  onRetry: () => void;
+  /** Desk-only retry affordance. Omit on a wall; background polling continues. */
+  onRetry?: () => void;
   /** Optional extra classes merged onto the outer container. */
   className?: string;
 }
@@ -49,14 +49,19 @@ export function StaleDataBanner({
           className="h-4 w-4 shrink-0 text-white"
         />
         <span className="min-w-0">
-          Live updates interrupted — showing last good data from {updatedLabel}.{' '}
-          <button
-            type="button"
-            onClick={onRetry}
-            className="font-medium text-white underline underline-offset-2 hover:no-underline"
-          >
-            Retry now
-          </button>
+          Live updates interrupted — showing last good data from {updatedLabel}.
+          {onRetry && (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={onRetry}
+                className="font-medium text-white underline underline-offset-2 hover:no-underline"
+              >
+                Retry now
+              </button>
+            </>
+          )}
         </span>
       </div>
     );

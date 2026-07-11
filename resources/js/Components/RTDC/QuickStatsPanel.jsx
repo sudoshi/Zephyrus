@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import Card from '@/Components/Dashboard/Card';
+import { formatDurationSeconds } from '@/lib/duration';
 
 const QuickStatsPanel = ({ patient }) => {
     if (!patient) return null;
@@ -8,10 +9,7 @@ const QuickStatsPanel = ({ patient }) => {
     const calculateLOS = (admitDate) => {
         const admit = new Date(admitDate);
         const now = new Date();
-        const diffTime = Math.abs(now - admit);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        return { days: diffDays, hours: diffHours };
+        return formatDurationSeconds(Math.abs(now - admit) / 1000);
     };
 
     const los = calculateLOS(patient.admitDate);
@@ -38,7 +36,7 @@ const QuickStatsPanel = ({ patient }) => {
                     <StatItem
                         icon="heroicons:clock"
                         label="Length of Stay"
-                        value={`${los.days}d ${los.hours}h`}
+                        value={los}
                     />
                     <StatItem
                         icon="heroicons:calendar"

@@ -2,6 +2,7 @@ import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import TrendChart from '@/Components/Analytics/Common/TrendChart';
 import DateRangeSelector from '@/Components/Common/DateRangeSelector';
+import { formatDurationHours } from '@/lib/duration';
 
 // Department Census rebuilt on the gold-standard design system: the census,
 // staffing, and capacity KPI walls are MetricGrids of KpiTiles (status + gauge
@@ -48,8 +49,8 @@ const staffingMetrics = [
 const capacityMetrics = [
     metric({
         key: 'projected-peak', label: 'Projected Peak', value: 96, unit: '%', status: 'critical',
-        target: 90, goodWhenDown: true, caption: 'Next 24 hours · +4% vs prior',
-        definition: 'Forecast peak house occupancy over the next 24h. >95% signals overflow risk.',
+        target: 90, goodWhenDown: true, caption: `Next ${formatDurationHours(24)} · +4% vs prior`,
+        definition: `Forecast peak house occupancy over the next ${formatDurationHours(24)}. >95% signals overflow risk.`,
     }),
     metric({
         key: 'additional-beds', label: 'Additional Beds', value: 5, status: 'warning',

@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Where the BFF lives, resolved per build so the same source runs against the right host:
 /// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
@@ -183,7 +184,7 @@ struct APIClient {
 
     /// POST …/rtdc/bed-requests/{id}/decision — place (accept a chosen bed) or reject (mobile:act).
     func placeBed(id: Int, action: String, chosenBedId: Int?, bearer: String) async throws {
-        var body = ["action": action]
+        var body: [String: Any] = ["action": action]
         if let chosenBedId { body["chosen_bed_id"] = String(chosenBedId) }
         _ = try await send(path: "/api/mobile/v1/rtdc/bed-requests/\(id)/decision", method: "POST", body: body, bearer: bearer)
     }
@@ -212,10 +213,18 @@ struct APIClient {
         try await getEnvelope(path: "/api/mobile/v1/staffing/overview", bearer: bearer, as: StaffingOverview.self)
     }
 
-    /// POST …/staffing/requests/{id}/fill — assign a source and mark filled (mobile:act).
-    func staffingFill(id: Int, source: String, bearer: String) async throws {
+    func staffingCandidates(id: Int, bearer: String) async throws -> StaffingCandidatePage {
+        try await getEnvelope(
+            path: "/api/mobile/v1/staffing/requests/\(id)/candidates?persona=staffing_coordinator&per_page=100",
+            bearer: bearer,
+            as: StaffingCandidatePage.self
+        ).data
+    }
+
+    /// POST …/staffing/requests/{id}/fill — fill with a server-validated canonical person (mobile:act).
+    func staffingFill(id: Int, staffMemberId: Int, source: String, bearer: String) async throws {
         _ = try await send(path: "/api/mobile/v1/staffing/requests/\(id)/fill", method: "POST",
-                           body: ["assigned_source": source], bearer: bearer)
+                           body: ["staff_member_id": "\(staffMemberId)", "assigned_source": source], bearer: bearer)
     }
 
     func improvementPdsa(bearer: String) async throws -> [PdsaCycle] {
@@ -228,22 +237,40 @@ struct APIClient {
 
     // MARK: Transport (P1)
 
-    func transportQueue(bearer: String) async throws -> Envelope<TransportQueue> {
-        try await getEnvelope(path: "/api/mobile/v1/transport/queue", bearer: bearer, as: TransportQueue.self)
+    func transportQueue(bearer: String, cursor: String? = nil) async throws -> Envelope<TransportQueue> {
+        var path = "/api/mobile/v1/transport/queue?persona=transport"
+        if let cursor, !cursor.isEmpty {
+            path += "&cursor=\(Self.queryValue(cursor))"
+        }
+        return try await getEnvelope(path: path, bearer: bearer, as: TransportQueue.self)
     }
 
     /// POST …/transport/requests/{id}/status — advance a job (Claim → … → Completed).
-    func transportStatus(id: Int, status: String, bearer: String) async throws {
-        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/status", method: "POST",
-                           body: ["status": status], bearer: bearer)
+    func transportStatus(id: Int, status: String, lifecycleVersion: Int,
+                         bearer: String) async throws -> TransportJob {
+        let data = try await send(path: "/api/mobile/v1/transport/requests/\(id)/status", method: "POST",
+                                  body: ["status": status, "lifecycle_version": lifecycleVersion], bearer: bearer)
+        return try Self.decoder.decode(Envelope<TransportJob>.self, from: data).data
     }
 
     /// POST …/transport/requests/{id}/handoff — structured handoff at the destination.
-    func transportHandoff(id: Int, handoffTo: String, summary: String?, bearer: String) async throws {
-        var body = ["handoff_to": handoffTo]
+    func transportHandoff(id: Int, handoffTo: String, receiverRole: String,
+                          acceptanceStatus: String, outstandingRisk: String?,
+                          summary: String?, lifecycleVersion: Int,
+                          bearer: String) async throws -> TransportJob {
+        var body: [String: Any] = [
+            "handoff_to": handoffTo,
+            "receiver_role": receiverRole,
+            "acceptance_status": acceptanceStatus,
+            "lifecycle_version": lifecycleVersion,
+        ]
+        if let outstandingRisk, !outstandingRisk.isEmpty {
+            body["outstanding_risks"] = [outstandingRisk]
+        }
         if let summary, !summary.isEmpty { body["handoff_summary"] = summary }
-        _ = try await send(path: "/api/mobile/v1/transport/requests/\(id)/handoff", method: "POST",
-                           body: body, bearer: bearer)
+        let data = try await send(path: "/api/mobile/v1/transport/requests/\(id)/handoff", method: "POST",
+                                  body: body, bearer: bearer)
+        return try Self.decoder.decode(Envelope<TransportJob>.self, from: data).data
     }
 
     // MARK: EVS / bed-turns (P2)
@@ -278,6 +305,25 @@ struct APIClient {
         return (try Self.decoder.decode(Envelope<FlowWindowData>.self, from: data), data)
     }
 
+    /// GET /api/mobile/v1/flow/demo-scenarios — discover demo/history handoff scenarios.
+    func flowDemoScenarios(persona: String?, bearer: String) async throws -> Envelope<[FlowDemoScenario]> {
+        try await getEnvelope(path: withPersona("/api/mobile/v1/flow/demo-scenarios", persona),
+                              bearer: bearer, as: [FlowDemoScenario].self)
+    }
+
+    /// GET /api/mobile/v1/flow/occupancy/history — disk-ready occupancy history, persona-redacted.
+    func flowOccupancyHistory(persona: String?, from: String? = nil, to: String? = nil,
+                              asOf: String? = nil, serviceLine: String? = nil,
+                              floor: Int? = nil, demo: String? = nil,
+                              scenario: String? = nil, limit: Int? = nil,
+                              bearer: String) async throws -> Envelope<FlowOccupancyHistoryData> {
+        try await getEnvelope(path: flowOccupancyHistoryPath(persona: persona, from: from, to: to,
+                                                             asOf: asOf, serviceLine: serviceLine,
+                                                             floor: floor, demo: demo,
+                                                             scenario: scenario, limit: limit),
+                              bearer: bearer, as: FlowOccupancyHistoryData.self)
+    }
+
     private func flowWindowPath(persona: String?, scope: String?, since: String?) -> String {
         var path = withPersona("/api/mobile/v1/flow/window", persona)
         if let scope, !scope.isEmpty {
@@ -285,6 +331,38 @@ struct APIClient {
         }
         if let since, !since.isEmpty {
             path += "\(path.contains("?") ? "&" : "?")since=\(Self.queryValue(since))"
+        }
+        return path
+    }
+
+    private func flowOccupancyHistoryPath(persona: String?, from: String?, to: String?,
+                                          asOf: String?, serviceLine: String?,
+                                          floor: Int?, demo: String?,
+                                          scenario: String?, limit: Int?) -> String {
+        var path = withPersona("/api/mobile/v1/flow/occupancy/history", persona)
+        if let from, !from.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")from=\(Self.queryValue(from))"
+        }
+        if let to, !to.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")to=\(Self.queryValue(to))"
+        }
+        if let asOf, !asOf.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")asOf=\(Self.queryValue(asOf))"
+        }
+        if let serviceLine, !serviceLine.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")service_line=\(Self.queryValue(serviceLine))"
+        }
+        if let floor {
+            path += "\(path.contains("?") ? "&" : "?")floor=\(floor)"
+        }
+        if let demo, !demo.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")demo=\(Self.queryValue(demo))"
+        }
+        if let scenario, !scenario.isEmpty {
+            path += "\(path.contains("?") ? "&" : "?")scenario=\(Self.queryValue(scenario))"
+        }
+        if let limit {
+            path += "\(path.contains("?") ? "&" : "?")limit=\(limit)"
         }
         return path
     }
@@ -313,7 +391,7 @@ struct APIClient {
     /// POST /api/mobile/v1/devices — register this device's APNs token for push.
     func registerDevice(pushToken: String, appVersion: String?, osVersion: String?,
                         deviceName: String?, bearer: String) async throws {
-        var body = ["platform": "ios", "push_token": pushToken]
+        var body: [String: Any] = ["platform": "ios", "push_token": pushToken]
         if let appVersion { body["app_version"] = appVersion }
         if let osVersion { body["os_version"] = osVersion }
         if let deviceName { body["device_name"] = deviceName }
@@ -337,7 +415,8 @@ struct APIClient {
     }
 
     private static func queryValue(_ raw: String) -> String {
-        raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? raw
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        return raw.addingPercentEncoding(withAllowedCharacters: allowed) ?? raw
     }
 
     private func getEnvelope<T: Decodable>(path: String, bearer: String, as: T.Type) async throws -> Envelope<T> {
@@ -345,7 +424,7 @@ struct APIClient {
         return try Self.decoder.decode(Envelope<T>.self, from: data)
     }
 
-    private func send(path: String, method: String, body: [String: String]?, bearer: String?) async throws -> Data {
+    private func send(path: String, method: String, body: [String: Any]?, bearer: String?) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw APIError(message: "Bad URL", statusCode: nil)
         }
@@ -353,9 +432,13 @@ struct APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bearer { req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
-        if let body {
+        let bodyData = body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) }
+        if let idempotencyKey = Self.mobileIdempotencyKey(method: method, path: path, bodyData: bodyData) {
+            req.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        }
+        if body != nil {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+            req.httpBody = bodyData
         }
         req.timeoutInterval = 15
 
@@ -373,6 +456,17 @@ struct APIClient {
             throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
         }
         return data
+    }
+
+    internal static func mobileIdempotencyKey(method: String, path: String, bodyData: Data?) -> String? {
+        guard method.uppercased() == "POST", path.hasPrefix("/api/mobile/v1/") else { return nil }
+        let bodyString = bodyData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        let material = "\(method.uppercased())\n\(path)\n\(bodyString)"
+        let digest = SHA256.hash(data: Data(material.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+
+        return "hb-\(digest)"
     }
 
     private static func errorMessage(from data: Data, status: Int) -> String {

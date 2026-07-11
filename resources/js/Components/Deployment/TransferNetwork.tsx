@@ -12,6 +12,7 @@ import ReactFlow, {
   type Node,
 } from 'reactflow';
 import dagre from 'dagre';
+import { formatDurationMinutes } from '@/lib/duration';
 import 'reactflow/dist/style.css';
 import { humanize } from './format';
 
@@ -118,7 +119,7 @@ function buildGraph(edges: TransferEdge[], focusKey: string): { nodes: Node[]; e
     id: `${e.source}__${e.target}`,
     source: e.source,
     target: e.target,
-    label: e.minMinutes !== null ? `${e.minMinutes}m` : `${e.serviceLines.size} line${e.serviceLines.size === 1 ? '' : 's'}`,
+    label: e.minMinutes !== null ? formatDurationMinutes(e.minMinutes) : `${e.serviceLines.size} line${e.serviceLines.size === 1 ? '' : 's'}`,
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
     style: { stroke: 'var(--border-strong, #64748B)', strokeWidth: 1.5, ...(e.external ? { strokeDasharray: '5 4' } : {}) },
     labelStyle: { fill: 'var(--text-secondary, #94A3B8)', fontSize: 10, fontVariantNumeric: 'tabular-nums' },

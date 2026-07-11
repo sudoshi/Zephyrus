@@ -7,12 +7,36 @@ import {
   visibleDomains,
   visibleSections,
   flattenNavigation,
+  navigationOwners,
+  domainLocalNavigation,
 } from '@/config/navigationConfig';
 
+const USER_ACCESS = { isAdmin: false } as const;
+const ADMIN_ACCESS = { isAdmin: true } as const;
+const SUPERUSER_ACCESS = {
+  isAdmin: false,
+  can: {
+    view_integrations: true,
+    view_enterprise_setup: true,
+    manage_staffing_alignment: true,
+  },
+} as const;
+const AUDITOR_ACCESS = {
+  isAdmin: false,
+  can: {
+    view_administration: true,
+    view_user_audit: true,
+  },
+} as const;
+
 describe('navigationConfig', () => {
-  it('exposes the altitude sections in order (P4a + Deploy)', () => {
-    expect(NAV_SECTIONS.map((s) => s.key)).toEqual(['cockpit', 'workspaces', 'study', 'deploy', 'admin']);
-    // COCKPIT is the one home: a plain link, no dropdown domains.
+  it('exposes only section-level top navigation in order', () => {
+    expect(NAV_SECTIONS.map((s) => s.key)).toEqual([
+      'cockpit',
+      'workspaces',
+      'study',
+      'integrations',
+    ]);
     expect(NAV_SECTIONS[0].homeHref).toBe('/dashboard');
     expect(NAV_SECTIONS[0].domains).toEqual([]);
   });
@@ -24,10 +48,9 @@ describe('navigationConfig', () => {
       'perioperative',
       'transport',
       'staffing',
-      'flow',
       'analytics',
       'improvement',
-      'deployment',
+      'integrations',
       'admin',
     ]);
   });
@@ -54,13 +77,13 @@ describe('navigationConfig', () => {
       perioperative: '/operations/room-status',
       transport: '/transport/dispatch',
       staffing: '/staffing',
-      flow: '/rtdc/patient-flow-navigator',
     });
   });
 
-  it('only the admin domain is adminOnly', () => {
-    const adminOnly = NAVIGATION.filter((d) => d.adminOnly).map((d) => d.key);
-    expect(adminOnly).toEqual(['admin']);
+  it('keeps administration out of the top-level section controls', () => {
+    expect(NAV_SECTIONS.flatMap((section) => section.domains).map((domain) => domain.key))
+      .not.toContain('admin');
+    expect(NAVIGATION.map((domain) => domain.key)).toContain('admin');
   });
 
   it('every leaf href is an absolute path', () => {
@@ -81,6 +104,9 @@ describe('navigationConfig', () => {
     expect(hrefs).not.toContain('/analytics/procedure-analysis');
     expect(hrefs).not.toContain('/predictions/volume-forecasting');
     expect(hrefs).not.toContain('/home');
+    expect(hrefs).not.toContain('/transport/settings/integrations');
+    expect(hrefs).not.toContain('/deployment');
+    expect(hrefs).not.toContain('/deployment/staffing');
   });
 
   it('matches a domain by URL prefix without cross-domain bleed', () => {
@@ -164,41 +190,61 @@ describe('navigationConfig', () => {
     }
   });
 
-  it('hides the admin domain and section for non-admins', () => {
-    expect(visibleDomains(false).map((d) => d.key)).not.toContain('admin');
-    expect(visibleDomains(true).map((d) => d.key)).toContain('admin');
-    expect(visibleSections(false).map((s) => s.key)).toEqual(['cockpit', 'workspaces', 'study']);
-    expect(visibleSections(true).map((s) => s.key)).toEqual([
+  it('organizes Study analytics and improvement into task-oriented groups', () => {
+    const study = NAV_SECTIONS.find((section) => section.key === 'study')!;
+    const analytics = study.domains.find((domain) => domain.key === 'analytics')!;
+    const improvement = study.domains.find((domain) => domain.key === 'improvement')!;
+
+    expect(analytics.groups.map((group) => group.title)).toEqual([
+      'Overview',
+      'Process Analysis',
+      'Planning',
+      'Perioperative Performance',
+      'Capacity Trends',
+      'ED & Transport Trends',
+    ]);
+    expect(improvement.groups.map((group) => group.title)).toEqual(['Diagnose', 'Run & Learn']);
+
+    for (const domain of study.domains) {
+      const leafHrefs = domain.groups.flatMap((group) => group.items.map((item) => item.href));
+      expect(leafHrefs).toHaveLength(new Set(leafHrefs).size);
+    }
+  });
+
+  it('keeps administration in user-menu/palette projections only', () => {
+    expect(visibleDomains(USER_ACCESS).map((d) => d.key)).not.toContain('admin');
+    expect(visibleDomains(ADMIN_ACCESS).map((d) => d.key)).toContain('admin');
+    expect(visibleSections(ADMIN_ACCESS).map((s) => s.key)).toEqual([
       'cockpit',
       'workspaces',
       'study',
-      'deploy',
-      'admin',
     ]);
   });
 
-  it('gates the Deployment surfaces by users.role, mirroring the server abilities', () => {
-    // The Deploy section is visible to ops-leadership (viewDeploymentConsole roles) even
-    // without the coarse admin flag, and hidden from frontline / anonymous nav.
-    expect(visibleSections(false, 'ops-leader').map((s) => s.key)).toContain('deploy');
-    expect(visibleSections(false, 'user').map((s) => s.key)).not.toContain('deploy');
-    expect(visibleSections(false, null).map((s) => s.key)).not.toContain('deploy');
+  it('projects capability-gated administration pages without adding a top-bar section', () => {
+    const labels = flattenNavigation(AUDITOR_ACCESS).map((entry) => entry.label);
 
-    // The Staffing Wizard leaf is gated MORE tightly (manageDeploymentConfig) — STRICT on
-    // users.role with no admin bypass, so a plain admin who can view the console still
-    // never sees a link the route would 403.
-    const wizard = '/deployment/staffing';
-    expect(flattenNavigation(false, 'ops-leader').some((e) => e.href === wizard)).toBe(true);
-    expect(flattenNavigation(true, 'admin').some((e) => e.href === wizard)).toBe(false);
-    expect(flattenNavigation(false, 'user').some((e) => e.href === wizard)).toBe(false);
-    // The read console itself is visible to admins.
-    expect(flattenNavigation(true, 'admin').some((e) => e.href === '/deployment')).toBe(true);
+    expect(labels).toContain('Administration Overview');
+    expect(labels).toContain('User Audit');
+    expect(labels).not.toContain('User Management');
+    expect(visibleDomains(AUDITOR_ACCESS).map((domain) => domain.key)).toContain('admin');
+    expect(visibleSections(AUDITOR_ACCESS).map((section) => section.key)).not.toContain('admin');
+  });
+
+  it('gates Integrations from server capability props, never role/admin inference', () => {
+    expect(visibleSections(USER_ACCESS).map((s) => s.key)).not.toContain('integrations');
+    expect(visibleSections(ADMIN_ACCESS).map((s) => s.key)).not.toContain('integrations');
+    expect(visibleSections(SUPERUSER_ACCESS).map((s) => s.key)).toContain('integrations');
+    expect(flattenNavigation(SUPERUSER_ACCESS).some((entry) => entry.href === '/integrations')).toBe(true);
+    expect(flattenNavigation(ADMIN_ACCESS).some((entry) => entry.href === '/integrations')).toBe(false);
   });
 
   it('flattens to command-palette entries and drops admin items for non-admins', () => {
-    const adminFlat = flattenNavigation(true);
-    const userFlat = flattenNavigation(false);
+    const adminFlat = flattenNavigation(ADMIN_ACCESS);
+    const userFlat = flattenNavigation(USER_ACCESS);
     expect(adminFlat.some((e) => e.href === '/users')).toBe(true);
+    expect(adminFlat.some((e) => e.href === '/admin')).toBe(true);
+    expect(adminFlat.some((e) => e.href === '/admin/user-audit')).toBe(true);
     expect(userFlat.some((e) => e.href === '/users')).toBe(false);
     // Sub-pages are present and grouped by "Domain Group"
     expect(userFlat.some((e) => e.label === 'Bed Tracking' && e.group === 'RTDC Operations')).toBe(true);
@@ -212,14 +258,54 @@ describe('navigationConfig', () => {
   it('keeps the descriptive page label when a domain header repoints onto a page', () => {
     // RTDC's header link IS /rtdc/bed-tracking now — the dedup must keep the
     // 'Bed Tracking' page entry, not swallow it into a domain-level entry.
-    const flat = flattenNavigation(false);
+    const flat = flattenNavigation(USER_ACCESS);
     const bedTracking = flat.find((e) => e.href === '/rtdc/bed-tracking');
     expect(bedTracking?.label).toBe('Bed Tracking');
   });
 
   it('flattenNavigation returns each href at most once', () => {
-    const hrefs = flattenNavigation(true).map((e) => e.href);
+    const hrefs = flattenNavigation(SUPERUSER_ACCESS).map((e) => e.href);
     expect(hrefs.length).toBe(new Set(hrefs).size);
+  });
+
+  it('assigns every configured domain URL to exactly one active owner', () => {
+    for (const domain of NAVIGATION) {
+      const hrefs = new Set([
+        ...(domain.dashboardHref ? [domain.dashboardHref] : []),
+        ...domain.groups.flatMap((group) => group.items.map((item) => item.href)),
+      ]);
+
+      for (const href of hrefs) {
+        expect(navigationOwners(href).map((owner) => owner.key), href).toEqual([domain.key]);
+      }
+    }
+  });
+
+  it('owns Patient Flow 4D only from RTDC', () => {
+    const patientFlowHref = '/rtdc/patient-flow-navigator';
+    const occurrences = NAVIGATION.flatMap((domain) =>
+      domain.groups.flatMap((group) =>
+        group.items.filter((item) => item.href === patientFlowHref).map(() => domain.key),
+      ),
+    );
+
+    expect(occurrences).toEqual(['rtdc']);
+    expect(navigationOwners(patientFlowHref).map((domain) => domain.key)).toEqual(['rtdc']);
+  });
+
+  it('projects Transport local navigation from the same domain config', () => {
+    const hrefs = domainLocalNavigation('transport', USER_ACCESS).map((item) => item.href);
+    expect(hrefs).toEqual([
+      '/transport/requests',
+      '/transport/dispatch',
+      '/transport/inpatient',
+      '/transport/transfers',
+      '/transport/discharge',
+      '/transport/ems',
+      '/transport/care-transitions',
+      '/transport/resources',
+    ]);
+    expect(hrefs).not.toContain('/transport/settings/integrations');
   });
 
   it('isDomainActive ignores hash fragments', () => {

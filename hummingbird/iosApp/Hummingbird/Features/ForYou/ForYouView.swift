@@ -292,12 +292,7 @@ struct ForYouRow: View {
 
     private var relativeTime: String? {
         guard let at = item.at, let date = parseISO(at) else { return nil }
-        // Anything within the last minute (incl. synthetic "now" items like at-capacity,
-        // and minor server clock skew that would read "in 0s") reads as "now".
-        if Date().timeIntervalSince(date) < 60 { return "now" }
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .abbreviated
-        return f.localizedString(for: date, relativeTo: Date())
+        return OperationalDuration.age(since: date)
     }
 
     private func parseISO(_ s: String) -> Date? {

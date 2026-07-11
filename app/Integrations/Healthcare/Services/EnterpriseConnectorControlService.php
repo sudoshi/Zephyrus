@@ -2,19 +2,24 @@
 
 namespace App\Integrations\Healthcare\Services;
 
+use App\Jobs\PollEpicFhirResource;
+use App\Jobs\ReplayPendingIntegrationEvents;
+use App\Jobs\RunIntegrationProtocolHealthCheck;
 use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
+use App\Support\Api\JsonMap;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class EnterpriseConnectorControlService
 {
+    public function __construct(private readonly IntegrationConfigurationAuditService $audit) {}
+
     /** @return array<string,mixed> */
     public function summary(): array
     {
-        $this->seedCatalog();
-
         return [
             'generatedAtIso' => now()->toIso8601String(),
             'counts' => [
@@ -29,115 +34,23 @@ class EnterpriseConnectorControlService
                 'vendorKey' => $row->vendor_key,
                 'label' => $row->label,
                 'systemClass' => $row->system_class,
-                'status' => $row->status,
-                'capabilities' => json_decode($row->capability_payload ?? '{}', true) ?: [],
+                'status' => $this->templateSafeStatus((string) $row->status),
+                'capabilities' => JsonMap::from(json_decode($row->capability_payload ?? '{}', true) ?: []),
                 'implementationSteps' => json_decode($row->implementation_steps ?? '[]', true) ?: [],
             ])->all(),
             'coexistenceAdapters' => DB::table('integration.coexistence_adapters')->orderBy('adapter_key')->get()->map(fn ($row): array => [
                 'adapterKey' => $row->adapter_key,
                 'label' => $row->label,
                 'vendorKey' => $row->vendor_key,
-                'status' => $row->status,
-                'coexistence' => json_decode($row->coexistence_payload ?? '{}', true) ?: [],
+                'status' => $this->templateSafeStatus((string) $row->status),
+                'coexistence' => JsonMap::from(json_decode($row->coexistence_payload ?? '{}', true) ?: []),
             ])->all(),
-        ];
-    }
-
-    /** @param array<string,mixed> $payload */
-    public function discoverFhirCapabilities(array $payload): array
-    {
-        $this->seedCatalog();
-        $source = $this->sourceFor((string) ($payload['source_key'] ?? 'epic.fhir.sandbox'), (string) ($payload['vendor'] ?? 'Epic'));
-        $capabilityStatement = [
-            'resourceType' => 'CapabilityStatement',
-            'status' => 'draft',
-            'fhirVersion' => $payload['fhir_version'] ?? '4.0.1',
-            'rest' => [[
-                'mode' => 'server',
-                'resource' => collect(['Patient', 'Encounter', 'Location', 'Task', 'ServiceRequest'])
-                    ->map(fn (string $resource): array => ['type' => $resource, 'interaction' => [['code' => 'read'], ['code' => 'search-type']]])
-                    ->all(),
-            ]],
-        ];
-
-        $connection = DB::table('integration.fhir_client_connections')->updateOrInsert(
-            [
-                'source_id' => $source->source_id,
-                'connection_key' => 'default-r4',
-            ],
-            [
-                'connection_uuid' => (string) Str::uuid(),
-                'status' => 'discovered',
-                'base_url' => $payload['base_url'] ?? $source->base_url,
-                'fhir_version' => $payload['fhir_version'] ?? '4.0.1',
-                'capability_checked_at' => now(),
-                'capability_statement' => json_encode($capabilityStatement),
-                'polling_payload' => json_encode([
-                    'resources' => ['Encounter', 'Location', 'Task', 'ServiceRequest'],
-                    'backfill_supported' => true,
-                    'polling_supported' => true,
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        foreach (['Patient', 'Encounter', 'Location', 'Task', 'ServiceRequest'] as $resourceType) {
-            DB::table('integration.source_capabilities')->updateOrInsert(
-                [
-                    'source_id' => $source->source_id,
-                    'resource_type' => $resourceType,
-                    'capability_type' => 'fhir_resource',
-                    'operation' => 'search',
-                ],
-                [
-                    'supported' => true,
-                    'metadata' => json_encode(['discovered_by' => 'enterprise_connector_control']),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-        }
-
-        DB::table('integration.smart_backend_credentials')->updateOrInsert(
-            [
-                'source_id' => $source->source_id,
-                'credential_key' => 'backend-services-default',
-            ],
-            [
-                'credential_uuid' => (string) Str::uuid(),
-                'status' => 'planned',
-                'client_id' => $payload['client_id'] ?? null,
-                'jwks_secret_ref' => $payload['jwks_secret_ref'] ?? 'vault://zephyrus/smart/backend-services-default',
-                'token_url' => $payload['token_url'] ?? null,
-                'rotates_at' => now()->addDays(90),
-                'scope_payload' => json_encode(['system/Patient.read', 'system/Encounter.read', 'system/Task.write', 'system/ServiceRequest.write']),
-                'metadata' => json_encode(['credential_lifecycle' => 'planned']),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        $row = DB::table('integration.fhir_client_connections')
-            ->where('source_id', $source->source_id)
-            ->where('connection_key', 'default-r4')
-            ->first();
-
-        return [
-            'sourceId' => $source->source_id,
-            'sourceKey' => $source->source_key,
-            'connectionId' => $row?->fhir_client_connection_id,
-            'connectionStatus' => $row?->status,
-            'fhirVersion' => $row?->fhir_version,
-            'capabilityStatement' => $capabilityStatement,
-            'smartCredentialStatus' => 'planned',
         ];
     }
 
     /** @param array<string,mixed> $payload */
     public function createWritebackDraft(array $payload, ?int $userId): array
     {
-        $this->seedCatalog();
         $resourceType = (string) $payload['resource_type'];
         $targetSystem = (string) ($payload['target_system'] ?? 'fhir');
         $draftType = (string) ($payload['draft_type'] ?? 'fhir_writeback');
@@ -171,7 +84,7 @@ class EnterpriseConnectorControlService
             'owner_name' => 'Integration governance',
             'payload' => [
                 'owner' => 'Integration governance',
-                'route' => '/admin/integrations',
+                'route' => '/integrations',
                 'instruction' => "Review {$resourceType} {$targetSystem} writeback draft before sending.",
                 'resourceType' => $resourceType,
                 'targetSystem' => $targetSystem,
@@ -223,52 +136,180 @@ class EnterpriseConnectorControlService
         ];
     }
 
-    private function seedCatalog(): void
+    /** @return array<string, mixed> */
+    public function queueHealthCheck(int $sourceId, ?int $userId, string $correlationId): array
     {
-        DB::table('integration.interface_engines')->updateOrInsert(
-            ['engine_key' => 'interface-engine-boundary'],
-            [
-                'interface_engine_uuid' => (string) Str::uuid(),
-                'label' => 'Interface Engine Boundary',
-                'engine_type' => 'hl7v2_mllp_gateway',
-                'environment' => 'sandbox',
-                'status' => 'ready',
-                'boundary_payload' => json_encode(['ingress' => 'hl7v2', 'egress' => 'canonical_events', 'ack_mode' => 'application_ack']),
+        return DB::transaction(function () use ($sourceId, $userId, $correlationId): array {
+            $source = DB::table('integration.sources')->where('source_id', $sourceId)->lockForUpdate()->first();
+            abort_unless($source, 404);
+            $interface = strtolower((string) $source->interface_type);
+            if (! str_contains($interface, 'fhir') && ! str_contains($interface, 'hl7')) {
+                abort(422, 'Protocol health checks support FHIR and HL7 v2 sources.');
+            }
+
+            $existing = DB::table('raw.ingest_runs')
+                ->where('source_id', $sourceId)
+                ->where('run_type', 'protocol_health')
+                ->whereIn('status', ['queued', 'running', 'retrying'])
+                ->where('created_at', '>=', now()->subMinutes(10))
+                ->orderByDesc('ingest_run_id')
+                ->first();
+            if ($existing) {
+                return $this->healthRunPayload($existing, false);
+            }
+
+            $runUuid = (string) Str::uuid();
+            $runId = DB::table('raw.ingest_runs')->insertGetId([
+                'run_uuid' => $runUuid,
+                'source_id' => $sourceId,
+                'connector_key' => 'integration.protocol-health',
+                'run_type' => 'protocol_health',
+                'status' => 'queued',
+                'started_at' => now(),
+                'metadata' => json_encode([
+                    'protocol' => $interface,
+                    'correlation_id' => $correlationId,
+                    'requested_by_user_id' => $userId,
+                ], JSON_THROW_ON_ERROR),
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]
-        );
+            ], 'ingest_run_id');
 
-        foreach ($this->playbookCatalog() as $playbook) {
-            DB::table('integration.connector_playbooks')->updateOrInsert(
-                ['vendor_key' => $playbook['vendor_key']],
-                [
-                    'playbook_uuid' => (string) Str::uuid(),
-                    'label' => $playbook['label'],
-                    'system_class' => $playbook['system_class'],
-                    'status' => 'ready',
-                    'capability_payload' => json_encode($playbook['capabilities']),
-                    'implementation_steps' => json_encode($playbook['steps']),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+            $this->audit->record($userId, 'queued', 'protocol_health_check', (int) $runId, $source->source_key, [], [
+                'runUuid' => $runUuid,
+                'sourceId' => $sourceId,
+                'status' => 'queued',
+            ], $correlationId);
+            RunIntegrationProtocolHealthCheck::dispatch((int) $runId, $userId, $correlationId)->afterCommit();
+
+            return $this->healthRunPayload(DB::table('raw.ingest_runs')->where('ingest_run_id', $runId)->first(), true);
+        });
+    }
+
+    /** @return array<string, mixed> */
+    public function queueFhirPoll(int $sourceId, string $resourceType, ?int $userId, string $correlationId): array
+    {
+        if (! in_array($resourceType, ['Encounter', 'Location'], true)) {
+            abort(422, 'The FHIR resource type is not enabled for this operational slice.');
         }
 
-        foreach ($this->coexistenceCatalog() as $adapter) {
-            DB::table('integration.coexistence_adapters')->updateOrInsert(
-                ['adapter_key' => $adapter['adapter_key']],
-                [
-                    'adapter_uuid' => (string) Str::uuid(),
-                    'label' => $adapter['label'],
-                    'vendor_key' => $adapter['vendor_key'],
-                    'status' => 'ready',
-                    'coexistence_payload' => json_encode($adapter['coexistence']),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-        }
+        return DB::transaction(function () use ($sourceId, $resourceType, $userId, $correlationId): array {
+            $source = DB::table('integration.sources')->where('source_id', $sourceId)->lockForUpdate()->first();
+            abort_unless($source, 404);
+            if ($source->active_status !== 'active' || ! str_contains(strtolower((string) $source->interface_type), 'fhir')) {
+                abort(422, 'The FHIR source must be active before polling.');
+            }
+            $connectionReady = DB::table('integration.fhir_client_connections')
+                ->where('source_id', $sourceId)->where('health_status', 'healthy')->exists();
+            $credentialReady = DB::table('integration.smart_backend_credentials')
+                ->where('source_id', $sourceId)->whereIn('status', ['ready', 'active'])->exists();
+            if (! $connectionReady || ! $credentialReady) {
+                abort(422, 'Live discovery and resolved SMART credentials are required before polling.');
+            }
+
+            $connectorKey = 'epic.fhir-r4.'.strtolower($resourceType);
+            $existing = DB::table('raw.ingest_runs')
+                ->where('source_id', $sourceId)
+                ->where('connector_key', $connectorKey)
+                ->where('run_type', 'fhir_poll')
+                ->whereIn('status', ['queued', 'running', 'retrying'])
+                ->where('created_at', '>=', now()->subMinutes(30))
+                ->orderByDesc('ingest_run_id')->first();
+            if ($existing) {
+                return $this->fhirRunPayload($existing, $resourceType, false);
+            }
+
+            $runUuid = (string) Str::uuid();
+            $runId = DB::table('raw.ingest_runs')->insertGetId([
+                'run_uuid' => $runUuid,
+                'source_id' => $sourceId,
+                'connector_key' => $connectorKey,
+                'run_type' => 'fhir_poll',
+                'status' => 'queued',
+                'started_at' => now(),
+                'metadata' => json_encode([
+                    'resource_type' => $resourceType,
+                    'correlation_id' => $correlationId,
+                    'requested_by_user_id' => $userId,
+                ], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'ingest_run_id');
+            $this->audit->record($userId, 'queued', 'fhir_poll', (int) $runId, $source->source_key, [], [
+                'runUuid' => $runUuid,
+                'sourceId' => $sourceId,
+                'resourceType' => $resourceType,
+                'status' => 'queued',
+            ], $correlationId);
+            PollEpicFhirResource::dispatch((int) $runId, $resourceType, $userId, $correlationId)->afterCommit();
+
+            return $this->fhirRunPayload(DB::table('raw.ingest_runs')->where('ingest_run_id', $runId)->first(), $resourceType, true);
+        });
+    }
+
+    /** @param array<string, mixed> $scope @return array<string, mixed> */
+    public function previewReplay(array $scope): array
+    {
+        $normalized = $this->normalizedReplayScope($scope);
+        $query = $this->replayQuery($normalized);
+        $total = (clone $query)->count();
+        $bounds = (clone $query)->selectRaw('min(occurred_at) as oldest, max(occurred_at) as newest')->first();
+        $byType = (clone $query)->selectRaw('event_type, count(*) as aggregate')
+            ->groupBy('event_type')->orderBy('event_type')->get()
+            ->map(fn (object $row): array => ['eventType' => $row->event_type, 'count' => (int) $row->aggregate])->all();
+
+        return [
+            'eligibleEvents' => min($total, $normalized['limit']),
+            'totalMatchingEvents' => $total,
+            'truncated' => $total > $normalized['limit'],
+            'oldestAtIso' => $bounds?->oldest ? CarbonImmutable::parse($bounds->oldest)->toIso8601String() : null,
+            'newestAtIso' => $bounds?->newest ? CarbonImmutable::parse($bounds->newest)->toIso8601String() : null,
+            'byEventType' => $byType,
+            'scope' => $normalized,
+            'mutation' => false,
+        ];
+    }
+
+    /** @param array<string, mixed> $scope @return array<string, mixed> */
+    public function queueReplay(array $scope, string $idempotencyKey, ?int $userId, string $correlationId): array
+    {
+        $normalized = $this->normalizedReplayScope($scope);
+        $requestHash = hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
+
+        return DB::transaction(function () use ($normalized, $idempotencyKey, $requestHash, $userId, $correlationId): array {
+            $existing = DB::table('integration.event_replay_jobs')->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+            if ($existing) {
+                if (! hash_equals((string) $existing->request_hash, $requestHash)) {
+                    abort(409, 'The idempotency key was already used with a different replay scope.');
+                }
+
+                return $this->replayRunPayload($existing, false);
+            }
+
+            $replayUuid = (string) Str::uuid();
+            $replayId = DB::table('integration.event_replay_jobs')->insertGetId([
+                'replay_uuid' => $replayUuid,
+                'replay_type' => 'pending_canonical_projection',
+                'status' => 'queued',
+                'scope' => json_encode($normalized, JSON_THROW_ON_ERROR),
+                'source_id' => $normalized['sourceId'],
+                'requested_by_user_id' => $userId,
+                'idempotency_key' => $idempotencyKey,
+                'request_hash' => $requestHash,
+                'dry_run' => false,
+                'metadata' => json_encode(['correlation_id' => $correlationId], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'event_replay_job_id');
+            $this->audit->record($userId, 'queued', 'canonical_event_replay', (int) $replayId, $replayUuid, [], [
+                'replayUuid' => $replayUuid,
+                'scope' => $normalized,
+                'status' => 'queued',
+            ], $correlationId);
+            ReplayPendingIntegrationEvents::dispatch((int) $replayId, $userId, $correlationId)->afterCommit();
+
+            return $this->replayRunPayload(DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $replayId)->first(), true);
+        });
     }
 
     private function sourceFor(string $sourceKey, string $vendor): object
@@ -303,21 +344,71 @@ class EnterpriseConnectorControlService
         return DB::table('integration.sources')->where('source_key', $sourceKey)->first();
     }
 
-    private function playbookCatalog(): array
+    private function templateSafeStatus(string $status): string
+    {
+        return $status;
+    }
+
+    /** @return array<string, mixed> */
+    private function healthRunPayload(object $run, bool $created): array
     {
         return [
-            ['vendor_key' => 'epic', 'label' => 'Epic Connector Playbook', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => true, 'smart_backend' => true], 'steps' => ['Confirm BAA and interface scope', 'Register backend-services client', 'Validate ADT and FHIR read scopes', 'Stage approval-gated Task writeback']],
-            ['vendor_key' => 'oracle_health', 'label' => 'Oracle Health Connector Playbook', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => true, 'smart_backend' => true], 'steps' => ['Confirm Millennium environment', 'Discover FHIR capability statement', 'Configure interface-engine ADT feed', 'Stage ServiceRequest writeback']],
-            ['vendor_key' => 'meditech', 'label' => 'MEDITECH Connector Playbook', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => 'site_dependent'], 'steps' => ['Confirm Expanse integration path', 'Map ADT and location codes', 'Validate polling backfill windows', 'Keep writeback in draft-only mode until certified']],
+            'runId' => (int) $run->ingest_run_id,
+            'runUuid' => $run->run_uuid,
+            'status' => $run->status,
+            'created' => $created,
         ];
     }
 
-    private function coexistenceCatalog(): array
+    /** @return array<string, mixed> */
+    private function fhirRunPayload(object $run, string $resourceType, bool $created): array
+    {
+        return array_merge($this->healthRunPayload($run, $created), ['resourceType' => $resourceType]);
+    }
+
+    /** @param array<string, mixed> $scope @return array<string, mixed> */
+    private function normalizedReplayScope(array $scope): array
+    {
+        $from = CarbonImmutable::parse((string) $scope['from']);
+        $to = CarbonImmutable::parse((string) $scope['to']);
+        if ($to->lessThan($from) || $from->diffInDays($to) > 7) {
+            abort(422, 'Replay windows must be ordered and no longer than seven days.');
+        }
+        $supported = ['EncounterStarted', 'EncounterTransferred', 'EncounterDischarged', 'BedStatusChanged', 'AcuityChanged'];
+        $requested = array_values(array_unique(array_map('strval', $scope['event_types'] ?? $supported)));
+        if (array_diff($requested, $supported) !== []) {
+            abort(422, 'The replay includes an unsupported canonical event type.');
+        }
+        sort($requested);
+
+        return [
+            'sourceId' => isset($scope['source_id']) ? (int) $scope['source_id'] : null,
+            'from' => $from->toIso8601String(),
+            'to' => $to->toIso8601String(),
+            'eventTypes' => $requested,
+            'projectionStatuses' => ['pending', 'failed'],
+            'limit' => min(1000, max(1, (int) ($scope['limit'] ?? 500))),
+        ];
+    }
+
+    /** @param array<string, mixed> $scope */
+    private function replayQuery(array $scope): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('integration.canonical_events')
+            ->when($scope['sourceId'], fn ($query, $sourceId) => $query->where('source_id', $sourceId))
+            ->whereBetween('occurred_at', [$scope['from'], $scope['to']])
+            ->whereIn('event_type', $scope['eventTypes'])
+            ->whereIn('projection_status', $scope['projectionStatuses']);
+    }
+
+    /** @return array<string, mixed> */
+    private function replayRunPayload(object $row, bool $created): array
     {
         return [
-            ['adapter_key' => 'teletracking_coexistence', 'label' => 'TeleTracking Coexistence Adapter', 'vendor_key' => 'teletracking', 'coexistence' => ['mode' => 'read_and_reconcile', 'events' => ['bed_status', 'transport', 'placement']]],
-            ['adapter_key' => 'qventus_coexistence', 'label' => 'Qventus Coexistence Adapter', 'vendor_key' => 'qventus', 'coexistence' => ['mode' => 'recommendation_context', 'events' => ['discharge_prediction', 'capacity_action']]],
-            ['adapter_key' => 'leantaas_coexistence', 'label' => 'LeanTaaS Coexistence Adapter', 'vendor_key' => 'leantaas', 'coexistence' => ['mode' => 'schedule_and_capacity_context', 'events' => ['or_block', 'infusion_capacity', 'inpatient_flow']]],
+            'replayJobId' => (int) $row->event_replay_job_id,
+            'replayUuid' => $row->replay_uuid,
+            'status' => $row->status,
+            'created' => $created,
         ];
     }
 }

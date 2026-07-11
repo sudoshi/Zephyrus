@@ -108,7 +108,7 @@ class SharedDtoFixtureDecodeTest {
         val doc = api.parseFlowFloors(fixture("mobile-flow-floors.json"))
 
         assertTrue(doc.floors.isNotEmpty())
-        assertEquals("v1-2b3e9f90ad5d", doc.version)
+        assertEquals("v1-a8f91dc9a9e4", doc.version)
         val floor3 = doc.floors.first { it.floor == 3 }
         assertEquals(4, floor3.bounds.size)
         assertEquals(4, floor3.spaces.size)
@@ -118,16 +118,86 @@ class SharedDtoFixtureDecodeTest {
         assertEquals(4, bed.rect.size)
     }
 
+    @Test
+    fun mobilePostIdempotencyKeysAreDeterministic() {
+        val first = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/rtdc/barriers/42/resolve",
+            "{}",
+        )
+        val replay = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/rtdc/barriers/42/resolve",
+            "{}",
+        )
+        val differentBody = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/rtdc/barriers/42/resolve",
+            "{\"reason\":\"changed\"}",
+        )
+        val lifecycleV3 = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/transport/requests/42/status",
+            "{\"status\":\"dispatched\",\"lifecycle_version\":3}",
+        )
+        val lifecycleV5 = api.mobileIdempotencyKey(
+            "POST",
+            "/api/mobile/v1/transport/requests/42/status",
+            "{\"status\":\"dispatched\",\"lifecycle_version\":5}",
+        )
+
+        assertEquals(first, replay)
+        assertTrue(first!!.startsWith("hb-"))
+        assertTrue(first != differentBody)
+        assertTrue(lifecycleV3 != lifecycleV5)
+        assertEquals(null, api.mobileIdempotencyKey("GET", "/api/mobile/v1/activity", null))
+        assertEquals(null, api.mobileIdempotencyKey("POST", "/api/auth/token", "{}",))
+    }
+
+    @Test
+    fun decodesCanonicalStaffingCandidateSafetyState() {
+        val candidate = api.parseStaffingCandidate(JSONObject("""
+            {
+              "staff_member_id": 42,
+              "display_name": "Avery Adams",
+              "role_label": "Staff Nurse",
+              "eligible": false,
+              "eligibility_state": "conflicted",
+              "reason_codes": ["overlapping_shift_assignment"],
+              "overlapping_assignments": 1
+            }
+        """.trimIndent()))
+
+        assertEquals(42, candidate.staffMemberId)
+        assertEquals("Avery Adams", candidate.displayName)
+        assertEquals("conflicted", candidate.eligibilityState)
+        assertEquals(listOf("overlapping_shift_assignment"), candidate.reasonCodes)
+        assertEquals(1, candidate.overlappingAssignments)
+    }
+
+    @Test
+    fun decodesGovernedTransportJobAndCursorState() {
+        val queue = api.parseTransportQueue(fixture("mobile-transport-queue.json"))
+
+        val job = queue.jobs.single()
+        assertTrue(job.claimedByMe)
+        assertTrue(job.handoffRequired)
+        assertEquals(listOf("dispatched", "escalated", "failed"), job.allowedTransitions)
+        assertEquals(3, job.lifecycleVersion)
+        assertTrue(queue.nextCursor!!.isNotBlank())
+        assertTrue(queue.hasMore)
+    }
+
     private fun fixture(filename: String): JSONObject =
         JSONObject(File(repoRoot(), "docs/hummingbird/api-contract/fixtures/$filename").readText())
 
     private fun repoRoot(): File {
-        var cursor = File(System.getProperty("user.dir")).absoluteFile
-        while (cursor.parentFile != null) {
+        var cursor = File(System.getProperty("user.dir") ?: ".").absoluteFile
+        while (true) {
             if (File(cursor, "docs/hummingbird/api-contract/fixtures").isDirectory) {
                 return cursor
             }
-            cursor = cursor.parentFile
+            cursor = cursor.parentFile ?: break
         }
         error("Unable to locate repository root from ${System.getProperty("user.dir")}")
     }

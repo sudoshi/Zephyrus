@@ -6,6 +6,7 @@ import {
   AlertCircle, Clock, TrendingUp, TrendingDown,
   AlertTriangle, Activity
 } from 'lucide-react';
+import { formatProcessDuration } from '@/Components/Process/formatDuration';
 
 const Bottlenecks = ({ bottlenecks = null }) => {
   // Fallback mock data — used only when the server prop is absent/empty so the
@@ -295,7 +296,7 @@ const Bottlenecks = ({ bottlenecks = null }) => {
                           Score: {item.impactScore.toFixed(1)}
                         </div>
                         <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
-                          Avg Delay: {item.avgDelay}
+                          Avg Delay: {formatProcessDuration(item.avgDelay)}
                         </div>
                         <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           Stress Level: {Array(item.stressScore).fill('●').join('')}
@@ -333,7 +334,7 @@ const Bottlenecks = ({ bottlenecks = null }) => {
                         <div className="font-medium text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{item.resource}</div>
                         <div className="flex items-center gap-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mt-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-healthcare-background dark:bg-healthcare-background-dark">
-                            {item.responseTime}
+                            {formatProcessDuration(item.responseTime)}
                           </span>
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-healthcare-background dark:bg-healthcare-background-dark">
                             {item.completionRate}

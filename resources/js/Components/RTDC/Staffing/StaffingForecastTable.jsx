@@ -1,5 +1,12 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import { formatDurationHours } from '@/lib/duration';
+
+const formatForecastTime = (value) => {
+    const match = String(value).match(/^Now\+(\d+(?:\.\d+)?)h$/i);
+
+    return match ? `Now + ${formatDurationHours(Number(match[1]))}` : value;
+};
 
 const ConfidenceIndicator = ({ level }) => {
     if (level >= 90) {
@@ -46,7 +53,7 @@ const StaffingForecastTable = ({ forecasts }) => {
                             className="hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
                         >
                             <td className="py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark whitespace-nowrap">
-                                {forecast.time}
+                                {formatForecastTime(forecast.time)}
                             </td>
                             <td className="py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                 {forecast.department}

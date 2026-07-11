@@ -4,6 +4,7 @@ namespace App\Services\Transport;
 
 use App\Models\Transport\TransportEvent;
 use App\Models\Transport\TransportRequest;
+use App\Support\Operations\DurationFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -735,7 +736,7 @@ class RegionalTransferService
                 'matched_capabilities' => $matched,
                 'required_capabilities' => $required,
                 'capacity_signal' => "{$availableBeds} beds / {$icuBeds} ICU",
-                'transport_signal' => "{$transportMinutes} min",
+                'transport_signal' => DurationFormatter::minutes($transportMinutes),
             ],
         ];
     }

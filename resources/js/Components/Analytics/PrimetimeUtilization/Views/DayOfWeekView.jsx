@@ -4,6 +4,7 @@ import Panel from '../../../ui/Panel';
 import { Icon } from '@iconify/react';
 import { useDarkMode } from '@/Contexts/DarkModeContext';
 import getChartTheme from '@/utils/chartTheme';
+import { formatDurationMinutes } from '@/lib/duration';
 
 // Create a custom heatmap component to avoid defaultProps warnings
 const CustomHeatMap = ({
@@ -177,11 +178,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.7, 
       afternoonPreference: 0.5,
       procedures: [
-        { name: 'Total Knee Replacement', duration: '2.5 hrs', complexity: 'high' },
-        { name: 'ACL Reconstruction', duration: '1.5 hrs', complexity: 'medium' },
-        { name: 'Hip Replacement', duration: '3 hrs', complexity: 'high' },
-        { name: 'Shoulder Arthroscopy', duration: '1 hr', complexity: 'medium' },
-        { name: 'Carpal Tunnel Release', duration: '45 min', complexity: 'low' }
+        { name: 'Total Knee Replacement', duration: 150, complexity: 'high' },
+        { name: 'ACL Reconstruction', duration: 90, complexity: 'medium' },
+        { name: 'Hip Replacement', duration: 180, complexity: 'high' },
+        { name: 'Shoulder Arthroscopy', duration: 60, complexity: 'medium' },
+        { name: 'Carpal Tunnel Release', duration: 45, complexity: 'low' }
       ]
     },
     'General Surgery': { 
@@ -190,11 +191,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.6, 
       afternoonPreference: 0.6,
       procedures: [
-        { name: 'Laparoscopic Cholecystectomy', duration: '1 hr', complexity: 'medium' },
-        { name: 'Appendectomy', duration: '45 min', complexity: 'medium' },
-        { name: 'Hernia Repair', duration: '1.5 hrs', complexity: 'medium' },
-        { name: 'Colon Resection', duration: '3 hrs', complexity: 'high' },
-        { name: 'Breast Biopsy', duration: '30 min', complexity: 'low' }
+        { name: 'Laparoscopic Cholecystectomy', duration: 60, complexity: 'medium' },
+        { name: 'Appendectomy', duration: 45, complexity: 'medium' },
+        { name: 'Hernia Repair', duration: 90, complexity: 'medium' },
+        { name: 'Colon Resection', duration: 180, complexity: 'high' },
+        { name: 'Breast Biopsy', duration: 30, complexity: 'low' }
       ]
     },
     'Neurosurgery': { 
@@ -203,11 +204,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.8, 
       afternoonPreference: 0.3,
       procedures: [
-        { name: 'Craniotomy', duration: '4 hrs', complexity: 'high' },
-        { name: 'Spinal Fusion', duration: '3.5 hrs', complexity: 'high' },
-        { name: 'Laminectomy', duration: '2 hrs', complexity: 'medium' },
-        { name: 'Brain Tumor Resection', duration: '5 hrs', complexity: 'high' },
-        { name: 'Microdiscectomy', duration: '1.5 hrs', complexity: 'medium' }
+        { name: 'Craniotomy', duration: 240, complexity: 'high' },
+        { name: 'Spinal Fusion', duration: 210, complexity: 'high' },
+        { name: 'Laminectomy', duration: 120, complexity: 'medium' },
+        { name: 'Brain Tumor Resection', duration: 300, complexity: 'high' },
+        { name: 'Microdiscectomy', duration: 90, complexity: 'medium' }
       ]
     },
     'Cardiothoracic': { 
@@ -216,11 +217,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.9, 
       afternoonPreference: 0.2,
       procedures: [
-        { name: 'CABG', duration: '4 hrs', complexity: 'high' },
-        { name: 'Valve Replacement', duration: '3.5 hrs', complexity: 'high' },
-        { name: 'Lung Resection', duration: '3 hrs', complexity: 'high' },
-        { name: 'Aortic Aneurysm Repair', duration: '5 hrs', complexity: 'high' },
-        { name: 'Pacemaker Insertion', duration: '1 hr', complexity: 'medium' }
+        { name: 'CABG', duration: 240, complexity: 'high' },
+        { name: 'Valve Replacement', duration: 210, complexity: 'high' },
+        { name: 'Lung Resection', duration: 180, complexity: 'high' },
+        { name: 'Aortic Aneurysm Repair', duration: 300, complexity: 'high' },
+        { name: 'Pacemaker Insertion', duration: 60, complexity: 'medium' }
       ]
     },
     'ENT': { 
@@ -229,11 +230,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.5, 
       afternoonPreference: 0.7,
       procedures: [
-        { name: 'Tonsillectomy', duration: '45 min', complexity: 'low' },
-        { name: 'Septoplasty', duration: '1.5 hrs', complexity: 'medium' },
-        { name: 'Thyroidectomy', duration: '2 hrs', complexity: 'medium' },
-        { name: 'Mastoidectomy', duration: '2.5 hrs', complexity: 'high' },
-        { name: 'Endoscopic Sinus Surgery', duration: '1 hr', complexity: 'medium' }
+        { name: 'Tonsillectomy', duration: 45, complexity: 'low' },
+        { name: 'Septoplasty', duration: 90, complexity: 'medium' },
+        { name: 'Thyroidectomy', duration: 120, complexity: 'medium' },
+        { name: 'Mastoidectomy', duration: 150, complexity: 'high' },
+        { name: 'Endoscopic Sinus Surgery', duration: 60, complexity: 'medium' }
       ]
     },
     'Ophthalmology': { 
@@ -242,11 +243,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.6, 
       afternoonPreference: 0.6,
       procedures: [
-        { name: 'Cataract Surgery', duration: '30 min', complexity: 'low' },
-        { name: 'Vitrectomy', duration: '1.5 hrs', complexity: 'medium' },
-        { name: 'Glaucoma Surgery', duration: '1 hr', complexity: 'medium' },
-        { name: 'Corneal Transplant', duration: '2 hrs', complexity: 'high' },
-        { name: 'Strabismus Correction', duration: '1 hr', complexity: 'medium' }
+        { name: 'Cataract Surgery', duration: 30, complexity: 'low' },
+        { name: 'Vitrectomy', duration: 90, complexity: 'medium' },
+        { name: 'Glaucoma Surgery', duration: 60, complexity: 'medium' },
+        { name: 'Corneal Transplant', duration: 120, complexity: 'high' },
+        { name: 'Strabismus Correction', duration: 60, complexity: 'medium' }
       ]
     },
     'Urology': { 
@@ -255,11 +256,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.5, 
       afternoonPreference: 0.7,
       procedures: [
-        { name: 'TURP', duration: '1 hr', complexity: 'medium' },
-        { name: 'Nephrectomy', duration: '3 hrs', complexity: 'high' },
-        { name: 'Cystoscopy', duration: '30 min', complexity: 'low' },
-        { name: 'Prostatectomy', duration: '2.5 hrs', complexity: 'high' },
-        { name: 'Ureteroscopy', duration: '1 hr', complexity: 'medium' }
+        { name: 'TURP', duration: 60, complexity: 'medium' },
+        { name: 'Nephrectomy', duration: 180, complexity: 'high' },
+        { name: 'Cystoscopy', duration: 30, complexity: 'low' },
+        { name: 'Prostatectomy', duration: 150, complexity: 'high' },
+        { name: 'Ureteroscopy', duration: 60, complexity: 'medium' }
       ]
     },
     'Plastic Surgery': { 
@@ -268,11 +269,11 @@ const DayOfWeekView = ({ filters, data }) => {
       morningPreference: 0.4, 
       afternoonPreference: 0.8,
       procedures: [
-        { name: 'Breast Reconstruction', duration: '3 hrs', complexity: 'high' },
-        { name: 'Rhinoplasty', duration: '2 hrs', complexity: 'medium' },
-        { name: 'Facial Reconstruction', duration: '4 hrs', complexity: 'high' },
-        { name: 'Skin Grafting', duration: '1.5 hrs', complexity: 'medium' },
-        { name: 'Liposuction', duration: '2 hrs', complexity: 'medium' }
+        { name: 'Breast Reconstruction', duration: 180, complexity: 'high' },
+        { name: 'Rhinoplasty', duration: 120, complexity: 'medium' },
+        { name: 'Facial Reconstruction', duration: 240, complexity: 'high' },
+        { name: 'Skin Grafting', duration: 90, complexity: 'medium' },
+        { name: 'Liposuction', duration: 120, complexity: 'medium' }
       ]
     }
   };
@@ -824,7 +825,7 @@ const DayOfWeekView = ({ filters, data }) => {
                                   {procedure.count}
                                 </td>
                                 <td className="px-6 py-4">
-                                  {procedure.duration}
+                                  {formatDurationMinutes(procedure.duration)}
                                 </td>
                               </tr>
                             ))

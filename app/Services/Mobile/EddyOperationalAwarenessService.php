@@ -3,6 +3,10 @@
 namespace App\Services\Mobile;
 
 use App\Models\User;
+use App\Services\Flow\FlowLensService;
+use App\Services\PatientFlow\PatientFlowOccupancyContextService;
+use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -13,6 +17,8 @@ class EddyOperationalAwarenessService
         private readonly OperationalActivityLedger $ledger,
         private readonly MobilePatientContextService $patients,
         private readonly MobilePersonaCatalog $personas,
+        private readonly FlowLensService $flowLens,
+        private readonly PatientFlowOccupancyContextService $patientFlow,
     ) {}
 
     /** @return array<string, mixed> */
@@ -20,8 +26,15 @@ class EddyOperationalAwarenessService
     {
         $roleId = $this->personas->normalize($roleId, $user);
         $event = $this->ledger->findByUuid($scopeRef);
-        $scopeType = $event ? 'event' : 'patient_or_scope';
         $safeScopeRef = $this->safeScopeRef($scopeRef, $event);
+        $context = $event
+            ? ['event' => $event, 'activity' => [$event]]
+            : $this->scopeContext($safeScopeRef, $user, $roleId);
+        $scopeType = match (true) {
+            $event !== null => 'event',
+            isset($context['patient_flow_4d']) => 'patient_flow_4d',
+            default => 'patient_or_scope',
+        };
 
         $payload = [
             'scope_ref' => $safeScopeRef,
@@ -34,9 +47,7 @@ class EddyOperationalAwarenessService
                 'drafts_only' => true,
                 'ops_approve_not_available' => true,
             ],
-            'context' => $event
-                ? ['event' => $event, 'activity' => [$event]]
-                : $this->scopeContext($safeScopeRef, $user, $roleId),
+            'context' => $context,
             'questions_supported' => [
                 'what_changed',
                 'who_acted',
@@ -67,10 +78,44 @@ class EddyOperationalAwarenessService
             ];
         }
 
+        $activity = $this->ledger->feed($user, $roleId, null, 25)['data'];
+        $patientFlow = $this->patientFlowContext($scopeRef, $user, $roleId);
+        if ($patientFlow !== null) {
+            return [
+                'patient_flow_4d' => $patientFlow,
+                'activity' => $activity,
+                'phi_minimized' => true,
+            ];
+        }
+
         return [
-            'activity' => $this->ledger->feed($user, $roleId, null, 25)['data'],
+            'activity' => $activity,
             'phi_minimized' => true,
         ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function patientFlowContext(string $scopeRef, ?User $user, string $roleId): ?array
+    {
+        try {
+            $lens = $this->flowLens->lensFor($roleId);
+            $scope = $this->flowLens->resolveScope($lens, $scopeRef, $user);
+        } catch (AuthorizationException) {
+            return null;
+        }
+
+        if (! in_array($scope['type'], ['house', 'floor'], true)) {
+            return null;
+        }
+
+        $filters = ['limit' => 20000];
+        if ($scope['type'] === 'floor') {
+            $filters['floor'] = $scope['floor'];
+        }
+
+        $packet = $this->patientFlow->build($lens, $roleId, CarbonImmutable::now(), $filters, includeEddyContext: true);
+
+        return is_array($packet['eddy_context'] ?? null) ? $packet['eddy_context'] : null;
     }
 
     /** @param array<string, mixed>|null $event */
@@ -80,9 +125,23 @@ class EddyOperationalAwarenessService
             return $scopeRef;
         }
 
+        if ($this->isFlowScopeRef($scopeRef)) {
+            return $scopeRef;
+        }
+
         $patientRef = $this->patients->resolvePatientRef($scopeRef);
 
-        return $patientRef ? (string) $this->patients->contextRefFor($patientRef) : $scopeRef;
+        return $patientRef && $this->patients->hasPatientContext($patientRef)
+            ? (string) $this->patients->contextRefFor($patientRef)
+            : $scopeRef;
+    }
+
+    private function isFlowScopeRef(string $scopeRef): bool
+    {
+        return $scopeRef === 'house'
+            || str_starts_with($scopeRef, 'floor:')
+            || str_starts_with($scopeRef, 'unit:')
+            || str_starts_with($scopeRef, 'patient:');
     }
 
     /** @return array<string, mixed> */

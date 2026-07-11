@@ -11,13 +11,16 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class OcelSource(BaseModel):
-    """Where to read the OCEL 2.0 log from. Exactly one of the fields is used;
-    `ocel_path` (a shared-volume export) is preferred, `ocel` inlines the doc for
-    a fully stateless call, and omitting both falls back to the configured
-    default export path."""
+    """Where to read the OCEL 2.0 log from, plus an optional filter pipeline.
+
+    Exactly one source is used: `ocel_path` (a shared-volume export) is preferred,
+    `ocel` inlines the doc for a fully stateless call, and omitting both falls back
+    to the configured default export path. `filters` is an ordered list of filter
+    specs (each an object with a `kind` discriminator) applied before analysis."""
 
     ocel_path: str | None = Field(default=None, description="path to an OCEL 2.0 JSON file readable by the sidecar")
     ocel: dict[str, Any] | None = Field(default=None, description="an inline OCEL 2.0 JSON document")
+    filters: list[dict[str, Any]] | None = Field(default=None, description="ordered OCEL filter pipeline; each item has a 'kind' discriminator")
 
 
 class DiscoverRequest(OcelSource):
@@ -159,3 +162,71 @@ class ModelFitnessResponse(BaseModel):
     invented_edges: list[FitnessEvidenceEdge]  # proposed arcs the log never exhibits
     missing_edges: list[FitnessEvidenceEdge]    # busy real arcs the model omits (top by frequency)
     reason: str | None = None            # why withheld: empty_model | no_reference_behavior | below_fitness_floor
+
+    # --- XO.2 additive structural cross-check (default-empty => non-breaking) ---
+    structural_fitness_by_type: dict[str, float] = Field(default_factory=dict)
+    structural_warnings: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PetriNetRequest(OcelSource):
+    """OC Petri-net discovery request. Inherits the OCEL source + filter pipeline."""
+
+
+class PetriNetPlace(BaseModel):
+    id: str
+    initial: bool
+    final: bool
+
+
+class PetriNetTransition(BaseModel):
+    id: str
+    label: str | None  # null => silent (tau) transition
+
+
+class PetriNetArc(BaseModel):
+    source: str
+    target: str
+    variable: bool  # variable arc => synchronization across object counts
+    weight: int
+
+
+class PetriNetSubnet(BaseModel):
+    object_type: str
+    places: list[PetriNetPlace]
+    transitions: list[PetriNetTransition]
+    arcs: list[PetriNetArc]
+
+
+class PetriNetResponse(BaseModel):
+    object_types: list[str]
+    nets: list[PetriNetSubnet]
+    stats: dict[str, int]
+
+
+class CapacityRequest(BaseModel):
+    """A QEL payload ({initial, operations}) + optional item-type / threshold. No
+    OCEL doc needed — capacity is computed from quantity operations alone."""
+
+    quantities: dict[str, Any]
+    item_type: str | None = Field(default=None, description="restrict to one quantity item type, e.g. occupied_beds")
+    threshold: int | None = Field(default=None, description="count series points above this value")
+
+
+class CapacityPoint(BaseModel):
+    time: str
+    value: int
+
+
+class CapacityObject(BaseModel):
+    object_id: str
+    item_type: str
+    series: list[CapacityPoint]
+    peak: int
+    nadir: int
+    current: int
+    periods_above_threshold: int | None = None
+
+
+class CapacityResponse(BaseModel):
+    objects: list[CapacityObject]
+    stats: dict[str, int]

@@ -60,6 +60,7 @@ import net.acumenus.hummingbird.data.ORMetrics
 import net.acumenus.hummingbird.data.ORNextInfo
 import net.acumenus.hummingbird.data.ORRoom
 import net.acumenus.hummingbird.ui.components.RetryableMessage
+import net.acumenus.hummingbird.ui.components.formatOperationalMinutes
 import net.acumenus.hummingbird.ui.components.panel
 import net.acumenus.hummingbird.ui.flow.FlowBoardMode
 import net.acumenus.hummingbird.ui.flow.FlowMapScreen
@@ -225,14 +226,21 @@ private fun ORMetricsRow(metrics: ORMetrics) {
         ORMetricDivider()
         ORMetricCell(metrics.available.toString(), "Open", null)
         ORMetricDivider()
-        ORMetricCell("${metrics.avgTurnoverMin}m", "Turnover avg", null)
+        ORMetricCell(formatOperationalMinutes(metrics.avgTurnoverMin), "Turnover avg", null, duration = true)
     }
 }
 
 @Composable
-private fun RowScope.ORMetricCell(value: String, label: String, tone: CapacityStatus?) {
+private fun RowScope.ORMetricCell(value: String, label: String, tone: CapacityStatus?, duration: Boolean = false) {
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, color = tone?.color ?: Z.ink, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
+        Text(
+            value,
+            color = tone?.color ?: Z.ink,
+            fontSize = if (duration) 15.sp else 24.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 2,
+        )
         Text(label, color = Z.inkMuted, fontSize = 11.sp)
     }
 }
@@ -260,7 +268,7 @@ private fun ORRoomRow(room: ORRoom, onClick: () -> Unit) {
             }
             room.current?.let { current ->
                 Text(current.procedure, color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${current.surgeon} / ${current.elapsed}m elapsed of ${current.expectedDuration}m", color = Z.inkMuted, fontSize = 12.sp)
+                Text("${current.surgeon} / ${formatOperationalMinutes(current.elapsed)} elapsed of ${formatOperationalMinutes(current.expectedDuration)}", color = Z.inkMuted, fontSize = 12.sp)
             } ?: room.next?.let { next ->
                 Text("Next: ${next.procedure}", color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 next.startTime?.let { Text("scheduled $it", color = Z.inkMuted, fontSize = 12.sp) }
@@ -274,8 +282,8 @@ private fun ORRoomRow(room: ORRoom, onClick: () -> Unit) {
 @Composable
 private fun ORRoomTiming(room: ORRoom) {
     val text = when {
-        room.current != null && room.timeRemaining != null -> "~${room.timeRemaining}m left"
-        room.status == "turnover" && room.turnoverMin != null -> "ready ~${room.turnoverMin}m"
+        room.current != null && room.timeRemaining != null -> "~${formatOperationalMinutes(room.timeRemaining)} left"
+        room.status == "turnover" && room.turnoverMin != null -> "ready ~${formatOperationalMinutes(room.turnoverMin)}"
         else -> null
     }
     text?.let {
@@ -302,7 +310,7 @@ private fun CurrentCaseCard(current: ORCaseInfo, room: ORRoom) {
     Column(Modifier.fillMaxWidth().panel().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Current case", color = Z.inkMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         Text(current.procedure, color = Z.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-        Text("${current.surgeon} / ${current.elapsed}m elapsed of ${current.expectedDuration}m", color = Z.inkMuted, fontSize = 13.sp)
+        Text("${current.surgeon} / ${formatOperationalMinutes(current.elapsed)} elapsed of ${formatOperationalMinutes(current.expectedDuration)}", color = Z.inkMuted, fontSize = 13.sp)
         LinearProgressIndicator(progress = currentCaseProgress(current), modifier = Modifier.fillMaxWidth(), color = room.capacity.color, trackColor = Z.border)
         current.expectedEnd?.let { Text("Expected end $it", color = Z.inkMuted, fontSize = 12.sp) }
     }

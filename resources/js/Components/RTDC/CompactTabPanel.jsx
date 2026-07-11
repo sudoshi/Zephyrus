@@ -118,12 +118,12 @@ const CompactTabPanel = ({ alerts, alertStats, bedTypes, staffingData }) => {
                                         `}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-3">
+                                            <div className="flex items-center space-x-3 text-base">
                                                 <Icon 
                                                     icon={alert.type === 'critical' ? 'heroicons:exclamation-triangle' : 
                                                           alert.type === 'warning' ? 'heroicons:exclamation-circle' : 
                                                           'heroicons:information-circle'} 
-                                                    className={`${alert.type === 'info' ? 'w-10 h-10' : 'w-5 h-5'} ${
+                                                    className={`${alert.type === 'info' ? 'panel-label-icon' : 'w-5 h-5'} ${
                                                         alert.type === 'critical' ? 'text-healthcare-critical' :
                                                         alert.type === 'warning' ? 'text-healthcare-warning' :
                                                         'text-healthcare-info'

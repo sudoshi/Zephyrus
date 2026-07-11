@@ -4,6 +4,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ServiceAnalysisView = ({ filters, data }) => {
   const mockRoomRunning = data;
@@ -182,7 +183,7 @@ const ServiceAnalysisView = ({ filters, data }) => {
             data={serviceComparisonData}
             keys={['Avg. Case Duration']}
             indexBy="service"
-            margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 20, bottom: 50, left: 125 }}
             padding={0.3}
             valueScale={{ type: 'linear' }}
             indexScale={{ type: 'band', round: true }}
@@ -202,10 +203,13 @@ const ServiceAnalysisView = ({ filters, data }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Average Case Duration (min)',
+              legend: 'Average Case Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}

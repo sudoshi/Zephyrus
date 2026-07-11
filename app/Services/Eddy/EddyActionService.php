@@ -7,6 +7,7 @@ use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
 use App\Services\Ops\OperationalActionLifecycleService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -81,12 +82,86 @@ class EddyActionService
 
     public function catalog(): array
     {
-        return self::CATALOG;
+        $catalog = [];
+        foreach (self::CATALOG as $actionType => $spec) {
+            $catalog[$actionType] = $this->catalogEntry($actionType, $spec);
+        }
+
+        return $catalog;
     }
 
     public function isProposable(string $actionType): bool
     {
         return array_key_exists($actionType, self::CATALOG);
+    }
+
+    public function minimumRoleForAction(string $actionType): string
+    {
+        if (! $this->isProposable($actionType)) {
+            throw new InvalidArgumentException("Action type [{$actionType}] is not proposable by Eddy.");
+        }
+
+        return $this->minimumRole(self::CATALOG[$actionType]);
+    }
+
+    public function userMeetsMinimumRole(User $actor, string $actionType, ?string $roleOverride = null): bool
+    {
+        $minimum = $this->minimumRoleForAction($actionType);
+
+        return $this->highestRoleRank($actor, $roleOverride) >= $this->roleRank($minimum);
+    }
+
+    /**
+     * @param  array<string, mixed>  $spec
+     * @return array<string, mixed>
+     */
+    private function catalogEntry(string $actionType, array $spec): array
+    {
+        return $spec + [
+            'minimum_role' => $this->minimumRole($spec),
+            'scope' => [
+                'allowed_surfaces' => ['house', 'dashboard', 'rtdc', 'patient_flow_4d', 'transport', 'evs', 'staffing', 'periop', 'quality'],
+                'requires_scope_key' => false,
+            ],
+            'write_tier' => $spec['tier'],
+            'phi_policy' => [
+                'patient_identifiers_allowed' => false,
+                'prompt_policy' => 'phi_minimized',
+                'push_payload_policy' => 'phi_free_doorbell_only',
+            ],
+            'dry_run' => [
+                'required' => true,
+                'preview_fields' => ['title', 'rationale', 'runner_up', 'params'],
+            ],
+            'execution_adapter' => [
+                'type' => 'governance_lifecycle',
+                'adapter' => OperationalActionLifecycleService::class,
+                'direct_domain_mutation' => false,
+            ],
+            'rollback' => [
+                'classification' => 'approval_reversible_before_execution',
+                'procedure' => 'Reject the pending approval or override/expire the operational action before execution.',
+            ],
+            'audit' => [
+                'records' => ['ops.recommendations', 'ops.actions', 'ops.approvals'],
+                'decision_event' => 'ops.approvals.decision',
+                'created_by_source' => 'eddy',
+            ],
+            'mobile_available' => true,
+            'requires_human_approval' => true,
+            'draft_only_for_agent_tokens' => true,
+            'action_type' => $actionType,
+        ];
+    }
+
+    /** @param array<string, mixed> $spec */
+    private function minimumRole(array $spec): string
+    {
+        return match ($spec['tier'] ?? 'T1') {
+            'T3' => 'capacity_lead',
+            'T2' => 'bed_manager',
+            default => 'user',
+        };
     }
 
     /**
@@ -107,6 +182,10 @@ class EddyActionService
         }
 
         $spec = self::CATALOG[$actionType];
+        if (! $this->userMeetsMinimumRole($actor, $actionType)) {
+            throw new AuthorizationException("The {$this->minimumRole($spec)} role is required to propose {$actionType}.");
+        }
+
         $title = trim((string) ($proposal['title'] ?? $spec['label']));
         $surface = (string) ($proposal['surface'] ?? 'house');
 
@@ -208,5 +287,35 @@ class EddyActionService
         }
 
         return $actor;
+    }
+
+    private function highestRoleRank(User $actor, ?string $roleOverride = null): int
+    {
+        $roles = collect([$roleOverride, $actor->role])
+            ->merge($actor->getRoleNames())
+            ->filter()
+            ->map(fn (string $role): int => $this->roleRank($role));
+
+        return $roles->isEmpty() ? -1 : (int) $roles->max();
+    }
+
+    private function roleRank(string $role): int
+    {
+        return match (str_replace([' ', '-'], '_', strtolower($role))) {
+            'super_admin', 'superuser', 'ops_leader', 'admin' => 30,
+            'capacity_lead', 'house_supervisor' => 20,
+            'bed_manager' => 10,
+            'charge_nurse',
+            'hospitalist',
+            'intensivist',
+            'transport',
+            'evs',
+            'staffing_coordinator',
+            'pi_lead',
+            'periop_manager',
+            'or_nurse',
+            'user' => 0,
+            default => -1,
+        };
     }
 }

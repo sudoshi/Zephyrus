@@ -2,15 +2,23 @@
 
 namespace App\Services\PatientFlow;
 
+use App\Models\Bed;
 use App\Models\PatientFlow\FlowEncounter;
 use App\Models\PatientFlow\FlowEvent;
 use App\Models\PatientFlow\PatientIdentity;
+use App\Models\Unit;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class FlowEventRepository
 {
+    /** @var array<string, int>|null */
+    private ?array $unitIdsByCode = null;
+
+    /** @var array<int, int>|null */
+    private ?array $unitIdsBySpace = null;
+
     public function __construct(private readonly FacilitySpaceLocationResolver $locations) {}
 
     /**
@@ -109,13 +117,25 @@ class FlowEventRepository
     {
         $query = FlowEvent::query()
             ->with(['toFacilitySpace', 'fromFacilitySpace'])
-            ->orderBy('occurred_at');
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('flow_event_id');
 
         $this->applyFilters($query, $filters);
 
         $limit = min(max((int) ($filters['limit'] ?? 5000), 1), 20000);
 
-        return $query->limit($limit)->get();
+        // Limit the newest matching rows in SQL, then restore chronological
+        // replay order for state projection, trails, and the event stream.
+        return $query->limit($limit)
+            ->get()
+            ->sort(function (FlowEvent $left, FlowEvent $right): int {
+                $timeOrder = $left->occurred_at <=> $right->occurred_at;
+
+                return $timeOrder !== 0
+                    ? $timeOrder
+                    : strcmp((string) $left->flow_event_id, (string) $right->flow_event_id);
+            })
+            ->values();
     }
 
     /**
@@ -133,6 +153,7 @@ class FlowEventRepository
     public function serializeEvent(FlowEvent $event): array
     {
         $location = $this->locations->spaceToPayload($event->toFacilitySpace);
+        $unitId = $this->unitIdForEvent($event, $location);
 
         return [
             'event_id' => $event->flow_event_id,
@@ -172,7 +193,49 @@ class FlowEventRepository
             'position_ft' => $location['position_ft'] ?? null,
             'position_m' => $location['position_m'] ?? null,
             'unit_code' => $location['unit_code'] ?? null,
+            'unit_id' => $unitId,
         ];
+    }
+
+    /** @param array<string, mixed>|null $location */
+    private function unitIdForEvent(FlowEvent $event, ?array $location): ?int
+    {
+        $this->loadUnitMaps();
+
+        $unitCode = isset($location['unit_code']) && is_scalar($location['unit_code'])
+            ? strtoupper(trim((string) $location['unit_code']))
+            : null;
+        if ($unitCode && isset($this->unitIdsByCode[$unitCode])) {
+            return $this->unitIdsByCode[$unitCode];
+        }
+
+        $spaceId = $event->to_facility_space_id !== null ? (int) $event->to_facility_space_id : null;
+
+        return $spaceId !== null ? ($this->unitIdsBySpace[$spaceId] ?? null) : null;
+    }
+
+    private function loadUnitMaps(): void
+    {
+        if ($this->unitIdsByCode !== null && $this->unitIdsBySpace !== null) {
+            return;
+        }
+
+        $this->unitIdsByCode = [];
+        $this->unitIdsBySpace = [];
+
+        foreach (Unit::query()->where('is_deleted', false)->get(['unit_id', 'abbreviation', 'facility_space_id']) as $unit) {
+            if ($unit->abbreviation) {
+                $this->unitIdsByCode[strtoupper(trim((string) $unit->abbreviation))] = (int) $unit->unit_id;
+            }
+
+            if ($unit->facility_space_id !== null) {
+                $this->unitIdsBySpace[(int) $unit->facility_space_id] = (int) $unit->unit_id;
+            }
+        }
+
+        foreach (Bed::query()->where('is_deleted', false)->whereNotNull('facility_space_id')->get(['facility_space_id', 'unit_id']) as $bed) {
+            $this->unitIdsBySpace[(int) $bed->facility_space_id] = (int) $bed->unit_id;
+        }
     }
 
     /**

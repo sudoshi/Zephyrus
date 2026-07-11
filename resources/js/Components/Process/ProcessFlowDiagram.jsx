@@ -14,6 +14,7 @@ import axios from 'axios';
 import { debounce } from 'lodash';
 import 'reactflow/dist/style.css';
 import { PRIMARY_FACILITY_NAME } from '@/constants/summitHospital';
+import { formatProcessDuration } from './formatDuration';
 
 
 
@@ -87,7 +88,7 @@ const nodeTypes = {
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Duration:</span>
             <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
-              {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
+              {data.avgDuration !== undefined ? formatProcessDuration(data.avgDuration) : '-'}
             </span>
           </div>
           
@@ -150,7 +151,11 @@ const nodeTypes = {
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Time:</span>
             <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
-              {data.avgDuration ? `${data.avgDuration} min` : ((data.metrics && data.metrics.avgTime) || data.avgTime || '10-30 min')}
+              {formatProcessDuration(
+                data.avgDuration ?? data.metrics?.avgTime ?? data.avgTime ?? '10-30 min',
+                'minutes',
+                '-',
+              )}
             </span>
           </div>
           
@@ -206,7 +211,7 @@ const nodeTypes = {
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Duration:</span>
             <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
-              {data.avgDuration !== undefined ? `${data.avgDuration} min` : '-'}
+              {data.avgDuration !== undefined ? formatProcessDuration(data.avgDuration) : '-'}
             </span>
           </div>
           
@@ -229,8 +234,9 @@ const nodeTypes = {
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg. Total Time:</span>
               <span className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">
-                {(data.metrics && data.metrics.avgTotalTime) || data.avgTotalTime || 
-                (data.metrics && data.metrics.avgTime) || data.avgTime}
+                {formatProcessDuration(
+                  data.metrics?.avgTotalTime ?? data.avgTotalTime ?? data.metrics?.avgTime ?? data.avgTime,
+                )}
               </span>
             </div>
           )}
@@ -275,17 +281,17 @@ const nodeTypes = {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Avg Time</span>
-              <span className="text-sm font-semibold text-healthcare-success dark:text-healthcare-success-dark">{data.metrics.avgTime}</span>
+              <span className="text-sm font-semibold text-healthcare-success dark:text-healthcare-success-dark">{formatProcessDuration(data.metrics.avgTime)}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Min Time</span>
-              <span className="text-sm font-semibold text-healthcare-success-light dark:text-healthcare-success-light-dark">{data.metrics.minTime || '-'}</span>
+              <span className="text-sm font-semibold text-healthcare-success-light dark:text-healthcare-success-light-dark">{formatProcessDuration(data.metrics.minTime, 'minutes', '-')}</span>
             </div>
             
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Max Time</span>
-              <span className="text-sm font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">{data.metrics.maxTime || '-'}</span>
+              <span className="text-sm font-semibold text-healthcare-warning dark:text-healthcare-warning-dark">{formatProcessDuration(data.metrics.maxTime, 'minutes', '-')}</span>
             </div>
           </div>
           
@@ -356,7 +362,7 @@ const nodeTypes = {
             {/* Show avg time if available */}
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Avg Time</span>
-              <span className="text-sm font-semibold text-white">{data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
+              <span className="text-sm font-semibold text-white">{formatProcessDuration(data.metrics.avgTime ?? data.metrics.avgDuration, 'minutes', '-')}</span>
             </div>
             
             {/* Show bottlenecks if available */}
@@ -415,7 +421,7 @@ const nodeTypes = {
             {/* Show avg total time if available */}
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium text-white/70">Avg Time</span>
-              <span className="text-sm font-semibold text-white">{data.metrics.avgTotalTime || data.metrics.avgTime || (data.metrics.avgDuration ? data.metrics.avgDuration + 'm' : '-')}</span>
+              <span className="text-sm font-semibold text-white">{formatProcessDuration(data.metrics.avgTotalTime ?? data.metrics.avgTime ?? data.metrics.avgDuration, 'minutes', '-')}</span>
             </div>
             
             {/* Show outcome or last30d if available */}
@@ -1081,7 +1087,7 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
         count: count, // Ensure count is directly available in the node data
         eventCount: count > 0 ? Math.round(count * 1.5) : 0,
         avgDuration: avgDuration, // Ensure avgDuration is directly available in the node data
-        avgTime: avgDuration ? `${avgDuration} min` : null,
+        avgTime: avgDuration || null,
         frequency: count > 0 ? Math.round(count / 7) + '/day' : '0/day'
       };
       
@@ -1449,7 +1455,7 @@ const ProcessFlowDiagram = React.forwardRef(({ data, savedLayout, onNodeClick, o
           },
           sourceHandle: 'source-bottom',  // Always use bottom source for vertical flow
           targetHandle: 'target-top',     // Always use top target for vertical flow
-          label: edge.data ? `${edge.data.patientCount} patients\n${edge.data.avgTime}` : '',
+          label: edge.data ? `${edge.data.patientCount} patients\n${formatProcessDuration(edge.data.avgTime)}` : '',
           labelStyle: { 
             fill: 'white', 
             fontWeight: '600', 

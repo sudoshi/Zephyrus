@@ -18,7 +18,8 @@ class OcelProjectCommand extends Command
         {--since= : window start (ISO8601 or "2026-05-01"); defaults to now - --days}
         {--until= : window end (ISO8601); defaults to now}
         {--days=90 : trailing window length when --since is absent}
-        {--reconcile : also print projected-vs-source reconciliation}';
+        {--reconcile : also print projected-vs-source reconciliation}
+        {--quantities-only : project only the QEL quantity extension (occupancy), skipping the base projection}';
 
     protected $description = 'Project the object-centric event log (OCEL 2.0) into ocel.* from flow_core/prod sources.';
 
@@ -29,34 +30,39 @@ class OcelProjectCommand extends Command
             ? Carbon::parse($this->option('since'))
             : (clone $until)->subDays((int) $this->option('days'));
 
-        $this->info("Projecting OCEL log for [{$since->toDateString()} … {$until->toDateString()}] …");
+        if (! $this->option('quantities-only')) {
+            $this->info("Projecting OCEL log for [{$since->toDateString()} … {$until->toDateString()}] …");
 
-        $result = $projector->project($since, $until);
+            $result = $projector->project($since, $until);
 
-        $this->table(['metric', 'count'], [
-            ['events', $result['events']],
-            ['objects', $result['objects']],
-            ['E2O relationships', $result['e2o']],
-            ['O2O relationships', $result['o2o']],
-            ['object changes', $result['object_changes']],
-        ]);
+            $this->table(['metric', 'count'], [
+                ['events', $result['events']],
+                ['objects', $result['objects']],
+                ['E2O relationships', $result['e2o']],
+                ['O2O relationships', $result['o2o']],
+                ['object changes', $result['object_changes']],
+            ]);
 
-        $this->line('Source rows consumed:');
-        foreach ($result['source_rows'] as $src => $n) {
-            $this->line("  {$src}: {$n}");
-        }
-
-        if ($this->option('reconcile')) {
-            $this->newLine();
-            $this->line('Reconciliation (source rows → projected events):');
-            $rows = [];
-            foreach ($projector->reconcile($since, $until) as $r) {
-                $rows[] = [$r['source'], $r['source_rows'], $r['distinct_source_refs'], $r['projected_events']];
+            $this->line('Source rows consumed:');
+            foreach ($result['source_rows'] as $src => $n) {
+                $this->line("  {$src}: {$n}");
             }
-            $this->table(['source', 'source rows (window)', 'distinct source refs', 'projected events'], $rows);
+
+            if ($this->option('reconcile')) {
+                $this->newLine();
+                $this->line('Reconciliation (source rows → projected events):');
+                $rows = [];
+                foreach ($projector->reconcile($since, $until) as $r) {
+                    $rows[] = [$r['source'], $r['source_rows'], $r['distinct_source_refs'], $r['projected_events']];
+                }
+                $this->table(['source', 'source rows (window)', 'distinct source refs', 'projected events'], $rows);
+            }
+
+            $this->info('OCEL projection complete.');
         }
 
-        $this->info('OCEL projection complete.');
+        $quantities = app(\App\Domain\Ocel\QuantityProjector::class)->project($since, $until);
+        $this->info("QEL quantities: {$quantities['operations']} operations, {$quantities['initial']} initial.");
 
         return self::SUCCESS;
     }

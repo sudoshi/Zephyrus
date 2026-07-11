@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const TrendsView = ({ filters, data = null }) => {
   // Extract filter values
@@ -131,7 +132,7 @@ const TrendsView = ({ filters, data = null }) => {
         <div className="h-80">
           <ResponsiveLine
             data={monthlyTrendData}
-            margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 110, bottom: 50, left: 125 }}
             xScale={{ type: 'point' }}
             yScale={{ 
               type: 'linear', 
@@ -140,7 +141,7 @@ const TrendsView = ({ filters, data = null }) => {
               stacked: false, 
               reverse: false 
             }}
-            yFormat=" >-.1f"
+            yFormat={formatDurationMinutes}
             axisTop={null}
             axisRight={null}
             axisBottom={{
@@ -155,8 +156,9 @@ const TrendsView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
-              legendOffset: -40,
+              legend: 'Duration',
+              legendOffset: -110,
+              format: formatDurationMinutes,
               legendPosition: 'middle'
             }}
             pointSize={10}
@@ -201,7 +203,7 @@ const TrendsView = ({ filters, data = null }) => {
         <div className="h-80">
           <ResponsiveLine
             data={dayOfWeekData}
-            margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 110, bottom: 50, left: 125 }}
             xScale={{ type: 'point' }}
             yScale={{ 
               type: 'linear', 
@@ -210,7 +212,7 @@ const TrendsView = ({ filters, data = null }) => {
               stacked: false, 
               reverse: false 
             }}
-            yFormat=" >-.1f"
+            yFormat={formatDurationMinutes}
             axisTop={null}
             axisRight={null}
             axisBottom={{
@@ -225,8 +227,9 @@ const TrendsView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
-              legendOffset: -40,
+              legend: 'Duration',
+              legendOffset: -110,
+              format: formatDurationMinutes,
               legendPosition: 'middle'
             }}
             pointSize={10}
@@ -271,7 +274,7 @@ const TrendsView = ({ filters, data = null }) => {
         <div className="h-80">
           <ResponsiveLine
             data={yearOverYearData}
-            margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 110, bottom: 50, left: 125 }}
             xScale={{ type: 'point' }}
             yScale={{ 
               type: 'linear', 
@@ -280,7 +283,7 @@ const TrendsView = ({ filters, data = null }) => {
               stacked: false, 
               reverse: false 
             }}
-            yFormat=" >-.1f"
+            yFormat={formatDurationMinutes}
             axisTop={null}
             axisRight={null}
             axisBottom={{
@@ -295,8 +298,9 @@ const TrendsView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
-              legendOffset: -40,
+              legend: 'Duration',
+              legendOffset: -110,
+              format: formatDurationMinutes,
               legendPosition: 'middle'
             }}
             pointSize={10}

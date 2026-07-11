@@ -16,6 +16,7 @@ use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -42,7 +43,7 @@ class MobileBffTest extends TestCase
         ['POST', '/api/mobile/v1/transport/requests/1/handoff', ['handoff_to' => '3 West']],
         ['POST', '/api/mobile/v1/evs/requests/1/status', ['status' => 'assigned']],
         ['POST', '/api/mobile/v1/ops/approvals/00000000-0000-0000-0000-000000000000/decision', ['decision' => 'approved']],
-        ['POST', '/api/mobile/v1/staffing/requests/1/fill', ['assigned_source' => 'float_pool']],
+        ['POST', '/api/mobile/v1/staffing/requests/1/fill', ['staff_member_id' => 1, 'assigned_source' => 'float_pool']],
         ['POST', '/api/mobile/v1/eddy/approvals/00000000-0000-0000-0000-000000000000/decision', ['decision' => 'approved']],
     ];
 
@@ -138,6 +139,7 @@ class MobileBffTest extends TestCase
             ->where('bed_id', $unavailableBedId)
             ->update(['status' => 'occupied']);
 
+        $this->withHeader('X-Hummingbird-Role', 'bed_manager');
         $this->postJson("/api/mobile/v1/rtdc/bed-requests/{$bedRequest->bed_request_id}/decision", [
             'action' => 'accepted',
             'chosen_bed_id' => $unavailableBedId,
@@ -167,22 +169,36 @@ class MobileBffTest extends TestCase
 
     public function test_high_value_mobile_reads_return_seeded_shapes(): void
     {
-        $user = $this->user();
-        $this->seed(RtdcSeeder::class);
-        Sanctum::actingAs($user, ['mobile:read']);
+        Carbon::setTestNow('2026-07-09T16:00:00Z');
 
-        $fixtures = $this->seedHighValueReadFixtures($user);
+        try {
+            $user = $this->user();
+            $this->seed(RtdcSeeder::class);
+            Sanctum::actingAs($user, ['mobile:read']);
 
-        $this->getJson('/api/mobile/v1/transport/queue')
-            ->assertOk()
-            ->assertJsonPath('data.jobs.0.id', $fixtures['transport']->transport_request_id)
-            ->assertJsonStructure(['data' => ['metrics' => ['active', 'stat', 'at_risk', 'completed_today'], 'jobs' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+            $fixtures = $this->seedHighValueReadFixtures($user);
 
-        $this->getJson('/api/mobile/v1/evs/queue')
-            ->assertOk()
-            ->assertJsonPath('data.turns.0.id', $fixtures['evs']->evs_request_id)
-            ->assertJsonStructure(['data' => ['metrics' => ['pending', 'overdue', 'isolation', 'completed_today'], 'turns' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+            $this->getJson('/api/mobile/v1/transport/queue?persona=transport')
+                ->assertOk()
+                ->assertJsonPath('data.jobs.0.id', $fixtures['transport']->transport_request_id)
+                ->assertJsonPath('data.jobs.0.sla.label', '10 min 0 sec remaining')
+                ->assertJsonStructure(['data' => ['metrics' => ['active', 'stat', 'at_risk', 'completed_today'], 'jobs' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
 
+            $this->getJson('/api/mobile/v1/evs/queue')
+                ->assertOk()
+                ->assertJsonPath('data.turns.0.id', $fixtures['evs']->evs_request_id)
+                ->assertJsonPath('data.turns.0.sla.label', '5 min 0 sec overdue')
+                ->assertJsonStructure(['data' => ['metrics' => ['pending', 'overdue', 'isolation', 'completed_today'], 'turns' => [['tier', 'visual_status', 'sla' => ['at_risk', 'label']]]]]);
+
+            $this->assertHighValueMobileReadShapes($fixtures);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** @param array<string, mixed> $fixtures */
+    private function assertHighValueMobileReadShapes(array $fixtures): void
+    {
         $this->getJson('/api/mobile/v1/rtdc/house')
             ->assertOk()
             ->assertJsonStructure(['data' => ['occupancy' => ['occupied', 'staffed', 'percent'], 'net_bed_need', 'pending_placements', 'ed_boarding', 'units']]);
@@ -307,6 +323,18 @@ class MobileBffTest extends TestCase
             'origin' => 'hummingbird',
             'pinned_context' => [],
         ]);
+        $staffingRequest = StaffingRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'unit_label' => '3 West',
+            'role' => 'rn',
+            'shift_date' => now()->toDateString(),
+            'shift' => 'day',
+            'request_type' => 'fill_gap',
+            'priority' => 'urgent',
+            'status' => 'requested',
+            'headcount_needed' => 1,
+            'is_deleted' => false,
+        ]);
 
         return [
             '/activity' => '/api/mobile/v1/activity?persona=bed_manager',
@@ -320,7 +348,9 @@ class MobileBffTest extends TestCase
             '/eddy/conversations' => '/api/mobile/v1/eddy/conversations',
             '/eddy/conversations/{uuid}' => "/api/mobile/v1/eddy/conversations/{$conversation->eddy_conversation_uuid}",
             '/evs/queue' => '/api/mobile/v1/evs/queue',
+            '/flow/demo-scenarios' => '/api/mobile/v1/flow/demo-scenarios',
             '/flow/floors' => '/api/mobile/v1/flow/floors',
+            '/flow/occupancy/history' => '/api/mobile/v1/flow/occupancy/history?persona=bed_manager',
             '/flow/spaces3d' => '/api/mobile/v1/flow/spaces3d',
             '/flow/window' => '/api/mobile/v1/flow/window?persona=bed_manager',
             '/for-you' => '/api/mobile/v1/for-you?persona=bed_manager',
@@ -336,7 +366,8 @@ class MobileBffTest extends TestCase
             '/rtdc/census' => '/api/mobile/v1/rtdc/census',
             '/rtdc/house' => '/api/mobile/v1/rtdc/house',
             '/staffing/overview' => '/api/mobile/v1/staffing/overview',
-            '/transport/queue' => '/api/mobile/v1/transport/queue',
+            '/staffing/requests/{id}/candidates' => "/api/mobile/v1/staffing/requests/{$staffingRequest->staffing_request_id}/candidates?persona=staffing_coordinator",
+            '/transport/queue' => '/api/mobile/v1/transport/queue?persona=transport',
         ];
     }
 

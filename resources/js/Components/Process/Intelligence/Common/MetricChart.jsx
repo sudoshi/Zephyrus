@@ -20,6 +20,9 @@ const MetricChart = ({
   xAxisInterval,
   xAxisAngle,
   xAxisHeight,
+  yAxisTickFormatter,
+  yAxisWidth,
+  tooltipFormatter,
   tooltipContent,
   legendContent
 }) => {
@@ -49,6 +52,8 @@ const MetricChart = ({
               <YAxis 
                 key="yAxis"
                 domain={yAxisDomain}
+                tickFormatter={yAxisTickFormatter}
+                width={yAxisWidth}
                 label={yAxisLabel ? {
                   value: yAxisLabel,
                   angle: -90,
@@ -58,6 +63,7 @@ const MetricChart = ({
               <Tooltip 
                 key="tooltip"
                 content={tooltipContent}
+                formatter={tooltipContent ? undefined : tooltipFormatter}
               />,
               legendContent && <Legend key="legend" content={legendContent} />,
               // Pass through any other chart-specific elements (Bar, Line, etc.)

@@ -9,7 +9,7 @@ class ORLog extends Model
 {
     public $timestamps = false;
 
-    protected $table = 'prod.orlog';
+    protected $table = 'prod.or_logs';
 
     protected $primaryKey = 'log_id';
 

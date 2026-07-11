@@ -20,9 +20,18 @@ OCEL_OID = "ocel:oid"
 OCEL_TYPE = "ocel:type"
 
 
-def check(path: str, pathway_key: str | None = None, sample_limit: int = 8) -> list[dict[str, Any]]:
+def check(
+    path: str,
+    pathway_key: str | None = None,
+    sample_limit: int = 8,
+    filters: "list[BaseFilter] | None" = None,
+) -> list[dict[str, Any]]:
     """Run conformance for one pathway (or all) over the OCEL log at `path`."""
+    from app.filters import BaseFilter, apply_filters  # noqa: F401
+
     ocel = read_ocel(path)
+    if filters:
+        ocel = apply_filters(ocel, filters)
     keys = [pathway_key] if pathway_key else list(PATHWAYS.keys())
     return [
         _check_one(ocel.events, ocel.relations, PATHWAYS[key], key, sample_limit)

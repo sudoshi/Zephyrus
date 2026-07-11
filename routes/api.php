@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
+use App\Http\Controllers\Api\Admin\IntegrationControlPlaneController;
+use App\Http\Controllers\Api\Admin\IntegrationCredentialController;
+use App\Http\Controllers\Api\Admin\IntegrationEndpointController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
+use App\Http\Controllers\Api\Admin\IntegrationSourceController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
@@ -57,6 +61,7 @@ use App\Http\Controllers\Api\Rtdc\PredictionController;
 use App\Http\Controllers\Api\Rtdc\ReconciliationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\Staffing\StaffingController;
+use App\Http\Controllers\Api\Staffing\StaffingFulfillmentController;
 use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
@@ -72,7 +77,7 @@ use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 // Health Check
 Route::get('/health', function () {
     try {
-        \DB::connection()->getPdo();
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
 
         return response()->json([
             'status' => 'healthy',
@@ -122,9 +127,14 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
     ->prefix('arena')->group(function () {
         Route::get('/health', [\App\Http\Controllers\Api\ArenaController::class, 'health']);
         Route::get('/summary', [\App\Http\Controllers\Api\ArenaController::class, 'summary']);
+        Route::get('/models', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'index']);
+        Route::get('/models/{processId}', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'show'])
+            ->where('processId', '[A-Ha-h](?:[1-9]|1[0-4])');
         Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
         Route::get('/performance', [\App\Http\Controllers\Api\ArenaController::class, 'performance']);
         Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);
+        Route::get('/petrinet', [\App\Http\Controllers\Api\ArenaController::class, 'petrinet']);
+        Route::get('/capacity', [\App\Http\Controllers\Api\ArenaController::class, 'capacity']);
 
         // Flow Reconciliation — the 48-Hour Flow Review. GET reads the persisted
         // artifact (arena.reviews); POST /review/run rebuilds it (the Run-review
@@ -159,10 +169,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // Open operational barriers overlay — aggregate + patient-free, so it rides
     // with the other aggregate reads (un-blinds the navigator's 48h spine).
     Route::get('/barriers', [PatientFlowController::class, 'barriers']);
+    Route::get('/demo-scenarios', [PatientFlowController::class, 'demoScenarios']);
 
     // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
     // requires a flow lens whose patient_dots policy is not `none`.
-    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')->group(function () {
+    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped-patients')->group(function () {
         Route::get('/events', [PatientFlowController::class, 'events']);
         Route::get('/tracks', [PatientFlowController::class, 'tracks']);
         Route::get('/state', [PatientFlowController::class, 'state']);
@@ -174,9 +185,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // aggregate-safe: items are persona-clamped and identity-redacted by
     // the same lens the mobile window uses.
     Route::get('/projections', [PatientFlowController::class, 'projections'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class);
-
-    Route::post('/ingest/hl7v2', [PatientFlowIngestController::class, 'hl7v2']);
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
+    Route::get('/occupancy/history', [PatientFlowController::class, 'occupancyHistory'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
+    Route::get('/occupancy', [PatientFlowController::class, 'occupancy'])
+        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
 });
 
 // Virtual Rounds — asynchronous/hybrid multidisciplinary rounds workflow
@@ -218,6 +231,16 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
         Route::post('/questions/{questionUuid}/resolve', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'resolve']);
         Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
     });
+
+// Machine-to-machine ingress only. This route intentionally lives outside the
+// browser-session Patient Flow group and writes through raw -> canonical ->
+// projection/provenance before acknowledging an ADT message.
+Route::post('/integrations/v1/patient-flow/hl7v2', [PatientFlowIngestController::class, 'hl7v2'])
+    ->middleware([
+        'auth:sanctum',
+        \App\Http\Middleware\RequireMachineToken::class.':integration:patient-flow:ingest',
+        'throttle:120,1',
+    ]);
 
 // RTDC — Real-Time Demand Capacity (web session auth)
 // The `web` group provides StartSession (reads the session cookie) so the Inertia SPA
@@ -282,12 +305,20 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('evs')->group(functi
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('staffing')->group(function () {
     Route::get('/overview', [StaffingController::class, 'overview']);
     Route::get('/plans', [StaffingController::class, 'plans']);
+    Route::get('/workforce', [StaffingController::class, 'workforce']);
     Route::get('/requests', [StaffingController::class, 'index']);
-    Route::post('/requests', [StaffingController::class, 'store']);
+    Route::post('/requests', [StaffingController::class, 'store'])->middleware('can:manageStaffingOperations');
+    Route::get('/requests/{staffingRequestId}/candidates', [StaffingFulfillmentController::class, 'candidates']);
+    Route::get('/requests/{staffingRequestId}/fulfillments', [StaffingFulfillmentController::class, 'index']);
+    Route::post('/requests/{staffingRequestId}/fulfillments', [StaffingFulfillmentController::class, 'store'])
+        ->middleware('can:manageStaffingOperations');
+    Route::post('/fulfillments/{fulfillmentUuid}/transition', [StaffingFulfillmentController::class, 'transition'])
+        ->middleware('can:manageStaffingOperations')
+        ->whereUuid('fulfillmentUuid');
     Route::get('/requests/{staffingRequestId}', [StaffingController::class, 'show']);
-    Route::post('/requests/{staffingRequestId}/assign', [StaffingController::class, 'assign']);
-    Route::post('/requests/{staffingRequestId}/status', [StaffingController::class, 'status']);
-    Route::post('/requests/{staffingRequestId}/cancel', [StaffingController::class, 'cancel']);
+    Route::post('/requests/{staffingRequestId}/assign', [StaffingController::class, 'assign'])->middleware('can:manageStaffingOperations');
+    Route::post('/requests/{staffingRequestId}/status', [StaffingController::class, 'status'])->middleware('can:manageStaffingOperations');
+    Route::post('/requests/{staffingRequestId}/cancel', [StaffingController::class, 'cancel'])->middleware('can:manageStaffingOperations');
     Route::get('/resources', [StaffingController::class, 'resources']);
 });
 
@@ -360,8 +391,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
     Route::delete('/conversations/{uuid}', [EddyChatController::class, 'destroy']);
     // Phase 3 — advice-not-autopilot action proposals (the dock human proposes/approves).
     Route::get('/actions/catalog', [EddyActionController::class, 'catalog']);
-    Route::post('/actions/propose', [EddyActionController::class, 'propose']);
-    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken']);
+    Route::post('/actions/propose', [EddyActionController::class, 'propose'])
+        ->middleware('can:useEddyActions');
+    Route::post('/agent/token', [EddyActionController::class, 'mintAgentToken'])
+        ->middleware('can:useEddyActions');
 
     // Phase 6 — super-admin: cost/redaction accounting, route simulator, knowledge review.
     Route::get('/admin/usage', [EddyAdminController::class, 'usage']);
@@ -375,22 +408,46 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->grou
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
-// Admin integration health (web session auth)
-Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('admin/integrations')->group(function () {
+// Integration administration is a distinct, strict superuser boundary. General
+// enterprise-setup and operations-leader access does not imply connector access.
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewIntegrations'])->prefix('admin/integrations')->group(function () {
+    Route::get('/control-plane', IntegrationControlPlaneController::class);
     Route::get('/health', IntegrationHealthController::class);
     Route::get('/enterprise', [EnterpriseConnectorController::class, 'summary']);
+    Route::get('/sources', [IntegrationSourceController::class, 'index']);
+    Route::get('/sources/{source}', [IntegrationSourceController::class, 'show'])->whereNumber('source');
+    Route::get('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'index'])->whereNumber('source');
+    Route::get('/sources/{source}/credentials', [IntegrationCredentialController::class, 'index'])->whereNumber('source');
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->prefix('admin/integrations')->group(function () {
+    Route::post('/sources', [IntegrationSourceController::class, 'store']);
+    Route::patch('/sources/{source}', [IntegrationSourceController::class, 'update'])->whereNumber('source');
+    Route::delete('/sources/{source}', [IntegrationSourceController::class, 'destroy'])->whereNumber('source');
+    Route::post('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'store'])->whereNumber('source');
+    Route::patch('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'update'])->whereNumber(['source', 'endpoint']);
+    Route::delete('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'destroy'])->whereNumber(['source', 'endpoint']);
+    Route::post('/sources/{source}/credentials', [IntegrationCredentialController::class, 'store'])->whereNumber('source');
+    Route::patch('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'update'])->whereNumber(['source', 'credential']);
+    Route::delete('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'destroy'])->whereNumber(['source', 'credential']);
+    Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->whereNumber('source');
+    Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->whereNumber('source');
     Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
+    Route::post('/enterprise/replays/preview', [EnterpriseConnectorController::class, 'previewReplay']);
+    Route::post('/enterprise/replays', [EnterpriseConnectorController::class, 'queueReplay']);
     Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
 });
 
 // OR Cases
 Route::prefix('cases')->middleware('throttle:60,1')->group(function () {
     Route::get('/', [ORCaseController::class, 'index']);
-    Route::post('/', [ORCaseController::class, 'store']);
-    Route::put('/{id}', [ORCaseController::class, 'update']);
     Route::get('/today', [ORCaseController::class, 'todaysCases']);
     Route::get('/metrics', [ORCaseController::class, 'metrics']);
     Route::get('/room-status', [ORCaseController::class, 'roomStatus']);
+});
+Route::prefix('cases')->middleware(['web', 'auth', 'throttle:60,1', 'can:writeOrCases'])->group(function () {
+    Route::post('/', [ORCaseController::class, 'store']);
+    Route::put('/{id}', [ORCaseController::class, 'update']);
 });
 
 // Block Schedule
@@ -574,6 +631,8 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::prefix('flow')->group(function () {
         Route::get('/floors', [MobileFlowController::class, 'floors']);
         Route::get('/spaces3d', [MobileFlowController::class, 'spaces3d']);
+        Route::get('/demo-scenarios', [MobileFlowController::class, 'demoScenarios']);
+        Route::get('/occupancy/history', [MobileFlowController::class, 'occupancyHistory']);
         Route::get('/window', [MobileFlowController::class, 'window']);
     });
 
@@ -608,6 +667,7 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
 
     // Staffing coordinator (P10) — gaps + open requests; the fill action is a mobile:act write.
     Route::get('/staffing/overview', [MobileStaffingController::class, 'overview']);
+    Route::get('/staffing/requests/{id}/candidates', [MobileStaffingController::class, 'candidates']);
     Route::post('/staffing/requests/{id}/fill', [MobileStaffingController::class, 'fill'])
         ->middleware(CheckForAnyAbility::class.':mobile:act');
 

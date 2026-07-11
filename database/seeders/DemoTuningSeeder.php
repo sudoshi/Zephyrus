@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\Demo\OperationalDemoDataService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -22,11 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class DemoTuningSeeder extends Seeder
 {
-    // Per-unit-type occupancy target (FEEDBACK Wave 2): ICUs run hotter than med/surg —
-    // a flat number across every type reads as a global target, not a real house. Each value
-    // sits inside its config('hospital.plausibility_targets.occupancy_by_unit_type') band, and
-    // populateOccupancy() only fills UP, so med/surg settles near its current ~85% while ICU and
-    // step-down are pulled higher — a differentiated, believable house.
+    // Per-unit-type occupancy target: ICUs run hotter than med/surg — a flat number across
+    // every type reads as a global target, not a real house. Each value sits inside its
+    // config('hospital.plausibility_targets.occupancy_by_unit_type') band; populateOccupancy()
+    // only fills UP, so med/surg settles near ~85% while ICU and step-down are pulled higher.
     private const OCCUPANCY_TARGET = ['icu' => 0.92, 'step_down' => 0.86, 'med_surg' => 0.84];
 
     /** Acuity mix by unit type: [tier => weight]. ICUs skew high, med/surg low. */
@@ -48,24 +48,21 @@ class DemoTuningSeeder extends Seeder
     }
 
     /**
-     * 0. Correct seed-owned temporal leaks so the current snapshot is coherent
-     *    (enforced by zephyrus:demo-validate / DemoInvariantService §11.1):
+     * 0. Correct seed-owned temporal leaks in the NON-scenario domains (encounters / census /
+     *    predictions — the scenario's own staffing+transport are owned by OperationalDemoDataService)
+     *    so the current snapshot is coherent (enforced by zephyrus:demo-validate):
      *      - purge expired forecasts once today/tomorrow replacements exist;
      *      - drop future-dated census "actuals" (a snapshot cannot be in the future);
-     *      - pull active encounters admitted in the future back to a plausible recent
-     *        admit (the base seeder shifts some sim-hx admits forward by days);
+     *      - pull active encounters admitted in the future back to a plausible recent admit;
      *      - repair expected_discharge_date rows that precede admission.
-     *    All touch only demo-owned rows and are idempotent (no-ops once clean).
+     *    Idempotent (no-ops once clean).
      */
     private function clampTemporalLeaks(): void
     {
-        // Expired forecasts — safe to remove; CommandCenterDemoSeeder already wrote today+tomorrow.
         DB::delete("DELETE FROM prod.rtdc_predictions WHERE service_date < (now() AT TIME ZONE 'UTC')::date");
 
-        // Future-dated census actuals (forward projections / noon sentinel) — a snapshot is never ahead of now.
         DB::delete("DELETE FROM prod.census_snapshots WHERE captured_at > (now() AT TIME ZONE 'UTC')");
 
-        // Active encounters admitted in the future -> a plausible recent admit (0–72h ago).
         DB::update("
             UPDATE prod.encounters
             SET admitted_at = (now() AT TIME ZONE 'UTC') - (floor(random()*72)||' hours')::interval,
@@ -73,7 +70,6 @@ class DemoTuningSeeder extends Seeder
             WHERE admitted_at > (now() AT TIME ZONE 'UTC') AND discharged_at IS NULL AND is_deleted = false
         ");
 
-        // Expected discharge must land after admission (2–5 day LOS from the (now-corrected) admit).
         DB::update("
             UPDATE prod.encounters
             SET expected_discharge_date = (admitted_at + ((2 + floor(random()*4))||' days')::interval)::date,
@@ -161,104 +157,29 @@ class DemoTuningSeeder extends Seeder
         }
     }
 
-    /**
-     * 4. Refresh transport/EVS SLAs to a near-now spread and a plausible priority mix
-     *    (FEEDBACK Wave 2). Active demo transport gets a needed_at spread that leaves ~15%
-     *    intentionally overdue (was a stat-heavy, mostly-overdue queue). Priority is
-     *    re-weighted to a routine-dominant ~70/20/10 mix, keyed off the request id so it is
-     *    stable per request across refreshes (idempotent). Only synthetic sources are touched;
-     *    user-created requests are preserved.
-     */
+    /** 4. Refresh active transport/EVS SLAs to a near-now spread (UTC-aligned wall clock). */
     private function refreshSlas(): void
     {
-        $demoSources = ['demo-seeder', 'operations-demo:summit-500-current-operations-v1'];
-        $priorityMix = DB::raw(
-            "CASE WHEN transport_request_id % 10 < 7 THEN 'routine' ".
-            "WHEN transport_request_id % 10 < 9 THEN 'urgent' ELSE 'stat' END"
-        );
-
-        // Active: a small fixed ~10% overdue cohort (id % 10 == 0, up to 30m late), the rest due
-        // 10–170m out. A fixed split (not a random spread near now) keeps the overdue share low
-        // and STABLE across the 15-minute refresh cycle — a near-now spread drifts past 20% as the
-        // clock advances between refreshes. Plus the routine-dominant priority mix.
-        DB::table('prod.transport_requests')
-            ->whereNull('completed_at')
-            ->whereIn('requested_by', $demoSources)
-            ->update([
-                'needed_at' => DB::raw(
-                    'CASE WHEN random() < 0.10 '.
-                    "THEN (now() AT TIME ZONE 'UTC') - ((floor(random()*30) + 1)||' minutes')::interval ".
-                    "ELSE (now() AT TIME ZONE 'UTC') + ((floor(random()*160) + 10)||' minutes')::interval END"
-                ),
-                'priority' => $priorityMix,
-                'updated_at' => DB::raw('now()'),
-            ]);
-
-        // Completed history: fix only the priority mix (leave the timestamps as history).
-        DB::table('prod.transport_requests')
-            ->whereNotNull('completed_at')
-            ->whereIn('requested_by', $demoSources)
-            ->update(['priority' => $priorityMix]);
-
+        DB::update("
+            UPDATE prod.transport_requests
+            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*150) - 40)||' minutes')::interval
+            WHERE requested_by = ? AND is_deleted = false AND status NOT IN ('completed', 'canceled', 'failed')
+        ", [OperationalDemoDataService::OWNER]);
         DB::update("
             UPDATE prod.evs_requests
-            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 20)||' minutes')::interval
+            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 30)||' minutes')::interval
             WHERE status NOT IN ('completed', 'canceled', 'failed')
         ");
     }
 
-    /** 5. (Re)build today's staffing plans (UTC date) from the latest prior day, with real gaps. */
+    /** 5. Keep only the scenario-owned staffing request targets near the current rehearsal window. */
     private function staffingToday(): void
     {
-        DB::delete("DELETE FROM prod.staffing_plans WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today'");
-
-        // Build today's plans from the latest prior day. The base seeder (CommandCenterDemoSeeder)
-        // may already own today's (unit_id, role, shift) slots (uniq_staffing_plan_slot), so ON
-        // CONFLICT takes ownership of those rows and re-tags them 'demo-today' instead of colliding.
-        DB::insert("
-            INSERT INTO prod.staffing_plans
-              (plan_uuid, unit_id, unit_label, role, shift_date, shift, required_count, scheduled_count,
-               actual_count, minimum_safe_count, census, ratio_target, status, notes, created_at, updated_at, is_deleted)
-            SELECT gen_random_uuid(), unit_id, unit_label, role, (now() AT TIME ZONE 'UTC')::date, shift,
-                   required_count, scheduled_count, actual_count, minimum_safe_count, census, ratio_target,
-                   'balanced', 'demo-today', now(), now(), false
-            FROM prod.staffing_plans
-            WHERE shift_date = (
-                SELECT max(shift_date) FROM prod.staffing_plans
-                WHERE shift_date < (now() AT TIME ZONE 'UTC')::date AND (notes IS DISTINCT FROM 'demo-today')
-            )
-            ON CONFLICT (unit_id, role, shift_date, shift) DO UPDATE SET
-                unit_label = EXCLUDED.unit_label,
-                required_count = EXCLUDED.required_count,
-                scheduled_count = EXCLUDED.scheduled_count,
-                actual_count = EXCLUDED.actual_count,
-                minimum_safe_count = EXCLUDED.minimum_safe_count,
-                census = EXCLUDED.census,
-                ratio_target = EXCLUDED.ratio_target,
-                status = 'balanced',
-                notes = 'demo-today',
-                updated_at = now()
-        ");
-
-        DB::update("
-            UPDATE prod.staffing_plans
-            SET scheduled_count = greatest(required_count - 2, 0), actual_count = greatest(required_count - 2, 0),
-                minimum_safe_count = greatest(required_count - 1, 1), status = 'critical_gap'
-            WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today' AND role = 'rn'
-              AND unit_id IN (SELECT unit_id FROM prod.units WHERE abbreviation = 'MICU')
-        ");
-        DB::update("
-            UPDATE prod.staffing_plans
-            SET scheduled_count = greatest(required_count - 1, 0), actual_count = greatest(required_count - 1, 0),
-                minimum_safe_count = greatest(required_count - 1, 1), status = 'gap'
-            WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today' AND role = 'rn'
-              AND unit_id IN (SELECT unit_id FROM prod.units WHERE abbreviation IN ('6E', 'SICU', '7E'))
-        ");
         DB::update("
             UPDATE prod.staffing_requests
             SET needed_by = (now() AT TIME ZONE 'UTC') + ((floor(random()*180) - 30)||' minutes')::interval
-            WHERE status IN ('requested', 'open', 'sourcing', 'escalated')
-        ");
+            WHERE requested_by = ? AND status IN ('requested', 'open', 'sourcing', 'escalated')
+        ", [OperationalDemoDataService::OWNER]);
     }
 
     /** 6. Round-robin the four flagship attendings across the anchor day so the board varies. */

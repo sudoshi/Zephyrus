@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
+use App\Http\Controllers\Integrations\IntegrationConsoleController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Ops\OpsConsoleController;
 use App\Http\Controllers\Predictions;
@@ -35,8 +38,12 @@ Route::get('/', function (Request $request) {
     return redirect()->route('login');
 });
 
-// Authenticated routes
-Route::middleware(['auth'])
+// Authenticated demo routes.
+//
+// SessionAuthMiddleware is the existing local/demo auto-login gate. Keeping it
+// Direct viewer URLs create a valid session here, while API routes retain their
+// normal web-session authentication.
+Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
     ->group(function () {
         // RTDC Routes
         Route::prefix('rtdc')->group(function () {
@@ -177,16 +184,25 @@ Route::middleware(['auth'])
         // Staffing Office
         Route::get('/staffing', [StaffingDashboardController::class, 'index'])->name('staffing');
 
-        // Deployment Console (Phase F1) — read surface over the deployment API,
-        // gated to the deployment-console roles (same ability as /api/deployment/*).
-        Route::get('/deployment', [DeploymentConsoleController::class, 'index'])
+        // Enterprise setup retains facility taxonomy/readiness; integrations have
+        // their own strictly gated control plane below.
+        Route::get('/admin/enterprise-setup', [DeploymentConsoleController::class, 'index'])
+            ->middleware('can:viewDeploymentConsole')
+            ->name('admin.enterprise-setup');
+
+        Route::get('/staffing/administration', [DeploymentConsoleController::class, 'staffingWizard'])
+            ->middleware('can:manageDeploymentConfig')
+            ->name('staffing.administration');
+
+        Route::get('/integrations', [IntegrationConsoleController::class, 'index'])
+            ->middleware('can:viewIntegrations')
+            ->name('integrations');
+
+        // Authorized legacy bookmarks preserve their original functional target.
+        Route::get('/deployment', fn () => redirect()->route('admin.enterprise-setup'))
             ->middleware('can:viewDeploymentConsole')
             ->name('deployment');
-
-        // Staffing Alignment Wizard (Phase F4) — the write surface over the §8 staffing
-        // API. Gated by the narrower manageDeploymentConfig ability (superuser/ops-leader,
-        // NOT plain admin) — same ability as /api/deployment/staffing/*.
-        Route::get('/deployment/staffing', [DeploymentConsoleController::class, 'staffingWizard'])
+        Route::get('/deployment/staffing', fn () => redirect()->route('staffing.administration'))
             ->middleware('can:manageDeploymentConfig')
             ->name('deployment.staffing');
 
@@ -205,7 +221,9 @@ Route::middleware(['auth'])
             Route::get('/care-transitions', [TransportDashboardController::class, 'careTransitions'])->name('care-transitions');
             Route::get('/resources', [TransportDashboardController::class, 'resources'])->name('resources');
             Route::get('/analytics', [TransportDashboardController::class, 'analytics'])->name('analytics');
-            Route::get('/settings/integrations', [TransportDashboardController::class, 'settings'])->name('settings.integrations');
+            Route::get('/settings/integrations', fn () => redirect()->route('integrations'))
+                ->middleware('can:viewIntegrations')
+                ->name('settings.integrations');
         });
 
         // Design Routes
@@ -226,9 +244,15 @@ Route::middleware(['auth'])
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        // User Management Routes - Only accessible to admins
-        Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
-            Route::resource('users', \App\Http\Controllers\UserController::class);
+        // Zephyrus-native administration. Integration and operational ledgers
+        // remain on their existing, separately gated surfaces.
+        Route::middleware('can:viewAdministration')->group(function () {
+            Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
+            Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+
+            Route::get('/admin/user-audit', [UserAuditController::class, 'index'])
+                ->middleware('can:viewUserAudit')
+                ->name('admin.user-audit.index');
 
             // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
             // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,

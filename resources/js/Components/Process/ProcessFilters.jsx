@@ -130,10 +130,10 @@ const ProcessFilters = ({
           Filters
         </h3>
         <button 
-          className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark"
+          className="text-lg text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-primary dark:hover:text-healthcare-text-primary-dark"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {isExpanded ? <ChevronUp className="panel-label-icon" /> : <ChevronDown className="panel-label-icon" />}
         </button>
       </div>
       

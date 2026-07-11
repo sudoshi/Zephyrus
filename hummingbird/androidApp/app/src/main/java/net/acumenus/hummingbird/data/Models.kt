@@ -89,6 +89,13 @@ data class TransportJob(
     val mode: String?,
     val neededAt: String?,
     val patientContextRef: String?,
+    val claimedByMe: Boolean,
+    val availableToClaim: Boolean,
+    val resourceName: String?,
+    val handoffRequired: Boolean,
+    val allowedTransitions: List<String>,
+    val canHandoff: Boolean,
+    val lifecycleVersion: Int,
     val sla: TransportSla,
 ) {
     val capacity: CapacityStatus get() = CapacityStatus.from(visualStatus)
@@ -99,6 +106,8 @@ data class TransportQueue(
     val jobs: List<TransportJob>,
     val webLink: String?,
     val stale: Boolean,
+    val nextCursor: String?,
+    val hasMore: Boolean,
 )
 
 data class EvsMetrics(
@@ -282,8 +291,18 @@ data class StaffingReq(
             priority == "stat" -> CapacityStatus.CRITICAL
             priority == "urgent" || sla.atRisk -> CapacityStatus.WARNING
             else -> CapacityStatus.INFO
-        }
+    }
 }
+
+data class StaffingCandidate(
+    val staffMemberId: Int,
+    val displayName: String,
+    val roleLabel: String,
+    val eligible: Boolean,
+    val eligibilityState: String,
+    val reasonCodes: List<String>,
+    val overlappingAssignments: Int,
+)
 
 data class PdsaCycle(
     val id: Int,

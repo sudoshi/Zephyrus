@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import StatusTooltip from '../ResourceAnalysis/StatusTooltip';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const LiveMonitor = ({
   data,
@@ -88,7 +89,7 @@ const LiveMonitor = ({
           {step.replace(/([A-Z])/g, ' $1').toLowerCase()}
         </div>
         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-          Current Wait: {value} minutes
+          Current Wait: {formatDurationMinutes(value)}
         </div>
         {trend && (
           <div className={`text-sm font-medium ${
@@ -101,9 +102,9 @@ const LiveMonitor = ({
         )}
         {thresholds?.[step] && (
           <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Critical: {thresholds[step].critical} min
+            Critical: {formatDurationMinutes(thresholds[step].critical)}
             <br />
-            Warning: {thresholds[step].warning} min
+            Warning: {formatDurationMinutes(thresholds[step].warning)}
           </div>
         )}
       </div>
@@ -169,8 +170,7 @@ const LiveMonitor = ({
                 
                 <div className="flex items-end justify-between">
                   <div className={`text-2xl font-semibold ${getStatusColor(value, step)}`}>
-                    {value}
-                    <span className="text-sm font-normal ml-1">min</span>
+                    {formatDurationMinutes(value)}
                   </div>
                   <Activity className={`h-5 w-5 ${getStatusColor(value, step)}`} />
                 </div>

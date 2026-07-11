@@ -10,6 +10,7 @@ import {
     ResponsiveContainer,
     ReferenceLine,
 } from 'recharts';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const TrendChart = ({ 
     data, 
@@ -29,7 +30,7 @@ const TrendChart = ({
             return value;
         }
     };
-    const defaultYAxisFormatter = (value) => `${value} min`;
+    const defaultYAxisFormatter = (value) => formatDurationMinutes(Number(value));
 
     // Merge with defaults
     const xAxisConfig = {
@@ -109,6 +110,7 @@ const TrendChart = ({
                         stroke="#9CA3AF"
                         fontSize={12}
                         tickMargin={8}
+                        width={axis.width ?? 120}
                         domain={axis.domain || ['auto', 'auto']}
                     />
                 ))}

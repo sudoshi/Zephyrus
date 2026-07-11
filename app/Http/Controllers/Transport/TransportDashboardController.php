@@ -62,9 +62,4 @@ class TransportDashboardController extends Controller
     {
         return Inertia::render('Transport/Analytics', ['workflow' => 'transport']);
     }
-
-    public function settings(): InertiaResponse
-    {
-        return Inertia::render('Transport/IntegrationSettings', ['workflow' => 'transport']);
-    }
 }

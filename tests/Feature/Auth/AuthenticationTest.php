@@ -4,6 +4,9 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -43,6 +46,32 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_standard_demo_admin_can_open_the_admin_panel(): void
+    {
+        $user = User::query()->where('username', 'admin')->firstOrFail();
+        $user->forceFill([
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+            'must_change_password' => false,
+            'is_active' => true,
+        ])->save();
+        Role::findOrCreate('user', 'web');
+        $user->syncRoles('user');
+
+        $this->assertFalse($user->hasRole(['super-admin', 'admin']));
+
+        $this->post('/login', [
+            'username' => 'admin',
+            'password' => 'password',
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->get('/users')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Users/Index')
+                ->where('auth.is_admin', true));
     }
 
     public function test_users_can_logout(): void

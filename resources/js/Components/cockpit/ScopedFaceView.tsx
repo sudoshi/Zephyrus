@@ -54,9 +54,11 @@ export interface ScopedFaceViewProps {
   scopeToken: string;
   /** P8 WS-4 — a bed/board row descends to the A2P patient lens with its ptok. */
   onPatientDrill?: (patientRef: string) => void;
+  /** False for wall mode: remove links, retries, and patient-row controls. */
+  interactive?: boolean;
 }
 
-export function ScopedFaceView({ scopeToken, onPatientDrill }: ScopedFaceViewProps) {
+export function ScopedFaceView({ scopeToken, onPatientDrill, interactive = true }: ScopedFaceViewProps) {
   const query = useCockpitFace(scopeToken);
 
   const parsed = useMemo<ParsedFace>(() => {
@@ -85,22 +87,28 @@ export function ScopedFaceView({ scopeToken, onPatientDrill }: ScopedFaceViewPro
           <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             {parsed.detail}
           </p>
-          <button
-            type="button"
-            onClick={() => void query.refetch()}
-            className="rounded-md border border-healthcare-border dark:border-healthcare-border-dark px-3 py-1.5 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
-          >
-            Retry
-          </button>
+          {interactive && (
+            <button
+              type="button"
+              onClick={() => void query.refetch()}
+              className="rounded-md border border-healthcare-border dark:border-healthcare-border-dark px-3 py-1.5 text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
 
       {parsed.state === 'ready' && parsed.face.render === 'grid' && (
-        <HouseBounce label={parsed.face.scope.label} />
+        <HouseBounce label={parsed.face.scope.label} interactive={interactive} />
       )}
 
       {parsed.state === 'ready' && parsed.face.render === 'face' && (
-        <DetailFace face={parsed.face} onPatientDrill={onPatientDrill} />
+        <DetailFace
+          face={parsed.face}
+          onPatientDrill={interactive ? onPatientDrill : undefined}
+          interactive={interactive}
+        />
       )}
     </div>
   );
@@ -112,7 +120,7 @@ export function ScopedFaceView({ scopeToken, onPatientDrill }: ScopedFaceViewPro
  * empty scoped shell. A full navigation (not client-side) clears the ?scope=
  * read-once state cleanly.
  */
-function HouseBounce({ label }: { label: string }) {
+function HouseBounce({ label, interactive }: { label: string; interactive: boolean }) {
   return (
     <div className="flex flex-col items-start gap-2 rounded-md border border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm">
       <p className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -121,17 +129,31 @@ function HouseBounce({ label }: { label: string }) {
       <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         This scope resolved to the house cockpit.
       </p>
-      <a
-        href="/dashboard"
-        className="rounded-md border border-healthcare-border dark:border-healthcare-border-dark px-3 py-1.5 text-sm font-medium text-healthcare-primary dark:text-healthcare-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
-      >
-        Open the house cockpit
-      </a>
+      {interactive ? (
+        <a
+          href="/dashboard"
+          className="rounded-md border border-healthcare-border dark:border-healthcare-border-dark px-3 py-1.5 text-sm font-medium text-healthcare-primary dark:text-healthcare-primary-dark hover:bg-healthcare-background dark:hover:bg-healthcare-background-dark"
+        >
+          Open the house cockpit
+        </a>
+      ) : (
+        <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          House cockpit
+        </span>
+      )}
     </div>
   );
 }
 
-function DetailFace({ face, onPatientDrill }: { face: CockpitDetailFace; onPatientDrill?: (patientRef: string) => void }) {
+function DetailFace({
+  face,
+  onPatientDrill,
+  interactive,
+}: {
+  face: CockpitDetailFace;
+  onPatientDrill?: (patientRef: string) => void;
+  interactive: boolean;
+}) {
   const accent = COCKPIT_STATE_TO_LEVEL[worstStatus(face.kpis)];
   const accentStyle = statusStyle(accent);
   const empty = face.kpis.length === 0 && face.tables.length === 0;
@@ -146,9 +168,13 @@ function DetailFace({ face, onPatientDrill }: { face: CockpitDetailFace; onPatie
         />
         <div className="min-w-0 flex-1">
           <nav className="flex items-center gap-1.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            <a href="/dashboard" className="hover:text-healthcare-primary dark:hover:text-healthcare-primary-dark hover:underline underline-offset-2">
-              House
-            </a>
+            {interactive ? (
+              <a href="/dashboard" className="hover:text-healthcare-primary dark:hover:text-healthcare-primary-dark hover:underline underline-offset-2">
+                House
+              </a>
+            ) : (
+              <span>House</span>
+            )}
             <span aria-hidden="true">›</span>
             <span className="rounded border border-healthcare-border dark:border-healthcare-border-dark px-1 py-px font-medium uppercase tracking-wide">
               {LEVEL_LABEL[face.scope.level]}

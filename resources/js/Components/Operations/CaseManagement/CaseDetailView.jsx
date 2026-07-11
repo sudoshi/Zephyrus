@@ -16,7 +16,7 @@ const TimeDisplay = ({ time, isOverdue = false }) => (
 const InfoSection = ({ title, icon, children, className = "" }) => (
   <div className={`bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg p-4 ${className}`}>
     <h3 className="font-semibold mb-4 flex items-center">
-      <Icon icon={icon} className={`${icon === 'heroicons:information-circle' ? 'w-10 h-10' : 'w-5 h-5'} mr-2 text-healthcare-info dark:text-healthcare-info-dark`} />
+      <Icon icon={icon} className={`${icon === 'heroicons:information-circle' ? 'panel-label-icon' : 'w-5 h-5'} mr-2 text-healthcare-info dark:text-healthcare-info-dark`} />
       {title}
     </h3>
     {children}

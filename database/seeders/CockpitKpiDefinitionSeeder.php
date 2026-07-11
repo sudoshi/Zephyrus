@@ -161,7 +161,7 @@ class CockpitKpiDefinitionSeeder extends Seeder
             // oe_los / readmit / avoidable_days match the legacy outcomes band.
             'service.oe_los' => $this->kpi('O:E LOS', 'Observed over expected (GMLOS-based) length of stay.', 'x', 'down', 1.0, 1.0, 1.2, 3600),
             'service.readmit_30d' => $this->kpi('30-day readmission', '30-day all-cause readmission rate.', '%', 'down', 11, 11, 13, 3600),
-            'service.avoidable_days' => $this->kpi('Avoidable days', 'Documented days beyond clinical need, month to date.', 'days', 'down', null, 101, 200, 3600),
+            'service.avoidable_days' => $this->kpi('Avoidable days', 'Documented bed-days beyond clinical need, month to date.', 'bed-days', 'down', null, 101, 200, 3600),
             'service.cmi' => $this->kpi('Case mix index', 'Case mix index (acuity context).', 'x', 'up', null, null, null, 3600),
             'service.observation_rate' => $this->kpi('Observation rate', 'Observation as a percent of admissions.', '%', 'down', null, 15, 20, 3600),
             'service.discharges_mtd' => $this->kpi('Discharges MTD', 'Discharges month to date vs plan.', '', 'up', null, null, null, 3600),

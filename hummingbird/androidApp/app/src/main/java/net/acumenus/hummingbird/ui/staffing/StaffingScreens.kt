@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.acumenus.hummingbird.data.AuthViewModel
-import net.acumenus.hummingbird.data.EvsSla
+import net.acumenus.hummingbird.data.StaffingCandidate
 import net.acumenus.hummingbird.data.StaffingMetrics
 import net.acumenus.hummingbird.data.StaffingReq
 import net.acumenus.hummingbird.data.UnitAtRisk
@@ -156,9 +156,7 @@ fun StaffingScreen(
                         items(overview.queue, key = { it.staffingRequestId }) { request ->
                             StaffingRequestRow(
                                 request = request,
-                                working = request.staffingRequestId in vm.workingRequestIds,
                                 onClick = { onOpenRequest(request, overview.webLink) },
-                                onFill = { vm.fillFromFloatPool(bearer, request) },
                             )
                         }
                     }
@@ -183,8 +181,11 @@ fun StaffingRequestDetailScreen(
     val bearer = auth.accessToken ?: ""
     val uriHandler = LocalUriHandler.current
     val working = request.staffingRequestId in vm.workingRequestIds
+    val candidates = vm.candidatesByRequest[request.staffingRequestId].orEmpty()
+    val selectedCandidateId = vm.selectedCandidateByRequest[request.staffingRequestId]
 
     LaunchedEffect(vm.needsReauth) { if (vm.needsReauth) auth.logout() }
+    LaunchedEffect(request.staffingRequestId, bearer) { vm.loadCandidates(bearer, request) }
 
     Scaffold(
         containerColor = Z.bg,
@@ -206,12 +207,12 @@ fun StaffingRequestDetailScreen(
         bottomBar = {
             Column(Modifier.fillMaxWidth().background(Z.surface).padding(16.dp)) {
                 Button(
-                    onClick = { vm.fillFromFloatPool(bearer, request, onBack) },
-                    enabled = !working,
+                    onClick = { vm.fillSelected(bearer, request, onBack) },
+                    enabled = !working && selectedCandidateId != null,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = if (working) Z.primary.copy(alpha = 0.55f) else Z.primary),
                 ) {
-                    Text(if (working) "Working" else "Fill from float pool", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (working) "Filling shift" else "Fill with selected staff", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         },
@@ -223,6 +224,20 @@ fun StaffingRequestDetailScreen(
         ) {
             item { StaffingRequestDetailCard(request) }
             vm.error?.let { item { StaffingError(it) } }
+            if (request.staffingRequestId in vm.candidateLoadingIds) {
+                item { Text("Checking qualifications, availability, and conflicts...", color = Z.inkMuted, fontSize = 13.sp) }
+            } else if (candidates.isEmpty()) {
+                item { StaffingError("No staff currently pass the canonical role, qualification, availability, and conflict checks.") }
+            } else {
+                item { StaffingSectionLabel("QUALIFIED AND REVIEWED CANDIDATES") }
+                items(candidates, key = { it.staffMemberId }) { candidate ->
+                    StaffingCandidateRow(
+                        candidate = candidate,
+                        selected = selectedCandidateId == candidate.staffMemberId,
+                        onSelect = { vm.selectCandidate(request.staffingRequestId, candidate.staffMemberId) },
+                    )
+                }
+            }
             webLink?.let { link ->
                 item {
                     OutlinedButton(onClick = { uriHandler.openUri(link) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -283,9 +298,7 @@ private fun UnitAtRiskRow(unit: UnitAtRisk) {
 @Composable
 private fun StaffingRequestRow(
     request: StaffingReq,
-    working: Boolean,
     onClick: () -> Unit,
-    onFill: () -> Unit,
 ) {
     Column(
         Modifier
@@ -298,17 +311,44 @@ private fun StaffingRequestRow(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StaffingPriorityChip(request)
             Spacer(Modifier.weight(1f))
-            Text(slaLabel(request.sla), color = if (request.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+            Text(request.sla.label, color = if (request.sla.atRisk) CapacityStatus.CRITICAL.color else Z.inkMuted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
         }
         Text("${request.roleLabel ?: "Staff"} / ${request.unitLabel ?: "-"}", color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Button(
-            onClick = onFill,
-            enabled = !working,
+            onClick = onClick,
             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = if (working) Z.primary.copy(alpha = 0.55f) else Z.primary),
+            colors = ButtonDefaults.buttonColors(containerColor = Z.primary),
         ) {
-            Text(if (working) "Working" else "Fill from float pool", fontWeight = FontWeight.SemiBold)
+            Text("Choose qualified staff", fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun StaffingCandidateRow(
+    candidate: StaffingCandidate,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onSelect,
+        enabled = candidate.eligible,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(candidate.displayName, color = if (candidate.eligible) Z.ink else Z.inkMuted, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (candidate.eligible) candidate.roleLabel else candidate.reasonCodes.joinToString(" / ") { it.replace('_', ' ') },
+                color = Z.inkMuted,
+                fontSize = 12.sp,
+            )
+        }
+        Text(
+            if (selected) "Selected" else candidate.eligibilityState.replace('_', ' '),
+            color = if (candidate.eligible) Z.primary else CapacityStatus.WARNING.color,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -319,8 +359,8 @@ private fun StaffingRequestDetailCard(request: StaffingReq) {
         Text("${request.roleLabel ?: "Staff"} / ${request.unitLabel ?: "-"}", color = Z.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         request.headcountNeeded?.let { StaffingDetailLine("Headcount", "$it") }
         StaffingDetailLine("Status", request.status)
-        StaffingDetailLine("SLA", slaLabel(request.sla))
-        Text("Filling assigns Float Pool and closes the request through the governed staffing lifecycle.", color = Z.inkMuted, fontSize = 13.sp)
+        StaffingDetailLine("SLA", request.sla.label)
+        Text("Filling requires a named person who passes canonical qualification, availability, unit, and overlap checks.", color = Z.inkMuted, fontSize = 13.sp)
     }
 }
 
@@ -379,9 +419,4 @@ private fun StaffingError(text: String, onRetry: (() -> Unit)? = null) {
 @Composable
 private fun StaffingSectionLabel(text: String) {
     Text(text, color = Z.inkMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-}
-
-private fun slaLabel(sla: EvsSla): String {
-    val minutes = sla.minutesUntilDue ?: return sla.label
-    return if (minutes < 0) "${kotlin.math.abs(minutes)}m overdue" else "${minutes}m remaining"
 }

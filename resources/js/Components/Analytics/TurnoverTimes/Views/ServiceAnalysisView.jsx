@@ -4,6 +4,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const ServiceAnalysisView = ({ filters, data = null }) => {
   // Extract filter values
@@ -173,7 +174,7 @@ const ServiceAnalysisView = ({ filters, data = null }) => {
             data={serviceComparisonData}
             keys={['Median Turnover', 'Average Turnover']}
             indexBy="service"
-            margin={{ top: 20, right: 130, bottom: 50, left: 60 }}
+            margin={{ top: 20, right: 130, bottom: 50, left: 125 }}
             padding={0.3}
             groupMode="grouped"
             valueScale={{ type: 'linear' }}
@@ -194,10 +195,13 @@ const ServiceAnalysisView = ({ filters, data = null }) => {
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'Time (minutes)',
+              legend: 'Duration',
               legendPosition: 'middle',
-              legendOffset: -40
+              legendOffset: -110,
+              format: formatDurationMinutes
             }}
+            valueFormat={formatDurationMinutes}
+            enableLabel={false}
             labelSkipWidth={12}
             labelSkipHeight={12}
             labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
@@ -240,10 +244,10 @@ const ServiceAnalysisView = ({ filters, data = null }) => {
                   Service
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
-                  Median Turnover (min)
+                  Median Turnover
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
-                  Average Turnover (min)
+                  Average Turnover
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark uppercase tracking-wider">
                   Total Cases
@@ -260,10 +264,10 @@ const ServiceAnalysisView = ({ filters, data = null }) => {
                     {service}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    {data.medianTurnoverTime}
+                    {formatDurationMinutes(data.medianTurnoverTime)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                    {data.averageTurnoverTime}
+                    {formatDurationMinutes(data.averageTurnoverTime)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {data.totalCases}

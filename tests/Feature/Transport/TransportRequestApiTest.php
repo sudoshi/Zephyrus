@@ -5,6 +5,9 @@ namespace Tests\Feature\Transport;
 use App\Models\Transport\TransportRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TransportRequestApiTest extends TestCase
@@ -13,20 +16,22 @@ class TransportRequestApiTest extends TestCase
 
     public function test_create_assign_update_and_handoff_transport_request(): void
     {
-        $user = User::factory()->create();
+        $user = $this->dispatcher();
 
-        $created = $this->actingAs($user)->postJson('/api/transport/requests', [
-            'request_type' => 'inpatient',
-            'priority' => 'urgent',
-            'patient_ref' => 'patient-transport-1',
-            'encounter_ref' => 'enc-transport-1',
-            'origin' => 'ED Bay 12',
-            'destination' => 'CT Scanner 2',
-            'transport_mode' => 'stretcher',
-            'clinical_service' => 'Emergency',
-            'needed_at' => now()->addMinutes(20)->toISOString(),
-            'risk_flags' => ['oxygen', 'fall-risk'],
-        ])->assertCreated()->json('data');
+        $created = $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'transport-create-1')
+            ->postJson('/api/transport/requests', [
+                'request_type' => 'inpatient',
+                'priority' => 'urgent',
+                'patient_ref' => 'patient-transport-1',
+                'encounter_ref' => 'enc-transport-1',
+                'origin' => 'ED Bay 12',
+                'destination' => 'CT Scanner 2',
+                'transport_mode' => 'stretcher',
+                'clinical_service' => 'Emergency',
+                'needed_at' => now()->addMinutes(20)->toISOString(),
+                'risk_flags' => ['oxygen', 'fall-risk'],
+            ])->assertCreated()->json('data');
 
         $this->assertSame('requested', $created['status']);
         $this->assertDatabaseHas('prod.transport_requests', [
@@ -39,18 +44,31 @@ class TransportRequestApiTest extends TestCase
             'event_type' => 'transport.requested',
         ]);
 
-        $this->actingAs($user)->postJson("/api/transport/requests/{$created['transport_request_id']}/assign", [
-            'assigned_team' => 'Porter Pool',
-        ])->assertOk()->assertJsonPath('data.status', 'assigned');
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'transport-assign-1')
+            ->postJson("/api/transport/requests/{$created['transport_request_id']}/assign", [
+                'resource_key' => 'porter_pool',
+            ])->assertOk()->assertJsonPath('data.status', 'assigned');
 
-        $this->actingAs($user)->postJson("/api/transport/requests/{$created['transport_request_id']}/status", [
-            'status' => 'dispatched',
-        ])->assertOk()->assertJsonPath('data.status', 'dispatched');
+        foreach (['dispatched', 'arrived_pickup', 'picked_up', 'en_route', 'arrived_destination'] as $index => $status) {
+            $this->actingAs($user)
+                ->withHeader('Idempotency-Key', "transport-progress-{$index}")
+                ->postJson("/api/transport/requests/{$created['transport_request_id']}/status", [
+                    'status' => $status,
+                ])->assertOk()->assertJsonPath('data.status', $status);
+        }
 
-        $this->actingAs($user)->postJson("/api/transport/requests/{$created['transport_request_id']}/handoff", [
-            'handoff_to' => 'CT Charge RN',
-            'handoff_summary' => 'Oxygen continued during move.',
-        ])->assertOk()->assertJsonPath('data.status', 'handoff_complete');
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'transport-handoff-1')
+            ->postJson("/api/transport/requests/{$created['transport_request_id']}/handoff", [
+                'handoff_to' => 'CT Charge RN',
+                'receiver_role' => 'charge_nurse',
+                'acceptance_status' => 'accepted_with_risks',
+                'handoff_summary' => 'Oxygen continued during move.',
+                'outstanding_risks' => ['oxygen'],
+            ])->assertOk()
+            ->assertJsonPath('data.status', 'handoff_complete')
+            ->assertJsonPath('data.handoff_evidence.receiver_role', 'charge_nurse');
 
         $this->assertDatabaseHas('prod.transport_events', [
             'transport_request_id' => $created['transport_request_id'],
@@ -60,7 +78,7 @@ class TransportRequestApiTest extends TestCase
 
     public function test_overview_reports_active_transport_mix(): void
     {
-        $user = User::factory()->create();
+        $user = $this->dispatcher();
 
         TransportRequest::create([
             'request_uuid' => (string) \Illuminate\Support\Str::uuid(),
@@ -73,6 +91,8 @@ class TransportRequestApiTest extends TestCase
             'transport_mode' => 'critical_care',
             'requested_at' => now(),
             'needed_at' => now()->subMinutes(5),
+            'requested_by' => 'operations-demo:summit-500-current-operations-v1',
+            'metadata' => ['data_origin' => 'synthetic'],
         ]);
 
         $this->actingAs($user)->getJson('/api/transport/overview')
@@ -80,7 +100,32 @@ class TransportRequestApiTest extends TestCase
             ->assertJsonPath('data.metrics.active', 1)
             ->assertJsonPath('data.metrics.at_risk', 1)
             ->assertJsonPath('data.metrics.transfer_backlog', 1)
-            ->assertJsonPath('data.metrics.stat', 1);
+            ->assertJsonPath('data.metrics.stat', 1)
+            ->assertJsonPath('data.source.synthetic', true);
+    }
+
+    public function test_sla_preserves_whole_second_precision(): void
+    {
+        Carbon::setTestNow('2026-07-09T16:00:00Z');
+
+        try {
+            $user = $this->dispatcher();
+
+            $this->actingAs($user)
+                ->withHeader('Idempotency-Key', 'transport-sla-create')
+                ->postJson('/api/transport/requests', [
+                    'request_type' => 'inpatient',
+                    'priority' => 'urgent',
+                    'patient_ref' => 'patient-duration-precision',
+                    'origin' => 'ED Bay 4',
+                    'destination' => 'CT Scanner 1',
+                    'transport_mode' => 'stretcher',
+                    'needed_at' => now()->subSeconds(91)->toISOString(),
+                ])->assertCreated()
+                ->assertJsonPath('data.sla.label', '1 min 31 sec overdue');
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_transport_endpoints_require_authentication(): void
@@ -88,17 +133,213 @@ class TransportRequestApiTest extends TestCase
         $this->getJson('/api/transport/overview')->assertUnauthorized();
     }
 
+    public function test_empty_overview_count_maps_are_json_objects(): void
+    {
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/transport/overview')
+            ->assertOk();
+
+        $decoded = json_decode($response->getContent());
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->by_type);
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->by_status);
+    }
+
     public function test_create_rejects_invalid_mode(): void
     {
-        $user = User::factory()->create();
+        $user = $this->dispatcher();
 
-        $this->actingAs($user)->postJson('/api/transport/requests', [
+        $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'transport-invalid-mode')
+            ->postJson('/api/transport/requests', [
+                'request_type' => 'discharge',
+                'priority' => 'routine',
+                'patient_ref' => 'patient-invalid',
+                'origin' => '6 West',
+                'destination' => 'Home',
+                'transport_mode' => 'spaceship',
+            ])->assertStatus(422);
+    }
+
+    public function test_empty_transport_maps_are_json_objects(): void
+    {
+        $user = $this->dispatcher();
+
+        $response = $this->actingAs($user)
+            ->withHeader('Idempotency-Key', 'transport-map-create')
+            ->postJson('/api/transport/requests', [
+                'request_type' => 'inpatient',
+                'priority' => 'routine',
+                'patient_ref' => 'patient-map-contract',
+                'origin' => '6 East',
+                'destination' => 'CT 2',
+                'transport_mode' => 'stretcher',
+            ])->assertCreated();
+
+        $decoded = json_decode($response->getContent());
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->handoff);
+        $this->assertInstanceOf(\stdClass::class, $decoded->data->metadata);
+    }
+
+    public function test_completed_today_uses_completion_event_time_not_request_date(): void
+    {
+        $user = $this->dispatcher();
+        $request = TransportRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'request_type' => 'inpatient',
+            'priority' => 'routine',
+            'status' => 'completed',
+            'patient_ref' => 'completed-today',
+            'origin' => '6 East',
+            'destination' => 'MRI',
+            'transport_mode' => 'stretcher',
+            'requested_at' => now()->subDay(),
+            'completed_at' => now(),
+            'is_deleted' => false,
+        ]);
+        DB::table('prod.transport_events')->insert([
+            'event_uuid' => (string) Str::uuid(),
+            'transport_request_id' => $request->transport_request_id,
+            'event_type' => 'transport.completed',
+            'from_status' => 'arrived_destination',
+            'to_status' => 'completed',
+            'occurred_at' => now(),
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($user)->getJson('/api/transport/overview')
+            ->assertOk()
+            ->assertJsonPath('data.metrics.completed_today', 1);
+    }
+
+    public function test_vendor_share_uses_explicit_vendor_assignment(): void
+    {
+        $internal = TransportRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'request_type' => 'inpatient',
+            'priority' => 'routine',
+            'status' => 'assigned',
+            'patient_ref' => 'internal-team',
+            'origin' => 'A',
+            'destination' => 'B',
+            'transport_mode' => 'wheelchair',
+            'requested_at' => now(),
+            'assigned_team' => 'Summit Patient Transport',
+            'is_deleted' => false,
+        ]);
+        TransportRequest::create([
+            'request_uuid' => (string) Str::uuid(),
             'request_type' => 'discharge',
             'priority' => 'routine',
-            'patient_ref' => 'patient-invalid',
-            'origin' => '6 West',
+            'status' => 'assigned',
+            'patient_ref' => 'external-vendor',
+            'origin' => 'A',
             'destination' => 'Home',
-            'transport_mode' => 'spaceship',
-        ])->assertStatus(422);
+            'transport_mode' => 'nemt',
+            'requested_at' => now(),
+            'assigned_vendor' => 'Ride Health',
+            'is_deleted' => false,
+        ]);
+
+        $measure = collect(app(\App\Services\Transport\TransportOperationsService::class)->measures())
+            ->firstWhere('key', 'vendor_acceptance_cancellation');
+
+        $this->assertNotNull($internal);
+        $this->assertSame(50.0, (float) $measure['value']);
+    }
+
+    public function test_measures_consume_the_canonical_pickup_and_destination_events(): void
+    {
+        $requestedAt = now()->subMinutes(60);
+        $requestId = DB::table('prod.transport_requests')->insertGetId([
+            'request_uuid' => (string) Str::uuid(),
+            'request_type' => 'inpatient',
+            'priority' => 'routine',
+            'status' => 'completed',
+            'patient_ref' => 'canonical-measure-events',
+            'origin' => 'ED',
+            'destination' => '4 West',
+            'transport_mode' => 'stretcher',
+            'requested_at' => $requestedAt,
+            'completed_at' => $requestedAt->copy()->addMinutes(55),
+            'is_deleted' => false,
+            'created_at' => $requestedAt,
+            'updated_at' => now(),
+        ], 'transport_request_id');
+
+        foreach ([
+            ['transport.requested', 0],
+            ['transport.assigned', 5],
+            ['transport.dispatched', 10],
+            ['transport.arrived_pickup', 20],
+            ['transport.picked_up', 22],
+            ['transport.en_route', 25],
+            ['transport.arrived_destination', 50],
+            ['transport.completed', 55],
+        ] as [$eventType, $offset]) {
+            DB::table('prod.transport_events')->insert([
+                'event_uuid' => (string) Str::uuid(),
+                'transport_request_id' => $requestId,
+                'event_type' => $eventType,
+                'occurred_at' => $requestedAt->copy()->addMinutes($offset),
+                'created_at' => now(),
+            ]);
+        }
+
+        $measures = collect(app(\App\Services\Transport\TransportOperationsService::class)->measures())
+            ->keyBy('key');
+
+        $this->assertSame(5.0, (float) $measures['request_to_assign_min']['value']);
+        $this->assertSame(10.0, (float) $measures['dispatch_to_pickup_min']['value']);
+        $this->assertSame(20.0, (float) $measures['request_to_pickup_min']['value']);
+        $this->assertSame(28.0, (float) $measures['pickup_to_destination_min']['value']);
+    }
+
+    public function test_dispatch_scope_filters_before_pagination(): void
+    {
+        $user = User::factory()->create();
+        for ($i = 0; $i < 55; $i++) {
+            TransportRequest::create([
+                'request_uuid' => (string) Str::uuid(),
+                'request_type' => 'inpatient',
+                'priority' => 'stat',
+                'status' => 'completed',
+                'patient_ref' => "history-{$i}",
+                'origin' => 'A',
+                'destination' => 'B',
+                'transport_mode' => 'wheelchair',
+                'requested_at' => now()->subDay(),
+                'completed_at' => now()->subDay(),
+                'is_deleted' => false,
+            ]);
+        }
+        TransportRequest::create([
+            'request_uuid' => (string) Str::uuid(),
+            'request_type' => 'inpatient',
+            'priority' => 'routine',
+            'status' => 'requested',
+            'patient_ref' => 'live-dispatch',
+            'origin' => '6 East',
+            'destination' => 'CT 2',
+            'transport_mode' => 'stretcher',
+            'requested_at' => now(),
+            'needed_at' => now()->addMinutes(20),
+            'is_deleted' => false,
+        ]);
+
+        $this->actingAs($user)->getJson('/api/transport/requests?scope=dispatch')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.patient_ref', 'live-dispatch')
+            ->assertJsonPath('meta.count', 1)
+            ->assertJsonPath('meta.has_more', false);
+    }
+
+    private function dispatcher(): User
+    {
+        return User::factory()->create([
+            'role' => 'ops_leader',
+            'must_change_password' => false,
+            'is_active' => true,
+        ]);
     }
 }

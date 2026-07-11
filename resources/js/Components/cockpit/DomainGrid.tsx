@@ -12,6 +12,7 @@ import { Panel } from './Panel';
 import { RadialGauge, type RadialGaugeBand } from './RadialGauge';
 import { MetricRow } from './Tile';
 import { ProvenanceBadge } from './ProvenanceBadge';
+import { formatMetricTarget } from './metricFormatting';
 
 // Fixed wall order — operational domains first, ledger domains last. Keys are
 // the server domain registry (SnapshotBuilder providers / DrillBuilder).
@@ -90,7 +91,7 @@ function DomainGauge({ metric }: { metric: CockpitMetricValue }) {
         )}
         {metric.target != null && (
           <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Target {metric.target}{metric.unit === '%' ? '%' : ''}
+            {formatMetricTarget(metric.target, metric.unit)}
           </span>
         )}
       </div>
@@ -100,7 +101,8 @@ function DomainGauge({ metric }: { metric: CockpitMetricValue }) {
 
 interface DomainGridProps {
   domains: Record<string, CockpitDomain>;
-  onDrill: (domain: CockpitDrillDomain) => void;
+  /** Omit for static wall mode so panel headers are semantic text, not controls. */
+  onDrill?: (domain: CockpitDrillDomain) => void;
 }
 
 export function DomainGrid({ domains, onDrill }: DomainGridProps) {
@@ -123,7 +125,7 @@ export function DomainGrid({ domains, onDrill }: DomainGridProps) {
             title={DOMAIN_TITLES[key]}
             accent={panelAccent(domain.tiles)}
             meta={domain.provenance !== 'live' ? <ProvenanceBadge label={domain.provenance === 'demo' ? 'demo' : 'partial'} /> : undefined}
-            onDrill={() => onDrill(key)}
+            onDrill={onDrill ? () => onDrill(key) : undefined}
             className="min-w-0"
           >
             {gauge && <DomainGauge metric={gauge} />}

@@ -47,7 +47,7 @@ class OperationsGraphController extends Controller
 
     public function agentInbox(): JsonResponse
     {
-        $this->recommendations->generate();
+        $this->recommendations->generate(rebuildGraph: false);
 
         return response()->json([
             'data' => $this->lifecycle->inbox(),

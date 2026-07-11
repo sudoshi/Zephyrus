@@ -37,10 +37,11 @@ export default function Login({ status, canResetPassword, oidcEnabled = false, o
                 </div>
             )}
 
-            {(errors.username || errors.password || errors.email) && (
+            {(errors.general || errors.username || errors.password || errors.email) && (
                 <div className="za-alert za-alert-err">
                     <Icon icon="lucide:alert-circle" width="16" height="16" />
                     <div>
+                        {errors.general && <div>{errors.general}</div>}
                         {errors.username && <div>{errors.username}</div>}
                         {errors.password && <div>{errors.password}</div>}
                         {errors.email && <div>{errors.email}</div>}

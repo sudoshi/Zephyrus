@@ -8,7 +8,7 @@ const Stats = ({ title, value, description, trend, icon }) => {
     };
 
     return (
-        <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm border border-healthcare-border dark:border-healthcare-border-dark hover:border-indigo-100 transition-all duration-200 group">
+        <div className="rounded-lg bg-healthcare-surface dark:bg-healthcare-surface-dark p-4 shadow-sm border border-healthcare-border dark:border-healthcare-border-dark hover:border-healthcare-primary/30 dark:hover:border-healthcare-primary-dark/30 transition-all duration-200 group">
             <div className="flex items-center justify-between">
                 <div className="flex items-center">
                     {icon && (
@@ -18,12 +18,12 @@ const Stats = ({ title, value, description, trend, icon }) => {
                     )}
                     <div>
                         <div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 text-sm">
                                 <p className="text-sm font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{title}</p>
                                 <div className="relative group/tooltip cursor-help">
                                     <Icon 
                                         icon="heroicons:information-circle" 
-                                        className="w-8 h-8 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-secondary dark:hover:text-healthcare-text-secondary-dark"
+                                        className="panel-label-icon text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark hover:text-healthcare-text-secondary dark:hover:text-healthcare-text-secondary-dark"
                                     />
                                     <div className="absolute z-10 w-48 p-2 mt-2 text-xs bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow-lg border border-healthcare-border dark:border-healthcare-border-dark opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none left-0">
                                         {description || `Details about ${title.toLowerCase()}`}

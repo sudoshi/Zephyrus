@@ -10,6 +10,7 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import { formatDurationMinutes } from '@/lib/duration';
 
 const TrendChart = ({
     data,
@@ -58,7 +59,7 @@ const TrendChart = ({
                                 type={xAxis.type}
                                 tickFormatter={xAxis.formatter}
                             />
-                            <YAxis tickFormatter={yAxis.formatter} />
+                            <YAxis tickFormatter={yAxis.formatter} width={yAxis.width ?? 100} />
                             <Tooltip
                                 formatter={tooltip.formatter}
                                 labelFormatter={xAxis.formatter}
@@ -86,11 +87,7 @@ const TrendChart = ({
 
 export const formatters = {
     percentage: (value) => `${Math.round(value)}%`,
-    duration: (minutes) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-    },
+    duration: (minutes) => formatDurationMinutes(Number(minutes)),
     number: (value) => value.toLocaleString(),
     currency: (value) => new Intl.NumberFormat('en-US', {
         style: 'currency',
