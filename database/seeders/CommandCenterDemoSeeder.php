@@ -102,9 +102,9 @@ class CommandCenterDemoSeeder extends Seeder
         $this->seedBedRequestsAndDecisions($units);
 
         // ----------------------------------------------------------------
-        // 4. Barriers (~6 open).
+        // 4. Barriers — sprinkled on the long-stay tail (~1 in 8, cap 30).
         // ----------------------------------------------------------------
-        $this->seedBarriers($nonEdUnits);
+        $this->seedBarriers();
 
         // ----------------------------------------------------------------
         // 4b. Staffing plans + gap-mitigation requests.
@@ -682,41 +682,75 @@ class CommandCenterDemoSeeder extends Seeder
         }
     }
 
-    private function seedBarriers($nonEdUnits): void
+    private function seedBarriers(): void
     {
         // Delete seeder's own barriers.
         Barrier::where('owner', 'seeder')->delete();
 
-        $categories = ['medical', 'logistical', 'placement', 'social'];
-        $descriptions = [
-            'Awaiting cardiology consult',
-            'No SNF beds available',
-            'Family meeting pending disposition decision',
-            'Pending IV antibiotic course completion',
-            'Insurance authorization required for transfer',
-            'Home oxygen equipment not yet arranged',
+        $pool = [
+            'medical' => [
+                'Awaiting cardiology consult',
+                'Pending IV antibiotic course completion',
+                'Awaiting PT/OT evaluation',
+                'Pain control not yet at goal',
+            ],
+            'logistical' => [
+                'No SNF beds available',
+                'Home oxygen equipment not yet arranged',
+                'Transport pending for discharge',
+                'DME delivery delayed',
+            ],
+            'placement' => [
+                'Family meeting pending disposition decision',
+                'LTACH acceptance pending',
+                'Guardianship paperwork in progress',
+            ],
+            'social' => [
+                'Insurance authorization required for transfer',
+                'No safe discharge environment identified',
+                'Caregiver training incomplete',
+            ],
         ];
 
-        $encounters = Encounter::where('status', 'active')->limit(6)->get();
+        // Every census ward carries 1-3 open barriers on its longest-stay
+        // patients, each on the encounter's OWN unit (the old version scattered
+        // 6 barriers onto random units, orphaning them from the patients they
+        // described). Deterministic per unit + encounter so the 6h demo refresh
+        // doesn't churn them. ED is excluded — its barrier vocabulary is
+        // boarding, not discharge.
+        $edUnitIds = Unit::query()->where('type', 'ed')->pluck('unit_id');
 
-        foreach (range(1, 6) as $i) {
-            $seed = 20260622 + $i * 17;
-            $unit = $nonEdUnits->get($this->seededRand($seed, 0, $nonEdUnits->count() - 1));
-            $enc = $encounters->get($i - 1);
-            $openedAt = now()->subHours($this->seededRand($seed + 1, 1, 48));
+        $byUnit = Encounter::query()
+            ->where('status', 'active')
+            ->where('is_deleted', false)
+            ->whereNotNull('unit_id')
+            ->whereNotIn('unit_id', $edUnitIds)
+            ->where('admitted_at', '<=', now()->subHours(72))
+            ->orderBy('admitted_at')
+            ->get(['encounter_id', 'unit_id'])
+            ->groupBy('unit_id');
 
-            Barrier::create([
-                'encounter_id' => $enc ? $enc->encounter_id : null,
-                'unit_id' => $unit->unit_id,
-                'category' => $categories[$this->seededRand($seed + 2, 0, 3)],
-                'reason_code' => null,
-                'description' => $descriptions[$i - 1],
-                'owner' => 'seeder',
-                'status' => 'open',
-                'opened_at' => $openedAt,
-                'resolved_at' => null,
-                'is_deleted' => false,
-            ]);
+        foreach ($byUnit as $unitId => $encounters) {
+            $take = min($this->seededRand(20260711 + (int) $unitId * 31, 1, 3), $encounters->count());
+
+            foreach ($encounters->take($take) as $enc) {
+                $seed = 20260711 + (int) $enc->encounter_id * 13;
+                $category = Barrier::CATEGORIES[$this->seededRand($seed + 1, 0, 3)];
+                $descriptions = $pool[$category];
+
+                Barrier::create([
+                    'encounter_id' => $enc->encounter_id,
+                    'unit_id' => $enc->unit_id,
+                    'category' => $category,
+                    'reason_code' => null,
+                    'description' => $descriptions[$this->seededRand($seed + 2, 0, count($descriptions) - 1)],
+                    'owner' => 'seeder',
+                    'status' => 'open',
+                    'opened_at' => now()->subHours($this->seededRand($seed + 3, 2, 36)),
+                    'resolved_at' => null,
+                    'is_deleted' => false,
+                ]);
+            }
         }
     }
 

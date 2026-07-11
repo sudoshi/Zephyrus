@@ -3,11 +3,13 @@
 namespace App\Services\Cockpit;
 
 use App\Enums\CockpitStatus;
+use App\Models\Barrier;
 use App\Models\Encounter;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Rtdc\BedTrackingService;
 use App\Support\Cockpit\CockpitScope;
 use App\Support\Hospital\HospitalManifest;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Assembles the altitude-appropriate cockpit "face" for a resolved CockpitScope
@@ -28,6 +30,14 @@ use App\Support\Hospital\HospitalManifest;
  */
 class ScopedFaceBuilder
 {
+    /** The warn threshold occupancyState uses, surfaced as the tile target line. */
+    private const OCCUPANCY_TARGET_PCT = 85;
+
+    /** Trailing-24h trend: 12 buckets × 2h, reconstructed from the encounter spine. */
+    private const TREND_BUCKETS = 12;
+
+    private const TREND_BUCKET_HOURS = 2;
+
     public function __construct(
         private readonly DrillBuilder $drills,
         private readonly BedTrackingService $beds,
@@ -109,7 +119,10 @@ class ScopedFaceBuilder
             return $this->emptyFace($scope, 'No live census for this unit yet');
         }
 
-        $roster = $this->unitRoster((int) $row['unitId']);
+        $unitId = (int) $row['unitId'];
+        $roster = $this->unitRoster($unitId);
+        $occupiedSeries = $this->occupiedSeries([$unitId])[$unitId] ?? [];
+        $movement = $this->movement24h([$unitId]);
 
         return [
             'scope' => $scope->toArray(),
@@ -117,7 +130,7 @@ class ScopedFaceBuilder
             'title' => $scope->label,
             'sub' => $row['type'].' — '.$row['occupancyPct'].'% occupancy',
             'asOf' => now()->toIso8601String(),
-            'kpis' => $this->unitKpis($row, $roster),
+            'kpis' => $this->unitKpis($row, $roster, $occupiedSeries, $movement),
             'tables' => [
                 $this->unitRosterTable($roster),
                 $this->boardTable('Unit capacity', [$row]),
@@ -166,13 +179,17 @@ class ScopedFaceBuilder
         $blocked = $this->sum($rows, 'blocked');
         $occ = $staffed > 0 ? (int) round($occupied / $staffed * 100) : 0;
 
+        $unitIds = array_map(fn (array $r): int => (int) $r['unitId'], $rows);
+        $occTrend = $this->occupancyPctSeries($this->sumSeries($this->occupiedSeries($unitIds)), $staffed);
+        $movement = $this->movement24h($unitIds);
+
         // Line-wide patient-care aggregates from the live encounter spine. The
         // altitude model keeps the patient BOARD at the unit mount — a line-wide
         // roster would be a 150-row wall; here the line gets the numbers and each
         // unit row is one picker-hop from its own board.
         $actives = Encounter::query()
             ->active()
-            ->whereIn('unit_id', array_map(fn (array $r): int => (int) $r['unitId'], $rows))
+            ->whereIn('unit_id', $unitIds)
             ->get(['acuity_tier', 'expected_discharge_date', 'admitted_at']);
 
         $today = now()->endOfDay();
@@ -193,13 +210,14 @@ class ScopedFaceBuilder
             'sub' => count($rows).' units — '.$occ.'% occupancy — '.$actives->count().' patients',
             'asOf' => now()->toIso8601String(),
             'kpis' => [
-                $this->tile('sl.occupancy', 'Occupancy', $occ, $occ.'%', '%', count($rows).' units', $this->occupancyState($occ)),
+                $this->tile('sl.occupancy', 'Occupancy', $occ, $occ.'%', '%', count($rows).' units', $this->occupancyState($occ), trend: $occTrend, target: self::OCCUPANCY_TARGET_PCT, direction: $this->trendDirection($occTrend, 3.0)),
                 $this->tile('sl.census', 'Patients', $actives->count(), (string) $actives->count(), null, $staffed.' staffed beds'),
                 $this->tile('sl.available', 'Available', $available, (string) $available, status: $available > 0 ? CockpitStatus::OK : CockpitStatus::WARN),
                 $this->tile('sl.blocked', 'Blocked', $blocked, (string) $blocked, status: $blocked > 0 ? CockpitStatus::WARN : CockpitStatus::NORMAL),
                 $this->tile('sl.high_acuity', 'High acuity', $highAcuity, (string) $highAcuity, null, 'Tier 4+', $highAcuity > 0 ? CockpitStatus::WATCH : CockpitStatus::NORMAL),
                 $this->tile('sl.dc_due', 'DC due today', $dcDue, (string) $dcDue, null, 'Expected discharges', $dcDue > 0 ? CockpitStatus::OK : CockpitStatus::NORMAL),
                 $this->tile('sl.alos', 'ALOS (active)', $alosDays ?? 0, $alosDays !== null ? $alosDays.'d' : 'N/A', 'days'),
+                $this->flowTile('sl.flow_24h', $movement),
             ],
             'tables' => [$this->boardTable('Units in '.$scope->label, $rows)],
         ];
@@ -255,13 +273,16 @@ class ScopedFaceBuilder
     /**
      * @param  array<string, mixed>  $row
      * @param  \Illuminate\Support\Collection<int, Encounter>  $roster
+     * @param  list<int>  $occupiedSeries
+     * @param  array{in: int, out: int}  $movement
      * @return list<array<string, mixed>>
      */
-    private function unitKpis(array $row, $roster): array
+    private function unitKpis(array $row, $roster, array $occupiedSeries, array $movement): array
     {
         $occ = (int) $row['occupancyPct'];
         $available = (int) $row['available'];
         $blocked = (int) $row['blocked'];
+        $occTrend = $this->occupancyPctSeries($occupiedSeries, (int) $row['staffed']);
 
         $dcDue = $roster
             ->filter(fn (Encounter $e): bool => $e->expected_discharge_date !== null
@@ -269,20 +290,22 @@ class ScopedFaceBuilder
             ->count();
 
         return [
-            $this->tile('unit.occupancy', 'Occupancy', $occ, $occ.'%', '%', 'Acuity-adj '.$row['acuityAdjustedPct'].'%', $this->occupancyState($occ)),
+            $this->tile('unit.occupancy', 'Occupancy', $occ, $occ.'%', '%', 'Acuity-adj '.$row['acuityAdjustedPct'].'%', $this->occupancyState($occ), trend: $occTrend, target: self::OCCUPANCY_TARGET_PCT, direction: $this->trendDirection($occTrend, 3.0)),
             $this->tile('unit.staffed', 'Staffed beds', (int) $row['staffed'], (string) $row['staffed']),
             $this->tile('unit.occupied', 'Occupied', (int) $row['occupied'], (string) $row['occupied']),
             $this->tile('unit.available', 'Available', $available, (string) $available, status: $available > 0 ? CockpitStatus::OK : CockpitStatus::WARN),
             $this->tile('unit.blocked', 'Blocked', $blocked, (string) $blocked, status: $blocked > 0 ? CockpitStatus::WARN : CockpitStatus::NORMAL),
             $this->tile('unit.dc_due', 'DC due today', $dcDue, (string) $dcDue, null, 'Expected discharges', $dcDue > 0 ? CockpitStatus::OK : CockpitStatus::NORMAL),
+            $this->flowTile('unit.flow_24h', $movement),
         ];
     }
 
     /**
      * Active encounters on a unit, sickest-first then longest-stay — the roster
      * behind both the patient board and the discharge-due tile. Deliberately
-     * de-identified (bed / acuity / LOS / EDD only): patient identity stays gated
-     * at A2P behind EnforceFlowLens; the drill cell carries only the opaque ptok.
+     * de-identified (bed / acuity / LOS / EDD / barrier category only): patient
+     * identity stays gated at A2P behind EnforceFlowLens; the drill cell carries
+     * only the opaque ptok.
      *
      * @return \Illuminate\Support\Collection<int, Encounter>
      */
@@ -310,7 +333,17 @@ class ScopedFaceBuilder
     {
         $today = now()->endOfDay();
 
-        $rows = $roster->map(function (Encounter $e) use ($today): array {
+        // Open discharge barriers per encounter — the "who is stuck and why"
+        // signal. One query for the whole roster; category only (the detail
+        // lives at A2P behind the drill, same de-identification rule).
+        $barriers = Barrier::query()
+            ->where('status', 'open')
+            ->where('is_deleted', false)
+            ->whereIn('encounter_id', $roster->pluck('encounter_id')->all())
+            ->get(['encounter_id', 'category'])
+            ->groupBy('encounter_id');
+
+        $rows = $roster->map(function (Encounter $e) use ($today, $barriers): array {
             $bedLabel = $e->bed?->label ?? 'Unassigned';
             $contextRef = $this->patients->contextRefFor($e->patient_ref);
             $tier = (int) $e->acuity_tier;
@@ -322,6 +355,16 @@ class ScopedFaceBuilder
                 : ($edd->lte($today)
                     ? ['tag' => ['text' => 'Today', 'status' => 'success']]
                     : ['v' => $edd->format('M j'), 'dim' => true]);
+
+            $open = $barriers->get($e->encounter_id);
+            $barrierCell = $open === null || $open->isEmpty()
+                ? ['v' => '—', 'dim' => true]
+                : ['tag' => [
+                    'text' => $open->count() > 1
+                        ? $open->count().' barriers'
+                        : ucfirst((string) $open->first()->category),
+                    'status' => 'warning',
+                ]];
 
             return [
                 'bed' => $contextRef !== null
@@ -336,6 +379,7 @@ class ScopedFaceBuilder
                     'status' => ($losHours ?? 0) > 120 ? 'warning' : 'neutral',
                 ],
                 'edd' => $eddCell,
+                'barrier' => $barrierCell,
             ];
         })->values()->all();
 
@@ -346,6 +390,7 @@ class ScopedFaceBuilder
                 ['key' => 'acuity', 'header' => 'Acuity', 'align' => 'left'],
                 ['key' => 'los', 'header' => 'LOS', 'align' => 'right'],
                 ['key' => 'edd', 'header' => 'Expected DC', 'align' => 'right'],
+                ['key' => 'barrier', 'header' => 'Barrier', 'align' => 'left'],
             ],
             'rows' => $rows,
         ];
@@ -380,6 +425,9 @@ class ScopedFaceBuilder
         ?string $unit = null,
         ?string $sub = null,
         CockpitStatus $status = CockpitStatus::NORMAL,
+        array $trend = [],
+        int|float|null $target = null,
+        string $direction = 'neutral',
     ): array {
         return [
             'key' => $key,
@@ -389,14 +437,169 @@ class ScopedFaceBuilder
             'unit' => $unit,
             'sub' => $sub,
             'status' => $status->value,
-            'target' => null,
+            'target' => $target,
             // The client contract (cockpitMetricValueSchema) requires the enum —
             // null fails Zod and blanks the whole mount ("Could not load this mount").
-            'direction' => 'neutral',
-            'trend' => [],
-            'trendLabel' => null,
+            'direction' => $direction,
+            'trend' => $trend,
+            'trendLabel' => $trend === [] ? null : 'Last 24h',
             'updatedAt' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Occupied-bed counts per unit over the trailing 24h, reconstructed from the
+     * encounter spine (admitted_at / discharged_at) in 12 two-hour buckets — the
+     * census_snapshots table is far too sparse (~daily) to feed a 24h sparkline.
+     * Bucket identity travels as the SQL row_number, so no timestamp values
+     * round-trip between PHP and PostgreSQL (the NEDOCS TZ lesson).
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, list<int>> unit_id => occupied count per bucket, oldest first
+     */
+    private function occupiedSeries(array $unitIds): array
+    {
+        if ($unitIds === []) {
+            return [];
+        }
+
+        $now = now()->format('Y-m-d H:i:s');
+        $spanHours = (self::TREND_BUCKETS - 1) * self::TREND_BUCKET_HOURS;
+        $stepHours = self::TREND_BUCKET_HOURS;
+        $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+
+        $rows = DB::select(
+            "with buckets as (
+                select g.bucket, row_number() over (order by g.bucket) - 1 as idx
+                from generate_series(
+                    ?::timestamp - interval '{$spanHours} hours',
+                    ?::timestamp,
+                    interval '{$stepHours} hours'
+                ) as g(bucket)
+            )
+            select e.unit_id, b.idx, count(*) as occupied
+            from buckets b
+            join prod.encounters e
+              on e.admitted_at <= b.bucket
+             and (e.discharged_at is null or e.discharged_at > b.bucket)
+             and e.is_deleted = false
+             and e.unit_id in ({$placeholders})
+            group by e.unit_id, b.idx",
+            [$now, $now, ...$unitIds],
+        );
+
+        $series = [];
+        foreach ($unitIds as $id) {
+            $series[$id] = array_fill(0, self::TREND_BUCKETS, 0);
+        }
+        foreach ($rows as $r) {
+            $series[(int) $r->unit_id][(int) $r->idx] = (int) $r->occupied;
+        }
+
+        return $series;
+    }
+
+    /**
+     * @param  list<int>  $occupied
+     * @return list<int> occupancy % per bucket; empty when nothing is staffed
+     */
+    private function occupancyPctSeries(array $occupied, int $staffed): array
+    {
+        if ($staffed <= 0 || $occupied === []) {
+            return [];
+        }
+
+        return array_map(fn (int $o): int => (int) round($o / $staffed * 100), $occupied);
+    }
+
+    /**
+     * @param  array<int, list<int>>  $bySeries
+     * @return list<int>
+     */
+    private function sumSeries(array $bySeries): array
+    {
+        if ($bySeries === []) {
+            return [];
+        }
+
+        $sum = array_fill(0, self::TREND_BUCKETS, 0);
+        foreach ($bySeries as $series) {
+            foreach ($series as $i => $v) {
+                $sum[$i] += $v;
+            }
+        }
+
+        return $sum;
+    }
+
+    /**
+     * up/down only past the deadband — a flat-ish line stays 'neutral' (earned
+     * urgency: the trend arrow is a signal, not decoration).
+     */
+    private function trendDirection(array $trend, float $deadband): string
+    {
+        if (count($trend) < 2) {
+            return 'neutral';
+        }
+
+        $delta = end($trend) - $trend[0];
+
+        if (abs($delta) < $deadband) {
+            return 'neutral';
+        }
+
+        return $delta > 0 ? 'up' : 'down';
+    }
+
+    /**
+     * Admissions and discharges touching these units in the trailing 24h.
+     *
+     * @param  list<int>  $unitIds
+     * @return array{in: int, out: int}
+     */
+    private function movement24h(array $unitIds): array
+    {
+        if ($unitIds === []) {
+            return ['in' => 0, 'out' => 0];
+        }
+
+        $since = now()->subDay();
+
+        return [
+            'in' => Encounter::query()
+                ->where('is_deleted', false)
+                ->whereIn('unit_id', $unitIds)
+                ->where('admitted_at', '>=', $since)
+                ->count(),
+            'out' => Encounter::query()
+                ->where('is_deleted', false)
+                ->whereIn('unit_id', $unitIds)
+                ->where('discharged_at', '>=', $since)
+                ->count(),
+        ];
+    }
+
+    /**
+     * Net patient flow over the trailing 24h — for an ops leader the net is more
+     * actionable than static census, so it earns its own tile on every altitude.
+     *
+     * @param  array{in: int, out: int}  $movement
+     * @return array<string, mixed>
+     */
+    private function flowTile(string $key, array $movement): array
+    {
+        $net = $movement['in'] - $movement['out'];
+
+        return $this->tile(
+            $key,
+            'Net flow 24h',
+            $net,
+            $net === 0 ? '0' : sprintf('%+d', $net),
+            null,
+            $movement['in'].' in · '.$movement['out'].' out',
+            CockpitStatus::NORMAL,
+            direction: $net > 0 ? 'up' : ($net < 0 ? 'down' : 'neutral'),
+        );
     }
 
     /**

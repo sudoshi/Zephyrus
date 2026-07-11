@@ -105,7 +105,7 @@ class ScopedFaceBuilderTest extends TestCase
         $unitId = (int) DB::table('prod.units')->where('abbreviation', 'MICU')->value('unit_id');
         $bedId = (int) DB::table('prod.beds')->where('unit_id', $unitId)->orderBy('bed_id')->value('bed_id');
         DB::table('prod.beds')->where('bed_id', $bedId)->update(['status' => 'occupied']);
-        DB::table('prod.encounters')->insert([
+        $encounterId = DB::table('prod.encounters')->insertGetId([
             'patient_ref' => 'test-roster-1',
             'unit_id' => $unitId,
             'bed_id' => $bedId,
@@ -117,6 +117,18 @@ class ScopedFaceBuilderTest extends TestCase
             'updated_at' => now(),
             'created_by' => 'test',
             'modified_by' => 'test',
+            'is_deleted' => false,
+        ], 'encounter_id');
+        DB::table('prod.barriers')->insert([
+            'encounter_id' => $encounterId,
+            'unit_id' => $unitId,
+            'category' => 'logistical',
+            'description' => 'No SNF beds available',
+            'owner' => 'test',
+            'status' => 'open',
+            'opened_at' => now()->subHours(6),
+            'created_at' => now(),
+            'updated_at' => now(),
             'is_deleted' => false,
         ]);
 
@@ -133,10 +145,73 @@ class ScopedFaceBuilderTest extends TestCase
         $this->assertStringStartsWith('ptok_', $row['bed']['drill']['patientRef']);
         $this->assertSame('T4', $row['acuity']['tag']['text']);
         $this->assertSame('Today', $row['edd']['tag']['text']);
+        // The open barrier surfaces as a category tag — "who is stuck and why".
+        $this->assertSame('Logistical', $row['barrier']['tag']['text']);
+        $this->assertSame('warning', $row['barrier']['tag']['status']);
 
         // The same admission counts on the discharge-due tile.
         $dcDue = collect($face['kpis'])->firstWhere('key', 'unit.dc_due');
         $this->assertSame(1, $dcDue['value']);
+    }
+
+    public function test_unit_face_carries_trend_target_and_flow(): void
+    {
+        $this->seed(RtdcSeeder::class);
+
+        $unitId = (int) DB::table('prod.units')->where('abbreviation', 'MICU')->value('unit_id');
+        DB::table('prod.encounters')->insert([
+            [
+                'patient_ref' => 'test-trend-1',
+                'unit_id' => $unitId,
+                'bed_id' => null,
+                'admitted_at' => now()->subHours(30),
+                'expected_discharge_date' => null,
+                'acuity_tier' => 2,
+                'status' => 'active',
+                'discharged_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'created_by' => 'test',
+                'modified_by' => 'test',
+                'is_deleted' => false,
+            ],
+            [
+                'patient_ref' => 'test-trend-2',
+                'unit_id' => $unitId,
+                'bed_id' => null,
+                'admitted_at' => now()->subHours(10),
+                'expected_discharge_date' => null,
+                'acuity_tier' => 2,
+                'status' => 'discharged',
+                'discharged_at' => now()->subHours(2),
+                'created_at' => now(),
+                'updated_at' => now(),
+                'created_by' => 'test',
+                'modified_by' => 'test',
+                'is_deleted' => false,
+            ],
+        ]);
+
+        $face = $this->faces()->build(CockpitScope::unit('MICU', 'Medical ICU'));
+        $kpis = collect($face['kpis']);
+
+        // Occupancy carries the reconstructed 24h trend, the 85% target line,
+        // and a direction derived from the series — the Tile renders all three.
+        $occupancy = $kpis->firstWhere('key', 'unit.occupancy');
+        $this->assertCount(12, $occupancy['trend']);
+        $this->assertSame(85, $occupancy['target']);
+        $this->assertSame('Last 24h', $occupancy['trendLabel']);
+        // The 30h-stay patient occupies every bucket → the series is never zero.
+        $this->assertGreaterThan(0, min($occupancy['trend']));
+
+        // Net flow: one admission and one discharge inside the window.
+        $flow = $kpis->firstWhere('key', 'unit.flow_24h');
+        $this->assertSame(0, $flow['value']);
+        $this->assertSame('0', $flow['display']);
+        $this->assertSame('1 in · 1 out', $flow['sub']);
+        $this->assertSame('neutral', $flow['direction']);
+
+        $this->assertKpisMatchClientContract($face['kpis']);
     }
 
     public function test_unit_face_matches_census_through_the_cad_join_key(): void
@@ -186,7 +261,14 @@ class ScopedFaceBuilderTest extends TestCase
 
         $keys = array_column($face['kpis'], 'key');
         $this->assertContains('sl.occupancy', $keys);
+        $this->assertContains('sl.flow_24h', $keys);
         $this->assertKpisMatchClientContract($face['kpis']);
+
+        // The line rollup carries the same reconstructed 24h occupancy trend.
+        $occupancy = collect($face['kpis'])->firstWhere('key', 'sl.occupancy');
+        $this->assertCount(12, $occupancy['trend']);
+        $this->assertSame(85, $occupancy['target']);
+
         $this->assertNotEmpty($face['tables'][0]['rows']);
     }
 
