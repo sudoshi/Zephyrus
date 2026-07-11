@@ -24,6 +24,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo units
+    |--------------------------------------------------------------------------
+    | Units (abbreviation or id) the 6-hourly demo refresh re-anchors a Virtual
+    | Rounds run for, so a walkthrough always opens onto a live board. Keep the
+    | first accessible unit here — the board auto-selects scopes[0].
+    */
+    'demo_units' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('VIRTUAL_ROUNDS_DEMO_UNITS', 'BMT,ONC,AIR'))
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Contributor roles
     |--------------------------------------------------------------------------
     | role_code => display label. prod.user_unit pivot roles map onto these

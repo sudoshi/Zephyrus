@@ -16,16 +16,23 @@ use Illuminate\Console\Command;
  * Synthetic round generator tied to the demo census (plan §15 Phase 1).
  * Creates today's run for a unit with active encounters, starts it, and
  * submits a plausible nursing note on the first patients so the board
- * demonstrates the full contribution → review workflow. Idempotent per
- * unit/day: an open run for the unit is reused, never duplicated.
+ * demonstrates the full contribution → review workflow.
+ *
+ * Idempotent per unit/day: an open run for the unit is reused, never
+ * duplicated — UNLESS --refresh is passed, in which case the stale open run is
+ * cancelled and a fresh cohort is built against the CURRENT census. The 6-hourly
+ * demo refresh calls this with --units + --refresh so a walkthrough always opens
+ * onto a live board re-anchored to "now".
  */
 class RoundsSeedDemoCommand extends Command
 {
     protected $signature = 'rounds:seed-demo
         {unit? : Unit abbreviation or id (default: the busiest unit)}
+        {--units= : Comma-separated units (abbreviation or id); overrides the positional arg}
+        {--refresh : Cancel the unit'."'".'s existing open run and rebuild against the current census}
         {--template= : Template name (default: Unit Multidisciplinary Round)}';
 
-    protected $description = 'Create a demo Virtual Rounds run over the current active census';
+    protected $description = 'Create (or refresh) demo Virtual Rounds runs over the current active census';
 
     public function handle(RoundCommandService $commands, RoundContributionService $contributions): int
     {
@@ -35,14 +42,6 @@ class RoundsSeedDemoCommand extends Command
 
         if (RoundTemplate::query()->count() === 0) {
             $this->call('db:seed', ['--class' => RoundTemplateSeeder::class, '--force' => true]);
-        }
-
-        $unit = $this->resolveUnit();
-
-        if ($unit === null) {
-            $this->error('No unit with active encounters found. Seed demo data first (php artisan db:seed).');
-
-            return self::FAILURE;
         }
 
         $templateName = $this->option('template') ?: 'Unit Multidisciplinary Round';
@@ -57,6 +56,36 @@ class RoundsSeedDemoCommand extends Command
         $actor = User::query()->where('role', 'admin')->orderBy('id')->first()
             ?? User::query()->orderBy('id')->firstOrFail();
 
+        $units = $this->resolveUnits();
+
+        if ($units === []) {
+            $this->error('No unit with active encounters found. Seed demo data first (php artisan db:seed).');
+
+            return self::FAILURE;
+        }
+
+        $refresh = (bool) $this->option('refresh');
+        $seeded = 0;
+
+        foreach ($units as $unit) {
+            if ($this->seedUnit($unit, $template, $actor, $commands, $contributions, $refresh)) {
+                $seeded++;
+            }
+        }
+
+        $this->info("Rounds demo: processed {$seeded}/".count($units).' unit(s).');
+
+        return self::SUCCESS;
+    }
+
+    private function seedUnit(
+        Unit $unit,
+        RoundTemplate $template,
+        User $actor,
+        RoundCommandService $commands,
+        RoundContributionService $contributions,
+        bool $refresh,
+    ): bool {
         $existing = RoundRun::query()
             ->open()
             ->where('scope_type', 'unit')
@@ -64,10 +93,16 @@ class RoundsSeedDemoCommand extends Command
             ->whereDate('created_at', now()->toDateString())
             ->first();
 
-        if ($existing !== null) {
+        if ($existing !== null && ! $refresh) {
             $this->info("Open run already exists for {$unit->name} today: {$existing->run_uuid}");
 
-            return self::SUCCESS;
+            return false;
+        }
+
+        // --refresh: retire the stale open run so the new one re-anchors to the
+        // current census (the demo refresh shifts every encounter to "now").
+        if ($existing !== null) {
+            $commands->cancel($actor, $existing, ['reason' => 'demo-refresh rebuild']);
         }
 
         $run = $commands->createRun($actor, [
@@ -75,11 +110,10 @@ class RoundsSeedDemoCommand extends Command
             'scope_type' => 'unit',
             'scope_key' => (string) $unit->unit_id,
         ]);
-
         $run = $commands->start($actor, $run);
 
-        // A nursing note on the first two patients makes the board tell a
-        // story: partial inputs, one patient nudged into in_progress.
+        // A nursing note on the first two patients makes the board tell a story:
+        // partial inputs, one patient nudged into in_progress.
         $notes = [
             'Comfortable overnight; ambulating with assist. Family visiting this morning.',
             'Intermittent pain overnight, controlled with PRN. Asking about discharge timing.',
@@ -97,21 +131,42 @@ class RoundsSeedDemoCommand extends Command
 
         $this->info("Demo run created for {$unit->name}: {$run->run_uuid} ({$run->patients()->count()} patients)");
 
-        return self::SUCCESS;
+        return true;
     }
 
-    private function resolveUnit(): ?Unit
+    /** @return list<Unit> */
+    private function resolveUnits(): array
     {
-        $argument = $this->argument('unit');
+        $list = (string) $this->option('units');
+        if ($list !== '') {
+            $tokens = array_values(array_filter(array_map('trim', explode(',', $list))));
 
-        if ($argument) {
-            $query = Unit::query()->where('is_deleted', false);
-
-            return ctype_digit((string) $argument)
-                ? $query->where('unit_id', (int) $argument)->first()
-                : $query->whereRaw('LOWER(abbreviation) = ?', [strtolower((string) $argument)])->first();
+            return array_values(array_filter(array_map(fn ($t) => $this->resolveUnit($t), $tokens)));
         }
 
+        $argument = $this->argument('unit');
+        if ($argument) {
+            $unit = $this->resolveUnit((string) $argument);
+
+            return $unit ? [$unit] : [];
+        }
+
+        $unit = $this->busiestUnit();
+
+        return $unit ? [$unit] : [];
+    }
+
+    private function resolveUnit(string $token): ?Unit
+    {
+        $query = Unit::query()->where('is_deleted', false);
+
+        return ctype_digit($token)
+            ? $query->where('unit_id', (int) $token)->first()
+            : $query->whereRaw('LOWER(abbreviation) = ?', [strtolower($token)])->first();
+    }
+
+    private function busiestUnit(): ?Unit
+    {
         $unitId = Encounter::query()
             ->active()
             ->selectRaw('unit_id, count(*) as census')

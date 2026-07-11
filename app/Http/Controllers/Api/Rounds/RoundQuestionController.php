@@ -51,6 +51,8 @@ class RoundQuestionController extends RoundsController
         $question = RoundQuestion::query()->where('question_uuid', $questionUuid)->firstOrFail();
         $patient = $question->patient;
         $this->authorization->assertCanContribute($request->user(), $patient->run);
+        // Resolving belongs to the question's target/raiser or a run leader.
+        abort_unless($this->authorization->canResolveQuestion($request->user(), $question, $patient->run), 403);
 
         $status = $request->input('status', 'answered');
         abort_unless(in_array($status, ['answered', 'dismissed'], true), 422);
