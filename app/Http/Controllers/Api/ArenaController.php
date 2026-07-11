@@ -87,15 +87,31 @@ class ArenaController extends Controller
      * Validate the optional filter pipeline from the request. Returns a plain
      * array the sidecar accepts, or null when absent.
      *
+     * Accepts either a JSON-encoded string (GET query param from the frontend)
+     * or a plain array (backward-compatible form/API usage).
+     *
      * @return array<int, array<string, mixed>>|null
      */
     private function filtersFrom(Request $request): ?array
     {
-        $validated = $request->validate([
-            'filters' => ['sometimes', 'array', 'max:12'],
-            'filters.*.kind' => ['required_with:filters', 'string', 'in:object_type,event_type,time_frame,event_attribute'],
-        ]);
+        $raw = $request->input('filters');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
 
-        return $validated['filters'] ?? null;
+        $decoded = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (! is_array($decoded) || $decoded === []) {
+            return null;
+        }
+
+        \Illuminate\Support\Facades\Validator::make(
+            ['filters' => $decoded],
+            [
+                'filters' => ['array', 'max:12'],
+                'filters.*.kind' => ['required', 'string', 'in:object_type,event_type,time_frame,event_attribute'],
+            ]
+        )->validate();
+
+        return $decoded;
     }
 }

@@ -274,6 +274,19 @@ export const arenaDraftResponseSchema = z.object({
   pdsa: z.record(z.string(), z.string()).optional(),
 });
 
+export const arenaFilterSchema = z.object({
+  kind: z.enum(['object_type', 'event_type', 'time_frame', 'event_attribute']),
+  object_types: z.array(z.string()).optional(),
+  activities: z.array(z.string()).optional(),
+  name: z.string().optional(),
+  values: z.array(z.string()).optional(),
+  start: z.string().optional(),
+  end: z.string().optional(),
+  mode: z.enum(['include', 'exclude']).optional(),
+});
+
+export type ArenaFilter = z.infer<typeof arenaFilterSchema>;
+
 export type ArenaHandoff = z.infer<typeof arenaHandoffSchema>;
 export type ArenaSyncWait = z.infer<typeof arenaSyncWaitSchema>;
 export type ArenaNarrativeResponse = z.infer<typeof arenaNarrativeResponseSchema>;
