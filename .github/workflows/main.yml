@@ -57,6 +57,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Verify immutable release snapshots
+        run: bash tests/Deployment/immutable-release-snapshot.sh
+
       - name: Copy .env and generate key
         run: cp .env.example .env && php artisan key:generate
 
