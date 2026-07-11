@@ -21,6 +21,13 @@ const SUPERUSER_ACCESS = {
     manage_staffing_alignment: true,
   },
 } as const;
+const AUDITOR_ACCESS = {
+  isAdmin: false,
+  can: {
+    view_administration: true,
+    view_user_audit: true,
+  },
+} as const;
 
 describe('navigationConfig', () => {
   it('exposes only section-level top navigation in order', () => {
@@ -214,6 +221,16 @@ describe('navigationConfig', () => {
     ]);
   });
 
+  it('projects capability-gated administration pages without adding a top-bar section', () => {
+    const labels = flattenNavigation(AUDITOR_ACCESS).map((entry) => entry.label);
+
+    expect(labels).toContain('Administration Overview');
+    expect(labels).toContain('User Audit');
+    expect(labels).not.toContain('User Management');
+    expect(visibleDomains(AUDITOR_ACCESS).map((domain) => domain.key)).toContain('admin');
+    expect(visibleSections(AUDITOR_ACCESS).map((section) => section.key)).not.toContain('admin');
+  });
+
   it('gates Integrations from server capability props, never role/admin inference', () => {
     expect(visibleSections(USER_ACCESS).map((s) => s.key)).not.toContain('integrations');
     expect(visibleSections(ADMIN_ACCESS).map((s) => s.key)).not.toContain('integrations');
@@ -226,6 +243,8 @@ describe('navigationConfig', () => {
     const adminFlat = flattenNavigation(ADMIN_ACCESS);
     const userFlat = flattenNavigation(USER_ACCESS);
     expect(adminFlat.some((e) => e.href === '/users')).toBe(true);
+    expect(adminFlat.some((e) => e.href === '/admin')).toBe(true);
+    expect(adminFlat.some((e) => e.href === '/admin/user-audit')).toBe(true);
     expect(userFlat.some((e) => e.href === '/users')).toBe(false);
     // Sub-pages are present and grouped by "Domain Group"
     expect(userFlat.some((e) => e.label === 'Bed Tracking' && e.group === 'RTDC Operations')).toBe(true);

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\Audit\UserAuditRecorder;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +46,9 @@ class SessionAuthMiddleware
                 'is_active' => true,
             ])->save();
         }
+
+        $request->attributes->set(UserAuditRecorder::AUTH_METHOD_ATTRIBUTE, 'demo');
+        $request->attributes->set(UserAuditRecorder::SOURCE_SURFACE_ATTRIBUTE, 'web');
 
         // Log the user in
         Auth::login($user);

@@ -122,6 +122,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        Gate::define('viewAdministration', fn (User $user): bool => $user->isAdministrator());
+        Gate::define('viewUserAudit', fn (User $user): bool => $user->isAdministrator());
+
         Gate::define('viewDeploymentConsole', fn (User $user): bool => in_array(
             (string) $user->role, self::DEPLOYMENT_CONSOLE_ROLES, true
         ));

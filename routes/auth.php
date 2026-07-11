@@ -69,6 +69,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 
-    Route::get('admin/auth-providers/{type}', [AuthProviderController::class, 'show'])->name('admin.auth-providers.show');
-    Route::put('admin/auth-providers/{type}', [AuthProviderController::class, 'update'])->name('admin.auth-providers.update');
+    Route::get('admin/auth-providers/{type}', [AuthProviderController::class, 'show'])
+        ->middleware('can:viewAdministration')
+        ->name('admin.auth-providers.show');
+    Route::put('admin/auth-providers/{type}', [AuthProviderController::class, 'update'])
+        ->middleware('can:viewAdministration')
+        ->name('admin.auth-providers.update');
 });

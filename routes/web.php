@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
@@ -235,9 +237,15 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        // User Management Routes - Only accessible to admins
-        Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
-            Route::resource('users', \App\Http\Controllers\UserController::class);
+        // Zephyrus-native administration. Integration and operational ledgers
+        // remain on their existing, separately gated surfaces.
+        Route::middleware('can:viewAdministration')->group(function () {
+            Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
+            Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+
+            Route::get('/admin/user-audit', [UserAuditController::class, 'index'])
+                ->middleware('can:viewUserAudit')
+                ->name('admin.user-audit.index');
 
             // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
             // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,

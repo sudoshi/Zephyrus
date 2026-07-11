@@ -20,6 +20,8 @@ export interface PageProps {
       manage_integrations?: boolean;
       view_enterprise_setup?: boolean;
       manage_staffing_alignment?: boolean;
+      view_administration?: boolean;
+      view_user_audit?: boolean;
     };
   };
   eddy?: {

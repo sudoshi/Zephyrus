@@ -1,7 +1,16 @@
 import { Fragment } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { Menu, Transition } from '@headlessui/react';
-import { Building2, ChevronDown, LogOut, Settings, User, Users } from 'lucide-react';
+import {
+  Building2,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  ScrollText,
+  Settings,
+  User,
+  Users,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import UserAvatar from '@/Components/UserAvatar';
 import type { NavigationAccess } from '@/config/navigationConfig';
@@ -18,6 +27,22 @@ export function getUserMenuItems(access: NavigationAccess): UserMenuItem[] {
   const items: UserMenuItem[] = [
     { label: 'Profile', icon: User, href: '/profile', section: 'account' },
   ];
+  if (access.isAdmin || access.can?.view_administration) {
+    items.push({
+      label: 'Administration Overview',
+      icon: LayoutDashboard,
+      href: '/admin',
+      section: 'administration',
+    });
+  }
+  if (access.isAdmin || access.can?.view_user_audit) {
+    items.push({
+      label: 'User Audit',
+      icon: ScrollText,
+      href: '/admin/user-audit',
+      section: 'administration',
+    });
+  }
   if (access.isAdmin) {
     items.push(
       { label: 'User Management', icon: Users, href: '/users', section: 'administration' },

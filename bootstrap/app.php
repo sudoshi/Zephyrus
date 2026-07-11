@@ -19,7 +19,10 @@ return $builder
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append([
+            \App\Http\Middleware\SecurityHeaders::class,
+            \App\Http\Middleware\AuditUserRequests::class,
+        ]);
 
         $middleware->web(
             append: [

@@ -9,7 +9,23 @@ describe('getUserMenuItems', () => {
 
   it('moves general administration links into the admin user menu', () => {
     const labels = getUserMenuItems({ isAdmin: true }).map((i) => i.label);
-    expect(labels).toEqual(['Profile', 'User Management', 'Cockpit Thresholds', 'Logout']);
+    expect(labels).toEqual([
+      'Profile',
+      'Administration Overview',
+      'User Audit',
+      'User Management',
+      'Cockpit Thresholds',
+      'Logout',
+    ]);
+  });
+
+  it('supports delegated administration and audit capabilities', () => {
+    const labels = getUserMenuItems({
+      isAdmin: false,
+      can: { view_administration: true, view_user_audit: true },
+    }).map((i) => i.label);
+
+    expect(labels).toEqual(['Profile', 'Administration Overview', 'User Audit', 'Logout']);
   });
 
   it('shows Enterprise Setup only from its server capability', () => {

@@ -28,6 +28,7 @@ import {
   HeartPulse,
   MapPinned,
   LineChart,
+  LayoutDashboard,
   LayoutGrid,
   ListChecks,
   PieChart,
@@ -35,6 +36,7 @@ import {
   Repeat,
   Route,
   Search,
+  ScrollText,
   Shield,
   Siren,
   Stethoscope,
@@ -54,6 +56,8 @@ export interface NavigationCapabilities {
   readonly view_integrations?: boolean;
   readonly view_enterprise_setup?: boolean;
   readonly manage_staffing_alignment?: boolean;
+  readonly view_administration?: boolean;
+  readonly view_user_audit?: boolean;
 }
 
 export interface NavigationAccess {
@@ -67,6 +71,7 @@ export interface NavLeaf {
   readonly icon: LucideIcon;
   readonly adminOnly?: boolean;
   readonly requiredCapability?: keyof NavigationCapabilities;
+  readonly adminOrCapability?: keyof NavigationCapabilities;
 }
 
 export interface NavGroup {
@@ -364,6 +369,18 @@ const ADMIN: NavDomain = {
     {
       title: '',
       items: [
+        {
+          label: 'Administration Overview',
+          href: '/admin',
+          icon: LayoutDashboard,
+          adminOrCapability: 'view_administration',
+        },
+        {
+          label: 'User Audit',
+          href: '/admin/user-audit',
+          icon: ScrollText,
+          adminOrCapability: 'view_user_audit',
+        },
         { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
         // P8 WS-6b — the cockpit threshold editor (band-edge tuning, audited).
         { label: 'Cockpit Thresholds', href: '/admin/cockpit/thresholds', icon: Settings, adminOnly: true },
@@ -445,6 +462,9 @@ export function visibleDomains(access: NavigationAccess): readonly NavDomain[] {
 
 export function isLeafVisible(item: NavLeaf, access: NavigationAccess): boolean {
   if (item.adminOnly && !access.isAdmin) return false;
+  if (item.adminOrCapability) {
+    return access.isAdmin || access.can?.[item.adminOrCapability] === true;
+  }
   if (item.requiredCapability) return access.can?.[item.requiredCapability] === true;
   return true;
 }

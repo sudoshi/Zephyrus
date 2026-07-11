@@ -40,6 +40,12 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
                 'is_admin' => $request->user()?->isAdministrator() ?? false,
                 'can' => [
+                    'view_administration' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewAdministration')
+                        : false,
+                    'view_user_audit' => $request->user()
+                        ? Gate::forUser($request->user())->allows('viewUserAudit')
+                        : false,
                     'view_enterprise_setup' => $request->user()
                         ? Gate::forUser($request->user())->allows('viewDeploymentConsole')
                         : false,

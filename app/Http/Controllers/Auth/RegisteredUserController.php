@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Audit\UserAuditRecorder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(private readonly UserAuditRecorder $audit) {}
+
     /**
      * Display the registration view.
      */
@@ -60,6 +63,15 @@ class RegisteredUserController extends Controller
             'must_change_password' => true,
             'role' => 'user',
             'is_active' => true,
+        ]);
+
+        $this->audit->bestEffort('auth.registration', 'authentication', 'success', [
+            'request' => $request,
+            'actor' => $user,
+            'auth_method' => 'password',
+            'source_surface' => 'web',
+            'target_type' => 'user',
+            'target_id' => $user->getKey(),
         ]);
 
         // Send temporary password via Resend API
