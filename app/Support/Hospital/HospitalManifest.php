@@ -77,6 +77,24 @@ class HospitalManifest
         self::$cache = [];
     }
 
+    /**
+     * Resolve the manifest whose facility carries this CAD join key (e.g. 'ZEPHYRUS-500'),
+     * or null when no registered facility claims it. Lets CAD-keyed importers adopt the
+     * branded manifest taxonomy instead of minting a parallel CAD-coded one.
+     */
+    public static function forCadFacilityCode(string $cadCode): ?self
+    {
+        foreach (array_keys((array) config('hospital.manifests', [])) as $facilityKey) {
+            $manifest = new self((string) $facilityKey);
+            $candidate = $manifest->facility()['cad_facility_code'] ?? null;
+            if (is_string($candidate) && strcasecmp($candidate, $cadCode) === 0) {
+                return $manifest;
+            }
+        }
+
+        return null;
+    }
+
     // ---- facility identity ----
 
     /** @return array<string,mixed> */

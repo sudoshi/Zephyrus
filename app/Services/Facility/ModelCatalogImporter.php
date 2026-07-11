@@ -11,6 +11,7 @@ use App\Models\Unit;
 use App\Services\Deployment\CapabilityTagBackfiller;
 use App\Services\Deployment\ServiceLineNormalizer;
 use App\Services\Deployment\ServiceLineRegistrar;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -581,6 +582,13 @@ class ModelCatalogImporter
         $mapCount = 0;
         $conflicts = 0;
 
+        // When a registered manifest claims this CAD facility code, the manifest is
+        // the unit-identity SSOT (RtdcSeeder's branded roster). The catalog's CAD
+        // unit codes translate through manifest cad_code so the import LINKS the
+        // blueprint onto the branded units instead of minting a parallel CAD-coded
+        // roster (the fork that left every cockpit unit mount without live census).
+        $manifest = HospitalManifest::forCadFacilityCode($facilityCode);
+
         foreach ($objects as $object) {
             if (($object['category'] ?? null) !== 'care_unit') {
                 continue;
@@ -594,14 +602,16 @@ class ModelCatalogImporter
 
             $metadata = $object['metadata'] ?? [];
             $unitCode = (string) ($metadata['unit_code'] ?? Str::after($code, 'UNIT-'));
-            $unit = Unit::query()->where('abbreviation', $unitCode)->first();
+            $manifestUnit = $manifest?->unitByCadCode($unitCode) ?? $manifest?->unit($unitCode);
+            $abbr = (string) ($manifestUnit['abbr'] ?? $unitCode);
+            $unit = $this->resolveOperationalUnit($abbr);
 
             if (! $unit) {
                 $unit = Unit::create([
-                    'name' => (string) ($object['name'] ?? $unitCode),
-                    'abbreviation' => $unitCode,
-                    'type' => $this->unitType((string) ($metadata['acuity'] ?? ''), (string) ($metadata['service_line'] ?? '')),
-                    'staffed_bed_count' => (int) ($metadata['planned_beds'] ?? 0),
+                    'name' => (string) ($manifestUnit['name'] ?? $object['name'] ?? $abbr),
+                    'abbreviation' => $abbr,
+                    'type' => (string) ($manifestUnit['type'] ?? $this->unitType((string) ($metadata['acuity'] ?? ''), (string) ($metadata['service_line'] ?? ''))),
+                    'staffed_bed_count' => (int) ($manifestUnit['staffed_bed_count'] ?? $metadata['planned_beds'] ?? 0),
                     'ratio_floor' => $this->ratioFloor((string) ($metadata['acuity'] ?? '')),
                     'access_standard_minutes' => $this->accessStandardMinutes((string) ($metadata['acuity'] ?? '')),
                     'facility_space_id' => $space->facility_space_id,
@@ -638,17 +648,38 @@ class ModelCatalogImporter
 
             $metadata = $object['metadata'] ?? [];
             $unitCode = (string) ($metadata['unit_code'] ?? '');
-            $unit = $units[$unitCode] ?? Unit::query()->where('abbreviation', $unitCode)->first();
+            $unit = $units[$unitCode] ?? null;
+            if (! $unit) {
+                $manifestUnit = $manifest?->unitByCadCode($unitCode) ?? $manifest?->unit($unitCode);
+                $unit = $this->resolveOperationalUnit((string) ($manifestUnit['abbr'] ?? $unitCode));
+            }
             if (! $unit) {
                 $conflicts++;
 
                 continue;
             }
 
+            // Resolution order: a bed already linked to this space (idempotent re-run)
+            // → a bed the import itself labelled with the CAD code → ADOPT the next
+            // unlinked seeded bed (keeps RtdcSeeder's friendly labels and the unit's
+            // bed count stable) → create only when the unit has no bed left to adopt.
             $bed = Bed::query()
                 ->where('unit_id', $unit->unit_id)
-                ->where('label', $code)
-                ->first();
+                ->where('facility_space_id', $space->facility_space_id)
+                ->first()
+                ?? Bed::query()
+                    ->where('unit_id', $unit->unit_id)
+                    ->where('label', $code)
+                    ->first();
+
+            if (! $bed) {
+                $bed = Bed::query()
+                    ->where('unit_id', $unit->unit_id)
+                    ->whereNull('facility_space_id')
+                    ->where('is_deleted', false)
+                    ->orderBy('bed_id')
+                    ->first();
+            }
 
             if (! $bed) {
                 $bed = Bed::create([
@@ -694,6 +725,27 @@ class ModelCatalogImporter
             'maps' => $mapCount,
             'conflicts' => $conflicts,
         ];
+    }
+
+    /**
+     * Find the operational unit for an abbreviation, preferring the live row; a
+     * soft-deleted match is restored (non-destructive) rather than duplicated —
+     * re-imports over a re-seeded database must converge on one row per unit.
+     */
+    private function resolveOperationalUnit(string $abbr): ?Unit
+    {
+        $unit = Unit::query()
+            ->where('abbreviation', $abbr)
+            ->orderBy('is_deleted')
+            ->orderBy('unit_id')
+            ->first();
+
+        if ($unit !== null && $unit->is_deleted) {
+            $unit->is_deleted = false;
+            $unit->save();
+        }
+
+        return $unit;
     }
 
     private function upsertOperationalMap(FacilitySpace $space, string $targetColumn, int $targetId, array $evidence): int

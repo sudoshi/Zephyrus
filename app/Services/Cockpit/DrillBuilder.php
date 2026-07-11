@@ -386,13 +386,20 @@ class DrillBuilder
             return null;
         }
 
+        // P8 — PACU rows descend to the A2P patient lens like the ED track board;
+        // RBAC is enforced at the destination, the cell carries only the opaque ptok.
+        $patients = app(\App\Services\Mobile\MobilePatientContextService::class);
+
         $rows = [];
         foreach ($bays as $i => $bay) {
             $mins = (int) $bay->mins_in_pacu;
             $held = $bay->pacu_in_time <= $holdThreshold;
+            $contextRef = $patients->contextRefFor((string) $bay->patient_id);
             $rows[] = [
                 'bay' => ['v' => 'PACU '.($i + 1), 'strong' => true],
-                'patient' => ['v' => (string) $bay->patient_id, 'dim' => true],
+                'patient' => $contextRef !== null
+                    ? ['drill' => ['patientRef' => $contextRef, 'text' => (string) $bay->patient_id]]
+                    : ['v' => (string) $bay->patient_id, 'dim' => true],
                 'procedure' => (string) $bay->primary_procedure,
                 'dwell' => ['v' => DurationFormatter::minutes($mins), 'status' => $held ? 'critical' : 'neutral'],
                 'state' => ['tag' => [

@@ -4,6 +4,7 @@ namespace App\Services\Mobile;
 
 use App\Models\BedRequest;
 use App\Models\EdVisit;
+use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\User;
@@ -65,6 +66,16 @@ class MobilePatientContextService
             ->orderByDesc('ed_visit_id')
             ->get();
 
+        // The inpatient census spine — an admitted patient's location is their
+        // unit/bed even when no transport, EVS or ED context exists (P8 unit
+        // rosters descend here for every occupied bed).
+        $encounter = Encounter::query()
+            ->active()
+            ->where('patient_ref', $patientRef)
+            ->with(['unit', 'bed'])
+            ->orderByDesc('encounter_id')
+            ->first();
+
         $timeline = $this->timeline($bedRequests, $transport, $evs, $edVisits, $patientRef);
         $dependencies = $this->dependencies($bedRequests, $transport, $evs);
         $activity = $this->ledger->forPatient($patientRef, 25);
@@ -79,7 +90,9 @@ class MobilePatientContextService
                 'phi_minimized' => true,
             ],
             'header' => [
-                'current_location' => $this->currentLocation($edVisits, $transport, $evs),
+                'current_location' => $this->currentLocation($edVisits, $transport, $evs)
+                    ?? $this->encounterLocation($encounter)
+                    ?? $this->periopLocation($patientRef),
                 'target_location' => $this->targetLocation($bedRequests, $transport),
                 'service' => $bedRequests->first()?->service ?? $transport->first()?->clinical_service,
                 'isolation_required' => $bedRequests->first()?->isolation_required ?? (bool) $evs->first()?->isolation_required,
@@ -134,7 +147,9 @@ class MobilePatientContextService
         return BedRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
             || TransportRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
             || EvsRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || EdVisit::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists();
+            || EdVisit::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
+            || Encounter::query()->active()->where('patient_ref', $patientRef)->exists()
+            || DB::table('prod.or_cases')->where('patient_id', $patientRef)->where('is_deleted', false)->exists();
     }
 
     /** @return Collection<int, string> */
@@ -145,6 +160,12 @@ class MobilePatientContextService
             ->merge(TransportRequest::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
             ->merge(EvsRequest::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
             ->merge(EdVisit::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
+            // The inpatient census spine — every occupied bed on a unit-mount
+            // patient board must resolve at the A2P lens, not just patients who
+            // happen to have an open request or an ED visit (P8 unit rosters).
+            ->merge(Encounter::query()->active()->whereNotNull('patient_ref')->limit(1000)->pluck('patient_ref'))
+            // The periop platform — PACU bay-board rows descend by or_case ref.
+            ->merge(DB::table('prod.or_cases')->whereNotNull('patient_id')->where('is_deleted', false)->limit(500)->pluck('patient_id'))
             ->filter()
             ->unique()
             ->values();
@@ -318,6 +339,45 @@ class MobilePatientContextService
         return $transport->first()?->origin
             ?? $evs->first()?->location_label
             ?? $edVisits->first()?->unit?->name;
+    }
+
+    /** 'Unit name · BED-LABEL' for an admitted patient, or null without an active encounter. */
+    private function encounterLocation(?Encounter $encounter): ?string
+    {
+        if ($encounter === null) {
+            return null;
+        }
+
+        $unit = $encounter->unit?->name;
+        $bed = $encounter->bed?->label;
+
+        return trim(($unit ?? '').($bed !== null ? ($unit !== null ? ' · ' : '').$bed : '')) ?: null;
+    }
+
+    /** 'PACU' / 'OR' for a patient currently on the periop platform, else null. */
+    private function periopLocation(string $patientRef): ?string
+    {
+        $log = DB::table('prod.or_logs as l')
+            ->join('prod.or_cases as c', 'c.case_id', '=', 'l.case_id')
+            ->where('c.patient_id', $patientRef)
+            ->where('l.is_deleted', false)
+            ->where('c.is_deleted', false)
+            ->orderByDesc('l.log_id')
+            ->first(['l.pacu_in_time', 'l.pacu_out_time', 'l.or_in_time', 'l.or_out_time']);
+
+        if ($log === null) {
+            return null;
+        }
+
+        if ($log->pacu_in_time !== null && $log->pacu_out_time === null) {
+            return 'PACU';
+        }
+
+        if ($log->or_in_time !== null && $log->or_out_time === null) {
+            return 'OR';
+        }
+
+        return null;
     }
 
     private function targetLocation(Collection $bedRequests, Collection $transport): ?string

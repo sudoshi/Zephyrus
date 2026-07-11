@@ -40,11 +40,56 @@ class DemoTuningSeeder extends Seeder
     {
         $this->clampTemporalLeaks();
         $this->fixEdBedInventory();
+        $this->dischargeOrphanedEncounters();
         $this->reconcileStrayEncounters();
         $this->populateOccupancy();
         $this->refreshSlas();
         $this->staffingToday();
         $this->varyOrSurgeons();
+    }
+
+    /**
+     * 1b. Discharge active encounters stranded by unit-roster evolution so every
+     *     live unit's census stays physically possible:
+     *       - actives on soft-deleted units (retired legacy/CAD taxonomies);
+     *       - per live inpatient unit, the oldest actives beyond its live bed count.
+     *     Rows are kept (status flip only — the demo owns these synthetic rows);
+     *     idempotent (no-ops once every unit fits).
+     */
+    private function dischargeOrphanedEncounters(): void
+    {
+        DB::update("
+            UPDATE prod.encounters e
+            SET status = 'discharged',
+                discharged_at = COALESCE(e.discharged_at, now() AT TIME ZONE 'UTC'),
+                updated_at = now()
+            FROM prod.units u
+            WHERE u.unit_id = e.unit_id AND u.is_deleted = true
+              AND e.status = 'active' AND e.is_deleted = false
+        ");
+
+        DB::update("
+            UPDATE prod.encounters SET
+                status = 'discharged',
+                discharged_at = COALESCE(discharged_at, now() AT TIME ZONE 'UTC'),
+                updated_at = now()
+            WHERE encounter_id IN (
+                SELECT e.encounter_id
+                FROM prod.encounters e
+                JOIN prod.units u ON u.unit_id = e.unit_id AND u.is_deleted = false
+                JOIN LATERAL (
+                    SELECT count(*) AS bed_count
+                    FROM prod.beds b
+                    WHERE b.unit_id = u.unit_id AND b.is_deleted = false
+                ) beds ON true
+                WHERE e.status = 'active' AND e.is_deleted = false AND u.type <> 'ed'
+                  AND (
+                    SELECT count(*) FROM prod.encounters e2
+                    WHERE e2.unit_id = e.unit_id AND e2.status = 'active' AND e2.is_deleted = false
+                      AND (e2.admitted_at, e2.encounter_id) >= (e.admitted_at, e.encounter_id)
+                  ) > beds.bed_count
+            )
+        ");
     }
 
     /**

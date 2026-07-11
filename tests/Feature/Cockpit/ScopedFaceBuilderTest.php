@@ -11,6 +11,7 @@ use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -65,11 +66,71 @@ class ScopedFaceBuilderTest extends TestCase
 
         $keys = array_column($face['kpis'], 'key');
         $this->assertContains('unit.occupancy', $keys);
+        // The patient-care tiles ride alongside capacity (P8 unit enrichment).
+        $this->assertContains('unit.dc_due', $keys);
 
-        // The capacity table uses the shared board column set.
-        $table = $face['tables'][0];
-        $this->assertSame('unit', $table['columns'][0]['key']);
-        $this->assertNotEmpty($table['rows']);
+        // Patient board leads (bed / acuity / LOS / EDD — de-identified),
+        // followed by the shared capacity board column set.
+        $this->assertSame('Patient board', $face['tables'][0]['caption']);
+        $this->assertSame('bed', $face['tables'][0]['columns'][0]['key']);
+        $capacity = $face['tables'][1];
+        $this->assertSame('unit', $capacity['columns'][0]['key']);
+        $this->assertNotEmpty($capacity['rows']);
+    }
+
+    public function test_unit_roster_rows_descend_to_the_patient_lens(): void
+    {
+        $this->seed(RtdcSeeder::class);
+
+        $unitId = (int) DB::table('prod.units')->where('abbreviation', 'MICU')->value('unit_id');
+        $bedId = (int) DB::table('prod.beds')->where('unit_id', $unitId)->orderBy('bed_id')->value('bed_id');
+        DB::table('prod.beds')->where('bed_id', $bedId)->update(['status' => 'occupied']);
+        DB::table('prod.encounters')->insert([
+            'patient_ref' => 'test-roster-1',
+            'unit_id' => $unitId,
+            'bed_id' => $bedId,
+            'admitted_at' => now()->subHours(30),
+            'expected_discharge_date' => now()->toDateString(),
+            'acuity_tier' => 4,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'created_by' => 'test',
+            'modified_by' => 'test',
+            'is_deleted' => false,
+        ]);
+
+        $face = $this->faces()->build(CockpitScope::unit('MICU', 'Medical ICU'));
+
+        $board = $face['tables'][0];
+        $this->assertSame('Patient board', $board['caption']);
+        $this->assertCount(1, $board['rows']);
+
+        $row = $board['rows'][0];
+        // The bed cell is a drill affordance carrying ONLY the opaque ptok — the
+        // face itself stays de-identified (PHI is gated at A2P, not here).
+        $this->assertArrayHasKey('drill', $row['bed']);
+        $this->assertStringStartsWith('ptok_', $row['bed']['drill']['patientRef']);
+        $this->assertSame('T4', $row['acuity']['tag']['text']);
+        $this->assertSame('Today', $row['edd']['tag']['text']);
+
+        // The same admission counts on the discharge-due tile.
+        $dcDue = collect($face['kpis'])->firstWhere('key', 'unit.dc_due');
+        $this->assertSame(1, $dcDue['value']);
+    }
+
+    public function test_unit_face_matches_census_through_the_cad_join_key(): void
+    {
+        $this->seed(RtdcSeeder::class);
+
+        // Simulate the CAD-taxonomy fork: the unit row carries the CAD code
+        // (MICU3), not the branded abbr — the face must still find its census.
+        DB::table('prod.units')->where('abbreviation', 'MICU')->update(['abbreviation' => 'MICU3']);
+
+        $face = $this->faces()->build(CockpitScope::unit('MICU', 'Medical ICU'));
+
+        $this->assertSame('face', $face['render']);
+        $this->assertNotEmpty($face['kpis']);
     }
 
     public function test_unit_face_without_census_returns_empty_not_fabricated(): void
@@ -126,5 +187,15 @@ class ScopedFaceBuilderTest extends TestCase
 
         $this->assertSame('unit:SICU', $face['scope']['token']);
         $this->assertSame('face', $face['render']);
+    }
+
+    public function test_resolver_canonicalizes_cad_unit_tokens(): void
+    {
+        $resolver = app(CockpitScopeResolver::class);
+
+        // Deep links and prod.user_unit rows may carry the CAD join key — the
+        // scope token they resolve to is always the branded manifest abbr.
+        $this->assertSame('unit:MICU', $resolver->resolve('unit:MICU3', null)->token());
+        $this->assertSame('unit:7E', $resolver->resolve('unit:tel7a', null)->token());
     }
 }

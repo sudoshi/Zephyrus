@@ -20,18 +20,20 @@ class RtdcSeeder extends Seeder
         $manifest = app(HospitalManifest::class);
         $units = $manifest->units();
 
-        // Idempotent: firstOrCreate keyed on natural keys (unit abbreviation,
-        // bed label per unit) so this is safe to run inside DatabaseSeeder on
-        // every `php artisan db:seed` without accumulating duplicate units/beds.
+        // Idempotent: updateOrCreate keyed on the unit abbreviation (and bed label
+        // per unit) so this is safe to run inside DatabaseSeeder on every
+        // `php artisan db:seed` without accumulating duplicate units/beds. Syncing
+        // (not just creating) makes adopted legacy rows — e.g. an old plain
+        // "5 East" — converge on the manifest branding, type and bed count.
         foreach ($units as $u) {
-            $unit = Unit::firstOrCreate(
+            $unit = Unit::updateOrCreate(
                 ['abbreviation' => $u['abbr']],
                 [
                     'name' => $u['name'],
-                    'abbreviation' => $u['abbr'],
                     'type' => $u['type'],
                     'staffed_bed_count' => $u['staffed_bed_count'],
                     'ratio_floor' => (int) round($u['nurse_ratio'] ?? 4),
+                    'is_deleted' => false,
                 ]
             );
 
@@ -46,6 +48,20 @@ class RtdcSeeder extends Seeder
                         'isolation_capable' => $i % 8 === 0,
                     ]
                 );
+            }
+
+            // Adopted legacy units can carry more bed rows than the manifest staffs
+            // (BedTrackingService counts bed ROWS, not staffed_bed_count). Soft-trim
+            // the surplus, available beds only — never an occupied or dirty bed.
+            $live = Bed::where('unit_id', $unit->unit_id)->where('is_deleted', false)->count();
+            $surplus = $live - (int) $u['staffed_bed_count'];
+            if ($surplus > 0) {
+                Bed::where('unit_id', $unit->unit_id)
+                    ->where('is_deleted', false)
+                    ->where('status', 'available')
+                    ->orderByDesc('bed_id')
+                    ->limit($surplus)
+                    ->update(['is_deleted' => true]);
             }
         }
 

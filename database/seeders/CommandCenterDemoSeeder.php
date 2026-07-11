@@ -80,6 +80,13 @@ class CommandCenterDemoSeeder extends Seeder
         $edUnit = $units->firstWhere('type', 'ed');
 
         // ----------------------------------------------------------------
+        // 0c. Unit assignments (prod.user_unit) — the mount-anywhere default
+        //     (a charge nurse's cockpit opens on her unit) and the picker's
+        //     "My units" group are dead without at least demo coverage.
+        // ----------------------------------------------------------------
+        $this->seedUserUnitAssignments($unitMap);
+
+        // ----------------------------------------------------------------
         // 1. RTDC Predictions — today, both horizons, per non-ED unit.
         // ----------------------------------------------------------------
         $this->seedRtdcPredictions($nonEdUnits);
@@ -431,6 +438,59 @@ class CommandCenterDemoSeeder extends Seeder
             }
         }
         // If $currentBoarding === 5, nothing to do.
+    }
+
+    /**
+     * Demo unit assignments (prod.user_unit). Idempotent (updateOrInsert on the
+     * user+unit pair) and tolerant: users or units absent from this database are
+     * skipped, never created — UserSeeder owns identities, RtdcSeeder owns units.
+     *
+     * @param  array<string, Unit>  $unitMap  canonical units keyed by abbreviation
+     */
+    private function seedUserUnitAssignments(array $unitMap): void
+    {
+        // email → [unit abbr, role, is_primary]; abbrs are manifest-branded and
+        // fall back through cad_code so the map survives either unit taxonomy.
+        $assignments = [
+            'sanjay@example.com' => [['MICU', 'charge', true], ['7E', 'bedside', false]],
+            'kartheek@example.com' => [['ED', 'charge', true]],
+            'hakan@example.com' => [['5W', 'bedside', true]],
+            'acumenus@example.com' => [['ONC', 'manager', true]],
+            'hummingbird-demo@example.test' => [['MICU', 'bedside', true]],
+        ];
+
+        $resolveUnit = function (string $abbr) use ($unitMap): ?Unit {
+            if (isset($unitMap[$abbr])) {
+                return $unitMap[$abbr];
+            }
+            $cad = $this->manifest->unit($abbr)['cad_code'] ?? null;
+
+            return is_string($cad) ? ($unitMap[$cad] ?? null) : null;
+        };
+
+        foreach ($assignments as $email => $rows) {
+            $userId = DB::table('prod.users')->where('email', $email)->value('id');
+            if ($userId === null) {
+                continue;
+            }
+
+            foreach ($rows as [$abbr, $role, $isPrimary]) {
+                $unit = $resolveUnit($abbr);
+                if ($unit === null) {
+                    continue;
+                }
+
+                DB::table('prod.user_unit')->updateOrInsert(
+                    ['user_id' => $userId, 'unit_id' => $unit->unit_id],
+                    [
+                        'role' => $role,
+                        'is_primary' => $isPrimary,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
     }
 
     // ====================================================================

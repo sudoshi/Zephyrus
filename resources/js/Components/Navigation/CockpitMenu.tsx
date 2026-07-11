@@ -41,7 +41,7 @@ export function CockpitMenu({ active, scopeToken }: CockpitMenuProps) {
         </div>
         <div className="mt-3 border-t border-healthcare-border pt-3 dark:border-healthcare-border-dark">
           <label className="block text-xs font-semibold uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-            Service Line
+            Mount scope
             <ScopePicker activeToken={scopeToken} className="mt-1.5 w-full" />
           </label>
         </div>

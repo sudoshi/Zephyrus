@@ -126,7 +126,11 @@ final class CockpitScopeResolver
             $entry = CockpitScope::unit($u['abbr'], $u['name'])->toArray();
             $entry['serviceLine'] = $u['service_line'] ?? null;
             $entry['type'] = $u['type'] ?? null;
-            $entry['assigned'] = isset($assignedSet[strtoupper((string) $u['abbr'])]);
+            // prod.user_unit joins prod.units, whose abbreviation may carry either the
+            // branded abbr or the CAD join key depending on which importer wrote it —
+            // flag the assignment through both.
+            $entry['assigned'] = isset($assignedSet[strtoupper((string) $u['abbr'])])
+                || isset($assignedSet[strtoupper((string) ($u['cad_code'] ?? ''))]);
             $units[] = $entry;
         }
 
@@ -140,13 +144,15 @@ final class CockpitScopeResolver
 
     private function unitScope(string $abbr): ?CockpitScope
     {
-        $unit = $this->manifest->unit($abbr);
+        // Accept both the branded manifest abbreviation ('MICU') and the CAD join key
+        // ('MICU3') — deep links and prod.user_unit rows may carry either taxonomy —
+        // and canonicalize to ONE token (the manifest abbr) so cache keys never fork.
+        $unit = $this->manifest->unit($abbr) ?? $this->manifest->unitByCadCode($abbr);
 
         if ($unit === null) {
             return null;
         }
 
-        // Canonicalize casing from the manifest so 'micu' and 'MICU' collapse to one token.
         return CockpitScope::unit($unit['abbr'], $unit['name']);
     }
 
