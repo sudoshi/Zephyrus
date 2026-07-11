@@ -62,6 +62,16 @@ final class DemoRefreshCoordinator
             $domains[] = $this->step('flow', fn () => Artisan::call('patient-flow:rebase-synthetic', ['--anchor' => $clock->key()]));
             $domains[] = $this->step('operational', fn () => Artisan::call('db:seed', ['--class' => 'CommandCenterDemoSeeder', '--force' => true]));
             $domains[] = $this->step('tuning', fn () => Artisan::call('db:seed', ['--class' => 'DemoTuningSeeder', '--force' => true]));
+            // Re-anchor Virtual Rounds onto the freshly-rebased census so a
+            // walkthrough always opens onto a live board. --refresh retires the
+            // stale open run and rebuilds the cohort at the new cutoff. Gated on
+            // the feature flag; absent entirely when Virtual Rounds is off.
+            if (config('rounds.enabled') && config('rounds.demo_units') !== []) {
+                $domains[] = $this->step('rounds', fn () => Artisan::call('rounds:seed-demo', [
+                    '--units' => implode(',', (array) config('rounds.demo_units')),
+                    '--refresh' => true,
+                ]));
+            }
             // NB: no flow:snapshot --backfill here. The rebase already shifts the fixture
             // occupancy_snapshots to cover the trailing window; --backfill is an initial-seed
             // helper ("history on day one") and re-running it every cycle appends off-hour

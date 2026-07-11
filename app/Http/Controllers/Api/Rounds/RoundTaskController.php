@@ -52,6 +52,9 @@ class RoundTaskController extends RoundsController
         $run = $task->run;
 
         $this->authorization->assertCanContribute($request->user(), $run);
+        // Only the task's owner/creator or a run leader may move it — a shared
+        // board must not let one discipline close another's task.
+        abort_unless($this->authorization->canManageTask($request->user(), $task), 403);
 
         $status = (string) $request->input('status');
         abort_unless(in_array($status, ['in_progress', 'completed', 'cancelled'], true), 422);

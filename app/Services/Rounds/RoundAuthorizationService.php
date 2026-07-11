@@ -2,7 +2,9 @@
 
 namespace App\Services\Rounds;
 
+use App\Models\Rounds\RoundQuestion;
 use App\Models\Rounds\RoundRun;
+use App\Models\Rounds\RoundTask;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -118,6 +120,43 @@ class RoundAuthorizationService
     public function canManageTemplates(User $user): bool
     {
         return $this->isBroadAccess($user);
+    }
+
+    /**
+     * Closing or reassigning a task belongs to its owner (by user or mapped
+     * role), its creator, or a run leader — not to any unit-sharing contributor.
+     * Contributors can still CREATE tasks; only these actors may mutate one.
+     */
+    public function canManageTask(User $user, RoundTask $task): bool
+    {
+        if ($this->canLead($user, $task->run)) {
+            return true;
+        }
+
+        if ((int) $task->owner_user_id === (int) $user->id || (int) $task->created_by === (int) $user->id) {
+            return true;
+        }
+
+        return $task->owner_role !== null
+            && $task->owner_role === $this->contributorRoleFor($user, $task->run);
+    }
+
+    /**
+     * Resolving a question belongs to its target (by user or mapped role), the
+     * clinician who raised it, or a run leader.
+     */
+    public function canResolveQuestion(User $user, RoundQuestion $question, RoundRun $run): bool
+    {
+        if ($this->canLead($user, $run)) {
+            return true;
+        }
+
+        if ((int) $question->target_user_id === (int) $user->id || (int) $question->raised_by === (int) $user->id) {
+            return true;
+        }
+
+        return $question->target_role !== null
+            && $question->target_role === $this->contributorRoleFor($user, $run);
     }
 
     /**

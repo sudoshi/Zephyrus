@@ -79,7 +79,7 @@ class RoundCommandService
         }
 
         $run = $this->execute(function () use ($actor, $input, $template, $unit): RoundRun {
-            if ($this->isReplay($input['idempotency_key'] ?? null)) {
+            if ($this->isReplay($input['idempotency_key'] ?? null, 'run')) {
                 $existing = $this->replayedRun($input['idempotency_key']);
                 if ($existing !== null) {
                     return $existing;
@@ -162,7 +162,7 @@ class RoundCommandService
         return $this->execute(function () use ($actor, $run, $opts): RoundRun {
             $locked = $this->lockRun($run);
 
-            if ($this->isReplay($opts['idempotency_key'] ?? null)) {
+            if ($this->isReplay($opts['idempotency_key'] ?? null, 'run', $locked->run_id)) {
                 return $locked;
             }
 
@@ -228,7 +228,7 @@ class RoundCommandService
             $this->lockRun($run);
             $locked = RoundPatient::query()->lockForUpdate()->findOrFail($patient->round_patient_id);
 
-            if ($this->isReplay($opts['idempotency_key'] ?? null)) {
+            if ($this->isReplay($opts['idempotency_key'] ?? null, 'round_patient', $locked->round_patient_id)) {
                 return $locked;
             }
 
@@ -316,7 +316,7 @@ class RoundCommandService
         return $this->execute(function () use ($actor, $run, $orderedUuids, $expectedQueueVersion, $opts): RoundRun {
             $locked = $this->lockRun($run);
 
-            if ($this->isReplay($opts['idempotency_key'] ?? null)) {
+            if ($this->isReplay($opts['idempotency_key'] ?? null, 'run', $locked->run_id)) {
                 return $locked;
             }
 
@@ -385,7 +385,9 @@ class RoundCommandService
         return $this->execute(function () use ($actor, $patient, $run, $pinned, $reason, $expectedQueueVersion, $opts): RoundRun {
             $locked = $this->lockRun($run);
 
-            if ($this->isReplay($opts['idempotency_key'] ?? null)) {
+            // Pin records its idempotency event against the patient (see below),
+            // so the replay check must scope to the same aggregate.
+            if ($this->isReplay($opts['idempotency_key'] ?? null, 'round_patient', $patient->round_patient_id)) {
                 return $locked;
             }
 
@@ -429,7 +431,7 @@ class RoundCommandService
         return $this->execute(function () use ($actor, $run, $apply): RoundRun {
             $locked = $this->lockRun($run);
 
-            if ($this->isReplay($apply['idempotency_key'] ?? null)) {
+            if ($this->isReplay($apply['idempotency_key'] ?? null, 'run', $locked->run_id)) {
                 return $locked;
             }
 
@@ -521,14 +523,21 @@ class RoundCommandService
             $patient->priority_reasons = $priority['reasons'];
         }
 
+        // The queue_version is the optimistic-lock token for pin/reorder. Only
+        // bump it when the ORDER actually changes — otherwise a plain status
+        // change (e.g. mark-ready, which never reorders) would invalidate a
+        // teammate's in-flight pin/reorder with a spurious 409 on a busy board.
+        // Score/band updates still propagate via the post-mutation board refetch.
+        $before = $patients->sortBy('queue_position')->pluck('round_patient_id')->values()->all();
         $ordered = $this->queue->orderQueue($patients);
+        $after = $ordered->pluck('round_patient_id')->values()->all();
         $this->eta->assignWindows($run, $ordered, (array) $template?->eta_policy);
 
         foreach ($ordered as $patient) {
             $patient->save();
         }
 
-        if ($bumpVersion) {
+        if ($bumpVersion && $before !== $after) {
             $run->queue_version = $run->queue_version + 1;
             $run->save();
         }
@@ -548,7 +557,7 @@ class RoundCommandService
         return $this->execute(function () use ($actor, $run, $to, $eventType, $opts, $mutate): RoundRun {
             $locked = $this->lockRun($run);
 
-            if ($this->isReplay($opts['idempotency_key'] ?? null)) {
+            if ($this->isReplay($opts['idempotency_key'] ?? null, 'run', $locked->run_id)) {
                 return $locked;
             }
 
@@ -627,13 +636,28 @@ class RoundCommandService
         }
     }
 
-    private function isReplay(?string $idempotencyKey): bool
+    /**
+     * A replay is the SAME key seen on the SAME aggregate this command records
+     * against — not merely the key existing anywhere. Scoping by aggregate
+     * prevents a key reused across different aggregates (or aggregate types)
+     * from short-circuiting an unrelated command with stale state. Pass a null
+     * $aggregateId to scope by type only (create, before the id exists).
+     */
+    private function isReplay(?string $idempotencyKey, string $aggregateType, int|string|null $aggregateId = null): bool
     {
         if ($idempotencyKey === null || $idempotencyKey === '') {
             return false;
         }
 
-        return RoundEvent::query()->where('idempotency_key', $idempotencyKey)->exists();
+        $query = RoundEvent::query()
+            ->where('idempotency_key', $idempotencyKey)
+            ->where('aggregate_type', $aggregateType);
+
+        if ($aggregateId !== null) {
+            $query->where('aggregate_id', $aggregateId);
+        }
+
+        return $query->exists();
     }
 
     private function replayedRun(string $idempotencyKey): ?RoundRun
