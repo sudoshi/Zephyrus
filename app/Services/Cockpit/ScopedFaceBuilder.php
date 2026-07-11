@@ -390,7 +390,9 @@ class ScopedFaceBuilder
             'sub' => $sub,
             'status' => $status->value,
             'target' => null,
-            'direction' => null,
+            // The client contract (cockpitMetricValueSchema) requires the enum —
+            // null fails Zod and blanks the whole mount ("Could not load this mount").
+            'direction' => 'neutral',
             'trend' => [],
             'trendLabel' => null,
             'updatedAt' => now()->toIso8601String(),

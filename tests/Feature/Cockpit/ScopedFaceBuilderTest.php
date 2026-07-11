@@ -35,6 +35,25 @@ class ScopedFaceBuilderTest extends TestCase
         return app(ScopedFaceBuilder::class);
     }
 
+    /**
+     * Every KPI must satisfy the client cockpitMetricValueSchema — the mount
+     * white-screens ("Could not load this mount") on ANY Zod miss, so the
+     * synthesized tiles must match MetricValue::toArray() field-for-field.
+     *
+     * @param  list<array<string, mixed>>  $kpis
+     */
+    private function assertKpisMatchClientContract(array $kpis): void
+    {
+        foreach ($kpis as $kpi) {
+            $this->assertContains($kpi['direction'], ['up', 'down', 'neutral'], $kpi['key'].'.direction');
+            $this->assertContains($kpi['status'], ['normal', 'ok', 'watch', 'warn', 'crit'], $kpi['key'].'.status');
+            $this->assertIsNumeric($kpi['value'], $kpi['key'].'.value');
+            $this->assertIsString($kpi['display'], $kpi['key'].'.display');
+            $this->assertIsArray($kpi['trend'], $kpi['key'].'.trend');
+            $this->assertIsString($kpi['updatedAt'], $kpi['key'].'.updatedAt');
+        }
+    }
+
     public function test_house_face_signals_the_grid(): void
     {
         $face = $this->faces()->build(CockpitScope::house('Summit Regional Medical Center'));
@@ -68,6 +87,7 @@ class ScopedFaceBuilderTest extends TestCase
         $this->assertContains('unit.occupancy', $keys);
         // The patient-care tiles ride alongside capacity (P8 unit enrichment).
         $this->assertContains('unit.dc_due', $keys);
+        $this->assertKpisMatchClientContract($face['kpis']);
 
         // Patient board leads (bed / acuity / LOS / EDD — de-identified),
         // followed by the shared capacity board column set.
@@ -166,6 +186,7 @@ class ScopedFaceBuilderTest extends TestCase
 
         $keys = array_column($face['kpis'], 'key');
         $this->assertContains('sl.occupancy', $keys);
+        $this->assertKpisMatchClientContract($face['kpis']);
         $this->assertNotEmpty($face['tables'][0]['rows']);
     }
 
