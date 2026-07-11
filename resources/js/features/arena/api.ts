@@ -100,3 +100,8 @@ export async function postArenaDraftCorrection(pathway: string): Promise<unknown
   const res = await axios.post('/api/arena/copilot/draft-correction', { pathway });
   return res.data;
 }
+
+export async function fetchArenaCapacity(): Promise<unknown> {
+  const res = await axios.get('/api/arena/capacity');
+  return res.data;
+}

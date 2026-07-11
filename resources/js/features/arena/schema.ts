@@ -287,6 +287,20 @@ export const arenaPetriNetResponseSchema = z.object({
 });
 export type ArenaPetriNet = z.infer<typeof arenaPetriNetResponseSchema>;
 
+export const arenaCapacityResponseSchema = z.object({
+  available: z.boolean().optional(),
+  objects: z.array(z.object({
+    object_id: z.string(),
+    item_type: z.string(),
+    series: z.array(z.object({ time: z.string(), value: z.number() })),
+    peak: z.number(),
+    nadir: z.number(),
+    current: z.number(),
+  })).default([]),
+  stats: z.record(z.string(), z.number()).default({}),
+});
+export type ArenaCapacity = z.infer<typeof arenaCapacityResponseSchema>;
+
 export const arenaFilterSchema = z.object({
   kind: z.enum(['object_type', 'event_type', 'time_frame', 'event_attribute']),
   object_types: z.array(z.string()).optional(),

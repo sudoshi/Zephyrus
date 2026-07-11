@@ -67,6 +67,22 @@ class ArenaController extends Controller
         return response()->json($payload, $status);
     }
 
+    public function capacity(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'item_type' => ['sometimes', 'string', 'max:60'],
+            'threshold' => ['sometimes', 'integer', 'min:0'],
+        ]);
+
+        $payload = $this->arena->capacity(
+            $validated['item_type'] ?? 'occupied_beds',
+            isset($validated['threshold']) ? (int) $validated['threshold'] : null,
+        );
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
     /**
      * A discovered object-centric map. Query params:
      *   ?types=Encounter,Bed   restrict to these object types

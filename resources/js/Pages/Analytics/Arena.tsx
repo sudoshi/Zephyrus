@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
+import { CapacityPane } from '@/Components/arena/CapacityPane';
 import { ConformancePane } from '@/Components/arena/ConformancePane';
 import { CopilotPane } from '@/Components/arena/CopilotPane';
 import { FilterBar } from '@/Components/arena/FilterBar';
@@ -17,13 +18,15 @@ import { PerformancePane } from '@/Components/arena/PerformancePane';
 import { PetriNetPane } from '@/Components/arena/PetriNetPane';
 import { ProcessModelLandscape } from '@/Components/arena/ProcessModelLandscape';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
-import { useArenaConformance, useArenaMap, useArenaPerformance, useArenaPetriNet, useArenaSummary } from '@/features/arena/hooks';
+import { useArenaCapacity, useArenaConformance, useArenaMap, useArenaPerformance, useArenaPetriNet, useArenaSummary } from '@/features/arena/hooks';
 import {
+  arenaCapacityResponseSchema,
   arenaConformanceResponseSchema,
   arenaMapResponseSchema,
   arenaPetriNetResponseSchema,
   arenaPerformanceResponseSchema,
   arenaSummarySchema,
+  type ArenaCapacity,
   type ArenaFilter,
   type ArenaHandoff,
   type ArenaOcdfg,
@@ -92,6 +95,13 @@ export default function Arena() {
     const parsed = arenaPetriNetResponseSchema.safeParse(petriNetQuery.data);
     return parsed.success ? parsed.data : null;
   }, [petriNetQuery.data]);
+
+  const capacityQuery = useArenaCapacity();
+  const capacity = useMemo<ArenaCapacity | null>(() => {
+    if (capacityQuery.data === undefined) return null;
+    const parsed = arenaCapacityResponseSchema.safeParse(capacityQuery.data);
+    return parsed.success ? parsed.data : null;
+  }, [capacityQuery.data]);
 
   const performanceQuery = useArenaPerformance(undefined, filters);
   const performance = useMemo<{ handoffs: ArenaHandoff[]; synchronization: ArenaSyncWait[] } | null>(() => {
@@ -359,6 +369,25 @@ export default function Arena() {
           ) : (
             <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
               {petriNetQuery.isError ? 'Petri net unavailable — the OCPM sidecar did not respond.' : 'Mining the object-centric Petri net…'}
+            </div>
+          )}
+        </div>
+
+        {/* Capacity pane (XO.3) — per-unit occupancy curve from QEL quantity ops */}
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              Unit occupancy (census)
+            </h2>
+            <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Per-unit bed occupancy over time, reconstructed from the QEL quantity operations — the process-intelligence twin of the RTDC census.
+            </p>
+          </div>
+          {capacity ? (
+            <CapacityPane data={capacity} />
+          ) : (
+            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
+              {capacityQuery.isError ? 'Occupancy unavailable — the OCPM sidecar did not respond.' : 'Reconstructing the occupancy curve…'}
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
 namespace App\Domain\Arena;
 
 use App\Domain\Ocel\OcelJsonExporter;
+use App\Domain\Ocel\QuantityExporter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,6 +21,7 @@ class ArenaService
     public function __construct(
         private readonly ArenaSidecarClient $client,
         private readonly OcelJsonExporter $exporter,
+        private readonly QuantityExporter $quantityExporter,
     ) {}
 
     /** Sidecar liveness passthrough for the admin surface. */
@@ -148,6 +150,24 @@ class ArenaService
     {
         $doc = $this->exporter->export();
         $result = $this->client->petrinet($doc, $filters);
+
+        if ($result === null) {
+            return ['available' => false, 'reason' => 'sidecar_unavailable'];
+        }
+
+        return ['available' => true] + $result;
+    }
+
+    /**
+     * Per-unit occupancy / capacity curve for the current QEL projection (§XO.3).
+     * Uncached — a Study read.
+     *
+     * @return array<string, mixed>
+     */
+    public function capacity(string $itemType = 'occupied_beds', ?int $threshold = null): array
+    {
+        $payload = $this->quantityExporter->export();
+        $result = $this->client->capacity($payload, $itemType, $threshold);
 
         if ($result === null) {
             return ['available' => false, 'reason' => 'sidecar_unavailable'];

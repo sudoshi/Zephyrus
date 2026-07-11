@@ -201,3 +201,32 @@ class PetriNetResponse(BaseModel):
     object_types: list[str]
     nets: list[PetriNetSubnet]
     stats: dict[str, int]
+
+
+class CapacityRequest(BaseModel):
+    """A QEL payload ({initial, operations}) + optional item-type / threshold. No
+    OCEL doc needed — capacity is computed from quantity operations alone."""
+
+    quantities: dict[str, Any]
+    item_type: str | None = Field(default=None, description="restrict to one quantity item type, e.g. occupied_beds")
+    threshold: int | None = Field(default=None, description="count series points above this value")
+
+
+class CapacityPoint(BaseModel):
+    time: str
+    value: int
+
+
+class CapacityObject(BaseModel):
+    object_id: str
+    item_type: str
+    series: list[CapacityPoint]
+    peak: int
+    nadir: int
+    current: int
+    periods_above_threshold: int | None = None
+
+
+class CapacityResponse(BaseModel):
+    objects: list[CapacityObject]
+    stats: dict[str, int]

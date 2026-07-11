@@ -136,6 +136,25 @@ class ArenaSidecarClient
     }
 
     /**
+     * Per-unit occupancy series from a QEL payload (XO.3).
+     *
+     * @param  array{initial: array, operations: array}  $quantities
+     * @return array<string, mixed>|null
+     */
+    public function capacity(array $quantities, ?string $itemType = null, ?int $threshold = null): ?array
+    {
+        $body = ['quantities' => $quantities];
+        if ($itemType !== null) {
+            $body['item_type'] = $itemType;
+        }
+        if ($threshold !== null) {
+            $body['threshold'] = $threshold;
+        }
+
+        return $this->post('/capacity', $body);
+    }
+
+    /**
      * Part X (X4) — conformance-fitness of a copilot-proposed object-centric model
      * (a list of {object_type, source, target} arcs) against the OCEL log. Returns
      * the fitness/precision verdict the orchestrator uses to withhold a bad map, or
