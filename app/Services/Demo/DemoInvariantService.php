@@ -60,17 +60,21 @@ final class DemoInvariantService
         $anchor = $clock->anchor()->toDateTimeString();
         $windowStart = $clock->windowStart()->toDateTimeString();
         $anchorDate = $clock->anchor()->toDateString();
+        // The anchor is frozen at batch start, but the seeders write at live now(), which drifts
+        // forward while a batch runs. A small grace on the "not in future" upper-bound checks
+        // absorbs that batch duration — a genuinely-future row is hours/days ahead, far past this.
+        $ceiling = $clock->anchor()->addMinutes(15)->toDateTimeString();
         $out = [];
 
         $futureCensus = $this->scalar(
-            'SELECT count(*) FROM prod.census_snapshots WHERE captured_at > ?', [$anchor]
+            'SELECT count(*) FROM prod.census_snapshots WHERE captured_at > ?', [$ceiling]
         );
         $out[] = $this->finding('temporal.census_not_in_future', 'temporal', 'critical',
             $futureCensus === 0, "{$futureCensus} snapshots after anchor", '0',
-            'census_snapshots.captured_at must not exceed the anchor');
+            'census_snapshots.captured_at must not exceed the anchor (+15m batch grace)');
 
         $futureAdmit = $this->scalar(
-            'SELECT count(*) FROM prod.encounters WHERE admitted_at > ? AND discharged_at IS NULL AND is_deleted = false', [$anchor]
+            'SELECT count(*) FROM prod.encounters WHERE admitted_at > ? AND discharged_at IS NULL AND is_deleted = false', [$ceiling]
         );
         $out[] = $this->finding('temporal.admit_not_in_future', 'temporal', 'critical',
             $futureAdmit === 0, "{$futureAdmit} active encounters admitted after anchor", '0',
@@ -335,7 +339,7 @@ final class DemoInvariantService
         }
 
         // 5. OR physical rooms vs declared procedure spaces (identity consistency).
-        $physicalRooms = $this->scalar('SELECT count(*) FROM prod.rooms', []);
+        $physicalRooms = $this->scalar("SELECT count(*) FROM prod.rooms WHERE type = 'OR' AND is_deleted = false", []);
         $declaredSpaces = 0;
         foreach ($this->profile->unitRoster() as $u) {
             if (($u['cadCode'] ?? null) === 'PERIOP') {
@@ -343,10 +347,22 @@ final class DemoInvariantService
             }
         }
         if ($declaredSpaces > 0) {
-            $out[] = $this->finding('plausibility.or_room_scale', 'plausibility', 'info',
+            $out[] = $this->finding('plausibility.or_room_scale', 'plausibility', 'warning',
                 $physicalRooms >= (int) round($declaredSpaces * 0.4),
-                "physical OR rooms {$physicalRooms}", "~{$declaredSpaces} declared procedure spaces",
+                "OR rooms {$physicalRooms}", "~{$declaredSpaces} declared procedure spaces",
                 'a Level I / 44-room identity backed by only a handful of rooms undercuts OR realism');
+        }
+
+        // 6. OR daily volume on the most-recent surgical day — a real suite runs many rooms.
+        $orDay = DB::selectOne('SELECT max(surgery_date)::date AS d FROM prod.or_cases WHERE is_deleted = false');
+        if ($orDay && $orDay->d !== null) {
+            $vol = $this->scalar('SELECT count(*) FROM prod.or_cases WHERE surgery_date::date = ?::date AND is_deleted = false', [$orDay->d]);
+            $roomsUsed = $this->scalar('SELECT count(DISTINCT room_id) FROM prod.or_cases WHERE surgery_date::date = ?::date AND is_deleted = false', [$orDay->d]);
+            $out[] = $this->finding('plausibility.or_daily_volume', 'plausibility', 'warning',
+                $vol >= 20 && $roomsUsed >= 8,
+                "{$vol} cases across {$roomsUsed} rooms on {$orDay->d}",
+                '>= 20 cases across >= 8 rooms',
+                'a Level I OR suite runs many rooms with meaningful daily volume');
         }
 
         return $out;
