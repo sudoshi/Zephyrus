@@ -11,7 +11,7 @@ export function CommandPalette() {
   const setOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const page = usePage<PageProps>();
   const isAdmin = Boolean(page.props.auth?.is_admin);
-  const access: NavigationAccess = { isAdmin, can: page.props.auth?.can };
+  const access: NavigationAccess = { isAdmin, can: page.props.auth?.can, features: page.props.features };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

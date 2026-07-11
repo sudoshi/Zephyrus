@@ -69,6 +69,13 @@ class HandleInertiaRequests extends Middleware
             'arena' => [
                 'ai_enabled' => (bool) config('services.arena.ai_enabled'),
             ],
+            // Feature flags the frontend reads to gate nav + surfaces. Virtual
+            // Rounds ships disabled; the nav item stays hidden (never a dead
+            // link) until VIRTUAL_ROUNDS_ENABLED is on — matching the server
+            // route gate (EnsureRoundsEnabled) so nav and route never disagree.
+            'features' => [
+                'virtual_rounds' => (bool) config('rounds.enabled'),
+            ],
             'workflow' => $request->session()->get('workflow'),
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

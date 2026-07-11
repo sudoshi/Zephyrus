@@ -34,6 +34,7 @@ export default function TransportLayout({ title, subtitle, current, children }: 
   const access: NavigationAccess = {
     isAdmin: Boolean(page.props.auth?.is_admin),
     can: page.props.auth?.can,
+    features: page.props.features,
   };
   const tabs: readonly LocalTab[] = [
     { label: 'Command', href: '/dashboard?drill=flow' },

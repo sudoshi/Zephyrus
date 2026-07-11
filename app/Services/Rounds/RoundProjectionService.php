@@ -32,9 +32,20 @@ class RoundProjectionService
         $policy = $this->completion->policyFor($run);
 
         $patients = $run->patients()
-            ->with(['contributions' => fn ($q) => $q->whereIn('status', ['submitted', 'draft'])->orderByDesc('submitted_at')])
+            ->with([
+                'contributions' => fn ($q) => $q->whereIn('status', ['submitted', 'draft'])->orderByDesc('submitted_at'),
+                'questions' => fn ($q) => $q->where('status', 'open'),
+                'tasks',
+            ])
             ->orderBy('queue_position')
             ->get();
+
+        // Load the run's participants once and share the single run instance
+        // across every row, so evaluatePatient() (waiver + requirement checks)
+        // reads in-memory instead of re-querying run/participants per patient.
+        // This collapses a ~5-queries-per-patient N+1 into a flat handful.
+        $run->loadMissing('participants');
+        $patients->each(fn (RoundPatient $patient) => $patient->setRelation('run', $run));
 
         $rows = $patients->map(function (RoundPatient $patient) use ($detail, $policy) {
             $evaluation = $this->completion->evaluatePatient($patient, $policy);
@@ -63,7 +74,9 @@ class RoundProjectionService
                     'waived' => $evaluation['waived'],
                 ],
                 'open_task_count' => $evaluation['open_task_count'],
-                'open_question_count' => $patient->questions()->where('status', 'open')->count(),
+                'open_question_count' => $patient->relationLoaded('questions')
+                    ? $patient->questions->count()
+                    : $patient->questions()->where('status', 'open')->count(),
                 'rounded_at' => $patient->rounded_at?->toIso8601String(),
             ];
 
