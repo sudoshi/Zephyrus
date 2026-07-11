@@ -133,12 +133,21 @@ if [[ "$(systemctl show "$ARENA_SERVICE" -p LoadState --value 2>/dev/null)" == "
     fi
     # Restart to pick up freshly rsynced code, then health-gate (non-fatal).
     if sudo systemctl restart "$ARENA_SERVICE"; then
-        sleep 2
-        if systemctl is-active --quiet "$ARENA_SERVICE" \
-           && curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${ARENA_PORT}/health" | grep -q '^2'; then
+        # Poll rather than a single sleep: uvicorn + pm4py import takes several
+        # seconds, so a one-shot 2s check false-warns on a perfectly healthy start.
+        arena_ok=""
+        for _ in 1 2 3 4 5 6 7 8; do
+            sleep 2
+            if systemctl is-active --quiet "$ARENA_SERVICE" \
+               && curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${ARENA_PORT}/health" | grep -q '^2'; then
+                arena_ok=1
+                break
+            fi
+        done
+        if [[ -n "$arena_ok" ]]; then
             echo "  ✅ Arena sidecar healthy on :${ARENA_PORT}"
         else
-            echo "  ⚠️  Arena sidecar not healthy — check: sudo journalctl -u ${ARENA_SERVICE} -n 50"
+            echo "  ⚠️  Arena sidecar not healthy after ~16s — check: sudo journalctl -u ${ARENA_SERVICE} -n 50"
         fi
     else
         echo "  ⚠️  Failed to restart ${ARENA_SERVICE} — check: sudo systemctl status ${ARENA_SERVICE}"
