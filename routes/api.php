@@ -134,6 +134,7 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
         Route::get('/performance', [\App\Http\Controllers\Api\ArenaController::class, 'performance']);
         Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);
         Route::get('/petrinet', [\App\Http\Controllers\Api\ArenaController::class, 'petrinet']);
+        Route::get('/capacity', [\App\Http\Controllers\Api\ArenaController::class, 'capacity']);
 
         // Part X (X4) — the governed AI copilot. Nested behind EnsureArenaAiEnabled
         // (ARENA_AI_ENABLED), so these 404 unless BOTH the Arena and its AI author
