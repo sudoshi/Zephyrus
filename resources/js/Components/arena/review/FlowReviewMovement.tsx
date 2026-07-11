@@ -18,9 +18,11 @@ import { ReviewFlowMap } from './ReviewFlowMap';
 import { ReviewHeader, type Freshness } from './ReviewHeader';
 import { ReviewSummaryStrip } from './ReviewSummaryStrip';
 
-// Until the backend loop (FlowReviewService + /api/arena/review) ships, render
-// the fixture so the movement is demoable end to end. Flip to false when the
-// endpoint lands — the parse path is already identical to a live response.
+// The backend loop (FlowReviewService + GET /api/arena/review) has shipped, so a
+// live review is preferred whenever the endpoint returns one (see the useMemo
+// below — parsed data always wins). This stays true as the OFFLINE fallback: when
+// ARENA is disabled the route 404s and the movement still demos end to end
+// against the fixture. Set to false to force the "no review yet" empty state.
 const USE_REVIEW_FIXTURE = true;
 
 function InfoCard({ title, body }: { title: string; body: string }) {

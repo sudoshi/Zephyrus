@@ -136,6 +136,13 @@ Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureAr
         Route::get('/petrinet', [\App\Http\Controllers\Api\ArenaController::class, 'petrinet']);
         Route::get('/capacity', [\App\Http\Controllers\Api\ArenaController::class, 'capacity']);
 
+        // Flow Reconciliation — the 48-Hour Flow Review. GET reads the persisted
+        // artifact (arena.reviews); POST /review/run rebuilds it (the Run-review
+        // action). Not AI-gated: the review is observed signal + open barriers, no
+        // model in the loop — corrective-action drafting rides the copilot below.
+        Route::get('/review', [\App\Http\Controllers\Api\ArenaController::class, 'review']);
+        Route::post('/review/run', [\App\Http\Controllers\Api\ArenaController::class, 'runReview']);
+
         // Part X (X4) — the governed AI copilot. Nested behind EnsureArenaAiEnabled
         // (ARENA_AI_ENABLED), so these 404 unless BOTH the Arena and its AI author
         // are on. Draft endpoints only ever land pending on the Eddy plane.
