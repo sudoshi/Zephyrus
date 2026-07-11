@@ -86,23 +86,26 @@ class RoundsSeedDemoCommand extends Command
         RoundContributionService $contributions,
         bool $refresh,
     ): bool {
-        $existing = RoundRun::query()
+        $openRuns = RoundRun::query()
             ->open()
             ->where('scope_type', 'unit')
             ->where('scope_key', (string) $unit->unit_id)
-            ->whereDate('created_at', now()->toDateString())
-            ->first();
+            ->get();
 
-        if ($existing !== null && ! $refresh) {
-            $this->info("Open run already exists for {$unit->name} today: {$existing->run_uuid}");
+        if (! $refresh) {
+            $today = $openRuns->first(fn (RoundRun $r) => $r->created_at?->isToday() ?? false);
+            if ($today !== null) {
+                $this->info("Open run already exists for {$unit->name} today: {$today->run_uuid}");
 
-            return false;
-        }
-
-        // --refresh: retire the stale open run so the new one re-anchors to the
-        // current census (the demo refresh shifts every encounter to "now").
-        if ($existing !== null) {
-            $commands->cancel($actor, $existing, ['reason' => 'demo-refresh rebuild']);
+                return false;
+            }
+        } else {
+            // Retire EVERY open run for this unit (any date) so the fresh cohort
+            // is the only board — the census shifts to "now", and cancelling only
+            // today's run would leak yesterday's straggler on each daily refresh.
+            foreach ($openRuns as $stale) {
+                $commands->cancel($actor, $stale, ['reason' => 'demo-refresh rebuild']);
+            }
         }
 
         $run = $commands->createRun($actor, [
