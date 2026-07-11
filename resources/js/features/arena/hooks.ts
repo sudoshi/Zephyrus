@@ -5,6 +5,7 @@ import {
   fetchArenaMap,
   fetchArenaNarrative,
   fetchArenaPerformance,
+  fetchArenaPetriNet,
   fetchArenaProcessModel,
   fetchArenaProcessModels,
   fetchArenaSummary,
@@ -62,6 +63,14 @@ export function useArenaPerformance(types?: string[], filters?: ArenaFilter[]) {
   return useQuery<unknown>({
     queryKey: ['arena', 'performance', typesKey, JSON.stringify(filters ?? [])],
     queryFn: () => fetchArenaPerformance(types, undefined, filters),
+    staleTime: 60_000,
+  });
+}
+
+export function useArenaPetriNet(filters?: ArenaFilter[]) {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'petrinet', JSON.stringify(filters ?? [])],
+    queryFn: () => fetchArenaPetriNet(filters),
     staleTime: 60_000,
   });
 }

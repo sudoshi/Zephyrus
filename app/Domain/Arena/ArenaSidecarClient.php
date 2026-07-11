@@ -119,6 +119,23 @@ class ArenaSidecarClient
     }
 
     /**
+     * Discover the object-centric Petri net for a de-identified OCEL doc (XO.2).
+     *
+     * @param  array<string, mixed>  $ocel
+     * @param  array<int, array<string, mixed>>|null  $filters
+     * @return array<string, mixed>|null
+     */
+    public function petrinet(array $ocel, ?array $filters = null): ?array
+    {
+        $body = ['ocel' => $ocel];
+        if (! empty($filters)) {
+            $body['filters'] = array_values($filters);
+        }
+
+        return $this->post('/discover/petrinet', $body);
+    }
+
+    /**
      * Part X (X4) — conformance-fitness of a copilot-proposed object-centric model
      * (a list of {object_type, source, target} arcs) against the OCEL log. Returns
      * the fitness/precision verdict the orchestrator uses to withhold a bad map, or

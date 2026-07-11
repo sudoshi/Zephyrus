@@ -274,6 +274,19 @@ export const arenaDraftResponseSchema = z.object({
   pdsa: z.record(z.string(), z.string()).optional(),
 });
 
+export const arenaPetriNetResponseSchema = z.object({
+  available: z.boolean().optional(),
+  object_types: z.array(z.string()).default([]),
+  nets: z.array(z.object({
+    object_type: z.string(),
+    places: z.array(z.object({ id: z.string(), initial: z.boolean(), final: z.boolean() })),
+    transitions: z.array(z.object({ id: z.string(), label: z.string().nullable() })),
+    arcs: z.array(z.object({ source: z.string(), target: z.string(), variable: z.boolean(), weight: z.number() })),
+  })).default([]),
+  stats: z.record(z.string(), z.number()).default({}),
+});
+export type ArenaPetriNet = z.infer<typeof arenaPetriNetResponseSchema>;
+
 export const arenaFilterSchema = z.object({
   kind: z.enum(['object_type', 'event_type', 'time_frame', 'event_attribute']),
   object_types: z.array(z.string()).optional(),

@@ -14,12 +14,14 @@ import { CopilotPane } from '@/Components/arena/CopilotPane';
 import { FilterBar } from '@/Components/arena/FilterBar';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
 import { PerformancePane } from '@/Components/arena/PerformancePane';
+import { PetriNetPane } from '@/Components/arena/PetriNetPane';
 import { ProcessModelLandscape } from '@/Components/arena/ProcessModelLandscape';
 import { MIXED_EDGE_COLOR, objectTypeColor } from '@/Components/arena/objectTypePalette';
-import { useArenaConformance, useArenaMap, useArenaPerformance, useArenaSummary } from '@/features/arena/hooks';
+import { useArenaConformance, useArenaMap, useArenaPerformance, useArenaPetriNet, useArenaSummary } from '@/features/arena/hooks';
 import {
   arenaConformanceResponseSchema,
   arenaMapResponseSchema,
+  arenaPetriNetResponseSchema,
   arenaPerformanceResponseSchema,
   arenaSummarySchema,
   type ArenaFilter,
@@ -83,6 +85,13 @@ export default function Arena() {
     if (!parsed.success || !parsed.data.available) return null;
     return parsed.data.pathways;
   }, [conformanceQuery.data]);
+
+  const petriNetQuery = useArenaPetriNet(filters);
+  const petriNet = useMemo(() => {
+    if (petriNetQuery.data === undefined) return null;
+    const parsed = arenaPetriNetResponseSchema.safeParse(petriNetQuery.data);
+    return parsed.success ? parsed.data : null;
+  }, [petriNetQuery.data]);
 
   const performanceQuery = useArenaPerformance(undefined, filters);
   const performance = useMemo<{ handoffs: ArenaHandoff[]; synchronization: ArenaSyncWait[] } | null>(() => {
@@ -331,6 +340,25 @@ export default function Arena() {
           ) : (
             <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-6 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
               {performanceQuery.isError ? 'Performance unavailable — is the OCPM sidecar reachable?' : 'Analyzing object-centric performance…'}
+            </div>
+          )}
+        </div>
+
+        {/* OC Petri-net pane (XO.2) — per-object-type structural summary */}
+        <div className="space-y-3 pt-2">
+          <div>
+            <h2 className="text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              OC Petri-net model
+            </h2>
+            <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Object-centric Petri net mined per object type — the structural shape of each lifecycle.
+            </p>
+          </div>
+          {petriNet ? (
+            <PetriNetPane data={petriNet} />
+          ) : (
+            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 text-sm text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
+              {petriNetQuery.isError ? 'Petri net unavailable — the OCPM sidecar did not respond.' : 'Mining the object-centric Petri net…'}
             </div>
           )}
         </div>
