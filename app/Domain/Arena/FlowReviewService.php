@@ -269,6 +269,7 @@ class FlowReviewService
         $metric = InterventionMetric::query()
             ->where('intervention_id', $intervention->intervention_id)
             ->where('is_primary', true)
+            ->orderBy('intervention_metric_id') // deterministic if ever >1 primary
             ->first();
         if ($metric === null || $metric->delta_value === null) {
             return null;
@@ -292,6 +293,7 @@ class FlowReviewService
             'seconds', 'second', 'sec', 's' => $value,
             'minutes', 'minute', 'min', 'm' => $value * 60,
             'hours', 'hour', 'hr', 'h' => $value * 3600,
+            'days', 'day', 'd' => $value * 86400,
             default => null,
         };
     }
