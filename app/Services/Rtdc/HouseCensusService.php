@@ -60,11 +60,20 @@ class HouseCensusService
     /**
      * House-wide totals from the same rows — the single occupancy formula.
      *
+     * The house denominator is INPATIENT ONLY: ED treatment spaces and periop
+     * procedure rooms are capacity in their own domains and must never inflate
+     * house occupancy (plan §8.1 capacity vocabulary). Per-unit consumers keep
+     * calling latestPerUnit() to see every unit; only the house TOTAL is scoped.
+     *
      * @return array{staffedBeds:int,occupied:int,available:int,blocked:int,occupancyPct:int}
      */
     public function houseTotals(): array
     {
-        $rows = $this->latestPerUnit();
+        $inpatientTypes = (array) config('hospital.inpatient_unit_types', ['icu', 'step_down', 'med_surg']);
+        $rows = array_filter(
+            $this->latestPerUnit(),
+            fn ($row): bool => in_array($row->unit_type ?? null, $inpatientTypes, true)
+        );
 
         $staffed = (int) array_sum(array_map(fn ($row): int => (int) $row->staffed_beds, $rows));
         $occupied = (int) array_sum(array_map(fn ($row): int => (int) $row->occupied, $rows));

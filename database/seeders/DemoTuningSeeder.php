@@ -23,7 +23,11 @@ use Illuminate\Support\Facades\DB;
  */
 class DemoTuningSeeder extends Seeder
 {
-    private const TARGET_OCCUPANCY = 0.85;
+    // Per-unit-type occupancy target: ICUs run hotter than med/surg — a flat number across
+    // every type reads as a global target, not a real house. Each value sits inside its
+    // config('hospital.plausibility_targets.occupancy_by_unit_type') band; populateOccupancy()
+    // only fills UP, so med/surg settles near ~85% while ICU and step-down are pulled higher.
+    private const OCCUPANCY_TARGET = ['icu' => 0.92, 'step_down' => 0.86, 'med_surg' => 0.84];
 
     /** Acuity mix by unit type: [tier => weight]. ICUs skew high, med/surg low. */
     private const ACUITY = [
@@ -34,12 +38,44 @@ class DemoTuningSeeder extends Seeder
 
     public function run(): void
     {
+        $this->clampTemporalLeaks();
         $this->fixEdBedInventory();
         $this->reconcileStrayEncounters();
         $this->populateOccupancy();
         $this->refreshSlas();
         $this->staffingToday();
         $this->varyOrSurgeons();
+    }
+
+    /**
+     * 0. Correct seed-owned temporal leaks in the NON-scenario domains (encounters / census /
+     *    predictions — the scenario's own staffing+transport are owned by OperationalDemoDataService)
+     *    so the current snapshot is coherent (enforced by zephyrus:demo-validate):
+     *      - purge expired forecasts once today/tomorrow replacements exist;
+     *      - drop future-dated census "actuals" (a snapshot cannot be in the future);
+     *      - pull active encounters admitted in the future back to a plausible recent admit;
+     *      - repair expected_discharge_date rows that precede admission.
+     *    Idempotent (no-ops once clean).
+     */
+    private function clampTemporalLeaks(): void
+    {
+        DB::delete("DELETE FROM prod.rtdc_predictions WHERE service_date < (now() AT TIME ZONE 'UTC')::date");
+
+        DB::delete("DELETE FROM prod.census_snapshots WHERE captured_at > (now() AT TIME ZONE 'UTC')");
+
+        DB::update("
+            UPDATE prod.encounters
+            SET admitted_at = (now() AT TIME ZONE 'UTC') - (floor(random()*72)||' hours')::interval,
+                updated_at = now()
+            WHERE admitted_at > (now() AT TIME ZONE 'UTC') AND discharged_at IS NULL AND is_deleted = false
+        ");
+
+        DB::update("
+            UPDATE prod.encounters
+            SET expected_discharge_date = (admitted_at + ((2 + floor(random()*4))||' days')::interval)::date,
+                updated_at = now()
+            WHERE is_deleted = false AND expected_discharge_date IS NOT NULL AND expected_discharge_date < admitted_at
+        ");
     }
 
     /** 1. Prune phantom "available" ED beds so the ED bed rows match its staffed count. */
@@ -86,9 +122,13 @@ class DemoTuningSeeder extends Seeder
             ORDER BY u.unit_id
         ");
 
+        $sampler = new \App\Services\Demo\DistributionSampler;
         $seq = 0;
         foreach ($units as $u) {
-            $goal = (int) round(self::TARGET_OCCUPANCY * (int) $u->staffed_bed_count);
+            // Per-type target + a small deterministic per-unit jitter so units within a type vary.
+            $base = self::OCCUPANCY_TARGET[$u->type] ?? 0.82;
+            $target = $base + $sampler->valueInBand([-0.02, 0.02], (int) $u->unit_id);
+            $goal = (int) round($target * (int) $u->staffed_bed_count);
             $delta = $goal - (int) $u->occ;
             if ($delta <= 0) {
                 continue;

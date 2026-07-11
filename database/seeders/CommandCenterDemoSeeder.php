@@ -857,6 +857,14 @@ class CommandCenterDemoSeeder extends Seeder
         $elapsedDays = max(1, (int) $monthStart->diffInDays(now()));
         $rows = [];
 
+        // Afternoon-peaked discharge hour (FEEDBACK Wave 2): a uniform 0–23h gave ~50%
+        // discharge-before-noon, which no hospital achieves. This lands ~30% before noon.
+        $sampler = new \App\Services\Demo\DistributionSampler;
+        $dischargeHourWeights = [
+            0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 2, 6 => 3, 7 => 4, 8 => 6, 9 => 8, 10 => 9, 11 => 10,
+            12 => 14, 13 => 16, 14 => 16, 15 => 14, 16 => 12, 17 => 10, 18 => 8, 19 => 6, 20 => 5, 21 => 4, 22 => 2, 23 => 1,
+        ];
+
         for ($i = 1; $i <= 1284; $i++) {
             $seed = 70400 + $i;
             $isObs = $i <= 159; // ≈12.4%
@@ -864,7 +872,7 @@ class CommandCenterDemoSeeder extends Seeder
             $cost = 8000 + $this->seededRand($seed + 1, 0, 7800);            // mean ≈11,900
             $dischargedAt = $monthStart->copy()
                 ->addDays($this->seededRand($seed + 2, 0, $elapsedDays))
-                ->addHours($this->seededRand($seed + 3, 0, 23));
+                ->addHours((int) $sampler->weightedPick($dischargeHourWeights, $seed + 3));
             if ($dischargedAt->greaterThan(now())) {
                 $dischargedAt = now()->copy()->subHours(1);
             }
@@ -1170,9 +1178,14 @@ class CommandCenterDemoSeeder extends Seeder
             return;
         }
 
-        // Clearing the requests cascades their transport_events (FK cascadeOnDelete),
-        // so this stays idempotent for both tables.
-        DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->delete();
+        // prod.transport_events is an append-only ledger (prod.reject_transport_ledger_mutation
+        // rejects DELETE/UPDATE), so demo transport is seeded ONCE and then left intact — deleting
+        // requests that already have events would cascade into the protected ledger and fail. On
+        // re-runs DemoTuningSeeder::refreshSlas() keeps active needed_at/needed_by near "now"
+        // without mutating the ledger, so the queue stays current.
+        if (DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->exists()) {
+            return;
+        }
 
         $hasEvents = Schema::hasTable('prod.transport_events');
 
@@ -1391,7 +1404,9 @@ class CommandCenterDemoSeeder extends Seeder
         $dispositions = $this->deterministicShuffle($dispositions, 20260622);
 
         // ESI weight: mostly 2-4, rarely 1 or 5.
-        $esiWeights = [1 => 5, 2 => 25, 3 => 45, 4 => 20, 5 => 5];
+        // ESI-3-dominant pyramid (FEEDBACK Wave 2). ESI-1 is deliberately rare in walk-in
+        // throughput — the true ESI-1 resuscitations are the ventilated crowding cohort below.
+        $esiWeights = [1 => 1, 2 => 25, 3 => 46, 4 => 23, 5 => 5];
         $esiPool = [];
         foreach ($esiWeights as $level => $weight) {
             for ($w = 0; $w < $weight; $w++) {
@@ -1498,6 +1513,7 @@ class CommandCenterDemoSeeder extends Seeder
         // little and the crowding term must carry the score: 34 patients
         // currently in the department (none admitted → boarders unchanged),
         // 8 still waiting for a provider, 4 on ventilators.
+        $sampler = new \App\Services\Demo\DistributionSampler;
         for ($k = 1; $k <= 34; $k++) {
             $seed = 20260701 + $k * 17;
             $arrivedAt = now()->subMinutes($this->seededRand($seed, 20, 360));
@@ -1505,11 +1521,20 @@ class CommandCenterDemoSeeder extends Seeder
             $ventilated = $k <= 4; // 4 critical, on vents
             $triagedAt = $arrivedAt->copy()->addMinutes($this->seededRand($seed + 1, 3, 10));
 
+            // A boarding cohort skews higher-acuity but is not all ESI-2: vents are ESI-1,
+            // undifferentiated waiters are ESI-2/3, the rest sample an ESI-3-modal pyramid
+            // (FEEDBACK Wave 2 — keeps ESI-3 the modal class overall).
+            $esiLevelCrowd = $ventilated
+                ? 1
+                : ($waiting
+                    ? $sampler->weightedPick([2 => 2, 3 => 3], $seed + 5)
+                    : $sampler->weightedPick([2 => 30, 3 => 45, 4 => 20, 5 => 5], $seed + 5));
+
             EdVisit::create([
                 'patient_ref' => sprintf('sim-ed-crowd-%02d', $k),
                 'arrived_at' => $arrivedAt,
                 'triaged_at' => $triagedAt,
-                'esi_level' => $ventilated ? 1 : ($waiting ? 3 : 2),
+                'esi_level' => $esiLevelCrowd,
                 'is_ventilated' => $ventilated,
                 'provider_seen_at' => $waiting ? null : $triagedAt->copy()->addMinutes($this->seededRand($seed + 2, 5, 20)),
                 'disposition' => null, // still in ED, undispositioned
@@ -1659,8 +1684,16 @@ class CommandCenterDemoSeeder extends Seeder
             }
         }
 
-        // Rooms (4 ORs).
-        $roomNames = ['OR-1', 'OR-2', 'OR-3', 'OR-4'];
+        // Rooms — a Level I academic OR suite (FEEDBACK Wave 2: 4 ORs read as a community
+        // hospital, not the 44-space procedural platform in the manifest). 20 named ORs across
+        // the service lines; a block-schedule "active" pattern below keeps a realistic subset
+        // running each day so the board is full without every room being lit.
+        $roomNames = [
+            'GEN-OR-1', 'GEN-OR-2', 'GEN-OR-3', 'GEN-OR-4', 'GEN-OR-5', 'GEN-OR-6',
+            'CV-OR-1', 'CV-OR-2', 'NEURO-OR-1', 'NEURO-OR-2',
+            'ORTHO-OR-1', 'ORTHO-OR-2', 'ORTHO-OR-3', 'TRAUMA-OR-1', 'TRAUMA-OR-2',
+            'HYBRID-OR-1', 'HYBRID-OR-2', 'ROBOTIC-OR-1', 'ROBOTIC-OR-2', 'OB-OR-1',
+        ];
         $roomIds = [];
         foreach ($roomNames as $rn) {
             $existing = DB::table('prod.rooms')
@@ -1683,6 +1716,13 @@ class CommandCenterDemoSeeder extends Seeder
                 ], 'room_id');
             }
         }
+
+        // Retire seeder-owned ORs no longer in the roster (e.g. the old OR-1..OR-4) so they
+        // don't linger as orphaned idle rooms after the suite was expanded.
+        DB::table('prod.rooms')
+            ->where('created_by', 'seeder')->where('type', 'OR')
+            ->whereNotIn('name', $roomNames)
+            ->update(['is_deleted' => true, 'updated_at' => now()]);
 
         // Case statuses (idempotent via CaseManagementSeeder pattern).
         $this->ensureCaseStatuses();
@@ -1794,8 +1834,18 @@ class CommandCenterDemoSeeder extends Seeder
 
         foreach ($weekdays as $dayIdx => $day) {
             foreach ($roomIds as $roomIdx => $roomId) {
-                // ~5 cases per room per day.
-                $numCases = 5;
+                // Block schedule: ~70% of ORs are staffed on a given weekday; the rest are dark
+                // (they read 'available' in Room Status). The most-recent day forces the first 12
+                // rooms active so the live board is full even when the real anchor is a weekend.
+                $active = $this->seededRand($dayIdx * 100 + $roomIdx + 7, 0, 99) < 70;
+                if ($dayIdx === $anchorDayIdx && $roomIdx < 12) {
+                    $active = true;
+                }
+                if (! $active) {
+                    continue;
+                }
+                // 2–4 cases per active room (was a flat 5 across only 4 rooms).
+                $numCases = $this->seededRand($dayIdx * 7 + $roomIdx + 3, 2, 4);
                 $slotStart = $day->copy()->setTime(7, 30);
 
                 for ($cIdx = 0; $cIdx < $numCases; $cIdx++) {
@@ -1873,31 +1923,17 @@ class CommandCenterDemoSeeder extends Seeder
                         $procStartOffset = null; // reset each iteration to avoid cross-case leakage
 
                         if ($cIdx === 0) {
-                            // FCOTS target on the most recent OR day (dayIdx=4): exactly
-                            // 1 of 4 first-cases late → 3/4 = 75% on the latest day,
-                            // which is what CommandCenterDataService reports (it queries
-                            // only the max(surgery_date) day).
-                            // Hard-code late slots as (dayIdx, roomIdx) pairs for
-                            // determinism across re-runs. dayIdx=4 roomIdx=1 is the
-                            // designated late case on the latest OR day.
-                            $lateSlots = [[0, 3], [2, 1], [3, 0], [4, 1]]; // (dayIdx, roomIdx)
-                            $isLate = false;
-                            foreach ($lateSlots as $slot) {
-                                if ($slot[0] === $dayIdx && $slot[1] === $roomIdx) {
-                                    $isLate = true;
-                                    break;
-                                }
-                            }
-                            if (! $isLate) {
-                                // On-time: procedure_start_time = scheduledStart + (-2 to +13m)
-                                $procStartOffset = $this->seededRand($seed + 4, -2, 13);
-                            } else {
-                                // Late: procedure_start_time = scheduledStart + (16 to 40m)
-                                $procStartOffset = $this->seededRand($seed + 4, 16, 40);
-                            }
+                            // FCOTS ≈ 80% first-case on-time, generalised across N rooms (was
+                            // hardcoded (dayIdx,roomIdx) slots that only covered 4 rooms). A
+                            // deterministic 1-in-5 modulo keeps the late rate controlled and stable
+                            // (a random draw over few rooms can land on a fake-looking 100%).
+                            $isLate = (($dayIdx + $roomIdx) % 5 === 0);
+                            $procStartOffset = $isLate
+                                ? $this->seededRand($seed + 5, 16, 40)   // late: +16–40m
+                                : $this->seededRand($seed + 5, -2, 13);  // on-time: -2–+13m
                             $procStart = $scheduledStart->copy()->addMinutes($procStartOffset);
                             // OR-in 10–20m before procedure start.
-                            $orInTime = $procStart->copy()->subMinutes($this->seededRand($seed + 5, 10, 20));
+                            $orInTime = $procStart->copy()->subMinutes($this->seededRand($seed + 6, 10, 20));
                         } else {
                             // Non-first cases: standard OR-in jitter, then fixed prep.
                             $lateStartMin = $this->seededRand($seed + 4, -5, 20);
@@ -1999,7 +2035,9 @@ class CommandCenterDemoSeeder extends Seeder
             // Mild seasonality: slightly higher volume mid-week.
             $monthSeed = (int) $day->format('Ymd');
 
-            foreach ($roomIds as $roomIdx => $roomId) {
+            // History is carried by the sustained-volume general/CV ORs (specialty rooms run
+            // sparser elective schedules); keeps the ~6-month trend volume modest across 20 rooms.
+            foreach (array_slice($roomIds, 0, 6, true) as $roomIdx => $roomId) {
                 $numCases = $this->seededRand($monthSeed + $roomIdx, 3, 5);
                 $slotStart = $day->copy()->setTime(7, 30);
 

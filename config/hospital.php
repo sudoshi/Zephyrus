@@ -22,4 +22,53 @@ return [
     'manifests' => [
         'SUMMIT_REGIONAL' => 'config/hospital/hospital-1.php',
     ],
+
+    // facility_key => path (relative to base_path()) of the VERIFIED distribution profile
+    // (synthetic MIMIC-IV / atlantic_health provenance). Read by App\Services\Demo\DistributionProfile.
+    // Before this key existed the JSON was documentation only — cited in a code comment but never
+    // loaded at runtime, so the operational seeders used hand-tuned constants instead of these
+    // source-derived shapes. See docs/DEMO-DATA-COHERENCE-FEEDBACK-AND-PLAN-2026-07-10.md §3.5.
+    'distributions' => [
+        'SUMMIT_REGIONAL' => 'config/hospital/hospital-1-distributions.json',
+    ],
+
+    // Which prod.units.type values roll up into the licensed INPATIENT house denominator.
+    // ED treatment spaces and periop procedure rooms are capacity in their own domain but are
+    // NEVER part of house occupancy (plan §8.1 capacity vocabulary; FEEDBACK §3.4a/§5).
+    'inpatient_unit_types' => ['icu', 'step_down', 'med_surg'],
+
+    // Clinical-benchmark plausibility bands used by App\Services\Demo\DemoInvariantService (and,
+    // later, the regeneration sampler). These are NOT source-derived — they are realistic operating
+    // ranges for a busy academic medical center, kept here so they are tuneable per demo scenario.
+    // Rationale/citations live beside each band in FEEDBACK §4.
+    'plausibility_targets' => [
+        // Inpatient occupancy by unit type — ICUs run hotter than med/surg; a flat number across
+        // every unit type reads as a global target, not a real house. (min, max) as fractions.
+        'occupancy_by_unit_type' => [
+            'icu' => [0.80, 0.96],
+            'step_down' => [0.76, 0.93],
+            'med_surg' => [0.72, 0.90],
+        ],
+        // ED arrival acuity — a real ED is an ESI-3-dominant pyramid. Shares as (min, max) per level;
+        // ESI-3 must also be the modal (largest) class.
+        'esi_share' => [
+            1 => [0.005, 0.05],
+            2 => [0.12, 0.30],
+            3 => [0.35, 0.52],
+            4 => [0.14, 0.30],
+            5 => [0.02, 0.12],
+        ],
+        // Discharge-before-noon is a metric hospitals fight to hit; >45% is fantasy. (min, max).
+        'discharge_before_noon' => [0.18, 0.42],
+        // Transport priority mix — routine dominates, stat is a thin slice.
+        'transport_priority_share' => [
+            'routine' => [0.55, 0.85],
+            'urgent' => [0.10, 0.30],
+            'stat' => [0.02, 0.15],
+        ],
+        // Share of the ACTIVE transport queue allowed to be past its needed_by (SLA breach).
+        'transport_overdue_share_max' => 0.20,
+        // OR weekday volume sanity, expressed per physical OR room (cases per room per weekday).
+        'or_cases_per_room_weekday' => [3.0, 12.0],
+    ],
 ];
