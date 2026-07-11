@@ -1169,9 +1169,14 @@ class CommandCenterDemoSeeder extends Seeder
             return;
         }
 
-        // Clearing the requests cascades their transport_events (FK cascadeOnDelete),
-        // so this stays idempotent for both tables.
-        DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->delete();
+        // prod.transport_events is an append-only ledger (prod.reject_transport_ledger_mutation
+        // rejects DELETE/UPDATE), so demo transport is seeded ONCE and then left intact — deleting
+        // requests that already have events would cascade into the protected ledger and fail. On
+        // re-runs DemoTuningSeeder::refreshSlas() keeps active needed_at/needed_by near "now"
+        // without mutating the ledger, so the queue stays current.
+        if (DB::table('prod.transport_requests')->where('requested_by', 'demo-seeder')->exists()) {
+            return;
+        }
 
         $hasEvents = Schema::hasTable('prod.transport_events');
 

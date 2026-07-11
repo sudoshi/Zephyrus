@@ -33,12 +33,48 @@ class DemoTuningSeeder extends Seeder
 
     public function run(): void
     {
+        $this->clampTemporalLeaks();
         $this->fixEdBedInventory();
         $this->reconcileStrayEncounters();
         $this->populateOccupancy();
         $this->refreshSlas();
         $this->staffingToday();
         $this->varyOrSurgeons();
+    }
+
+    /**
+     * 0. Correct seed-owned temporal leaks so the current snapshot is coherent
+     *    (enforced by zephyrus:demo-validate / DemoInvariantService §11.1):
+     *      - purge expired forecasts once today/tomorrow replacements exist;
+     *      - drop future-dated census "actuals" (a snapshot cannot be in the future);
+     *      - pull active encounters admitted in the future back to a plausible recent
+     *        admit (the base seeder shifts some sim-hx admits forward by days);
+     *      - repair expected_discharge_date rows that precede admission.
+     *    All touch only demo-owned rows and are idempotent (no-ops once clean).
+     */
+    private function clampTemporalLeaks(): void
+    {
+        // Expired forecasts — safe to remove; CommandCenterDemoSeeder already wrote today+tomorrow.
+        DB::delete("DELETE FROM prod.rtdc_predictions WHERE service_date < (now() AT TIME ZONE 'UTC')::date");
+
+        // Future-dated census actuals (forward projections / noon sentinel) — a snapshot is never ahead of now.
+        DB::delete("DELETE FROM prod.census_snapshots WHERE captured_at > (now() AT TIME ZONE 'UTC')");
+
+        // Active encounters admitted in the future -> a plausible recent admit (0–72h ago).
+        DB::update("
+            UPDATE prod.encounters
+            SET admitted_at = (now() AT TIME ZONE 'UTC') - (floor(random()*72)||' hours')::interval,
+                updated_at = now()
+            WHERE admitted_at > (now() AT TIME ZONE 'UTC') AND discharged_at IS NULL AND is_deleted = false
+        ");
+
+        // Expected discharge must land after admission (2–5 day LOS from the (now-corrected) admit).
+        DB::update("
+            UPDATE prod.encounters
+            SET expected_discharge_date = (admitted_at + ((2 + floor(random()*4))||' days')::interval)::date,
+                updated_at = now()
+            WHERE is_deleted = false AND expected_discharge_date IS NOT NULL AND expected_discharge_date < admitted_at
+        ");
     }
 
     /** 1. Prune phantom "available" ED beds so the ED bed rows match its staffed count. */
@@ -136,6 +172,9 @@ class DemoTuningSeeder extends Seeder
     {
         DB::delete("DELETE FROM prod.staffing_plans WHERE shift_date = (now() AT TIME ZONE 'UTC')::date AND notes = 'demo-today'");
 
+        // Build today's plans from the latest prior day. The base seeder (CommandCenterDemoSeeder)
+        // may already own today's (unit_id, role, shift) slots (uniq_staffing_plan_slot), so ON
+        // CONFLICT takes ownership of those rows and re-tags them 'demo-today' instead of colliding.
         DB::insert("
             INSERT INTO prod.staffing_plans
               (plan_uuid, unit_id, unit_label, role, shift_date, shift, required_count, scheduled_count,
@@ -148,6 +187,17 @@ class DemoTuningSeeder extends Seeder
                 SELECT max(shift_date) FROM prod.staffing_plans
                 WHERE shift_date < (now() AT TIME ZONE 'UTC')::date AND (notes IS DISTINCT FROM 'demo-today')
             )
+            ON CONFLICT (unit_id, role, shift_date, shift) DO UPDATE SET
+                unit_label = EXCLUDED.unit_label,
+                required_count = EXCLUDED.required_count,
+                scheduled_count = EXCLUDED.scheduled_count,
+                actual_count = EXCLUDED.actual_count,
+                minimum_safe_count = EXCLUDED.minimum_safe_count,
+                census = EXCLUDED.census,
+                ratio_target = EXCLUDED.ratio_target,
+                status = 'balanced',
+                notes = 'demo-today',
+                updated_at = now()
         ");
 
         DB::update("

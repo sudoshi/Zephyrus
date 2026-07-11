@@ -64,5 +64,17 @@ return $builder
         // and cache the worst hand-off synchronization wait as a flow-domain
         // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
         $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
+
+        // FEEDBACK Wave 1: the rolling-demo refresh re-anchors every time-sensitive domain to
+        // "now", recomputes source freshness, validates, and (only if critical invariants pass)
+        // republishes the cockpit snapshot — so the demo never re-stales unattended. Gated on
+        // demo mode so a live/connector-backed deployment is never overwritten by the synthetic
+        // pipeline. withoutOverlapping guards a single server; the coordinator's PostgreSQL
+        // advisory lock guards across servers. Needs a running schedule runner + queue worker.
+        if (config('demo.enabled')) {
+            $schedule->command('zephyrus:demo-refresh --validate')
+                ->everyFifteenMinutes()
+                ->withoutOverlapping(10); // 10-min lock expiry so a crashed run never blocks for the 24h default
+        }
     })
     ->create();
