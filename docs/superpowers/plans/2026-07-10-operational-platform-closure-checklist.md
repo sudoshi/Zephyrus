@@ -1,6 +1,6 @@
 # Operational Platform Closure Checklist
 
-**Status:** Core closure tranches shipped; external connector activation and deploy-source hardening remain
+**Status:** Core closure tranches and deploy-source hardening shipped; external connector activation remains
 
 **Opened:** 2026-07-10
 
@@ -17,7 +17,7 @@
 - [x] R0.7 Verify Apache, the forced Zephyrus vhost, the public login boundary, runtime file parity, and current release migrations.
 - [x] R0.8 Restore all pre-existing local worktree changes without including them in the release PR.
 - [x] R0.9 Keep each implementation tranche on a separate branch and PR; PRs #15 through #19 each passed all five required checks, merged normally, and were deployed from the resulting `main` history before the next production tranche.
-- [ ] R0.10 Make `deploy.sh` publish an immutable release snapshot, or revalidate and abort immediately before rsync, so concurrent writes cannot enter a release after the initial clean-tree check. The transport deployment exposed this time-of-check/time-of-use race; the correction record below is the acceptance baseline.
+- [x] R0.10 Make `deploy.sh` publish an immutable release snapshot, or revalidate and abort immediately before rsync, so concurrent writes cannot enter a release after the initial clean-tree check. PR #25 archives the exact `origin/main` commit, builds and syncs only from that snapshot, revalidates the remote before publication, records the deployed commit, and is covered by a concurrent-writer regression test in both CI workflows.
 
 ## Patient Flow authorization and ingress hotfix
 
@@ -192,6 +192,14 @@ Production release evidence:
 - The first transport deployment run that passed the initial guard exposed R0.10: a concurrent worktree writer changed files after `deploy.sh`'s initial clean check but before rsync, causing an unrelated unmerged audit migration to run. The single generated audit row was preserved in a restricted backup, a detached clean snapshot of merged `main` was redeployed through `deploy.sh`, only the unrelated migration was rolled back, and its source files were removed. The transport migration was never rolled back.
 - After correction, Apache and the queue worker were active, the login boundary returned 302, the worker completed scheduled jobs, and every deploy-eligible tracked regular file compared byte-for-byte with merged `main` (zero mismatches; nested test trees are intentionally excluded by `deploy.sh`). The unrelated audit migration row/table are absent.
 
+## Immutable release-source hardening
+
+- PR [#25](https://github.com/sudoshi/Zephyrus/pull/25) passed all five exact-head checks at `784e895bd0d3f95d2b32d4339bdb2349c0340ca1` and merged normally as `1d3b4d5020080350127ce6357641faf60c4f9789`.
+- `deploy.sh` now refuses non-canonical worktrees, branches other than `main`, missing `origin/main` tracking, dirty source, and any local/remote SHA mismatch. It extracts the helper from the selected commit, archives only committed Git objects, freezes Composer dependencies into the temporary release tree, builds assets there, and revalidates `origin/main` immediately before rsync.
+- `tests/Deployment/immutable-release-snapshot.sh` keeps a background process changing both tracked and untracked fixture files while the snapshot is created. The test proves the release contains the committed bytes and release marker, excludes the rogue file, and rejects a non-empty destination; it passed in both backend CI matrices.
+- The first post-merge deployment exercised the hardened path from clean/current `main`. Local `HEAD`, `origin/main`, and `/var/www/Zephyrus/.release-commit` all resolved to `1d3b4d5020080350127ce6357641faf60c4f9789`; the deployed helper hash matched Git, the production manifest was present, and storage remained writable.
+- Apache, `zephyrus-queue-worker.service`, and `zephyrus-arena.service` were active after deployment. The forced Zephyrus vhost returned its canonical redirect, the public HTTPS boundary returned 302, and Arena health returned 200. The unrelated five-file Rounds/navigation worktree tranche was preserved before deployment and restored unchanged afterward.
+
 ## Canonical documentation reconciliation
 
 - [x] D1.1 Re-audit code, migrations, tests, exact-head CI, deployed runtime, and open PR state before changing completion claims.
@@ -204,14 +212,13 @@ Production release evidence:
 
 | Gate | Owner | Current evidence | Acceptance and release tracking |
 | --- | --- | --- | --- |
-| R0.10 immutable deploy source | Release engineering | The transport correction above proves the clean-check/rsync race and the clean-snapshot recovery. | A separate PR must add an immutable snapshot or pre-rsync recheck, test concurrent mutation/abort behavior, pass full CI, merge, and be exercised by the next `main` deployment. |
 | I1.5b credentialed Epic poll | Integrations + Security | Discovery is healthy against the configured Epic FHIR R4 sandbox; status is `activation_required`, with zero clinical watermarks and no secret reference. | A bounded activation change must provide an approved non-production client ID/private-key reference outside Git, pass live token/Encounter/Location poll and lineage checks, advance a watermark, pass CI, and deploy from `main`. No schema migration is expected. |
 | I1.6b production HL7 v2 ADT | Integrations + Privacy/Interface Operations | The machine-authenticated raw → canonical → Patient Flow path is deployed; only the synthetic non-PHI source is active. | After contract/BAA/PHI approval and sender identity, a bounded activation change must configure a production/live source and exact-ability token, deliver one test ADT with lineage/provenance, pass security smoke, and record deployment evidence. No new migration is expected unless sender-specific state requires one. |
 | I1.7b live failure/rotation drill | Integrations + Operations | Queue supervision, health jobs, replay controls, and runbooks are deployed; no live credential/feed exists to rotate or fail safely yet. | Exercise token/poll failure, dead-letter recovery, staleness, credential overlap rotation, worker restart, and rollback after I1.5b/I1.6b. Track it in the same activation PR or a dedicated operations-evidence PR. |
 | Extended staffing/transport roadmap | Staffing + Transport | Canonical qualification/availability/fulfillment and governed transport lifecycle are deployed with green invariants. | Future bounded PRs retain the still-unchecked July 9 items: versioned staffing rule approvals/forecast UX/FHIR mapping, and explicit pre-transport equipment checklist plus resource-shift/vendor-event depth. Each schema-bearing slice requires rehearsal, focused/full tests, CI, migration, and `main` deployment evidence. |
 | Open Patient Flow PR #13 | Patient Flow | GitHub still reports `feat/patient-flow-4d-barrier-eddy` open at `413f31fdbbb9c37f3979e324fd1be2abbeed7b2f`; it overlaps substantial later Patient Flow work already in `main`. | Re-audit unique commits and either rebase into a bounded non-duplicate PR or close it as superseded. Do not merge the stale branch wholesale. |
 
-## Definition of done for completed implementation tranches #14-#19
+## Definition of done for completed implementation tranches #14-#19 and #25
 
 - [x] The branch contains only the intended tranche and preserves unrelated local work.
 - [x] Focused tests and relevant static/build checks pass locally.
