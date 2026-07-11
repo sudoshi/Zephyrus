@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createPatientFlowEventSource,
   fetchPatientFlowAmbient,
+  fetchPatientFlowBarriers,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
   fetchPatientFlowProjections,
@@ -16,6 +17,7 @@ import {
   ENTITY_PROJECTION_KINDS,
   aggregatesAt,
   anchorForProjection,
+  buildBarrierCells,
   buildProjectionPlacementIndex,
   confidenceOpacity,
   floorForProjection,
@@ -26,6 +28,7 @@ import type {
   FlowLens,
   FlowPatientDots,
   FlowUnitSummary,
+  NavigatorBarrier,
   PatientFlowAmbient,
   PatientFlowEvent,
   PatientFlowFilters,
@@ -101,7 +104,7 @@ function parseHandoff(nowMs: number): HandoffParams {
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
   if (!lens) {
-    return { base: true, tokens: true, trails: true, heat: true, ghosts: true };
+    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true };
   }
   const has = (layer: string): boolean => lens.layers.includes(layer);
   const dots = lens.patient_dots !== 'none';
@@ -111,6 +114,9 @@ function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerSt
     trails: has('events') && dots,
     heat: has('snapshots'),
     ghosts: has('projections') && lens.projection_kinds.length > 0,
+    // Barriers carry no patient identity (aggregate operational signal), so
+    // every lens sees them by default — the operator can toggle them off.
+    barriers: true,
   };
 }
 
@@ -173,6 +179,7 @@ export default function PatientFlowNavigator({
   });
   const layersRef = useRef<PatientLayerState>(defaultLayersForLens(lens));
   const projectionsRef = useRef<ProjectionItem[]>([]);
+  const barriersRef = useRef<NavigatorBarrier[]>([]);
   const currentTimeRef = useRef(handoff.t ?? nowMs);
   const speedRef = useRef(60);
   const playingRef = useRef(false);
@@ -188,6 +195,7 @@ export default function PatientFlowNavigator({
   const [locations, setLocations] = useState<PatientFlowLocations>({});
   const [events, setEvents] = useState<PatientFlowEvent[]>([]);
   const [projections, setProjections] = useState<ProjectionItem[]>([]);
+  const [barriers, setBarriers] = useState<NavigatorBarrier[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
   const [currentTime, setCurrentTime] = useState(currentTimeRef.current);
@@ -209,6 +217,14 @@ export default function PatientFlowNavigator({
   const dataEnd = useMemo(
     () => (events.length ? parseTime(events[events.length - 1].occurred_at) : null),
     [events],
+  );
+
+  // When each open barrier began, for chronobar ticks (past half only).
+  const barrierTicks = useMemo(
+    () => barriers
+      .map((barrier) => (barrier.opened_at ? Date.parse(barrier.opened_at) : Number.NaN))
+      .filter((ms) => Number.isFinite(ms) && ms <= nowMs),
+    [barriers, nowMs],
   );
 
   const placementIndex = useMemo(
@@ -240,6 +256,7 @@ export default function PatientFlowNavigator({
       );
     }
     controls.push({ key: 'heat', label: 'Census', id: 'flow-layer-census' });
+    controls.push({ key: 'barriers', label: 'Barriers', id: 'flow-layer-barriers' });
     if (!lens || (lens.layers.includes('projections') && lens.projection_kinds.length > 0)) {
       controls.push({ key: 'ghosts', label: 'Forecast', id: 'flow-layer-forecast' });
     }
@@ -268,6 +285,7 @@ export default function PatientFlowNavigator({
       JSON.stringify(layersRef.current),
       eventsRef.current.length,
       projectionsRef.current.length,
+      barriersRef.current.length,
       Object.keys(locationsRef.current).length,
     ].join('|');
     if (bucketKey === lastBucketKeyRef.current) return;
@@ -324,6 +342,13 @@ export default function PatientFlowNavigator({
     scene.rebuildForecastHeat(heatCells, layersRef.current.ghosts && timeMs > nowMs);
     setForecast(aggregates && timeMs > nowMs ? aggregates : null);
 
+    // Open-barrier markers — present-state, so shown at every scrub position
+    // (not gated on past/future), just placed on their unit + floor-filtered.
+    const barrierCells = layersRef.current.barriers
+      ? buildBarrierCells(barriersRef.current, index, floorFilter, nowMs)
+      : [];
+    scene.rebuildBarriers(barrierCells, layersRef.current.barriers);
+
     setMetrics({
       active: states.length,
       events: eventsRef.current.filter((event) => parseTime(event.occurred_at) <= timeMs).length,
@@ -338,13 +363,14 @@ export default function PatientFlowNavigator({
     filtersRef.current = filters;
     layersRef.current = layers;
     projectionsRef.current = projections;
+    barriersRef.current = barriers;
     speedRef.current = speed;
     playingRef.current = playing;
     liveRef.current = live;
     tracksRef.current = tracks;
     placementIndexRef.current = placementIndex;
     refreshScene();
-  }, [events, locations, filters, layers, projections, speed, playing, live, tracks, placementIndex, refreshScene]);
+  }, [events, locations, filters, layers, projections, barriers, speed, playing, live, tracks, placementIndex, refreshScene]);
 
   // Repaint when the displayed time changes. The ref is the source of truth
   // (playback advances it per frame); scrub/live paths write it via applyTime.
@@ -415,6 +441,22 @@ export default function PatientFlowNavigator({
       cancelled = true;
     };
   }, [lens]);
+
+  // Open barriers overlay — aggregate + patient-free (no lens needed); a failure
+  // only hides the overlay, never the navigator.
+  useEffect(() => {
+    let cancelled = false;
+    fetchPatientFlowBarriers()
+      .then((payload) => {
+        if (!cancelled) setBarriers(payload.open_barriers);
+      })
+      .catch(() => {
+        if (!cancelled) setBarriers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Handoff scope=unit:{id|abbr} → that unit's floor, once derivable.
   useEffect(() => {
@@ -555,6 +597,7 @@ export default function PatientFlowNavigator({
             dataStart={dataStart}
             dataEnd={dataEnd}
             forecast={forecast}
+            barrierTicks={barrierTicks}
             onScrub={handleScrub}
           />
         )}

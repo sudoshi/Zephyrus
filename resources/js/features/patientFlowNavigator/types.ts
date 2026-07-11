@@ -189,6 +189,8 @@ export interface PatientLayerState {
   heat: boolean;
   /** Projection ghost layer (future half of the 48h window). */
   ghosts: boolean;
+  /** Open operational barrier markers (present-state; seam 4b). */
+  barriers: boolean;
 }
 
 export interface PatientVisibleState {
