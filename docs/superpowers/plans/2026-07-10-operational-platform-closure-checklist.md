@@ -208,6 +208,8 @@ Production release evidence:
 - [x] D1.4 Remove contradictory status language while preserving the dated 2026-07-09 audit/checkpoint as historical evidence.
 - [x] D1.5 Update the remediation authority only after verifying the corresponding production tranches. The separately modified `docs/ZEPHYRUS-2.0-PLAN.md` remains untouched by this branch.
 
+GitHub reports PR [#13](https://github.com/sudoshi/Zephyrus/pull/13) closed without merge on 2026-07-11 at 17:26 EDT. Its stale feature head was not merged wholesale, so it is no longer an open release gate; the later bounded Patient Flow tranches recorded above remain authoritative.
+
 ## Remaining gates after reconciliation
 
 | Gate | Owner | Current evidence | Acceptance and release tracking |
@@ -216,7 +218,6 @@ Production release evidence:
 | I1.6b production HL7 v2 ADT | Integrations + Privacy/Interface Operations | The machine-authenticated raw → canonical → Patient Flow path is deployed; only the synthetic non-PHI source is active. | After contract/BAA/PHI approval and sender identity, a bounded activation change must configure a production/live source and exact-ability token, deliver one test ADT with lineage/provenance, pass security smoke, and record deployment evidence. No new migration is expected unless sender-specific state requires one. |
 | I1.7b live failure/rotation drill | Integrations + Operations | Queue supervision, health jobs, replay controls, and runbooks are deployed; no live credential/feed exists to rotate or fail safely yet. | Exercise token/poll failure, dead-letter recovery, staleness, credential overlap rotation, worker restart, and rollback after I1.5b/I1.6b. Track it in the same activation PR or a dedicated operations-evidence PR. |
 | Extended staffing/transport roadmap | Staffing + Transport | Canonical qualification/availability/fulfillment and governed transport lifecycle are deployed with green invariants. | Future bounded PRs retain the still-unchecked July 9 items: versioned staffing rule approvals/forecast UX/FHIR mapping, and explicit pre-transport equipment checklist plus resource-shift/vendor-event depth. Each schema-bearing slice requires rehearsal, focused/full tests, CI, migration, and `main` deployment evidence. |
-| Open Patient Flow PR #13 | Patient Flow | GitHub still reports `feat/patient-flow-4d-barrier-eddy` open at `413f31fdbbb9c37f3979e324fd1be2abbeed7b2f`; it overlaps substantial later Patient Flow work already in `main`. | Re-audit unique commits and either rebase into a bounded non-duplicate PR or close it as superseded. Do not merge the stale branch wholesale. |
 
 ## Definition of done for completed implementation tranches #14-#19 and #25
 

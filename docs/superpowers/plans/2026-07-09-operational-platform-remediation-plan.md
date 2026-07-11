@@ -1292,6 +1292,7 @@ The next release backlog is now bounded to work that is actually still open:
 2. Complete contract/BAA/PHI/sender governance for the first production HL7 v2 ADT source, issue an exact-ability expiring machine token, and prove one test ADT through raw -> canonical -> Patient Flow -> provenance.
 3. After real source activation, execute the production failure/dead-letter, staleness, credential-rotation, worker-restart, and rollback drills.
 4. Continue only the explicitly unchecked extended-roadmap items: production-clone evidence for the older foundation chain, advanced staffing rule/forecast/FHIR depth, pre-transport equipment/vendor-event depth, FHIR Bulk Data, remaining transactional connector families, and governed outbound transmission.
-5. Re-audit open Patient Flow PR #13 and either extract unique work into a bounded current branch or close it as superseded; do not merge its stale branch wholesale.
+
+Patient Flow PR [#13](https://github.com/sudoshi/Zephyrus/pull/13) closed without merge on 2026-07-11; its stale feature head is no longer an open release gate.
 
 The production migrations, operational runtimes, and immutable release-source path described in Section 1.2 are shipped. Real clinical connector activation remains deliberately gated on external credentials, privacy/interface approval, and post-activation operational evidence; it must not be inferred from a healthy discovery endpoint alone.
