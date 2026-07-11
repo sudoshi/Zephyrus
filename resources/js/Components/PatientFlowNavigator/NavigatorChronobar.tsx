@@ -14,6 +14,8 @@ interface NavigatorChronobarProps {
   historical: boolean;
   freshness: PatientFlowFreshness;
   forecast: ForecastAggregates | null;
+  /** When each open barrier began, for past-half ticks. */
+  barrierTicks?: number[];
   onScrub: (timeMs: number) => void;
 }
 
@@ -68,6 +70,7 @@ export default function NavigatorChronobar({
   historical,
   freshness,
   forecast,
+  barrierTicks = [],
   onScrub,
 }: NavigatorChronobarProps) {
   const span = Math.max(1, windowEnd - windowStart);
@@ -116,6 +119,14 @@ export default function NavigatorChronobar({
             className="patient-flow-chronobar-detent"
             style={{ left: `${pct(detent)}%` }}
             title={new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          />
+        ))}
+        {barrierTicks.map((tick, index) => (
+          <span
+            key={`barrier-${index}-${tick}`}
+            className="patient-flow-chronobar-barrier"
+            style={{ left: `${pct(tick)}%` }}
+            title={`Barrier opened ${fmtTime(tick)}`}
           />
         ))}
         {!historical && nowMs >= windowStart && nowMs <= windowEnd && (
