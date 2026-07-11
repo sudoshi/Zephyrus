@@ -55,6 +55,7 @@ class OcelProjector
             'prod.care_journey_milestones' => $this->collectMilestones($since, $until),
             'prod.case_timings' => $this->collectCaseTimings($since, $until),
             'prod.transport_requests' => $this->collectTransport($since, $until),
+            'prod.barriers' => $this->collectBarriers($since, $until),
         ];
 
         $this->flush();
@@ -83,7 +84,7 @@ class OcelProjector
         $until ??= Carbon::now();
 
         $out = [];
-        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.case_timings', 'prod.transport_requests'] as $src) {
+        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.case_timings', 'prod.transport_requests', 'prod.barriers'] as $src) {
             $projected = (int) DB::table('ocel.events')->where('source_system', $src)->count();
             $distinct = (int) DB::table('ocel.events')->where('source_system', $src)->distinct('source_ref')->count('source_ref');
             $out[] = [
@@ -183,6 +184,31 @@ class OcelProjector
         return $n;
     }
 
+    private function collectBarriers(CarbonInterface $since, CarbonInterface $until): int
+    {
+        $n = 0;
+        DB::table('prod.barriers as b')
+            ->leftJoin('prod.units as u', 'u.unit_id', '=', 'b.unit_id')
+            ->where('b.is_deleted', false)
+            ->whereBetween('b.opened_at', [$since, $until])
+            ->select([
+                'b.barrier_id', 'b.encounter_id', 'b.unit_id', 'b.category',
+                'b.reason_code', 'b.status', 'b.opened_at', 'b.resolved_at',
+                'u.abbreviation as unit_abbreviation',
+            ])
+            ->orderBy('b.barrier_id')
+            ->chunk(1000, function ($rows) use (&$n) {
+                foreach ($rows as $row) {
+                    foreach (EmissionMap::forBarrier($row) as $e) {
+                        $this->absorb($e);
+                        $n++;
+                    }
+                }
+            });
+
+        return $n;
+    }
+
     private function sourceRowCount(string $src, CarbonInterface $since, CarbonInterface $until): int
     {
         return match ($src) {
@@ -194,6 +220,8 @@ class OcelProjector
                 ->whereRaw('COALESCE(actual_start, planned_start) BETWEEN ? AND ?', [$since, $until])->count(),
             'prod.transport_requests' => (int) DB::table('prod.transport_requests')
                 ->where('is_deleted', false)->whereBetween('requested_at', [$since, $until])->count(),
+            'prod.barriers' => (int) DB::table('prod.barriers')
+                ->where('is_deleted', false)->whereBetween('opened_at', [$since, $until])->count(),
             default => 0,
         };
     }
