@@ -24,9 +24,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class DemoInvariantService
 {
-    public function __construct(private readonly DistributionProfile $profile)
-    {
-    }
+    public function __construct(private readonly DistributionProfile $profile) {}
 
     /**
      * @return list<array{key:string,category:string,severity:string,passed:bool,observed:string,expected:string,detail:string}>
@@ -286,8 +284,8 @@ final class DemoInvariantService
 
         // 3. Discharge-before-noon — realistic, not fantasy.
         $dcRow = DB::selectOne(
-            "SELECT count(*) AS n, count(*) FILTER (WHERE extract(hour FROM discharged_at) < 12) AS before_noon
-             FROM prod.discharge_facts WHERE discharged_at IS NOT NULL"
+            'SELECT count(*) AS n, count(*) FILTER (WHERE extract(hour FROM discharged_at) < 12) AS before_noon
+             FROM prod.discharge_facts WHERE discharged_at IS NOT NULL'
         );
         if ($dcRow && (int) $dcRow->n > 0) {
             $share = (int) $dcRow->before_noon / (int) $dcRow->n;

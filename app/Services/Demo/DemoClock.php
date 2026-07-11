@@ -31,9 +31,9 @@ final class DemoClock
 
     /**
      * @param  CarbonImmutable|string|null  $anchor  Explicit anchor, an ISO-8601
-     *   string, the literal "now", or null (= now). Frozen at construction.
+     *                                               string, the literal "now", or null (= now). Frozen at construction.
      * @param  int  $windowHours  Full operational window width; split evenly
-     *   around the anchor (default 48 → ±24h).
+     *                            around the anchor (default 48 → ±24h).
      */
     public function __construct(CarbonImmutable|string|null $anchor = null, int $windowHours = 48)
     {
