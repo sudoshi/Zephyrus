@@ -1,6 +1,7 @@
 // resources/js/features/arena/hooks.ts
 import { useQuery } from '@tanstack/react-query';
 import {
+  fetchArenaCapacity,
   fetchArenaConformance,
   fetchArenaMap,
   fetchArenaNarrative,
@@ -71,6 +72,14 @@ export function useArenaPetriNet(filters?: ArenaFilter[]) {
   return useQuery<unknown>({
     queryKey: ['arena', 'petrinet', JSON.stringify(filters ?? [])],
     queryFn: () => fetchArenaPetriNet(filters),
+    staleTime: 60_000,
+  });
+}
+
+export function useArenaCapacity() {
+  return useQuery<unknown>({
+    queryKey: ['arena', 'capacity'],
+    queryFn: fetchArenaCapacity,
     staleTime: 60_000,
   });
 }
