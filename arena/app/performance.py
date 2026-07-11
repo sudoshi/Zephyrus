@@ -31,8 +31,17 @@ OCEL_OID = "ocel:oid"
 OCEL_TYPE = "ocel:type"
 
 
-def analyze(path: str, object_types: list[str] | None = None, top: int = 25) -> dict[str, Any]:
+def analyze(
+    path: str,
+    object_types: list[str] | None = None,
+    top: int = 25,
+    filters: "list[BaseFilter] | None" = None,
+) -> dict[str, Any]:
+    from app.filters import BaseFilter, apply_filters  # noqa: F401
+
     ocel = read_ocel(path)
+    if filters:
+        ocel = apply_filters(ocel, filters)
     ceiling = get_settings().arena_max_handoff_hours * 3600
     return {
         "handoffs": _handoff_durations(ocel, object_types, top, ceiling),

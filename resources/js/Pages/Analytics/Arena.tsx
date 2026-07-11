@@ -11,6 +11,7 @@ import type { PageProps } from '@/types';
 import AnalyticsLayout from '@/Layouts/AnalyticsLayout';
 import { ConformancePane } from '@/Components/arena/ConformancePane';
 import { CopilotPane } from '@/Components/arena/CopilotPane';
+import { FilterBar } from '@/Components/arena/FilterBar';
 import { OcdfgMap } from '@/Components/arena/OcdfgMap';
 import { PerformancePane } from '@/Components/arena/PerformancePane';
 import { ProcessModelLandscape } from '@/Components/arena/ProcessModelLandscape';
@@ -21,6 +22,7 @@ import {
   arenaMapResponseSchema,
   arenaPerformanceResponseSchema,
   arenaSummarySchema,
+  type ArenaFilter,
   type ArenaHandoff,
   type ArenaOcdfg,
   type ArenaPathwayConformance,
@@ -55,9 +57,10 @@ export default function Arena() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [minFreq, setMinFreq] = useState<number>(3);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ArenaFilter[]>([]);
 
   const summaryQuery = useArenaSummary();
-  const mapQuery = useArenaMap({ types: selectedTypes, minFreq, scope: 'house' });
+  const mapQuery = useArenaMap({ types: selectedTypes, minFreq, scope: 'house', filters });
 
   const summary = useMemo<ArenaSummary | null>(() => {
     if (summaryQuery.data === undefined) return null;
@@ -73,7 +76,7 @@ export default function Arena() {
 
   const ocdfg: ArenaOcdfg | null = mapResult && mapResult.available ? mapResult.map : null;
 
-  const conformanceQuery = useArenaConformance();
+  const conformanceQuery = useArenaConformance(filters);
   const conformancePathways = useMemo<ArenaPathwayConformance[] | null>(() => {
     if (conformanceQuery.data === undefined) return null;
     const parsed = arenaConformanceResponseSchema.safeParse(conformanceQuery.data);
@@ -81,7 +84,7 @@ export default function Arena() {
     return parsed.data.pathways;
   }, [conformanceQuery.data]);
 
-  const performanceQuery = useArenaPerformance();
+  const performanceQuery = useArenaPerformance(undefined, filters);
   const performance = useMemo<{ handoffs: ArenaHandoff[]; synchronization: ArenaSyncWait[] } | null>(() => {
     if (performanceQuery.data === undefined) return null;
     const parsed = arenaPerformanceResponseSchema.safeParse(performanceQuery.data);
@@ -190,6 +193,8 @@ export default function Arena() {
               className="w-20 rounded-md border border-healthcare-border bg-healthcare-surface px-2 py-1 text-xs tabular-nums text-healthcare-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-healthcare-gold dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
             />
           </label>
+
+          <FilterBar value={filters} onChange={setFilters} />
 
           <button
             type="button"

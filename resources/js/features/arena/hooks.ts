@@ -10,6 +10,7 @@ import {
   fetchArenaSummary,
   type ArenaMapParams,
 } from './api';
+import type { ArenaFilter } from './schema';
 
 // Discovered maps are server-cached in arena.maps; a 60s client staleTime keeps
 // the Study responsive to filter changes without re-hitting the sidecar on every
@@ -17,7 +18,7 @@ import {
 export function useArenaMap(params: ArenaMapParams) {
   const typesKey = [...(params.types ?? [])].sort().join(',');
   return useQuery<unknown>({
-    queryKey: ['arena', 'map', params.scope ?? 'house', typesKey, params.minFreq ?? null],
+    queryKey: ['arena', 'map', params.scope ?? 'house', typesKey, params.minFreq ?? null, JSON.stringify(params.filters ?? [])],
     queryFn: () => fetchArenaMap(params),
     staleTime: 60_000,
   });
@@ -48,19 +49,19 @@ export function useArenaProcessModel(processId: string | null) {
   });
 }
 
-export function useArenaConformance() {
+export function useArenaConformance(filters?: ArenaFilter[]) {
   return useQuery<unknown>({
-    queryKey: ['arena', 'conformance'],
-    queryFn: () => fetchArenaConformance(),
+    queryKey: ['arena', 'conformance', JSON.stringify(filters ?? [])],
+    queryFn: () => fetchArenaConformance(undefined, filters),
     staleTime: 60_000,
   });
 }
 
-export function useArenaPerformance(types?: string[]) {
+export function useArenaPerformance(types?: string[], filters?: ArenaFilter[]) {
   const typesKey = [...(types ?? [])].sort().join(',');
   return useQuery<unknown>({
-    queryKey: ['arena', 'performance', typesKey],
-    queryFn: () => fetchArenaPerformance(types),
+    queryKey: ['arena', 'performance', typesKey, JSON.stringify(filters ?? [])],
+    queryFn: () => fetchArenaPerformance(types, undefined, filters),
     staleTime: 60_000,
   });
 }

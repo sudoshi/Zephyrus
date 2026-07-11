@@ -11,13 +11,16 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class OcelSource(BaseModel):
-    """Where to read the OCEL 2.0 log from. Exactly one of the fields is used;
-    `ocel_path` (a shared-volume export) is preferred, `ocel` inlines the doc for
-    a fully stateless call, and omitting both falls back to the configured
-    default export path."""
+    """Where to read the OCEL 2.0 log from, plus an optional filter pipeline.
+
+    Exactly one source is used: `ocel_path` (a shared-volume export) is preferred,
+    `ocel` inlines the doc for a fully stateless call, and omitting both falls back
+    to the configured default export path. `filters` is an ordered list of filter
+    specs (each an object with a `kind` discriminator) applied before analysis."""
 
     ocel_path: str | None = Field(default=None, description="path to an OCEL 2.0 JSON file readable by the sidecar")
     ocel: dict[str, Any] | None = Field(default=None, description="an inline OCEL 2.0 JSON document")
+    filters: list[dict[str, Any]] | None = Field(default=None, description="ordered OCEL filter pipeline; each item has a 'kind' discriminator")
 
 
 class DiscoverRequest(OcelSource):

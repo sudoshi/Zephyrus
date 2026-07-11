@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from app import conformance
+from app.filters import parse_filters
 from app.models import ConformanceRequest, PathwayConformance
 from app.ocel_loader import PM4PY_AVAILABLE, OcelUnavailable, resolve_ocel_path
 
@@ -19,8 +20,12 @@ async def check_conformance(req: ConformanceRequest) -> list[PathwayConformance]
     if not PM4PY_AVAILABLE:
         raise HTTPException(status_code=503, detail="OCPM engine (pm4py) unavailable in this sidecar build")
     try:
+        filters = parse_filters(req.filters)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
         with resolve_ocel_path(req.ocel_path, req.ocel) as path:
-            results = conformance.check(path, pathway_key=req.pathway)
+            results = conformance.check(path, pathway_key=req.pathway, filters=filters)
         return [PathwayConformance(**result) for result in results]
     except OcelUnavailable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
