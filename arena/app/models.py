@@ -163,6 +163,10 @@ class ModelFitnessResponse(BaseModel):
     missing_edges: list[FitnessEvidenceEdge]    # busy real arcs the model omits (top by frequency)
     reason: str | None = None            # why withheld: empty_model | no_reference_behavior | below_fitness_floor
 
+    # --- XO.2 additive structural cross-check (default-empty => non-breaking) ---
+    structural_fitness_by_type: dict[str, float] = Field(default_factory=dict)
+    structural_warnings: list[dict[str, Any]] = Field(default_factory=list)
+
 
 class PetriNetRequest(OcelSource):
     """OC Petri-net discovery request. Inherits the OCEL source + filter pipeline."""

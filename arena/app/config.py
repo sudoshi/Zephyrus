@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     # a proposed model must clear to be publishable — below it, the map is withheld.
     arena_ai_enabled: bool = False
     arena_ai_fitness_floor: float = 0.80
+    # XO.2: object types the copilot proposes below this replay fitness get a caveat.
+    arena_ai_structural_floor: float = 0.5
 
     @property
     def cors_origins_list(self) -> list[str]:

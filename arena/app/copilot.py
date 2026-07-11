@@ -129,3 +129,35 @@ def model_fitness(
         "missing_edges": missing[:10],
         "reason": reason,
     }
+
+
+def structural_cross_check(
+    path: str,
+    proposed_edges: list[dict[str, str]],
+    structural_floor: float = 0.5,
+) -> dict[str, Any]:
+    """Replay-fitness cross-check for the object types a copilot model proposes.
+
+    For each proposed object type, the log's own token-based replay fitness. A type
+    whose real process fits below `structural_floor` earns a `below_floor` warning:
+    the model asserts structure the data barely exhibits. A proposed type with NO
+    events in the log earns a `no_events_in_log` warning — the strongest form of
+    "structure that isn't there." Additive — this never changes the existing
+    DFG-fitness `published` decision; it arms the narrative with a caveat.
+    """
+    from app.replay import fitness as replay_fitness
+
+    proposed_types = sorted({str(e.get("object_type", "")) for e in proposed_edges if e.get("object_type")})
+    if not proposed_types:
+        return {"structural_fitness_by_type": {}, "structural_warnings": []}
+
+    scored = replay_fitness(path, object_types=proposed_types)
+    by_type = {r["object_type"]: r["fitness"] for r in scored["by_object_type"]}
+
+    warnings: list[dict[str, Any]] = []
+    for ot in proposed_types:
+        if ot not in by_type:
+            warnings.append({"object_type": ot, "fitness": None, "floor": structural_floor, "reason": "no_events_in_log"})
+        elif by_type[ot] < structural_floor:
+            warnings.append({"object_type": ot, "fitness": by_type[ot], "floor": structural_floor, "reason": "below_floor"})
+    return {"structural_fitness_by_type": by_type, "structural_warnings": warnings}
