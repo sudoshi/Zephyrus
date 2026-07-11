@@ -198,4 +198,38 @@ class OperationalDemoDataTest extends TestCase
             ->assertSuccessful();
         $this->assertSame(0, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->count());
     }
+
+    public function test_roll_forward_adopts_legacy_demo_today_staffing_plans(): void
+    {
+        Carbon::setTestNow('2026-07-09 12:00:00 America/New_York');
+        $this->seed(RtdcSeeder::class);
+        $this->seed(StaffingReferenceSeeder::class);
+        $service = app(OperationalDemoDataService::class);
+
+        // First roll-forward seeds OWNER-tagged plans for every blueprint slot today.
+        $service->rollForward();
+
+        // Re-tag some of today's slots with the legacy 'demo-today' marker — the exact
+        // prod wedge: the collision guard treated it as non-scenario and refused, so the
+        // daily roll-forward AND the rolling demo-refresh both failed indefinitely.
+        $relabelled = DB::table('prod.staffing_plans')
+            ->where('notes', OperationalDemoDataService::OWNER)
+            ->whereDate('shift_date', now()->toDateString())
+            ->limit(20)
+            ->update(['notes' => 'demo-today']);
+        $this->assertGreaterThan(0, $relabelled);
+
+        // Roll-forward must ADOPT the legacy rows (no "non-scenario" collision) and
+        // leave a clean OWNER-only slate for today.
+        $result = $service->rollForward();
+
+        $this->assertSame(0, DB::table('prod.staffing_plans')->where('notes', 'demo-today')->count(),
+            'legacy demo-today plans are adopted, never left to wedge the refresh');
+        $this->assertSame(
+            $result['staffing_plans'],
+            DB::table('prod.staffing_plans')->where('notes', OperationalDemoDataService::OWNER)->count(),
+        );
+
+        Carbon::setTestNow();
+    }
 }

@@ -25,6 +25,17 @@ final class OperationalDemoDataService
 
     public const LEGACY_OWNER = 'demo-seeder';
 
+    /**
+     * Legacy demo ownership markers earlier seeders left on prod.staffing_plans.notes
+     * (pre-OWNER, e.g. 'demo-today'). Roll-forward adopts (clears) them so a stale
+     * marker can never wedge the refresh — the collision guard would otherwise treat
+     * them as non-scenario and refuse. These only ever match synthetic demo rows, so a
+     * real/connector-backed deployment (which has none) is unaffected.
+     *
+     * @var list<string>
+     */
+    public const LEGACY_STAFFING_OWNERS = [self::LEGACY_OWNER, 'demo-today'];
+
     public const WORKFORCE_SOURCE = 'ZEPHYRUS_DEMO_ROSTER';
 
     private const HISTORY_DAYS = 60;
@@ -89,6 +100,7 @@ final class OperationalDemoDataService
 
             StaffingRequest::query()->where('requested_by', self::OWNER)->delete();
             StaffingPlan::query()->where('notes', self::OWNER)->delete();
+            StaffingPlan::query()->whereIn('notes', self::LEGACY_STAFFING_OWNERS)->delete();
             TransportRequest::query()->where('requested_by', self::OWNER)->delete();
 
             $staffing = $this->seedStaffing($blueprint, $anchor);
@@ -230,7 +242,9 @@ final class OperationalDemoDataService
      */
     private function staffingCollisions(array $blueprint, Carbon $anchor): array
     {
-        $ownedIds = StaffingPlan::query()->where('notes', self::OWNER)->pluck('staffing_plan_id');
+        $ownedIds = StaffingPlan::query()
+            ->whereIn('notes', array_merge([self::OWNER], self::LEGACY_STAFFING_OWNERS))
+            ->pluck('staffing_plan_id');
         $collisions = [];
         foreach ($blueprint as $row) {
             $exists = StaffingPlan::query()

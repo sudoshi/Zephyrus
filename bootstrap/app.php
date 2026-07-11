@@ -86,9 +86,12 @@ return $builder
         // pipeline. withoutOverlapping guards a single server; the coordinator's PostgreSQL
         // advisory lock guards across servers. Needs a running schedule runner + queue worker.
         if (config('demo.enabled')) {
+            // Every 6h: this deployment is a demo/investor environment, not a live
+            // hospital, so re-anchoring the whole demo to "now" a few times a day keeps
+            // it fresh for a walkthrough without the churn/overlap of a 15-minute loop.
             $schedule->command('zephyrus:demo-refresh --validate')
-                ->everyFifteenMinutes()
-                ->withoutOverlapping(10); // 10-min lock expiry so a crashed run never blocks for the 24h default
+                ->everySixHours()
+                ->withoutOverlapping(30); // 30-min lock expiry so a crashed run never wedges the next window
 
             // FEEDBACK Wave 5: nightly retention so the unattended 15-min refresh doesn't grow the
             // demo DB without bound (census/occupancy checkpoints + the refresh ledger).
