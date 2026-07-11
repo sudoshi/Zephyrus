@@ -51,6 +51,9 @@ class DatabaseSeeder extends Seeder
             // explicitly non-observed bounded flows for the Arena landscape;
             // live/discovered evidence remains in ocel.events + arena.maps.
             OcelProcessLandscapeSeeder::class,
+            // Virtual Rounds pilot templates (rounds.templates). Idempotent by
+            // (name, version); template UUIDs are minted once and preserved.
+            RoundTemplateSeeder::class,
             // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
             // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
             // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.

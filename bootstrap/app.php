@@ -72,6 +72,29 @@ return $builder
         // and cache the worst hand-off synchronization wait as a flow-domain
         // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
         $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
+        // Flow Reconciliation: rebuild the 48-Hour Flow Review baseline artifact
+        // (arena.reviews) on a slow cadence — the window is 48h wide, so a 6-hourly
+        // refresh keeps GET /api/arena/review fresh without hammering the sidecar.
+        // The command no-ops when ARENA_ENABLED is off; the huddle's Run-review is
+        // the other trigger. Needs a running schedule runner.
+        $schedule->command('arena:review:run')->everySixHours()->withoutOverlapping();
+
+        // FEEDBACK Wave 1: the rolling-demo refresh re-anchors every time-sensitive domain to
+        // "now", recomputes source freshness, validates, and (only if critical invariants pass)
+        // republishes the cockpit snapshot — so the demo never re-stales unattended. Gated on
+        // demo mode so a live/connector-backed deployment is never overwritten by the synthetic
+        // pipeline. withoutOverlapping guards a single server; the coordinator's PostgreSQL
+        // advisory lock guards across servers. Needs a running schedule runner + queue worker.
+        if (config('demo.enabled')) {
+            $schedule->command('zephyrus:demo-refresh --validate')
+                ->everyFifteenMinutes()
+                ->withoutOverlapping(10); // 10-min lock expiry so a crashed run never blocks for the 24h default
+
+            // FEEDBACK Wave 5: nightly retention so the unattended 15-min refresh doesn't grow the
+            // demo DB without bound (census/occupancy checkpoints + the refresh ledger).
+            $schedule->command('zephyrus:demo-prune')->dailyAt('03:20')->withoutOverlapping();
+        }
+
         // Governed integration runtime: dispatch protocol checks to the dedicated
         // database-backed queue. Health observations never advance data cursors.
         $schedule->job(new \App\Jobs\DispatchScheduledIntegrationHealthChecks)

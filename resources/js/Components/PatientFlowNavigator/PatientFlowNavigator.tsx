@@ -34,6 +34,10 @@ import {
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
 import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupancyInsights';
 import { useEddyStore } from '@/stores/eddyStore';
+import { fetchRoundRuns, fetchRoundScene } from '@/features/virtualRounds/api';
+import { runsResponseSchema, sceneResponseSchema } from '@/features/virtualRounds/schemas';
+import { buildRoundStopCells } from '@/features/virtualRounds/roundsScene';
+import type { RoundStop } from '@/features/virtualRounds/roundsScene';
 import type {
   FlowLens,
   FlowPatientDots,
@@ -134,7 +138,7 @@ function parseHandoff(): HandoffParams {
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
   if (!lens) {
-    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true };
+    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true };
   }
   const has = (layer: string): boolean => lens.layers.includes(layer);
   const dots = lens.patient_dots !== 'none';
@@ -147,6 +151,9 @@ function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerSt
     // Barriers carry no patient identity (aggregate operational signal), so
     // every lens sees them by default — the operator can toggle them off.
     barriers: true,
+    // Round stops are opaque tokens (no identity in the scene payload), so
+    // the same doctrine applies; the toggle only appears when a run exists.
+    rounds: true,
   };
 }
 
@@ -240,6 +247,7 @@ export default function PatientFlowNavigator({
     summary: OccupancySummary;
   } | null>(null);
   const barriersRef = useRef<NavigatorBarrier[]>([]);
+  const roundStopsRef = useRef<RoundStop[]>([]);
   const currentTimeRef = useRef(handoff.t ?? nowMs);
   const speedRef = useRef(60);
   const playingRef = useRef(false);
@@ -259,6 +267,7 @@ export default function PatientFlowNavigator({
   const [events, setEvents] = useState<PatientFlowEvent[]>([]);
   const [projections, setProjections] = useState<ProjectionItem[]>([]);
   const [barriers, setBarriers] = useState<NavigatorBarrier[]>([]);
+  const [roundStops, setRoundStops] = useState<RoundStop[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
   const [barrierFinder, setBarrierFinder] = useState(false);
@@ -327,8 +336,13 @@ export default function PatientFlowNavigator({
     if (!lens || (lens.layers.includes('projections') && lens.projection_kinds.length > 0)) {
       controls.push({ key: 'ghosts', label: 'Forecast', id: 'flow-layer-forecast' });
     }
+    // Rounds overlay toggle only surfaces when an open run produced stops
+    // (feature flag off / no run today → the navigator stays exactly as-is).
+    if (roundStops.length > 0) {
+      controls.push({ key: 'rounds', label: 'Rounds', id: 'flow-layer-rounds' });
+    }
     return controls;
-  }, [lens, patientDotsVisible]);
+  }, [lens, patientDotsVisible, roundStops.length]);
 
   // ---- scene refresh: cheap per-frame tokens, bucketed heavy layers -------
   const refreshScene = useCallback(() => {
@@ -374,6 +388,7 @@ export default function PatientFlowNavigator({
       eventsRef.current.length,
       projectionsRef.current.length,
       barriersRef.current.length,
+      roundStopsRef.current.length,
       Object.keys(locationsRef.current).length,
     ].join('|');
     if (bucketKey === lastBucketKeyRef.current) return;
@@ -438,6 +453,13 @@ export default function PatientFlowNavigator({
       : [];
     scene.rebuildBarriers(barrierCells, layersRef.current.barriers);
 
+    // Round-stop rings — present-state like barriers: shown at every scrub
+    // position, floor-filtered, opaque tokens only (plan §8.1).
+    const roundCells = layersRef.current.rounds
+      ? buildRoundStopCells(roundStopsRef.current, index, floorFilter)
+      : [];
+    scene.rebuildRounds(roundCells, layersRef.current.rounds);
+
     setMetrics({
       active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
       events: eventsRef.current.filter((event) => parseTime(event.occurred_at) <= timeMs).length,
@@ -455,13 +477,14 @@ export default function PatientFlowNavigator({
     barrierFinderRef.current = barrierFinder;
     projectionsRef.current = projections;
     barriersRef.current = barriers;
+    roundStopsRef.current = roundStops;
     speedRef.current = speed;
     playingRef.current = playing;
     liveRef.current = live;
     tracksRef.current = tracks;
     placementIndexRef.current = placementIndex;
     refreshScene();
-  }, [events, locations, filters, layers, barrierFinder, projections, barriers, speed, playing, live, tracks, placementIndex, refreshScene]);
+  }, [events, locations, filters, layers, barrierFinder, projections, barriers, roundStops, speed, playing, live, tracks, placementIndex, refreshScene]);
 
   useEffect(() => {
     barrierFinderRef.current = barrierFinder;
@@ -604,6 +627,38 @@ export default function PatientFlowNavigator({
       .catch(() => {
         if (!cancelled) setBarriers([]);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Virtual Rounds overlay (plan §8.1) — the most recent open run's scene
+  // stops, opaque tokens only. Feature flag off (404), no run, or any failure
+  // simply leaves the overlay empty; the navigator never degrades.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRoundsOverlay(): Promise<void> {
+      try {
+        const runsPayload = runsResponseSchema.safeParse(await fetchRoundRuns());
+        if (!runsPayload.success || cancelled) return;
+
+        const openRun = runsPayload.data.data.find((run) =>
+          ['active', 'paused', 'draft', 'scheduled'].includes(run.status),
+        );
+        if (!openRun) return;
+
+        const scenePayload = sceneResponseSchema.safeParse(await fetchRoundScene(openRun.run_uuid));
+        if (!scenePayload.success || cancelled) return;
+
+        setRoundStops(scenePayload.data.data.stops);
+      } catch {
+        if (!cancelled) setRoundStops([]);
+      }
+    }
+
+    void loadRoundsOverlay();
+
     return () => {
       cancelled = true;
     };

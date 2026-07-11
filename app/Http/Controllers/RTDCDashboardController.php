@@ -113,6 +113,19 @@ class RTDCDashboardController extends Controller
     }
 
     /**
+     * Display the Virtual Rounds board (route gated by EnsureRoundsEnabled).
+     * The board fetches its data from /api/rounds/* — props stay minimal.
+     */
+    public function virtualRounds(Request $request): InertiaResponse
+    {
+        $this->rtdcService->activateWorkflow($request);
+
+        return Inertia::render('RTDC/VirtualRounds', [
+            'workflow' => 'rtdc',
+        ]);
+    }
+
+    /**
      * Display the utilization page (live, computed from prod.*).
      */
     public function utilization(\App\Services\Rtdc\UtilizationAnalyticsService $utilization): InertiaResponse

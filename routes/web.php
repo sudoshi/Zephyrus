@@ -25,6 +25,10 @@ use Inertia\Inertia;
 // Process Analysis API Routes
 Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::class, 'getNursingOperations']);
 
+// Rolling-demo health (FEEDBACK Wave 5) — public status for uptime monitors: last refresh,
+// source freshness, scheduler liveness. 200 healthy / 503 not. No PHI.
+Route::get('/up/demo', \App\Http\Controllers\DemoHealthController::class);
+
 // Root route - redirect to login or dashboard based on auth state
 Route::get('/', function (Request $request) {
     if (auth()->check()) {
@@ -112,6 +116,9 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/unit-huddle', [RTDCDashboardController::class, 'unitHuddle'])->name('unit-huddle');
             Route::get('/service-huddle', [RTDCDashboardController::class, 'serviceHuddle'])->name('service-huddle');
             Route::get('/bed-placement', [RTDCDashboardController::class, 'bedPlacement'])->name('bed-placement');
+            // Virtual Rounds board (gated by VIRTUAL_ROUNDS_ENABLED — 404 when off).
+            Route::get('/virtual-rounds', [RTDCDashboardController::class, 'virtualRounds'])->name('virtual-rounds')
+                ->middleware(\App\Http\Middleware\EnsureRoundsEnabled::class);
 
             // Predictions Routes
             Route::prefix('predictions')->name('predictions.')->group(function () {
