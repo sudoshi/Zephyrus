@@ -54,6 +54,9 @@ sudo rsync -av --exclude 'node_modules' \
             --exclude '.github' \
             --exclude 'tests' \
             --exclude 'deploy.sh' \
+            --exclude 'arena/.venv' \
+            --exclude '__pycache__' \
+            --exclude '.pytest_cache' \
             /home/smudoshi/Github/Zephyrus/ /var/www/Zephyrus/
 
 echo "Setting permissions..."
