@@ -17,21 +17,21 @@ const READINESS_LABEL: Record<ArenaProcessModelSummary['current_readiness'], str
 
 const READINESS_STYLE: Record<ArenaProcessModelSummary['current_readiness'], string> = {
   partial_projection: 'border-teal-500/40 bg-teal-500/10 text-teal-700 dark:text-teal-300',
-  source_present_not_projected: 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+  source_present_not_projected: 'border-healthcare-warning/40 bg-healthcare-warning/10 text-healthcare-warning dark:text-healthcare-warning-dark',
   reference_only: 'border-healthcare-border bg-healthcare-background text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark',
 };
 
 function Metric({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
   return (
     <div className="min-w-[9rem] rounded-md border border-healthcare-border bg-healthcare-surface p-3 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+      <div className="text-xs font-semibold uppercase tracking-wide text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         {label}
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
         {value}
       </div>
       {detail ? (
-        <div className="mt-0.5 text-[11px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{detail}</div>
+        <div className="mt-0.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{detail}</div>
       ) : null}
     </div>
   );
@@ -117,14 +117,14 @@ export function ProcessModelLandscape() {
               <h2 id="ocel-model-landscape-title" className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 Hospital OCEL model landscape
               </h2>
-              <span className="rounded-full border border-healthcare-border bg-healthcare-background px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
+              <span className="rounded-full border border-healthcare-border bg-healthcare-background px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-background-dark dark:text-healthcare-text-secondary-dark">
                 Seeded reference designs
               </span>
             </div>
             <p className="mt-2 text-sm leading-6 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               Every bounded model in {index.document.id} is selectable below and rendered as a React Flow map. These flows describe the target operational semantics; they are not proof that the live OCEL log observed the steps. The discovered evidence surface remains separate below.
             </p>
-            <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-healthcare-warning/30 bg-healthcare-warning/5 px-3 py-2 text-xs text-healthcare-warning dark:text-healthcare-warning-dark">
               <FileCheck2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{index.document.requested_count_note} All {index.document.catalog_count} are included here.</span>
             </div>
@@ -241,7 +241,7 @@ export function ProcessModelLandscape() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold tabular-nums text-healthcare-primary dark:text-healthcare-primary-dark">{selectedSummary.process_id}</span>
+                    <span className="text-sm font-semibold tabular-nums text-healthcare-primary dark:text-healthcare-primary-dark">{selectedSummary.process_id}</span>
                     <h3 className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{selectedSummary.name}</h3>
                   </div>
                   <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
@@ -249,9 +249,9 @@ export function ProcessModelLandscape() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="rounded-full border border-healthcare-border px-2 py-0.5 text-[10px] font-semibold text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">{selectedSummary.priority}</span>
-                  <span className="rounded-full border border-healthcare-border px-2 py-0.5 text-[10px] font-semibold text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">Evidence {selectedSummary.evidence_grade}</span>
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${READINESS_STYLE[selectedSummary.current_readiness]}`}>
+                  <span className="rounded-full border border-healthcare-border px-2 py-0.5 text-xs font-semibold text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">{selectedSummary.priority}</span>
+                  <span className="rounded-full border border-healthcare-border px-2 py-0.5 text-xs font-semibold text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">Evidence {selectedSummary.evidence_grade}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${READINESS_STYLE[selectedSummary.current_readiness]}`}>
                     {READINESS_LABEL[selectedSummary.current_readiness]}
                   </span>
                 </div>
@@ -277,7 +277,7 @@ export function ProcessModelLandscape() {
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {detail?.model.core_objects.map((object) => (
-                  <span key={object} className="rounded-full border border-healthcare-border px-2 py-1 text-[11px] font-medium text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">
+                  <span key={object} className="rounded-full border border-healthcare-border px-2 py-1 text-xs font-medium text-healthcare-text-primary dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark">
                     {object}
                   </span>
                 )) ?? <span className="text-xs text-healthcare-text-secondary">Loading objects…</span>}
@@ -301,15 +301,15 @@ export function ProcessModelLandscape() {
               <p className="mt-3 text-sm leading-5 text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                 {selectedSummary.readiness_note}
               </p>
-              <p className="mt-3 border-t border-healthcare-border pt-3 text-[11px] leading-4 text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
+              <p className="mt-3 border-t border-healthcare-border pt-3 text-xs leading-4 text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark">
                 Seeded nodes are target semantics from {index.document.id}. An exact activity count appears only when the current OCEL activity vocabulary already matches a target event name.
               </p>
             </div>
 
-            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 text-[11px] text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
+            <div className="rounded-md border border-healthcare-border bg-healthcare-surface p-4 text-xs text-healthcare-text-secondary shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark">
               <div className="font-semibold uppercase tracking-wide">Node legend</div>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-blue-500" />Trigger</span>
+                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-healthcare-info dark:bg-healthcare-info-dark" />Trigger</span>
                 <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-violet-500" />Decision</span>
                 <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-healthcare-critical" />Exception</span>
                 <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-teal-500" />Outcome</span>
