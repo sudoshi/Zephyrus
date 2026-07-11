@@ -75,6 +75,10 @@ return $builder
             $schedule->command('zephyrus:demo-refresh --validate')
                 ->everyFifteenMinutes()
                 ->withoutOverlapping(10); // 10-min lock expiry so a crashed run never blocks for the 24h default
+
+            // FEEDBACK Wave 5: nightly retention so the unattended 15-min refresh doesn't grow the
+            // demo DB without bound (census/occupancy checkpoints + the refresh ledger).
+            $schedule->command('zephyrus:demo-prune')->dailyAt('03:20')->withoutOverlapping();
         }
     })
     ->create();
