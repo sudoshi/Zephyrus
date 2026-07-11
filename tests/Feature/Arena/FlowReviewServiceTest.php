@@ -5,6 +5,7 @@ namespace Tests\Feature\Arena;
 use App\Domain\Arena\FlowReviewService;
 use App\Models\Barrier;
 use App\Models\User;
+use App\Services\Eddy\EddyActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -94,6 +95,28 @@ class FlowReviewServiceTest extends TestCase
         // Persisted exactly once, with the barrier count recorded.
         $this->assertSame(1, DB::table('arena.reviews')->count());
         $this->assertSame(count($out['barriers']), (int) DB::table('arena.reviews')->value('barrier_count'));
+    }
+
+    public function test_run_counts_pending_corrective_actions(): void
+    {
+        $this->enable();
+        $this->fakeSidecar();
+        $this->seedOpenBarrier();
+
+        $actor = User::factory()->create();
+        // A pending copilot corrective-action draft counts…
+        app(EddyActionService::class)->propose($actor, [
+            'action_type' => 'propose_pdsa_cycle', 'title' => 'Cut the wait', 'rationale' => 'slow', 'surface' => 'arena',
+            'params' => ['pdsa' => [], 'focus' => 'bottleneck'],
+        ], approve: false);
+        // …a low-risk barrier flag (not a materializing corrective action) does NOT.
+        app(EddyActionService::class)->propose($actor, [
+            'action_type' => 'flag_barrier', 'title' => 'Stuck', 'surface' => 'house', 'params' => [],
+        ], approve: false);
+
+        $out = app(FlowReviewService::class)->run();
+
+        $this->assertSame(1, $out['stats']['actions_pending']);
     }
 
     public function test_get_serves_the_cached_artifact(): void

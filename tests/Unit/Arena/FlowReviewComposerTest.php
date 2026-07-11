@@ -98,7 +98,7 @@ class FlowReviewComposerTest extends TestCase
         ];
     }
 
-    private function compose(?array $prior = null): array
+    private function compose(?array $prior = null, int $actionsPending = 0): array
     {
         $to = Carbon::parse(self::TO);
 
@@ -108,6 +108,7 @@ class FlowReviewComposerTest extends TestCase
             $this->conformance(),
             $this->humanBarriers(),
             $prior,
+            $actionsPending,
             $to->copy()->subHours(48),
             $to,
         );
@@ -215,6 +216,15 @@ class FlowReviewComposerTest extends TestCase
         // performance_index is the full hand-off list; map is the discovered graph.
         $this->assertCount(5, $out['performance_index']);
         $this->assertCount(6, $out['map']['nodes']);
+    }
+
+    public function test_actions_pending_is_carried_into_stats(): void
+    {
+        // The orchestrator counts pending corrective-action approvals; the composer
+        // surfaces that count verbatim (no longer hardwired to 0).
+        $out = $this->compose(null, 3);
+
+        $this->assertSame(3, $out['stats']['actions_pending']);
     }
 
     public function test_prior_artifact_drives_deltas_and_new_barrier_count(): void
