@@ -170,6 +170,9 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // with the other aggregate reads (un-blinds the navigator's 48h spine).
     Route::get('/barriers', [PatientFlowController::class, 'barriers']);
     Route::get('/demo-scenarios', [PatientFlowController::class, 'demoScenarios']);
+    // Open operational barriers overlay — aggregate + patient-free, so it rides
+    // with the other aggregate reads (un-blinds the navigator's 48h spine).
+    Route::get('/barriers', [PatientFlowController::class, 'barriers']);
 
     // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
     // requires a flow lens whose patient_dots policy is not `none`.

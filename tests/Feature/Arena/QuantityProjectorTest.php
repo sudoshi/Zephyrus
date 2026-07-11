@@ -9,7 +9,7 @@ class QuantityProjectorTest extends TestCase
 {
     public function test_compute_quantities_classifies_occupancy_deltas(): void
     {
-        $projector = new QuantityProjector();
+        $projector = new QuantityProjector;
 
         $events = [
             ['event_id' => 'e1', 'activity' => 'admit', 'unit_id' => 'Unit:5N', 'time' => '2026-01-01T00:00:00Z'],
@@ -31,7 +31,7 @@ class QuantityProjectorTest extends TestCase
 
     public function test_compute_quantities_skips_events_without_a_unit(): void
     {
-        $out = (new QuantityProjector())->computeQuantities(
+        $out = (new QuantityProjector)->computeQuantities(
             [['event_id' => 'e1', 'activity' => 'admit', 'unit_id' => null, 'time' => '2026-01-01T00:00:00Z']],
             [],
         );

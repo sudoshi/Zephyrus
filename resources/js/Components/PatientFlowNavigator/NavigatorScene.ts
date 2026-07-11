@@ -676,10 +676,10 @@ export class NavigatorScene {
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());
     this.forecastMaterials.forEach((material) => material.dispose());
-    this.barrierMaterials.forEach((material) => material.dispose());
-    this.roundMaterials.forEach((material) => material.dispose());
     this.occupancyMaterials.forEach((material) => material.dispose());
     this.timerPipMaterials.forEach((material) => material.dispose());
+    this.barrierMaterials.forEach((material) => material.dispose());
+    this.roundMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
     this.tokenGeometry.dispose();
@@ -773,22 +773,6 @@ export class NavigatorScene {
     return material;
   }
 
-  private barrierMaterialFor(severity: BarrierSeverity): THREE.MeshStandardMaterial {
-    let material = this.barrierMaterials.get(severity);
-    if (!material) {
-      const { color, emissive } = BARRIER_COLORS[severity];
-      material = new THREE.MeshStandardMaterial({
-        color,
-        emissive,
-        emissiveIntensity: 0.9,
-        roughness: 0.35,
-        metalness: 0,
-      });
-      this.barrierMaterials.set(severity, material);
-    }
-    return material;
-  }
-
   private occupancyMaterialFor(status: OccupancyTimerStatus): THREE.MeshStandardMaterial {
     let material = this.occupancyMaterials.get(status);
     if (!material) {
@@ -820,6 +804,22 @@ export class NavigatorScene {
         depthWrite: false,
       });
       this.timerPipMaterials.set(status, material);
+    }
+    return material;
+  }
+
+  private barrierMaterialFor(severity: BarrierSeverity): THREE.MeshStandardMaterial {
+    let material = this.barrierMaterials.get(severity);
+    if (!material) {
+      const { color, emissive } = BARRIER_COLORS[severity];
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive,
+        emissiveIntensity: 0.9,
+        roughness: 0.35,
+        metalness: 0,
+      });
+      this.barrierMaterials.set(severity, material);
     }
     return material;
   }

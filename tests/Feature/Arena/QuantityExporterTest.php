@@ -21,7 +21,7 @@ class QuantityExporterTest extends TestCase
             ['event_id' => 'e1', 'object_id' => 'Unit:5N', 'item_type' => 'occupied_beds', 'delta' => 1, 'event_time' => '2026-01-01T00:00:00Z'],
         ]);
 
-        $doc = (new QuantityExporter())->export();
+        $doc = (new QuantityExporter)->export();
 
         $this->assertSame(3, $doc['initial'][0]['quantity']);
         $this->assertSame('Unit:5N', $doc['operations'][0]['object_id']);

@@ -26,7 +26,7 @@ class QuantityProjectorProjectTest extends TestCase
             ['event_id' => 'ev-disch', 'object_id' => 'Unit:5N', 'qualifier' => 'location'],
         ]);
 
-        (new QuantityProjector())->project(Carbon::parse('2025-12-31'), Carbon::parse('2026-01-02'));
+        (new QuantityProjector)->project(Carbon::parse('2025-12-31'), Carbon::parse('2026-01-02'));
 
         $ops = DB::table('ocel.quantity_operations')->where('object_id', 'Unit:5N')->orderBy('event_time')->get();
         $this->assertCount(2, $ops);
@@ -51,7 +51,7 @@ class QuantityProjectorProjectTest extends TestCase
             ['event_id' => 'pre-d1', 'object_id' => 'Unit:ICU', 'qualifier' => 'location'],
         ]);
 
-        (new QuantityProjector())->project(Carbon::parse('2025-12-31'), Carbon::parse('2026-01-02'));
+        (new QuantityProjector)->project(Carbon::parse('2025-12-31'), Carbon::parse('2026-01-02'));
 
         $initial = DB::table('ocel.object_quantities')
             ->where('object_id', 'Unit:ICU')->where('item_type', 'occupied_beds')->first();

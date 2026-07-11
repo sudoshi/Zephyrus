@@ -32,12 +32,12 @@ import {
   ghostsAt,
 } from '@/features/patientFlowNavigator/projections';
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
+import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupancyInsights';
+import { useEddyStore } from '@/stores/eddyStore';
 import { fetchRoundRuns, fetchRoundScene } from '@/features/virtualRounds/api';
 import { runsResponseSchema, sceneResponseSchema } from '@/features/virtualRounds/schemas';
 import { buildRoundStopCells } from '@/features/virtualRounds/roundsScene';
 import type { RoundStop } from '@/features/virtualRounds/roundsScene';
-import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupancyInsights';
-import { useEddyStore } from '@/stores/eddyStore';
 import type {
   FlowLens,
   FlowPatientDots,
@@ -240,14 +240,14 @@ export default function PatientFlowNavigator({
   const layersRef = useRef<PatientLayerState>(defaultLayersForLens(lens));
   const barrierFinderRef = useRef(false);
   const projectionsRef = useRef<ProjectionItem[]>([]);
-  const barriersRef = useRef<NavigatorBarrier[]>([]);
-  const roundStopsRef = useRef<RoundStop[]>([]);
   const serverOccupancyRef = useRef<{
     asOfMs: number;
     filterKey: string;
     occupancy: OccupancyInsight[];
     summary: OccupancySummary;
   } | null>(null);
+  const barriersRef = useRef<NavigatorBarrier[]>([]);
+  const roundStopsRef = useRef<RoundStop[]>([]);
   const currentTimeRef = useRef(handoff.t ?? nowMs);
   const speedRef = useRef(60);
   const playingRef = useRef(false);
