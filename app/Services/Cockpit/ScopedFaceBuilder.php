@@ -145,6 +145,18 @@ class ScopedFaceBuilder
         ));
 
         if ($rows === []) {
+            // A single-platform line (emergency → ED, perioperative → OR) may have
+            // no census wards at all — its live face is that platform's domain
+            // drill, same reuse rule as the unit/department mounts.
+            $types = array_column($this->manifest->unitsByServiceLine((string) $scope->key), 'type');
+            $domain = in_array('ed', $types, true) ? 'ed' : (in_array('periop', $types, true) ? 'periop' : null);
+            if ($domain !== null) {
+                $drill = $this->drills->build($domain);
+                if ($drill !== null) {
+                    return ['scope' => $scope->toArray(), 'render' => 'face'] + $drill;
+                }
+            }
+
             return $this->emptyFace($scope, 'No live census for this service line yet');
         }
 

@@ -143,6 +143,18 @@ class ScopedFaceBuilderTest extends TestCase
         $this->assertSame([], $face['tables']);
     }
 
+    public function test_single_platform_service_line_falls_back_to_its_domain_drill(): void
+    {
+        // No RtdcSeeder → the emergency line (ED only, no census wards) must render
+        // the ED domain drill, not an empty census card (prod prunes ED bed rows).
+        $face = $this->faces()->build(CockpitScope::serviceLine('emergency', 'Emergency Medicine'));
+
+        $this->assertSame('face', $face['render']);
+        $this->assertSame('service_line:emergency', $face['scope']['token']);
+        $this->assertSame('ed', $face['domain']);
+        $this->assertNotEmpty($face['kpis']);
+    }
+
     public function test_service_line_face_rolls_up_its_units(): void
     {
         $this->seed(RtdcSeeder::class);
