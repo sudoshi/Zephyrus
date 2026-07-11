@@ -177,12 +177,19 @@ class DemoTuningSeeder extends Seeder
             "WHEN transport_request_id % 10 < 9 THEN 'urgent' ELSE 'stat' END"
         );
 
-        // Active: near-now due time (~15% overdue) + priority mix.
+        // Active: a small fixed ~10% overdue cohort (id % 10 == 0, up to 30m late), the rest due
+        // 10–170m out. A fixed split (not a random spread near now) keeps the overdue share low
+        // and STABLE across the 15-minute refresh cycle — a near-now spread drifts past 20% as the
+        // clock advances between refreshes. Plus the routine-dominant priority mix.
         DB::table('prod.transport_requests')
             ->whereNull('completed_at')
             ->whereIn('requested_by', $demoSources)
             ->update([
-                'needed_at' => DB::raw("(now() AT TIME ZONE 'UTC') + ((floor(random()*170) - 25)||' minutes')::interval"),
+                'needed_at' => DB::raw(
+                    "CASE WHEN random() < 0.10 ".
+                    "THEN (now() AT TIME ZONE 'UTC') - ((floor(random()*30) + 1)||' minutes')::interval ".
+                    "ELSE (now() AT TIME ZONE 'UTC') + ((floor(random()*160) + 10)||' minutes')::interval END"
+                ),
                 'priority' => $priorityMix,
                 'updated_at' => DB::raw('now()'),
             ]);
