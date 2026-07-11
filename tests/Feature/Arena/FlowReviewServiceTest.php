@@ -108,7 +108,7 @@ class FlowReviewServiceTest extends TestCase
         $this->fakeSidecar();
         $this->seedOpenBarrier();
 
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['role' => 'bed_manager']);
         // A pending copilot corrective-action draft counts…
         app(EddyActionService::class)->propose($actor, [
             'action_type' => 'propose_pdsa_cycle', 'title' => 'Cut the wait', 'rationale' => 'slow', 'surface' => 'arena',
@@ -131,7 +131,7 @@ class FlowReviewServiceTest extends TestCase
         $this->seedOpenBarrier();
 
         // A governed correction drafted against the review's care barrier (P4).
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['role' => 'bed_manager']);
         app(EddyActionService::class)->propose($actor, [
             'action_type' => 'propose_pathway_correction',
             'title' => 'Sepsis order-set: abx pre-selected at triage',
