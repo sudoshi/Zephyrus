@@ -92,14 +92,6 @@ export function FlowReviewMovement({ aiEnabled, canApprove, lensLabel }: Props) 
   const selectedBarrier: RankedBarrier | null = barriers.find((barrier) => barrier.id === effectiveSelectedId) ?? null;
   const freshness: Freshness = review.stale ? 'stale' : review.cached ? 'cached' : 'fresh';
 
-  // Map ⇄ barrier cross-link: barrier → focus its first activity; node → its barrier.
-  const selectedNodeId = selectedBarrier?.map_focus.node_ids[0] ?? null;
-  const onSelectNode = (nodeId: string | null) => {
-    if (!nodeId) return;
-    const match = barriers.find((barrier) => barrier.map_focus.node_ids.includes(nodeId));
-    if (match) setSelectedBarrierId(match.id);
-  };
-
   return (
     <div className="space-y-4">
       <ReviewHeader
@@ -114,7 +106,13 @@ export function FlowReviewMovement({ aiEnabled, canApprove, lensLabel }: Props) 
       <ReviewChronobar window={review.window} barriers={barriers} selectedId={effectiveSelectedId} onSelect={setSelectedBarrierId} />
       <ReviewSummaryStrip stats={review.stats} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr,24rem]">
-        <ReviewFlowMap map={review.map} selectedNodeId={selectedNodeId} onSelectNode={onSelectNode} />
+        <ReviewFlowMap
+          map={review.map}
+          performanceIndex={review.performance_index}
+          barriers={barriers}
+          selectedBarrier={selectedBarrier}
+          onSelect={setSelectedBarrierId}
+        />
         <BarrierRail barriers={barriers} selectedId={effectiveSelectedId} onSelect={setSelectedBarrierId} />
       </div>
       <CorrectiveActionPanel barrier={selectedBarrier} aiEnabled={aiEnabled} canApprove={canApprove} />
