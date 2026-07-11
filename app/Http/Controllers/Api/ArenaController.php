@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Arena\ArenaService;
+use App\Domain\Arena\FlowReviewService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ use Illuminate\Http\Request;
  */
 class ArenaController extends Controller
 {
-    public function __construct(private readonly ArenaService $arena) {}
+    public function __construct(
+        private readonly ArenaService $arena,
+        private readonly FlowReviewService $review,
+    ) {}
 
     /** Sidecar liveness for the admin surface. */
     public function health(): JsonResponse
@@ -78,6 +82,36 @@ class ArenaController extends Controller
 
         $payload = $this->arena->map($types, $minFreq, $scope !== '' ? $scope : 'house', $force);
 
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
+    /**
+     * The 48-Hour Flow Review artifact — a pure read of the persisted review
+     * (arena.reviews). Query param ?window=<ISO> selects a past window; default
+     * is the latest. Returns {available:false, reason:'no_review'} (503) if none
+     * has been built yet, so the movement invites a Run.
+     */
+    public function review(Request $request): JsonResponse
+    {
+        $window = $request->filled('window') ? (string) $request->query('window') : null;
+        $payload = $this->review->get($window);
+        $status = ($payload['available'] ?? true) === false ? 503 : 200;
+
+        return response()->json($payload, $status);
+    }
+
+    /**
+     * (Re)build the Flow Review for the current window and persist it — the
+     * Run-review action. Rebuilds one OCPM pass + the open barriers into a fresh
+     * ranked artifact. 503 if the sidecar is unreachable (the last-good review
+     * stays readable via GET /review).
+     */
+    public function runReview(Request $request): JsonResponse
+    {
+        $window = $request->filled('window') ? (string) $request->input('window') : null;
+        $payload = $this->review->run($window);
         $status = ($payload['available'] ?? true) === false ? 503 : 200;
 
         return response()->json($payload, $status);

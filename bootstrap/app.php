@@ -64,6 +64,12 @@ return $builder
         // and cache the worst hand-off synchronization wait as a flow-domain
         // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
         $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
+        // Flow Reconciliation: rebuild the 48-Hour Flow Review baseline artifact
+        // (arena.reviews) on a slow cadence — the window is 48h wide, so a 6-hourly
+        // refresh keeps GET /api/arena/review fresh without hammering the sidecar.
+        // The command no-ops when ARENA_ENABLED is off; the huddle's Run-review is
+        // the other trigger. Needs a running schedule runner.
+        $schedule->command('arena:review:run')->everySixHours()->withoutOverlapping();
 
         // FEEDBACK Wave 1: the rolling-demo refresh re-anchors every time-sensitive domain to
         // "now", recomputes source freshness, validates, and (only if critical invariants pass)
