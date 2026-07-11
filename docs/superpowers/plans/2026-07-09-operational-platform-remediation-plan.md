@@ -54,22 +54,23 @@ The core remediation sequence is merged through normal pull requests, reachable 
 | Integrations operational runtime | [PR #17](https://github.com/sudoshi/Zephyrus/pull/17), merge `3b41fe241359d3041bb1ab12ab3af5a294b54f0c` | Database queues, supervised workers, protocol health, bounded replay/dead-letter controls, Epic FHIR R4/SMART discovery, and governed HL7 ADT machinery are deployed. |
 | Canonical staffing fulfillment | [PR #18](https://github.com/sudoshi/Zephyrus/pull/18), merge `9f2795f80edc5e222d0be7f53287aefca281a139` | Qualifications, availability windows, shift assignments, governed fulfillment, web/Hummingbird parity, and the materialization schedule are deployed. |
 | Governed transport lifecycle | [PR #19](https://github.com/sudoshi/Zephyrus/pull/19), merge `12e1a12d686c85598bd5f6cfbd9bddad5b990a1a` | Server transition rules, immutable idempotency receipts/events/evidence, resource capacity, handoff enforcement, web/mobile parity, and cursor pagination are deployed. |
+| Immutable release source | [PR #25](https://github.com/sudoshi/Zephyrus/pull/25), merge `1d3b4d5020080350127ce6357641faf60c4f9789` | The canonical deploy path archives, builds, and publishes the exact `origin/main` commit from an isolated release tree, revalidates the remote before rsync, and records the deployed SHA. |
 
-All six pull requests passed the same five required checks: two Laravel/PHPUnit jobs, Node/Vite, Vitest/Vite, and Arena pytest. Final live evidence includes:
+All seven implementation pull requests passed the same five required checks: two Laravel/PHPUnit jobs, Node/Vite, Vitest/Vite, and Arena pytest. Final live evidence includes:
 
 - July foundation migrations `2026_07_04_000110` through `000170` are recorded; 23 active inpatient units and 500 active beds are mapped, and 1,150 occupancy snapshots span 23 spaces through 2026-07-10 19:00 EDT.
 - Integration migration `000200` is production batch 23. The database worker is enabled/active, scheduled health/poll dispatchers are registered, 117 protocol-health jobs completed, and the queue had zero pending/failed jobs at reconciliation. Epic discovery is healthy against three active `fhir.epic.com` endpoints; the synthetic HL7 file source is truthfully degraded because no machine-ingress identity is configured. Credentialed Epic polling remains activation-gated and therefore has no clinical watermark.
 - Staffing migration `000300` is production batch 25. The runtime contains 4,529 canonical members/assignments, 4,517 verified qualifications, and 124,275 future materializer windows, with zero overfilled requests and zero overlapping active shift assignments.
 - Transport migration `000400` is production batch 26. The runtime contains 202 requests, 10 resources, 20 active assignments, and 144 explicitly grandfathered terminal records; every runbook capacity, assignment, handoff, idempotency, version, and escalation invariant returns zero violations.
 - Apache and `zephyrus-queue-worker.service` are active, the public login boundary is intact, and deploy-eligible tracked production files match merged `main` byte-for-byte.
+- Release-source hardening merged through PR #25 and was exercised by its first `main` deployment. Local `HEAD`, `origin/main`, and the production `.release-commit` marker matched merge `1d3b4d5020080350127ce6357641faf60c4f9789`; Apache, the queue worker, and Arena were active, and the public authentication boundary remained intact.
 
 The remaining gates are deliberately narrower than the original production gate:
 
-1. Harden `deploy.sh` against concurrent writes between its initial clean-tree check and rsync by publishing an immutable release snapshot or rechecking immediately before sync.
-2. Supply approved Epic non-production backend credentials outside Git, complete a live token exchange and bounded Encounter/Location poll, and advance a clinical watermark.
-3. Complete interface governance for the first production HL7 v2 ADT sender, issue a bounded machine token, and prove one test ADT through raw, canonical, Patient Flow, and provenance records.
-4. Exercise credential rotation, failure/dead-letter recovery, staleness, worker restart, and rollback after real Epic/HL7 activation.
-5. Continue the explicitly unchecked extended-roadmap items in Sections 9 and 13; shipped core behavior must not be relabeled incomplete because optional later depth remains open.
+1. Supply approved Epic non-production backend credentials outside Git, complete a live token exchange and bounded Encounter/Location poll, and advance a clinical watermark.
+2. Complete interface governance for the first production HL7 v2 ADT sender, issue a bounded machine token, and prove one test ADT through raw, canonical, Patient Flow, and provenance records.
+3. Exercise credential rotation, failure/dead-letter recovery, staleness, worker restart, and rollback after real Epic/HL7 activation.
+4. Continue the explicitly unchecked extended-roadmap items in Sections 9 and 13; shipped core behavior must not be relabeled incomplete because optional later depth remains open.
 
 ## 2. Executive Verdict
 
@@ -1287,11 +1288,10 @@ The audit originally recommended a narrow truthfulness-only first pull request. 
 
 The next release backlog is now bounded to work that is actually still open:
 
-1. Harden `deploy.sh` so rsync can only read an immutable release snapshot (or revalidates immediately before sync), with a regression test for concurrent worktree mutation.
-2. Provide approved Epic non-production client/key references outside Git, complete token exchange plus bounded Encounter/Location polling, verify raw/FHIR/provenance retention, and advance the first clinical watermark.
-3. Complete contract/BAA/PHI/sender governance for the first production HL7 v2 ADT source, issue an exact-ability expiring machine token, and prove one test ADT through raw -> canonical -> Patient Flow -> provenance.
-4. After real source activation, execute the production failure/dead-letter, staleness, credential-rotation, worker-restart, and rollback drills.
-5. Continue only the explicitly unchecked extended-roadmap items: production-clone evidence for the older foundation chain, advanced staffing rule/forecast/FHIR depth, pre-transport equipment/vendor-event depth, FHIR Bulk Data, remaining transactional connector families, and governed outbound transmission.
-6. Re-audit open Patient Flow PR #13 and either extract unique work into a bounded current branch or close it as superseded; do not merge its stale branch wholesale.
+1. Provide approved Epic non-production client/key references outside Git, complete token exchange plus bounded Encounter/Location polling, verify raw/FHIR/provenance retention, and advance the first clinical watermark.
+2. Complete contract/BAA/PHI/sender governance for the first production HL7 v2 ADT source, issue an exact-ability expiring machine token, and prove one test ADT through raw -> canonical -> Patient Flow -> provenance.
+3. After real source activation, execute the production failure/dead-letter, staleness, credential-rotation, worker-restart, and rollback drills.
+4. Continue only the explicitly unchecked extended-roadmap items: production-clone evidence for the older foundation chain, advanced staffing rule/forecast/FHIR depth, pre-transport equipment/vendor-event depth, FHIR Bulk Data, remaining transactional connector families, and governed outbound transmission.
+5. Re-audit open Patient Flow PR #13 and either extract unique work into a bounded current branch or close it as superseded; do not merge its stale branch wholesale.
 
-The production migrations and operational runtimes described in Section 1.2 are shipped. Real clinical connector activation remains deliberately gated on external credentials, privacy/interface approval, and post-activation operational evidence; it must not be inferred from a healthy discovery endpoint alone.
+The production migrations, operational runtimes, and immutable release-source path described in Section 1.2 are shipped. Real clinical connector activation remains deliberately gated on external credentials, privacy/interface approval, and post-activation operational evidence; it must not be inferred from a healthy discovery endpoint alone.
