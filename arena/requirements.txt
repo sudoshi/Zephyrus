@@ -12,4 +12,4 @@ pm4py>=2.7,<3
 
 # Test-only (not imported at runtime):
 # pytest>=8
-# httpx2>=2   # starlette 1.x TestClient does `import httpx2 as httpx` (route tests)
+httpx2>=2   # starlette 1.x TestClient does `import httpx2 as httpx` (route tests)
