@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\Radiology;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Radiology\IrSuiteAnalyticsRequest;
 use App\Http\Requests\Radiology\RadiologyFlowBoardRequest;
 use App\Http\Requests\Radiology\RadiologyModalityUtilizationRequest;
 use App\Http\Requests\Radiology\RadiologyReadsRequest;
 use App\Http\Requests\Radiology\RadiologyTatAnalyticsRequest;
 use App\Http\Requests\Radiology\RadiologyWorklistRequest;
 use App\Http\Requests\Radiology\StoreRadiologyBarrierRequest;
+use App\Services\Radiology\IrSuiteAnalyticsService;
 use App\Services\Radiology\ModalityUtilizationService;
 use App\Services\Radiology\RadiologyBarrierService;
 use App\Services\Radiology\RadiologyFlowBoardService;
@@ -50,6 +52,12 @@ class RadiologyFlowBoardController extends Controller
     }
 
     public function tat(RadiologyTatAnalyticsRequest $request, RadiologyTatAnalyticsService $analytics): JsonResponse
+    {
+        return response()->json($analytics->build($request->validated()))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function irSuite(IrSuiteAnalyticsRequest $request, IrSuiteAnalyticsService $analytics): JsonResponse
     {
         return response()->json($analytics->build($request->validated()))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);

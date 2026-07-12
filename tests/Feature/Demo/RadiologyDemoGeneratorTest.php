@@ -6,6 +6,7 @@ use App\Models\Radiology\Exam;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use App\Services\Demo\DemoClock;
 use App\Services\Demo\DemoInvariantService;
+use App\Services\Radiology\IrSuiteAnalyticsService;
 use App\Services\Radiology\ModalityUtilizationService;
 use App\Services\Radiology\RadiologyReadsService;
 use Carbon\CarbonImmutable;
@@ -79,6 +80,8 @@ class RadiologyDemoGeneratorTest extends TestCase
         $this->assertDatabaseHas('prod.rad_critical_results', ['demo_owner' => $owner, 'policy_state' => 'acknowledged']);
         $this->assertSame(0, DB::table('prod.rad_scanners')->where('demo_owner', $owner)->whereRaw("metadata->'staffed_operating_hours' IS NULL")->count());
         $this->assertSame(0, DB::table('prod.rad_scanners')->where('demo_owner', $owner)->whereRaw("metadata->>'mpps_source_key' IS NULL")->count());
+        $this->assertSame(1, DB::table('prod.rad_scanners')->where('demo_owner', $owner)->whereRaw("metadata->>'ir_suite_declared' = 'true'")->count());
+        $this->assertSame(1, DB::table('prod.rad_exams')->where('demo_owner', $owner)->where('is_ir', true)->whereNotNull('scheduled_start_at')->count());
 
         $utilization = app(ModalityUtilizationService::class)->build(['date' => $this->anchor->toDateString()]);
         $this->assertSame('normal', $utilization['state']);
@@ -86,6 +89,14 @@ class RadiologyDemoGeneratorTest extends TestCase
         $this->assertNotNull($utilization['summary']['utilizationPercent']);
         $this->assertSame(0, $utilization['summary']['reconciliationDeltaMinutes']);
         $this->assertGreaterThan(0, $utilization['summary']['unplannedDowntimeMinutes']);
+
+        $irSuite = app(IrSuiteAnalyticsService::class)->build(['dateFrom' => $this->anchor->toDateString(), 'dateTo' => $this->anchor->toDateString()]);
+        $this->assertSame(1, $irSuite['summary']['declaredRoomCount']);
+        $this->assertSame(1, $irSuite['summary']['candidateCaseCount']);
+        $this->assertSame(1, $irSuite['summary']['completedCaseCount']);
+        $this->assertNotNull($irSuite['summary']['utilizationPercent']);
+        $this->assertSame(100, $irSuite['summary']['fcots']['percent']);
+        $this->assertSame('Radiology Workspace', $irSuite['ownership']['operationalOwner']);
 
         $reads = app(RadiologyReadsService::class)->build();
         $this->assertSame('degraded', $reads['state']);

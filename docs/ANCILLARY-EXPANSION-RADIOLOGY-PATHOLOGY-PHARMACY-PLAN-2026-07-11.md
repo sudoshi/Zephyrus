@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-12 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-13 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 22 of 60 tasks complete; 38 remain |
+| Progress | 23 of 60 tasks complete; 37 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1140,23 +1140,23 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Mean is never the only statistic.
 - [x] Study route is owned only by Analytics in navigation tests.
 
-#### [ ] R-13 — Implement IR Suite Study at /analytics/ir-utilization
+#### [x] R-13 — Implement IR Suite Study at /analytics/ir-utilization
 
 **Depends on:** R-1, R-8, DEC-2
 **Primary files:** IR analytics service/page; reusable Perioperative calculation extraction
 
 **Work:**
 
-- Reuse or extract FCOTS, turnover, utilization, and room-running definitions from existing Perioperative services/components.
-- Scope to rad_exams.is_ir and declared IR rooms/resources.
-- Add imaging-specific preparation/transport/read gates without altering core Perioperative definitions.
-- Document ownership and cross-link to Radiology and Perioperative operational surfaces.
+- [x] Reuse or extract FCOTS, turnover, utilization, and room-running definitions from existing Perioperative services/components.
+- [x] Scope to rad_exams.is_ir and declared IR rooms/resources.
+- [x] Add imaging-specific preparation/transport/read gates without altering core Perioperative definitions.
+- [x] Document ownership and cross-link to Radiology and Perioperative operational surfaces.
 
 **Acceptance:**
 
-- Identical interval fixtures produce identical Perioperative and IR calculations.
-- IR room denominators and operating windows are explicit.
-- No copied/divergent formula exists when a shared service can own it.
+- [x] Identical interval fixtures produce identical Perioperative and IR calculations.
+- [x] IR room denominators and operating windows are explicit.
+- [x] No copied/divergent formula exists when a shared service can own it.
 
 #### [ ] R-14 — Register Radiology routes, APIs, navigation, policies, and ownership tests
 

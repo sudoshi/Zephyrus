@@ -306,6 +306,16 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
         };
 
         return array_filter([
+            'scheduled_start_at' => isset($scenario['metadata']['scheduled_start_minutes_ago'])
+                ? $occurredAt->addMinutes((int) $event['minutes_ago'] - (int) $scenario['metadata']['scheduled_start_minutes_ago'])->toIso8601String()
+                : null,
+            'scheduled_end_at' => isset($scenario['metadata']['scheduled_start_minutes_ago'], $scenario['metadata']['scheduled_duration_minutes'])
+                ? $occurredAt->addMinutes(
+                    (int) $event['minutes_ago']
+                    - (int) $scenario['metadata']['scheduled_start_minutes_ago']
+                    + (int) $scenario['metadata']['scheduled_duration_minutes']
+                )->toIso8601String()
+                : null,
             'exam_status' => match ($code) {
                 'RAD_EXAM_START' => 'in_progress', 'RAD_EXAM_END', 'RAD_IMAGES_AVAILABLE' => 'complete',
                 'RAD_CANCELLED' => 'cancelled', default => null,

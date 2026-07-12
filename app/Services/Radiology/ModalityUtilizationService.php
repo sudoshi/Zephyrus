@@ -6,15 +6,20 @@ use App\Models\Integration\Source;
 use App\Models\Radiology\Exam;
 use App\Models\Radiology\Modality;
 use App\Models\Radiology\Scanner;
-use App\Models\Radiology\ScannerDowntime;
+use App\Services\Analytics\OperatingWindowResolver;
 use App\Services\Analytics\OperationalIntervalCalculator;
+use App\Services\Analytics\SuiteMetricCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class ModalityUtilizationService
 {
-    public function __construct(private readonly OperationalIntervalCalculator $intervals) {}
+    public function __construct(
+        private readonly OperationalIntervalCalculator $intervals,
+        private readonly OperatingWindowResolver $operatingWindows,
+        private readonly SuiteMetricCalculator $suiteMetrics,
+    ) {}
 
     /** @param array<string, mixed> $input @return array<string, mixed> */
     public function build(array $input = []): array
@@ -142,50 +147,14 @@ final class ModalityUtilizationService
     private function operatingWindows(Scanner $scanner, array $filters): array
     {
         $contract = $scanner->metadata['staffed_operating_hours'] ?? null;
-        $weekly = is_array($contract) && is_array($contract['weekly'] ?? null) ? $contract['weekly'] : null;
-        if ($weekly === null) {
-            return [];
-        }
-        $timezone = is_string($contract['timezone'] ?? null) ? $contract['timezone'] : (string) config('app.timezone', 'UTC');
-        $date = CarbonImmutable::createFromFormat('!Y-m-d', $filters['date'], $timezone);
-        if ($date === false) {
-            return [];
-        }
-        $filterStart = $this->atTime($date, $filters['startTime']);
-        $filterEnd = $this->atTime($date, $filters['endTime']);
-        $windows = [];
 
-        foreach ([[$date->subDay(), true], [$date, false]] as [$scheduleDate, $previousDay]) {
-            $key = strtolower($scheduleDate->englishDayOfWeek);
-            $entries = is_array($weekly[$key] ?? null) ? $weekly[$key] : [];
-            foreach ($entries as $entry) {
-                if (! is_array($entry) || ! is_string($entry['start'] ?? null) || ! is_string($entry['end'] ?? null)) {
-                    continue;
-                }
-                $start = $this->atTime($scheduleDate, $entry['start']);
-                $end = $this->atTime($scheduleDate, $entry['end']);
-                if ($end->lessThanOrEqualTo($start)) {
-                    $end = $end->addDay();
-                }
-                if ($previousDay && $end->lessThanOrEqualTo($date)) {
-                    continue;
-                }
-                $clippedStart = $start->greaterThan($filterStart) ? $start : $filterStart;
-                $clippedEnd = $end->lessThan($filterEnd) ? $end : $filterEnd;
-                if ($clippedEnd->greaterThan($clippedStart)) {
-                    $windows[] = ['start' => $clippedStart->utc(), 'end' => $clippedEnd->utc()];
-                }
-            }
-        }
-
-        return $this->intervals->union($windows);
-    }
-
-    private function atTime(CarbonImmutable $date, string $clock): CarbonImmutable
-    {
-        [$hour, $minute] = array_map('intval', explode(':', $clock));
-
-        return $date->startOfDay()->setTime($hour, $minute);
+        return $this->operatingWindows->resolve(
+            is_array($contract) ? $contract : null,
+            $filters['date'],
+            $filters['date'],
+            $filters['startTime'],
+            $filters['endTime'],
+        );
     }
 
     /** @param Collection<int, list<array{start:CarbonImmutable,end:CarbonImmutable}>> $windows */
@@ -265,7 +234,11 @@ final class ModalityUtilizationService
             if (! $end->greaterThan($downtime->starts_at)) {
                 continue;
             }
-            $target = $this->isPlanned($downtime) ? 'planned' : 'unplanned';
+            $target = $this->suiteMetrics->isPlannedDowntime(
+                (string) $downtime->status,
+                (string) $downtime->reason_code,
+                $downtime->metadata,
+            ) ? 'planned' : 'unplanned';
             ${$target}[] = ['start' => $downtime->starts_at, 'end' => $end];
         }
 
@@ -282,8 +255,8 @@ final class ModalityUtilizationService
         };
         $complete = $coverageStatus === 'complete';
         $coveragePercent = $candidateCount === 0 ? ($feedObserved ? 100 : 0) : $this->number(100 * $coveredCount / $candidateCount, 1);
-        $utilization = $complete && $calculation['availableMinutes'] > 0
-            ? $this->number(100 * $calculation['examMinutes'] / $calculation['availableMinutes'], 1)
+        $utilization = $complete
+            ? $this->suiteMetrics->utilizationPercent($calculation['examMinutes'], $calculation['availableMinutes'])
             : null;
         $timezone = (string) ($scanner->metadata['staffed_operating_hours']['timezone'] ?? config('app.timezone', 'UTC'));
 
@@ -349,20 +322,6 @@ final class ModalityUtilizationService
         return false;
     }
 
-    private function isPlanned(ScannerDowntime $downtime): bool
-    {
-        if (is_bool($downtime->metadata['planned'] ?? null)) {
-            return $downtime->metadata['planned'];
-        }
-        $code = strtoupper((string) $downtime->reason_code);
-
-        return $downtime->status === 'scheduled'
-            || str_starts_with($code, 'PLANNED_')
-            || str_starts_with($code, 'PREVENTIVE_')
-            || str_starts_with($code, 'SCHEDULED_')
-            || in_array($code, ['CALIBRATION', 'QUALITY_CONTROL'], true);
-    }
-
     /** @param Collection<int, array<string, mixed>> $rows @return array<string, mixed> */
     private function summary(Collection $rows, bool $feedPresent): array
     {
@@ -388,7 +347,7 @@ final class ModalityUtilizationService
             'plannedDowntimeMinutes' => $planned,
             'unplannedDowntimeMinutes' => $unplanned,
             'idleMinutes' => $idle,
-            'utilizationPercent' => $complete && $available > 0 ? $this->number(100 * $exam / $available, 1) : null,
+            'utilizationPercent' => $complete ? $this->suiteMetrics->utilizationPercent($exam, $available) : null,
             'dataCoveragePercent' => $candidate === 0
                 ? ($rows->isEmpty() ? ($feedPresent ? 100 : 0) : $this->number(100 * $rows->where('coverage.status', 'complete')->count() / $rows->count(), 1))
                 : $this->number(100 * $covered / $candidate, 1),

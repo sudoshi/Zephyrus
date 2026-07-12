@@ -154,6 +154,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::get('/analytics/room-running', [Analytics\RoomRunningController::class, 'index'])->name('analytics.room-running');
         Route::get('/analytics/turnover-times', [Analytics\TurnoverTimesController::class, 'index'])->name('analytics.turnover-times');
         Route::get('/analytics/radiology-tat', RadiologyTatController::class)->name('analytics.radiology-tat');
+        Route::get('/analytics/ir-utilization', Analytics\IrSuiteController::class)->name('analytics.ir-utilization');
 
         // Operations Routes
         Route::get('/operations/room-status', [Operations\RoomStatusController::class, 'index'])->name('operations.room-status');

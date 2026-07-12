@@ -281,6 +281,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->group(
     Route::get('/modality', [RadiologyFlowBoardController::class, 'modality']);
     Route::get('/reads', [RadiologyFlowBoardController::class, 'reads']);
     Route::get('/tat', [RadiologyFlowBoardController::class, 'tat']);
+    Route::get('/ir-utilization', [RadiologyFlowBoardController::class, 'irSuite']);
     Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier']);
 });
 

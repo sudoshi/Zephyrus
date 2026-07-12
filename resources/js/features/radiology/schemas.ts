@@ -327,3 +327,81 @@ export const radiologyTatSchema = z.object({
 }).strict();
 
 export type RadiologyTat = z.infer<typeof radiologyTatSchema>;
+
+const irDistributionSchema = z.object({
+  count: z.number().int().nonnegative(), median: nullableMinutes, p90: nullableMinutes, meanMinutes: nullableMinutes,
+}).strict();
+
+const irAssertionSchema = z.object({
+  milestoneUuid: z.string().uuid(), code: z.string(), occurredAt: z.string().datetime({ offset: true }),
+  receivedAt: z.string().datetime({ offset: true }), sourceKey: z.string(), sourceRank: z.number().int().nonnegative(),
+  assertionCount: z.number().int().positive(),
+}).strict();
+
+export const irSuiteSchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }), sourceCutoffAt: nullableIso,
+  freshnessStatus: z.enum(['fresh', 'stale', 'unknown', 'batch']), degradedMode: z.boolean(),
+  state: z.enum(['normal', 'degraded', 'no_data']), stateMessage: z.string().min(1), freshness: sourceFreshnessSchema,
+  filters: z.object({
+    dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    roomUuid: z.string().uuid().nullable(), patientClass: z.string().nullable(), limit: z.number().int().positive().max(1000),
+  }).strict(),
+  filterOptions: z.object({
+    rooms: z.array(z.object({ roomUuid: z.string().uuid(), label: z.string() }).strict()), patientClasses: z.array(z.string()),
+    maxRangeDays: z.number().int().positive(), maxLimit: z.number().int().positive(),
+  }).strict(),
+  ownership: z.object({
+    operationalOwner: z.literal('Radiology Workspace'), studyOwner: z.literal('Analytics'), definitionAuthority: z.string(),
+    radiologyHref: z.string(), perioperativeHref: z.string(), perioperativeStudyHref: z.string(), statement: z.string(),
+  }).strict(),
+  definitions: z.object({
+    shared: z.array(z.object({ label: z.string(), definition: z.string(), authority: z.string() }).strict()),
+    denominator: z.string(), cohort: z.string(), cutoff: z.string(),
+  }).strict(),
+  summary: z.object({
+    declaredRoomCount: z.number().int().nonnegative(), candidateCaseCount: z.number().int().nonnegative(),
+    analyzedCaseCount: z.number().int().nonnegative(), completedCaseCount: z.number().int().nonnegative(),
+    availableMinutes: z.number().nonnegative(), occupiedMinutes: nullableMinutes,
+    plannedDowntimeMinutes: z.number().nonnegative(), unplannedDowntimeMinutes: z.number().nonnegative(), idleMinutes: nullableMinutes,
+    utilizationPercent: z.number().min(0).max(100).nullable(), reconciliationDeltaMinutes: z.number().nullable(),
+    fcots: z.object({ eligibleCount: z.number().int().nonnegative(), onTimeCount: z.number().int().nonnegative(), percent: z.number().min(0).max(100).nullable(), graceMinutes: z.number().int().positive() }).strict(),
+    turnover: irDistributionSchema,
+  }).strict(),
+  roomRunning: z.object({
+    sampleCount: z.number().int().nonnegative(), averageRoomsRunning: z.number().nonnegative().nullable(), maxRoomsRunning: z.number().int().nonnegative(),
+    points: z.array(z.object({ hour: z.string().regex(/^\d{2}:00$/), averageRoomsRunning: z.number().nonnegative(), maxRoomsRunning: z.number().int().nonnegative(), sampleDays: z.number().int().positive() }).strict()), definition: z.string(),
+  }).strict(),
+  gates: z.array(irDistributionSchema.extend({
+    key: z.enum(['preparation', 'transport', 'read']), label: z.string(), startMilestoneCode: z.string(), stopMilestoneCode: z.string(),
+    missingCount: z.number().int().nonnegative(), invalidCount: z.number().int().nonnegative(), sourceCutoffAt: nullableIso, definition: z.string(),
+  }).strict()),
+  coverage: z.object({
+    status: z.enum(['complete', 'partial', 'no_data']), candidateIntervalCount: z.number().int().nonnegative(), coveredIntervalCount: z.number().int().nonnegative(),
+    percent: z.number().min(0).max(100), missingIntervalCount: z.number().int().nonnegative(), invalidIntervalCount: z.number().int().nonnegative(),
+    missingOperatingWindowRoomCount: z.number().int().nonnegative(), uncoveredRoomCount: z.number().int().nonnegative(), missingGatePairCount: z.number().int().nonnegative(), invalidGateIntervalCount: z.number().int().nonnegative(),
+    truncated: z.boolean(), unanalyzedCandidateCount: z.number().int().nonnegative(), definition: z.string(),
+  }).strict(),
+  rooms: z.array(z.object({
+    roomUuid: z.string().uuid(), label: z.string(), capacity: z.number().int().positive(), timezone: z.string(),
+    operatingWindows: z.array(z.object({ startAt: z.string().datetime({ offset: true }), endAt: z.string().datetime({ offset: true }) }).strict()),
+    caseCount: z.number().int().nonnegative(), completedCaseCount: z.number().int().nonnegative(), availableMinutes: z.number().nonnegative(),
+    occupiedMinutes: nullableMinutes, plannedDowntimeMinutes: z.number().nonnegative(), unplannedDowntimeMinutes: z.number().nonnegative(),
+    idleMinutes: nullableMinutes, utilizationPercent: z.number().min(0).max(100).nullable(), reconciliationDeltaMinutes: z.number().nullable(),
+    fcots: z.object({ firstCaseCount: z.number().int().nonnegative(), eligibleCount: z.number().int().nonnegative(), onTimeCount: z.number().int().nonnegative(), percent: z.number().min(0).max(100).nullable(), missingActualStartCount: z.number().int().nonnegative() }).strict(),
+    turnover: irDistributionSchema.extend({ invalidCount: z.number().int().nonnegative() }).strict(),
+    coverage: z.object({ status: z.enum(['complete', 'partial', 'missing_schedule', 'no_cases']), candidateIntervalCount: z.number().int().nonnegative(), coveredIntervalCount: z.number().int().nonnegative(), missingIntervalCount: z.number().int().nonnegative(), invalidIntervalCount: z.number().int().nonnegative(), warning: z.string().nullable() }).strict(),
+    segments: z.array(z.object({ startAt: z.string().datetime({ offset: true }), endAt: z.string().datetime({ offset: true }), type: z.enum(['exam', 'planned_downtime', 'unplanned_downtime', 'idle', 'unknown']), minutes: z.number().positive() }).strict()),
+  }).strict()),
+  lineage: z.object({
+    count: z.number().int().nonnegative(), truncated: z.boolean(), definition: z.string(),
+    items: z.array(z.object({
+      examUuid: z.string().uuid(), roomUuid: z.string().uuid(), roomLabel: z.string(), procedureCode: z.string(),
+      scheduledStartAt: z.string().datetime({ offset: true }), actualStartAt: nullableIso, actualEndAt: nullableIso,
+      isFirstCase: z.boolean(), fcotsOnTime: z.boolean().nullable(), turnoverFromPriorMinutes: nullableMinutes,
+      startAssertion: irAssertionSchema.nullable(), endAssertion: irAssertionSchema.nullable(),
+    }).strict()),
+  }).strict(),
+  privacy: z.object({ patientIdentifiersIncluded: z.literal(false), clinicalReportTextIncluded: z.literal(false), identifierPolicy: z.string() }).strict(),
+}).strict();
+
+export type IrSuite = z.infer<typeof irSuiteSchema>;

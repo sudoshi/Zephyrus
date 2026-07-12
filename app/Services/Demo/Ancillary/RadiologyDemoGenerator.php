@@ -67,7 +67,7 @@ final class RadiologyDemoGenerator extends AbstractAncillaryDemoGenerator
         ], ['modality' => 'NM', 'procedure_code' => 'NM_HIDA', 'procedure_label' => 'HIDA scan', 'scanner_key' => 'DEMO-NM-1', 'shift' => 'night_weekend']);
         $scenarios[] = $this->scenario($clock, 14, 160, 'urgent', 'inpatient', [
             $this->event('RAD_ORDERED', 160), $this->event('RAD_PREP_COMPLETE', 140), $this->event('RAD_EXAM_START', 90, 'secondary'), $this->event('RAD_EXAM_END', 45, 'secondary'),
-        ], ['modality' => 'IR', 'procedure_code' => 'IR_DRAIN', 'procedure_label' => 'Image-guided drainage', 'scanner_key' => 'DEMO-IR-1', 'is_ir' => true, 'or_case_id' => DB::table('prod.or_cases')->where('is_deleted', false)->orderBy('case_id')->value('case_id')]);
+        ], ['modality' => 'IR', 'procedure_code' => 'IR_DRAIN', 'procedure_label' => 'Image-guided drainage', 'scanner_key' => 'DEMO-IR-1', 'is_ir' => true, 'scheduled_start_minutes_ago' => 100, 'scheduled_duration_minutes' => 65, 'or_case_id' => DB::table('prod.or_cases')->where('is_deleted', false)->orderBy('case_id')->value('case_id')]);
         $scenarios[] = $this->scenario($clock, 15, 140, 'routine', 'inpatient', [
             $this->event('RAD_ORDERED', 140), $this->event('RAD_EXAM_END', 75),
             $this->event('RAD_EXAM_END', 65, 'secondary'), $this->event('RAD_PRELIM', 45), $this->event('RAD_FINAL', 30),
@@ -104,6 +104,7 @@ final class RadiologyDemoGenerator extends AbstractAncillaryDemoGenerator
                 ...$scanner->metadata,
                 'staffed_operating_hours' => $staffedHours,
                 'mpps_source_key' => 'demo.ancillary.rad.secondary',
+                'ir_suite_declared' => $scanner->modality_code === 'IR',
             ];
             $scanner->save();
         });

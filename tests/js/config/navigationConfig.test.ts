@@ -212,12 +212,13 @@ describe('navigationConfig', () => {
     }
   });
 
-  it('owns the Radiology TAT study route only from Analytics', () => {
-    const href = '/analytics/radiology-tat';
-    const occurrences = NAVIGATION.flatMap((domain) => domain.groups.flatMap((group) => group.items.filter((item) => item.href === href).map(() => domain.key)));
+  it('owns the Radiology Study routes only from Analytics', () => {
+    for (const href of ['/analytics/radiology-tat', '/analytics/ir-utilization']) {
+      const occurrences = NAVIGATION.flatMap((domain) => domain.groups.flatMap((group) => group.items.filter((item) => item.href === href).map(() => domain.key)));
 
-    expect(occurrences).toEqual(['analytics']);
-    expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
+      expect(occurrences).toEqual(['analytics']);
+      expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
+    }
   });
 
   it('keeps administration in user-menu/palette projections only', () => {

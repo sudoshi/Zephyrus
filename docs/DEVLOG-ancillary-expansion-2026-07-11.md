@@ -830,3 +830,49 @@ The first full Ancillary regression exposed disposable R-11 browser-demo rows le
 - The six new clocks are inactive reference definitions for Study attribution. Existing operational SLA enforcement remains unchanged.
 - Numeric lines reflect persisted local policy only; absent governance remains explicitly absent rather than replaced with literature-derived or synthetic targets.
 - R-13 is the next dependency-ordered Radiology tranche and must reuse the shared operational interval calculator for IR utilization.
+
+## 2026-07-12 — R-13 IR Suite Study
+
+### Outcome
+
+Implemented `/analytics/ir-utilization` and authenticated `GET /api/radiology/ir-utilization` through one `IrSuiteAnalyticsService` contract. The route is a Study surface under Analytics; Radiology retains ownership of the live IR worklist. The page cross-links to the source-scoped IR worklist, OR room status, and the Perioperative OR-utilization Study while stating this ownership split directly in the browser contract.
+
+Extracted `SuiteMetricCalculator` as the single arithmetic authority for first-case on-time starts, same-room turnover, declared-window utilization, rooms-running overlap, and planned-versus-unplanned downtime classification. Existing `PerioperativeMetricsService` now delegates FCOTS decisions to that calculator. Existing OR-utilization and room-running services consume its denominator/profile constants. `ModalityUtilizationService` and the new IR service share the downtime classifier, while utilization continues through the existing `OperationalIntervalCalculator`. Identical procedure-suite interval fixtures now produce byte-equivalent Perioperative-context and IR-context results because domain identity is not a calculation input.
+
+Extracted `OperatingWindowResolver` from the R-8 modality path. Both modality and IR services now resolve the same deployment-owned `staffed_operating_hours` weekly contract, including overnight windows, date/time clipping, timezone conversion, interval union, and no inferred 24-hour default. IR resources enter the cohort only when the scanner is active, has modality `IR`, and carries explicit `metadata.ir_suite_declared=true`; `rad_exams.is_ir=true` and a declared-room link are independently required for every case.
+
+The bounded service validates a maximum 31-day inclusive date range, declared room UUID, governed patient class, and at most 1,000 analyzed rows. It uses the partial `rad_exams_ir_scheduled_idx` path for `(scheduled_start_at, rad_scanner_id, rad_exam_id)` when `is_ir=true`, then hydrates selected assertions in one batch. Query count is identical at limits 1 and 100 and remains below the test ceiling.
+
+Suite metrics are denominator-explicit. Each room returns timezone, exact operating windows, capacity, completed-case coverage, occupied/planned-downtime/unplanned-downtime/idle minutes, utilization, reconciliation delta, FCOTS numerator/denominator, median/P90/mean turnover, and mutually exclusive timeline segments. Aggregate utilization is withheld if any in-scope room lacks a declared window or valid selected MPPS start/end evidence. Negative or missing intervals, missing windows, truncation, missing gate pairs, and invalid gate intervals remain visible in the coverage ledger.
+
+Preparation (`RAD_ORDERED` to `RAD_PREP_COMPLETE`), transport (`RAD_TRANSPORT_REQUESTED` to `RAD_TRANSPORT_COMPLETE`), and read (`RAD_IMAGES_AVAILABLE` to `RAD_FINAL`) distributions are additive imaging gates. They use the selected assertion view and expose comparable count, median, P90, secondary mean, missing count, invalid count, source cutoff, and exact clock definition without changing the shared suite formulas. The bounded lineage table retains operational exam/room UUIDs plus selected MPPS assertion UUID/source/rank/count and excludes patient identifiers and report narrative.
+
+The React page uses strict Zod validation, bounded GET filters, source freshness, four summary cards, three accessible chart figures and companion tables, explicit denominator and coverage language, five shared-definition rows, operational/Study cross-links, and expandable assertion lineage. `IR Suite Utilization` is registered exactly once under Analytics → Ancillary Performance; the ownership test proves no other navigation domain claims it.
+
+The canonical Radiology demo now gives its existing IR case explicit scheduled bounds, declares exactly one generated IR scanner, and preserves the original 16-order/16-exam cohort. Demo idempotency, ownership isolation, invariants, the existing modality service, and the new IR Study contract all pass together.
+
+### Automated and rendered evidence
+
+```text
+IrSuiteAnalyticsTest + SuiteMetricCalculatorTest: 4 tests, 99 assertions, PASS
+SuiteMetricReuseTest against seeded Perioperative dashboard/OR utilization: 1 test, 6 assertions, PASS
+Full Ancillary + shared-calculator regression: 120 tests, 1,472 assertions, PASS
+RadiologyDemoGeneratorTest: 1 test, 51 assertions, PASS
+Radiology + Ancillary + navigation Vitest: 11 files, 51 tests, PASS
+Final focused IR/navigation Vitest: 3 files, 28 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint for touched R-13 PHP/tests: PASS
+git diff --check: PASS
+Chromium built-asset smoke: HTTP 200; 3 chart figures, 1 room row, 3 gate rows, 5 shared-definition rows, 1 lineage row, zero console/page errors
+```
+
+Browser evidence used only `zephyrus_test`, the canonical database seed, and `zephyrus:demo-refresh --force`. The refresh passed 35 invariants with zero critical failures and published the Cockpit. After smoke, a database-name guard verified `zephyrus_test`, disposable multi-schema rows were truncated, fresh migrations were restored, and the normal 29-service-line/87-role registry baseline was reseeded. Production was never accessed or mutated.
+
+### Activation and limitations
+
+- No connector, credential, scheduler, deployment, production data, benchmark target, or live IR policy was activated.
+- IR room declaration and staffed operating hours remain deployment-owned metadata. An undeclared scanner or missing schedule yields no denominator rather than a generic OR-day assumption.
+- The existing single-case demo proves FCOTS, utilization, gate, provenance, and ownership behavior; multi-case turnover distributions are proven by fixed backend fixtures rather than fabricated demo cases.
+- R-14 is the next dependency-ordered Radiology tranche and will consolidate the complete Radiology route, API, navigation, policy, mobile-drawer, mega-menu, command-palette, and RTDC drill ownership evidence.

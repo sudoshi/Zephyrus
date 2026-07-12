@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { modalityUtilizationSchema, radiologyFlowBoardSchema, radiologyReadsSchema, radiologyTatSchema, radiologyWorklistSchema, type ModalityUtilization, type RadiologyFlowBoard, type RadiologyReads, type RadiologyTat, type RadiologyWorklist } from './schemas';
+import { irSuiteSchema, modalityUtilizationSchema, radiologyFlowBoardSchema, radiologyReadsSchema, radiologyTatSchema, radiologyWorklistSchema, type IrSuite, type ModalityUtilization, type RadiologyFlowBoard, type RadiologyReads, type RadiologyTat, type RadiologyWorklist } from './schemas';
 
 export function useRadiologyFlowBoard(initialData: RadiologyFlowBoard) {
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -53,6 +53,17 @@ export function useRadiologyTat(initialData: RadiologyTat) {
     queryKey: ['radiology-tat', search],
     initialData,
     queryFn: async () => radiologyTatSchema.parse((await axios.get(`/api/radiology/tat${search}`)).data),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useIrSuite(initialData: IrSuite) {
+  const search = typeof window === 'undefined' ? '' : window.location.search;
+
+  return useQuery({
+    queryKey: ['ir-suite-utilization', search],
+    initialData,
+    queryFn: async () => irSuiteSchema.parse((await axios.get(`/api/radiology/ir-utilization${search}`)).data),
     refetchInterval: 60_000,
   });
 }
