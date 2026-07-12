@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-4 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-5 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 29 of 60 tasks complete; 31 remain |
+| Progress | 30 of 60 tasks complete; 30 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1414,24 +1414,43 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] The complete ancillary feature regression remains green at 141 tests and 1,813 assertions after the shared `LAB_IN_TRANSIT` projection change.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-4.
 
-#### [ ] L-5 — Implement Lab Flow Board at /lab
+#### [x] L-5 — Implement Lab Flow Board at /lab
 
 **Depends on:** L-1 through L-4, P0-10
 **Primary files:** LabFlowBoardService; controller/API; Pages/Lab/FlowBoard.tsx
 
 **Work:**
 
-- Render current stage distribution, STAT compliance, oldest items, collect-to-receive and receipt-to-result split, critical callback state, and pre-analytic quality strip.
-- Show rejection, hemolysis, and contamination measures with benchmark versus local-policy distinction.
-- Add lenses for ED, inpatient, discharge gate, OR gate, priority, test family, unit, shift, and degraded feed.
-- Add barrier annotation and filtered drill.
+- [x] Add `LabFlowBoardService` as the sole owner of current-window cohorts, ratios, statuses, clocks, coverage, quality measures, callback state, filter options, and drill rows.
+- [x] Exclude `historical_study_only` microbiology rows and orders older than 24 hours from the live Flow Board without removing them from Study-ready facts.
+- [x] Render current stage distribution from the selected shared-order projection and retain an explicit empty contract.
+- [x] Calculate STAT compliance on the server from order-to-selected-verify evidence against the governed 60-minute breach threshold; do not recompute ratios in React.
+- [x] Render open/current order counts, exact pending ED/discharge/OR decisions, open critical callback count, and degraded-order coverage from server facts.
+- [x] Calculate collection-to-receipt and receipt-to-result count/median/p90 distributions from specimen/result timestamps.
+- [x] Detect transport and middleware evidence independently and downgrade missing feeds to named coarse clocks with null unavailable values rather than fabricated zero-duration segments.
+- [x] Render critical callback total/open/oldest and state distribution from `prod.lab_critical_values`.
+- [x] Render rejection, hemolysis, and contamination numerator/denominator/rate measures with accessible, explicit `benchmark` versus `local_policy` labels.
+- [x] Label absent benchmark/policy configuration honestly as `External benchmark not configured` or `Site policy not configured`; do not invent a target.
+- [x] Add ED, inpatient, discharge-gate, OR-gate, and degraded lenses plus validated priority, test-family, unit, and shift filters.
+- [x] Add a bounded oldest-active drill with pseudonymous patient context, exact downstream decision explanation, current stage, age, unit, and existing barrier count.
+- [x] Redact item patient context for roles without `viewAncillaryPatientDetail` while preserving aggregate operational measures.
+- [x] Add governed Laboratory barrier annotation using the existing capability, barrier service, audit recorder, reason catalog, and open-breach linkage pattern.
+- [x] Add authenticated `/lab`, `/api/lab/flow-board`, and `/api/lab/barriers` routes with stable names, request validation, private no-cache reads, and unauthorized API coverage.
+- [x] Add a `Laboratory` workspace domain to `navigationConfig.ts`; the desktop menu, mobile drawer, command palette, active ownership, and local navigation all derive from that single entry.
+- [x] Add strict Zod response validation, 30-second query refresh, responsive dual-theme page composition, accessible filter labels, status/freshness announcements, benchmark labels, and audited drawer semantics.
+- [x] Replace per-row decision/barrier queries with correlated subselects so the bounded drill retains constant query shape.
+- [x] Add focused service/Inertia/API/privacy/filter/barrier/route tests plus rendered Vitest coverage for operational, degraded, empty, benchmark, decision, and drawer states.
 
 **Acceptance:**
 
-- Server service owns all ratios and statuses.
-- A missing transport/middleware feed renders coarser clocks and coverage, not zero duration.
-- Benchmark labels are visible and accessible.
-- Empty/stale/error states and barrier writes are tested.
+- [x] The server service owns every displayed count, rate, interval, coverage state, and urgency state; TypeScript only validates and renders the contract.
+- [x] Missing transport or middleware evidence produces `missing`/`coarse` coverage, a written explanation, and null unavailable intervals; tests prove the UI never reports zero.
+- [x] Benchmark/local-policy kinds and their unconfigured labels are visible text, with source explanation retained for assistive technology.
+- [x] Normal/current, degraded, empty, stale, source-error, privacy-redacted, forbidden-write, successful-write, validation, and unauthenticated states are tested.
+- [x] Focused backend verification passes 4 tests and 57 assertions; focused frontend/navigation verification passes 29 tests.
+- [x] The complete ancillary feature regression passes 145 tests and 1,870 assertions.
+- [x] TypeScript, production build, UI canon, mobile dark and desktop light browser smoke, zero overflow, and zero console/page errors pass.
+- [x] No production deployment, connector, credential, scheduler, queue, migration, or external source is activated by L-5.
 
 #### [ ] L-6 — Implement Specimen Tracker at /lab/specimens
 

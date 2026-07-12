@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Lab\LabFlowBoardController;
 use App\Http\Controllers\Api\Mobile\ActivityController as MobileActivityController;
 use App\Http\Controllers\Api\Mobile\AltitudeController as MobileAltitudeController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
@@ -283,6 +284,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->name('
     Route::get('/tat', [RadiologyFlowBoardController::class, 'tat'])->name('tat');
     Route::get('/ir-utilization', [RadiologyFlowBoardController::class, 'irSuite'])->name('ir-utilization');
     Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.lab.')->group(function () {
+    Route::get('/flow-board', [LabFlowBoardController::class, 'show'])->name('flow-board');
+    Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 
 // Transport command center (web session auth)

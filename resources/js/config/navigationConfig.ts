@@ -23,6 +23,7 @@ import {
   Clock,
   DoorOpen,
   FileText,
+  FlaskConical,
   Gauge,
   GitBranch,
   HeartPulse,
@@ -235,6 +236,23 @@ const RADIOLOGY: NavDomain = {
         { label: 'Order Worklist', href: '/radiology/worklist', icon: ClipboardList },
         { label: 'Modality Utilization', href: '/radiology/modality', icon: ScanLine },
         { label: 'Reads & Results', href: '/radiology/reads', icon: FileText },
+      ],
+    },
+  ],
+};
+
+const LAB: NavDomain = {
+  key: 'lab',
+  label: 'Laboratory',
+  icon: FlaskConical,
+  dashboardHref: '/lab',
+  dashboardLabel: 'Laboratory Flow Board',
+  matchPrefixes: ['/lab'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Laboratory Flow Board', href: '/lab', icon: Activity },
       ],
     },
   ],
@@ -465,7 +483,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, TRANSPORT, STAFFING],
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, TRANSPORT, STAFFING],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

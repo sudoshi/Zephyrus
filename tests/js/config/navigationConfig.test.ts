@@ -47,6 +47,7 @@ describe('navigationConfig', () => {
       'emergency',
       'perioperative',
       'radiology',
+      'lab',
       'transport',
       'staffing',
       'analytics',
@@ -77,6 +78,7 @@ describe('navigationConfig', () => {
       emergency: '/ed/operations/triage',
       perioperative: '/operations/room-status',
       radiology: '/radiology',
+      lab: '/lab',
       transport: '/transport/dispatch',
       staffing: '/staffing',
     });
@@ -248,6 +250,14 @@ describe('navigationConfig', () => {
       .map((entry) => entry.href);
 
     expect(paletteHrefs).toEqual(workspaceHrefs);
+  });
+
+  it('owns the Laboratory Flow Board from one workspace domain', () => {
+    const lab = NAVIGATION.find((domain) => domain.key === 'lab')!;
+
+    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).toEqual(['/lab']);
+    expect(navigationOwners('/lab').map((domain) => domain.key)).toEqual(['lab']);
+    expect(lab.dashboardHref).toBe('/lab');
   });
 
   it('keeps administration in user-menu/palette projections only', () => {

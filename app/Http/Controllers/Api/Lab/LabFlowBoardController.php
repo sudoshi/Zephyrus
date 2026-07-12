@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Http\Controllers\Api\Lab;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Lab\LabFlowBoardRequest;
+use App\Http\Requests\Lab\StoreLabBarrierRequest;
+use App\Services\Lab\LabBarrierService;
+use App\Services\Lab\LabFlowBoardService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
+
+final class LabFlowBoardController extends Controller
+{
+    public function show(LabFlowBoardRequest $request, LabFlowBoardService $flowBoard): JsonResponse
+    {
+        return response()->json($flowBoard->build($request->validated(), Gate::allows('manageAncillaryBarriers'), Gate::allows('viewAncillaryPatientDetail')))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function storeBarrier(StoreLabBarrierRequest $request, LabBarrierService $barriers): JsonResponse
+    {
+        return response()->json(['data' => $barriers->open($request->validated(), $request)], 201);
+    }
+}

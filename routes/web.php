@@ -10,6 +10,7 @@ use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Integrations\IntegrationConsoleController;
+use App\Http\Controllers\LabController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Ops\OpsConsoleController;
 use App\Http\Controllers\Predictions;
@@ -82,6 +83,10 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/worklist', [RadiologyController::class, 'worklist'])->name('worklist');
             Route::get('/modality', [RadiologyController::class, 'modality'])->name('modality');
             Route::get('/reads', [RadiologyController::class, 'reads'])->name('reads');
+        });
+
+        Route::prefix('lab')->name('lab.')->group(function () {
+            Route::get('/', [LabController::class, 'index'])->name('flow-board');
         });
 
         // Improvement Routes

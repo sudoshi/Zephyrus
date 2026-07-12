@@ -1117,3 +1117,37 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-5 is the next dependency-ordered task and can now build the Lab Flow Board against a coherent current-operation cohort rather than mocked queue counts.
+
+## 2026-07-12 — L-5 Laboratory Flow Board
+
+### Outcome
+
+Implemented the first Laboratory operational surface at `/lab` on the shared ancillary spine and L-4 demo cohort. `LabFlowBoardService` owns the complete browser contract: current-window selection, stage distribution, open work, STAT compliance, pending downstream decisions, callback state, pre-analytic quality, feed coverage, TAT distributions, filters, freshness, degraded/error state, bounded drill rows, barrier Pareto, governed SLA definitions, and privacy projection.
+
+The live board intentionally excludes the four-stage `historical_study_only` microbiology history and all orders outside the 24-hour operational window. Against the fixed L-4 cohort, it reports 13 current Laboratory orders, eight still active at the selected projection, three STAT orders, one verified within the 60-minute governed breach threshold (33.3% compliance), three exact downstream decision blockers, and one open critical callback. All ratios and statuses arrive precomputed from the server.
+
+Collection-to-receipt and receipt-to-result are separate count/median/p90 contracts. Transport and middleware evidence are detected independently. When either optional feed is absent, the board retains the coarser observable interval, labels its granularity `coarse`, explains the missing segment, and leaves unavailable values null. It never converts missing transit or analysis evidence to a zero-minute duration.
+
+The pre-analytic strip computes specimen rejection, hemolysis, and contamination from current specimen facts. Each measure carries an explicit reference kind. Rejection and hemolysis are labeled as external benchmarks; contamination is labeled as local policy. Because no governed target value is configured yet, the visible labels say `External benchmark not configured` and `Site policy not configured`, and the assistive source explanation states that the observed rate is not judged against an invented threshold.
+
+Filters cover ED, inpatient, discharge gate, OR gate, degraded feed, priority, test family, unit, and shift. The oldest-active drill exposes current stage, age, pseudonymous context, location, existing barrier count, and the exact decision explanation from the L-4 result metadata. Patient context is replaced with `Patient context restricted` unless the established capability permits detail.
+
+Laboratory barrier annotation reuses the established ancillary policy and audit model. `/api/lab/barriers` accepts only active Laboratory reason codes, requires an encounter-linked Laboratory order, opens the shared barrier, links an open ancillary breach when present, and records `ancillary.barrier.opened` in `audit.user_events`. Unauthorized writes fail before mutation.
+
+The new `/lab`, `/api/lab/flow-board`, and `/api/lab/barriers` routes are authenticated and named. A Laboratory workspace domain now lives in `navigationConfig.ts`, making it the one source for desktop/mobile navigation, command palette projection, active-route ownership, and domain-local menus. The page uses the canonical dashboard/page layout, strict Zod parsing, source-freshness badge, responsive filters, dual-theme healthcare tokens, accessible announcements and reference labels, and a keyboard-operable Radix barrier drawer.
+
+### Verification
+
+```text
+Focused Lab Flow Board backend: 4 tests, 57 assertions, PASS
+Complete ancillary feature regression: 145 tests, 1,870 assertions, PASS
+Focused Lab Flow Board + navigation Vitest: 2 files, 29 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over L-5 PHP implementation/tests/routes: PASS
+Mobile dark browser smoke, 390x844: HTTP 200, semantic h1/main, no overflow, no console/page errors
+Desktop light discharge-gate smoke, 1440x1000: HTTP 200, selected lens, visible benchmark labels, no overflow, no console/page errors
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-6 is the next dependency-ordered task and will add the per-specimen tracker on the same filters, timing semantics, and privacy boundary.
