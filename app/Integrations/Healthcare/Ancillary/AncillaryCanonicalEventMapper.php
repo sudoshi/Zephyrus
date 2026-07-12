@@ -53,6 +53,12 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'scanner_key', 'source_sop_instance_uid_hash', 'started_at', 'completed_at', 'cancelled_at',
             'transport_request_ref', 'relay_signature', 'critical_status', 'source_result_key',
             'finding_class', 'identified_at', 'notified_at', 'acknowledged_at', 'recipient_role',
+            'placer_order_key', 'filler_order_key', 'order_control', 'order_status', 'test_label',
+            'loinc_code', 'add_on', 'source_specimen_key', 'source_specimen_business_key',
+            'source_accession_key', 'specimen_type', 'container_type', 'collector_role',
+            'collector_ref', 'collection_method', 'collected_at', 'specimen_status',
+            'collection_source', 'specimens',
+            'ordered_at_source',
         ]);
 
         return new CanonicalOperationalEvent(

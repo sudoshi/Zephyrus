@@ -1009,3 +1009,32 @@ Information-schema result-value/narrative exclusion check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. L-2 is the next direct Laboratory dependency and will normalize Laboratory order and collection messages into these contracts.
+
+## 2026-07-12 — L-2 Laboratory Order and Collection Ingestion
+
+### Outcome
+
+Completed the governed Laboratory order/collection path for HL7 v2 OML/ORM plus collection-bearing ORU messages and FHIR ServiceRequest/Specimen resources. The new normalizers are registered ahead of the generic ancillary fallbacks only for approved LIS, Laboratory middleware, Laboratory, EHR, and CPOE source classes whose profile explicitly authorizes the message family and Laboratory department.
+
+The HL7 path now preserves ORC order control/status, placer and filler identities, OBR local/LOINC test coding, priority, PV1 patient class, SPM specimen/accession/type/container/method, explicit collector role, and collection timing. It parses true ORC/OBR blocks and their following SPM/OBX segments, so multiple tests and multiple specimens remain isolated. One message can emit one order event per OBR and a separate `LAB_COLLECTED` event for every explicitly collected specimen. OBX clinical values remain only in the governed raw inbound envelope and never enter canonical or Laboratory operational facts.
+
+Collection semantics are assertion-driven. SPM-17 takes precedence and OBR-7 is the declared fallback. If both are absent, the projector creates a pending specimen but emits no `LAB_COLLECTED` milestone and leaves `collected_at` null. A later ORU with collection evidence updates the same source-scoped specimen and adds one collection milestone; exact replay returns the existing receipt without duplicating orders, facts, milestones, or provenance.
+
+The FHIR path normalizes ServiceRequest identifiers, status, authored time, priority, subject/encounter, local/LOINC coding, and referenced specimens. Specimen normalizes relative or absolute ServiceRequest references, business identity, collection time, type, container, method, and explicitly coded nurse/lab collection role. ServiceRequest-first and Specimen-first arrival both converge. When Specimen arrives first, its collection time is explicitly labeled as an order-time fallback; a later ServiceRequest enriches priority, patient class, test coding, and authoritative ordered time without changing source identity or regressing collected state.
+
+`LabOrderProjector` idempotently creates and enriches `prod.lab_specimens`, preserves advanced lifecycle states, retains the first asserted collection timestamp, records a conflicting later timestamp instead of overwriting it, and cancels only still-pending uncollected specimens. Every specimen projection records canonical/inbound provenance. Raw patient, encounter, and collector references are pseudonymized before canonical persistence, and unasserted collector roles remain null.
+
+### Golden fixtures and verification
+
+Seven HL7 fixtures cover ED STAT troponin, AM BMP, add-on CBC, cancelled order, missing collection time, ORU collection backfill, and a multi-OBR panel containing three specimens and deliberately ignored OBX values. FHIR coverage exercises both arrival orders, absolute request references, missing collection failure, local/LOINC coding, privacy, and replay.
+
+```text
+Focused L-2 pipeline: 8 tests, 122 assertions, PASS
+Complete ancillary feature regression: 134 tests, 1,704 assertions, PASS
+Existing shared multi-source reconciliation coverage: PASS
+Existing Radiology order/result ingestion coverage: PASS
+FHIR Specimen without collection assertion: fail closed and dead-lettered, PASS
+Canonical direct-identifier and OBX-value exclusion checks: PASS
+```
+
+No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-3 is the next dependency-ordered task and will add result/version/correction, rejection/recollect, microbiology progression, and critical-flag projection on top of these stable order/specimen identities.

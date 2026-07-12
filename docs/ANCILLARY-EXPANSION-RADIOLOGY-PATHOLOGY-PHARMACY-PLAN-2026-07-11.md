@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-2 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 26 of 60 tasks complete; 34 remain |
+| Progress | 27 of 60 tasks complete; 33 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1278,24 +1278,53 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused verification passes 20 tests and 421 assertions across L-1 migration/model/factory coverage and the expanded ancillary reference-seeder contract.
 - [x] No production connector, credential, scheduler, endpoint, migration, deployment, or external system is activated by L-1.
 
-#### [ ] L-2 — Parse Lab OML/ORM order and collection messages
+#### [x] L-2 — Parse Lab OML/ORM order and collection messages
 
 **Depends on:** L-1, P0-6
 **Primary files:** Lab order normalizer/mapper; HL7 fixtures
 
 **Work:**
 
-- Map order control, placer/filler identities, OBR test panels, priority, specimen identifiers, patient class, and collection time.
-- Map FHIR ServiceRequest and Specimen backfill to the same order/specimen identities.
-- Emit LAB_ORDERED and LAB_COLLECTED only when asserted.
-- Support add-on orders and multiple specimens/tests without collapsing all OBX groups into one order.
-- Capture nurse-collect/lab-collect metadata when present and leave unknown otherwise.
+- [x] Add a dedicated Laboratory HL7 v2 normalizer ahead of the generic ancillary fallback for governed LIS, lab-middleware, Laboratory, EHR, and CPOE sources.
+- [x] Accept `OML`, `ORM`, and collection-bearing `ORU` families only when the source profile explicitly authorizes the family and Laboratory department.
+- [x] Validate the HL7 envelope, message control identity, OBR presence, order identity, specimen identity, and source timestamp before canonical mapping.
+- [x] Parse each ORC/OBR block with its own following SPM/OBX group rather than reading every repeated segment from the first occurrence.
+- [x] Map ORC order control/status into `LAB_ORDERED` or `LAB_CANCELLED`, including CA/DC cancellation behavior.
+- [x] Preserve both placer and filler order identities while using the filler/accession identity as the stable test-level source order key when present.
+- [x] Retain the governed cross-source `reconciliation_key` behavior so multiple approved assertions can converge on one shared work item without weakening source-scoped natural keys.
+- [x] Map OBR primary and alternate coding into local test code/label plus LOINC when the coding system is LN/LOINC.
+- [x] Map ORC/OBR timing priority into `stat`, `urgent`, or `routine` and map PV1 class into emergency, inpatient, outpatient, perioperative, or unknown.
+- [x] Pseudonymize patient, encounter, and collector references before canonical persistence; retain no raw direct identifier in canonical payloads or Laboratory facts.
+- [x] Map SPM specimen identity, accession, type, container, collection method, and explicitly coded nurse-collect/lab-collect role.
+- [x] Leave collector role null when the message does not assert an approved role rather than inferring one from a person name or identifier.
+- [x] Prefer SPM-17 collection time and use OBR-7 only as the declared fallback; record the exact source field in specimen metadata.
+- [x] Do not emit `LAB_COLLECTED`, set `collected_at`, or advance specimen status when neither SPM-17 nor OBR-7 asserts collection.
+- [x] Expand one order message into one order event per OBR plus one collection event per explicitly collected specimen.
+- [x] Support multiple SPM specimens within one OBR and multiple OBR tests within one message without collapsing their order, specimen, milestone, or provenance identities.
+- [x] Ignore OBX clinical values during L-2 order/collection normalization while preserving the raw governed inbound envelope for later authorized processing.
+- [x] Mark OBR-11 add-on orders explicitly in shared order metadata without inventing a distinct unsupported lifecycle milestone.
+- [x] Add a dedicated FHIR Laboratory normalizer for enabled `ServiceRequest` and `Specimen` resources under the same governed source-family/department boundary.
+- [x] Map ServiceRequest identifier, status, priority, authored time, patient/encounter context, local/LOINC code, and referenced specimens into the shared order/pending-specimen contract.
+- [x] Normalize relative or absolute Specimen request references to a canonical `ServiceRequest/{id}` reconciliation identity.
+- [x] Map FHIR Specimen collection time, type, container, method, collector role/reference, and business identifier into the same specimen fact created from ServiceRequest references.
+- [x] Support both ServiceRequest-first and Specimen-first arrival; later authoritative order context enriches priority, class, test coding, and ordered time without changing source identity or regressing collected state.
+- [x] Fail closed and dead-letter a FHIR Specimen that lacks either its ServiceRequest identity or an explicit collection timestamp.
+- [x] Add `LabOrderProjector` to idempotently create/update source-scoped specimen facts, preserve advanced states, retain the first collection timestamp, and record conflicting later collection times rather than silently overwriting them.
+- [x] Cancel only still-pending, uncollected specimens when a Laboratory cancellation arrives; never erase a collection already asserted.
+- [x] Record canonical-to-`lab_specimens` provenance for every projected specimen and inbound message.
+- [x] Extend late-link enrichment so a specimen-first order can safely acquire missing patient context, priority, test metadata, and authoritative ordered time from a later ServiceRequest.
+- [x] Add seven golden HL7 fixtures covering ED STAT troponin, AM BMP, add-on CBC, cancellation, missing collection, ORU collection backfill, and a multi-test/multi-specimen panel with ignored OBX values.
+- [x] Add focused pipeline tests for normalized event counts, milestones, state transitions, coding, pseudonymization, provenance, replay, cross-source reconciliation, reverse-order FHIR arrival, and dead-letter behavior.
 
 **Acceptance:**
 
-- Fixtures cover ED STAT troponin, AM BMP, add-on test, cancelled order, multi-specimen panel, and missing collection time.
-- Missing OBR-7 does not fabricate collection; a later ORU can add it idempotently.
-- Source-scoped order/specimen keys remain stable under replay.
+- [x] Fixtures cover ED STAT troponin, AM BMP, add-on test, cancelled order, multi-test/multi-specimen panels, and missing collection time.
+- [x] Missing OBR-7/SPM-17 creates a pending specimen with no `LAB_COLLECTED`; a later ORU adds collection exactly once and replay does not duplicate the order, specimen, or milestone.
+- [x] Source-scoped order/specimen identities remain stable under replay, while two governed sources can still reconcile one shared order and retain distinct source-scoped specimen facts.
+- [x] FHIR ServiceRequest/Specimen resources converge in either arrival order, including absolute request references, without state regression or fabricated timestamps.
+- [x] Canonical payload tests prove patient/collector identifiers and OBX values do not cross the operational boundary.
+- [x] Focused L-2 verification passes 8 tests and 122 assertions; the complete ancillary feature regression passes 134 tests and 1,704 assertions.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-2.
 
 #### [ ] L-3 — Parse Lab ORU results, rework loops, microbiology, and critical flags
 
