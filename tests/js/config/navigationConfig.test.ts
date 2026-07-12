@@ -255,7 +255,7 @@ describe('navigationConfig', () => {
   it('owns the Laboratory Flow Board from one workspace domain', () => {
     const lab = NAVIGATION.find((domain) => domain.key === 'lab')!;
 
-    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).toEqual(['/lab']);
+    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).toEqual(['/lab', '/lab/specimens']);
     expect(navigationOwners('/lab').map((domain) => domain.key)).toEqual(['lab']);
     expect(lab.dashboardHref).toBe('/lab');
   });

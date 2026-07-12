@@ -253,6 +253,7 @@ const LAB: NavDomain = {
       title: 'Operations',
       items: [
         { label: 'Laboratory Flow Board', href: '/lab', icon: Activity },
+        { label: 'Specimen Tracker', href: '/lab/specimens', icon: FlaskConical },
       ],
     },
   ],

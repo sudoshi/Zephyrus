@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-5 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-6 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 30 of 60 tasks complete; 30 remain |
+| Progress | 31 of 60 tasks complete; 29 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1452,24 +1452,48 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] TypeScript, production build, UI canon, mobile dark and desktop light browser smoke, zero overflow, and zero console/page errors pass.
 - [x] No production deployment, connector, credential, scheduler, queue, migration, or external source is activated by L-5.
 
-#### [ ] L-6 — Implement Specimen Tracker at /lab/specimens
+#### [x] L-6 — Implement Specimen Tracker at /lab/specimens
 
 **Depends on:** L-3 through L-5
 **Primary files:** LabSpecimenService; page/API
 
 **Work:**
 
-- Show per-specimen timeline, accession identity, collection/transport/receipt stages, result state, rejection/recollect chain, and downstream impact.
-- Support parent/child recollect drill without duplicating the downstream decision.
-- Hide optional transport columns when absent and explain degraded mode.
-- Add server-side filters/pagination for status, test family, unit, priority, rejection, and age.
+- [x] Add an authenticated `/lab/specimens` Inertia page and private `/api/lab/specimens` JSON endpoint, both backed by one `LabSpecimenService` contract and one validated `LabSpecimenRequest` filter boundary.
+- [x] Restrict the operational tracker to current Laboratory work: orders selected in the trailing 24-hour window with `historical_study_only` microbiology progression excluded from the live queue while its source facts remain intact for Study.
+- [x] Use stable source-scoped accession and specimen identities plus the Zephyrus UUID for chain reconciliation; never use a direct patient identifier as the row identity.
+- [x] Render a per-specimen event timeline containing order, collection, optional in-transit, receipt, rejection, recollect request, result, and verification stages in chronological workflow order.
+- [x] Derive age from the evidenced specimen collection time with order time as the defined fallback, and retain the same `(sort_at, lab_specimen_id)` pair as the deterministic cursor ordering contract.
+- [x] Project only operational result state: catalog label, status/stage, abnormal classification, auto-verification flag, critical flag, timestamps, and version count; exclude numeric/text result values, narratives, and raw source payloads.
+- [x] Batch-load every specimen belonging to the page's selected orders so an order with multiple specimens is represented as distinct rows without losing sibling context.
+- [x] Resolve recollect lineage to its root, arbitrary depth, position, parent, children, and active representative; guard traversal against malformed cycles.
+- [x] Move a pending downstream decision to the deepest/current representative of its recollect chain and expose the representative UUID on the other chain members so the same ED, discharge, or OR decision is rendered exactly once.
+- [x] Batch-load result assertions, test-catalog context, and pending decisions for all selected orders/specimens rather than issuing per-row queries.
+- [x] Detect current transport timestamp coverage independently from specimen state and expose an explicit `available` or `missing` transport contract.
+- [x] Remove the optional in-transit stage and its responsive grid column when transport evidence is absent; show a degraded-mode explanation stating that the tracker does not infer a zero-minute segment.
+- [x] Calculate a selected-source freshness envelope and distinguish normal, degraded, no-data, stale, and source-error page states with written operator messages.
+- [x] Add server-side filters for specimen status, catalog test family, operational unit, order priority, rejection/recollect state, and defined age bands.
+- [x] Use opaque cursor pagination with a configurable bounded page size (maximum 50), stable next/previous cursor links, cursor-shape validation, and filter preservation between pages.
+- [x] Add strict Zod validation for the complete page/API contract and a 30-second React Query refresh using the same request parameters as the server-rendered page.
+- [x] Add Specimen Tracker beneath Laboratory Flow Board in the canonical `navigationConfig.ts` Laboratory workspace so desktop, mobile, command-palette, active-route, and local-navigation projections stay aligned.
+- [x] Build the page with the canonical dashboard/page layout, freshness badge, accessible filter and pagination labels, dual-theme healthcare tokens, responsive timeline grids, explicit empty state, and narrow-screen wrapping for long source identities.
+- [x] Declare the privacy boundary in the response: direct patient identifiers and result content are always absent; patient context is pseudonymous when permitted and redacted when the established capability is absent.
+- [x] Add focused backend and frontend coverage for timeline construction, multiple specimens per order, length-two and length-three recollect chains, single decision representation, privacy redaction, transport degradation, filters, pagination, index use, bounded query shape, route parity, validation, authentication, populated rendering, and empty rendering.
 
 **Acceptance:**
 
-- Recollect pairs and longer chains render and reconcile.
-- Filtered query plans use indexes and avoid N+1.
-- An order with multiple specimens is represented correctly.
-- Direct patient identifiers and result content remain absent.
+- [x] The fixed demo cohort returns 15 current specimens, including four rows in length-two recollect chains, three downstream decisions represented exactly once, and two orders with multiple distinct specimens.
+- [x] A synthetic three-node recollect chain resolves one root, increasing depths/positions, correct parent/child links, one active representative, and one downstream decision rendered only on that representative.
+- [x] Status, test-family, unit, priority, rejection/recollect, and age filters return the expected populations; next/previous cursors preserve deterministic ordering and malformed cursor shapes fail validation.
+- [x] PostgreSQL `EXPLAIN` uses a `lab_specimens_*_idx` access path for the filtered tracker query.
+- [x] Query count remains constant between five-row and fifteen-row page sizes and stays within the focused test budget, proving results, lineages, and decisions do not create N+1 query growth.
+- [x] Multiple specimens attached to one order remain separately addressable and retain the correct common order identity.
+- [x] Result objects contain only the approved operational keys, and service, Inertia, API, and rendered-page tests assert that clinical result values/narratives and direct patient identifiers are absent.
+- [x] Missing transport evidence hides the transit stage/column, produces the degraded explanation, and never substitutes a zero duration.
+- [x] Focused backend verification passes 4 tests and 58 assertions; the combined Specimen Tracker, Flow Board, and navigation frontend verification passes 32 tests across 3 files.
+- [x] The complete ancillary feature regression passes 149 tests and 1,928 assertions.
+- [x] TypeScript, production build, UI canon, mobile dark and desktop light browser smoke, zero horizontal overflow, and zero console/page errors pass.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system is activated by L-6.
 
 #### [ ] L-7 — Implement Decision-Pending Results at /lab/pending-decisions
 

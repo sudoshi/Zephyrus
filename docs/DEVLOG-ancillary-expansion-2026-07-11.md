@@ -1151,3 +1151,38 @@ Desktop light discharge-gate smoke, 1440x1000: HTTP 200, selected lens, visible 
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-6 is the next dependency-ordered task and will add the per-specimen tracker on the same filters, timing semantics, and privacy boundary.
+
+## 2026-07-12 — L-6 Laboratory Specimen Tracker
+
+### Outcome
+
+Implemented the authenticated Laboratory Specimen Tracker at `/lab/specimens` with a matching private `/api/lab/specimens` contract. `LabSpecimenService` owns current-window selection, server filters, deterministic cursor pagination, freshness and degraded states, accession identity, event timelines, operational result state, arbitrary-depth recollect lineage, downstream-decision deduplication, and the browser privacy projection.
+
+The tracker selects Laboratory orders from the trailing 24-hour operational window and excludes `historical_study_only` microbiology progression without deleting those Study-ready facts. Each specimen remains a distinct row even when an order has multiple specimens. Its stable ordering pair is the evidenced collection timestamp, falling back to order time, plus the numeric specimen key. Opaque next/previous cursors preserve that order and reject unexpected cursor shapes.
+
+Every row exposes source-scoped accession/specimen identities and an ordered timeline for order, collection, optional transport, receipt, rejection, recollect request, result, and verification. The transport segment is genuinely optional. When no current specimen has transit evidence, the service marks transport coverage missing, the page removes the transit stage and responsive grid column, and a written degraded-mode notice says that no zero-minute segment was inferred.
+
+Result projection is deliberately operational rather than clinical. The browser receives catalog label, result status and stage, abnormal classification, auto-verification and critical flags, result/verify/correction timestamps, and version count. It does not receive numeric or textual result values, interpretations, narratives, or raw source payloads. Direct patient identifiers are always absent. Authorized patient context uses the existing source-scoped pseudonym; roles without ancillary patient-detail capability receive a redacted label.
+
+Recollect reconciliation batch-loads all sibling specimens for the selected orders, resolves each chain's root, depth, position, parent, children, and deepest/current representative, and supports chains longer than the demo's parent/child pairs. A pending ED, discharge, or OR decision is moved to the chain representative and rendered there exactly once. Other members identify the representative without duplicating the decision. A synthetic three-node test proves that a decision originating on the rejected root follows the chain to the active leaf.
+
+Server filters cover specimen status, test family, unit, priority, rejection/recollect state, and defined age bands. Filter options and page rows are populated with bounded set queries. Results, catalog context, all sibling specimens, and pending decisions are batch-loaded; query count remains constant between five-row and fifteen-row pages. PostgreSQL `EXPLAIN` confirms an existing `lab_specimens_*_idx` access path for a filtered tracker query.
+
+The React page uses the canonical dashboard layout, freshness badge, responsive healthcare-theme tokens, accessible filter and pagination labels, explicit normal/degraded/no-data/stale/source-error messages, long-identity wrapping, strict Zod parsing, and a 30-second query refresh. `navigationConfig.ts` remains the sole navigation authority and now projects both Laboratory Flow Board and Specimen Tracker across desktop, mobile, command palette, active ownership, and local navigation.
+
+### Verification
+
+```text
+Focused Laboratory Specimen Tracker backend: 4 tests, 58 assertions, PASS
+Complete ancillary feature regression: 149 tests, 1,928 assertions, PASS
+Specimen Tracker + Flow Board + navigation Vitest: 3 files, 32 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-6 PHP implementation/tests/routes: PASS
+Mobile dark browser smoke, 390x844: HTTP 200, semantic h1/main, no overflow, no console/page errors
+Desktop light browser smoke, 1440x1000: HTTP 200, semantic h1/main, no overflow, no console/page errors
+git diff --check: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-7 is the next dependency-ordered task and can now join pending result work to the same specimen lineage and downstream-decision contract.

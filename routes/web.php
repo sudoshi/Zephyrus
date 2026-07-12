@@ -87,6 +87,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
 
         Route::prefix('lab')->name('lab.')->group(function () {
             Route::get('/', [LabController::class, 'index'])->name('flow-board');
+            Route::get('/specimens', [LabController::class, 'specimens'])->name('specimens');
         });
 
         // Improvement Routes

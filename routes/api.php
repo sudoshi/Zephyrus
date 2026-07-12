@@ -288,6 +288,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->name('
 
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.lab.')->group(function () {
     Route::get('/flow-board', [LabFlowBoardController::class, 'show'])->name('flow-board');
+    Route::get('/specimens', [LabFlowBoardController::class, 'specimens'])->name('specimens');
     Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

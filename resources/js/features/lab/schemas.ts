@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { sourceFreshnessSchema, slaDefinitionSchema } from '@/Components/Ancillary/schemas';
 
+const nullableIso = z.string().datetime({ offset: true }).nullable();
+
 const intervalSchema = z.object({
   count: z.number().int().nonnegative(),
   medianMinutes: z.number().nonnegative().nullable(),
@@ -64,3 +66,46 @@ export const labFlowBoardSchema = z.object({
 export type LabFlowBoard = z.infer<typeof labFlowBoardSchema>;
 export type LabOldestItem = LabFlowBoard['oldestItems'][number];
 export type LabBarrierReason = LabFlowBoard['barrierReasons'][number];
+
+const specimenTimelineStageSchema = z.object({
+  code: z.string(), label: z.string(), at: nullableIso, state: z.enum(['complete', 'pending', 'not_asserted', 'exception']),
+}).strict();
+
+export const labSpecimensSchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }),
+  state: z.enum(['normal', 'degraded', 'no_data', 'stale', 'source_error']), stateMessage: z.string(), freshness: sourceFreshnessSchema,
+  filters: z.object({
+    status: z.string().nullable(), testFamily: z.string().nullable(), unitId: z.number().int().positive().nullable(), priority: z.string().nullable(),
+    rejection: z.enum(['all', 'rejected', 'recollect', 'none']), age: z.enum(['all', '0_29', '30_59', '60_119', '120_plus']),
+    perPage: z.number().int().positive().max(50), cursor: z.string().nullable(),
+  }).strict(),
+  filterOptions: z.object({
+    statuses: z.array(z.string()), testFamilies: z.array(z.string()),
+    units: z.array(z.object({ unitId: z.number().int().positive(), label: z.string() }).strict()), priorities: z.array(z.string()),
+    rejections: z.array(z.string()), ageBands: z.array(z.string()),
+  }).strict(),
+  coverage: z.object({ transport: z.object({ status: z.enum(['available', 'missing']), columnVisible: z.boolean(), explanation: z.string() }).strict() }).strict(),
+  data: z.array(z.object({
+    specimenUuid: z.string().uuid(), orderUuid: z.string().uuid(),
+    accessionIdentity: z.object({ sourceSpecimenKey: z.string(), sourceAccessionKey: z.string().nullable(), sourceKey: z.string() }).strict(),
+    patientRef: z.string(), patientClass: z.string(), priority: z.string(), testFamily: z.string().nullable(), unitLabel: z.string().nullable(),
+    specimenType: z.string(), containerType: z.string().nullable(), collectorRole: z.string().nullable(), collectionMethod: z.string().nullable(),
+    status: z.string(), rejectionReasonCode: z.string().nullable(), ageMinutes: z.number().int().nonnegative(),
+    timeline: z.array(specimenTimelineStageSchema),
+    result: z.object({
+      resultUuid: z.string().uuid(), testLabel: z.string(), status: z.string(), stage: z.string(), abnormalFlag: z.string(),
+      autoVerified: z.boolean(), critical: z.boolean(), resultedAt: nullableIso, verifiedAt: nullableIso, correctedAt: nullableIso,
+      versionCount: z.number().int().positive(),
+    }).strict().nullable(),
+    chain: z.object({
+      rootSpecimenUuid: z.string().uuid(), depth: z.number().int().nonnegative(), position: z.number().int().positive(), length: z.number().int().positive(),
+      parentSpecimenUuid: z.string().uuid().nullable(), childSpecimenUuids: z.array(z.string().uuid()), representativeSpecimenUuid: z.string().uuid(),
+    }).strict(),
+    downstreamImpact: decisionContextSchema,
+    decisionRepresentedBySpecimenUuid: z.string().uuid().nullable(), sourceCutoffAt: z.string().datetime({ offset: true }),
+  }).strict()),
+  privacy: z.object({ patientContextIncluded: z.boolean(), directPatientIdentifiersIncluded: z.literal(false), resultContentIncluded: z.literal(false), identifierPolicy: z.string() }).strict(),
+  meta: z.object({ perPage: z.number().int().positive(), count: z.number().int().nonnegative(), hasMore: z.boolean(), nextCursor: z.string().nullable(), previousCursor: z.string().nullable() }).strict(),
+}).strict();
+
+export type LabSpecimens = z.infer<typeof labSpecimensSchema>;

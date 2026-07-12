@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Lab;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
+use App\Http\Requests\Lab\LabSpecimenRequest;
 use App\Http\Requests\Lab\StoreLabBarrierRequest;
 use App\Services\Lab\LabBarrierService;
 use App\Services\Lab\LabFlowBoardService;
+use App\Services\Lab\LabSpecimenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -21,5 +23,11 @@ final class LabFlowBoardController extends Controller
     public function storeBarrier(StoreLabBarrierRequest $request, LabBarrierService $barriers): JsonResponse
     {
         return response()->json(['data' => $barriers->open($request->validated(), $request)], 201);
+    }
+
+    public function specimens(LabSpecimenRequest $request, LabSpecimenService $specimens): JsonResponse
+    {
+        return response()->json($specimens->build($request->validated(), Gate::allows('viewAncillaryPatientDetail')))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 }
