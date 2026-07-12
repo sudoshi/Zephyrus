@@ -199,7 +199,7 @@ const EDDashboard = ({
                         <Section
                             title="Departmental flow"
                             icon="heroicons:arrows-right-left"
-                            summary={`${ed.throughput.today.arrivals} arrivals today · ${ed.throughput.lastHour.arrivals} last hour`}
+                            summary={`${ed.throughput.today.arrivals} arrivals · 24h · ${ed.throughput.lastHour.arrivals} last hour`}
                         >
                             <Panel className="p-4">
                                 <table className="min-w-full">
@@ -207,7 +207,7 @@ const EDDashboard = ({
                                         <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark">
                                             <th className="py-2 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Measure</th>
                                             <th className="py-2 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Last hour</th>
-                                            <th className="py-2 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Today</th>
+                                            <th className="py-2 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">24h</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">

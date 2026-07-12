@@ -251,16 +251,22 @@ class EdDashboardService
     }
 
     // -----------------------------------------------------------------------
-    // Throughput (today + last hour, anchored to wall-clock now)
+    // Throughput (rolling 24h + last hour, anchored to wall-clock now)
     // -----------------------------------------------------------------------
 
     /**
+     * Both windows are ROLLING (1h / 24h), not calendar-day: the app clock is
+     * UTC, so a "since midnight" window empties every evening local time —
+     * and for a 24/7 ED a rolling day is the more honest read anyway (no
+     * midnight reset artifact). The payload key stays `today` for the frozen
+     * page/mock shape; the page labels it "24h".
+     *
      * @return array{lastHour:array<string,int>,today:array<string,int>}
      */
     private function throughput(Carbon $now): array
     {
         $hourAgo = $now->copy()->subHour();
-        $startOfDay = $now->copy()->startOfDay();
+        $startOfDay = $now->copy()->subDay();
 
         $today = DB::table('prod.ed_visits')
             ->where('is_deleted', false)
