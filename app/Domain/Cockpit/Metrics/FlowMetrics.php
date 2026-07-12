@@ -3,12 +3,14 @@
 namespace App\Domain\Cockpit\Metrics;
 
 use App\Domain\Cockpit\SnapshotContext;
+use App\Enums\CockpitStatus;
 use App\Models\Flow\DischargeLoungeStay;
 use App\Models\Transport\TransportRequest;
 use App\Services\Cockpit\MaterializedMetricsReader;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
+use App\Services\Radiology\RadiologyCockpitHealthService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
 use App\Support\Hospital\HospitalManifest;
@@ -31,6 +33,7 @@ class FlowMetrics extends BaseMetrics
         private readonly DashboardService $dashboard,
         private readonly HospitalManifest $manifest,
         private readonly MaterializedMetricsReader $mv,
+        private readonly RadiologyCockpitHealthService $radiology,
     ) {
         parent::__construct($engine);
     }
@@ -57,6 +60,7 @@ class FlowMetrics extends BaseMetrics
         // wait at a shared hand-off, mined object-centrically and cached in
         // arena.performance_signals. Null (tile absent) whenever the Arena is off.
         $worstHandoff = $this->mv->value('flow.worst_handoff_wait');
+        $radiology = $this->radiologyHealth();
 
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
@@ -89,7 +93,91 @@ class FlowMetrics extends BaseMetrics
                 $worstHandoff,
                 ['sub' => $this->handoffContext()],
             ),
+            $radiology === null ? null : $this->radiologyMetric(
+                $ctx,
+                'flow.ancillary_rad_open_breaches',
+                $radiology['openBreaches'],
+                'Open imaging SLA breaches',
+            ),
+            $radiology === null ? null : $this->radiologyMetric(
+                $ctx,
+                'flow.ancillary_rad_oldest_unread',
+                $radiology['oldestUnread'],
+                $this->unreadContext($radiology['oldestUnread']),
+            ),
+            $radiology === null ? null : $this->radiologyMetric(
+                $ctx,
+                'flow.ancillary_rad_scanners_down',
+                $radiology['scannersDown'],
+                $radiology['scannersDown']['scannerTotal'].' active scanners',
+            ),
         ]);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function radiologyHealth(): ?array
+    {
+        try {
+            return $this->radiology->build();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function radiologyMetric(SnapshotContext $ctx, string $key, array $fact, string $context): ?MetricValue
+    {
+        $value = $fact['value'] ?? null;
+        $sourceState = (string) ($fact['sourceState'] ?? 'missing');
+        $sourceCutoffAt = $fact['sourceCutoffAt'] ?? null;
+
+        if (! is_numeric($value) || ($sourceCutoffAt === null && in_array($sourceState, ['missing', 'error'], true))) {
+            return null;
+        }
+
+        $current = $sourceState === 'fresh';
+        $sub = $current ? $context : 'Last known · '.str_replace('_', ' ', $sourceState).' · '.$context;
+        $metadata = [
+            'provenance' => 'live',
+            'dataState' => $current ? 'current' : ($sourceState === 'missing' ? 'unknown' : 'degraded'),
+            'sourceState' => $sourceState,
+            'sourceCutoffAt' => $sourceCutoffAt,
+            'sourceLabel' => (string) ($fact['sourceLabel'] ?? 'Radiology operational feeds'),
+            'workspaceHref' => '/radiology',
+        ];
+        if (isset($fact['byPriority']) && is_array($fact['byPriority'])) {
+            $metadata['unreadByPriority'] = $fact['byPriority'];
+        }
+
+        return $this->fromKey($ctx, $key, (float) $value, [
+            'display' => $this->radiologyDisplay($key, (float) $value),
+            'sub' => $sub,
+            'updatedAt' => $sourceCutoffAt ?? $ctx->nowIso,
+            'metadata' => $metadata,
+            ...($current ? [] : ['status' => CockpitStatus::NORMAL]),
+        ]);
+    }
+
+    private function radiologyDisplay(string $key, float $value): ?string
+    {
+        $count = (int) $value;
+
+        return match ($key) {
+            'flow.ancillary_rad_open_breaches' => $count.' '.($count === 1 ? 'order' : 'orders'),
+            'flow.ancillary_rad_scanners_down' => $count.' '.($count === 1 ? 'scanner' : 'scanners'),
+            default => null,
+        };
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function unreadContext(array $fact): string
+    {
+        $byPriority = collect($fact['byPriority'] ?? [])->map(
+            fn (array $row): string => strtoupper((string) $row['priority']).' '.(int) $row['count'],
+        )->implode(' · ');
+        $context = (int) ($fact['unreadCount'] ?? 0).' unread';
+
+        return $byPriority === '' ? $context : $context.' · '.$byPriority;
     }
 
     /**

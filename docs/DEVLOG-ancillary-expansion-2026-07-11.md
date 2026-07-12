@@ -713,3 +713,40 @@ git diff --check: PASS
 - R-10 must consume `cockpitHealth()` unchanged or prove any requested contract extension reconciles exactly with this workspace.
 - Critical-result contents remain out of the operations payload; the loop exposes operational class/state/timing only.
 - Full Radiology navigation ownership remains assigned to R-14.
+
+## 2026-07-12 — R-10 Radiology Health in the Server-Computed Cockpit
+
+### Outcome
+
+Added aggregate Radiology health to the existing Flow domain without introducing a client-computed or standalone Radiology tile. `RadiologyFlowBoardService::cockpitHealth()` now exposes only open-breach count, distinct active scanners down/total, source state, and source cutoffs. `RadiologyCockpitHealthService` composes that contract with the unchanged `RadiologyReadsService::cockpitHealth()` seam from R-9, preserving exact workspace ownership of unread counts, oldest age, and priority breakdown.
+
+`FlowMetrics` emits the three already-governed definitions: `flow.ancillary_rad_open_breaches`, `flow.ancillary_rad_oldest_unread`, and `flow.ancillary_rad_scanners_down`. Fresh values resolve solely through each current `ops.metric_definitions` row and `StatusEngine`. Each value carries live provenance, current/degraded/unknown data state, source label/state/cutoff, `/radiology` workspace route, and—on unread age—the exact priority breakdown. History therefore retains both the scalar and its source-quality context.
+
+Scanner-down aggregation excludes retired inventory, treats explicit scanner downtime or a currently active/scheduled downtime interval as unavailable, retains limited scanners as available, and counts distinct scanners so overlapping downtime rows cannot inflate the result. The scanner configuration cutoff is carried separately from the operational-order source cutoff.
+
+Stale, error, or degraded last-known values retain their numeric fact and cutoff but are explicitly demoted server-side to the neutral Cockpit state and labeled `Last known`. The reusable `MetricValue` data-quality override is deliberately restricted to `CockpitStatus::NORMAL`; callers cannot use it to manufacture warning, critical, or earned-green state. Missing report evidence omits the unsupported oldest-unread tile rather than writing a fabricated zero. This guarantees stale or missing evidence cannot render success.
+
+The Flow drill now begins with an `Ancillary operational health` table sourced from the exact cached Flow tiles, preserving single-snapshot discipline. Its Radiology row reconciles with the wall values and shows source state/cutoff. Laboratory and Pharmacy rows are reserved as explicit neutral/not-available entries until their later providers emit the already-seeded keys; the React `DataTable` remains purely presentational.
+
+Alert behavior remains definition-gated. All three Radiology definitions intentionally have null alert templates, so warning/critical wall values and metric-history rows do not enter the ticker. A later governed template change would activate the existing AlertEngine path without special Radiology code.
+
+### Automated evidence
+
+```text
+RadiologyCockpitMetricsTest: 4 tests, 55 assertions, PASS
+MetricValueTest + RadiologyCockpitMetricsTest: 11 tests, 75 assertions, PASS
+Cockpit + Radiology backend regression: 143 tests, 925 assertions, PASS
+Cockpit Vitest suite: 19 files, 85 tests, PASS
+Cockpit ancillary Playwright smoke: 1 test, PASS; zero console errors
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint for touched R-10 PHP/tests: PASS
+git diff --check: PASS
+```
+
+### Activation and limitations
+
+- No connector, credential, scheduler, migration, deployment, production data, Cockpit alert template, Laboratory metric provider, or Pharmacy metric provider was activated.
+- R-10 deliberately reuses the existing Flow domain and drill. Domain ordering, gauge ownership, census strip, and the frozen React cell grammar remain unchanged.
+- R-11 remains the next dependency-ordered Radiology tranche: imaging in ED and the shared RTDC discharge-readiness vector.

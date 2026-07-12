@@ -49,6 +49,36 @@ final class RadiologyFlowBoardService
         ];
     }
 
+    /**
+     * Aggregate-only contract for Cockpit consumers. Item detail remains in
+     * the Radiology workspace; this method reuses the same summary, freshness,
+     * and scanner-state calculations as the Flow Board.
+     *
+     * @return array<string, mixed>
+     */
+    public function cockpitHealth(): array
+    {
+        $summary = $this->summary($this->filters([]));
+        $freshness = $this->freshness($summary['sourceCutoffAt']);
+        $boardState = $this->boardState($summary, $freshness);
+        $scanners = $this->scannerHealth();
+
+        return [
+            'openBreaches' => $summary['openBreaches'],
+            'scannersDown' => $scanners['down'],
+            'scannerTotal' => $scanners['total'],
+            'sourceState' => match ($boardState) {
+                'source_error' => 'error',
+                'stale' => 'stale',
+                'degraded' => 'degraded',
+                'no_data' => 'missing',
+                default => 'fresh',
+            },
+            'sourceCutoffAt' => $summary['sourceCutoffAt']?->toAtomString(),
+            'scannerSourceCutoffAt' => $scanners['sourceCutoffAt'],
+        ];
+    }
+
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     private function filters(array $filters): array
     {
@@ -277,13 +307,17 @@ final class RadiologyFlowBoardService
     /** @return array<string, mixed> */
     private function scanners(): array
     {
+        $currentDowntime = DB::table('prod.rad_scanner_downtimes')
+            ->whereIn('status', ['scheduled', 'active'])
+            ->where('starts_at', '<=', now())
+            ->where(fn ($window) => $window->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+            ->selectRaw('DISTINCT ON (rad_scanner_id) rad_scanner_id, status, reason_code, ends_at')
+            ->orderBy('rad_scanner_id')
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderByDesc('starts_at');
         $rows = DB::table('prod.rad_scanners as s')
-            ->leftJoin('prod.rad_scanner_downtimes as d', function ($join): void {
-                $join->on('d.rad_scanner_id', '=', 's.rad_scanner_id')
-                    ->whereIn('d.status', ['scheduled', 'active'])
-                    ->where('d.starts_at', '<=', now())
-                    ->where(fn ($window) => $window->whereNull('d.ends_at')->orWhere('d.ends_at', '>', now()));
-            })
+            ->leftJoinSub($currentDowntime, 'd', 'd.rad_scanner_id', '=', 's.rad_scanner_id')
+            ->where('s.status', '!=', 'retired')
             ->select(['s.scanner_uuid', 's.label', 's.modality_code', 's.status', 's.capacity', 'd.status as downtime_status', 'd.reason_code', 'd.ends_at'])
             ->orderBy('s.modality_code')->orderBy('s.label')->limit(25)->get();
 
@@ -302,6 +336,37 @@ final class RadiologyFlowBoardService
             'operational' => count(array_filter($items, fn (array $item): bool => $item['state'] === 'operational')),
             'downtime' => count(array_filter($items, fn (array $item): bool => $item['state'] === 'downtime')),
             'items' => $items,
+        ];
+    }
+
+    /** @return array{total:int,down:int,sourceCutoffAt:?string} */
+    private function scannerHealth(): array
+    {
+        $row = DB::table('prod.rad_scanners as s')
+            ->where('s.status', '!=', 'retired')
+            ->selectRaw("count(DISTINCT s.rad_scanner_id) AS scanner_total,
+                count(DISTINCT s.rad_scanner_id) FILTER (WHERE s.status = 'downtime' OR EXISTS (
+                    SELECT 1 FROM prod.rad_scanner_downtimes d
+                    WHERE d.rad_scanner_id = s.rad_scanner_id
+                      AND d.status IN ('scheduled', 'active')
+                      AND d.starts_at <= ?
+                      AND (d.ends_at IS NULL OR d.ends_at > ?)
+                )) AS scanners_down,
+                max(GREATEST(s.updated_at, COALESCE((
+                    SELECT max(d.updated_at) FROM prod.rad_scanner_downtimes d
+                    WHERE d.rad_scanner_id = s.rad_scanner_id
+                      AND d.status IN ('scheduled', 'active')
+                      AND d.starts_at <= ?
+                      AND (d.ends_at IS NULL OR d.ends_at > ?)
+                ), s.updated_at))) AS scanner_source_cutoff_at", [now(), now(), now(), now()])
+            ->first();
+
+        return [
+            'total' => (int) ($row->scanner_total ?? 0),
+            'down' => (int) ($row->scanners_down ?? 0),
+            'sourceCutoffAt' => isset($row->scanner_source_cutoff_at)
+                ? CarbonImmutable::parse($row->scanner_source_cutoff_at)->toAtomString()
+                : null,
         ];
     }
 

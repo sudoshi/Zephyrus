@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-9 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-10 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 19 of 60 tasks complete; 41 remain |
+| Progress | 20 of 60 tasks complete; 40 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1078,23 +1078,27 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Page/API contracts match after JSON normalization and workspace health aggregates reconcile exactly with the future R-10 Cockpit summary seam.
 - [x] The page supplies accessible filters, chart summary table, queue table, critical-loop drills, healthcare-token chart colors, and explicit freshness/degraded-state messaging.
 
-#### [ ] R-10 — Add Radiology health metrics to the server-computed Cockpit
+#### [x] R-10 — Add Radiology health metrics to the server-computed Cockpit
 
 **Depends on:** R-6, R-9
 **Primary files:** FlowMetrics.php; CockpitKpiDefinitionSeeder.php; DrillBuilder.php; Cockpit tests
 
 **Work:**
 
-- Emit imaging open breaches, oldest unread by priority, and scanners down as Flow-domain MetricValue instances.
-- Add an ancillary health table to the Flow drill with Radiology, Lab, and Pharmacy rows as they become available.
-- Use current KPI definitions and StatusEngine; no React status math or standalone RadiologyTile.
-- Include provenance, source cutoff, and degraded/unknown behavior.
+- [x] Emit imaging open breaches, oldest unread age with priority breakdown, and distinct active scanners down as Flow-domain `MetricValue` instances from one aggregate-only Radiology contract.
+- [x] Compose the existing Flow Board `cockpitHealth()` and unchanged Reads `cockpitHealth()` seams so Cockpit cannot invent a second workspace calculation.
+- [x] Add a cached-tile ancillary health table to the Flow drill with active Radiology values and explicitly reserved Laboratory and Pharmacy rows that remain neutral/not-available until their providers ship.
+- [x] Use the seeded `flow.ancillary_rad_*` definitions and `StatusEngine`; keep all status calculation server-side and add no standalone/client-computed Radiology tile.
+- [x] Carry live provenance, workspace route, source label/state/cutoff, current/degraded/unknown data state, unread priority detail, and last-known labeling in metric metadata/subtext.
+- [x] Count active scanner downtime with a distinct aggregate so overlapping downtime records cannot double-count a scanner; exclude retired inventory and do not classify limited-capacity scanners as down.
 
 **Acceptance:**
 
-- Snapshot, metric history, alert derivation, Flow drill, and status parity tests pass.
-- Scanner-down or unread values do not enter the alert ticker unless their definition explicitly has an alert template.
-- Stale/missing data cannot render success.
+- [x] Snapshot, metric-history linkage/metadata, alert derivation, Flow drill, and definition-driven status-parity tests pass.
+- [x] Scanner-down, unread, and imaging-breach values remain absent from the alert ticker because their governed definitions have no alert template, even when their tiles are warning/critical.
+- [x] Stale/error/degraded last-known values are demoted server-side to neutral while retaining the numeric fact and cutoff; missing report evidence omits the unsupported unread metric and can never render success.
+- [x] The full Cockpit plus Radiology regression and Cockpit frontend contract suite pass without changing the existing eight-domain snapshot or cell grammar.
+- [x] Chromium browser smoke opens `/dashboard?drill=flow`, renders the semantic ancillary table and all three service rows/source-cutoff header, and reports no browser console errors.
 
 #### [ ] R-11 — Add imaging to ED and the RTDC discharge readiness vector
 

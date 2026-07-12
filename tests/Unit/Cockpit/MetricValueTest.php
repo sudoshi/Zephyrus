@@ -36,6 +36,20 @@ class MetricValueTest extends TestCase
         $this->assertSame('down', $metric->direction);
     }
 
+    public function test_server_data_quality_override_can_only_neutralize_a_last_known_value_explicitly(): void
+    {
+        $metric = MetricValue::fromDefinition(142.0, $this->nedocsDefinition(), new StatusEngine, [
+            'status' => CockpitStatus::NORMAL,
+            'sub' => 'Last known · stale',
+            'metadata' => ['dataState' => 'degraded', 'sourceState' => 'stale'],
+        ]);
+
+        $this->assertSame(CockpitStatus::NORMAL, $metric->status);
+        $this->assertSame(142.0, $metric->value);
+        $this->assertSame('Last known · stale', $metric->sub);
+        $this->assertSame('degraded', $metric->metadata['dataState']);
+    }
+
     public function test_to_array_emits_the_spec_wire_shape_with_the_logical_status_name(): void
     {
         $metric = MetricValue::fromDefinition(142.0, $this->nedocsDefinition(), new StatusEngine, [

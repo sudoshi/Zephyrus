@@ -112,7 +112,7 @@ class DrillBuilder
                 'ed' => $this->edTables(),
                 'periop' => array_values(array_filter([$this->orRoomBoard(), $this->pacuBayBoard()])),
                 'staffing' => [$this->unitCoverage()],
-                'flow' => $this->flowTables(),
+                'flow' => $this->flowTables($tiles),
                 'okr' => [$this->okrTable($tiles)],
                 default => [$this->measureLedger($domain, $tiles)],
             };
@@ -453,8 +453,9 @@ class DrillBuilder
         ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function flowTables(): array
+    /** @param list<array<string, mixed>> $tiles
+     * @return list<array<string, mixed>> */
+    private function flowTables(array $tiles): array
     {
         $measureRows = array_map(fn (array $m): array => [
             'measure' => ['v' => (string) $m['label'], 'strong' => true],
@@ -479,6 +480,7 @@ class DrillBuilder
         }
 
         return [
+            $this->ancillaryHealthTable($tiles),
             [
                 'caption' => 'Transport performance measures',
                 'columns' => [
@@ -499,6 +501,99 @@ class DrillBuilder
                 ],
                 'rows' => $evsRows,
             ],
+        ];
+    }
+
+    /**
+     * Aggregate-only ancillary rows sourced from the exact cached Flow tiles.
+     * Future Lab and Pharmacy providers populate the reserved rows by emitting
+     * their already-seeded keys; no client-side status calculation is needed.
+     *
+     * @param  list<array<string, mixed>>  $tiles
+     * @return array<string, mixed>
+     */
+    private function ancillaryHealthTable(array $tiles): array
+    {
+        $byKey = collect($tiles)->keyBy('key');
+        $departments = [
+            [
+                'label' => 'Radiology',
+                'keys' => [
+                    'flow.ancillary_rad_open_breaches',
+                    'flow.ancillary_rad_oldest_unread',
+                    'flow.ancillary_rad_scanners_down',
+                ],
+            ],
+            [
+                'label' => 'Laboratory',
+                'keys' => [
+                    'flow.ancillary_lab_stat_compliance',
+                    'flow.ancillary_lab_oldest_decision_pending',
+                    'flow.ancillary_lab_critical_callbacks',
+                ],
+            ],
+            [
+                'label' => 'Pharmacy',
+                'keys' => [
+                    'flow.ancillary_rx_verification_queue',
+                    'flow.ancillary_rx_oldest_stat',
+                    'flow.ancillary_rx_shortage_stockouts',
+                ],
+            ],
+        ];
+        $rows = [];
+
+        foreach ($departments as $department) {
+            $metrics = collect($department['keys'])->map(fn (string $key): ?array => $byKey->get($key))->filter()->values();
+            $sourceStates = $metrics->pluck('metadata.sourceState')->filter()->all();
+            $sourceState = collect(['error', 'missing', 'stale', 'degraded', 'fresh'])
+                ->first(fn (string $state): bool => in_array($state, $sourceStates, true)) ?? 'missing';
+            $cutoffs = $metrics->pluck('metadata.sourceCutoffAt')->filter()->sort()->values();
+            $logical = $metrics->pluck('status')->sortBy(fn (string $status): int => [
+                'crit' => 0, 'warn' => 1, 'watch' => 2, 'normal' => 3, 'ok' => 4,
+            ][$status] ?? 5)->first() ?? 'normal';
+            $canon = CockpitStatus::from($logical)->canon();
+
+            $rows[] = [
+                'service' => ['v' => $department['label'], 'strong' => true],
+                'measure1' => $this->ancillaryMetricCell($byKey->get($department['keys'][0])),
+                'measure2' => $this->ancillaryMetricCell($byKey->get($department['keys'][1])),
+                'measure3' => $this->ancillaryMetricCell($byKey->get($department['keys'][2])),
+                'source' => ['tag' => [
+                    'text' => $metrics->isEmpty() ? 'not available' : str_replace('_', ' ', $sourceState),
+                    'status' => $sourceState === 'fresh' ? 'success' : ($sourceState === 'stale' || $sourceState === 'error' ? 'warning' : 'neutral'),
+                ]],
+                'cutoff' => ['v' => $cutoffs->last() ?? '—', 'dim' => true],
+                'status' => ['chip' => $metrics->isEmpty() ? 'neutral' : $canon],
+            ];
+        }
+
+        return [
+            'caption' => 'Ancillary operational health',
+            'columns' => [
+                ['key' => 'service', 'header' => 'Service', 'align' => 'left'],
+                ['key' => 'measure1', 'header' => 'Open / compliance', 'align' => 'right'],
+                ['key' => 'measure2', 'header' => 'Oldest age', 'align' => 'right'],
+                ['key' => 'measure3', 'header' => 'Resource / callback', 'align' => 'right'],
+                ['key' => 'source', 'header' => 'Source', 'align' => 'left'],
+                ['key' => 'cutoff', 'header' => 'Source cutoff', 'align' => 'left'],
+                ['key' => 'status', 'header' => '', 'align' => 'right'],
+            ],
+            'rows' => $rows,
+        ];
+    }
+
+    /** @param array<string, mixed>|null $metric @return array<string, mixed> */
+    private function ancillaryMetricCell(?array $metric): array
+    {
+        if ($metric === null) {
+            return ['v' => '—', 'dim' => true];
+        }
+
+        return [
+            'v' => (string) $metric['display'],
+            'strong' => true,
+            'status' => CockpitStatus::from((string) $metric['status'])->canon(),
         ];
     }
 
