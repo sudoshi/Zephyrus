@@ -876,3 +876,43 @@ Browser evidence used only `zephyrus_test`, the canonical database seed, and `ze
 - IR room declaration and staffed operating hours remain deployment-owned metadata. An undeclared scanner or missing schedule yields no denominator rather than a generic OR-day assumption.
 - The existing single-case demo proves FCOTS, utilization, gate, provenance, and ownership behavior; multi-case turnover distributions are proven by fixed backend fixtures rather than fabricated demo cases.
 - R-14 is the next dependency-ordered Radiology tranche and will consolidate the complete Radiology route, API, navigation, policy, mobile-drawer, mega-menu, command-palette, and RTDC drill ownership evidence.
+
+## 2026-07-12 — R-14 Radiology Route, Navigation, Policy, and Handoff Ownership
+
+### Outcome
+
+Registered Radiology as a first-class operational workspace without moving or duplicating any established bookmark. The four page routes now share the stable `radiology.*` namespace and remain `/radiology`, `/radiology/worklist`, `/radiology/modality`, and `/radiology/reads`; the route group still precedes RTDC. The six read endpoints and Zephyrus-owned barrier mutation now have explicit `api.radiology.*` names while preserving their existing `web`, `auth`, and throttle middleware.
+
+`navigationConfig.ts` remains the sole navigation authority. It now declares one Radiology workspace with Imaging Flow Board as its dashboard plus Worklist, Modality Utilization, and Reads & Results operational leaves. Radiology TAT and IR Suite Utilization remain owned exactly once under Analytics. The shared section-menu renderer now suppresses any dashboard/first-leaf duplicate generically, so `/radiology` appears once without introducing Radiology-only rendering logic. Structural and rendered tests prove the same four operational leaves reach the desktop section menu, mobile drawer, and command palette.
+
+Added `viewAncillaryPatientDetail` as a distinct, minimum-necessary operational capability alongside the existing `manageAncillaryBarriers` gate. This registration is additive and does not alter the protected authentication files or authentication flow. Both Inertia and API controllers pass the capability into the Flow Board, Worklist, and Reads services. Those services retain their strict contracts but deterministically replace patient context with `Patient context restricted` and declare patient context absent when the user lacks permission. Barrier mutation remains independently authorized and audited; neither capability implies the other.
+
+The RTDC Ancillary Services contract now emits a server-owned drill only for real Imaging service rows. Its target is the existing scoped worklist bookmark with the governed unit identifier and `source=ancillary_services`. Non-Imaging rows and client fallback data receive no fabricated destination. The matrix tile, expanded service table, and unit modal expose accessible Imaging handoffs, and the destination retains the exact scope query through the browser navigation.
+
+Route registration tests lock page and API names, controller actions, authentication middleware, bookmark compatibility, and Radiology-before-RTDC ordering. Authorization tests reject anonymous access to all Radiology read APIs. Role-matrix and service tests prove patient-detail and barrier permissions remain independent and that redaction is identical across first render and API refresh. Navigation ownership tests cover the single source, generic dashboard deduplication, desktop, mobile, and command palette. RTDC backend, React, and Chromium tests prove the Imaging-only handoff and scoped destination.
+
+The combined regression exposed one pre-existing sequence-sensitive API test that assumed the next OR-case primary key would be `1`. The test now reads the actual case ID created by the request before checking the log record, preserving the contract while removing dependence on PostgreSQL sequence reset behavior.
+
+### Automated and rendered evidence
+
+```text
+Ancillary + Radiology + Cockpit + demo + API/route regression: 135 tests, 2,014 assertions, PASS
+Final RadiologyRouteRegistrationTest with source-order guard: 3 tests, 74 assertions, PASS
+Focused Radiology navigation, pages, and RTDC Vitest: 8 files, 54 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+RouteSmoke: 97 GET routes checked, 0 failures
+Laravel Pint for touched R-14 PHP/tests: PASS
+git diff --check: PASS
+Chromium R-14 smoke: 4 tests PASS; desktop, mobile, command palette, and scoped RTDC Imaging handoff
+```
+
+Browser evidence used built assets, an ephemeral application key, and only `zephyrus_test`. One temporary inpatient unit was inserted solely because the governed RTDC endpoint validates that a requested unit exists; all four browser paths then passed together. The temporary server was stopped and the fixture was deleted, with a final count of zero. No production database, connector, credential, scheduler, deployment, or external system was accessed or mutated.
+
+### Activation and limitations
+
+- No deployment, production data, connector, credential, scheduler, feature activation, or authentication-flow change was introduced.
+- Navigation visibility continues to follow the repository's existing authenticated navigation contract; R-14 establishes exact ownership and server-side capabilities but does not invent a new client entitlement system.
+- Client fallback RTDC units intentionally have no Radiology drill because their identifiers are not server-governed and may fail the worklist's unit validation.
+- R-15 is the next dependency-ordered Radiology tranche and must run the complete phase verification/release gate, including the full PHP suite, migration rehearsal, canonical demo validation, OCEL projection, and dark/light responsive screenshot evidence.

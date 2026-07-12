@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-13 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-14 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 23 of 60 tasks complete; 37 remain |
+| Progress | 24 of 60 tasks complete; 36 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1158,25 +1158,37 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] IR room denominators and operating windows are explicit.
 - [x] No copied/divergent formula exists when a shared service can own it.
 
-#### [ ] R-14 — Register Radiology routes, APIs, navigation, policies, and ownership tests
+#### [x] R-14 — Register Radiology routes, APIs, navigation, policies, and ownership tests
 
 **Depends on:** R-6 through R-13
 **Primary files:** routes/web.php; routes/api.php; navigationConfig.ts; controllers; route/nav tests
 
 **Work:**
 
-- Add the Radiology Workspace domain and all page/read API routes.
-- Add Study leaves under Analytics only.
-- Add policies/capabilities for patient-detail and barrier actions without modifying protected auth.
-- Add route smoke, controller, API auth, navigation ownership, mobile drawer, mega-menu, and command palette tests.
-- Add drill links from the RTDC Ancillary Services imaging tiles.
+- [x] Group the four existing Radiology operational bookmarks under the stable `radiology.*` route namespace without changing their URLs, controller actions, authentication middleware, or their position before the RTDC route group.
+- [x] Name every authenticated Radiology read API and the Zephyrus-owned barrier action under `api.radiology.*` while retaining the existing `web`, `auth`, and throttling middleware contract.
+- [x] Register one `RADIOLOGY` workspace domain in `navigationConfig.ts` with `/radiology` as its dashboard and exactly four operational leaves: Imaging Flow Board, Order Worklist, Modality Utilization, and Reads & Results.
+- [x] Keep Radiology TAT and IR Suite Utilization as Analytics-owned Study leaves only; do not duplicate either Study inside the Radiology workspace.
+- [x] Generalize section-menu dashboard deduplication so a domain dashboard that is also its first leaf renders once for Radiology and remains correct for every existing workspace.
+- [x] Define a minimum-necessary `viewAncillaryPatientDetail` capability separately from `manageAncillaryBarriers`, using additive gate registration outside the protected authentication files.
+- [x] Pass patient-detail authorization through both Inertia and API controllers and redact pseudonymous patient context in Flow Board, Worklist, and Reads contracts when the capability is absent.
+- [x] Preserve barrier mutation authorization as an independent capability so a user may have operational patient context without automatically gaining annotation rights, and vice versa.
+- [x] Emit server-owned, unit-scoped `/radiology/worklist?unitId=...&source=ancillary_services` drill targets for real Imaging services only; never fabricate a drill for fallback rows or non-Imaging services.
+- [x] Surface the Imaging drill consistently in the RTDC ancillary matrix, expanded table, and unit modal with accessible link text/icons and preserve the destination query string.
+- [x] Add page/API route-registration tests covering canonical names, controller ownership, middleware, stable bookmarks, and Radiology-before-RTDC ordering.
+- [x] Add anonymous API rejection, authorized API smoke, global GET route smoke, patient-redaction, independent-capability, and server-drill contract coverage.
+- [x] Add navigation single-source tests for exact ownership, dashboard deduplication, desktop section menu, mobile drawer, and command-palette parity.
+- [x] Add Chromium smoke for desktop workspace ownership, mobile parity, command-palette navigation, and the RTDC Imaging handoff into the scoped Radiology worklist.
 
 **Acceptance:**
 
-- Every route returns expected auth/feature behavior and page component.
-- No route has more than one navigation owner.
-- Desktop, mobile, and command palette all expose the same authorized leaves.
-- Existing bookmarks and RTDC route ordering remain intact.
+- [x] Every Radiology page and API route returns its expected authentication behavior, controller action, and Inertia component/API contract.
+- [x] Every Radiology operational and Study route has exactly one navigation owner; `/radiology` is not duplicated when the dashboard and first operational leaf are identical.
+- [x] Desktop section menu, mobile drawer, and command palette derive the same four authorized Radiology operational leaves from `navigationConfig.ts`.
+- [x] `/radiology`, `/radiology/worklist`, `/radiology/modality`, `/radiology/reads`, `/analytics/radiology-tat`, and `/analytics/ir-utilization` bookmarks remain unchanged, and Radiology routes remain registered before RTDC routes.
+- [x] Patient context is included only for the minimum-necessary role set and is deterministically redacted for a role without the capability; barrier mutation remains independently policy checked.
+- [x] RTDC Imaging handoff is server-owned, unit-scoped, browser-proven, and absent for non-Imaging or fallback-only rows.
+- [x] Final R-14 verification passes: 135 combined backend tests with 2,014 assertions plus the final 3-test/74-assertion route-registration guard, 54 focused frontend tests, TypeScript, production build, UI canon, route smoke over 97 GET routes, four Chromium navigation/handoff tests, Pint, and `git diff --check`.
 
 #### [ ] R-15 — Pass the Radiology phase verification and release gate
 

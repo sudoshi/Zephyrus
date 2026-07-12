@@ -275,14 +275,14 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(funct
     Route::post('/bed-requests/{bedRequestId}/decision', [BedRequestController::class, 'decision']);
 });
 
-Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->group(function () {
-    Route::get('/flow-board', [RadiologyFlowBoardController::class, 'show']);
-    Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist']);
-    Route::get('/modality', [RadiologyFlowBoardController::class, 'modality']);
-    Route::get('/reads', [RadiologyFlowBoardController::class, 'reads']);
-    Route::get('/tat', [RadiologyFlowBoardController::class, 'tat']);
-    Route::get('/ir-utilization', [RadiologyFlowBoardController::class, 'irSuite']);
-    Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier']);
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->name('api.radiology.')->group(function () {
+    Route::get('/flow-board', [RadiologyFlowBoardController::class, 'show'])->name('flow-board');
+    Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist'])->name('worklist');
+    Route::get('/modality', [RadiologyFlowBoardController::class, 'modality'])->name('modality');
+    Route::get('/reads', [RadiologyFlowBoardController::class, 'reads'])->name('reads');
+    Route::get('/tat', [RadiologyFlowBoardController::class, 'tat'])->name('tat');
+    Route::get('/ir-utilization', [RadiologyFlowBoardController::class, 'irSuite'])->name('ir-utilization');
+    Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 
 // Transport command center (web session auth)

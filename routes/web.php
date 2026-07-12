@@ -75,10 +75,14 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         }
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
 
-        Route::get('/radiology', [RadiologyController::class, 'index'])->name('radiology.flow-board');
-        Route::get('/radiology/worklist', [RadiologyController::class, 'worklist'])->name('radiology.worklist');
-        Route::get('/radiology/modality', [RadiologyController::class, 'modality'])->name('radiology.modality');
-        Route::get('/radiology/reads', [RadiologyController::class, 'reads'])->name('radiology.reads');
+        // Radiology Workspace — keep this group ahead of RTDC so existing RTDC
+        // bookmark ordering and the standalone /radiology URLs remain stable.
+        Route::prefix('radiology')->name('radiology.')->group(function () {
+            Route::get('/', [RadiologyController::class, 'index'])->name('flow-board');
+            Route::get('/worklist', [RadiologyController::class, 'worklist'])->name('worklist');
+            Route::get('/modality', [RadiologyController::class, 'modality'])->name('modality');
+            Route::get('/reads', [RadiologyController::class, 'reads'])->name('reads');
+        });
 
         // Improvement Routes
         Route::prefix('improvement')->name('improvement.')->group(function () {

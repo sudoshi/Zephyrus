@@ -55,6 +55,7 @@ export const radiologyFlowBoardSchema = z.object({
     }).strict()),
   }).strict(),
   canAnnotateBarriers: z.boolean(),
+  canViewPatientDetail: z.boolean(),
 }).strict();
 
 export type RadiologyFlowBoard = z.infer<typeof radiologyFlowBoardSchema>;
@@ -94,6 +95,7 @@ export const radiologyWorklistSchema = z.object({
     transportSegment: z.array(timelineMilestoneSchema).nullable(),
     timeline: z.object({ orderUuid: z.string().uuid(), label: z.string(), milestones: z.array(timelineMilestoneSchema), clock: selectedClockSchema.nullable(), freshness: sourceFreshnessSchema, degradedMode: z.boolean(), degradedExplanation: z.string().nullable() }).strict(),
   }).strict()),
+  privacy: z.object({ patientContextIncluded: z.boolean(), identifierPolicy: z.string() }).strict(),
   meta: z.object({ perPage: z.number().int().positive(), count: z.number().int().nonnegative(), hasMore: z.boolean(), nextCursor: z.string().nullable(), previousCursor: z.string().nullable() }).strict(),
 }).strict();
 
@@ -243,7 +245,7 @@ export const radiologyReadsSchema = z.object({
     definition: z.object({ definitionUuid: z.string().uuid(), label: z.string(), startMilestoneCode: z.string(), stopMilestoneCode: z.string(), warningMinutes: z.number().int().nonnegative().nullable(), breachMinutes: z.number().int().nonnegative().nullable() }).strict().nullable(),
     drillHref: z.string(),
   }).strict()),
-  privacy: z.object({ clinicalReportTextIncluded: z.literal(false), identifierPolicy: z.string() }).strict(),
+  privacy: z.object({ clinicalReportTextIncluded: z.literal(false), patientContextIncluded: z.boolean(), identifierPolicy: z.string() }).strict(),
 }).strict();
 
 export type RadiologyReads = z.infer<typeof radiologyReadsSchema>;

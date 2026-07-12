@@ -77,12 +77,19 @@ class RadiologyReadsTest extends TestCase
         $payload = $service->build();
 
         $this->assertSame('normal', $payload['state']);
+        $this->assertTrue($payload['privacy']['patientContextIncluded']);
         $this->assertSame(2, $payload['unread']['total']);
         $this->assertSame(205, $payload['unread']['oldestAgeMinutes']);
         $this->assertSame([
             ['state' => 'no_report', 'count' => 1], ['state' => 'preliminary', 'count' => 1],
             ['state' => 'final', 'count' => 1], ['state' => 'corrected', 'count' => 1],
         ], $payload['reportStates']);
+
+        $redacted = $service->build([], false);
+        $this->assertFalse($redacted['privacy']['patientContextIncluded']);
+        $this->assertTrue(collect($redacted['items'])->every(
+            fn (array $item): bool => $item['patientRef'] === 'Patient context restricted'
+        ));
         $this->assertSame(2, $payload['preliminaryToFinal']['count']);
         $this->assertSame(30.0, $payload['preliminaryToFinal']['medianMinutes']);
         $this->assertSame(30.0, $payload['preliminaryToFinal']['p90Minutes']);

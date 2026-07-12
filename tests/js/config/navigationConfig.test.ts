@@ -46,6 +46,7 @@ describe('navigationConfig', () => {
       'rtdc',
       'emergency',
       'perioperative',
+      'radiology',
       'transport',
       'staffing',
       'analytics',
@@ -75,6 +76,7 @@ describe('navigationConfig', () => {
       rtdc: '/rtdc/bed-tracking',
       emergency: '/ed/operations/triage',
       perioperative: '/operations/room-status',
+      radiology: '/radiology',
       transport: '/transport/dispatch',
       staffing: '/staffing',
     });
@@ -219,6 +221,33 @@ describe('navigationConfig', () => {
       expect(occurrences).toEqual(['analytics']);
       expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
     }
+  });
+
+  it('owns every Radiology workspace leaf only from the Radiology domain', () => {
+    const hrefs = ['/radiology', '/radiology/worklist', '/radiology/modality', '/radiology/reads'];
+    const radiology = NAVIGATION.find((domain) => domain.key === 'radiology')!;
+
+    expect(radiology.groups.flatMap((group) => group.items.map((item) => item.href))).toEqual(hrefs);
+    expect(domainLocalNavigation('radiology', USER_ACCESS).map((item) => item.href)).toEqual(hrefs);
+
+    for (const href of hrefs) {
+      const occurrences = NAVIGATION.flatMap((domain) =>
+        domain.groups.flatMap((group) =>
+          group.items.filter((item) => item.href === href).map(() => domain.key),
+        ),
+      );
+      expect(occurrences, href).toEqual(['radiology']);
+      expect(navigationOwners(href).map((domain) => domain.key), href).toEqual(['radiology']);
+    }
+  });
+
+  it('projects identical Radiology leaves to workspace menus and the command palette', () => {
+    const workspaceHrefs = domainLocalNavigation('radiology', USER_ACCESS).map((item) => item.href);
+    const paletteHrefs = flattenNavigation(USER_ACCESS)
+      .filter((entry) => entry.group === 'Radiology Operations')
+      .map((entry) => entry.href);
+
+    expect(paletteHrefs).toEqual(workspaceHrefs);
   });
 
   it('keeps administration in user-menu/palette projections only', () => {

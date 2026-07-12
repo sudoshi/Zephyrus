@@ -16,8 +16,11 @@ final class RadiologyFlowBoardService
     public function __construct(private readonly AncillaryContractSerializer $contracts) {}
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
-    public function build(array $filters = [], bool $canAnnotateBarriers = false): array
-    {
+    public function build(
+        array $filters = [],
+        bool $canAnnotateBarriers = false,
+        bool $canViewPatientDetail = true,
+    ): array {
         $filters = $this->filters($filters);
         $thresholds = $this->thresholds();
         $summary = $this->summary($filters);
@@ -40,12 +43,13 @@ final class RadiologyFlowBoardService
             ],
             'thresholds' => $thresholds,
             'heatmap' => $this->heatmap($filters, $state, $thresholds),
-            'oldestItems' => $this->oldestItems($filters, $thresholds),
+            'oldestItems' => $this->oldestItems($filters, $thresholds, $canViewPatientDetail),
             'worklistHref' => '/radiology/worklist?'.http_build_query(array_filter($filters, fn (mixed $value): bool => $value !== null && $value !== 'all')),
             'barrierPareto' => $this->barrierPareto($filters),
             'barrierReasons' => $this->barrierReasons(),
             'scanners' => $this->scanners(),
             'canAnnotateBarriers' => $canAnnotateBarriers,
+            'canViewPatientDetail' => $canViewPatientDetail,
         ];
     }
 
@@ -246,7 +250,7 @@ final class RadiologyFlowBoardService
     }
 
     /** @param array<string, mixed> $filters @param array<string, mixed> $thresholds @return list<array<string, mixed>> */
-    private function oldestItems(array $filters, array $thresholds): array
+    private function oldestItems(array $filters, array $thresholds, bool $canViewPatientDetail): array
     {
         $rows = $this->baseQuery($filters)
             ->select(['o.ancillary_order_id', 'o.order_uuid', 'o.encounter_id', 'o.patient_ref', 'o.patient_class', 'o.priority', 'o.ordered_at', 'o.source_cutoff_at', 'o.current_state', 'o.current_milestone_code', 'u.name as unit_name', 'x.modality_code', 'x.procedure_label'])
@@ -255,7 +259,7 @@ final class RadiologyFlowBoardService
             ->selectRaw("(SELECT count(*) FROM prod.barriers br WHERE br.status = 'open' AND br.is_deleted = false AND br.encounter_id = o.encounter_id) AS barrier_count")
             ->orderBy('o.ordered_at')->orderBy('o.ancillary_order_id')->limit(5)->get();
 
-        return $rows->map(function (object $row) use ($thresholds): array {
+        return $rows->map(function (object $row) use ($thresholds, $canViewPatientDetail): array {
             $age = max(0, (int) floor((float) $row->age_minutes));
             $status = match (true) {
                 (bool) $row->breached || ($thresholds['breachMinutes'] !== null && $age >= $thresholds['breachMinutes']) => 'breach',
@@ -268,7 +272,9 @@ final class RadiologyFlowBoardService
                 'orderId' => (int) $row->ancillary_order_id,
                 'orderUuid' => (string) $row->order_uuid,
                 'label' => $row->procedure_label ?: (($row->modality_code ?: 'Unknown modality').' imaging'),
-                'patientRef' => $row->patient_ref ?: 'Pseudonymous patient unavailable',
+                'patientRef' => $canViewPatientDetail
+                    ? ($row->patient_ref ?: 'Pseudonymous patient unavailable')
+                    : 'Patient context restricted',
                 'patientClass' => (string) $row->patient_class,
                 'priority' => (string) $row->priority,
                 'modality' => $row->modality_code,

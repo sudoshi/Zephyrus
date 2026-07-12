@@ -59,6 +59,24 @@ test.describe('Top Navigation', () => {
     );
   });
 
+  test('Radiology workspace exposes each operational leaf from one desktop domain', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    await page.getByRole('button', { name: 'Workspaces' }).click();
+    await page.getByRole('tab', { name: 'Radiology' }).click();
+
+    const expected = [
+      ['Imaging Flow Board', '/radiology'],
+      ['Order Worklist', '/radiology/worklist'],
+      ['Modality Utilization', '/radiology/modality'],
+      ['Reads & Results', '/radiology/reads'],
+    ] as const;
+    for (const [label, href] of expected) {
+      await expect(page.getByRole('link', { name: label })).toHaveAttribute('href', href);
+    }
+    await expect(page.locator('a[href="/radiology"]')).toHaveCount(1);
+  });
+
   // P4a (D4): the legacy overview bookmarks are permanent redirects into the
   // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
   test('legacy perioperative overview redirects into the periop drill', async ({ page, request }) => {
@@ -119,6 +137,18 @@ test.describe('Command Palette', () => {
 
     await expect(page).toHaveURL(/\/rtdc\/bed-placement/);
   });
+
+  test('finds and opens a Radiology workspace leaf', async ({ page }) => {
+    await page.keyboard.press('Meta+k');
+    const commandInput = page.locator('[placeholder*="Search"], [placeholder*="search"]');
+    await commandInput.fill('reads results');
+
+    const result = page.getByRole('option', { name: /reads & results/i }).first();
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/radiology\/reads/);
+  });
 });
 
 test.describe('Mobile Navigation', () => {
@@ -144,6 +174,16 @@ test.describe('Mobile Navigation', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('mobile drawer exposes the same Radiology workspace leaves', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open main navigation' }).click();
+    await page.getByRole('button', { name: 'Radiology' }).click();
+
+    await expect(page.getByRole('link', { name: 'Imaging Flow Board' })).toHaveAttribute('href', '/radiology');
+    await expect(page.getByRole('link', { name: 'Order Worklist' })).toHaveAttribute('href', '/radiology/worklist');
+    await expect(page.getByRole('link', { name: 'Modality Utilization' })).toHaveAttribute('href', '/radiology/modality');
+    await expect(page.getByRole('link', { name: 'Reads & Results' })).toHaveAttribute('href', '/radiology/reads');
+  });
+
   test('mobile command search is accessible', async ({ page }) => {
     await page.getByRole('button', { name: /search/i }).click();
 
@@ -151,6 +191,27 @@ test.describe('Mobile Navigation', () => {
     await expect(commandInput).toBeVisible({ timeout: 5000 });
     await commandInput.fill('rtdc');
     await expect(page.getByRole('option', { name: /rtdc/i }).first()).toBeVisible();
+  });
+});
+
+test.describe('RTDC ancillary handoff', () => {
+  test('imaging tile drills into the unit-scoped Radiology worklist', async ({ page }) => {
+    await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: 'Matrix' }).click();
+
+    const drill = page.getByRole('link', { name: /Open .* Radiology worklist for/i }).first();
+    await expect(drill).toBeVisible();
+    await expect(drill).toHaveAttribute(
+      'href',
+      /\/radiology\/worklist\?unitId=\d+&source=ancillary_services/,
+    );
+    const href = await drill.getAttribute('href');
+    expect(href).not.toBeNull();
+    await page.goto(href as string, { waitUntil: 'domcontentloaded' });
+
+    await expect(page).toHaveURL(/\/radiology\/worklist\?unitId=\d+&source=ancillary_services/);
+    await expect(page.getByRole('heading', { name: 'Radiology Order Worklist' })).toBeVisible();
   });
 });
 

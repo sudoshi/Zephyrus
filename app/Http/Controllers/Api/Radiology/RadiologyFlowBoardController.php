@@ -24,7 +24,11 @@ class RadiologyFlowBoardController extends Controller
 {
     public function show(RadiologyFlowBoardRequest $request, RadiologyFlowBoardService $flowBoard): JsonResponse
     {
-        return response()->json($flowBoard->build($request->validated(), Gate::allows('manageAncillaryBarriers')))
+        return response()->json($flowBoard->build(
+            $request->validated(),
+            Gate::allows('manageAncillaryBarriers'),
+            Gate::allows('viewAncillaryPatientDetail'),
+        ))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
@@ -35,7 +39,10 @@ class RadiologyFlowBoardController extends Controller
 
     public function worklist(RadiologyWorklistRequest $request, RadiologyWorklistService $worklist): JsonResponse
     {
-        return response()->json($worklist->build($request->validated()))
+        return response()->json($worklist->build(
+            $request->validated(),
+            Gate::allows('viewAncillaryPatientDetail'),
+        ))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
@@ -47,7 +54,10 @@ class RadiologyFlowBoardController extends Controller
 
     public function reads(RadiologyReadsRequest $request, RadiologyReadsService $reads): JsonResponse
     {
-        return response()->json($reads->build($request->validated()))
+        return response()->json($reads->build(
+            $request->validated(),
+            Gate::allows('viewAncillaryPatientDetail'),
+        ))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 

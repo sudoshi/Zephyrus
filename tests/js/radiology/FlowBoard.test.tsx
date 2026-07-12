@@ -36,6 +36,7 @@ function board(overrides: Partial<RadiologyFlowBoard> = {}): RadiologyFlowBoard 
     barrierReasons: [{ reasonCode: 'RAD_READ_QUEUE', category: 'medical', label: 'Interpretation queue delay' }],
     scanners: { total: 1, operational: 0, downtime: 1, items: [{ scannerUuid: '22222222-2222-4222-8222-222222222222', label: 'DEMO-CT-1', modality: 'CT', capacity: 1, state: 'downtime', reasonCode: 'UNPLANNED_SERVICE', downtimeEndsAt: '2026-07-11T14:30:00+00:00' }] },
     canAnnotateBarriers: true,
+    canViewPatientDetail: true,
     ...overrides,
   });
 }

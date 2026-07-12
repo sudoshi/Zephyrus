@@ -126,6 +126,37 @@ class AuthServiceProvider extends ServiceProvider
     ];
 
     /**
+     * Roles permitted to receive the minimum-necessary pseudonymous patient
+     * context carried by ancillary operational worklists. Aggregate Study
+     * pages never return patient context regardless of this capability.
+     *
+     * @var list<string>
+     */
+    private const ANCILLARY_PATIENT_DETAIL_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'bed_manager',
+        'house_supervisor',
+        'capacity_lead',
+        'charge_nurse',
+        'hospitalist',
+        'emergency_physician',
+        'emergency_nurse',
+        'case_manager',
+        'discharge_coordinator',
+        'periop_manager',
+        'or_nurse',
+        'radiology_manager',
+        'radiologist',
+        'radiologic_technologist',
+        'ct_technologist',
+        'mri_technologist',
+        'sonographer',
+    ];
+
+    /**
      * Register any authentication / authorization services.
      */
     public function boot(): void
@@ -194,6 +225,12 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manageAncillaryBarriers', fn (User $user): bool => in_array(
             self::canonicalRole((string) $user->role),
             self::ANCILLARY_BARRIER_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
+
+        Gate::define('viewAncillaryPatientDetail', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::ANCILLARY_PATIENT_DETAIL_ROLES,
             true,
         ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
     }

@@ -66,6 +66,19 @@ class RadiologyFlowBoardTest extends TestCase
             ->assertOk()->assertExactJson($expected);
     }
 
+    public function test_patient_context_is_redacted_when_the_role_lacks_the_detail_capability(): void
+    {
+        $frontline = User::factory()->create(['role' => 'user', 'must_change_password' => false]);
+
+        $response = $this->actingAs($frontline)->getJson('/api/radiology/flow-board?lens=discharge')
+            ->assertOk()
+            ->assertJsonPath('canViewPatientDetail', false)
+            ->assertJsonPath('canAnnotateBarriers', false)
+            ->assertJsonPath('oldestItems.0.patientRef', 'Patient context restricted');
+
+        $this->assertStringNotContainsString('demo-patient', $response->getContent());
+    }
+
     public function test_barrier_annotation_is_policy_checked_linked_audited_and_visible_to_improvement(): void
     {
         $order = AncillaryOrder::query()->where('department', 'rad')->dischargeBlocking()->firstOrFail();

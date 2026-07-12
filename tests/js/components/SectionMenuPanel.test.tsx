@@ -25,11 +25,22 @@ describe('SectionMenuPanel', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: 'Transport' }));
-    expect(screen.getByRole('link', { name: 'Dispatch Board' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Dispatch' })).toHaveAttribute(
       'href',
       '/transport/dispatch',
     );
     expect(screen.queryByRole('link', { name: 'Integrations' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Radiology' }));
+    expect(screen.getByRole('link', { name: 'Imaging Flow Board' })).toHaveAttribute(
+      'href',
+      '/radiology',
+    );
+    expect(screen.getByRole('link', { name: 'Reads & Results' })).toHaveAttribute(
+      'href',
+      '/radiology/reads',
+    );
+    expect(document.querySelectorAll('a[href="/radiology"]')).toHaveLength(1);
   });
 
   it('supports arrow-key navigation across workspace tabs', () => {
@@ -47,7 +58,7 @@ describe('SectionMenuPanel', () => {
     });
 
     expect(screen.getByRole('tab', { name: 'Emergency' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('link', { name: 'ED Triage Board' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Triage' })).toHaveAttribute(
       'href',
       '/ed/operations/triage',
     );

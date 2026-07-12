@@ -19,14 +19,21 @@ class RadiologyController extends Controller
     public function index(RadiologyFlowBoardRequest $request, RadiologyFlowBoardService $flowBoard): Response
     {
         return Inertia::render('Radiology/FlowBoard', [
-            'flowBoard' => $flowBoard->build($request->validated(), Gate::allows('manageAncillaryBarriers')),
+            'flowBoard' => $flowBoard->build(
+                $request->validated(),
+                Gate::allows('manageAncillaryBarriers'),
+                Gate::allows('viewAncillaryPatientDetail'),
+            ),
         ]);
     }
 
     public function worklist(RadiologyWorklistRequest $request, RadiologyWorklistService $worklist): Response
     {
         return Inertia::render('Radiology/Worklist', [
-            'worklist' => $worklist->build($request->validated()),
+            'worklist' => $worklist->build(
+                $request->validated(),
+                Gate::allows('viewAncillaryPatientDetail'),
+            ),
         ]);
     }
 
@@ -40,7 +47,10 @@ class RadiologyController extends Controller
     public function reads(RadiologyReadsRequest $request, RadiologyReadsService $reads): Response
     {
         return Inertia::render('Radiology/Reads', [
-            'radiologyReads' => $reads->build($request->validated()),
+            'radiologyReads' => $reads->build(
+                $request->validated(),
+                Gate::allows('viewAncillaryPatientDetail'),
+            ),
         ]);
     }
 }

@@ -21,6 +21,24 @@ describe('MobileNavDrawer', () => {
       '/rtdc/patient-flow-navigator',
     );
     expect(screen.queryByRole('button', { name: 'Patient Flow' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Radiology' }));
+    expect(screen.getByRole('link', { name: 'Imaging Flow Board' })).toHaveAttribute(
+      'href',
+      '/radiology',
+    );
+    expect(screen.getByRole('link', { name: 'Order Worklist' })).toHaveAttribute(
+      'href',
+      '/radiology/worklist',
+    );
+    expect(screen.getByRole('link', { name: 'Modality Utilization' })).toHaveAttribute(
+      'href',
+      '/radiology/modality',
+    );
+    expect(screen.getByRole('link', { name: 'Reads & Results' })).toHaveAttribute(
+      'href',
+      '/radiology/reads',
+    );
   });
 
   it('closes with Escape and returns focus to the trigger', async () => {

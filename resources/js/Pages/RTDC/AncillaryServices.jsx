@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import { Section, MetricGrid, Panel, metric } from '@/Components/system';
 import {
@@ -36,6 +37,14 @@ const formatConfiguredAverage = (value) => {
     const minutes = Number.parseFloat(value);
 
     return Number.isFinite(minutes) ? formatDurationMinutes(minutes) : value;
+};
+
+const radiologyDrillHref = (serviceInfo, service) => {
+    if (serviceInfo?.category !== 'imaging') return null;
+
+    // Only server-owned units can satisfy the worklist's exists:prod.units
+    // validation. The legacy client fallback is intentionally non-drillable.
+    return service?.drillHref ?? null;
 };
 
 const AncillaryServices = ({ unitServices = null }) => {
@@ -202,6 +211,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                 const serviceInfo = services.find(
                                                     (s) => s.id === serviceId
                                                 );
+                                                const drillHref = radiologyDrillHref(serviceInfo, service);
                                                 return (
                                                     <div
                                                         key={serviceId}
@@ -210,6 +220,11 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                         )} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group/service`}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            if (drillHref) {
+                                                                router.visit(drillHref);
+
+                                                                return;
+                                                            }
                                                             setExpandedService(
                                                                 expandedService === serviceId ? null : serviceId
                                                             );
@@ -232,6 +247,16 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                             <span className="whitespace-nowrap text-sm font-semibold tabular-nums">
                                                                 {formatMinutes(service.value)}
                                                             </span>
+                                                            {drillHref && (
+                                                                <a
+                                                                    href={drillHref}
+                                                                    aria-label={`Open ${serviceInfo?.name ?? serviceId} Radiology worklist for ${unit.name}`}
+                                                                    title="Open Radiology worklist"
+                                                                    className="rounded p-1 hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-healthcare-info dark:hover:bg-white/10"
+                                                                >
+                                                                    <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />
+                                                                </a>
+                                                            )}
                                                         </div>
 
                                                         {/* Tooltip */}
@@ -362,6 +387,15 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                                 <strong>Criteria:</strong>{' '}
                                                                 {serviceInfo?.criteria.join(', ')}
                                                             </p>
+                                                            {radiologyDrillHref(serviceInfo, service) && (
+                                                                <a
+                                                                    href={radiologyDrillHref(serviceInfo, service)}
+                                                                    className="inline-flex items-center gap-1 text-sm font-medium text-healthcare-primary hover:underline"
+                                                                >
+                                                                    Open Radiology worklist
+                                                                    <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />
+                                                                </a>
+                                                            )}
                                                             {showTrends && (
                                                             <div className="mt-4">
                                                                 <TrendChart
@@ -539,6 +573,15 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                         <strong>Criteria:</strong>{' '}
                                                         {serviceInfo?.criteria.join(', ')}
                                                     </p>
+                                                    {radiologyDrillHref(serviceInfo, service) && (
+                                                        <a
+                                                            href={radiologyDrillHref(serviceInfo, service)}
+                                                            className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-healthcare-primary hover:underline"
+                                                        >
+                                                            Open Radiology worklist
+                                                            <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />
+                                                        </a>
+                                                    )}
                                                     {showTrends && renderTrendChart(service)}
                                                 </Panel>
                                             );

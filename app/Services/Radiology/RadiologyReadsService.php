@@ -25,7 +25,7 @@ final class RadiologyReadsService
     ) {}
 
     /** @param array<string, mixed> $input @return array<string, mixed> */
-    public function build(array $input = []): array
+    public function build(array $input = [], bool $canViewPatientDetail = true): array
     {
         $filters = $this->filters($input);
         $rows = $this->cohort($filters);
@@ -52,10 +52,13 @@ final class RadiologyReadsService
             'backlog' => $backlog,
             'preliminaryToFinal' => $aging,
             'criticalLoops' => $critical,
-            'items' => $this->items($rows, $filters, $source['state']),
+            'items' => $this->items($rows, $filters, $source['state'], $canViewPatientDetail),
             'privacy' => [
                 'clinicalReportTextIncluded' => false,
-                'identifierPolicy' => 'Only source-scoped pseudonymous operational identifiers and UUIDs are returned.',
+                'patientContextIncluded' => $canViewPatientDetail,
+                'identifierPolicy' => $canViewPatientDetail
+                    ? 'Only source-scoped pseudonymous operational identifiers and UUIDs are returned.'
+                    : 'Patient context is redacted because the current role lacks the ancillary patient-detail capability.',
             ],
         ];
     }
@@ -390,7 +393,7 @@ final class RadiologyReadsService
     }
 
     /** @param Collection<int, object> $rows @param array<string, mixed> $filters @return list<array<string, mixed>> */
-    private function items(Collection $rows, array $filters, string $sourceState): array
+    private function items(Collection $rows, array $filters, string $sourceState, bool $canViewPatientDetail): array
     {
         $definitions = AncillarySlaDefinition::query()->activeAt(now())->where('department', 'rad')
             ->where('stop_milestone_code', 'RAD_FINAL')->where('statistic', 'item_clock')->get();
@@ -398,7 +401,7 @@ final class RadiologyReadsService
             $state = $this->reportState($row);
 
             return $filters['state'] === 'unread' ? in_array($state, ['no_report', 'preliminary'], true) : $state === $filters['state'];
-        })->map(function (object $row) use ($definitions, $sourceState): array {
+        })->map(function (object $row) use ($definitions, $sourceState, $canViewPatientDetail): array {
             $reportState = $this->reportState($row);
             $definition = $this->definitionFor($definitions, $row);
             $clockStart = match ($definition?->start_milestone_code) {
@@ -421,7 +424,9 @@ final class RadiologyReadsService
             return [
                 'examUuid' => (string) $row->exam_uuid,
                 'orderUuid' => (string) $row->order_uuid,
-                'patientRef' => $row->patient_ref ?: 'Pseudonymous patient unavailable',
+                'patientRef' => $canViewPatientDetail
+                    ? ($row->patient_ref ?: 'Pseudonymous patient unavailable')
+                    : 'Patient context restricted',
                 'label' => $row->procedure_label ?: (($row->modality_code ?: 'Unknown modality').' imaging'),
                 'priority' => (string) $row->priority,
                 'patientClass' => (string) $row->patient_class,

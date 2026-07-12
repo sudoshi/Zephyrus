@@ -22,10 +22,10 @@ final class RadiologyWorklistService
     ) {}
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
-    public function build(array $filters = []): array
+    public function build(array $filters = [], bool $canViewPatientDetail = true): array
     {
         $filters = $this->filters($filters);
-        $context = $this->flowBoard->build($filters);
+        $context = $this->flowBoard->build($filters, false, $canViewPatientDetail);
         $query = $this->query($filters);
         $cursor = $this->cursor($filters['cursor']);
         $page = $query->cursorPaginate($filters['perPage'], ['*'], 'cursor', $cursor);
@@ -45,7 +45,13 @@ final class RadiologyWorklistService
                 'enabled' => false,
                 'explanation' => 'Breach-risk ordering uses current governed breach state and age only; predictive scoring remains disabled until P4-1.',
             ],
-            'data' => $this->serializeRows($rows, $context),
+            'data' => $this->serializeRows($rows, $context, $canViewPatientDetail),
+            'privacy' => [
+                'patientContextIncluded' => $canViewPatientDetail,
+                'identifierPolicy' => $canViewPatientDetail
+                    ? 'Minimum-necessary source-scoped pseudonymous patient context is included for an authorized operational role.'
+                    : 'Patient context is redacted because the current role lacks the ancillary patient-detail capability.',
+            ],
             'meta' => [
                 'perPage' => $page->perPage(),
                 'count' => $page->count(),
@@ -179,7 +185,7 @@ final class RadiologyWorklistService
     }
 
     /** @param Collection<int, object> $rows @param array<string, mixed> $context @return list<array<string, mixed>> */
-    private function serializeRows(Collection $rows, array $context): array
+    private function serializeRows(Collection $rows, array $context, bool $canViewPatientDetail): array
     {
         if ($rows->isEmpty()) {
             return [];
@@ -198,7 +204,7 @@ final class RadiologyWorklistService
             ->whereIn('b.encounter_id', $encounterIds)->where('b.status', 'open')->where('b.is_deleted', false)
             ->get(['b.barrier_id', 'b.encounter_id', 'b.reason_code', 'b.owner', 'b.opened_at', 'r.label'])->groupBy('encounter_id');
 
-        return $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context, $imagingByOrder): array {
+        return $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context, $imagingByOrder, $canViewPatientDetail): array {
             $orderAssertions = $assertions->get($row->ancillary_order_id, collect());
             $selectedByCode = $orderAssertions->groupBy('milestone_code')->map(function (Collection $group) use ($row, $selected): ?object {
                 $current = $selected->get($row->ancillary_order_id.'|'.$group->first()->milestone_code);
@@ -241,7 +247,9 @@ final class RadiologyWorklistService
                 'orderId' => (int) $row->ancillary_order_id,
                 'orderUuid' => (string) $row->order_uuid,
                 'label' => $row->procedure_label ?: (($row->modality_code ?: 'Unknown modality').' imaging'),
-                'patientRef' => $row->patient_ref ?: 'Pseudonymous patient unavailable',
+                'patientRef' => $canViewPatientDetail
+                    ? ($row->patient_ref ?: 'Pseudonymous patient unavailable')
+                    : 'Patient context restricted',
                 'patientClass' => (string) $row->patient_class,
                 'priority' => (string) $row->priority,
                 'modality' => $row->modality_code,

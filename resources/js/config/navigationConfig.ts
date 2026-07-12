@@ -35,6 +35,7 @@ import {
   RefreshCcw,
   Repeat,
   Route,
+  ScanLine,
   Search,
   ScrollText,
   Shield,
@@ -214,6 +215,26 @@ const PERIOPERATIVE: NavDomain = {
         { label: 'Utilization Forecast', href: '/predictions/forecast', icon: LineChart },
         { label: 'Demand Analysis', href: '/predictions/demand', icon: PieChart },
         { label: 'Resource Planning', href: '/predictions/resources', icon: Boxes },
+      ],
+    },
+  ],
+};
+
+const RADIOLOGY: NavDomain = {
+  key: 'radiology',
+  label: 'Radiology',
+  icon: ScanLine,
+  dashboardHref: '/radiology',
+  dashboardLabel: 'Imaging Flow Board',
+  matchPrefixes: ['/radiology'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Imaging Flow Board', href: '/radiology', icon: Activity },
+        { label: 'Order Worklist', href: '/radiology/worklist', icon: ClipboardList },
+        { label: 'Modality Utilization', href: '/radiology/modality', icon: ScanLine },
+        { label: 'Reads & Results', href: '/radiology/reads', icon: FileText },
       ],
     },
   ],
@@ -444,7 +465,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, TRANSPORT, STAFFING],
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, TRANSPORT, STAFFING],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

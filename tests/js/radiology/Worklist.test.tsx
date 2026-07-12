@@ -34,6 +34,7 @@ function payload(overrides: Partial<RadiologyWorklist> = {}): RadiologyWorklist 
       transportSegment: [transport],
       timeline: { orderUuid: '11111111-1111-4111-8111-111111111111', label: 'Discharge-pending chest CT', milestones: [ordered, transport, final], clock: { metricKey: 'rad.ed_image_final', label: 'ED images available to final', state: 'complete', startMilestoneCode: 'RAD_IMAGES_AVAILABLE', stopMilestoneCode: 'RAD_FINAL', startedAt: '2026-07-11T12:40:00+00:00', stoppedAt: '2026-07-11T13:00:00+00:00', elapsedMinutes: 20, warningMinutes: 30, breachMinutes: 60, definitionUuid: '44444444-4444-4444-8444-444444444444' }, freshness, degradedMode: false, degradedExplanation: null },
     }],
+    privacy: { patientContextIncluded: true, identifierPolicy: 'Authorized pseudonymous patient context.' },
     meta: { perPage: 1, count: 1, hasMore: true, nextCursor: 'next-cursor', previousCursor: null },
     ...overrides,
   });

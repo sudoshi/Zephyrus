@@ -105,6 +105,20 @@ class RadiologyWorklistTest extends TestCase
         $this->actingAs($user)->getJson('/api/radiology/worklist?cursor=not-a-cursor')->assertUnprocessable();
     }
 
+    public function test_worklist_redacts_patient_context_for_roles_without_detail_access(): void
+    {
+        $frontline = User::factory()->create(['role' => 'user', 'must_change_password' => false]);
+        $payload = $this->actingAs($frontline)->getJson('/api/radiology/worklist?perPage=50')
+            ->assertOk()
+            ->assertJsonPath('privacy.patientContextIncluded', false)
+            ->json();
+
+        $this->assertNotEmpty($payload['data']);
+        $this->assertTrue(collect($payload['data'])->every(
+            fn (array $row): bool => $row['patientRef'] === 'Patient context restricted'
+        ));
+    }
+
     public function test_large_fixture_query_count_is_constant_and_open_index_is_usable(): void
     {
         $sourceId = DB::table('integration.sources')->where('source_key', 'demo.ancillary.rad.primary')->value('source_id');
