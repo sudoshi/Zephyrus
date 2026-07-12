@@ -1038,3 +1038,35 @@ Canonical direct-identifier and OBX-value exclusion checks: PASS
 ```
 
 No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-3 is the next dependency-ordered task and will add result/version/correction, rejection/recollect, microbiology progression, and critical-flag projection on top of these stable order/specimen identities.
+
+## 2026-07-12 — L-3 Laboratory Results, Rework, Microbiology, and Critical Callbacks
+
+### Outcome
+
+Completed governed Laboratory result ingestion for HL7 v2 ORU and FHIR Observation/DiagnosticReport resources. The result normalizers sit ahead of the L-2 ORU fallback only when a message explicitly carries result status, OBR-14 receipt/status, SPM rejection, or SPM parent/recollect evidence. A collection-only ORU remains on L-2, preserving its exact replay and no-fabrication contract.
+
+Each ORU OBR group now expands independently into collection, receipt, rejection/recollect, and one or more OBX result assertions. P/I/S emits preliminary; R emits resulted without claiming verification; F emits separate resulted and verified assertions; C appends a corrected result version; and D/X represents cancellation. OBR-7/SPM-17, OBR-14, OBX-14, OBX-19, OBR-22, and MSH fallback clocks retain their explicit source. The projector resolves the active governed local/LOINC catalog, links the projected specimen, and stores only operational status, stage, abnormal/critical flags, analyzer/middleware, auto-verification evidence, and timestamps.
+
+Corrected results are append-only. A corrected key/version must find an earlier result with the same source key, and the new row links it through `parent_lab_result_id`. The original final row and timestamps remain unchanged. An orphan correction fails closed and is dead-lettered. Exact inbound replay does not add facts, milestones, or provenance.
+
+Hemolysis uses SPM-21 to reject the original specimen, retain its collection/receipt history, and emit `LAB_REJECTED`. A child SPM with the original parent identity emits `LAB_RECOLLECT_ORDERED`, advances the rejected parent to recollect-requested, and creates a distinct pending child. The child does not inherit the original OBR-7 collection clock. Microbiology uses one stable source-result key with four appended versions for preliminary, organism identification, susceptibility, and final rather than flattening a multi-day process into one mutable status.
+
+Critical flags and communication are deliberately separate. HH/LL/AA/critical interpretation creates a pending `lab_critical_values` row with `notification_asserted=false`; it does not emit callback milestones. Explicit governed structured notification and acknowledgement events carry source-result/version identity and advance the callback fact with chronological guards. Existing milestone-only demo events remain valid and bypass the satellite projector unless result detail is present.
+
+FHIR Observation and DiagnosticReport map basedOn ServiceRequest, Specimen, local/LOINC code, effective/issued time, status/version, interpretation, analyzer device, and explicit auto-verification/microbiology extensions. Final resources emit resulted plus verified assertions; corrected resources append parented versions. Observation values, DiagnosticReport conclusion text, and HL7 OBX-5 values are never copied into canonical events or satellite facts.
+
+### Verification
+
+```text
+Focused L-3 ingestion: 7 tests, 109 assertions, PASS
+Complete ancillary feature regression: 141 tests, 1,813 assertions, PASS
+Hand-calculated STAT TAT: 25m order-verify, 8m collect-receive, 15m receive-result, PASS
+Explicit critical callback: 2m notify-ack with flag-only separation, PASS
+Corrected HL7/FHIR parent lineage and orphan-correction refusal: PASS
+Four-stage microbiology version history: PASS
+Multi-OBX local/LOINC catalog isolation and replay: PASS
+Clinical value/conclusion exclusion checks: PASS
+Existing milestone-only critical demo compatibility: PASS
+```
+
+No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-4 is the next dependency-ordered task and will generate coherent Laboratory, AP, microbiology, and Blood Bank demo facts on these now-proven contracts.

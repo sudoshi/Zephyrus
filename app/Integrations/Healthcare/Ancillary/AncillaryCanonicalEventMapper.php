@@ -59,6 +59,13 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'collector_ref', 'collection_method', 'collected_at', 'specimen_status',
             'collection_source', 'specimens',
             'ordered_at_source',
+            'source_result_version', 'result_status', 'result_stage', 'abnormal_flag',
+            'auto_verified', 'is_critical', 'analyzer_ref', 'observed_at', 'resulted_at',
+            'middleware_ref',
+            'verified_at', 'critical_identified_at', 'result_time_source', 'obx_set_id',
+            'received_at', 'parent_source_specimen_key', 'rejection_reason_code',
+            'rejected_at', 'recollect_ordered_at', 'source_critical_key',
+            'critical_callback_state',
         ]);
 
         return new CanonicalOperationalEvent(

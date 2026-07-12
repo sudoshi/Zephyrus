@@ -77,6 +77,8 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyOrderFhirNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyResultFhirNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyOperationalEventNormalizer::class),
+                $app->make(\App\Integrations\Healthcare\Ancillary\LabResultHl7V2Normalizer::class),
+                $app->make(\App\Integrations\Healthcare\Ancillary\LabResultFhirNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\LabOrderHl7V2Normalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\LabOrderFhirNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\AncillaryHl7V2MessageNormalizer::class),

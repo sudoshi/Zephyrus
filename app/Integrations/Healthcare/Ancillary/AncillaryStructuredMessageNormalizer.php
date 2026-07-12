@@ -71,6 +71,13 @@ final class AncillaryStructuredMessageNormalizer implements SourceMessageNormali
             'discharge_blocking' => $message->payload['discharge_blocking'] ?? null,
             'correction' => $message->payload['correction'] ?? null,
             'supersedes_assertion_key' => $message->payload['supersedes_assertion_key'] ?? null,
+            'source_result_key' => $message->payload['source_result_key'] ?? null,
+            'source_result_version' => $message->payload['source_result_version'] ?? null,
+            'source_critical_key' => $message->payload['source_critical_key'] ?? null,
+            'critical_callback_state' => $message->payload['critical_callback_state'] ?? null,
+            'notified_at' => $message->payload['notified_at'] ?? null,
+            'acknowledged_at' => $message->payload['acknowledged_at'] ?? null,
+            'recipient_role' => $message->payload['recipient_role'] ?? null,
             'source_timestamp_valid' => true,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
 

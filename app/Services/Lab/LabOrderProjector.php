@@ -30,6 +30,19 @@ final class LabOrderProjector
                 throw new InvalidArgumentException('Laboratory specimen projection requires a source specimen identity.');
             }
 
+            $parent = null;
+            $parentKey = trim((string) ($payload['parent_source_specimen_key'] ?? ''));
+            if ($parentKey !== '') {
+                $parent = Specimen::query()
+                    ->where('ancillary_order_id', $order->ancillary_order_id)
+                    ->where('source_specimen_key', $parentKey)
+                    ->orderByRaw('CASE WHEN source_id = ? THEN 0 ELSE 1 END', [$sourceId])
+                    ->first();
+                if ($parent === null) {
+                    throw new InvalidArgumentException('Laboratory recollect projection requires its parent specimen.');
+                }
+            }
+
             $specimen = Specimen::query()
                 ->where('source_id', $sourceId)
                 ->where('source_specimen_key', $specimenKey)
@@ -43,6 +56,7 @@ final class LabOrderProjector
                 'ancillary_order_id' => $order->ancillary_order_id,
                 'source_id' => $sourceId,
                 'source_specimen_key' => $specimenKey,
+                'parent_specimen_id' => $parent?->lab_specimen_id,
                 'encounter_id' => $order->encounter_id,
                 'specimen_type' => 'unknown',
                 'status' => 'collection_pending',
@@ -78,7 +92,51 @@ final class LabOrderProjector
                 }
             }
 
-            if (($event->payload['milestone_code'] ?? null) === 'LAB_CANCELLED' && $specimen->collected_at === null) {
+            $milestone = (string) ($event->payload['milestone_code'] ?? '');
+            if ($milestone === 'LAB_RECEIVED') {
+                $receivedAt = $this->timestamp($payload['received_at'] ?? null) ?? $event->occurredAt;
+                $effectiveCollection = $specimen->collected_at ?? ($updates['collected_at'] ?? null);
+                if ($effectiveCollection !== null) {
+                    if ($receivedAt->lessThan($effectiveCollection)) {
+                        throw new InvalidArgumentException('Laboratory specimen receipt precedes collection.');
+                    }
+                    if ($specimen->received_at === null) {
+                        $updates['received_at'] = $receivedAt;
+                    }
+                    if (in_array((string) $specimen->status, ['', 'collection_pending', 'collected', 'in_transit'], true)) {
+                        $updates['status'] = 'received';
+                    }
+                } else {
+                    $metadata['receipt_projection'] = 'withheld_missing_collection';
+                    $metadata['asserted_received_at'] = $receivedAt->toIso8601String();
+                }
+            }
+
+            if ($milestone === 'LAB_REJECTED') {
+                $reason = trim((string) ($payload['rejection_reason_code'] ?? ''));
+                if ($reason === '') {
+                    throw new InvalidArgumentException('Laboratory specimen rejection requires its reason code.');
+                }
+                $rejectedAt = $this->timestamp($payload['rejected_at'] ?? null) ?? $event->occurredAt;
+                $updates['status'] = 'rejected';
+                $updates['rejection_reason_code'] = $reason;
+                $updates['rejected_at'] = $rejectedAt;
+            }
+
+            if ($milestone === 'LAB_RECOLLECT_ORDERED') {
+                if ($parent === null || $parent->rejected_at === null || $parent->rejection_reason_code === null) {
+                    throw new InvalidArgumentException('Laboratory recollect projection requires a previously rejected parent specimen.');
+                }
+                $recollectAt = $this->timestamp($payload['recollect_ordered_at'] ?? null) ?? $event->occurredAt;
+                if ($recollectAt->lessThan($parent->rejected_at)) {
+                    throw new InvalidArgumentException('Laboratory recollect request precedes specimen rejection.');
+                }
+                $parent->update(['status' => 'recollect_requested', 'recollect_ordered_at' => $recollectAt]);
+                $metadata['collection_reason'] = 'recollect';
+                $metadata['parent_rejection_reason_code'] = $parent->rejection_reason_code;
+            }
+
+            if ($milestone === 'LAB_CANCELLED' && $specimen->collected_at === null) {
                 $updates['status'] = 'cancelled';
                 $updates['cancelled_at'] = $event->occurredAt;
             }
@@ -87,9 +145,12 @@ final class LabOrderProjector
             $specimen->fill($updates);
             $specimen->save();
             $projected[] = $specimen->refresh();
+            if ($parent !== null && $milestone === 'LAB_RECOLLECT_ORDERED') {
+                $projected[] = $parent->refresh();
+            }
         }
 
-        return $projected;
+        return collect($projected)->unique('lab_specimen_id')->values()->all();
     }
 
     /** @param array<string, mixed> $payload @return list<array<string, mixed>> */

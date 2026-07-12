@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-2 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-3 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 27 of 60 tasks complete; 33 remain |
+| Progress | 28 of 60 tasks complete; 32 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1326,26 +1326,56 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused L-2 verification passes 8 tests and 122 assertions; the complete ancillary feature regression passes 134 tests and 1,704 assertions.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-2.
 
-#### [ ] L-3 — Parse Lab ORU results, rework loops, microbiology, and critical flags
+#### [x] L-3 — Parse Lab ORU results, rework loops, microbiology, and critical flags
 
 **Depends on:** L-1, P0-6
 **Primary files:** Lab ORU mapper/projector; fixtures
 
 **Work:**
 
-- Map OBR-14 receipt, result/verification/correction status, OBR-22/OBX-19 clocks, LOINC/local code, analyzer/middleware metadata, and abnormal flags.
-- Map FHIR Observation and DiagnosticReport versions to result milestones while retaining corrected/versioned history.
-- Emit preliminary, resulted, verified, corrected, rejected, and critical callback events as supported.
-- Represent hemolysis/rejection as an exception and link the new recollect specimen/order.
-- Preserve microbiology preliminary, organism identification, susceptibility, and final progression without forcing one linear result.
-- Do not expose result values on operational lists unless specifically authorized.
+- [x] Add a dedicated Laboratory ORU normalizer ahead of the L-2 collection-only fallback for governed LIS, Laboratory, and middleware sources.
+- [x] Claim an ORU only when it explicitly contains OBX result status, OBR-14 receipt/status, SPM rejection, or SPM parent/recollect evidence; preserve collection-only ORUs on the proven L-2 path.
+- [x] Validate the HL7 envelope, source family/department, message control ID, OBR order/accession identity, OBX local/LOINC identity, result status, and required clocks.
+- [x] Expand each OBR group independently and preserve every OBX result rather than collapsing a panel to its first observation.
+- [x] Map OBR-7/SPM-17 collection, OBR-14 receipt, OBX-14 observation, OBX-19 analysis/result, OBR-22 result, and MSH-7 fallback with explicit timestamp-source metadata.
+- [x] Emit `LAB_COLLECTED` only from collection evidence and `LAB_RECEIVED` only from OBR-14; withhold specimen receipt-state projection when collection is absent instead of fabricating a prerequisite.
+- [x] Map OBX/OBR result status into preliminary, resulted-only, final/released, corrected, and cancelled result contracts.
+- [x] Emit `LAB_PRELIM` for P/I/S, `LAB_RESULTED` for R, distinct `LAB_RESULTED` plus `LAB_VERIFIED` for F, `LAB_CORRECTED` for C, and `LAB_CANCELLED` for D/X.
+- [x] Preserve source result key and explicit version when supplied; otherwise derive a stable operational key and timestamp-qualified version without using a result value.
+- [x] Map primary/alternate local and LOINC codes, abnormal/critical flags, OBX equipment analyzer, OBX producer/middleware, and explicitly coded `AUTO_VERIFY` evidence.
+- [x] Constrain abnormal flags to normal, abnormal, critical, or unknown and treat HH/LL/AA/critical codes as critical without reading the clinical value.
+- [x] Resolve every result against the active governed Laboratory test catalog and reject Pathology/Blood Bank or unknown test identities.
+- [x] Resolve the result specimen within the reconciled shared order, preferring the same governed source while rejecting ambiguous cross-source identity.
+- [x] Project one `lab_results` row per source result key/version with catalog, specimen, analyzer, stage, timing, status, auto-verification, abnormal, and critical metadata.
+- [x] Append corrected result rows with `parent_lab_result_id` lineage; require an existing prior version and never mutate or erase the original result timestamps.
+- [x] Enrich a result-version row with a later verification assertion without duplicating it; exact inbound replay returns the existing canonical receipt.
+- [x] Persist explicit `value_storage=excluded`/operational-only metadata and never copy OBX-5, Observation values, DiagnosticReport conclusion, or other clinical result payloads into canonical events or satellites.
+- [x] Create one pending `lab_critical_values` fact for each critical result version with identification time and `notification_asserted=false`.
+- [x] Do not emit `LAB_CRITICAL_NOTIFIED` or `LAB_CRITICAL_ACKED` from an abnormal/critical result flag alone.
+- [x] Extend governed structured workflow normalization with source-result/version, callback timestamp, critical identity, and recipient-role fields.
+- [x] Project explicit result-linked notification and acknowledgement milestones into the critical callback state machine with chronological guards and no state regression.
+- [x] Preserve existing milestone-only demo/legacy critical workflows by requiring source-result detail before invoking the satellite callback projector.
+- [x] Record canonical/inbound provenance for every Laboratory result, critical-value creation, and callback transition.
+- [x] Map SPM-21 rejection reason into `LAB_REJECTED` with rejection time and retained collection/receipt history.
+- [x] Map an SPM parent identity into `LAB_RECOLLECT_ORDERED`, require a previously rejected parent, advance the parent to recollect-requested, and create a distinct pending child linked by `parent_specimen_id`.
+- [x] Prevent the child recollect from inheriting the original OBR-7 collection timestamp when the child does not assert its own SPM-17 time.
+- [x] Preserve microbiology preliminary, organism-identification, susceptibility, and final stages as distinct versioned result facts under one stable result key.
+- [x] Add a dedicated FHIR Laboratory result normalizer for enabled Observation and DiagnosticReport resources under the same governed source boundary.
+- [x] Map FHIR basedOn ServiceRequest, Specimen, subject/encounter, local/LOINC coding, effective/issued clocks, status/version, interpretation, analyzer device, auto-verification extension, and microbiology-stage extension.
+- [x] Support Observation and DiagnosticReport specimen reference shapes, relative/absolute ServiceRequest references, final/verified expansion, corrected parent versions, and cancellation.
+- [x] Add nine golden ORU fixtures covering critical STAT/auto-verification, original and corrected BMP, hemolysis/recollect, four microbiology stages, and a multi-OBX result group.
+- [x] Add FHIR Observation/DiagnosticReport final/corrected/version fixtures inline with deliberately forbidden values/conclusion text.
+- [x] Add focused tests for exact TAT segments, correction lineage, rejection/recollect state, microbiology progression, multi-OBX catalog isolation, FHIR versions, privacy, replay, callback separation/transitions, provenance, and fail-closed orphan correction.
 
 **Acceptance:**
 
-- Fixtures cover critical STAT, hemolyzed/recollect, auto-verification, corrected result, micro preliminary-to-final, and multi-OBX groups.
-- Corrected results append evidence and do not erase original timestamps.
-- Critical flags alone do not prove notification; callback milestones remain distinct.
-- All TAT segments match hand-calculated fixtures.
+- [x] Fixtures cover critical STAT, hemolyzed/recollect, auto-verification, corrected result, microbiology preliminary-to-final, and multi-OBX groups.
+- [x] Corrected HL7 and FHIR results append parented versions, preserve the original row/timestamps, and reject an orphan correction.
+- [x] Critical flags create a pending callback fact but no communication milestone; separately governed notification and acknowledgement events advance the callback loop exactly.
+- [x] The STAT fixture reconciles to 25 minutes order-to-verify, 8 minutes collect-to-receive, 15 minutes receive-to-result, and 2 minutes notify-to-ack.
+- [x] Canonical payload and satellite assertions prove exclusion of all fixture OBX values, FHIR values, and DiagnosticReport conclusion text.
+- [x] Focused L-3 verification passes 7 tests and 109 assertions; the complete ancillary feature regression passes 141 tests and 1,813 assertions.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-3.
 
 #### [ ] L-4 — Generate coherent Lab, AP, microbiology, and blood-bank demo data
 

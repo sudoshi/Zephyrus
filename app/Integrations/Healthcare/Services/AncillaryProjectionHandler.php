@@ -33,6 +33,8 @@ class AncillaryProjectionHandler implements ProjectionHandler
         private readonly \App\Services\Radiology\RadiologyReadProjector $radiologyReadProjector,
         private readonly \App\Services\Radiology\RadiologyCriticalResultProjector $radiologyCriticalResultProjector,
         private readonly \App\Services\Lab\LabOrderProjector $labOrderProjector,
+        private readonly \App\Services\Lab\LabResultProjector $labResultProjector,
+        private readonly \App\Services\Lab\LabCriticalValueProjector $labCriticalValueProjector,
     ) {}
 
     public function key(): string
@@ -208,6 +210,30 @@ class AncillaryProjectionHandler implements ProjectionHandler
                     );
                 }
             }
+            if ($department === 'lab' && isset($event->payload['result_status'])) {
+                $projection = $this->labResultProjector->project($order->fresh(), $event, (int) $record->source_id);
+                $result = $projection['result'];
+                ProvenanceRecord::query()->firstOrCreate(
+                    ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'lab_results', 'target_pk' => (string) $result->lab_result_id],
+                    ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'ancillaryOrderId' => $order->ancillary_order_id, 'sourceResultKey' => $result->source_result_key, 'sourceResultVersion' => $result->source_result_version]],
+                );
+                if ($projection['critical'] !== null) {
+                    $critical = $projection['critical'];
+                    ProvenanceRecord::query()->firstOrCreate(
+                        ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'lab_critical_values', 'target_pk' => (string) $critical->lab_critical_value_id],
+                        ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'labResultId' => $result->lab_result_id, 'callbackState' => $critical->callback_state]],
+                    );
+                }
+            }
+            if ($department === 'lab'
+                && isset($event->payload['source_result_key'])
+                && in_array($milestoneCode, ['LAB_CRITICAL_NOTIFIED', 'LAB_CRITICAL_ACKED'], true)) {
+                $critical = $this->labCriticalValueProjector->project($order->fresh(), $event);
+                ProvenanceRecord::query()->firstOrCreate(
+                    ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'lab_critical_values', 'target_pk' => (string) $critical->lab_critical_value_id],
+                    ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'labResultId' => $critical->lab_result_id, 'callbackState' => $critical->callback_state]],
+                );
+            }
 
             return (int) $order->ancillary_order_id;
         });
@@ -248,9 +274,10 @@ class AncillaryProjectionHandler implements ProjectionHandler
                 $metadata[$key] = $value;
             }
         }
-        if (($order->metadata['ordered_at_source'] ?? null) === 'collection_fallback'
+        if (is_string($order->metadata['ordered_at_source'] ?? null)
+            && str_ends_with($order->metadata['ordered_at_source'], '_fallback')
             && ($incomingMetadata['ordered_at_source'] ?? null) !== null
-            && $incomingMetadata['ordered_at_source'] !== 'collection_fallback'
+            && ! str_ends_with((string) $incomingMetadata['ordered_at_source'], '_fallback')
             && is_string($event->payload['ordered_at'] ?? null)) {
             $updates['ordered_at'] = CarbonImmutable::parse($event->payload['ordered_at'])->utc();
             $metadata['ordered_at_source'] = $incomingMetadata['ordered_at_source'];
@@ -343,6 +370,11 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'source_timestamp_valid' => $payload['source_timestamp_valid'] ?? true,
             'source_specimen_key' => $payload['source_specimen_key'] ?? null,
             'collection_source' => $payload['collection_source'] ?? null,
+            'source_result_key' => $payload['source_result_key'] ?? null,
+            'source_result_version' => $payload['source_result_version'] ?? null,
+            'result_status' => $payload['result_status'] ?? null,
+            'result_stage' => $payload['result_stage'] ?? null,
+            'abnormal_flag' => $payload['abnormal_flag'] ?? null,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
