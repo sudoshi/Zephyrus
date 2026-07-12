@@ -250,6 +250,23 @@ class ScopedFaceBuilderTest extends TestCase
         $this->assertNotEmpty($face['kpis']);
     }
 
+    public function test_perioperative_service_line_routes_to_periop_drill_despite_or_bed_rows(): void
+    {
+        // RtdcSeeder seeds the OR unit AND its staffed beds, so the perioperative
+        // line carries a live (0-occupancy) census row. It must STILL render the
+        // periop domain drill — never a useless "0% occupancy" census card (the
+        // prod defect: emergency worked only because ED had no bed rows).
+        $this->seed(RtdcSeeder::class);
+
+        $face = $this->faces()->build(CockpitScope::serviceLine('perioperative', 'Perioperative Services'));
+
+        $this->assertSame('face', $face['render']);
+        $this->assertSame('service_line:perioperative', $face['scope']['token']);
+        $this->assertSame('periop', $face['domain']);
+        // Not the degenerate census rollup: no sl.* census KPI leaked through.
+        $this->assertNotContains('sl.occupancy', array_column($face['kpis'], 'key'));
+    }
+
     public function test_service_line_face_rolls_up_its_units(): void
     {
         $this->seed(RtdcSeeder::class);
