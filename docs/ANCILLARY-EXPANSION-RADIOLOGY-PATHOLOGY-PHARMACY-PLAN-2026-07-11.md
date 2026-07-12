@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-7 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-9 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 17 of 60 tasks complete; 43 remain |
+| Progress | 19 of 60 tasks complete; 41 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1035,43 +1035,48 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Deep-link filter parameters are allowlisted and malformed values are rejected/defaulted.
 - [x] Large-fixture query plan uses intended indexes and avoids N+1 queries.
 
-#### [ ] R-8 — Implement Modality Utilization at /radiology/modality
+#### [x] R-8 — Implement Modality Utilization at /radiology/modality
 
 **Depends on:** R-1, R-5, P0-10
 **Primary files:** ModalityUtilizationService; page/API; chart components
 
 **Work:**
 
-- Calculate scanner available interval, exam blocks, planned/unplanned downtime, idle gaps, ED/IP/OP mix, utilization, and data coverage.
-- Treat scanner availability and staffed operating hours as denominators; do not divide by 24 hours blindly.
-- Show day/time and modality filters, downtime overlay, definition hover, and reference lines.
-- Keep outpatient access/template/no-show analytics out unless DEC-3 approves them.
+- [x] Calculate scanner available interval, MPPS-covered exam blocks, planned/unplanned downtime, idle gaps, ED/IP/OP mix, utilization, and data coverage with one server contract.
+- [x] Treat explicit scanner `staffed_operating_hours` windows as denominators; clip weekly/overnight windows to the selected date/time and never infer a 24-hour denominator.
+- [x] Union overlapping intervals, apply unplanned downtime then planned downtime before exam activity, and emit mutually exclusive timeline segments that reconcile to the staffed window.
+- [x] Require an observed/healthy governed MPPS source mapped to the scanner plus per-exam MPPS start/end evidence before returning machine utilization; convert uncovered remainder to unknown rather than idle.
+- [x] Show validated date, time, and modality filters, stacked downtime/exam/idle/unknown chart layers, scanner timelines, definition hover/expanded definitions, and a derived portfolio-average reference line explicitly labeled as non-benchmark.
+- [x] Keep outpatient output limited to the required ED/IP/OP cohort mix; DEC-3 remains at its default and no access, template, or no-show analytics were added.
 
 **Acceptance:**
 
-- Interval-union and overlap tests prevent double counting.
-- Idle + exam + downtime reconciles to the declared available window within rounding tolerance.
-- A missing MPPS feed produces a coverage warning and does not claim machine utilization.
-- Charts have accessible summaries and canon-clean colors.
+- [x] Interval-union and overlap tests prevent double counting.
+- [x] Idle + exam + downtime reconciles to the declared available window within rounding tolerance.
+- [x] A missing MPPS feed produces a coverage warning and does not claim machine utilization.
+- [x] Charts have accessible summaries and canon-clean colors.
 
-#### [ ] R-9 — Implement Reads and Results at /radiology/reads
+#### [x] R-9 — Implement Reads and Results at /radiology/reads
 
 **Depends on:** R-3, R-4, R-5, P0-10
 **Primary files:** RadiologyReadsService; page/API
 
 **Work:**
 
-- Show unread worklist depth by priority/subspecialty, backlog growth, prelim-to-final aging, critical-result loop state, and source freshness.
-- Keep item-level warning/breach within the workspace; Cockpit consumes only aggregate counts and oldest age.
-- Separate no-report-yet from preliminary, final, corrected, and stale/missing-feed states.
-- Add filtered drill to the originating order.
+- [x] Show unread depth and oldest age by priority/subspecialty, complete-hour backlog growth, preliminary-to-first-final aging, critical-result notification/acknowledgment state, and governed reporting-source freshness.
+- [x] Keep item-level warning/breach/stale/unconfigured states inside the workspace and expose one exact aggregate `cockpitHealth()` seam for future R-10 consumption.
+- [x] Separate no-report, preliminary, final, corrected, stale-feed, missing-feed, source-error, degraded-timestamp, and no-data states without inferring current health from unavailable evidence.
+- [x] Add allowlisted state/priority/subspecialty/modality/window filters and source-scoped originating-order drills into the existing Radiology worklist.
+- [x] Preserve the original final clock when corrected reports or addenda arrive, count corrections independently, and exclude all clinical report narrative from service and browser contracts.
+- [x] Extend deterministic Radiology demo data with preliminary-to-final lineage while retaining deliberate no-report, corrected, critical-loop, and missing-timestamp examples.
 
 **Acceptance:**
 
-- Closed-loop state transitions and correction handling are tested.
-- Backlog growth uses comparable time buckets and documents missing data.
-- No clinical report text is required or exposed.
-- Aggregate values reconcile with R-10 Cockpit measures.
+- [x] Closed-loop pending/notified/acknowledged/closed transitions and corrected-report lineage behavior are tested.
+- [x] Full 60-minute buckets exclude the current partial hour; first-final timing and missing/negative interval handling are documented and tested.
+- [x] The strict frontend schema, service privacy flag, payload inspection, and rendered test prove clinical report text is neither required nor exposed.
+- [x] Page/API contracts match after JSON normalization and workspace health aggregates reconcile exactly with the future R-10 Cockpit summary seam.
+- [x] The page supplies accessible filters, chart summary table, queue table, critical-loop drills, healthcare-token chart colors, and explicit freshness/degraded-state messaging.
 
 #### [ ] R-10 — Add Radiology health metrics to the server-computed Cockpit
 

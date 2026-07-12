@@ -76,6 +76,8 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
 
         Route::get('/radiology', [RadiologyController::class, 'index'])->name('radiology.flow-board');
         Route::get('/radiology/worklist', [RadiologyController::class, 'worklist'])->name('radiology.worklist');
+        Route::get('/radiology/modality', [RadiologyController::class, 'modality'])->name('radiology.modality');
+        Route::get('/radiology/reads', [RadiologyController::class, 'reads'])->name('radiology.reads');
 
         // Improvement Routes
         Route::prefix('improvement')->name('improvement.')->group(function () {

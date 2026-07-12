@@ -125,6 +125,6 @@ class RadiologyWorklistTest extends TestCase
         DB::statement('SET LOCAL enable_seqscan = off');
         $plan = collect(DB::select("EXPLAIN SELECT ancillary_order_id FROM prod.ancillary_orders WHERE department = 'rad' AND terminal_at IS NULL ORDER BY priority, current_milestone_at, ancillary_order_id LIMIT 25"))
             ->pluck('QUERY PLAN')->implode("\n");
-        $this->assertMatchesRegularExpression('/Index (Only )?Scan.*ancillary_orders_(open|live_worklist)_idx/s', $plan);
+        $this->assertMatchesRegularExpression('/Index (Only )?Scan.*ancillary_orders_(open|live_worklist|unit_worklist)_idx/s', $plan);
     }
 }

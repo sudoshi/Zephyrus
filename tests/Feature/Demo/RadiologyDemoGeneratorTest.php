@@ -6,6 +6,8 @@ use App\Models\Radiology\Exam;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use App\Services\Demo\DemoClock;
 use App\Services\Demo\DemoInvariantService;
+use App\Services\Radiology\ModalityUtilizationService;
+use App\Services\Radiology\RadiologyReadsService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AncillaryReferenceSeeder;
 use Database\Seeders\CaseManagementSeeder;
@@ -75,6 +77,23 @@ class RadiologyDemoGeneratorTest extends TestCase
         $this->assertGreaterThan(0, DB::table('prod.rad_exams')->where('demo_owner', $owner)->whereRaw("metadata->>'demo_shift' = 'night_weekend'")->count());
         $this->assertDatabaseHas('prod.rad_reads', ['demo_owner' => $owner, 'status' => 'corrected']);
         $this->assertDatabaseHas('prod.rad_critical_results', ['demo_owner' => $owner, 'policy_state' => 'acknowledged']);
+        $this->assertSame(0, DB::table('prod.rad_scanners')->where('demo_owner', $owner)->whereRaw("metadata->'staffed_operating_hours' IS NULL")->count());
+        $this->assertSame(0, DB::table('prod.rad_scanners')->where('demo_owner', $owner)->whereRaw("metadata->>'mpps_source_key' IS NULL")->count());
+
+        $utilization = app(ModalityUtilizationService::class)->build(['date' => $this->anchor->toDateString()]);
+        $this->assertSame('normal', $utilization['state']);
+        $this->assertSame('complete', $utilization['coverage']['status']);
+        $this->assertNotNull($utilization['summary']['utilizationPercent']);
+        $this->assertSame(0, $utilization['summary']['reconciliationDeltaMinutes']);
+        $this->assertGreaterThan(0, $utilization['summary']['unplannedDowntimeMinutes']);
+
+        $reads = app(RadiologyReadsService::class)->build();
+        $this->assertSame('degraded', $reads['state']);
+        $this->assertGreaterThan(0, $reads['backlog']['missing']['completionTimestampCount']);
+        $this->assertGreaterThan(0, $reads['preliminaryToFinal']['count']);
+        $this->assertGreaterThan(0, collect($reads['reportStates'])->firstWhere('state', 'no_report')['count']);
+        $this->assertGreaterThan(0, collect($reads['reportStates'])->firstWhere('state', 'corrected')['count']);
+        $this->assertSame($reads['health'], app(RadiologyReadsService::class)->cockpitHealth());
 
         $firstKeys = DB::table('prod.ancillary_orders')->where('demo_owner', $owner)->orderBy('source_order_key')->pluck('source_order_key')->all();
         $firstCounts = $this->ownedCounts($owner);

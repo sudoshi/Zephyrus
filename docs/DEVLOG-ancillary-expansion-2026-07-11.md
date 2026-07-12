@@ -638,3 +638,78 @@ git diff --check: PASS
 - R-7 registers the direct worklist route needed by the R-6 drill. Full Radiology navigation ownership remains R-14.
 - Search deliberately excludes report narrative, direct identifiers, and arbitrary contains queries.
 - Production bundle output retains only the repository's existing Browserslist-age and large-chunk warnings.
+
+## 2026-07-12 — R-8 Radiology Modality Utilization
+
+### Outcome
+
+Implemented `/radiology/modality` and `GET /api/radiology/modality` through one `ModalityUtilizationService` contract used by both the Inertia first render and React Query refetch. Validated filters cover date, bounded start/end time, and governed modality. The response declares generated/source-cutoff timestamps, filter options, source coverage, definitions, derived reference lines, portfolio totals, and scanner-level interval details.
+
+Added a reusable `OperationalIntervalCalculator` for scanner and future IR operating-window calculations. It unions duplicate/overlapping intervals, clips activity to the declared staffed window, and partitions each instant with deterministic precedence: unplanned downtime, planned downtime, covered exam, then idle. The mutually exclusive output prevents double counting and reports an explicit reconciliation delta.
+
+Scanner denominators now come from a versionable `staffed_operating_hours` metadata contract with timezone and weekly windows. The service clips same-day and overnight windows to the selected filter rather than dividing by 24 hours. Demo scanners receive explicit weekday/weekend staffing windows, and unused source-local demo scanner duplicates are removed after projection so the inventory and denominator are not inflated.
+
+Machine utilization requires more than a configured source. A governed MPPS source must have observed milestone/watermark evidence or healthy protocol state and must map to the scanner by source identity, explicit `mpps_source_key`, or covered exam evidence. Each completed performed interval must retain authoritative MPPS start and end assertions. Missing, unrelated, or partial evidence returns null exam/idle/utilization values, a coverage warning, and unknown timeline segments. A globally healthy but unmapped feed cannot silently prove zero utilization for another scanner. Downtime remains visible because it is independently sourced.
+
+The browser page renders staffed-window, machine-utilization, exam, and unplanned-downtime summaries; date/time/modality controls; a healthcare-token stacked Recharts view; a derived portfolio-average reference line labeled as non-benchmark; scanner timelines with downtime overlays; ED/IP/OP mix; reconciliation; native definition hover; expanded measure definitions; and an accessible chart summary table. DEC-3 remains unchanged: no outpatient access, template, or no-show analytics were introduced.
+
+The large-fixture worklist planner assertion now accepts the existing `ancillary_orders_unit_worklist_idx` in addition to the open/live indexes. PostgreSQL selected that governed worklist index during the combined run; the query remains an index scan with constant bounded hydration.
+
+### Automated and rendered evidence
+
+```text
+OperationalIntervalCalculatorTest + ModalityUtilizationTest: 6 tests, 54 assertions, PASS
+R-8 combined Ancillary + Radiology demo + OCEL regression: 119 tests, 1,147 assertions, PASS
+Radiology + shared ancillary Vitest: 18 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+php artisan route:list --path=radiology: 7 authenticated routes present
+Laravel Pint for R-8 PHP implementation/tests: PASS
+git diff --check: PASS
+```
+
+An isolated Playwright smoke against the built asset and `APP_ENV=testing` returned HTTP 200, the correct page title and heading, one filter form, one accessible chart, six scanner detail rows, complete MPPS coverage, and zero browser console/page errors. The no-data route was also rendered intentionally before demo setup and returned HTTP 200 with no browser errors.
+
+The populated browser setup exercised the canonical demo coordinator only to create disposable test data. Its ancillary domain completed with 16 exams, six scanners, one downtime interval, and complete page coverage, but the broader coordinator correctly withheld Cockpit publication because unrelated global `temporal.admit_not_in_future` and `ancillary.open_breaches_mathematically_valid` invariants failed in that disposable setup. R-8 completion relies on the clean focused/combined tests and direct rendered-page smoke above, not on that failed global publish gate. The multi-schema test database was then explicitly restored and its canonical workforce/service-line reference fixtures reseeded before the final green regression.
+
+### Activation and limitations
+
+- No external MPPS/RIS/PACS source, connector, endpoint, credential, scheduler, deployment, production data, outpatient access analysis, or benchmark target was activated.
+- `staffed_operating_hours` must be supplied by deployment-owned scanner configuration before a live scanner can claim utilization. Missing schedules remain explicit and degraded.
+- The chart reference line is the selected covered-scanner portfolio average. External/local benchmark governance remains P4-5.
+- The shared interval calculator is ready for R-13 IR reuse; R-13 must prove identical fixtures across Radiology and Perioperative consumers rather than copying formulas.
+- Full Radiology navigation ownership remains assigned to R-14.
+
+## 2026-07-12 — R-9 Radiology Reads and Results
+
+### Outcome
+
+Implemented `/radiology/reads` and `GET /api/radiology/reads` through one `RadiologyReadsService` contract. The workspace reports unread depth and oldest age by priority and subspecialty; distinct no-report, preliminary, final, and corrected populations; complete-hour backlog growth; preliminary-to-first-final aging; critical-result notification/acknowledgment health; and governed reporting-source freshness. State, priority, subspecialty, modality, time-window, and row-limit inputs are server validated.
+
+Backlog points use full 60-minute clock buckets ending at the current hour and exclude the current partial hour. Open-at-end is reconstructed from acquisition completion and the first final report. Missing acquisition/final timestamps are counted explicitly and degrade the page rather than silently altering the denominator. Preliminary aging uses first preliminary to first final, excludes negative intervals, documents missing preliminary timestamps, and does not move the original final clock when corrections or addenda arrive.
+
+Item-level SLA warnings and breaches remain in the Radiology workspace. Persisted breaches win; otherwise effective RAD_FINAL SLA definitions select the governed start milestone and server-side warning/breach threshold. Stale, missing, and failed reporting sources never claim current or normal item health. A bounded aggregate `cockpitHealth()` contract exposes unread and critical-loop counts/oldest ages plus source state for exact R-10 reuse without leaking item detail.
+
+Critical-result state is separated into pending notification, notified, acknowledged, escalated, and closed populations. Timing distributions cover identified-to-notified and notified-to-acknowledged intervals. Open items link back to the originating order through the existing source-scoped Radiology worklist. The service selects no report narrative fields, declares `clinicalReportTextIncluded: false`, and returns only pseudonymous operational identifiers and UUIDs.
+
+The React page validates the first-render and refetch payload with a strict Zod schema, supplies complete filters, freshness and degraded-state messaging, summary tiles, report-state counts, priority/subspecialty depth, an accessible Recharts backlog plot and table, critical-loop summaries/drills, and a bounded queue table. Demo Radiology scenarios now include preliminary-to-final lineage alongside deliberate no-report, corrected, critical-loop, and missing-timestamp examples.
+
+### Automated evidence
+
+```text
+RadiologyReadsTest: 4 tests, 68 assertions, PASS
+RadiologyDemoGeneratorTest + RadiologyReadsTest: 5 tests, 100 assertions, PASS
+Radiology Reads + Modality Utilization Vitest: 3 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+Laravel Pint for touched R-9 PHP/tests: PASS
+git diff --check: PASS
+```
+
+### Activation and limitations
+
+- No RIS/PACS/reporting connector, endpoint, credential, scheduler, deployment, production data, report narrative, or Cockpit card was activated.
+- R-10 must consume `cockpitHealth()` unchanged or prove any requested contract extension reconciles exactly with this workspace.
+- Critical-result contents remain out of the operations payload; the loop exposes operational class/state/timing only.
+- Full Radiology navigation ownership remains assigned to R-14.

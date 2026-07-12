@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Radiology\RadiologyFlowBoardRequest;
+use App\Http\Requests\Radiology\RadiologyModalityUtilizationRequest;
+use App\Http\Requests\Radiology\RadiologyReadsRequest;
 use App\Http\Requests\Radiology\RadiologyWorklistRequest;
+use App\Services\Radiology\ModalityUtilizationService;
 use App\Services\Radiology\RadiologyFlowBoardService;
+use App\Services\Radiology\RadiologyReadsService;
 use App\Services\Radiology\RadiologyWorklistService;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -23,6 +27,20 @@ class RadiologyController extends Controller
     {
         return Inertia::render('Radiology/Worklist', [
             'worklist' => $worklist->build($request->validated()),
+        ]);
+    }
+
+    public function modality(RadiologyModalityUtilizationRequest $request, ModalityUtilizationService $utilization): Response
+    {
+        return Inertia::render('Radiology/ModalityUtilization', [
+            'modalityUtilization' => $utilization->build($request->validated()),
+        ]);
+    }
+
+    public function reads(RadiologyReadsRequest $request, RadiologyReadsService $reads): Response
+    {
+        return Inertia::render('Radiology/Reads', [
+            'radiologyReads' => $reads->build($request->validated()),
         ]);
     }
 }

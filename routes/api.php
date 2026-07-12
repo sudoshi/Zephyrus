@@ -278,6 +278,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(funct
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->group(function () {
     Route::get('/flow-board', [RadiologyFlowBoardController::class, 'show']);
     Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist']);
+    Route::get('/modality', [RadiologyFlowBoardController::class, 'modality']);
+    Route::get('/reads', [RadiologyFlowBoardController::class, 'reads']);
     Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier']);
 });
 
