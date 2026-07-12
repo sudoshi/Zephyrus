@@ -180,6 +180,13 @@ class TreatmentService
             $treatmentMinutes = max(0, (int) round($seen->diffInMinutes($now, false)));
             $totalLosMinutes = max(0, (int) round($arrived->diffInMinutes($now, false)));
 
+            // Dwell since the disposition decision — the "decided but still
+            // here" clock that actually drives boarding escalation. Null until
+            // a decision exists.
+            $dispositionMinutes = $row->admit_decision_at !== null
+                ? max(0, (int) round(Carbon::parse($row->admit_decision_at)->diffInMinutes($now, false)))
+                : null;
+
             [$status, $statusTone] = $this->statusFor($row);
             $room = $this->treatmentRoom($id, $esi);
             $complaint = $this->chiefComplaint($id, $esi);
@@ -200,6 +207,7 @@ class TreatmentService
                 'esiLevel' => $esi,
                 'treatmentMinutes' => $treatmentMinutes,
                 'losMinutes' => $totalLosMinutes,
+                'dispositionMinutes' => $dispositionMinutes,
                 'status' => $status,
                 'statusTone' => $statusTone,
                 'provider' => $provider,

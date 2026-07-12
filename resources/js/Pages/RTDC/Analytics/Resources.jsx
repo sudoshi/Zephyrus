@@ -159,10 +159,12 @@ export default function Resources() {
                                     <tr className="text-left text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         <th className="px-3 py-2">Unit</th>
                                         <th className="px-3 py-2">Type</th>
-                                        <th className="px-3 py-2 text-right tabular-nums">Present / Req</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Present / Sched / Req</th>
                                         <th className="px-3 py-2 text-right tabular-nums">Coverage</th>
                                         <th className="px-3 py-2 text-right tabular-nums">RN Ratio</th>
                                         <th className="px-3 py-2 text-right tabular-nums">Beds Open</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Turnover</th>
+                                        <th className="px-3 py-2 text-right tabular-nums">Blocked</th>
                                         <th className="px-3 py-2">Driver</th>
                                         <th className="px-3 py-2">Status</th>
                                     </tr>
@@ -186,8 +188,22 @@ export default function Resources() {
                                                 <td className="px-3 py-2 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                     {g.type}
                                                 </td>
-                                                <td className="px-3 py-2 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    {g.present} / {g.required}
+                                                <td
+                                                    className="px-3 py-2 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark"
+                                                    title={g.minimumSafe != null ? `Minimum safe: ${g.minimumSafe}` : undefined}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            color:
+                                                                g.minimumSafe != null && g.present < g.minimumSafe
+                                                                    ? STATUS_VAR.critical
+                                                                    : undefined,
+                                                        }}
+                                                    >
+                                                        {g.present}
+                                                    </span>
+                                                    {' / '}
+                                                    {g.scheduled ?? '—'} / {g.required}
                                                 </td>
                                                 <td
                                                     className="px-3 py-2 text-right tabular-nums font-medium"
@@ -210,6 +226,12 @@ export default function Resources() {
                                                 </td>
                                                 <td className="px-3 py-2 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {g.bedsAvailable}
+                                                </td>
+                                                <td className={`px-3 py-2 text-right tabular-nums ${(g.bedsTurnover ?? 0) > 0 ? 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}`}>
+                                                    {g.bedsTurnover ?? '—'}
+                                                </td>
+                                                <td className={`px-3 py-2 text-right tabular-nums ${(g.bedsBlocked ?? 0) > 0 ? 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark' : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'}`}>
+                                                    {g.bedsBlocked ?? '—'}
                                                 </td>
                                                 <td className="px-3 py-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                     {g.driver}

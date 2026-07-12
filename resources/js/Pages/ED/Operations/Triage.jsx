@@ -92,7 +92,9 @@ const StatusBadge = ({ status, tone }) => {
 };
 
 // Horizontal ESI distribution bar — categorical, data-driven heights, paired
-// with explicit counts so it reads without relying on color.
+// with explicit counts so it reads without relying on color. Each tier also
+// carries its median wait vs target and a breach callout ("2 over 15m") — the
+// per-tier accountability read, not just the mix.
 const EsiDistribution = ({ breakdown }) => {
     const max = Math.max(1, ...breakdown.map((b) => b.count));
     return (
@@ -114,6 +116,19 @@ const EsiDistribution = ({ breakdown }) => {
                                 }`}
                                 style={{ width: `${(b.count / max) * 100}%` }}
                             />
+                        </div>
+                        <div className="mt-0.5 flex items-center justify-between text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                            <span>
+                                {b.medianWaitMinutes != null
+                                    ? `median ${b.medianWaitMinutes}m · target ${b.targetMinutes}m`
+                                    : `target ${b.targetMinutes}m`}
+                            </span>
+                            {(b.overTarget ?? 0) > 0 && (
+                                <span className="inline-flex items-center gap-1 font-medium text-healthcare-warning dark:text-healthcare-warning-dark">
+                                    <Icon icon="heroicons:exclamation-circle" className="h-3.5 w-3.5" aria-hidden="true" />
+                                    {b.overTarget} over {b.targetMinutes}m
+                                </span>
+                            )}
                         </div>
                     </div>
                     <span className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">

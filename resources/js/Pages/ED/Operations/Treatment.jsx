@@ -68,6 +68,19 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
     const rows = Array.isArray(board) ? board : [];
     const hasPatients = rows.length > 0;
 
+    // Disposition mix straight off the board rows — the overview line answers
+    // "where is everyone in the pipeline" without scanning the table.
+    const statusCounts = rows.reduce((acc, r) => {
+        acc[r.status] = (acc[r.status] ?? 0) + 1;
+        return acc;
+    }, {});
+    const mixSummary = [
+        `${statusCounts['In Treatment'] ?? 0} in treatment`,
+        `${statusCounts['Boarding'] ?? 0} boarding`,
+        `${statusCounts['Transfer Pending'] ?? 0} transfer pending`,
+        `${statusCounts['Discharge Ready'] ?? 0} discharge ready`,
+    ].join(' · ');
+
     const inTreatment = kpis.inTreatment ?? { value: 0, trend: 'flat', context: '' };
     const awaitingDisposition = kpis.awaitingDisposition ?? { value: 0, trend: 'flat', context: '' };
     const boarding = kpis.boarding ?? { value: 0, trend: 'flat', context: '' };
@@ -133,7 +146,7 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
             >
                 <div className="flex flex-col gap-5">
                     <Section title="Treatment overview" icon="heroicons:user-group"
-                             summary={`${inTreatment.value ?? 0} in treatment · ${boarding.value ?? 0} boarding`}>
+                             summary={mixSummary}>
                         <MetricGrid metrics={kpiMetrics} />
                     </Section>
 
@@ -166,6 +179,7 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     ['ESI', 'left'],
                                                     ['In Treatment', 'right'],
                                                     ['Total LOS', 'right'],
+                                                    ['Since Dispo', 'right'],
                                                     ['Status', 'left'],
                                                     ['Care Team', 'left'],
                                                     ['Pending Orders', 'left'],
@@ -202,6 +216,17 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     </td>
                                                     <td className="px-4 py-3 text-right text-sm tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                         {formatElapsed(patient.losMinutes)}
+                                                    </td>
+                                                    <td
+                                                        className={`px-4 py-3 text-right text-sm tabular-nums ${
+                                                            (patient.dispositionMinutes ?? 0) > 60
+                                                                ? 'font-medium text-healthcare-warning dark:text-healthcare-warning-dark'
+                                                                : 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
+                                                        }`}
+                                                    >
+                                                        {patient.dispositionMinutes != null
+                                                            ? formatElapsed(patient.dispositionMinutes)
+                                                            : '—'}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <StatusBadge

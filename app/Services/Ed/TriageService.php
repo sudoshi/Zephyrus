@@ -65,7 +65,7 @@ class TriageService
      *
      * @return array{
      *     kpis: array<string,int>,
-     *     esiBreakdown: list<array{esi:int,label:string,count:int,targetMinutes:int}>,
+     *     esiBreakdown: list<array{esi:int,label:string,count:int,targetMinutes:int,overTarget:int,medianWaitMinutes:?int}>,
      *     longestWaits: list<array<string,mixed>>,
      *     queue: list<array<string,mixed>>,
      *     generatedAt: string
@@ -240,8 +240,14 @@ class TriageService
     private function esiBreakdown(array $queue): array
     {
         $counts = array_fill(1, 5, 0);
+        $breaches = array_fill(1, 5, 0);
+        $waits = array_fill(1, 5, []);
         foreach ($queue as $row) {
             $counts[$row['esi']]++;
+            $waits[$row['esi']][] = (int) $row['waitMinutes'];
+            if ($row['overTarget']) {
+                $breaches[$row['esi']]++;
+            }
         }
 
         $out = [];
@@ -251,10 +257,33 @@ class TriageService
                 'label' => $meta['label'],
                 'count' => $counts[$esi],
                 'targetMinutes' => $meta['targetMinutes'],
+                // Per-tier accountability: how many are over THEIR tier's
+                // door-to-provider target, and the tier's median current wait —
+                // "2 Emergent over 15m" is the actionable read, not raw counts.
+                'overTarget' => $breaches[$esi],
+                'medianWaitMinutes' => $this->median($waits[$esi]),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<int>  $values
+     */
+    private function median(array $values): ?int
+    {
+        if ($values === []) {
+            return null;
+        }
+
+        sort($values);
+        $n = count($values);
+        $mid = intdiv($n, 2);
+
+        return $n % 2 === 1
+            ? $values[$mid]
+            : (int) round(($values[$mid - 1] + $values[$mid]) / 2);
     }
 
     /**
