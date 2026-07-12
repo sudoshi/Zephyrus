@@ -204,6 +204,8 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'unit_id' => $context?->unit_id,
             'demo_owner' => $owner,
             'modality' => $scenario['metadata']['modality'] ?? null,
+            'test_code' => $scenario['metadata']['test_code'] ?? null,
+            'decision_class' => $scenario['metadata']['decision_class'] ?? null,
             'test_family' => $scenario['metadata']['test_family'] ?? null,
             'route' => $scenario['metadata']['route'] ?? null,
             'preparation_branch' => $scenario['metadata']['preparation_branch'] ?? null,
@@ -219,6 +221,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'demo_shift' => $scenario['metadata']['shift'] ?? null,
             'or_case_id' => $scenario['metadata']['or_case_id'] ?? null,
             ...$this->radiologyEventPayload($scenario, $event, $occurredAt, $identity),
+            ...$this->laboratoryEventPayload($scenario, $event, $occurredAt, $context),
             'source_timestamp_valid' => true,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
 
@@ -338,9 +341,74 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
+    /** @param array<string, mixed> $scenario @param array<string, mixed> $event @return array<string, mixed> */
+    private function laboratoryEventPayload(array $scenario, array $event, mixed $occurredAt, ?object $context): array
+    {
+        if ($this->department() !== 'lab') {
+            return [];
+        }
+
+        $code = (string) $event['code'];
+        $specimenKey = $event['source_specimen_key'] ?? $scenario['metadata']['source_specimen_key'] ?? null;
+        $decisionClass = $scenario['metadata']['decision_class'] ?? 'none';
+        $blockedObjectId = match ($decisionClass) {
+            'ed_disposition' => $context?->ed_visit_id,
+            'discharge_gate' => $context?->encounter_id,
+            'or_gate' => $scenario['metadata']['or_case_id'] ?? null,
+            default => null,
+        };
+        $decisionContext = $decisionClass !== 'none' && $blockedObjectId !== null ? [
+            'decision_class' => $decisionClass,
+            'blocked_object_type' => match ($decisionClass) {
+                'ed_disposition' => 'ed_visit',
+                'discharge_gate' => 'encounter_discharge',
+                'or_gate' => 'or_case',
+                default => 'none',
+            },
+            'blocked_object_id' => (int) $blockedObjectId,
+            'explanation' => (string) ($scenario['metadata']['decision_explanation'] ?? 'Pending Laboratory evidence blocks a downstream clinical decision.'),
+        ] : null;
+
+        $allowed = [
+            'source_accession_key', 'parent_source_specimen_key', 'specimen_type', 'container_type',
+            'collector_role', 'collection_method', 'collection_source', 'rejection_reason_code',
+            'source_result_key', 'source_result_version', 'result_status', 'result_stage', 'test_code',
+            'test_label', 'loinc_code', 'abnormal_flag', 'auto_verified', 'is_critical', 'analyzer_ref',
+            'observed_at', 'resulted_at', 'verified_at', 'corrected_at', 'cancelled_at',
+            'critical_identified_at', 'notified_at', 'acknowledged_at', 'recipient_role',
+        ];
+        $attributes = array_intersect_key($event, array_flip($allowed));
+
+        return array_filter([
+            ...$attributes,
+            'source_specimen_key' => $specimenKey,
+            'source_accession_key' => $event['source_accession_key'] ?? $scenario['metadata']['source_accession_key'] ?? null,
+            'specimen_type' => $event['specimen_type'] ?? $scenario['metadata']['specimen_type'] ?? null,
+            'container_type' => $event['container_type'] ?? $scenario['metadata']['container_type'] ?? null,
+            'collector_role' => $event['collector_role'] ?? $scenario['metadata']['collector_role'] ?? null,
+            'collection_method' => $event['collection_method'] ?? $scenario['metadata']['collection_method'] ?? null,
+            'collected_at' => $code === 'LAB_COLLECTED' ? $occurredAt->toIso8601String() : ($event['collected_at'] ?? null),
+            'in_transit_at' => $code === 'LAB_IN_TRANSIT' ? $occurredAt->toIso8601String() : ($event['in_transit_at'] ?? null),
+            'received_at' => $code === 'LAB_RECEIVED' ? $occurredAt->toIso8601String() : ($event['received_at'] ?? null),
+            'rejected_at' => $code === 'LAB_REJECTED' ? $occurredAt->toIso8601String() : ($event['rejected_at'] ?? null),
+            'recollect_ordered_at' => $code === 'LAB_RECOLLECT_ORDERED' ? $occurredAt->toIso8601String() : ($event['recollect_ordered_at'] ?? null),
+            'decision_context' => $decisionContext,
+            'analyzer_operational_state' => $event['analyzer_operational_state'] ?? $scenario['metadata']['analyzer_operational_state'] ?? null,
+            'analyzer_downtime_started_at' => $event['analyzer_downtime_started_at'] ?? $scenario['metadata']['analyzer_downtime_started_at'] ?? null,
+            'analyzer_expected_restore_at' => $event['analyzer_expected_restore_at'] ?? $scenario['metadata']['analyzer_expected_restore_at'] ?? null,
+            'operational_window' => $scenario['metadata']['operational_window'] ?? 'current',
+        ], fn (mixed $value): bool => $value !== null && $value !== '');
+    }
+
     private function workItemType(): string
     {
-        return ['rad' => 'imaging_order', 'lab' => 'lab_order', 'rx' => 'medication_order'][$this->department()];
+        return [
+            'rad' => 'imaging_order',
+            'lab' => 'lab_order',
+            'pathology' => 'ap_case',
+            'blood_bank' => 'blood_bank_request',
+            'rx' => 'medication_order',
+        ][$this->department()];
     }
 
     private function uuid(string $name): string

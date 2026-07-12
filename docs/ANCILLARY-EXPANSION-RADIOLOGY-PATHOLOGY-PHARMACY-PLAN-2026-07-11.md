@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-3 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-4 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 28 of 60 tasks complete; 32 remain |
+| Progress | 29 of 60 tasks complete; 31 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1377,25 +1377,42 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused L-3 verification passes 7 tests and 109 assertions; the complete ancillary feature regression passes 141 tests and 1,813 assertions.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-3.
 
-#### [ ] L-4 — Generate coherent Lab, AP, microbiology, and blood-bank demo data
+#### [x] L-4 — Generate coherent Lab, AP, microbiology, and blood-bank demo data
 
 **Depends on:** L-1 through L-3, P0-8
 **Primary files:** LabDemoGenerator; profiles; invariants/tests
 
 **Work:**
 
-- Generate the AM-draw wave, ED STAT/routine mix, transport segments, rejections/recollects, auto-verification, critical callbacks, and analyzer downtime.
-- Generate AP overnight batches and live frozen sections linked to real demo cases.
-- Generate microbiology multi-day progression for Study while keeping the current operational window honest.
-- Generate T&S/crossmatch readiness against the current OR schedule.
-- Tie decision-class tests to real ED, discharge, and OR downstream decisions.
+- [x] Expand Laboratory demo generation from five milestone-only orders to fourteen coherent shared orders with sixteen specimen facts, fourteen versioned result facts, and two critical callback facts.
+- [x] Generate a six-order AM-draw wave spanning pending collection, collection, tube/courier transit, receipt, analysis, final result, manual verification, and explicit auto-verification branches.
+- [x] Generate a four-order ED mix with STAT and routine work, one transport-pending specimen, one live critical troponin decision, one acknowledged critical callback, and one auto-verified chemistry result.
+- [x] Project `LAB_IN_TRANSIT` into actual specimen state/timing with fail-closed collection-before-transit chronology instead of leaving transport as a milestone-only assertion.
+- [x] Generate two independent rejection/recollect chains with same-order parent lineage, explicit clot/hemolysis reasons, recollect request timestamps, and distinct pending/complete child paths.
+- [x] Represent one chemistry analyzer degradation as a bounded downtime window plus an explicit reroute on the affected final result; do not invent a parallel analyzer ledger before its governed contract exists.
+- [x] Generate one pending and one fully acknowledged critical callback loop while preserving monotonic identify/notify/acknowledge clocks.
+- [x] Add a dedicated Pathology generator with six shared `pathology` work items, four overnight-batch stages, one live frozen section, and one resulted frozen section.
+- [x] Link every AP case and both frozen branches to existing non-deleted `prod.or_cases` rows while retaining current-versus-historical cohort labeling.
+- [x] Generate four distinct microbiology result versions under one stable source result identity: preliminary, organism identification, susceptibility, and final.
+- [x] Keep every microbiology result older than the current operational window and label it `historical_study_only`, making the multi-day cohort available to Study without contaminating live worklists.
+- [x] Add a dedicated Blood Bank generator with six shared `blood_bank` requests spanning ordered, testing, type-and-screen ready, crossmatch ready, issued, and active-MTP states.
+- [x] Derive each Blood Bank `needed_by` clock from the linked current OR schedule and preserve internally consistent requested/allocated/issued unit counts.
+- [x] Attach exact decision contexts to the three live clinical-lab blockers: one real ED visit, one real discharge-candidate encounter, and one real OR case.
+- [x] Attach exact OR-case decision contexts and explanations to every non-ready Blood Bank request and the live frozen-section gate.
+- [x] Preserve owner-scoped deletion order for callback/result/recollect satellites, stable date-scoped natural keys, deterministic UUIDv5 AP/Blood Bank identities, collision refusal, and foreign-row survival.
+- [x] Extend the canonical ancillary demo registry to report Laboratory, Pathology, and Blood Bank as distinct departments on the one shared spine.
+- [x] Add seven invariant checks covering exact-owner satellite links, recollect lineage, callback chronology, downstream decision links, AP/Blood Bank OR links, microbiology window honesty, and the fixed AM distribution/analyzer branch.
+- [x] Add a fixed-anchor feature gate proving cohort counts, 40-minute median AM receipt-to-result time, decision explanations, AP/frozen/Blood Bank joins, semantic replay identity, foreign-row survival, and zero failed critical invariants.
 
 **Acceptance:**
 
-- Distribution tolerances and callback/recollect invariants pass with a fixed seed.
-- Frozen and blood-bank rows link to valid demo cases.
-- Every decision-pending row can explain exactly what it blocks.
-- Refresh is idempotent and owner-safe.
+- [x] The fixed-anchor cohort contains five completed AM results with a 40-minute median receipt-to-result interval, one bounded analyzer reroute, two valid recollect chains, and two chronologically valid critical loops.
+- [x] All six AP rows and all six Blood Bank readiness rows link to valid non-deleted OR cases; the two frozen-section rows preserve in-progress/resulted timing evidence.
+- [x] Exactly three current decision-pending clinical-lab rows resolve to and explain a real ED disposition, discharge gate, or OR gate; all other pending frozen/Blood Bank gates do the same.
+- [x] Same-anchor refresh produces the same 47-order/246-milestone summary and semantic satellite snapshot, while non-owned Laboratory/AP/Blood Bank rows survive unchanged.
+- [x] Focused L-4 verification passes 1 test and 38 assertions; the complete demo generator/scenario regression passes 9 tests and 126 assertions.
+- [x] The complete ancillary feature regression remains green at 141 tests and 1,813 assertions after the shared `LAB_IN_TRANSIT` projection change.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by L-4.
 
 #### [ ] L-5 — Implement Lab Flow Board at /lab
 

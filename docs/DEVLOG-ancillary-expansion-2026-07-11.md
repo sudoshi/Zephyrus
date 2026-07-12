@@ -1070,3 +1070,50 @@ Existing milestone-only critical demo compatibility: PASS
 ```
 
 No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-4 is the next dependency-ordered task and will generate coherent Laboratory, AP, microbiology, and Blood Bank demo facts on these now-proven contracts.
+
+## 2026-07-12 — L-4 Coherent Laboratory, Pathology, Microbiology, and Blood Bank Demo
+
+### Outcome
+
+Replaced the five-order Laboratory placeholder with a deterministic, cross-domain demo cohort that exercises the L-1 through L-3 contracts as real operational facts. The ancillary refresh now produces 47 shared orders and 246 milestones across five governed departments: Radiology 16/97, Laboratory 14/84, Pathology 6/29, Blood Bank 6/13, and Pharmacy 5/23. Laboratory adds sixteen specimens, fourteen results, and two critical-value loops; Pathology adds six AP cases; Blood Bank adds six readiness requests.
+
+The Laboratory cohort contains six AM draws, four ED orders, one live discharge gate, one live perioperative coagulation gate, two different rejection/recollect paths, and one historical blood-culture sequence. The AM wave spans pending collection through verification with five completed results and a fixed 40-minute median receipt-to-result interval. Two results are explicitly auto-verified. One chemistry result records a bounded analyzer downtime and reroute without introducing an ungoverned analyzer table.
+
+`LabOrderProjector` now makes `LAB_IN_TRANSIT` a real specimen transition. It requires prior collection evidence, rejects a transit clock before collection, records `in_transit_at`, and advances eligible specimens to `in_transit`. This closed a genuine projection gap found while building the demo rather than encoding transport only in the milestone ledger.
+
+Two specimen-quality branches preserve full lineage. The completed AM clot branch rejects the original, requests a new child, transports/receives the child, and reaches a verified result. The current hemolysis branch retains a pending recollect child. Owner-scoped cleanup deletes callbacks, results, recollect children, and parents in dependency order before replay, while foreign facts survive.
+
+The critical cohort deliberately separates flag and communication evidence. One critical ED troponin remains preliminary with a pending-notification callback and blocks ED disposition. A second reaches final verification, notification, and read-back acknowledgement with monotonic timestamps. No result value or narrative enters the operational contract.
+
+Microbiology uses one stable source-result key with four versions for preliminary, organism identification, susceptibility, and final. Every version ends before the live 24-hour window and carries `historical_study_only`, so Study can exercise multi-day progression without making the operational board claim that an old culture is current work.
+
+Pathology and Blood Bank are now first-class shared-spine departments rather than mislabeled Laboratory orders. The AP generator creates four overnight stages plus one live and one resulted frozen section. The Blood Bank generator creates ordered, testing, type-and-screen-ready, crossmatch-ready, issued, and active-MTP states. Every AP/Blood Bank row links an existing non-deleted OR case. Blood Bank `needed_by` derives from that case's scheduled start. Every non-ready Blood Bank row and the active frozen section name the exact OR case blocked and explain the gate.
+
+Clinical-lab decision metadata likewise resolves exactly three live pending decisions: a real ED visit for disposition, a real expected-discharge encounter, and a real OR case. These are asserted against their source tables, not accepted as opaque JSON identifiers.
+
+### Invariants and verification
+
+Added seven ancillary invariant gates:
+
+- exact-owner Laboratory specimen/result/callback parentage;
+- complete same-order recollect lineage;
+- critical callback/result and timestamp consistency;
+- exactly three valid clinical-lab downstream decision links;
+- valid AP/Blood Bank shared-order and OR-case links with explanations on every pending gate;
+- four-stage, entirely historical microbiology progression;
+- fixed AM distribution plus exactly one analyzer downtime reroute.
+
+```text
+Focused L-4 feature gate: 1 test, 38 assertions, PASS
+Radiology generator regression with the expanded registry: 1 test, 51 assertions, PASS
+Complete ancillary demo scenario regression: 7 tests, 37 assertions, PASS
+Combined demo generator/scenario regression: 9 tests, 126 assertions, PASS
+Complete ancillary feature regression: 141 tests, 1,813 assertions, PASS
+Same-anchor semantic replay and summary equality: PASS
+Foreign Laboratory/AP/Blood Bank row survival: PASS
+All 20 ancillary invariants: zero failed critical findings, PASS
+Laravel Pint over the L-4 implementation/tests: PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system was accessed or activated. L-5 is the next dependency-ordered task and can now build the Lab Flow Board against a coherent current-operation cohort rather than mocked queue counts.

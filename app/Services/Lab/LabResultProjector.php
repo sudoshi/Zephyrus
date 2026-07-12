@@ -73,6 +73,11 @@ final class LabResultProjector
             'obx_set_id' => $event->payload['obx_set_id'] ?? null,
             'middleware_ref' => $event->payload['middleware_ref'] ?? null,
             'source_message_type' => $event->metadata['source_message_type'] ?? null,
+            'decision_context' => $event->payload['decision_context'] ?? null,
+            'analyzer_operational_state' => $event->payload['analyzer_operational_state'] ?? null,
+            'analyzer_downtime_started_at' => $event->payload['analyzer_downtime_started_at'] ?? null,
+            'analyzer_expected_restore_at' => $event->payload['analyzer_expected_restore_at'] ?? null,
+            'operational_window' => $event->payload['operational_window'] ?? null,
             'value_storage' => 'excluded',
         ], fn (mixed $value): bool => $value !== null && $value !== '');
 

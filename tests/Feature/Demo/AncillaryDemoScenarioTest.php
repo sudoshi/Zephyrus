@@ -11,6 +11,10 @@ use App\Services\Demo\DemoInvariantService;
 use App\Services\Demo\DemoRefreshCoordinator;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AncillaryReferenceSeeder;
+use Database\Seeders\CaseManagementSeeder;
+use Database\Seeders\CommandCenterDemoSeeder;
+use Database\Seeders\RtdcSeeder;
+use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
@@ -27,10 +31,10 @@ class AncillaryDemoScenarioTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(AncillaryReferenceSeeder::class);
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $unitId = DB::table('prod.units')->insertGetId(['name' => 'Demo discharge unit', 'type' => 'med_surg', 'created_at' => now(), 'updated_at' => now()], 'unit_id');
+        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
+        $unitId = (int) DB::table('prod.units')->orderBy('unit_id')->value('unit_id');
         DB::table('prod.encounters')->insert([
             'patient_ref' => 'demo-discharge-candidate', 'unit_id' => $unitId, 'status' => 'active',
             'expected_discharge_date' => $this->anchor->toDateString(), 'created_at' => now(), 'updated_at' => now(),
@@ -54,13 +58,15 @@ class AncillaryDemoScenarioTest extends TestCase
         $service = app(AncillaryDemoScenarioService::class);
         $preview = $service->preview($clock);
 
-        $this->assertSame(26, $preview['orders']);
-        $this->assertSame(140, $preview['milestones']);
-        $this->assertSame(3, $preview['breaches']);
+        $this->assertSame(47, $preview['orders']);
+        $this->assertSame(246, $preview['milestones']);
+        $this->assertSame(5, $preview['breaches']);
         $this->assertSame([], $preview['collisions']);
         $this->assertSame([
             'rad' => ['orders' => 16, 'milestones' => 97, 'expectedBreaches' => 1],
-            'lab' => ['orders' => 5, 'milestones' => 20, 'expectedBreaches' => 1],
+            'lab' => ['orders' => 14, 'milestones' => 84, 'expectedBreaches' => 1],
+            'pathology' => ['orders' => 6, 'milestones' => 29, 'expectedBreaches' => 1],
+            'blood_bank' => ['orders' => 6, 'milestones' => 13, 'expectedBreaches' => 1],
             'rx' => ['orders' => 5, 'milestones' => 23, 'expectedBreaches' => 1],
         ], collect($preview['departments'])->mapWithKeys(fn (array $department): array => [
             $department['department'] => [
@@ -79,10 +85,10 @@ class AncillaryDemoScenarioTest extends TestCase
 
         $this->assertSame($first, $second);
         $this->assertSame($firstKeys, $secondKeys);
-        $this->assertSame(26, $second['orders']);
-        $this->assertSame(140, $second['milestones']);
-        $this->assertGreaterThanOrEqual(3, $second['breaches']);
-        $this->assertSame(26, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->count());
+        $this->assertSame(47, $second['orders']);
+        $this->assertSame(246, $second['milestones']);
+        $this->assertGreaterThanOrEqual(5, $second['breaches']);
+        $this->assertSame(47, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->count());
         $this->assertSame(0, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->whereNull('source_cutoff_at')->count());
         $this->assertSame(2, DB::table('ops.source_freshness')->whereIn('source_key', ['ancillary_orders', 'ancillary_milestones'])->count());
         $this->assertSame(0, DB::table('integration.provenance_records as p')
@@ -145,7 +151,7 @@ class AncillaryDemoScenarioTest extends TestCase
 
         $this->assertSame([], array_values(array_intersect($oldKeys, $newKeys)));
         $this->assertDatabaseHas('prod.ancillary_orders', ['ancillary_order_id' => $foreign->ancillary_order_id, 'source_order_key' => 'foreign-order']);
-        $this->assertSame(26, count($newKeys));
+        $this->assertSame(47, count($newKeys));
     }
 
     public function test_collision_detection_refuses_non_owned_natural_key_without_replacing_it(): void
@@ -181,7 +187,7 @@ class AncillaryDemoScenarioTest extends TestCase
         app(AncillaryDemoScenarioService::class)->refresh($clock);
         $findings = collect(app(DemoInvariantService::class)->run($clock))->where('category', 'ancillary')->values();
 
-        $this->assertCount(13, $findings);
+        $this->assertCount(20, $findings);
         $this->assertSame([], $findings->where('severity', 'critical')->where('passed', false)->all());
         $this->assertTrue($findings->firstWhere('key', 'ancillary.source_conflict_represented')['passed']);
 

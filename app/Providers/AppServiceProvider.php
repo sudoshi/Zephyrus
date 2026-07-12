@@ -95,6 +95,8 @@ class AppServiceProvider extends ServiceProvider
             fn ($app) => new \App\Services\Demo\Ancillary\AncillaryDemoScenarioService([
                 $app->make(\App\Services\Demo\Ancillary\RadiologyDemoGenerator::class),
                 $app->make(\App\Services\Demo\Ancillary\LabDemoGenerator::class),
+                $app->make(\App\Services\Demo\Ancillary\PathologyDemoGenerator::class),
+                $app->make(\App\Services\Demo\Ancillary\BloodBankDemoGenerator::class),
                 $app->make(\App\Services\Demo\Ancillary\PharmacyDemoGenerator::class),
             ]),
         );

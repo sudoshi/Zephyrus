@@ -112,6 +112,23 @@ final class LabOrderProjector
                 }
             }
 
+            if ($milestone === 'LAB_IN_TRANSIT') {
+                $inTransitAt = $this->timestamp($payload['in_transit_at'] ?? null) ?? $event->occurredAt;
+                $effectiveCollection = $specimen->collected_at ?? ($updates['collected_at'] ?? null);
+                if ($effectiveCollection === null) {
+                    throw new InvalidArgumentException('Laboratory specimen transit requires prior collection evidence.');
+                }
+                if ($inTransitAt->lessThan($effectiveCollection)) {
+                    throw new InvalidArgumentException('Laboratory specimen transit precedes collection.');
+                }
+                if ($specimen->in_transit_at === null) {
+                    $updates['in_transit_at'] = $inTransitAt;
+                }
+                if (in_array((string) $specimen->status, ['', 'collection_pending', 'collected'], true)) {
+                    $updates['status'] = 'in_transit';
+                }
+            }
+
             if ($milestone === 'LAB_REJECTED') {
                 $reason = trim((string) ($payload['rejection_reason_code'] ?? ''));
                 if ($reason === '') {
