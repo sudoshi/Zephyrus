@@ -143,10 +143,23 @@ class ScopedFaceBuilder
      */
     private function serviceLineFace(CockpitScope $scope): array
     {
+        $lineUnits = $this->manifest->unitsByServiceLine((string) $scope->key);
+
+        // Procedural platforms (ED, periop) are not census wards — their live face
+        // IS the domain drill, never a bed-census card. Exclude them from the
+        // rollup so a single-platform line (emergency → ED, perioperative → OR)
+        // routes to its drill even when the platform unit still carries staffed
+        // bed rows (prod keeps OR beds, so the periop line would otherwise degrade
+        // to an honest-but-useless "0% occupancy" card). Same reuse rule as unitFace.
+        $censusUnits = array_filter(
+            $lineUnits,
+            fn (array $u): bool => ! in_array($u['type'] ?? null, ['ed', 'periop'], true),
+        );
+
         // Census rows may be keyed by either the branded abbr or the CAD join key
         // (prod.units.abbreviation differs by which importer wrote it) — roll up both.
         $abbrSet = [];
-        foreach ($this->manifest->unitsByServiceLine((string) $scope->key) as $u) {
+        foreach ($censusUnits as $u) {
             foreach ($this->unitNameCandidates($u, (string) $u['abbr']) as $candidate) {
                 $abbrSet[$candidate] = true;
             }
@@ -158,10 +171,9 @@ class ScopedFaceBuilder
         ));
 
         if ($rows === []) {
-            // A single-platform line (emergency → ED, perioperative → OR) may have
-            // no census wards at all — its live face is that platform's domain
-            // drill, same reuse rule as the unit/department mounts.
-            $types = array_column($this->manifest->unitsByServiceLine((string) $scope->key), 'type');
+            // No census wards → this line's live face is its platform domain drill,
+            // same reuse rule as the unit/department mounts.
+            $types = array_column($lineUnits, 'type');
             $domain = in_array('ed', $types, true) ? 'ed' : (in_array('periop', $types, true) ? 'periop' : null);
             if ($domain !== null) {
                 $drill = $this->drills->build($domain);
