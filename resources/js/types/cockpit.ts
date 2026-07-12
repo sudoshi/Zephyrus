@@ -70,6 +70,16 @@ export const cellDrillSchema = z.object({
     strong: z.boolean().optional(),
   }),
 });
+// P8 density — a small-multiple trend inside a board row (e.g. per-unit 24h
+// census on the service-line board). Decorative like the Tile sparkline; the
+// numeric columns beside it are the accessible values. Fewer than 2 points
+// renders an em-dash, never a broken chart.
+export const cellSparkSchema = z.object({
+  spark: z.object({
+    data: z.array(z.number()),
+    status: z.enum(statusLevels).optional(),
+  }),
+});
 export const cellSchema = z.union([
   z.string(),
   z.number(),
@@ -77,6 +87,7 @@ export const cellSchema = z.union([
   cellChipSchema,
   cellTagSchema,
   cellDrillSchema,
+  cellSparkSchema,
   cellTextSchema,
 ]);
 export type Cell = z.infer<typeof cellSchema>;

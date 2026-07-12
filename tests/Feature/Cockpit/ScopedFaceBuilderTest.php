@@ -269,7 +269,15 @@ class ScopedFaceBuilderTest extends TestCase
         $this->assertCount(12, $occupancy['trend']);
         $this->assertSame(85, $occupancy['target']);
 
-        $this->assertNotEmpty($face['tables'][0]['rows']);
+        // The units board answers "which unit needs help" in place: per-unit
+        // 24h census spark + DC-due + T4+ columns ride with capacity.
+        $board = $face['tables'][0];
+        $columnKeys = array_column($board['columns'], 'key');
+        $this->assertContains('census24h', $columnKeys);
+        $this->assertContains('dcDue', $columnKeys);
+        $this->assertContains('highAcuity', $columnKeys);
+        $this->assertNotEmpty($board['rows']);
+        $this->assertCount(12, $board['rows'][0]['census24h']['spark']['data']);
     }
 
     public function test_face_endpoint_resolves_scope_and_requires_auth(): void

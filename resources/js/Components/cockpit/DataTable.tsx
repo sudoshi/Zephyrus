@@ -5,9 +5,12 @@
 // presentationally. Semantic table: sr-only caption, scope="col" headers,
 // tabular-nums numeric columns; bar → MeterBar, chip → StatusChip, tag →
 // bordered pill — every status cell carries shape + label, never color alone.
+import { useId } from 'react';
+import type { StatusLevel } from '@/types/commandCenter';
 import type { Cell, Column } from '@/types/cockpit';
 import { statusStyle } from './statusStyle';
 import { MeterBar } from './MeterBar';
+import { Sparkline } from './Sparkline';
 import { StatusChip } from './StatusChip';
 
 export interface DataTableProps {
@@ -20,6 +23,22 @@ export interface DataTableProps {
    * plain text, so a static / wall render never exposes a dead affordance.
    */
   onRowDrill?: (patientRef: string) => void;
+}
+
+// The §6.4 spark cell — a small-multiple trend inside a board row. useId keeps
+// the SVG gradient id unique per instance (colons stripped: url(#…) fragment
+// references break on them in some engines). Decorative; the numeric columns
+// beside it are the accessible values.
+function SparkCell({ data, status }: { data: number[]; status?: StatusLevel }) {
+  const id = useId().replace(/:/g, '');
+  if (data.length < 2) {
+    return <span className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">—</span>;
+  }
+  return (
+    <span className="inline-block w-20 align-middle" data-testid="cell-spark">
+      <Sparkline data={data} status={status ?? 'neutral'} id={id} w={80} h={24} className="h-6 w-full" />
+    </span>
+  );
 }
 
 function CellContent({ cell, onRowDrill }: { cell: Cell; onRowDrill?: (patientRef: string) => void }) {
@@ -64,6 +83,9 @@ function CellContent({ cell, onRowDrill }: { cell: Cell; onRowDrill?: (patientRe
         )}
       </span>
     );
+  }
+  if ('spark' in cell) {
+    return <SparkCell data={cell.spark.data} status={cell.spark.status} />;
   }
   if ('chip' in cell) {
     return <StatusChip status={cell.chip} />;

@@ -180,8 +180,33 @@ class ScopedFaceBuilder
         $occ = $staffed > 0 ? (int) round($occupied / $staffed * 100) : 0;
 
         $unitIds = array_map(fn (array $r): int => (int) $r['unitId'], $rows);
-        $occTrend = $this->occupancyPctSeries($this->sumSeries($this->occupiedSeries($unitIds)), $staffed);
+        $bySeries = $this->occupiedSeries($unitIds);
+        $occTrend = $this->occupancyPctSeries($this->sumSeries($bySeries), $staffed);
         $movement = $this->movement24h($unitIds);
+
+        // Per-unit patient-care columns for the units board: which unit needs
+        // help, answered without a picker-hop. One grouped query for the line.
+        $perUnit = Encounter::query()
+            ->active()
+            ->whereIn('unit_id', $unitIds)
+            ->selectRaw(
+                'unit_id,'
+                .' count(*) filter (where acuity_tier >= 4) as high_acuity,'
+                .' count(*) filter (where expected_discharge_date <= ?) as dc_due',
+                [now()->toDateString()],
+            )
+            ->groupBy('unit_id')
+            ->get()
+            ->keyBy('unit_id');
+
+        $extras = [];
+        foreach ($unitIds as $id) {
+            $extras[$id] = [
+                'spark' => $bySeries[$id] ?? [],
+                'dcDue' => (int) ($perUnit[$id]->dc_due ?? 0),
+                'highAcuity' => (int) ($perUnit[$id]->high_acuity ?? 0),
+            ];
+        }
 
         // Line-wide patient-care aggregates from the live encounter spine. The
         // altitude model keeps the patient BOARD at the unit mount — a line-wide
@@ -219,7 +244,7 @@ class ScopedFaceBuilder
                 $this->tile('sl.alos', 'ALOS (active)', $alosDays ?? 0, $alosDays !== null ? $alosDays.'d' : 'N/A', 'days'),
                 $this->flowTile('sl.flow_24h', $movement),
             ],
-            'tables' => [$this->boardTable('Units in '.$scope->label, $rows)],
+            'tables' => [$this->boardTable('Units in '.$scope->label, $rows, $extras)],
         ];
     }
 
@@ -605,38 +630,66 @@ class ScopedFaceBuilder
     /**
      * The §6.4 Cell-grammar capacity board — the same column set as
      * DrillBuilder::unitCapacityBoard, so one React table renders every altitude.
+     * With $extras (service-line altitude), each unit row also carries its 24h
+     * census spark and the per-unit patient-care counts — "which unit needs
+     * help" answered on one board.
      *
      * @param  list<array<string, mixed>>  $rows
+     * @param  array<int, array{spark: list<int>, dcDue: int, highAcuity: int}>  $extras
      * @return array<string, mixed>
      */
-    private function boardTable(string $caption, array $rows): array
+    private function boardTable(string $caption, array $rows, array $extras = []): array
     {
+        $columns = [
+            ['key' => 'unit', 'header' => 'Unit', 'align' => 'left'],
+            ['key' => 'type', 'header' => 'Type', 'align' => 'left'],
+            ['key' => 'staffed', 'header' => 'Staffed', 'align' => 'right'],
+            ['key' => 'occupied', 'header' => 'Occ', 'align' => 'right'],
+            ['key' => 'available', 'header' => 'Avail', 'align' => 'right'],
+            ['key' => 'blocked', 'header' => 'Blocked', 'align' => 'right'],
+            ['key' => 'occupancy', 'header' => 'Occupancy', 'align' => 'left'],
+        ];
+
+        if ($extras !== []) {
+            $columns[] = ['key' => 'census24h', 'header' => '24h census', 'align' => 'left'];
+            $columns[] = ['key' => 'dcDue', 'header' => 'DC due', 'align' => 'right'];
+            $columns[] = ['key' => 'highAcuity', 'header' => 'T4+', 'align' => 'right'];
+        }
+
+        $columns[] = ['key' => 'status', 'header' => '', 'align' => 'right'];
+
         return [
             'caption' => $caption,
-            'columns' => [
-                ['key' => 'unit', 'header' => 'Unit', 'align' => 'left'],
-                ['key' => 'type', 'header' => 'Type', 'align' => 'left'],
-                ['key' => 'staffed', 'header' => 'Staffed', 'align' => 'right'],
-                ['key' => 'occupied', 'header' => 'Occ', 'align' => 'right'],
-                ['key' => 'available', 'header' => 'Avail', 'align' => 'right'],
-                ['key' => 'blocked', 'header' => 'Blocked', 'align' => 'right'],
-                ['key' => 'occupancy', 'header' => 'Occupancy', 'align' => 'left'],
-                ['key' => 'status', 'header' => '', 'align' => 'right'],
-            ],
-            'rows' => array_map(fn (array $u): array => [
-                'unit' => ['v' => (string) $u['name'], 'strong' => true],
-                'type' => ['v' => (string) $u['type'], 'dim' => true],
-                'staffed' => (int) $u['staffed'],
-                'occupied' => (int) $u['occupied'],
-                'available' => (int) $u['available'],
-                'blocked' => (int) $u['blocked'],
-                'occupancy' => ['bar' => [
-                    'pct' => (int) $u['occupancyPct'],
-                    'status' => (string) $u['status'],
-                    'label' => $u['occupancyPct'].'%',
-                ]],
-                'status' => ['chip' => (string) $u['status']],
-            ], $rows),
+            'columns' => $columns,
+            'rows' => array_map(function (array $u) use ($extras): array {
+                $row = [
+                    'unit' => ['v' => (string) $u['name'], 'strong' => true],
+                    'type' => ['v' => (string) $u['type'], 'dim' => true],
+                    'staffed' => (int) $u['staffed'],
+                    'occupied' => (int) $u['occupied'],
+                    'available' => (int) $u['available'],
+                    'blocked' => (int) $u['blocked'],
+                    'occupancy' => ['bar' => [
+                        'pct' => (int) $u['occupancyPct'],
+                        'status' => (string) $u['status'],
+                        'label' => $u['occupancyPct'].'%',
+                    ]],
+                    'status' => ['chip' => (string) $u['status']],
+                ];
+
+                $extra = $extras[(int) $u['unitId']] ?? null;
+                if ($extra !== null) {
+                    $row['census24h'] = count($extra['spark']) >= 2
+                        ? ['spark' => ['data' => $extra['spark'], 'status' => (string) $u['status']]]
+                        : ['v' => '—', 'dim' => true];
+                    // Plain counts, dimmed at zero — a full ICU of T4s is normal,
+                    // not an alarm (the occupancy bar owns urgency here).
+                    $row['dcDue'] = $extra['dcDue'] === 0 ? ['v' => '0', 'dim' => true] : $extra['dcDue'];
+                    $row['highAcuity'] = $extra['highAcuity'] === 0 ? ['v' => '0', 'dim' => true] : $extra['highAcuity'];
+                }
+
+                return $row;
+            }, $rows),
         ];
     }
 

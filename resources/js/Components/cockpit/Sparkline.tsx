@@ -14,9 +14,11 @@ export interface SparklineProps {
   id: string;
   w?: number;
   h?: number;
+  /** Sizing override — the table spark cell needs a shorter chart than a Tile. */
+  className?: string;
 }
 
-export function Sparkline({ data, status, target = null, id, w = 168, h = 42 }: SparklineProps) {
+export function Sparkline({ data, status, target = null, id, w = 168, h = 42, className = 'h-10 w-full' }: SparklineProps) {
   if (data.length < 2) return null;
   const color = statusStyle(status).color;
   const pad = 4;
@@ -36,7 +38,7 @@ export function Sparkline({ data, status, target = null, id, w = 168, h = 42 }: 
 
   return (
     <svg
-      className="h-10 w-full overflow-visible"
+      className={`${className} overflow-visible`}
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="none"
       aria-hidden="true"

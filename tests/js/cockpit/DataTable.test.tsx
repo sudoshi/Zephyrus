@@ -67,4 +67,22 @@ describe('DataTable', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('Room 4')).toBeInTheDocument();
   });
+
+  // P8 density — the spark cell: a small-multiple trend inside a board row.
+  const sparkColumns: Column[] = [{ key: 'unit', header: 'Unit' }, { key: 'census', header: '24h census' }];
+
+  it('renders a spark cell as an inline sparkline', () => {
+    const rows: Record<string, Cell>[] = [
+      { unit: 'MICU', census: { spark: { data: [12, 13, 14, 14, 15], status: 'warning' } } },
+    ];
+    render(<DataTable columns={sparkColumns} rows={rows} caption="line board" />);
+    expect(screen.getByTestId('cell-spark').querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders an em-dash for a spark cell with fewer than 2 points, never a broken chart', () => {
+    const rows: Record<string, Cell>[] = [{ unit: 'MICU', census: { spark: { data: [12] } } }];
+    render(<DataTable columns={sparkColumns} rows={rows} caption="sparse line board" />);
+    expect(screen.queryByTestId('cell-spark')).not.toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
 });
