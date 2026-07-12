@@ -326,6 +326,12 @@ const ANALYTICS: NavDomain = {
         { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
       ],
     },
+    {
+      title: 'Ancillary Performance',
+      items: [
+        { label: 'Radiology TAT', href: '/analytics/radiology-tat', icon: Timer },
+      ],
+    },
     // P5: per-domain retrospective pages, re-homed from their workspaces —
     // the temporal split ("now" = workspace, "over time" = Study).
     {

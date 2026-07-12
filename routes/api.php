@@ -280,6 +280,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->group(
     Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist']);
     Route::get('/modality', [RadiologyFlowBoardController::class, 'modality']);
     Route::get('/reads', [RadiologyFlowBoardController::class, 'reads']);
+    Route::get('/tat', [RadiologyFlowBoardController::class, 'tat']);
     Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier']);
 });
 

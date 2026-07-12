@@ -200,6 +200,7 @@ describe('navigationConfig', () => {
       'Process Analysis',
       'Planning',
       'Perioperative Performance',
+      'Ancillary Performance',
       'Capacity Trends',
       'ED & Transport Trends',
     ]);
@@ -209,6 +210,14 @@ describe('navigationConfig', () => {
       const leafHrefs = domain.groups.flatMap((group) => group.items.map((item) => item.href));
       expect(leafHrefs).toHaveLength(new Set(leafHrefs).size);
     }
+  });
+
+  it('owns the Radiology TAT study route only from Analytics', () => {
+    const href = '/analytics/radiology-tat';
+    const occurrences = NAVIGATION.flatMap((domain) => domain.groups.flatMap((group) => group.items.filter((item) => item.href === href).map(() => domain.key)));
+
+    expect(occurrences).toEqual(['analytics']);
+    expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
   });
 
   it('keeps administration in user-menu/palette projections only', () => {

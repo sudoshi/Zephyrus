@@ -247,3 +247,83 @@ export const radiologyReadsSchema = z.object({
 }).strict();
 
 export type RadiologyReads = z.infer<typeof radiologyReadsSchema>;
+
+const tatDistributionPointSchema = z.object({
+  key: z.string(), label: z.string(), count: z.number().int().nonnegative(),
+  medianMinutes: nullableMinutes, p90Minutes: nullableMinutes, meanMinutes: nullableMinutes,
+}).strict();
+
+const tatChartContextSchema = z.object({
+  clockDefinition: slaDefinitionSchema.nullable(), cohortCount: z.number().int().nonnegative(),
+  sourceCutoffAt: nullableIso, benchmarkSourceLabel: z.string().min(1),
+}).strict();
+
+const selectedAssertionSchema = z.object({
+  milestoneUuid: z.string().uuid(), code: z.string(), occurredAt: z.string().datetime({ offset: true }),
+  receivedAt: z.string().datetime({ offset: true }), sourceKey: z.string(), sourceRank: z.number().int().nonnegative(),
+  assertionCount: z.number().int().positive(),
+}).strict();
+
+const benchmarkLineSchema = z.object({
+  definitionUuid: z.string().uuid(), metricKey: z.string(), label: z.string(),
+  lineKind: z.enum(['warning', 'breach', 'target']), valueMinutes: z.number().nonnegative(),
+  scopeLabel: z.string(), sourceLabel: z.string(), sourceReferenceId: z.string().nullable(),
+}).strict();
+
+export const radiologyTatSchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }), sourceCutoffAt: nullableIso,
+  state: z.enum(['normal', 'stale', 'degraded', 'no_data', 'source_error']), stateMessage: z.string().min(1),
+  freshness: sourceFreshnessSchema,
+  filters: z.object({
+    dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    priority: z.string().nullable(), modality: z.string().nullable(), patientClass: z.string().nullable(),
+    shift: z.enum(['day', 'evening', 'night', 'weekend']).nullable(), limit: z.number().int().positive().max(2000),
+  }).strict(),
+  filterOptions: z.object({
+    priorities: z.array(z.string()), modalities: z.array(z.object({ code: z.string(), label: z.string() }).strict()),
+    patientClasses: z.array(z.string()), shifts: z.array(z.enum(['day', 'evening', 'night', 'weekend'])),
+    maxRangeDays: z.number().int().positive(), maxLimit: z.number().int().positive(),
+  }).strict(),
+  summary: z.object({
+    count: z.number().int().nonnegative(), median: nullableMinutes, p90: nullableMinutes, meanMinutes: nullableMinutes,
+    candidateExamCount: z.number().int().nonnegative(), includedExamCount: z.number().int().nonnegative(),
+  }).strict(),
+  waterfall: z.array(z.object({
+    definition: slaDefinitionSchema, cohortCount: z.number().int().nonnegative(), medianMinutes: nullableMinutes,
+    p90Minutes: nullableMinutes, meanMinutes: nullableMinutes, missingIntervalCount: z.number().int().nonnegative(),
+    excludedNegativeCount: z.number().int().nonnegative(), invalidTimestampCount: z.number().int().nonnegative(),
+    sourceCutoffAt: nullableIso, benchmarkSourceLabel: z.string(), benchmarkLines: z.array(benchmarkLineSchema),
+  }).strict()),
+  dailyTrend: tatChartContextSchema.extend({ label: z.string(), points: z.array(tatDistributionPointSchema) }).strict(),
+  breakdowns: z.object({
+    priority: tatChartContextSchema.extend({ label: z.string(), dimension: z.literal('priority'), points: z.array(tatDistributionPointSchema) }).strict(),
+    modality: tatChartContextSchema.extend({ label: z.string(), dimension: z.literal('modality'), points: z.array(tatDistributionPointSchema) }).strict(),
+    patientClass: tatChartContextSchema.extend({ label: z.string(), dimension: z.literal('patientClass'), points: z.array(tatDistributionPointSchema) }).strict(),
+    shift: tatChartContextSchema.extend({ label: z.string(), dimension: z.literal('shift'), points: z.array(tatDistributionPointSchema) }).strict(),
+  }).strict(),
+  nightWeekendComparison: tatChartContextSchema.extend({ label: z.string(), definition: z.string(), points: z.array(tatDistributionPointSchema) }).strict(),
+  breachPareto: z.object({
+    cohortCount: z.number().int().nonnegative(), sourceCutoffAt: nullableIso, definition: z.string(),
+    points: z.array(z.object({ key: z.string(), label: z.string(), count: z.number().int().nonnegative(), percent: z.number().min(0).max(100), cumulativePercent: z.number().min(0).max(100) }).strict()),
+  }).strict(),
+  benchmarkLines: z.array(benchmarkLineSchema),
+  coverage: z.object({
+    candidateExamCount: z.number().int().nonnegative(), analyzedExamCount: z.number().int().nonnegative(), includedExamCount: z.number().int().nonnegative(),
+    possibleIntervalCount: z.number().int().nonnegative(), includedIntervalCount: z.number().int().nonnegative(), percent: z.number().min(0).max(100),
+    missingAssertionIntervalCount: z.number().int().nonnegative(), excludedNegativeIntervalCount: z.number().int().nonnegative(),
+    invalidTimestampIntervalCount: z.number().int().nonnegative(), excludedCorrectedExamCount: z.number().int().nonnegative(),
+    selectedAssertionConflictCount: z.number().int().nonnegative(), truncated: z.boolean(), unanalyzedCandidateCount: z.number().int().nonnegative(), definition: z.string(),
+  }).strict(),
+  lineage: z.object({
+    count: z.number().int().nonnegative(), truncated: z.boolean(), definition: z.string(),
+    items: z.array(z.object({
+      orderUuid: z.string().uuid(), examUuid: z.string().uuid(), definitionUuid: z.string().uuid(), metricKey: z.string(),
+      minutes: z.number().nonnegative(), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), priority: z.string(), modality: z.string(),
+      patientClass: z.string(), shift: z.enum(['day', 'evening', 'night', 'weekend']), sourceCutoffAt: z.string().datetime({ offset: true }),
+      startAssertion: selectedAssertionSchema, stopAssertion: selectedAssertionSchema,
+    }).strict()),
+  }).strict(),
+  privacy: z.object({ patientIdentifiersIncluded: z.literal(false), clinicalReportTextIncluded: z.literal(false), identifierPolicy: z.string() }).strict(),
+}).strict();
+
+export type RadiologyTat = z.infer<typeof radiologyTatSchema>;

@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-11 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-12 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 21 of 60 tasks complete; 39 remain |
+| Progress | 22 of 60 tasks complete; 38 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1121,24 +1121,24 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] The ED chip and RTDC vector expose text/icon state, count, oldest age, accessible drill labels, and allowlisted UUID-filtered Radiology links.
 - [x] Chromium smoke renders `/rtdc/predictions/discharge`, `/ed/operations/treatment`, and `/radiology/worklist`, including their readiness controls, with zero browser console/page errors.
 
-#### [ ] R-12 — Implement Radiology TAT Study at /analytics/radiology-tat
+#### [x] R-12 — Implement Radiology TAT Study at /analytics/radiology-tat
 
 **Depends on:** R-6 through R-9
 **Primary files:** RadiologyTatAnalyticsService; Analytics controller/page/API; navigation
 
 **Work:**
 
-- Provide median and P90 segment waterfall, trends by priority/modality/class/shift, night/weekend comparison, breach Pareto, data coverage, and benchmark lines.
-- Attribute each interval to explicit SLA definition and selected assertions.
-- Exclude invalid/negative/corrected intervals with a visible data-quality count rather than silently cleaning.
-- Support date range and filter limits suitable for indexed queries.
+- [x] Provide median and P90 segment waterfall, trends by priority/modality/class/shift, night/weekend comparison, breach Pareto, data coverage, and benchmark lines.
+- [x] Attribute each interval to explicit SLA definition and selected assertions.
+- [x] Exclude invalid/negative/corrected intervals with a visible data-quality count rather than silently cleaning.
+- [x] Support date range and filter limits suitable for indexed queries.
 
 **Acceptance:**
 
-- Percentile math matches fixed fixtures and PostgreSQL reference calculations.
-- Every chart exposes clock definition, cohort size, cutoff, and benchmark source label.
-- Mean is never the only statistic.
-- Study route is owned only by Analytics in navigation tests.
+- [x] Percentile math matches fixed fixtures and PostgreSQL reference calculations.
+- [x] Every chart exposes clock definition, cohort size, cutoff, and benchmark source label.
+- [x] Mean is never the only statistic.
+- [x] Study route is owned only by Analytics in navigation tests.
 
 #### [ ] R-13 — Implement IR Suite Study at /analytics/ir-utilization
 

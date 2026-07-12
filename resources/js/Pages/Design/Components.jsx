@@ -14,7 +14,7 @@ const asOf = '2026-07-11T14:00:00Z';
 const fresh = { status: 'fresh', asOf, sourceCutoffAt: '2026-07-11T13:59:00Z', lagMinutes: 1, sourceLabel: 'Ancillary demo', explanation: null };
 const definition = {
   definitionUuid: '22222222-2222-4222-8222-222222222222', department: 'rad', metricKey: 'rad.stat_order_final', label: 'STAT order to final',
-  startMilestoneCode: 'RAD_ORDERED', stopMilestoneCode: 'RAD_FINAL', priority: 'stat', patientClass: null, statistic: 'compliance_rate',
+  startMilestoneCode: 'RAD_ORDERED', stopMilestoneCode: 'RAD_FINAL', priority: 'stat', patientClass: null, scope: {}, statistic: 'compliance_rate',
   warningMinutes: 45, breachMinutes: 60, targetValue: 90, direction: 'higher_is_better', unit: 'percent', effectiveFrom: '2026-07-01T00:00:00Z',
   effectiveTo: null, version: 1, active: true, definitionText: 'Share of selected STAT radiology orders finalized within 60 minutes.', sourceReferenceId: 'governance:rad-stat-v1',
 };

@@ -25,6 +25,7 @@ final class AncillaryContractSerializer
             'stopMilestoneCode' => (string) $definition->stop_milestone_code,
             'priority' => $definition->priority,
             'patientClass' => $definition->patient_class,
+            'scope' => $definition->scope,
             'statistic' => (string) $definition->statistic,
             'warningMinutes' => $definition->warning_minutes,
             'breachMinutes' => $definition->breach_minutes,

@@ -95,6 +95,7 @@ describe('SectionMenuPanel', () => {
       'Process Analysis',
       'Planning',
       'Perioperative Performance',
+      'Ancillary Performance',
       'Capacity Trends',
       'ED & Transport Trends',
     ]);

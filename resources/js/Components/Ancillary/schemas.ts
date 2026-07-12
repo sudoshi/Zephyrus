@@ -50,6 +50,7 @@ export const slaDefinitionSchema = z.object({
   stopMilestoneCode: z.string().min(1),
   priority: z.string().nullable(),
   patientClass: z.string().nullable(),
+  scope: z.record(z.string(), z.unknown()),
   statistic: z.enum(['item_clock', 'compliance_rate', 'median', 'p90', 'count', 'oldest_age']),
   warningMinutes: z.number().int().nonnegative().nullable(),
   breachMinutes: z.number().int().nonnegative().nullable(),

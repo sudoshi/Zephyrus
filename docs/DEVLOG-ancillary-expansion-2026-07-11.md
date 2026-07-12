@@ -791,3 +791,42 @@ Browser evidence used an isolated `APP_ENV=testing` database populated by the ca
 - ED scope depends on the governed `rad_exams.metadata.ed_visit_id` context emitted by the existing projector/demo path; ambiguous or absent visit context is never guessed from patient identity.
 - R-11 intentionally does not alter discharge prioritization tiers or the existing ED synthetic pending-order enrichment. It adds observed imaging readiness beside those contracts.
 - L-11 is now unblocked to add the Lab axis through this service without copying readiness logic or replacing the Imaging axis.
+
+## 2026-07-12 — R-12 Radiology TAT Study
+
+### Outcome
+
+Implemented `/analytics/radiology-tat` and `GET /api/radiology/tat` through one `RadiologyTatAnalyticsService` contract shared by the Inertia render and authenticated API refresh. Validated filters cover a bounded 90-day inclusive date window, governed priority/modality/patient-class/shift dimensions, and a result limit capped at 2,000. The service first selects the indexed Radiology cohort and then hydrates current assertions in batches; large-fixture evidence proves query count is constant between limits of 2 and 100.
+
+Added six reference-only study clocks for order-to-exam-start, exam duration, acquisition-to-PACS, images-to-preliminary, images-to-final, and order-to-final. Each interval row retains its SLA-definition UUID/metric plus the selected start and stop assertion UUID, source, rank, and competing-assertion count. The shared ancillary contract now serializes definition scope so the Study can declare segment order and primary-trend ownership without inventing client-side clock semantics.
+
+The aggregate contract reports median and P90 as the primary statistics, with mean only as a secondary value. It provides the six-segment waterfall, daily order-to-final trend, priority/modality/patient-class/shift distributions, facility-time night/weekend comparison, persisted breach Pareto, benchmark/policy registry, data-coverage ledger, freshness, and a bounded pseudonymous lineage audit. Corrected/addendum exams, missing assertion pairs, negative intervals, invalid timestamps, and conflicting assertions are counted visibly rather than silently folded into the denominator.
+
+Benchmark labeling is deliberately honest. A study clock with no persisted numeric policy exposes its definition source and `no governed numeric benchmark`; only persisted local warning/breach/target values become reference lines, and those lines remain labeled as local policy rather than external benchmarks. Every chart exposes the exact clock definition, cohort count, source cutoff, and benchmark-source label in both its accessible caption and summary table. No patient identifiers or report narrative are selected or rendered.
+
+The Analytics navigation now owns `/analytics/radiology-tat` exactly once under `Ancillary Performance`. Explicit ownership tests prove the route is absent from all other workflow sections. The page supplies bounded filters, freshness and exclusion messaging, 11 accessible chart figures in the canonical demo, coverage and benchmark tables, and an expandable lineage table linking operational evidence back to its selected assertions.
+
+Added `ancillary_orders_department_ordered_idx` on `(department, ordered_at, ancillary_order_id)` for the bounded aggregate cohort. PostgreSQL `EXPLAIN` evidence proves the Study query uses that index. The existing worklist planner test now also accepts this valid governed path because PostgreSQL may select the new department/date index for its bounded Radiology scan.
+
+### Automated and rendered evidence
+
+```text
+RadiologyTatAnalyticsTest + AncillaryReferenceSeederTest: 11 tests, 671 assertions, PASS
+Full Ancillary feature regression: 106 tests, 1,347 assertions, PASS
+Radiology + Ancillary + navigation Vitest: 9 files, 46 tests, PASS
+Final focused Radiology TAT/navigation Vitest: 3 files, 28 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint for touched R-12 PHP/tests: PASS
+Chromium built-asset smoke: 11 figures, 6 segment rows, 64 lineage rows, zero console/page errors
+```
+
+The first full Ancillary regression exposed disposable R-11 browser-demo rows left in non-default PostgreSQL schemas because `migrate:fresh` resets only the configured/default schema. A database-name guard confirmed `zephyrus_test` before truncating only the disposable `integration`, `ops`, `ocel`, and related test schemas. The clean rerun passed all 106 tests, and the test baseline was restored again afterward with zero ancillary source/event rows plus the normal 29-service-line and 87-role registries. No production database was touched.
+
+### Activation and limitations
+
+- No connector, credential, scheduler, deployment, production data, external benchmark, or policy activation was introduced.
+- The six new clocks are inactive reference definitions for Study attribution. Existing operational SLA enforcement remains unchanged.
+- Numeric lines reflect persisted local policy only; absent governance remains explicitly absent rather than replaced with literature-derived or synthetic targets.
+- R-13 is the next dependency-ordered Radiology tranche and must reuse the shared operational interval calculator for IR utilization.

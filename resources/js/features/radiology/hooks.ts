@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { modalityUtilizationSchema, radiologyFlowBoardSchema, radiologyReadsSchema, radiologyWorklistSchema, type ModalityUtilization, type RadiologyFlowBoard, type RadiologyReads, type RadiologyWorklist } from './schemas';
+import { modalityUtilizationSchema, radiologyFlowBoardSchema, radiologyReadsSchema, radiologyTatSchema, radiologyWorklistSchema, type ModalityUtilization, type RadiologyFlowBoard, type RadiologyReads, type RadiologyTat, type RadiologyWorklist } from './schemas';
 
 export function useRadiologyFlowBoard(initialData: RadiologyFlowBoard) {
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -43,5 +43,16 @@ export function useRadiologyReads(initialData: RadiologyReads) {
     initialData,
     queryFn: async () => radiologyReadsSchema.parse((await axios.get(`/api/radiology/reads${search}`)).data),
     refetchInterval: 30_000,
+  });
+}
+
+export function useRadiologyTat(initialData: RadiologyTat) {
+  const search = typeof window === 'undefined' ? '' : window.location.search;
+
+  return useQuery({
+    queryKey: ['radiology-tat', search],
+    initialData,
+    queryFn: async () => radiologyTatSchema.parse((await axios.get(`/api/radiology/tat${search}`)).data),
+    refetchInterval: 60_000,
   });
 }
