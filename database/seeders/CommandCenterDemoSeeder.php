@@ -2280,6 +2280,44 @@ class CommandCenterDemoSeeder extends Seeder
                 ]);
             }
         }
+
+        // A block SCHEDULE is a forward-looking surface — also seed templates
+        // for the next 5 weekdays so weekend/evening viewers see the coming
+        // week, not only an elapsed one. NO utilization rows: future blocks
+        // honestly have no actuals yet (the page hides the utilization line
+        // when null). Deliberately kept OUT of $weekdays — that list drives
+        // OR-case/PACU seeding, whose RoomStatus anchor is MAX(surgery_date)
+        // and must never move into the future.
+        $futureWeekdays = [];
+        $candidate = now()->startOfDay()->addDay();
+        while (count($futureWeekdays) < 5) {
+            if ($candidate->isWeekday()) {
+                $futureWeekdays[] = $candidate->copy();
+            }
+            $candidate->addDay();
+        }
+
+        foreach ($futureWeekdays as $day) {
+            foreach ($roomIds as $roomIdx => $roomId) {
+                DB::table('prod.block_templates')->insert([
+                    'room_id' => $roomId,
+                    'service_id' => $serviceIds[$roomIdx % count($serviceIds)],
+                    'surgeon_id' => $providerIds[$roomIdx % count($providerIds)],
+                    'group_id' => null,
+                    'block_date' => $day->toDateString(),
+                    'start_time' => '07:30:00',
+                    'end_time' => '15:30:00',
+                    'is_public' => true,
+                    'title' => "Block {$day->format('M d')} OR-".($roomIdx + 1),
+                    'abbreviation' => 'BLK',
+                    'created_by' => 'seeder',
+                    'modified_by' => 'seeder',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                    'is_deleted' => false,
+                ]);
+            }
+        }
     }
 
     private function seedGmlosReferences(): void
