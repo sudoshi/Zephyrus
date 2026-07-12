@@ -5,6 +5,7 @@ namespace App\Domain\Ocel;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The OCEL projector (Part X §X.3.2) — a read-side projection, the OCPM analogue
@@ -56,6 +57,7 @@ class OcelProjector
             'prod.case_timings' => $this->collectCaseTimings($since, $until),
             'prod.transport_requests' => $this->collectTransport($since, $until),
             'prod.barriers' => $this->collectBarriers($since, $until),
+            'prod.ancillary_milestones' => $this->collectAncillaryMilestones($since, $until),
         ];
 
         $this->flush();
@@ -63,6 +65,38 @@ class OcelProjector
         return [
             'window' => ['since' => $since->toIso8601String(), 'until' => $until->toIso8601String()],
             'source_rows' => $sourceRows,
+            'events' => count($this->events),
+            'objects' => count($this->objects),
+            'e2o' => count($this->e2o),
+            'o2o' => count($this->o2o),
+            'object_changes' => count($this->changes),
+        ];
+    }
+
+    /**
+     * Bounded repair/backfill seam for ancillary facts only.
+     *
+     * @param  list<int>  $orderIds
+     * @return array<string, mixed>
+     */
+    public function projectAncillary(
+        ?CarbonInterface $since = null,
+        ?CarbonInterface $until = null,
+        array $orderIds = [],
+    ): array {
+        $since ??= Carbon::now()->subDays(90);
+        $until ??= Carbon::now();
+        $orderIds = array_values(array_unique(array_filter(array_map('intval', $orderIds))));
+
+        $this->reset();
+        $this->ensureCatalog();
+        $sourceRows = $this->collectAncillaryMilestones($since, $until, $orderIds);
+        $this->flush();
+
+        return [
+            'window' => ['since' => $since->toIso8601String(), 'until' => $until->toIso8601String()],
+            'order_ids' => $orderIds,
+            'source_rows' => ['prod.ancillary_milestones' => $sourceRows],
             'events' => count($this->events),
             'objects' => count($this->objects),
             'e2o' => count($this->e2o),
@@ -84,7 +118,7 @@ class OcelProjector
         $until ??= Carbon::now();
 
         $out = [];
-        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.case_timings', 'prod.transport_requests', 'prod.barriers'] as $src) {
+        foreach (['flow_core.flow_events', 'prod.care_journey_milestones', 'prod.case_timings', 'prod.transport_requests', 'prod.barriers', 'prod.ancillary_milestones'] as $src) {
             $projected = (int) DB::table('ocel.events')->where('source_system', $src)->count();
             $distinct = (int) DB::table('ocel.events')->where('source_system', $src)->distinct('source_ref')->count('source_ref');
             $out[] = [
@@ -209,6 +243,40 @@ class OcelProjector
         return $n;
     }
 
+    /** @param list<int> $orderIds */
+    private function collectAncillaryMilestones(CarbonInterface $since, CarbonInterface $until, array $orderIds = []): int
+    {
+        $n = 0;
+        DB::table('prod.ancillary_milestones as m')
+            ->join('prod.ancillary_orders as o', 'o.ancillary_order_id', '=', 'm.ancillary_order_id')
+            ->join('hosp_ref.ancillary_milestone_types as t', 't.code', '=', 'm.milestone_code')
+            ->join('integration.sources as s', 's.source_id', '=', 'm.source_id')
+            ->leftJoin('prod.units as u', 'u.unit_id', '=', 'o.unit_id')
+            ->whereBetween('m.occurred_at', [$since, $until])
+            ->when($orderIds !== [], fn ($query) => $query->whereIn('m.ancillary_order_id', $orderIds))
+            ->select([
+                'm.ancillary_milestone_id', 'm.milestone_uuid', 'm.milestone_code',
+                'm.occurred_at', 'm.received_at', 'm.source_rank', 'm.metadata as assertion_metadata',
+                'o.ancillary_order_id', 'o.order_uuid', 'o.department', 'o.work_item_type',
+                'o.encounter_id', 'o.encounter_ref', 'o.patient_class', 'o.priority',
+                'o.unit_id', 'o.source_cutoff_at', 'o.metadata as order_metadata',
+                'u.abbreviation as unit_abbreviation',
+                't.phase', 't.ordinal', 't.ocel_event_type', 't.process_ids',
+                's.system_class',
+            ])
+            ->orderBy('m.ancillary_milestone_id')
+            ->chunk(1000, function ($rows) use (&$n): void {
+                foreach ($rows as $row) {
+                    if ($event = EmissionMap::forAncillaryMilestone($row)) {
+                        $this->absorb($event);
+                        $n++;
+                    }
+                }
+            });
+
+        return $n;
+    }
+
     private function sourceRowCount(string $src, CarbonInterface $since, CarbonInterface $until): int
     {
         return match ($src) {
@@ -222,6 +290,8 @@ class OcelProjector
                 ->where('is_deleted', false)->whereBetween('requested_at', [$since, $until])->count(),
             'prod.barriers' => (int) DB::table('prod.barriers')
                 ->where('is_deleted', false)->whereBetween('opened_at', [$since, $until])->count(),
+            'prod.ancillary_milestones' => (int) DB::table('prod.ancillary_milestones')
+                ->whereBetween('occurred_at', [$since, $until])->count(),
             default => 0,
         };
     }
@@ -330,10 +400,27 @@ class OcelProjector
         }
         DB::table('ocel.object_types')->upsert($typeRows, ['type'], ['lens', 'source_system', 'version', 'updated_at']);
 
-        $activityRows = [];
+        $activityDomains = [];
         foreach (OcelCatalog::activities() as $activity => $domain) {
-            $activityRows[] = ['activity' => $activity, 'domain' => $domain, 'created_at' => $now, 'updated_at' => $now];
+            $activityDomains[$activity] = $domain;
         }
+        if (Schema::hasTable('hosp_ref.ancillary_milestone_types')) {
+            foreach (DB::table('hosp_ref.ancillary_milestone_types')
+                ->whereNotNull('ocel_event_type')
+                ->get(['ocel_event_type', 'department']) as $row) {
+                $domain = 'ancillary_'.$row->department;
+                $activityDomains[$row->ocel_event_type] = isset($activityDomains[$row->ocel_event_type])
+                    && $activityDomains[$row->ocel_event_type] !== $domain
+                    ? 'cross_domain'
+                    : $domain;
+            }
+        }
+        $activityRows = array_map(fn (string $activity, string $domain): array => [
+            'activity' => $activity,
+            'domain' => $domain,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], array_keys($activityDomains), array_values($activityDomains));
         foreach (array_chunk($activityRows, 500) as $chunk) {
             DB::table('ocel.activities')->upsert($chunk, ['activity'], ['domain', 'updated_at']);
         }

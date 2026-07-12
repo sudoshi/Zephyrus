@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\Radiology\RadiologyFlowBoardController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\Rtdc\BarrierController;
 use App\Http\Controllers\Api\Rtdc\BedRequestController;
@@ -272,6 +273,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(funct
     Route::post('/bed-requests', [BedRequestController::class, 'store']);
     Route::get('/bed-requests/{bedRequestId}/recommendations', [BedRequestController::class, 'recommendations']);
     Route::post('/bed-requests/{bedRequestId}/decision', [BedRequestController::class, 'decision']);
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->group(function () {
+    Route::get('/flow-board', [RadiologyFlowBoardController::class, 'show']);
+    Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist']);
+    Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier']);
 });
 
 // Transport command center (web session auth)

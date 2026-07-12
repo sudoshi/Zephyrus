@@ -47,6 +47,7 @@ class DemoRefreshCommand extends Command
         if ($this->option('dry-run')) {
             $this->line("Dry run @ {$clock->key()} — previewing flow shift, no writes:");
             $this->call('patient-flow:rebase-synthetic', ['--anchor' => $clock->key(), '--dry-run' => true]);
+            $this->line((string) json_encode(['ancillary' => $coordinator->previewAncillary($clock)], JSON_UNESCAPED_SLASHES));
             $this->newLine();
 
             return $this->emitValidation($clock, $invariants);

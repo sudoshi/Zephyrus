@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
-use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Integrations\Healthcare\Services\ProjectionDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +30,7 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
         $this->onConnection('database')->onQueue('integrations');
     }
 
-    public function handle(RtdcProjectionHandler $projector, IntegrationConfigurationAuditService $audit): void
+    public function handle(ProjectionDispatcher $projector, IntegrationConfigurationAuditService $audit): void
     {
         $replay = DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $this->replayJobId)->first();
         if (! $replay || in_array($replay->status, ['completed', 'completed_with_errors'], true)) {
@@ -52,6 +52,7 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
         $replayed = 0;
         $failed = 0;
         foreach ($events as $row) {
+            $projectorKey = 'unsupported';
             try {
                 $event = new CanonicalOperationalEvent(
                     eventId: (string) $row->event_id,
@@ -69,6 +70,7 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
                 if (! $projector->supports($event)) {
                     throw new \InvalidArgumentException('Unsupported replay event.');
                 }
+                $projectorKey = $projector->projectorKeyFor($event) ?? 'unsupported';
                 $projector->project($event);
                 DB::table('integration.canonical_events')->where('canonical_event_id', $row->canonical_event_id)->update([
                     'projection_status' => 'projected', 'projected_at' => now(), 'updated_at' => now(),
@@ -84,9 +86,9 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
                 ]);
                 DB::table('integration.event_projection_errors')->insert([
                     'canonical_event_id' => $row->canonical_event_id,
-                    'projector_key' => 'rtdc.census',
+                    'projector_key' => $projectorKey,
                     'error_code' => 'replay_projection_failed',
-                    'message' => 'The canonical event could not be replayed into the RTDC projection.',
+                    'message' => 'The canonical event could not be replayed into its registered projection.',
                     'exception_class' => $exception::class,
                     'context' => json_encode(['replay_job_id' => $this->replayJobId], JSON_THROW_ON_ERROR),
                     'status' => 'open',

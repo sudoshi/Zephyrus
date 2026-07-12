@@ -14,6 +14,7 @@ use App\Http\Controllers\Ops\OpsConsoleController;
 use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RadiologyController;
 use App\Http\Controllers\RTDCController;
 use App\Http\Controllers\RTDCDashboardController;
 use App\Http\Controllers\Staffing\StaffingDashboardController;
@@ -72,6 +73,9 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             }
         }
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
+
+        Route::get('/radiology', [RadiologyController::class, 'index'])->name('radiology.flow-board');
+        Route::get('/radiology/worklist', [RadiologyController::class, 'worklist'])->name('radiology.worklist');
 
         // Improvement Routes
         Route::prefix('improvement')->name('improvement.')->group(function () {

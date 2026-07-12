@@ -15,7 +15,11 @@ use Illuminate\Support\Str;
 
 class EnterpriseConnectorControlService
 {
-    public function __construct(private readonly IntegrationConfigurationAuditService $audit) {}
+    public function __construct(
+        private readonly IntegrationConfigurationAuditService $audit,
+        private readonly ProjectionDispatcher $projections,
+        private readonly FhirResourcePolicy $fhirResources,
+    ) {}
 
     /** @return array<string,mixed> */
     public function summary(): array
@@ -189,7 +193,7 @@ class EnterpriseConnectorControlService
     /** @return array<string, mixed> */
     public function queueFhirPoll(int $sourceId, string $resourceType, ?int $userId, string $correlationId): array
     {
-        if (! in_array($resourceType, ['Encounter', 'Location'], true)) {
+        if (! $this->fhirResources->allows($resourceType)) {
             abort(422, 'The FHIR resource type is not enabled for this operational slice.');
         }
 
@@ -374,7 +378,7 @@ class EnterpriseConnectorControlService
         if ($to->lessThan($from) || $from->diffInDays($to) > 7) {
             abort(422, 'Replay windows must be ordered and no longer than seven days.');
         }
-        $supported = ['EncounterStarted', 'EncounterTransferred', 'EncounterDischarged', 'BedStatusChanged', 'AcuityChanged'];
+        $supported = $this->projections->eventTypes();
         $requested = array_values(array_unique(array_map('strval', $scope['event_types'] ?? $supported)));
         if (array_diff($requested, $supported) !== []) {
             abort(422, 'The replay includes an unsupported canonical event type.');

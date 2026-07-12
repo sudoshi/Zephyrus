@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Http\Controllers\Api\Radiology;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Radiology\RadiologyFlowBoardRequest;
+use App\Http\Requests\Radiology\RadiologyWorklistRequest;
+use App\Http\Requests\Radiology\StoreRadiologyBarrierRequest;
+use App\Services\Radiology\RadiologyBarrierService;
+use App\Services\Radiology\RadiologyFlowBoardService;
+use App\Services\Radiology\RadiologyWorklistService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
+
+class RadiologyFlowBoardController extends Controller
+{
+    public function show(RadiologyFlowBoardRequest $request, RadiologyFlowBoardService $flowBoard): JsonResponse
+    {
+        return response()->json($flowBoard->build($request->validated(), Gate::allows('manageAncillaryBarriers')))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function storeBarrier(StoreRadiologyBarrierRequest $request, RadiologyBarrierService $barriers): JsonResponse
+    {
+        return response()->json(['data' => $barriers->open($request->validated(), $request)], 201);
+    }
+
+    public function worklist(RadiologyWorklistRequest $request, RadiologyWorklistService $worklist): JsonResponse
+    {
+        return response()->json($worklist->build($request->validated()))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+}

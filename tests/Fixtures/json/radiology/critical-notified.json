@@ -1,0 +1,1 @@
+{"control_id":"CTRM-NOTIFY-1","source_order_key":"RAD-MPPS-1","source_study_key":"ACC-MPPS-1","source_result_key":"critical-501","status":"NOTIFIED","occurred_at":"2026-07-11T13:10:00-04:00","identified_at":"2026-07-11T13:05:00-04:00","finding_class":"critical","recipient_role":"emergency_physician"}

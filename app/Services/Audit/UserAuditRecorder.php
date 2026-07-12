@@ -30,12 +30,13 @@ class UserAuditRecorder
 
     private const SOURCE_SURFACES = ['web', 'web_api', 'hummingbird', 'system'];
 
-    private const TARGET_TYPES = ['user', 'auth_provider', 'cockpit_metric'];
+    private const TARGET_TYPES = ['user', 'auth_provider', 'cockpit_metric', 'ancillary_barrier'];
 
     private const CHANGE_KEYS = [
         'role', 'is_active', 'must_change_password', 'provider_enabled',
         'ok_edge', 'warn_edge', 'crit_edge', 'refresh_secs',
         'display_name_changed', 'settings_changed', 'alert_template_changed',
+        'barrier_status',
     ];
 
     private const METADATA_KEYS = [

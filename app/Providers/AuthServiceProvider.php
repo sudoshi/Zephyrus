@@ -115,6 +115,16 @@ class AuthServiceProvider extends ServiceProvider
         'or_nurse',
     ];
 
+    /** @var list<string> */
+    private const ANCILLARY_BARRIER_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'bed_manager',
+        'radiology_manager',
+    ];
+
     /**
      * Register any authentication / authorization services.
      */
@@ -180,6 +190,12 @@ class AuthServiceProvider extends ServiceProvider
             self::OR_CASE_WRITE_ROLES,
             true,
         ) || $user->hasRole(['admin', 'super-admin', 'super_admin', 'periop_manager', 'or_nurse']));
+
+        Gate::define('manageAncillaryBarriers', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::ANCILLARY_BARRIER_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
     }
 
     private static function canonicalRole(string $role): string

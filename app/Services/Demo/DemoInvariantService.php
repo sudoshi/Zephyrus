@@ -2,6 +2,7 @@
 
 namespace App\Services\Demo;
 
+use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,6 +36,7 @@ final class DemoInvariantService
             ...$this->temporal($clock),
             ...$this->capacity($clock),
             ...$this->freshness($clock),
+            ...$this->ancillary($clock),
             ...$this->plausibility($clock),
         ];
     }
@@ -193,7 +195,7 @@ final class DemoInvariantService
     private function freshness(DemoClock $clock): array
     {
         $out = [];
-        $decisionCritical = ['ed_flow', 'encounters', 'capacity_census', 'bed_placement', 'rtdc_predictions'];
+        $decisionCritical = ['ed_flow', 'encounters', 'capacity_census', 'bed_placement', 'rtdc_predictions', 'ancillary_orders', 'ancillary_milestones'];
 
         $rows = DB::select('SELECT source_key, source_label, status, latest_observed_at FROM ops.source_freshness');
         $critical = [];
@@ -210,6 +212,175 @@ final class DemoInvariantService
             $decisionStale === [] ? 'all decision sources current' : implode(', ', $decisionStale).' = critical',
             'no decision-critical source stale',
             'ops.source_freshness marks these as stale against wall-clock now(); a green cockpit tile must not be built from them');
+
+        return $out;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function ancillary(DemoClock $clock): array
+    {
+        $owner = AncillaryDemoScenarioService::OWNER;
+        $anchor = $clock->anchor()->toDateTimeString();
+        $out = [];
+
+        $orphaned = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_milestones m
+             LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             LEFT JOIN hosp_ref.ancillary_milestone_types t ON t.code = m.milestone_code
+             WHERE o.ancillary_order_id IS NULL OR t.code IS NULL OR t.department <> o.department',
+            [],
+        );
+        $out[] = $this->finding('ancillary.no_orphan_or_mismatched_milestones', 'ancillary', 'critical',
+            $orphaned === 0, "{$orphaned} invalid milestones", '0',
+            'every milestone must resolve to an order and same-department governed code');
+
+        $terminalBeforeOrder = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             JOIN hosp_ref.ancillary_milestone_types t ON t.code = m.milestone_code
+             WHERE t.is_terminal = true AND m.occurred_at < o.ordered_at
+               AND COALESCE((m.metadata->>'correction')::boolean, false) = false",
+            [],
+        );
+        $out[] = $this->finding('ancillary.terminal_not_before_order', 'ancillary', 'critical',
+            $terminalBeforeOrder === 0, "{$terminalBeforeOrder} invalid terminal assertions", '0',
+            'terminal milestones cannot precede order time unless explicitly corrected');
+
+        $invalidOpen = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_breaches b
+             JOIN prod.ancillary_sla_definitions d ON d.ancillary_sla_definition_id = b.ancillary_sla_definition_id
+             LEFT JOIN prod.ancillary_milestones s ON s.ancillary_milestone_id = b.start_assertion_id
+             WHERE b.status = \'open\' AND (s.ancillary_milestone_id IS NULL OR d.breach_minutes IS NULL
+               OR EXTRACT(EPOCH FROM (?::timestamp - s.occurred_at)) / 60 < d.breach_minutes)',
+            [$anchor],
+        );
+        $out[] = $this->finding('ancillary.open_breaches_mathematically_valid', 'ancillary', 'critical',
+            $invalidOpen === 0, "{$invalidOpen} invalid open breaches", '0',
+            'every open breach must have a valid start and be beyond its governed threshold at the frozen anchor');
+
+        $invalidCleared = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_breaches b
+             LEFT JOIN prod.ancillary_milestones s ON s.ancillary_milestone_id = b.start_assertion_id
+             LEFT JOIN prod.ancillary_milestones e ON e.ancillary_milestone_id = b.stop_assertion_id
+             WHERE b.status = 'cleared' AND (s.ancillary_milestone_id IS NULL OR e.ancillary_milestone_id IS NULL
+               OR e.occurred_at < s.occurred_at OR b.elapsed_minutes_at_clear < 0)",
+            [],
+        );
+        $out[] = $this->finding('ancillary.cleared_breaches_have_valid_stop', 'ancillary', 'critical',
+            $invalidCleared === 0, "{$invalidCleared} invalid cleared breaches", '0',
+            'cleared breaches retain a nonnegative exact selected stop interval');
+
+        $ownershipViolations = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             JOIN integration.sources s ON s.source_id = o.source_id
+             WHERE s.source_key LIKE 'demo.ancillary.%'
+               AND o.demo_owner IS DISTINCT FROM ?",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.demo_ownership_exact', 'ancillary', 'critical',
+            $ownershipViolations === 0, "{$ownershipViolations} ownership violations", '0',
+            'demo-source rows must carry the exact ancillary owner and refresh cannot select non-owned facts');
+
+        $invalidDischarge = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders
+             WHERE demo_owner = ? AND COALESCE((metadata->>'discharge_blocking')::boolean, false) = true
+               AND terminal_at IS NOT NULL",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.discharge_blockers_are_live', 'ancillary', 'critical',
+            $invalidDischarge === 0, "{$invalidDischarge} terminal discharge blockers", '0',
+            'a discharge-blocking demo order must still be live');
+
+        $missingWarehouseCutoff = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             JOIN integration.sources s ON s.source_id = m.source_id
+             WHERE o.demo_owner = ? AND m.milestone_code = 'RX_ADMINISTERED'
+               AND (s.system_class = 'clinical_warehouse' AND o.source_cutoff_at IS NULL)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.warehouse_administration_cutoff_present', 'ancillary', 'critical',
+            $missingWarehouseCutoff === 0, "{$missingWarehouseCutoff} administered rows without cutoff", '0',
+            'warehouse-derived administration evidence must remain cutoff-qualified');
+
+        $conflicts = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_current_assertions v
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = v.ancillary_order_id
+             WHERE o.demo_owner = ? AND v.assertion_count > 1',
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.source_conflict_represented', 'ancillary', 'warning',
+            $conflicts > 0, "{$conflicts} selected-source conflicts", '>= 1',
+            'the deterministic demo should retain at least one competing source assertion');
+
+        $invalidRadiologySatellites = $this->scalar(
+            'SELECT
+                (SELECT count(*) FROM prod.rad_exams e LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = e.ancillary_order_id
+                 WHERE e.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rad_reads r LEFT JOIN prod.rad_exams e ON e.rad_exam_id = r.rad_exam_id
+                 WHERE r.demo_owner = ? AND (e.rad_exam_id IS NULL OR e.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rad_critical_results c LEFT JOIN prod.rad_exams e ON e.rad_exam_id = c.rad_exam_id
+                 WHERE c.demo_owner = ? AND (e.rad_exam_id IS NULL OR e.demo_owner IS DISTINCT FROM ?))',
+            [$owner, $owner, $owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_satellites_owned_and_linked', 'ancillary', 'critical',
+            $invalidRadiologySatellites === 0, "{$invalidRadiologySatellites} invalid Radiology satellites", '0',
+            'demo exams, reads, and critical loops must resolve to exact-owner parent records');
+
+        $invalidRadiologyEd = $this->scalar(
+            "SELECT count(*) FROM prod.rad_exams x
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+             LEFT JOIN prod.ed_visits v ON v.ed_visit_id = NULLIF(x.metadata->>'ed_visit_id', '')::bigint
+             WHERE x.demo_owner = ? AND x.metadata->>'demo_context' = 'ed'
+               AND (v.ed_visit_id IS NULL OR v.is_deleted = true OR v.patient_ref IS DISTINCT FROM o.patient_ref)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_ed_context_valid', 'ancillary', 'critical',
+            $invalidRadiologyEd === 0, "{$invalidRadiologyEd} invalid Radiology ED contexts", '0',
+            'every Radiology ED scenario must reference a real non-deleted ED visit for the same patient');
+
+        $invalidRadiologyDischarge = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             LEFT JOIN prod.encounters e ON e.encounter_id = o.encounter_id
+             WHERE o.demo_owner = ? AND o.department = 'rad'
+               AND COALESCE((o.metadata->>'discharge_blocking')::boolean, false) = true
+               AND (e.encounter_id IS NULL OR e.expected_discharge_date IS NULL OR o.terminal_at IS NOT NULL)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_discharge_context_valid', 'ancillary', 'critical',
+            $invalidRadiologyDischarge === 0, "{$invalidRadiologyDischarge} invalid Radiology discharge contexts", '0',
+            'every Radiology discharge blocker must reference a current discharge candidate and live order');
+
+        $invalidIr = $this->scalar(
+            "SELECT count(*) FROM prod.rad_exams e
+             LEFT JOIN prod.or_cases c ON c.case_id = NULLIF(e.metadata->>'or_case_id', '')::bigint
+             WHERE e.demo_owner = ? AND e.is_ir = true AND jsonb_exists(e.metadata, 'or_case_id') AND c.case_id IS NULL",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_ir_context_valid', 'ancillary', 'critical',
+            $invalidIr === 0, "{$invalidIr} IR exams without OR/procedural context", '0',
+            'every linked demo IR exam must resolve to a real demo OR case');
+
+        $distribution = DB::selectOne(
+            "SELECT count(*) AS n,
+                    percentile_cont(0.25) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS q1,
+                    percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS median,
+                    percentile_cont(0.75) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS q3
+             FROM prod.rad_exams e
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = e.ancillary_order_id
+             JOIN prod.ancillary_current_assertions v ON v.ancillary_order_id = o.ancillary_order_id AND v.milestone_code = 'RAD_EXAM_END'
+             WHERE e.demo_owner = ? AND e.modality_code = 'CT' AND o.patient_class = 'emergency'",
+            [$owner],
+        );
+        $distributionValid = (int) ($distribution->n ?? 0) >= 9
+            && abs((float) ($distribution->median ?? 0) - 108) <= 1
+            && abs((float) ($distribution->q1 ?? 0) - 57) <= 1
+            && abs((float) ($distribution->q3 ?? 0) - 182) <= 1;
+        $out[] = $this->finding('ancillary.radiology_distribution_plausible', 'ancillary', 'warning',
+            $distributionValid,
+            sprintf('%d ED CT intervals; median %.1f, IQR %.1f-%.1f', (int) ($distribution->n ?? 0), (float) ($distribution->median ?? 0), (float) ($distribution->q1 ?? 0), (float) ($distribution->q3 ?? 0)),
+            'n >= 9, median 108, IQR 57-182',
+            'fixed-seed Radiology acquisition distribution should remain anchored to the reference without overfitting every record');
 
         return $out;
     }

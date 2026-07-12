@@ -1,0 +1,1 @@
+{"control_id":"PACS-IMAGE-1","source_order_key":"RAD-MPPS-1","source_study_key":"ACC-MPPS-1","status":"STORAGE_COMMITTED","occurred_at":"2026-07-11T13:02:00-04:00","modality":"CT","source_signature":{"algorithm":"EdDSA","key_id":"relay-key-1","verified":true}}
