@@ -2,6 +2,7 @@
 
 namespace App\Services\Rtdc;
 
+use App\Services\Ancillary\AncillaryReadinessService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +33,8 @@ use Illuminate\Support\Facades\DB;
  */
 class DischargePrioritiesService
 {
+    public function __construct(private readonly AncillaryReadinessService $readiness) {}
+
     /** Per-tier display caps — keep the four scroll columns visually balanced. */
     private const TIER_CAPS = [1 => 18, 2 => 14, 3 => 14, 4 => 8];
 
@@ -85,8 +88,13 @@ class DischargePrioritiesService
         $tiers = [1 => [], 2 => [], 3 => [], 4 => []];
         $unitOptions = [];
         $serviceOptions = [];
+        $encounters = $this->activeInpatientEncounters();
+        $imagingByEncounter = $this->readiness->imagingForEncounters(
+            collect($encounters)->pluck('encounter_id')->map(fn (mixed $id): int => (int) $id)->all(),
+            'rtdc',
+        );
 
-        foreach ($this->activeInpatientEncounters() as $row) {
+        foreach ($encounters as $row) {
             $unitType = (string) $row->unit_type;
             $unitName = (string) $row->unit_name;
             $service = $this->serviceForUnit($unitType, $unitName);
@@ -119,6 +127,7 @@ class DischargePrioritiesService
                     'improvement' => $improvement,
                     'risk' => $risk,
                     'priority' => $tier,
+                    'imaging' => $imagingByEncounter->get((int) $row->encounter_id),
                 ],
                 'sort' => $ratio,
             ];

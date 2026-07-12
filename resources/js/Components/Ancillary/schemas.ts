@@ -23,15 +23,21 @@ export const readinessAxisSchema = z.object({
   key: z.string().min(1),
   label: z.string().min(1),
   status: z.enum(['ready', 'pending', 'blocked', 'unknown', 'not_applicable']),
+  state: z.enum(['ready', 'pending', 'blocked', 'unknown', 'not_applicable']),
   pendingCount: z.number().int().nonnegative(),
   oldestAgeMinutes: z.number().int().nonnegative().nullable(),
   blocking: z.boolean(),
   freshness: sourceFreshnessSchema,
   drillTarget: z.string().min(1).nullable(),
+  topOrderUuid: z.string().uuid().nullable(),
+  drillHref: z.string().min(1).nullable(),
   explanation: z.string().nullable().optional(),
 }).strict().superRefine((value, context) => {
   if (value.blocking && value.status === 'ready') {
     context.addIssue({ code: 'custom', path: ['blocking'], message: 'A ready axis cannot be blocking.' });
+  }
+  if (value.state !== value.status) {
+    context.addIssue({ code: 'custom', path: ['state'], message: 'Readiness state must match status.' });
   }
 });
 

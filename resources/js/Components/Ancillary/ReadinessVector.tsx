@@ -19,6 +19,7 @@ export function ReadinessVector({ axes, variant = 'expanded', onDrill }: Readine
   return (
     <section aria-label="Ancillary readiness vector" className={`grid gap-2 ${variant === 'compact' ? 'grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
       {axes.map((axis) => {
+        const drillHref = axis.drillHref ?? axis.drillTarget;
         const style = STATE[axis.freshness.status === 'stale' ? 'unknown' : axis.status];
         const Icon = style.icon;
         const body = (
@@ -34,7 +35,7 @@ export function ReadinessVector({ axes, variant = 'expanded', onDrill }: Readine
           </>
         );
         return onDrill ? (
-          <button key={axis.key} type="button" disabled={axis.drillTarget === null} aria-label={`Open ${axis.label}: ${style.label}`} className="flex items-start gap-2 rounded-lg border border-healthcare-border bg-healthcare-surface p-3 focus:outline-none focus:ring-2 focus:ring-healthcare-info disabled:cursor-not-allowed disabled:opacity-60 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark" onClick={() => axis.drillTarget && onDrill(axis.drillTarget)}>{body}</button>
+          <button key={axis.key} type="button" disabled={drillHref === null} aria-label={`Open ${axis.label}: ${style.label}`} className="flex items-start gap-2 rounded-lg border border-healthcare-border bg-healthcare-surface p-3 focus:outline-none focus:ring-2 focus:ring-healthcare-info disabled:cursor-not-allowed disabled:opacity-60 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark" onClick={() => drillHref && onDrill(drillHref)}>{body}</button>
         ) : (
           <div key={axis.key} className="flex items-start gap-2 rounded-lg border border-healthcare-border bg-healthcare-surface p-3 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">{body}</div>
         );

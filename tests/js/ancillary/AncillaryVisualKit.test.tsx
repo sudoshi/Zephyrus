@@ -48,7 +48,7 @@ describe('ancillary Zod contracts', () => {
   });
 
   it('rejects malformed readiness, metric, and worklist rows at the browser boundary', () => {
-    expect(readinessAxisSchema.safeParse({ key: 'lab', label: 'Lab', status: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: true, freshness, drillTarget: null }).success).toBe(false);
+    expect(readinessAxisSchema.safeParse({ key: 'lab', label: 'Lab', status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: true, freshness, drillTarget: null, topOrderUuid: null, drillHref: null }).success).toBe(false);
     expect(metricTileSchema.safeParse({ ...tile('normal'), cohortCount: -1 }).success).toBe(false);
     expect(worklistRowSchema.safeParse({ orderUuid: 'not-a-uuid', department: 'rad', label: 'CT', priority: 'stat', patientRef: 'P1', locationLabel: null, status: 'normal', ageMinutes: 10, barrierCount: 0, readiness: [], freshness }).success).toBe(false);
   });

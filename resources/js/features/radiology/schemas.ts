@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { sourceFreshnessSchema, slaDefinitionSchema } from '@/Components/Ancillary/schemas';
+import { readinessAxisSchema, sourceFreshnessSchema, slaDefinitionSchema } from '@/Components/Ancillary/schemas';
 
 const nullableIso = z.string().datetime({ offset: true }).nullable();
 
@@ -88,6 +88,7 @@ export const radiologyWorklistSchema = z.object({
     orderId: z.number().int().positive(), orderUuid: z.string().uuid(), label: z.string(), patientRef: z.string(), patientClass: z.string(), priority: z.string(), modality: z.string().nullable(),
     locationLabel: z.string().nullable(), ageMinutes: z.number().int().nonnegative(), status: z.enum(['normal', 'warning', 'breach', 'degraded']), currentState: z.string(),
     downstreamImpact: z.object({ edDecision: z.boolean(), dischargeBlocking: z.boolean(), orCaseId: z.number().int().positive().nullable() }).strict(),
+    readiness: z.array(readinessAxisSchema),
     barriers: z.array(z.object({ barrierId: z.number().int().positive(), reasonCode: z.string().nullable(), label: z.string(), owner: z.string().nullable(), openedAt: z.string().datetime({ offset: true }) }).strict()),
     sourceAssertions: z.array(z.object({ milestoneUuid: z.string().uuid(), code: z.string(), occurredAt: z.string().datetime({ offset: true }), receivedAt: z.string().datetime({ offset: true }), sourceKey: z.string(), sourceRank: z.number().int(), selected: z.boolean() }).strict()),
     transportSegment: z.array(timelineMilestoneSchema).nullable(),

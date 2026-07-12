@@ -275,6 +275,8 @@ class AncillaryModelsAndContractsTest extends TestCase
         $this->assertArrayHasKey('definitionText', $clock->toArray());
         $this->assertArrayHasKey('oldestAgeMinutes', $axis->toArray());
         $this->assertArrayHasKey('drillTarget', $axis->toArray());
+        $this->assertArrayHasKey('topOrderUuid', $axis->toArray());
+        $this->assertArrayHasKey('drillHref', $axis->toArray());
         $this->assertSame(25, $filters->toArray()['perPage']);
         $this->assertSame('2026-07-11T12:00:00-04:00', $freshness->toArray()['asOf']);
     }

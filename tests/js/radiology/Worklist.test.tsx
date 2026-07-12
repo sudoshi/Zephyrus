@@ -25,6 +25,7 @@ function payload(overrides: Partial<RadiologyWorklist> = {}): RadiologyWorklist 
     data: [{
       orderId: 1, orderUuid: '11111111-1111-4111-8111-111111111111', label: 'Discharge-pending chest CT', patientRef: 'demo-patient', patientClass: 'inpatient', priority: 'routine', modality: 'CT', locationLabel: '5 East', ageMinutes: 120, status: 'breach', currentState: 'final',
       downstreamImpact: { edDecision: false, dischargeBlocking: true, orCaseId: null },
+      readiness: [{ key: 'imaging', label: 'Imaging', status: 'blocked', state: 'blocked', pendingCount: 1, oldestAgeMinutes: 120, blocking: true, freshness, drillTarget: '/radiology/worklist?search=11111111-1111-4111-8111-111111111111&source=flow_board', topOrderUuid: '11111111-1111-4111-8111-111111111111', drillHref: '/radiology/worklist?search=11111111-1111-4111-8111-111111111111&source=flow_board' }],
       barriers: [{ barrierId: 9, reasonCode: 'RAD_READ_QUEUE', label: 'Interpretation queue delay', owner: 'Radiology operations', openedAt: '2026-07-11T13:30:00+00:00' }],
       sourceAssertions: [
         { milestoneUuid: '22222222-2222-4222-8222-222222222222', code: 'RAD_FINAL', occurredAt: '2026-07-11T13:00:00+00:00', receivedAt: '2026-07-11T13:01:00+00:00', sourceKey: 'demo.reporting', sourceRank: 1, selected: true },

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
@@ -62,6 +62,25 @@ const StatusBadge = ({ status, tone }) => {
             {status}
         </span>
     );
+};
+
+const ImagingChip = ({ imaging }) => {
+    if (!imaging) return <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">Unavailable</span>;
+
+    const stale = imaging.freshness?.status !== 'fresh';
+    const state = stale ? 'unknown' : imaging.state;
+    const config = {
+        blocked: { icon: 'heroicons:exclamation-triangle', label: 'Blocked', classes: 'border-healthcare-critical/40 text-healthcare-critical dark:text-healthcare-critical-dark' },
+        pending: { icon: 'heroicons:clock', label: 'Pending', classes: 'border-healthcare-warning/40 text-healthcare-warning dark:text-healthcare-warning-dark' },
+        ready: { icon: 'heroicons:check-circle', label: 'Ready', classes: 'border-healthcare-success/40 text-healthcare-success dark:text-healthcare-success-dark' },
+        unknown: { icon: 'heroicons:question-mark-circle', label: 'Unknown', classes: 'border-healthcare-border text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark' },
+    }[state] ?? { icon: 'heroicons:question-mark-circle', label: 'Unknown', classes: 'border-healthcare-border text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark' };
+    const age = imaging.oldestAgeMinutes === null ? 'age unavailable' : `${imaging.oldestAgeMinutes} min oldest`;
+    const content = <><Icon icon={config.icon} className="h-3.5 w-3.5" aria-hidden="true" /><span>{imaging.pendingCount} imaging · {age}</span></>;
+    const className = `inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium ${config.classes}`;
+    const label = `Open Imaging: ${config.label}. ${imaging.pendingCount} pending, ${age}.`;
+
+    return imaging.drillHref ? <Link href={imaging.drillHref} aria-label={label} className={className}>{content}</Link> : <span aria-label={label} className={className}>{content}</span>;
 };
 
 const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
@@ -183,6 +202,7 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     ['Status', 'left'],
                                                     ['Care Team', 'left'],
                                                     ['Pending Orders', 'left'],
+                                                    ['Imaging', 'left'],
                                                 ].map(([h, align]) => (
                                                     <th key={h} className={`px-4 py-3 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-${align}`}>
                                                         {h}
@@ -259,6 +279,9 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                                 None
                                                             </span>
                                                         )}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <ImagingChip imaging={patient.imaging} />
                                                     </td>
                                                 </tr>
                                             ))}

@@ -34,10 +34,10 @@ const stateExamples = [
 }));
 
 const readiness = [
-  { key: 'imaging', label: 'Imaging', status: 'ready', pendingCount: 0, oldestAgeMinutes: 0, blocking: false, freshness: fresh, drillTarget: '/rtdc/radiology', explanation: null },
-  { key: 'lab', label: 'Lab', status: 'pending', pendingCount: 2, oldestAgeMinutes: 44, blocking: true, freshness: fresh, drillTarget: '/rtdc/lab', explanation: null },
-  { key: 'medication', label: 'Medication', status: 'blocked', pendingCount: 1, oldestAgeMinutes: 61, blocking: true, freshness: { ...fresh, status: 'batch' }, drillTarget: '/rtdc/pharmacy', explanation: null },
-  { key: 'pathology', label: 'Pathology', status: 'not_applicable', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...fresh, status: 'unknown', sourceCutoffAt: null, lagMinutes: null }, drillTarget: null, explanation: null },
+  { key: 'imaging', label: 'Imaging', status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: 0, blocking: false, freshness: fresh, drillTarget: '/rtdc/radiology', topOrderUuid: null, drillHref: '/rtdc/radiology', explanation: null },
+  { key: 'lab', label: 'Lab', status: 'pending', state: 'pending', pendingCount: 2, oldestAgeMinutes: 44, blocking: true, freshness: fresh, drillTarget: '/rtdc/lab', topOrderUuid: null, drillHref: '/rtdc/lab', explanation: null },
+  { key: 'medication', label: 'Medication', status: 'blocked', state: 'blocked', pendingCount: 1, oldestAgeMinutes: 61, blocking: true, freshness: { ...fresh, status: 'batch' }, drillTarget: '/rtdc/pharmacy', topOrderUuid: null, drillHref: '/rtdc/pharmacy', explanation: null },
+  { key: 'pathology', label: 'Pathology', status: 'not_applicable', state: 'not_applicable', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...fresh, status: 'unknown', sourceCutoffAt: null, lagMinutes: null }, drillTarget: null, topOrderUuid: null, drillHref: null, explanation: null },
 ];
 
 export default function Components() {

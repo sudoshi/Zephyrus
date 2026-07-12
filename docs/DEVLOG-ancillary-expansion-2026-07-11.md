@@ -750,3 +750,44 @@ git diff --check: PASS
 - No connector, credential, scheduler, migration, deployment, production data, Cockpit alert template, Laboratory metric provider, or Pharmacy metric provider was activated.
 - R-10 deliberately reuses the existing Flow domain and drill. Domain ordering, gauge ownership, census strip, and the frozen React cell grammar remain unchanged.
 - R-11 remains the next dependency-ordered Radiology tranche: imaging in ED and the shared RTDC discharge-readiness vector.
+
+## 2026-07-12 — R-11 Imaging Readiness Across Radiology, ED, and RTDC
+
+### Outcome
+
+Added `AncillaryReadinessService` as the single batched imaging-readiness calculation for encounter, ED-visit, and department-order scopes. Each axis carries pending count, oldest age, governed state/status, explicit discharge-blocking state, source freshness, selected top-order UUID, and a bounded `/radiology/worklist` drill. Top-order selection is deterministic: explicit discharge gates first, then oldest order and stable order ID.
+
+Only open Radiology orders can contribute. Discharge blocking requires either the governed `discharge` priority or an explicit `metadata.discharge_blocking` tag; routine imaging is visible as pending but is not silently promoted to a discharge gate. Terminal orders are excluded. Missing or stale source evidence produces `unknown`, including the zero-order case, so an empty stale cohort cannot become earned green.
+
+`DischargePrioritiesService` now batches readiness for its existing active inpatient cohort and adds only the `imaging` field; all prior patient and filter fields and the existing tier algorithm remain unchanged. The RTDC card renders the shared compact `ReadinessVector` and routes its accessible drill to the exact UUID-filtered Radiology view.
+
+`TreatmentService` similarly batches by `ed_visit_id` through the governed Radiology exam context rather than issuing per-row queries. ED rows retain the existing deterministic pending-order list and add an imaging chip with icon/text state, pending count, oldest age, and an allowlisted `source=ed` drill. Stale facts are announced as unknown. `RadiologyWorklistService` consumes the same per-order axis for its readiness detail and downstream discharge-blocking flag, removing the previous local duplicate formula.
+
+The shared readiness browser contract remains additive: legacy `status` and `drillTarget` fields stay available while the exact R-11 `state`, `topOrderUuid`, and `drillHref` fields are now validated by the strict Zod schema. `ReadinessVector` prefers the new drill field and falls back to the legacy target for compatibility.
+
+### Automated and rendered evidence
+
+```text
+ImagingReadinessIntegrationTest: 2 tests, PASS
+Focused R-11 + Radiology worklist + DTO backend: 14 tests, 142 assertions, PASS
+Full Ancillary feature regression: 103 tests, 1,025 assertions, PASS
+Ancillary + Radiology Vitest: 7 files, 22 tests, PASS
+Focused readiness/Radiology Vitest: 4 files, 16 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint for touched R-11 PHP/tests: PASS
+git diff --check: PASS
+Chromium smoke: RTDC discharge, ED treatment, and Radiology worklist PASS; zero console/page errors
+```
+
+The fixed-time reconciliation fixture creates one pseudonymous patient context with an active inpatient encounter, active ED visit, and one open discharge-blocking CT. Radiology, ED, and RTDC independently resolve the same order UUID, 47-minute age, blocked state, and current freshness. The same test proves a routine unrelated outpatient order is non-blocking, a completed discharge-tagged order is excluded, completion transitions the encounter to ready, and stale source health demotes both open and empty axes to unknown.
+
+Browser evidence used an isolated `APP_ENV=testing` database populated by the canonical seed and demo-refresh paths. All three changed routes rendered built assets and their readiness controls without console/page errors. The test database was then reset with fresh migrations and its normal deployment registry/staff-role baseline restored.
+
+### Activation and limitations
+
+- No connector, credential, scheduler, migration, deployment, production data, Lab/Pathology axis, or Pharmacy axis was activated.
+- ED scope depends on the governed `rad_exams.metadata.ed_visit_id` context emitted by the existing projector/demo path; ambiguous or absent visit context is never guessed from patient identity.
+- R-11 intentionally does not alter discharge prioritization tiers or the existing ED synthetic pending-order enrichment. It adds observed imaging readiness beside those contracts.
+- L-11 is now unblocked to add the Lab axis through this service without copying readiness logic or replacing the Imaging axis.

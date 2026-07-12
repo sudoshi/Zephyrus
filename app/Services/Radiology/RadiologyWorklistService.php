@@ -2,6 +2,7 @@
 
 namespace App\Services\Radiology;
 
+use App\Services\Ancillary\AncillaryReadinessService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\Cursor;
@@ -13,9 +14,12 @@ final class RadiologyWorklistService
 {
     public const SORTS = ['oldest', 'newest', 'priority', 'breach_risk'];
 
-    public const DEEP_LINK_SOURCES = ['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit'];
+    public const DEEP_LINK_SOURCES = AncillaryReadinessService::DRILL_SOURCES;
 
-    public function __construct(private readonly RadiologyFlowBoardService $flowBoard) {}
+    public function __construct(
+        private readonly RadiologyFlowBoardService $flowBoard,
+        private readonly AncillaryReadinessService $readiness,
+    ) {}
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     public function build(array $filters = []): array
@@ -181,6 +185,7 @@ final class RadiologyWorklistService
             return [];
         }
         $orderIds = $rows->pluck('ancillary_order_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $imagingByOrder = $this->readiness->imagingForOrders($orderIds, 'flow_board');
         $encounterIds = $rows->pluck('encounter_id')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->all();
         $catalog = DB::table('hosp_ref.ancillary_milestone_types')->where('department', 'rad')->orderBy('ordinal')->get()->keyBy('code');
         $selected = DB::table('prod.ancillary_current_assertions')->whereIn('ancillary_order_id', $orderIds)->get()->keyBy(fn (object $row): string => $row->ancillary_order_id.'|'.$row->milestone_code);
@@ -193,7 +198,7 @@ final class RadiologyWorklistService
             ->whereIn('b.encounter_id', $encounterIds)->where('b.status', 'open')->where('b.is_deleted', false)
             ->get(['b.barrier_id', 'b.encounter_id', 'b.reason_code', 'b.owner', 'b.opened_at', 'r.label'])->groupBy('encounter_id');
 
-        return $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context): array {
+        return $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context, $imagingByOrder): array {
             $orderAssertions = $assertions->get($row->ancillary_order_id, collect());
             $selectedByCode = $orderAssertions->groupBy('milestone_code')->map(function (Collection $group) use ($row, $selected): ?object {
                 $current = $selected->get($row->ancillary_order_id.'|'.$group->first()->milestone_code);
@@ -221,7 +226,6 @@ final class RadiologyWorklistService
                     ];
                 })->values()->all();
             $degraded = collect($timelineMilestones)->contains(fn (array $milestone): bool => $milestone['state'] === 'pending_required');
-            $metadata = json_decode((string) $row->order_metadata, true) ?: [];
             $examMetadata = json_decode((string) $row->exam_metadata, true) ?: [];
             $age = max(0, (int) floor((float) $row->age_minutes));
             $status = match (true) {
@@ -231,6 +235,7 @@ final class RadiologyWorklistService
                 default => 'normal',
             };
             $clock = $this->clock($row, $selectedByCode, $context['thresholds']['definitions']);
+            $imaging = $imagingByOrder->get((int) $row->ancillary_order_id);
 
             return [
                 'orderId' => (int) $row->ancillary_order_id,
@@ -246,9 +251,10 @@ final class RadiologyWorklistService
                 'currentState' => (string) $row->current_state,
                 'downstreamImpact' => [
                     'edDecision' => $row->patient_class === 'emergency',
-                    'dischargeBlocking' => $row->priority === 'discharge' || (bool) ($metadata['discharge_blocking'] ?? false),
+                    'dischargeBlocking' => (bool) ($imaging['blocking'] ?? false),
                     'orCaseId' => isset($examMetadata['or_case_id']) ? (int) $examMetadata['or_case_id'] : null,
                 ],
+                'readiness' => $imaging === null ? [] : [$imaging],
                 'barriers' => collect($barriers->get($row->encounter_id, collect()))->map(fn (object $barrier): array => [
                     'barrierId' => (int) $barrier->barrier_id,
                     'reasonCode' => $barrier->reason_code,

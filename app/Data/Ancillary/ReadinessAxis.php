@@ -17,6 +17,8 @@ final readonly class ReadinessAxis
         public bool $blocking,
         public FreshnessEnvelope $freshness,
         public ?string $drillTarget,
+        public ?string $topOrderUuid = null,
+        public ?string $drillHref = null,
     ) {
         if (! in_array($status, self::STATUSES, true)) {
             throw new InvalidArgumentException("Unsupported readiness status: {$status}");
@@ -38,11 +40,14 @@ final readonly class ReadinessAxis
             'key' => $this->key,
             'label' => $this->label,
             'status' => $this->status,
+            'state' => $this->status,
             'pendingCount' => $this->pendingCount,
             'oldestAgeMinutes' => $this->oldestAgeMinutes,
             'blocking' => $this->blocking,
             'freshness' => $this->freshness->toArray(),
             'drillTarget' => $this->drillTarget,
+            'topOrderUuid' => $this->topOrderUuid,
+            'drillHref' => $this->drillHref,
         ];
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ed;
 
+use App\Services\Ancillary\AncillaryReadinessService;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,8 @@ use Illuminate\Support\Facades\DB;
  */
 class TreatmentService
 {
+    public function __construct(private readonly AncillaryReadinessService $readiness) {}
+
     /** ED unit identifier (prod.units: "Emergency Department", type 'ed'). */
     private const ED_UNIT_ID = 1;
 
@@ -101,7 +104,11 @@ class TreatmentService
         $now = Carbon::now();
 
         $rows = $this->treatmentCohort($now);
-        $board = $this->board($rows, $now);
+        $imagingByVisit = $this->readiness->imagingForEdVisits(
+            $rows->pluck('ed_visit_id')->map(fn (mixed $id): int => (int) $id)->all(),
+            'ed',
+        );
+        $board = $this->board($rows, $now, $imagingByVisit);
         $kpis = $this->kpis($board);
         $acuityMix = $this->acuityMix($board);
 
@@ -165,7 +172,7 @@ class TreatmentService
      * @param  \Illuminate\Support\Collection<int,object>  $rows
      * @return list<array<string,mixed>>
      */
-    private function board($rows, Carbon $now): array
+    private function board($rows, Carbon $now, \Illuminate\Support\Collection $imagingByVisit): array
     {
         $board = [];
 
@@ -213,6 +220,7 @@ class TreatmentService
                 'provider' => $provider,
                 'nurse' => $nurse,
                 'pendingOrders' => $orders,
+                'imaging' => $imagingByVisit->get($id),
             ];
         }
 

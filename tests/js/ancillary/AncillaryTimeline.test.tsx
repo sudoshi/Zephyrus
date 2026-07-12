@@ -82,10 +82,10 @@ describe('AncillaryOrderTimeline', () => {
 
 describe('ReadinessVector', () => {
   const axes: ReadinessAxisContract[] = [
-    { key: 'imaging', label: 'Imaging', status: 'ready', pendingCount: 0, oldestAgeMinutes: 0, blocking: false, freshness: timeline().freshness, drillTarget: '/rtdc/imaging', explanation: null },
-    { key: 'lab', label: 'Lab', status: 'pending', pendingCount: 2, oldestAgeMinutes: 44, blocking: true, freshness: timeline().freshness, drillTarget: '/rtdc/lab', explanation: null },
-    { key: 'medication', label: 'Medication', status: 'blocked', pendingCount: 1, oldestAgeMinutes: 61, blocking: true, freshness: { ...timeline().freshness, status: 'batch' }, drillTarget: '/rtdc/medication', explanation: null },
-    { key: 'stale', label: 'Stale source', status: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...timeline().freshness, status: 'stale' }, drillTarget: '/rtdc/stale', explanation: null },
+    { key: 'imaging', label: 'Imaging', status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: 0, blocking: false, freshness: timeline().freshness, drillTarget: '/rtdc/imaging', topOrderUuid: null, drillHref: '/rtdc/imaging', explanation: null },
+    { key: 'lab', label: 'Lab', status: 'pending', state: 'pending', pendingCount: 2, oldestAgeMinutes: 44, blocking: true, freshness: timeline().freshness, drillTarget: '/rtdc/lab', topOrderUuid: null, drillHref: '/rtdc/lab', explanation: null },
+    { key: 'medication', label: 'Medication', status: 'blocked', state: 'blocked', pendingCount: 1, oldestAgeMinutes: 61, blocking: true, freshness: { ...timeline().freshness, status: 'batch' }, drillTarget: '/rtdc/medication', topOrderUuid: null, drillHref: '/rtdc/medication', explanation: null },
+    { key: 'stale', label: 'Stale source', status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...timeline().freshness, status: 'stale' }, drillTarget: '/rtdc/stale', topOrderUuid: null, drillHref: '/rtdc/stale', explanation: null },
   ];
 
   it('renders ready, pending, blocked and stale-as-unknown axes with accessible drills', () => {

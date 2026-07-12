@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-10 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-11 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 20 of 60 tasks complete; 40 remain |
+| Progress | 21 of 60 tasks complete; 39 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1100,25 +1100,26 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] The full Cockpit plus Radiology regression and Cockpit frontend contract suite pass without changing the existing eight-domain snapshot or cell grammar.
 - [x] Chromium browser smoke opens `/dashboard?drill=flow`, renders the semantic ancillary table and all three service rows/source-cutoff header, and reports no browser console errors.
 
-#### [ ] R-11 — Add imaging to ED and the RTDC discharge readiness vector
+#### [x] R-11 — Add imaging to ED and the RTDC discharge readiness vector
 
 **Depends on:** R-6, R-7; blocks L-11
 **Primary files:** DischargePrioritiesService.php/page; ED board service/page; shared ReadinessVector
 
 **Work:**
 
-- Add imaging = pendingCount, oldestAgeMinutes, state, blocking, freshness, topOrderUuid, drillHref to each discharge patient.
-- Define blocking as an open imaging order explicitly tagged/derived as a discharge gate, not every routine imaging order.
-- Add authorized pending-imaging chip to ED patient rows with count and oldest age.
-- Keep existing discharge payload fields unchanged.
-- Use one readiness aggregation service shared by RTDC, ED, and department worklists.
+- [x] Add imaging = pendingCount, oldestAgeMinutes, state, blocking, freshness, topOrderUuid, drillHref to each discharge patient.
+- [x] Define blocking as an open imaging order explicitly tagged/derived as a discharge gate, not every routine imaging order.
+- [x] Add authorized pending-imaging chip to ED patient rows with count and oldest age.
+- [x] Keep existing discharge payload fields unchanged.
+- [x] Use one readiness aggregation service shared by RTDC, ED, and department worklists.
 
 **Acceptance:**
 
-- Feature test proves the same demo CT appears on Radiology, ED, and RTDC with reconciled age/state.
-- An unrelated outpatient or completed order does not block discharge.
-- Stale source produces unknown/degraded axis, not ready.
-- Chip/vector is accessible and deep-links to a filtered authorized view.
+- [x] Fixed-time feature evidence proves the same demo CT appears on Radiology, ED, and RTDC at 47 minutes with the same blocked state and order UUID.
+- [x] An unrelated routine outpatient order is non-blocking, and a completed discharge-tagged order is excluded from pending/blocking readiness.
+- [x] A stale registered source produces an unknown axis for both populated and empty scopes, never ready.
+- [x] The ED chip and RTDC vector expose text/icon state, count, oldest age, accessible drill labels, and allowlisted UUID-filtered Radiology links.
+- [x] Chromium smoke renders `/rtdc/predictions/discharge`, `/ed/operations/treatment`, and `/radiology/worklist`, including their readiness controls, with zero browser console/page errors.
 
 #### [ ] R-12 — Implement Radiology TAT Study at /analytics/radiology-tat
 
