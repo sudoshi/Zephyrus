@@ -55,7 +55,7 @@ class BedTrackingService
 
         return [
             'bedMetrics' => $this->bedMetrics($bedsByUnit, $blockedByUnit, $pendingDischargesByUnit),
-            'unitCensus' => $this->unitCensus($bedsByUnit, $blockedByUnit),
+            'unitCensus' => $this->unitCensus($bedsByUnit, $blockedByUnit, $pendingDischargesByUnit),
         ];
     }
 
@@ -202,9 +202,10 @@ class BedTrackingService
     /**
      * @param  list<object>  $bedsByUnit
      * @param  array<int,int>  $blockedByUnit
+     * @param  array<int,int>  $pendingDischargesByUnit
      * @return list<array<string,mixed>>
      */
-    private function unitCensus(array $bedsByUnit, array $blockedByUnit): array
+    private function unitCensus(array $bedsByUnit, array $blockedByUnit, array $pendingDischargesByUnit = []): array
     {
         $out = [];
         foreach ($bedsByUnit as $row) {
@@ -231,6 +232,9 @@ class BedTrackingService
                 'occupancyPct' => $occupancyPct,
                 'acuityAdjustedPct' => $acuityAdjustedPct,
                 'status' => $this->occupancyStatus($occupancyPct),
+                // The outflow side of the unit's capacity story (additive —
+                // the unitCensusSchema field is optional).
+                'pendingDischarges' => (int) ($pendingDischargesByUnit[$unitId] ?? 0),
             ];
         }
 

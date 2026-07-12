@@ -148,8 +148,8 @@ export default function DemandForecast({
                 display: netBedNeed > 0 ? `+${netBedNeed.toLocaleString('en-US')}` : netBedNeed.toLocaleString('en-US'),
                 status: netBedNeed > 0 ? 'critical' : 'success',
                 goodWhenDown: true,
-                caption: `${activeSummary?.unitsShort ?? 0} of ${units.length} units short`,
-                definition: 'Predicted demand minus available capacity. Positive means more admissions than open beds.',
+                caption: `${activeSummary?.unitsShort ?? 0} of ${units.length} units short · ${activeSummary?.deficit ?? 0} short / ${activeSummary?.surplus ?? 0} spare`,
+                definition: 'Predicted demand minus available capacity. Positive means more admissions than open beds. The short/spare split shows where the net hides offsetting units.',
             }),
         ],
         [activeSummary, netBedNeed, units.length]
@@ -249,6 +249,7 @@ export default function DemandForecast({
                                             <th className="px-2 py-2 text-right">Demand</th>
                                             <th className="px-2 py-2 text-right">Capacity</th>
                                             <th className="px-2 py-2 text-right">Exp. D/C</th>
+                                            <th className="px-2 py-2 text-right">Occ. now</th>
                                             <th className="px-2 py-2 text-right">Pred. census</th>
                                             <th className="px-2 py-2 text-right">Bed need</th>
                                             <th className="px-2 py-2 text-right">Status</th>
@@ -275,7 +276,15 @@ export default function DemandForecast({
                                                     {u.capacity}
                                                 </td>
                                                 <td className="px-2 py-2 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                    {u.expectedDischarges}
+                                                    <div>{u.expectedDischarges}</div>
+                                                    {(u.dischargesDefinite ?? 0) + (u.dischargesProbable ?? 0) + (u.dischargesPossible ?? 0) > 0 && (
+                                                        <div className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
+                                                            {u.dischargesDefinite ?? 0} def · {u.dischargesProbable ?? 0} prob · {u.dischargesPossible ?? 0} poss
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-2 py-2 text-right tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    {u.occupiedNow}
                                                 </td>
                                                 <td className="px-2 py-2 text-right tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {u.predictedCensus}

@@ -37,7 +37,9 @@ export function UnitHeatStrip({ units }: { units: UnitCensus[] }) {
         const pct = Math.max(0, Math.min(100, u.occupancyPct));
         return (
           <Panel key={u.unitId}
-                 title={`${u.name}: ${u.occupied}/${u.staffed} occupied, ${u.available} available, ${u.blocked} blocked`}
+                 title={`${u.name}: ${u.occupied}/${u.staffed} occupied, ${u.available} available, ${u.blocked} blocked${
+                   u.pendingDischarges != null ? `, ${u.pendingDischarges} discharges due` : ''
+                 }`}
                  className="flex flex-col gap-2 p-3"
                  style={{ borderTop: `3px solid ${color}` }}>
             <div className="flex items-start justify-between gap-2">
@@ -62,6 +64,7 @@ export function UnitHeatStrip({ units }: { units: UnitCensus[] }) {
 
             <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
               {u.occupied}/{u.staffed} beds {'·'} {u.available} open
+              {u.pendingDischarges != null && <> {'·'} {u.pendingDischarges} DC due</>}
             </span>
           </Panel>
         );

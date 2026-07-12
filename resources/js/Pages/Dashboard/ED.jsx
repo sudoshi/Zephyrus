@@ -50,6 +50,8 @@ const EDDashboard = ({
     const lwbsStatus =
         perf.leftWithoutBeingSeen.current > perf.leftWithoutBeingSeen.target * 1.5 ? 'critical'
             : perf.leftWithoutBeingSeen.current > perf.leftWithoutBeingSeen.target ? 'warning' : 'success';
+    const losStatus = (gate) =>
+        gate.current > gate.target * 1.5 ? 'critical' : gate.current > gate.target ? 'warning' : 'success';
 
     // Real hourly wait-time series → trajectory on the wait-time hero tile.
     const waitTrajectory = (ed.waitTimes?.trends ?? []).map((t) => t.waitTime);
@@ -82,6 +84,35 @@ const EDDashboard = ({
             caption: `${perf.leftWithoutBeingSeen.trend === 'up' ? '+' : '-'}${perf.leftWithoutBeingSeen.trendValue} pts vs prior`,
             definition: 'Share of arrivals who leave before being evaluated. Target ≤ 2%.',
         }),
+        metric({
+            key: 'los-admitted', label: 'LOS — admitted', value: Number(perf.lengthOfStay.admitted.current),
+            display: formatMinutes(perf.lengthOfStay.admitted.current), status: losStatus(perf.lengthOfStay.admitted),
+            goodWhenDown: true, target: Number(perf.lengthOfStay.admitted.target),
+            targetDisplay: `${formatMinutes(perf.lengthOfStay.admitted.target)} target`,
+            caption: `${perf.lengthOfStay.admitted.trend === 'up' ? '+' : '-'}${formatMinutes(perf.lengthOfStay.admitted.trendValue)} vs target`,
+            definition: 'Median ED length of stay for patients admitted to an inpatient bed.',
+        }),
+        metric({
+            key: 'los-discharged', label: 'LOS — discharged', value: Number(perf.lengthOfStay.discharged.current),
+            display: formatMinutes(perf.lengthOfStay.discharged.current), status: losStatus(perf.lengthOfStay.discharged),
+            goodWhenDown: true, target: Number(perf.lengthOfStay.discharged.target),
+            targetDisplay: `${formatMinutes(perf.lengthOfStay.discharged.target)} target`,
+            caption: `${perf.lengthOfStay.discharged.trend === 'up' ? '+' : '-'}${formatMinutes(perf.lengthOfStay.discharged.trendValue)} vs target`,
+            definition: 'Median ED length of stay for patients discharged home.',
+        }),
+    ];
+
+    // Throughput + staffing already ship in the payload — render, don't recompute.
+    const throughputRows = [
+        { key: 'arrivals', label: 'Arrivals' },
+        { key: 'admissions', label: 'Admissions' },
+        { key: 'discharges', label: 'Discharges' },
+        { key: 'leftWithoutBeingSeen', label: 'LWBS' },
+    ];
+    const staffingRoles = [
+        { key: 'physicians', label: 'Physicians' },
+        { key: 'nurses', label: 'Nurses' },
+        { key: 'techs', label: 'Techs' },
     ];
 
     const triageDot = (category) =>
@@ -159,6 +190,74 @@ const EDDashboard = ({
                                         tooltip={{ formatter: formatMinutes }}
                                     />
                                 </div>
+                            </Panel>
+                        </Section>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {/* Departmental flow — last hour vs today, straight from throughput */}
+                        <Section
+                            title="Departmental flow"
+                            icon="heroicons:arrows-right-left"
+                            summary={`${ed.throughput.today.arrivals} arrivals today · ${ed.throughput.lastHour.arrivals} last hour`}
+                        >
+                            <Panel className="p-4">
+                                <table className="min-w-full">
+                                    <thead>
+                                        <tr className="border-b border-healthcare-border dark:border-healthcare-border-dark">
+                                            <th className="py-2 text-left text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Measure</th>
+                                            <th className="py-2 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Last hour</th>
+                                            <th className="py-2 text-right text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Today</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-healthcare-border dark:divide-healthcare-border-dark">
+                                        {throughputRows.map((row) => (
+                                            <tr key={row.key}>
+                                                <td className="py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{row.label}</td>
+                                                <td className="py-2 text-right text-sm tabular-nums text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                    {ed.throughput.lastHour[row.key]}
+                                                </td>
+                                                <td className="py-2 text-right text-sm tabular-nums font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                    {ed.throughput.today[row.key]}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </Panel>
+                        </Section>
+
+                        {/* Staffing posture — current coverage plus the next-shift plan */}
+                        <Section
+                            title="Staffing posture"
+                            icon="heroicons:user-group"
+                            summary="Current shift coverage and next-shift plan"
+                        >
+                            <Panel className="space-y-3 p-4">
+                                {staffingRoles.map((role) => {
+                                    const current = ed.staffing.current[role.key];
+                                    const next = ed.staffing.nextShift[role.key];
+                                    const short = current.present < current.required;
+
+                                    return (
+                                        <div key={role.key} className="flex items-center justify-between p-3 bg-healthcare-background dark:bg-healthcare-background-dark rounded-lg">
+                                            <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                {role.label}
+                                            </span>
+                                            <div className="flex items-center space-x-4">
+                                                <span className={`text-sm tabular-nums ${short
+                                                    ? 'font-semibold text-healthcare-warning dark:text-healthcare-warning-dark'
+                                                    : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'}`}
+                                                >
+                                                    {current.present} of {current.required} present{short ? ' — short' : ''}
+                                                </span>
+                                                <span className="text-xs tabular-nums text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">
+                                                    Next shift: {next.scheduled} of {next.required}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </Panel>
                         </Section>
                     </div>

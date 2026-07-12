@@ -79,6 +79,10 @@ export const unitCensusSchema = z.object({
   occupancyPct: z.number(),
   acuityAdjustedPct: z.number(),
   status: z.enum(statusLevels),
+  // Additive (optional): discharges expected today/tomorrow on this unit — the
+  // outflow side of the capacity story. Absent from producers that don't
+  // compute it; the heat strip hides the line when missing.
+  pendingDischarges: z.number().optional(),
 });
 export type UnitCensus = z.infer<typeof unitCensusSchema>;
 

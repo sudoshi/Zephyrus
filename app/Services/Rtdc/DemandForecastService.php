@@ -311,6 +311,11 @@ class DemandForecastService
                 'capacity' => $capacity,
                 'bedNeed' => $bedNeed,
                 'expectedDischarges' => $discharges,
+                // The bed-meeting conversation runs on certainty, not the
+                // weighted total — ship the tiers the query already fetches.
+                'dischargesDefinite' => (int) round((float) $row->discharges_definite),
+                'dischargesProbable' => (int) round((float) $row->discharges_probable),
+                'dischargesPossible' => (int) round((float) $row->discharges_possible),
                 'occupiedNow' => $occupied,
                 'predictedCensus' => $predictedCensus,
                 'status' => $this->bedNeedStatus($bedNeed),
