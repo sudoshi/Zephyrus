@@ -86,6 +86,23 @@ class OperationalDemoDataTest extends TestCase
         $this->assertGreaterThan(40, $second['workforce_roles']);
         $this->assertSame(20, $second['transport_active']);
         $this->assertSame(180, $second['transport_history']);
+        $this->assertSame([
+            'routine' => 120,
+            'stat' => 20,
+            'urgent' => 60,
+        ], DB::table('prod.transport_requests')
+            ->where('requested_by', OperationalDemoDataService::OWNER)
+            ->selectRaw('priority, count(*) AS total')
+            ->groupBy('priority')
+            ->orderBy('priority')
+            ->pluck('total', 'priority')
+            ->map(fn ($count): int => (int) $count)
+            ->all());
+        $this->assertSame(4, DB::table('prod.transport_requests')
+            ->where('requested_by', OperationalDemoDataService::OWNER)
+            ->whereNull('completed_at')
+            ->where('needed_at', '<', now())
+            ->count(), 'only the intentional 20% active cohort is overdue');
         $this->assertSame($second['staffing_plans'], DB::table('prod.staffing_plans')->where('notes', OperationalDemoDataService::OWNER)->count());
         $this->assertSame(200, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->count());
         $this->assertSame(0, DB::table('prod.transport_requests')->where('requested_by', OperationalDemoDataService::OWNER)->whereNull('encounter_ref')->count());

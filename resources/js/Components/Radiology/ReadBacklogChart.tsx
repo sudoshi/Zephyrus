@@ -31,11 +31,13 @@ export default function ReadBacklogChart({ points }: { points: Point[] }) {
         </ResponsiveContainer>
       </div>
       <figcaption className="px-4 pb-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Only complete, comparable 60-minute buckets are shown.</figcaption>
-      <table className="sr-only">
-        <caption>Accessible Radiology read backlog summary</caption>
-        <thead><tr><th>Bucket end</th><th>Unread at end</th><th>Acquisitions completed</th><th>Reports finalized</th><th>Net change</th></tr></thead>
-        <tbody>{data.map((point) => <tr key={point.bucketEnd}><th>{point.bucketEnd}</th><td>{point.openAtEnd}</td><td>{point.entered}</td><td>{point.finalized}</td><td>{point.netChange}</td></tr>)}</tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>Accessible Radiology read backlog summary</caption>
+          <thead><tr><th>Bucket end</th><th>Unread at end</th><th>Acquisitions completed</th><th>Reports finalized</th><th>Net change</th></tr></thead>
+          <tbody>{data.map((point) => <tr key={point.bucketEnd}><th>{point.bucketEnd}</th><td>{point.openAtEnd}</td><td>{point.entered}</td><td>{point.finalized}</td><td>{point.netChange}</td></tr>)}</tbody>
+        </table>
+      </div>
     </figure>
   );
 }

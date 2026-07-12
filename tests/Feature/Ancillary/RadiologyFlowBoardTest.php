@@ -12,6 +12,7 @@ use Database\Seeders\AncillaryReferenceSeeder;
 use Database\Seeders\CaseManagementSeeder;
 use Database\Seeders\CommandCenterDemoSeeder;
 use Database\Seeders\RtdcSeeder;
+use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -28,7 +29,7 @@ class RadiologyFlowBoardTest extends TestCase
         parent::setUp();
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
+        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
         app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
     }
 
@@ -50,6 +51,7 @@ class RadiologyFlowBoardTest extends TestCase
         $this->assertTrue($payload['oldestItems'][0]['encounterLinked']);
         $this->assertStringContainsString('lens=discharge', $payload['worklistHref']);
         $this->assertNotEmpty($payload['thresholds']['definitions']);
+        $this->assertContainsOnlyInstancesOf(\stdClass::class, array_column($payload['thresholds']['definitions'], 'scope'));
         $this->assertNotEmpty($payload['heatmap']);
         $this->assertSame(1, $payload['scanners']['downtime']);
     }
@@ -58,12 +60,13 @@ class RadiologyFlowBoardTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'radiology_manager', 'must_change_password' => false]);
         $expected = app(RadiologyFlowBoardService::class)->build(['lens' => 'discharge'], true);
+        $expectedJson = json_decode(json_encode($expected, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
 
         $this->actingAs($user)->get('/radiology?lens=discharge')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Radiology/FlowBoard')->where('flowBoard', $expected));
+            ->assertInertia(fn (Assert $page) => $page->component('Radiology/FlowBoard')->where('flowBoard', $expectedJson));
         $this->actingAs($user)->getJson('/api/radiology/flow-board?lens=discharge')
-            ->assertOk()->assertExactJson($expected);
+            ->assertOk()->assertExactJson($expectedJson);
     }
 
     public function test_patient_context_is_redacted_when_the_role_lacks_the_detail_capability(): void

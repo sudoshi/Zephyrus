@@ -83,7 +83,7 @@ final class DemoInvariantService
         $dcBeforeAdmit = $this->scalar(
             'SELECT count(*) FROM prod.encounters
              WHERE is_deleted = false AND expected_discharge_date IS NOT NULL
-               AND expected_discharge_date < admitted_at', []
+               AND expected_discharge_date < admitted_at::date', []
         );
         $out[] = $this->finding('temporal.discharge_after_admit', 'temporal', 'critical',
             $dcBeforeAdmit === 0, "{$dcBeforeAdmit} encounters discharge-before-admit", '0',

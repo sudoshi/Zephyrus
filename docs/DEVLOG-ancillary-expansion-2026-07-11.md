@@ -80,7 +80,7 @@ Added critical invariants for exact-owner Radiology satellite linkage, ED-visit/
 
 The focused generator test proves categorical coverage, portable and IR branches, scanner/downtime/barrier counts, corrected read lineage, acknowledged critical-result state, exact distribution anchors, same-anchor idempotency, advanced-anchor natural-key rotation, invariant success, and preservation of a foreign non-demo exam. The lightweight shared demo fixture now includes a real ED visit so its critical context invariant is meaningful rather than vacuously skipped.
 
-R-5 supersedes the initial P0-8 phase-zero demo totals: the complete shared ancillary preview is now 26 orders and 126 milestones, of which 16 orders are Radiology.
+R-5 superseded the initial P0-8 phase-zero demo totals. The later R-13/R-15 expansion now preserves 26 orders and emits 140 milestones: 97 Radiology, 20 Laboratory, and 23 Pharmacy milestones.
 
 ### Automated evidence
 
@@ -916,3 +916,64 @@ Browser evidence used built assets, an ephemeral application key, and only `zeph
 - Navigation visibility continues to follow the repository's existing authenticated navigation contract; R-14 establishes exact ownership and server-side capabilities but does not invent a new client entitlement system.
 - Client fallback RTDC units intentionally have no Radiology drill because their identifiers are not server-governed and may fail the worklist's unit validation.
 - R-15 is the next dependency-ordered Radiology tranche and must run the complete phase verification/release gate, including the full PHP suite, migration rehearsal, canonical demo validation, OCEL projection, and dark/light responsive screenshot evidence.
+
+## 2026-07-12 — R-15 Radiology Phase Verification and Release Gate
+
+### Outcome
+
+Closed the complete Radiology phase with a green release matrix and a durable evidence bundle at [`docs/evidence/ancillary/radiology-r15-2026-07-12/`](evidence/ancillary/radiology-r15-2026-07-12/README.md). The gate covers all four Radiology operational pages, both Radiology-owned Study implementations, the shared ancillary spine, cross-module readiness, Cockpit aggregation, OCEL projection, migration rollback/forward repair, demo invariants, responsive behavior, privacy, and activation boundaries.
+
+The initial repository-wide run exposed multi-schema test pollution: PostgreSQL `migrate:fresh` clears the configured `prod,public` search path but does not clear mutable facts in `ops`, `integration`, `hosp_org`, `ocel`, and other schemas. That allowed rows from earlier PHPUnit processes to distort later demo, staffing, recommendation, and Radiology fixtures. `tests/TestCase.php` now performs one guarded baseline reset per RefreshDatabase process after rolling back the framework's wrapper transaction. It refuses to run unless `APP_ENV=testing` and the database name is exactly `zephyrus_test`, truncates only mutable non-system schemas and explicitly enumerated seeder-owned `hosp_ref` catalogs, preserves migration-owned reference catalogs, then restores the wrapper transaction. Formerly failing fixtures also seed their exact staffing prerequisite rather than depending on prior process state. The final full suite is hermetic from a dirty multi-schema starting point.
+
+The strict demo gate found four release defects and R-15 fixed each rather than accepting a warning:
+
+- `expected_discharge_date` is a calendar date, but repair and validation compared it with a timestamp. Both now compare with `admitted_at::date`, and a focused regression proves a same-day target is valid while a prior-day target fails.
+- Command Center's synthetic census row used a fixed noon timestamp, becoming decision-critically stale during evening refreshes. The seeder now reuses the matching governed row for the day while advancing `captured_at` to the current minute, keeping history bounded and freshness honest.
+- The operational transport scenario generated a 50/25/25 routine/urgent/STAT mix and too many overdue requests. It now deterministically produces 60/30/10 with exactly four of twenty active requests overdue.
+- `DemoTuningSeeder` randomized those scenario-owned transport deadlines after creation. The obsolete rewrite is removed; EVS deadline tuning remains, while transport lifecycle/SLA ownership stays in `OperationalDemoDataService`.
+
+After those repairs, `zephyrus:demo-refresh` and independent `zephyrus:demo-validate --strict` passed all 35 invariants with zero critical and zero warning failures. The refresh published the gated Cockpit snapshot. The owned cohort reconciled to 26 orders and 140 milestones overall: Radiology 16/97, Laboratory 5/20, and Pharmacy 5/23. Radiology additionally produced 16 exams, 29 reads, six scanners, one downtime record, one critical-result loop, and two linked barriers.
+
+The rendered audit found two additional browser-boundary defects. Empty PHP SLA scopes were valid object-shaped JSONB but were serialized as JSON arrays, violating the strict Zod record contract and preventing the Flow Board from rendering. `AncillaryContractSerializer` now casts scope to an object at the HTTP boundary, and unit/feature/browser coverage proves service, Inertia, API, and TypeScript parity. Separately, Tailwind's screen-reader-only class applied directly to an accessible HTML table did not constrain the table formatting context and widened the Reads page to 780 px in a 768 px viewport. Both Radiology accessible chart tables now sit inside screen-reader-only wrappers, preserving assistive data while eliminating document overflow.
+
+### Automated, data, and rendered evidence
+
+```text
+Focused temporal invariant: 1 test, 4 assertions, PASS
+Operational demo scenario: 3 tests, 66 assertions, PASS
+Focused SLA serializer + Flow Board contract: PASS
+Full PHP suite: 1 skipped, 1,031 passed, 16,664 assertions, 198.22 s
+RouteSmoke: 97 GET routes, 0 failures
+Route inventory: 413 routes, 13 Radiology-related named routes
+Vitest: 101 files, 421 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist/chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint --dirty: PASS
+git diff --check: PASS
+Canonical Playwright matrix: 15 passed, 1 stale-fixture-only skip
+Isolated stale-state Playwright capture: 1 passed
+```
+
+The Playwright phase-gate specification visits `/radiology`, `/radiology/worklist`, `/radiology/modality`, `/radiology/reads`, `/analytics/radiology-tat`, and `/analytics/ir-utilization` in dark desktop and representative light tablet/mobile viewports. Every surface asserts its semantic heading and main region, selected theme, zero document-level horizontal overflow, zero console errors, and zero uncaught page errors. Additional checks prove a positive governed breach count, the degraded reads explanation, an honest bounded empty Study cohort, a registered stale-source cutoff, keyboard-openable worklist detail, visible focus, and keyboard theme switching.
+
+Fourteen full-page screenshots were saved and manually inspected. Together they cover normal, breach, degraded, stale, and empty states, both themes, and 390/768/1024/1440 px widths. The audit reviewed hierarchy, contrast, status/freshness placement, filter affordances, breakpoint stacking, chart/table correspondence, horizontal containment, cross-link ownership, and synthetic/privacy boundaries. Only pseudonymous deterministic identifiers appear; no report narrative, direct identifier, credential, raw source message, or DICOM payload reaches the browser evidence.
+
+Command-level OCEL reconciliation projected all 140 ancillary milestone rows to 140 distinct source references. The full 90-day log contained 717 events, 530 objects, 2,295 E2O links, 360 O2O links, and 142 object changes. Two consecutive bounded ancillary projections returned identical 140-event, 122-object, 566-E2O, 158-O2O, and 140-change results. Direct joins separately proved 97 Radiology OCEL events, one live discharge blocker, ten real ED-context exams, one real IR/OR link, and Radiology content in the gated Cockpit snapshot.
+
+Populated query-plan evidence used `enable_seqscan=off` only to expose intended index selection on the small demo. The open worklist used `ancillary_orders_open_idx`; the bounded TAT cohort used `ancillary_orders_department_ordered_idx`; and the IR cohort used `rad_exams_ir_scheduled_idx`. All three were index-only paths except the expected incremental sort for the final IR tie-breaker. These are planner-path proofs, not production latency claims.
+
+### Production-shaped migration rehearsal and rollback posture
+
+Cloned the clean 74,143,411-byte, 95-migration test schema into disposable `zephyrus_r15_rehearsal`. The exact Radiology tail migrations `2026_07_12_000700`, `2026_07_12_000600`, and `2026_07_11_000500` rolled down in 36.09, 41.12, and 29.77 ms. Inspection proved the Radiology tables/TAT/IR indexes were absent while the shared ancillary order ledger remained. Forward migration completed in 26.05, 7.94, and 10.66 ms (0.20 s wall time; 71,308 KB maximum RSS).
+
+After reference seeding, the disposable database contained seven Radiology tables, 49 constraints with zero unvalidated constraints, seven required indexes, six modalities, nine subspecialties, all 95 migration rows, and no mutation of the zero-row shared ledger. The database was dropped and confirmed absent.
+
+Empty tail rollback is therefore rehearsed. Once production facts exist, the safe rollback is application-level route/feature withdrawal while preserving schema and facts, followed by a forward repair or verified restore; destructive populated rollback is not an approved mechanism. Existing migration tests enforce the shared append-only ledger guard and empty down/up behavior.
+
+### Activation and limitations
+
+- No production database, deployment, migration, connector, credential, source endpoint, feature flag, queue, scheduler, or external interface was accessed or activated.
+- The only accepted command warnings are the pre-existing 104 UI-canon line-height findings, stale Browserslist database, existing large Vite chunk, and Playwright color-environment warning. No functional, invariant, privacy, or release failure is waived.
+- The test database was reset after verification; final counts are zero ancillary orders, zero milestones, zero Radiology exams, and zero scenario-owned transport requests.
+- R-15 completes Radiology. L-1 is now the next dependency-ordered implementation task and must build Lab, Pathology, and Blood Bank satellites on the completed shared spine without copying Radiology-specific behavior.

@@ -223,8 +223,8 @@ class CommandCenterDemoSeeder extends Seeder
      * Called AFTER all other seeders so it always wins the "latest snapshot"
      * race regardless of what earlier steps inserted.
      *
-     * Idempotent: census snapshots use a fixed sentinel captured_at (today
-     * at noon), so updateOrInsert matches the same row on re-runs.
+     * Idempotent: census snapshots reuse the same daily row when its governed
+     * target values match, advancing captured_at to the current minute.
      * Bed-request and encounter updates are idempotent by design (WHERE +
      * UPDATE, not INSERT).
      *
@@ -236,7 +236,10 @@ class CommandCenterDemoSeeder extends Seeder
         // ------------------------------------------------------------------
         // 10a. Census snapshots — one deterministic "latest" row per unit.
         //
-        // captured_at sentinel = today 12:00:00 (fixed per calendar day).
+        // captured_at is the current minute. Reusing the matching daily
+        // governed row keeps repeated refreshes idempotent while ensuring an
+        // evening demo refresh does not publish a decision-critically stale
+        // noon snapshot.
         // The service uses DISTINCT ON (unit_id) ORDER BY captured_at DESC,
         // so this row always wins over earlier snapshots from the core seeder.
         //
@@ -257,7 +260,7 @@ class CommandCenterDemoSeeder extends Seeder
         //   blocked≈5 → ~86% inpatient occupancy (tight house ✓). ED is tracked
         //   separately (target_occupied=0; its boarding load is set in 10d).
         // ------------------------------------------------------------------
-        $sentinelAt = now()->startOfDay()->addHours(12); // today at 12:00:00
+        $sentinelAt = now()->startOfMinute();
 
         // A small, deterministic set of high-occupancy units carry one blocked
         // bed so the house-wide blocked count is realistic (~5) without forcing
@@ -297,21 +300,38 @@ class CommandCenterDemoSeeder extends Seeder
 
             [$occ, $avail, $blocked, $aac] = $censusTargets[$abbr];
 
-            DB::table('prod.census_snapshots')->updateOrInsert(
-                [
-                    'unit_id' => $unit->unit_id,
-                    'captured_at' => $sentinelAt,
-                ],
-                [
-                    'staffed_beds' => $unit->staffed_bed_count,
-                    'occupied' => $occ,
-                    'available' => $avail,
-                    'blocked' => $blocked,
-                    'acuity_adjusted_capacity' => $aac,
+            $existingSnapshotId = DB::table('prod.census_snapshots')
+                ->where('unit_id', $unit->unit_id)
+                ->whereDate('captured_at', $sentinelAt->toDateString())
+                ->where('staffed_beds', $unit->staffed_bed_count)
+                ->where('occupied', $occ)
+                ->where('available', $avail)
+                ->where('blocked', $blocked)
+                ->where('acuity_adjusted_capacity', $aac)
+                ->orderByDesc('captured_at')
+                ->value('census_snapshot_id');
+
+            $values = [
+                'unit_id' => $unit->unit_id,
+                'captured_at' => $sentinelAt,
+                'staffed_beds' => $unit->staffed_bed_count,
+                'occupied' => $occ,
+                'available' => $avail,
+                'blocked' => $blocked,
+                'acuity_adjusted_capacity' => $aac,
+                'updated_at' => now(),
+            ];
+
+            if ($existingSnapshotId !== null) {
+                DB::table('prod.census_snapshots')
+                    ->where('census_snapshot_id', $existingSnapshotId)
+                    ->update($values);
+            } else {
+                DB::table('prod.census_snapshots')->insert([
+                    ...$values,
                     'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+                ]);
+            }
         }
 
         // ------------------------------------------------------------------

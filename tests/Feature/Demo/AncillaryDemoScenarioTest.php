@@ -55,9 +55,20 @@ class AncillaryDemoScenarioTest extends TestCase
         $preview = $service->preview($clock);
 
         $this->assertSame(26, $preview['orders']);
-        $this->assertSame(126, $preview['milestones']);
+        $this->assertSame(140, $preview['milestones']);
         $this->assertSame(3, $preview['breaches']);
         $this->assertSame([], $preview['collisions']);
+        $this->assertSame([
+            'rad' => ['orders' => 16, 'milestones' => 97, 'expectedBreaches' => 1],
+            'lab' => ['orders' => 5, 'milestones' => 20, 'expectedBreaches' => 1],
+            'rx' => ['orders' => 5, 'milestones' => 23, 'expectedBreaches' => 1],
+        ], collect($preview['departments'])->mapWithKeys(fn (array $department): array => [
+            $department['department'] => [
+                'orders' => $department['orders'],
+                'milestones' => $department['milestones'],
+                'expectedBreaches' => $department['expectedBreaches'],
+            ],
+        ])->all());
 
         $first = $service->refresh($clock);
         $firstKeys = AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)
@@ -69,7 +80,7 @@ class AncillaryDemoScenarioTest extends TestCase
         $this->assertSame($first, $second);
         $this->assertSame($firstKeys, $secondKeys);
         $this->assertSame(26, $second['orders']);
-        $this->assertSame(126, $second['milestones']);
+        $this->assertSame(140, $second['milestones']);
         $this->assertGreaterThanOrEqual(3, $second['breaches']);
         $this->assertSame(26, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->count());
         $this->assertSame(0, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->whereNull('source_cutoff_at')->count());

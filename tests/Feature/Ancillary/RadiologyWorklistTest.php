@@ -12,6 +12,7 @@ use Database\Seeders\AncillaryReferenceSeeder;
 use Database\Seeders\CaseManagementSeeder;
 use Database\Seeders\CommandCenterDemoSeeder;
 use Database\Seeders\RtdcSeeder;
+use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -28,7 +29,7 @@ class RadiologyWorklistTest extends TestCase
         parent::setUp();
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
+        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
         app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
     }
 

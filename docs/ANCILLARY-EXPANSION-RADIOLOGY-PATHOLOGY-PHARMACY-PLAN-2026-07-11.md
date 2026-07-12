@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-14 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0 and Radiology R-1 through R-15 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 24 of 60 tasks complete; 36 remain |
+| Progress | 25 of 60 tasks complete; 35 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1190,24 +1190,45 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] RTDC Imaging handoff is server-owned, unit-scoped, browser-proven, and absent for non-Imaging or fallback-only rows.
 - [x] Final R-14 verification passes: 135 combined backend tests with 2,014 assertions plus the final 3-test/74-assertion route-registration guard, 54 focused frontend tests, TypeScript, production build, UI canon, route smoke over 97 GET routes, four Chromium navigation/handoff tests, Pint, and `git diff --check`.
 
-#### [ ] R-15 — Pass the Radiology phase verification and release gate
+#### [x] R-15 — Pass the Radiology phase verification and release gate
 
 **Depends on:** R-1 through R-14
 **Primary evidence:** tests, screenshots, query plans, migration rehearsal, devlog
 
 **Work:**
 
-- Run file-scoped Pint, focused PHP tests, full PHP suite, TypeScript, Vitest, build, route smoke, UI canon, demo refresh/validate, and OCEL projection tests.
-- Run a design audit across four workspace pages plus two Study pages in dark/light and representative breakpoints.
-- Save screenshots for normal, breach, degraded, stale, and empty states.
-- Rehearse migration and seed on a production-shaped disposable database.
-- Update the plan status and add a Radiology devlog/evidence record.
+- [x] Run file-scoped and dirty Laravel Pint over every changed PHP implementation/test file and leave `git diff --check` clean.
+- [x] Run focused temporal-invariant, deterministic operational-demo, serializer, Flow Board, Radiology/demo, migration, and formerly sequence-sensitive regression coverage.
+- [x] Run the complete PHP suite and prove route smoke across every registered GET page with no server error.
+- [x] Run the complete Vitest suite, TypeScript compiler, production Vite build, and UI-canon scanner after the final browser-driven fixes.
+- [x] Inventory the complete route and scheduler surfaces, retaining all six canonical Radiology bookmarks, 13 named Radiology page/API routes, existing ancillary/OCEL cadence, and no new activation.
+- [x] Rebuild the deterministic demo on migration-only `zephyrus_test` plus exact prerequisite catalogs; run refresh and independent strict validation at a frozen anchor.
+- [x] Repair strict-gate defects in expected-discharge date semantics, evening census freshness, deterministic transport priority/overdue distribution, and final tuning ownership instead of accepting failed invariants.
+- [x] Run full and ancillary-specific OCEL projections, reconciliation, and a second identical bounded projection to prove command-level idempotency.
+- [x] Reconcile demo counts directly across shared orders/milestones, Radiology satellites, ED, discharge, IR/OR context, Cockpit publication, and OCEL source references.
+- [x] Capture populated PostgreSQL query plans for the open worklist, bounded TAT Study, and bounded IR Study and prove each intended partial/composite index path.
+- [x] Add a dedicated Playwright phase-gate specification covering all four operational pages and both Study pages in dark desktop plus representative light tablet/mobile viewports.
+- [x] Assert semantic headings/main regions, theme state, document-level overflow, zero console/page errors, keyboard details/focus/theme behavior, and real breach/degraded/empty/stale states.
+- [x] Repair the empty-SLA-scope JSON object contract and the screen-reader-only accessible-table overflow found by the rendered audit, with backend/unit/browser regression coverage.
+- [x] Save and manually inspect 14 full-page screenshots spanning normal, breach, degraded, stale, and empty evidence with a synthetic-data/PHI review.
+- [x] Clone the production-shaped migrated schema into a disposable database, roll the exact three-migration Radiology tail down and forward, seed governed references, inspect tables/constraints/indexes/catalogs/migration history, and drop the rehearsal database.
+- [x] Reset the shared test database after verification and confirm zero ancillary orders, milestones, Radiology exams, and owned transport fixtures remain.
+- [x] Publish the durable evidence index under `docs/evidence/ancillary/radiology-r15-2026-07-12/` and update this plan plus the ancillary devlog.
 
 **Acceptance:**
 
-- All automated and manual checks in section 18 are green or have an explicitly accepted pre-existing baseline unrelated to the tranche.
-- No production interface is activated by this release.
-- Phase evidence proves demo, cross-module join, Cockpit, OCEL, and rollback/forward-repair behavior.
+- [x] Final PHP result is 1,031 passed tests and 16,664 assertions with one intentional skip; route smoke checks 97 GET routes with zero failures.
+- [x] Final frontend result is 101 Vitest files and 421 tests, clean TypeScript, successful production build, successful UI canon, and clean diff whitespace.
+- [x] Strict demo validation passes all 35 invariants with zero critical and zero warning failures and publishes exactly one gated Cockpit snapshot carrying Radiology evidence.
+- [x] The canonical cohort reconciles to 26 orders/140 milestones overall and 16 orders/97 milestones/16 exams/29 reads/six scanners for Radiology, with real ED, discharge, and IR/OR joins.
+- [x] Full OCEL reconciliation consumes all 140 ancillary source milestones; two ancillary-only runs return identical 140-event/122-object/566-E2O/158-O2O/140-change results.
+- [x] Worklist, TAT, and IR plans use `ancillary_orders_open_idx`, `ancillary_orders_department_ordered_idx`, and `rad_exams_ir_scheduled_idx` respectively on populated demo facts.
+- [x] Browser verification passes 15 canonical checks plus the isolated stale-state check across all six pages, with zero console/page errors and no document-level overflow.
+- [x] The screenshot bundle explicitly contains normal, breach, degraded, stale, and empty states in both themes and representative desktop/tablet/mobile widths; manual review finds no direct identifier or report narrative.
+- [x] The 74 MB disposable clone rolls the empty Radiology tail down and forward in milliseconds, retains the shared ancillary ledger, restores seven tables/49 validated constraints/seven indexes/six modalities/nine subspecialties, and is deleted afterward.
+- [x] Rollback posture is evidence-backed: empty tail rollback is rehearsed; populated facts remain protected and require application rollback plus forward repair or verified restoration rather than destructive down migration.
+- [x] No production interface, connector, credential, scheduler, queue, endpoint, feature flag, migration, deployment, or external system is activated by R-15.
+- [x] The only accepted command warnings are the pre-existing 104 UI-canon line-height findings, stale Browserslist database, large existing Vite chunk, and Playwright color-environment warning; no functional, privacy, invariant, or release check is waived.
 
 ### Phase 2 — Pathology and Laboratory
 

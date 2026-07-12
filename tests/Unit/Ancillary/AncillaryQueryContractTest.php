@@ -86,5 +86,6 @@ class AncillaryQueryContractTest extends TestCase
         $this->assertSame(45, $contract['warningMinutes']);
         $this->assertSame('2026-07-11T00:00:00+00:00', $contract['effectiveFrom']);
         $this->assertTrue($contract['active']);
+        $this->assertEquals((object) [], $contract['scope']);
     }
 }

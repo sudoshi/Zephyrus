@@ -25,7 +25,10 @@ final class AncillaryContractSerializer
             'stopMilestoneCode' => (string) $definition->stop_milestone_code,
             'priority' => $definition->priority,
             'patientClass' => $definition->patient_class,
-            'scope' => $definition->scope,
+            // JsonObject deliberately exposes an empty JSON object as [] in PHP.
+            // Cast back to an object at the HTTP boundary so JSON retains the
+            // record shape promised to every TypeScript consumer.
+            'scope' => (object) $definition->scope,
             'statistic' => (string) $definition->statistic,
             'warningMinutes' => $definition->warning_minutes,
             'breachMinutes' => $definition->breach_minutes,

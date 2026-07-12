@@ -11,6 +11,7 @@ use App\Services\Dashboard\PerioperativeMetricsService;
 use Database\Seeders\CaseManagementSeeder;
 use Database\Seeders\CommandCenterDemoSeeder;
 use Database\Seeders\RtdcSeeder;
+use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -21,7 +22,7 @@ final class SuiteMetricReuseTest extends TestCase
 
     public function test_perioperative_dashboard_and_or_utilization_delegate_to_shared_suite_math(): void
     {
-        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, CommandCenterDemoSeeder::class]);
+        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class]);
         $calculator = app(SuiteMetricCalculator::class);
 
         $perioperative = app(PerioperativeMetricsService::class)->build();

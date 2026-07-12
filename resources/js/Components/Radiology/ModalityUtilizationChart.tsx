@@ -63,11 +63,13 @@ export default function ModalityUtilizationChart({ scanners, referenceLines }: {
       <figcaption className="px-4 pb-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
         Each bar partitions the declared staffed window. The dashed reference is the covered scanner portfolio average, not a benchmark target.
       </figcaption>
-      <table className="sr-only">
-        <caption>Accessible scanner utilization summary</caption>
-        <thead><tr><th>Scanner</th><th>Covered exam</th><th>Planned downtime</th><th>Unplanned downtime</th><th>Idle</th><th>Unknown</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.scanner}><th>{row.scanner}</th><td>{row.exam}%</td><td>{row.planned}%</td><td>{row.unplanned}%</td><td>{row.idle}%</td><td>{row.unknown}%</td></tr>)}</tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>Accessible scanner utilization summary</caption>
+          <thead><tr><th>Scanner</th><th>Covered exam</th><th>Planned downtime</th><th>Unplanned downtime</th><th>Idle</th><th>Unknown</th></tr></thead>
+          <tbody>{rows.map((row) => <tr key={row.scanner}><th>{row.scanner}</th><td>{row.exam}%</td><td>{row.planned}%</td><td>{row.unplanned}%</td><td>{row.idle}%</td><td>{row.unknown}%</td></tr>)}</tbody>
+        </table>
+      </div>
     </figure>
   );
 }
