@@ -68,6 +68,7 @@ abstract class TestCase extends BaseTestCase
                         AND tablename IN (
                             'ancillary_barrier_reasons',
                             'ancillary_milestone_types',
+                            'lab_test_catalog',
                             'rad_modalities',
                             'rad_subspecialties',
                             'staff_qualifications',

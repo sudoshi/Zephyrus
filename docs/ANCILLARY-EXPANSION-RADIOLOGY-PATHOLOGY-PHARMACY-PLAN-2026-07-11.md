@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0 and Radiology R-1 through R-15 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 25 of 60 tasks complete; 35 remain |
+| Progress | 26 of 60 tasks complete; 34 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1232,25 +1232,51 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 
 ### Phase 2 — Pathology and Laboratory
 
-#### [ ] L-1 — Create clinical lab, pathology, and blood-bank satellites
+#### [x] L-1 — Create clinical lab, pathology, and blood-bank satellites
 
 **Depends on:** P0 complete
 **Primary files:** Lab migration; app/Models/Lab/**; factories; reference seeder
 
 **Work:**
 
-- Create lab_specimens with source specimen/accession identities, type/container, collector role, collection/receipt state, rejection reason, and parent_specimen_id for recollects.
-- Create lab_results with local/LOINC code, result status, auto-verified flag, critical flag, analyzer reference, and operational timestamps without exposing result values unless a future approved workflow needs them.
-- Create lab_critical_values, ap_cases, and bb_readiness with the fields in sections 6 and 7.
-- Create lab_test_catalog with local code, LOINC, department, expected TAT class, decision_class, and active/effective metadata.
-- Index pending decision joins, STAT queues, recollect lineage, AP stage aging, and OR schedule readiness.
+- [x] Add `hosp_ref.lab_test_catalog` with deterministic UUID/key identity, local code, optional LOINC, governed department/test-family, expected TAT class, exact decision class, specimen type, active/effective interval, and object-shaped metadata.
+- [x] Seed nine governed clinical-lab, microbiology, anatomic-pathology, frozen-section, type-and-screen, and crossmatch catalog entries with stable UUIDv5 identifiers.
+- [x] Keep reference seeding idempotent and preserve catalog identity on replay.
+- [x] Constrain `decision_class` to `ed_disposition`, `discharge_gate`, `or_gate`, or `none`; constrain department, TAT class, effective interval, and metadata shape.
+- [x] Add `prod.lab_specimens` with stable UUID, source-scoped specimen identity, accession reference, shared ancillary order/source/encounter lineage, specimen/container/collector/method descriptors, lifecycle state, rejection/recollect evidence, demo ownership, and object metadata.
+- [x] Add a self-referencing `parent_specimen_id` lineage so a rejected parent and pending child recollect remain distinct operational facts.
+- [x] Enforce collection, transit, receipt, rejection, recollect, and cancellation timestamp/state evidence without fabricating absent collection times.
+- [x] Add `prod.lab_results` with source key/version idempotency, specimen/order/catalog/source lineage, correction-parent lineage, local/LOINC snapshots, status/stage, abnormal/critical/auto-verification flags, analyzer reference, and operational timestamps.
+- [x] Deliberately exclude result values, narratives, report text, and clinical payloads from the operational contract.
+- [x] Represent preliminary, final, corrected, and cancelled results plus microbiology preliminary, organism-identification, susceptibility, and final stages.
+- [x] Enforce result/correction timestamp order, auto-verification evidence, correction-parent evidence, source-version uniqueness, and object-shaped metadata.
+- [x] Add `prod.lab_critical_values` with source identity, severity, callback state, identification/notification/acknowledgement/escalation/closure timestamps, recipient role, demo ownership, and object metadata.
+- [x] Enforce closed-loop callback state evidence and monotonic notification/acknowledgement timing.
+- [x] Add `prod.ap_cases` with a one-to-one shared pathology order, source/accession/specimen/procedure context, real `case_id`, encounter, AP type/stage timeline, frozen-section branch, pathologist reference, cancellation, demo ownership, and object metadata.
+- [x] Enforce AP stage vocabulary, sequential processing timestamps, signed-out evidence, frozen-section state/timestamp evidence, and source identity.
+- [x] Add `prod.bb_readiness` with a one-to-one shared blood-bank order, source request identity, real `case_id`, encounter, product class, readiness/type-screen/crossmatch states, unit counts, needed-by/expiry/readiness/issue timestamps, MTP branch, cancellation, demo ownership, and object metadata.
+- [x] Enforce blood-product/readiness vocabularies, positive and internally consistent unit counts, lifecycle evidence, timestamp ordering, and MTP activation/closure order.
+- [x] Add projection guards that require Laboratory, Pathology, and Blood Bank satellites to attach only to shared orders from their own department and matching encounter.
+- [x] Require each lab result specimen and correction parent to belong to the same shared order, and reject Pathology/Blood Bank catalog entries from the clinical-result table.
+- [x] Add source-natural-key uniqueness boundaries for specimens, versioned results, critical callbacks, AP cases, and blood-bank readiness requests.
+- [x] Add pending-collection, pending-receipt, recollect-lineage, pending-decision, open-critical, AP stage-aging/frozen-OR, blood-bank OR-readiness, and active-MTP indexes.
+- [x] Add Eloquent models with immutable time casts, object-safe JSON casts, source/order/encounter/catalog/ORCase relationships, correction/recollect inverse relationships, and operational query scopes.
+- [x] Add inverse relationships on `AncillaryOrder` and `ORCase` using the repository's real `case_id` contract.
+- [x] Add factories for pending/in-transit/rejected/recollect specimens; preliminary/auto-verified/critical/corrected/microbiology results; callback states; AP/frozen/signed-out cases; and T&S/crossmatch/issued/MTP blood-bank readiness.
+- [x] Extend the guarded multi-schema PHPUnit baseline reset to include the new seeder-owned catalog while preserving migration-owned schemas.
+- [x] Make catalog constraint installation idempotent when `prod` is rebuilt while `hosp_ref` persists between PostgreSQL test processes.
+- [x] Add focused migration, guard, constraint, catalog, model, relationship, factory, scope, privacy-boundary, and rollback tests.
+- [x] Rehearse empty satellite down/up while proving the shared ancillary order ledger survives, and prove populated satellites refuse destructive rollback.
 
 **Acceptance:**
 
-- Recollect chains, micro prelim/final sequences, AP cases, frozen sections, T&S/crossmatch, and critical callbacks are representable.
-- ap_cases and bb_readiness reference the real ORCase key case_id, not an invented or_case_id column.
-- Decision classes are constrained to ed_disposition, discharge_gate, or_gate, and none.
-- Factories create valid clinical-lab, AP, microbiology, and blood-bank scenarios.
+- [x] Recollect chains, micro prelim/final sequences, AP cases, frozen sections, T&S/crossmatch, MTP readiness, and critical callbacks are represented by valid factory-backed facts.
+- [x] `ap_cases` and `bb_readiness` reference the real ORCase key `case_id`; schema tests prove neither table invents `or_case_id`.
+- [x] Decision classes are database-constrained to `ed_disposition`, `discharge_gate`, `or_gate`, and `none`, and all four are covered by the governed catalog.
+- [x] Factories create valid clinical-lab, AP, microbiology, and blood-bank scenarios with working shared-order, source, encounter, catalog, correction/recollect, and ORCase relationships.
+- [x] Information-schema inspection proves `lab_results` exposes no result-value or narrative column.
+- [x] Focused verification passes 20 tests and 421 assertions across L-1 migration/model/factory coverage and the expanded ancillary reference-seeder contract.
+- [x] No production connector, credential, scheduler, endpoint, migration, deployment, or external system is activated by L-1.
 
 #### [ ] L-2 — Parse Lab OML/ORM order and collection messages
 

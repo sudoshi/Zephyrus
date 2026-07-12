@@ -73,6 +73,26 @@ class AncillaryOrder extends Model
         return $this->hasOne(\App\Models\Radiology\Exam::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
+    public function labSpecimens(): HasMany
+    {
+        return $this->hasMany(\App\Models\Lab\Specimen::class, 'ancillary_order_id', 'ancillary_order_id');
+    }
+
+    public function labResults(): HasMany
+    {
+        return $this->hasMany(\App\Models\Lab\Result::class, 'ancillary_order_id', 'ancillary_order_id');
+    }
+
+    public function anatomicPathologyCase(): HasOne
+    {
+        return $this->hasOne(\App\Models\Lab\AnatomicPathologyCase::class, 'ancillary_order_id', 'ancillary_order_id');
+    }
+
+    public function bloodBankReadiness(): HasOne
+    {
+        return $this->hasOne(\App\Models\Lab\BloodBankReadiness::class, 'ancillary_order_id', 'ancillary_order_id');
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
         return $query->whereNull($this->qualifyColumn('terminal_at'));

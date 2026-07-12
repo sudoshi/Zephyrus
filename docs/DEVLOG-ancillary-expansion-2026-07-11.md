@@ -977,3 +977,35 @@ Empty tail rollback is therefore rehearsed. Once production facts exist, the saf
 - The only accepted command warnings are the pre-existing 104 UI-canon line-height findings, stale Browserslist database, existing large Vite chunk, and Playwright color-environment warning. No functional, invariant, privacy, or release failure is waived.
 - The test database was reset after verification; final counts are zero ancillary orders, zero milestones, zero Radiology exams, and zero scenario-owned transport requests.
 - R-15 completes Radiology. L-1 is now the next dependency-ordered implementation task and must build Lab, Pathology, and Blood Bank satellites on the completed shared spine without copying Radiology-specific behavior.
+
+## 2026-07-12 — L-1 Laboratory, Pathology, and Blood Bank Satellites
+
+### Outcome
+
+Completed the first Laboratory-phase dependency by adding six governed PostgreSQL contracts: `hosp_ref.lab_test_catalog`, `prod.lab_specimens`, `prod.lab_results`, `prod.lab_critical_values`, `prod.ap_cases`, and `prod.bb_readiness`. The implementation stays on the shared ancillary order/source/encounter spine, uses the repository's real `prod.or_cases.case_id`, and does not add a parallel order ledger or an invented `or_case_id`.
+
+The governed test catalog contains nine deterministic entries spanning chemistry, hematology, coagulation, microbiology, anatomic pathology, frozen section, type-and-screen, and crossmatch. It preserves stable UUIDv5 identities across replay and constrains decision classes to `ed_disposition`, `discharge_gate`, `or_gate`, and `none`. The Laboratory result satellite stores operational state, source version, local/LOINC identity, analyzer reference, flags, and timing only. It intentionally has no result-value, narrative, report-text, or clinical-payload column.
+
+Specimen lifecycle supports pending collection, transit, receipt, rejection, and an explicit parent-to-child recollect chain. Results support preliminary/final/corrected flows and microbiology preliminary, organism-identification, susceptibility, and final stages. Critical values provide a timestamped notification/acknowledgement/escalation/closure loop. AP cases provide stage aging and frozen-section readiness against an actual OR case. Blood Bank readiness represents type-and-screen, crossmatch, allocation/issue, and active/closed MTP state with internally consistent unit counts.
+
+Department and lineage triggers reject cross-department satellite attachment, encounter mismatch, a result tied to another order's specimen or correction parent, and clinical-result use of Pathology/Blood Bank catalog rows. Natural source identities are unique. Partial/composite indexes cover pending collection/receipt, pending decisions, open critical results, recollect lineage, AP stage/frozen OR readiness, blood-bank schedule readiness, and active MTP work.
+
+### Models, factories, and rollback posture
+
+Added six Eloquent models plus inverse relationships on `AncillaryOrder` and `ORCase`. Immutable timestamps and object-safe JSON casts preserve the database contract. Factories cover clinical-lab, microbiology, AP/frozen, critical-callback, T&S/crossmatch/issue, and MTP scenarios, including correction and recollect lineage.
+
+The migration allows destructive down only in local/testing and only while every new fact table is empty. An empty down/up rehearsal removes and restores the satellite tail while retaining `prod.ancillary_orders`; a populated specimen makes down fail closed. Constraint installation is idempotent when PHPUnit rebuilds the `prod` search path while retaining the seeder-owned `hosp_ref` catalog. The guarded test baseline now explicitly truncates that catalog between PHPUnit processes.
+
+### Verification
+
+```text
+Laravel Pint over L-1 implementation/tests: PASS
+PHP syntax checks over all L-1 models/factories/tests: PASS
+Focused L-1 plus ancillary reference contracts: 20 tests, 421 assertions, PASS
+Complete ancillary feature regression: 126 tests, 1,582 assertions, PASS
+Empty local/testing satellite down/up rehearsal: PASS
+Populated satellite destructive-down refusal: PASS
+Information-schema result-value/narrative exclusion check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. L-2 is the next direct Laboratory dependency and will normalize Laboratory order and collection messages into these contracts.

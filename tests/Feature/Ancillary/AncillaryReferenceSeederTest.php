@@ -40,6 +40,11 @@ class AncillaryReferenceSeederTest extends TestCase
         $this->assertSame(17, DB::table('hosp_ref.ancillary_barrier_reasons')->count());
         $this->assertSame(22, AncillarySlaDefinition::query()->count());
         $this->assertSame(10, MetricDefinition::query()->whereIn('metric_key', self::COCKPIT_KEYS)->count());
+        $this->assertSame(9, DB::table('hosp_ref.lab_test_catalog')->count());
+        $this->assertSame(
+            ['discharge_gate', 'ed_disposition', 'none', 'or_gate'],
+            DB::table('hosp_ref.lab_test_catalog')->distinct()->orderBy('decision_class')->pluck('decision_class')->all(),
+        );
 
         $departmentCounts = DB::table('hosp_ref.ancillary_milestone_types')
             ->select('department', DB::raw('count(*) as total'))
@@ -165,6 +170,7 @@ class AncillaryReferenceSeederTest extends TestCase
         $this->assertSame(777.0, (float) $metric->crit_edge);
         $this->assertSame(60, DB::table('hosp_ref.ancillary_milestone_types')->count());
         $this->assertSame(22, AncillarySlaDefinition::query()->count());
+        $this->assertSame(9, DB::table('hosp_ref.lab_test_catalog')->count());
     }
 
     public function test_database_rejects_removal_of_a_catalog_code_referenced_by_sla_policy(): void

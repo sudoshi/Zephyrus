@@ -5,16 +5,62 @@ namespace Database\Seeders;
 use App\Models\Ancillary\AncillarySlaDefinition;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 class AncillaryReferenceSeeder extends Seeder
 {
     public function run(): void
     {
         $this->seedRadiologyCatalogs();
+        $this->seedLabTestCatalog();
         $this->seedMilestones();
         $this->seedBarrierReasons();
         $this->seedSlaDefinitions();
+    }
+
+    private function seedLabTestCatalog(): void
+    {
+        if (! Schema::hasTable('hosp_ref.lab_test_catalog')) {
+            return;
+        }
+
+        foreach ($this->labTestCatalog() as $test) {
+            $catalogKey = $test['catalog_key'];
+            DB::table('hosp_ref.lab_test_catalog')->updateOrInsert(
+                ['catalog_key' => $catalogKey],
+                [
+                    'catalog_uuid' => (string) Uuid::uuid5(Uuid::NAMESPACE_URL, "zephyrus:lab-test-catalog:{$catalogKey}"),
+                    ...$test,
+                    'effective_from' => '2026-01-01T00:00:00Z',
+                    'effective_to' => null,
+                    'is_active' => true,
+                    'metadata' => json_encode([
+                        'data_origin' => 'governed_reference',
+                        'result_value_storage' => 'excluded_from_operational_contract',
+                    ], JSON_THROW_ON_ERROR),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+        }
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function labTestCatalog(): array
+    {
+        return [
+            ['catalog_key' => 'lab.bmp', 'local_code' => 'BMP', 'loinc_code' => '24321-2', 'label' => 'Basic metabolic panel', 'department' => 'chemistry', 'test_family' => 'metabolic_panel', 'expected_tat_class' => 'routine', 'decision_class' => 'discharge_gate', 'specimen_type' => 'serum'],
+            ['catalog_key' => 'lab.troponin_i', 'local_code' => 'TROPONIN_I', 'loinc_code' => '10839-9', 'label' => 'Troponin I', 'department' => 'chemistry', 'test_family' => 'troponin', 'expected_tat_class' => 'stat', 'decision_class' => 'ed_disposition', 'specimen_type' => 'plasma'],
+            ['catalog_key' => 'lab.cbc', 'local_code' => 'CBC', 'loinc_code' => '57021-8', 'label' => 'Complete blood count', 'department' => 'hematology', 'test_family' => 'blood_count', 'expected_tat_class' => 'routine', 'decision_class' => 'none', 'specimen_type' => 'whole_blood'],
+            ['catalog_key' => 'lab.pt_inr', 'local_code' => 'PT_INR', 'loinc_code' => '5902-2', 'label' => 'Prothrombin time and INR', 'department' => 'coagulation', 'test_family' => 'coagulation', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'citrated_plasma'],
+            ['catalog_key' => 'lab.blood_culture', 'local_code' => 'BLOOD_CULTURE', 'loinc_code' => null, 'label' => 'Blood culture', 'department' => 'microbiology', 'test_family' => 'culture', 'expected_tat_class' => 'extended', 'decision_class' => 'none', 'specimen_type' => 'blood_culture_set'],
+            ['catalog_key' => 'ap.surgical_pathology', 'local_code' => 'SURG_PATH', 'loinc_code' => null, 'label' => 'Surgical pathology', 'department' => 'pathology', 'test_family' => 'surgical_pathology', 'expected_tat_class' => 'extended', 'decision_class' => 'none', 'specimen_type' => 'tissue'],
+            ['catalog_key' => 'ap.frozen_section', 'local_code' => 'FROZEN_SECTION', 'loinc_code' => null, 'label' => 'Frozen section', 'department' => 'pathology', 'test_family' => 'frozen_section', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'fresh_tissue'],
+            ['catalog_key' => 'bb.type_screen', 'local_code' => 'TYPE_SCREEN', 'loinc_code' => null, 'label' => 'Type and screen', 'department' => 'blood_bank', 'test_family' => 'compatibility', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'whole_blood'],
+            ['catalog_key' => 'bb.crossmatch', 'local_code' => 'CROSSMATCH', 'loinc_code' => null, 'label' => 'Crossmatch', 'department' => 'blood_bank', 'test_family' => 'compatibility', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'whole_blood'],
+        ];
     }
 
     private function seedRadiologyCatalogs(): void
