@@ -13,6 +13,10 @@ return [
         'clock_timezone' => env('ANCILLARY_CLOCK_TIMEZONE', 'UTC'),
         'max_message_bytes' => max(1024, (int) env('ANCILLARY_MAX_MESSAGE_BYTES', 262144)),
         'bulk_max_records' => max(1, (int) env('ANCILLARY_BULK_MAX_RECORDS', 500)),
+        // Warehouse administration cadence tolerance: a nightly BCMA/eMAR
+        // extract stays cutoff-qualified ('batch') within this window and
+        // demotes to 'stale' beyond it (default 31 h = nightly + margin).
+        'warehouse_stale_after_minutes' => max(1, (int) env('ANCILLARY_WAREHOUSE_STALE_AFTER_MINUTES', 1860)),
     ],
     'fhir_resources' => [
         'Encounter' => ['enabled' => true, 'scope' => 'system/Encounter.rs', 'family' => 'patient_flow'],

@@ -56,4 +56,20 @@ class Administration extends Model
     {
         return $query->where($this->qualifyColumn('import_batch_key'), $importBatchKey);
     }
+
+    /**
+     * Current-version selection: corrected warehouse rows APPEND under the
+     * COALESCE row-version unique index, and the newest appended row per
+     * source-scoped administration identity is the current fact.
+     */
+    public function scopeCurrentVersions(Builder $query): Builder
+    {
+        return $query->whereNotExists(function ($sub): void {
+            $sub->selectRaw('1')
+                ->from('prod.rx_administrations as newer_versions')
+                ->whereColumn('newer_versions.source_id', 'prod.rx_administrations.source_id')
+                ->whereColumn('newer_versions.source_administration_key', 'prod.rx_administrations.source_administration_key')
+                ->whereColumn('newer_versions.rx_administration_id', '>', 'prod.rx_administrations.rx_administration_id');
+        });
+    }
 }

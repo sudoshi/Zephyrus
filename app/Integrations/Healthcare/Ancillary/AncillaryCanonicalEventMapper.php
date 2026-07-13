@@ -23,9 +23,11 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             if (! is_array($data)) {
                 throw new InvalidArgumentException('Ancillary normalized order group must be an object.');
             }
-            $events[] = ($data['adc_station_scope'] ?? false) === true
-                ? $this->mapStationScope($payload, $data, $index)
-                : $this->mapOne($payload, $data, $index);
+            $events[] = match (true) {
+                ($data['adc_station_scope'] ?? false) === true => $this->mapStationScope($payload, $data, $index),
+                ($data['rx_administration_scope'] ?? false) === true => $this->mapAdministrationRecord($payload, $data, $index),
+                default => $this->mapOne($payload, $data, $index),
+            };
         }
 
         return $events;
@@ -66,6 +68,49 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             idempotencyKey: "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$transactionType}:{$transactionKey}",
             correlationId: $payload->externalId,
             sequenceKey: $stationKey,
+            metadata: [
+                ...$payload->metadata,
+                'source_message_type' => $payload->messageType,
+            ],
+        );
+    }
+
+    /**
+     * Non-given administration records (held/refused/missed) are order-level
+     * satellite facts without a milestone: they carry the strict order-match
+     * keys plus the versioned warehouse row identity and as-of cutoff, and
+     * project onto prod.rx_administrations only.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function mapAdministrationRecord(NormalizedPayload $payload, array $data, int $index): CanonicalOperationalEvent
+    {
+        if ($this->required($data, 'department') !== 'rx') {
+            throw new InvalidArgumentException('Administration record events belong to the pharmacy department.');
+        }
+        $administrationKey = $this->required($data, 'source_administration_key');
+        $sourceOrderKey = $this->required($data, 'source_order_key');
+        $eventType = PharmacyAdministrationImportNormalizer::RECORD_EVENT_TYPE;
+
+        $safe = Arr::only($data, [
+            'department', 'rx_administration_scope', 'require_existing_order', 'source_order_key',
+            'reconciliation_key', 'placer_order_key', 'source_administration_key', 'source_row_version',
+            'import_batch_key', 'administration_source_class', 'administration_status',
+            'administration_route', 'dosage_form', 'administration_local_code', 'administration_ndc_code',
+            'administration_rxnorm_cui', 'administration_medication_label', 'administered_at',
+            'source_cutoff_at', 'patient_ref', 'encounter_ref', 'demo_owner', 'source_timestamp_valid',
+        ]);
+
+        return new CanonicalOperationalEvent(
+            eventId: (string) Str::uuid(),
+            eventType: $eventType,
+            entityType: 'rx_administration',
+            entityRef: $administrationKey,
+            payload: $safe,
+            occurredAt: CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt),
+            idempotencyKey: "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$administrationKey}",
+            correlationId: $payload->externalId,
+            sequenceKey: $sourceOrderKey,
             metadata: [
                 ...$payload->metadata,
                 'source_message_type' => $payload->messageType,
@@ -118,6 +163,11 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'source_transaction_key', 'transaction_type', 'station_key', 'station_unit',
             'station_label', 'station_type', 'station_is_profiled', 'station_controlled_capable',
             'quantity', 'is_controlled',
+            'require_existing_order', 'source_administration_key', 'source_row_version',
+            'import_batch_key', 'administration_source_class', 'administration_status',
+            'administration_route', 'administered_at', 'source_cutoff_at',
+            'administration_local_code', 'administration_ndc_code', 'administration_rxnorm_cui',
+            'administration_medication_label',
         ]);
 
         return new CanonicalOperationalEvent(

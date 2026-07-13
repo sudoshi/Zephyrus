@@ -37,6 +37,7 @@ class AncillaryProjectionHandler implements ProjectionHandler
         private readonly \App\Services\Lab\LabCriticalValueProjector $labCriticalValueProjector,
         private readonly \App\Services\Pharmacy\PharmacyOrderProjector $pharmacyOrderProjector,
         private readonly \App\Services\Pharmacy\AdcTransactionProjector $adcTransactionProjector,
+        private readonly \App\Services\Pharmacy\RxAdministrationProjector $rxAdministrationProjector,
     ) {}
 
     public function key(): string
@@ -101,29 +102,35 @@ class AncillaryProjectionHandler implements ProjectionHandler
                 }
                 $orderUuid = strtolower($event->payload['order_uuid']);
             }
-            $order = $this->resolveOrder(
-                sourceId: (int) $record->source_id,
-                department: $department,
-                sourceOrderKey: $sourceOrderKey,
-                reconciliationKey: $event->payload['reconciliation_key'] ?? null,
-                creationAttributes: [
-                    'order_uuid' => $orderUuid,
-                    'work_item_type' => $workItemType,
-                    'encounter_id' => $encounterId,
-                    'encounter_ref' => $event->payload['encounter_ref'] ?? null,
-                    'patient_ref' => $event->payload['patient_ref'] ?? null,
-                    'patient_class' => $event->payload['patient_class'] ?? 'unknown',
-                    'priority' => $event->payload['priority'] ?? 'unknown',
-                    'ordered_at' => $orderedAt,
-                    'current_state' => 'ordered',
-                    'unit_id' => $event->payload['unit_id'] ?? null,
-                    'source_cutoff_at' => $record->received_at->greaterThan($event->occurredAt)
-                        ? $record->received_at
-                        : $event->occurredAt,
-                    'demo_owner' => $event->payload['demo_owner'] ?? null,
-                    'metadata' => $this->operationalMetadata($event->payload),
-                ],
-            );
+            // Warehouse administration events may only attach to an EXISTING
+            // order matched by source-scoped keys — never create one, never
+            // guess between candidates (unmatched/ambiguous rows dead-letter
+            // into data-quality reconciliation).
+            $order = ($event->payload['require_existing_order'] ?? false) === true
+                ? $this->rxAdministrationProjector->matchOrder($event, (int) $record->source_id)
+                : $this->resolveOrder(
+                    sourceId: (int) $record->source_id,
+                    department: $department,
+                    sourceOrderKey: $sourceOrderKey,
+                    reconciliationKey: $event->payload['reconciliation_key'] ?? null,
+                    creationAttributes: [
+                        'order_uuid' => $orderUuid,
+                        'work_item_type' => $workItemType,
+                        'encounter_id' => $encounterId,
+                        'encounter_ref' => $event->payload['encounter_ref'] ?? null,
+                        'patient_ref' => $event->payload['patient_ref'] ?? null,
+                        'patient_class' => $event->payload['patient_class'] ?? 'unknown',
+                        'priority' => $event->payload['priority'] ?? 'unknown',
+                        'ordered_at' => $orderedAt,
+                        'current_state' => 'ordered',
+                        'unit_id' => $event->payload['unit_id'] ?? null,
+                        'source_cutoff_at' => $record->received_at->greaterThan($event->occurredAt)
+                            ? $record->received_at
+                            : $event->occurredAt,
+                        'demo_owner' => $event->payload['demo_owner'] ?? null,
+                        'metadata' => $this->operationalMetadata($event->payload),
+                    ],
+                );
 
             $this->applyLateLinks($order, $event, $encounterId);
 
@@ -268,6 +275,12 @@ class AncillaryProjectionHandler implements ProjectionHandler
                     ProvenanceRecord::query()->firstOrCreate(
                         ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_dispenses', 'target_pk' => (string) $dispense->rx_dispense_id],
                         ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'sourceDispenseKey' => $dispense->source_dispense_key]],
+                    );
+                }
+                foreach ($projection['administrations'] as $administration) {
+                    ProvenanceRecord::query()->firstOrCreate(
+                        ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_administrations', 'target_pk' => (string) $administration->rx_administration_id],
+                        ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'sourceAdministrationKey' => $administration->source_administration_key, 'sourceRowVersion' => $administration->source_row_version, 'importBatchKey' => $administration->import_batch_key]],
                     );
                 }
                 if ($adcStation !== null) {
@@ -431,6 +444,12 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'source_transaction_key' => $payload['source_transaction_key'] ?? null,
             'transaction_type' => $payload['transaction_type'] ?? null,
             'station_key' => $payload['station_key'] ?? null,
+            'source_administration_key' => $payload['source_administration_key'] ?? null,
+            'source_row_version' => $payload['source_row_version'] ?? null,
+            'import_batch_key' => $payload['import_batch_key'] ?? null,
+            'administration_status' => $payload['administration_status'] ?? null,
+            'administration_source_class' => $payload['administration_source_class'] ?? null,
+            'source_cutoff_at' => $payload['source_cutoff_at'] ?? null,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 

@@ -4,6 +4,7 @@ namespace App\Services\Pharmacy;
 
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Models\Ancillary\AncillaryOrder;
+use App\Models\Pharmacy\Administration;
 use App\Models\Pharmacy\Dispense;
 use App\Models\Pharmacy\FormularyItem;
 use App\Models\Pharmacy\MedicationOrder;
@@ -21,7 +22,9 @@ use InvalidArgumentException;
  */
 final class PharmacyOrderProjector
 {
-    public const MILESTONES = ['RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_DISPENSED', 'RX_RETURNED', 'RX_WASTED', 'RX_DISCONTINUED'];
+    public const MILESTONES = ['RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_DISPENSED', 'RX_ADMINISTERED', 'RX_RETURNED', 'RX_WASTED', 'RX_DISCONTINUED'];
+
+    public function __construct(private readonly RxAdministrationProjector $administrationProjector) {}
 
     private const UNSPECIFIED_LOCAL_CODE = 'UNSPECIFIED_LOCAL';
 
@@ -35,7 +38,7 @@ final class PharmacyOrderProjector
 
     private const VERIFICATION_STATE_RANK = ['queued' => 10, 'verified' => 20, 'removed' => 20, 'rejected' => 20];
 
-    /** @return array{order: MedicationOrder, verifications: list<Verification>, dispenses: list<Dispense>} */
+    /** @return array{order: MedicationOrder, verifications: list<Verification>, dispenses: list<Dispense>, administrations: list<Administration>} */
     public function project(AncillaryOrder $order, CanonicalOperationalEvent $event, int $sourceId, ?int $adcStationId = null): array
     {
         if ($order->department !== 'rx') {
@@ -60,6 +63,13 @@ final class PharmacyOrderProjector
         if ($milestone === 'RX_DISPENSED' && isset($event->payload['source_dispense_key'])) {
             $dispenses[] = $this->upsertDispense($order, $medication, $event, $sourceId, $adcStationId);
         }
+        $administrations = [];
+        if ($milestone === 'RX_ADMINISTERED' && isset($event->payload['source_administration_key'])) {
+            if (! $medication->exists) {
+                $medication->save();
+            }
+            $administrations[] = $this->administrationProjector->project($order, $medication, $event, $sourceId);
+        }
 
         $this->advanceStatus($medication, $event, $milestone);
         $medication->save();
@@ -68,7 +78,23 @@ final class PharmacyOrderProjector
             'order' => $medication->refresh(),
             'verifications' => $verifications,
             'dispenses' => $dispenses,
+            'administrations' => $administrations,
         ];
+    }
+
+    /**
+     * Resolves (or defensively creates) the prod.rx_orders satellite row for
+     * an already-matched ancillary order so administration-level facts can
+     * attach without re-running the milestone path.
+     */
+    public function medicationOrderFor(AncillaryOrder $order, CanonicalOperationalEvent $event, int $sourceId): MedicationOrder
+    {
+        $medication = $this->resolveMedicationOrder($order, $event, $sourceId);
+        if (! $medication->exists || $medication->isDirty()) {
+            $medication->save();
+        }
+
+        return $medication;
     }
 
     private function resolveMedicationOrder(AncillaryOrder $order, CanonicalOperationalEvent $event, int $sourceId): MedicationOrder
@@ -394,6 +420,9 @@ final class PharmacyOrderProjector
             'RX_QUEUE_IN' => 'queued',
             'RX_VERIFIED' => 'verified',
             'RX_DISPENSED' => 'dispensed',
+            // Only a 'given' administration advances the order; held/refused/
+            // missed rows are satellite facts that never move the status.
+            'RX_ADMINISTERED' => ($payload['administration_status'] ?? 'given') === 'given' ? 'administered' : null,
             // Returned/wasted are reverse-logistics facts on the satellite
             // ledger; they never advance or regress the order status.
             'RX_RETURNED', 'RX_WASTED' => null,

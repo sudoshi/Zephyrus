@@ -64,6 +64,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Integrations\Healthcare\Services\RtdcProjectionHandler::class),
                 $app->make(\App\Integrations\Healthcare\Services\AncillaryProjectionHandler::class),
                 $app->make(\App\Integrations\Healthcare\Services\AdcStationEventProjectionHandler::class),
+                $app->make(\App\Integrations\Healthcare\Services\RxAdministrationRecordProjectionHandler::class),
             ]),
         );
         $this->app->alias(
@@ -86,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyOrderFhirNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyVerificationQueueNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyAdcTransactionNormalizer::class),
+                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyAdministrationImportNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\AncillaryHl7V2MessageNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\AncillaryStructuredMessageNormalizer::class),
                 $app->make(\App\Integrations\Healthcare\Ancillary\UnsupportedAncillaryMessageNormalizer::class),

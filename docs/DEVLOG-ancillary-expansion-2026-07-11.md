@@ -1604,3 +1604,28 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-3 completes 42 of 60 implementation tasks. X-4 is next and will ingest warehouse/BCMA administration batches with as-of freshness.
+
+## 2026-07-13 — X-4 Implement Warehouse/BCMA Administration Batch Ingestion and Freshness
+
+### Outcome
+
+Closed the medication loop's last mile on the honest assumption from §2: administration timestamps may be nightly. `PharmacyAdministrationImportNormalizer` defines envelope version 1 of the vendor-neutral PharmacyAdministrationImport batch contract (message family `RX_ADMIN_BATCH`), documented field-by-field: a required extract identity and offset-explicit warehouse `source_cutoff_at` header, and per-row identity, correction row version, a REQUIRED order-linkage object, the administration timestamp, optional status/coding/route context, and pseudonymized-only patient references. Epic Clarity MAR, Cerner CareAdmin, and generic eMAR layouts stay at the adapter edge. The contract structurally defines no administering-user, nurse, witness, or badge identity and no clinical dose value — the canonical payload is built exclusively from documented keys, so vendor attribution that leaks past the edge never crosses the boundary.
+
+`ancillary:import-administrations` + `PharmacyAdministrationImportService` ingest each batch THROUGH the governed pipeline: every row becomes one raw inbound envelope under an extract-scoped idempotency key, one canonical event, and one projected `prod.rx_administrations` row with provenance — never a direct insert. Exact reimports short-circuit as duplicates; a re-sent identity with a changed payload inside one extract fails closed as a key conflict. Fail-closed validation dead-letters missing cutoff, missing extract/row/order identity, missing or malformed timestamps (explicit offset required), administered-after-cutoff, and invalid status/source-class rows with precise reason codes, and the CLI exits non-zero with per-reason tallies whenever anything entered reconciliation.
+
+The attachment rule is the defensible piece. `RxAdministrationProjector::matchOrder` resolves source-scoped keys (filler/reconciliation, placer fallback) against existing `rx` spine orders and requires exactly one candidate; the shared projection handler honors a `require_existing_order` contract flag so administration evidence can never create a spine order. Zero candidates dead-letter as `unmatched_administration_order` and 2+ as `ambiguous_administration_order` — X-1's schema requires an order link, so unmatched rows persist as raw plus open dead-letter reconciliation evidence, never as mislinked facts. Only a `given` administration asserts `RX_ADMINISTERED` and advances the order along the governed rank; held/refused/missed rows travel a dedicated `ancillary.pharmacy.administration_record` event through the new `RxAdministrationRecordProjectionHandler` onto the same matched order without any milestone. Corrected warehouse rows append under X-1's COALESCE row-version unique index exactly like lab_results — prior facts are never mutated, `correction_of` lineage ties versions together, `currentVersion`/`currentVersions` re-select the correction, and the moved clock surfaces through the standard newest-received selection plus the §7.5.6 disagreement flag.
+
+Freshness is now a seam, not a promise: `PharmacyAdministrationFreshnessService` answers "latest administration cutoff per source" and classifies per the existing taxonomy — warehouse classes are `batch` (cutoff-qualified, structurally never `fresh`) within the configurable nightly cadence tolerance and `stale` beyond it, only the FUTURE real-time classes (`bcma_realtime`, `ras`, accepted by the contract without becoming the baseline) may classify `fresh`, no evidence is `unknown`, and the overall envelope returns the most severe classification so a fresh stream can never mask the warehouse-qualified tail. X-6/X-11/X-12 consume this seam to label as-of freshness and refuse real-time claims.
+
+### Verification
+
+```text
+Laravel Pint over 13 dirty X-4 files: PASS
+PHP syntax checks over all X-4 normalizer/mapper/handler/projector/services/command/tests: PASS
+Focused PharmacyAdministrationImportTest: 8 tests, 129 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 239 tests, 3,719 assertions, PASS
+Pharmacy filter regression (--filter=Pharmacy): 31 tests, 400 assertions, PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-4 completes 43 of 60 implementation tasks. X-5 is next and will generate coherent Pharmacy and ADC demo data, including administration through a warehouse cutoff separate from current dispense events.

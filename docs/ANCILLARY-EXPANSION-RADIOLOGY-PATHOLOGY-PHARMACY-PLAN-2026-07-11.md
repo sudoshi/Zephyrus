@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-3 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-4 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 42 of 60 tasks complete; 18 remain |
+| Progress | 43 of 60 tasks complete; 17 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1960,25 +1960,32 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Duplicate vendor transaction identity is rejected/idempotent under replay: exact duplicates short-circuit and identity replays with changed payloads retain one row with conflict capture; focused X-3 verification passes 8 tests and 105 assertions, the complete ancillary regression passes 231 tests and 3,590 assertions, and the Pharmacy filter passes 23 tests and 271 assertions.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-3.
 
-#### [ ] X-4 — Implement warehouse/BCMA administration batch ingestion and freshness
+#### [x] X-4 — Implement warehouse/BCMA administration batch ingestion and freshness
 
 **Depends on:** X-1, P0-6
 **Primary files:** PharmacyAdministrationImport contract/command; importer; fixtures
 
 **Work:**
 
-- Define a vendor-neutral batch contract modeled on permitted warehouse fields, with source cutoff, extract ID, row identity, order linkage, and administration timestamp.
-- Import idempotently into raw/canonical/projection/provenance rather than direct untracked inserts.
-- Map administration to RX_ADMINISTERED only when order linkage is defensible; unmatched rows enter data-quality reconciliation.
-- Propagate as-of cutoff to every administration-dependent service and metric.
-- Support RAS as a future real-time source without making it the baseline assumption.
+- [x] Define envelope version 1 of the vendor-neutral PharmacyAdministrationImport batch contract (message family `RX_ADMIN_BATCH`, documented field-by-field in `PharmacyAdministrationImportNormalizer`): required envelope_version/extract_id/source_cutoff_at batch header plus a per-row administration object carrying the required row identity (`administration_id`), an optional correction `row_version`, a REQUIRED order-linkage object (filler `source_order_key` + optional `placer_order_key`), the required offset-explicit `administered_at`, optional status/medication-coding-candidates/route/dosage-form context, and pseudonymized-only patient/encounter references; vendor extract layouts (Epic Clarity MAR, Cerner CareAdmin, generic eMAR drops) are explicitly confined to the adapter edge.
+- [x] Structurally exclude prohibited content: envelope v1 defines no administering-user, nurse, witness, badge, or employee identity field and no clinical dose value (amount/strength/rate) beyond route/form context; the canonical payload is built exclusively from the documented keys so vendor attribution or dose columns that leak past the adapter edge never cross the boundary, proven by leak-injection and key-list regex tests.
+- [x] Ingest each batch idempotently THROUGH raw/canonical/projection/provenance via `ancillary:import-administrations {path} --source= [--dry-run]` + `PharmacyAdministrationImportService`: every batch row becomes one raw inbound envelope (extract-scoped `ancillary:{source}:rxadmin:{extract}:{row}:{version}` idempotency key), one canonical event, and one projected `prod.rx_administrations` row with a per-row provenance record — never a direct untracked insert; exact batch reimports short-circuit as duplicates and a re-sent identity with a changed payload inside one extract fails closed as `idempotency_key_conflict`.
+- [x] Map a `given` administration to `RX_ADMINISTERED` ONLY when order linkage is defensible: `RxAdministrationProjector::matchOrder` resolves the source-scoped keys (source_order_key/reconciliation_key, placer fallback) against existing `rx` spine orders and requires EXACTLY ONE candidate — the shared projection handler honors a `require_existing_order` contract flag so administration evidence can never firstOrCreate a spine order; zero candidates dead-letter to the open data-quality reconciliation ledger as `unmatched_administration_order` and 2+ candidates as `ambiguous_administration_order` (rx_administrations requires an order link per X-1, so unmatched rows persist as raw + dead-letter evidence, never as mislinked facts).
+- [x] Keep non-given statuses (held/refused/missed) as administration-level satellite facts: they travel a dedicated `ancillary.pharmacy.administration_record` canonical event through the new `RxAdministrationRecordProjectionHandler` onto the same strictly matched order with provenance but assert no milestone, and `RX_ADMINISTERED` advances `rx_orders.order_status` to `administered` only for `given` rows along the governed rank.
+- [x] Version-control corrected warehouse rows on the X-1 COALESCE row-version unique index exactly like lab_results: a same-identity/higher-version row APPENDS a new `rx_administrations` row carrying `correction_of` lineage while the prior fact is never mutated; projection re-selects the correction (`RxAdministrationProjector::currentVersion` + the `Administration::currentVersions` scope), the appended milestone re-assertion moves the selected clock to the corrected time through the standard newest-received selection, and the disagreement surfaces through the shared §7.5.6 data-quality flag instead of a silent average; a replayed identical identity+version with a moved timestamp captures `replay_conflict` on the single retained row.
+- [x] Propagate the as-of cutoff: every row stamps `source_cutoff_at`/`import_batch_key` (enforced NOT NULL and `administered_at <= source_cutoff_at` by X-1), and the new `PharmacyAdministrationFreshnessService` seam answers "latest administration cutoff per source" (`latestCutoffPerSource`) plus per-source and overall `FreshnessEnvelope` classification for X-6/X-11/X-12 to label freshness on every administration-dependent response.
+- [x] Enforce the freshness taxonomy against real-time claims: warehouse classes classify `batch` (cutoff-qualified, structurally never `fresh`) inside the configurable nightly cadence tolerance (`integrations.ancillary.warehouse_stale_after_minutes`, default 31 h) and demote to `stale` beyond it; no evidence classifies `unknown`; the overall envelope returns the most severe classification so a fresh stream can never mask the warehouse-qualified administration tail.
+- [x] Support RAS as a FUTURE source class without making it the baseline: the contract accepts `source_class` ∈ bcma_warehouse (default) / emar / other / bcma_realtime / ras against the X-1 check constraint, and only the real-time classes may classify `fresh` (within `integrations.fresh_after_minutes`) while still demoting to `stale` outside the window.
+- [x] Fail closed with precise dead-letter reason codes and zero silent coercion: unsupported_envelope_version, missing_extract_identity, missing_source_cutoff, missing_administration_identity, missing_order_identity, missing_administered_at, administration_after_cutoff, malformed_timestamp (missing offset or unparseable), invalid_administration_status, invalid_source_class, plus the projection-stage unmatched/ambiguous codes; the CLI reports per-reason tallies and exits non-zero whenever rows entered reconciliation, and a golden batch fixture (`tests/Fixtures/pharmacy/administration-import-v1.json`) exercises the file path.
 
 **Acceptance:**
 
-- Reimport is idempotent and a corrected warehouse row appends/version-controls evidence.
-- Unmatched administration does not attach to the wrong order.
-- Every admin-derived response displays as-of freshness.
-- Stale cutoff prevents real-time/compliant claims.
+- [x] Reimport of the same batch is idempotent end-to-end (duplicate short-circuit, one satellite row, one milestone) and a corrected warehouse row appends version-controlled evidence with both versions retained, `correction_of` lineage, and projection selecting the correction.
+- [x] Unmatched administration never attaches to the wrong order: zero candidates and ambiguous 2+ candidates both stay in the open dead-letter reconciliation queue with no fabricated spine order, no satellite row, and no milestone, while an exactly-one match attaches to precisely that order.
+- [x] Every admin-derived seam displays as-of freshness: the freshness seam is tested directly for per-source latest cutoff, batch/stale/fresh/unknown classification, lag minutes, cutoff timestamps, and cutoff-qualified explanations.
+- [x] A stale cutoff prevents real-time/compliant claims: warehouse evidence is never `fresh` even minutes after import, demotes to `stale` beyond the cadence tolerance with an explanation that compliance cannot be claimed, and `unknown` is not compliant.
+- [x] Focused X-4 verification passes 8 tests and 129 assertions; the complete ancillary regression passes 239 tests and 3,719 assertions and the Pharmacy filter passes 31 tests and 400 assertions.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-4.
 
 #### [ ] X-5 — Generate coherent Pharmacy and ADC demo data
 
