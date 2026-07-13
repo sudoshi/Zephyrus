@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-9 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-10 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 34 of 60 tasks complete; 26 remain |
+| Progress | 35 of 60 tasks complete; 25 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1621,23 +1621,40 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] TypeScript, production build, UI canon, mobile dark and desktop light AP smoke, desktop light Perioperative smoke, semantic main/headings, visible benchmark evidence, zero horizontal overflow, and zero console/page errors pass.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, diagnosis/sign-out action, writeback, or external system is activated by L-9.
 
-#### [ ] L-10 — Add Lab critical-value and health metrics to Cockpit
+#### [x] L-10 — Add Lab critical-value and health metrics to Cockpit
 
 **Depends on:** L-5, L-7
 **Primary files:** FlowMetrics.php; KPI seeder; DrillBuilder ancillary table; tests
 
 **Work:**
 
-- Emit current STAT compliance, oldest decision-pending result, and open/at-risk critical callback state.
-- Add Lab row/metrics to the existing Flow-domain ancillary health drill.
-- Use server threshold definitions and freshness behavior.
-- Keep individual critical results out of the house wall.
+- [x] Add aggregate-only `cockpitHealth()` seams to `LabFlowBoardService` and `LabDecisionPendingService` so Cockpit reuses each workspace's current cohort, effective SLA compliance, validated downstream gates, callback state, cutoff, and freshness rather than recreating Laboratory rules.
+- [x] Derive Decision-Pending health from every validated destination aggregate, not the display-limited ranked queue, and publish only pending count, oldest age, and decision-class rollups.
+- [x] Derive Flow health from the default current Laboratory cohort and publish STAT numerator/denominator/compliance, open critical callbacks, callback-state counts, oldest open age, source cutoff, and transport/middleware coverage without returning an order, specimen, result, patient, or source-event identity.
+- [x] Compose both workspace contracts in one `LabCockpitHealthService` and emit three governed facts: current STAT compliance percentage, oldest decision-pending age, and open critical callback count with a separately retained at-risk count.
+- [x] Treat a genuinely empty Decision-Pending cohort as a verified zero only when the current Flow source establishes live Laboratory evidence; retain `null` and degraded state when potential gates disappear because their ED, discharge, or OR destinations cannot be validated.
+- [x] Preserve source error, missing, stale, degraded, and fresh semantics across the composed contract. Keep partial transport/middleware coverage separate from source freshness so it cannot turn valid current compliance or callback evidence into a false stale state.
+- [x] Inject the composed Laboratory contract into `FlowMetrics` and emit the pre-governed `flow.ancillary_lab_stat_compliance`, `flow.ancillary_lab_oldest_decision_pending`, and `flow.ancillary_lab_critical_callbacks` definitions with live provenance, cutoff, source label, aggregate context, and `/lab` drill ownership.
+- [x] Let `StatusEngine` evaluate all three current values exactly once from the effective server definitions; do not duplicate warning or critical thresholds in PHP, the drill builder, or the browser.
+- [x] Neutralize logical status for every last-known stale, degraded, missing, or error-qualified value so stale evidence remains visible as unknown/degraded and can never appear successful, warning, critical, or ticker-worthy.
+- [x] Activate the already reserved Laboratory row in the Flow-domain `Ancillary operational health` drill from cached server tile displays, while retaining the future Pharmacy reservation and avoiding a parallel client-side calculation.
+- [x] Keep the house wall aggregate-only and alert-template gated. Do not expose individual critical results, specimen/accession identity, patient context, result content, callback source keys, or clinical action controls, and do not add the Laboratory tiles to the alert ticker.
+- [x] Add feature coverage for exact Flow/Decision-Pending reconciliation, definition/status parity, verified empty versus unresolved destinations, aggregate history persistence, alert suppression, drill row parity, reserved Pharmacy behavior, privacy, and stale last-known neutralization.
 
 **Acceptance:**
 
-- Snapshot, history, status parity, and drill tests pass.
-- Flow Cockpit values reconcile to Lab Flow/Decision-Pending services.
-- Stale data is unknown, not successful.
+- [x] The deterministic snapshot's STAT percentage and numerator/denominator equal `LabFlowBoardService`; oldest pending age and count equal all `LabDecisionPendingService` destination aggregates; callback count and state breakdown equal the Flow Board critical-loop aggregate.
+- [x] The seeded definitions and `StatusEngine` classify the demo as critical STAT compliance, critical oldest decision-pending age, and warning open callbacks with no hard-coded metric threshold in the consumer.
+- [x] Closing every downstream destination produces zero validated gates with degraded source state and a `null` oldest-pending value rather than a fabricated successful zero.
+- [x] `SnapshotBuilder::refresh()` writes one definition-backed history row for each Laboratory metric and emits no matching alert because all three definitions deliberately have no alert template.
+- [x] The Flow drill contains Radiology, Laboratory, and reserved Pharmacy rows; every Laboratory measure is byte-equivalent to its cached tile display, carries a real cutoff and fresh source tag, and rolls up to the expected critical row status.
+- [x] Stale Laboratory evidence retains all three last-known values, changes their data state to degraded and logical status to normal/unknown, produces no alert, and renders a stale/neutral drill row rather than successful health.
+- [x] Serialized tile metadata and the drill row contain aggregate class/state counts only and contain no patient, result, specimen, accession, clinical value, or source critical-key identity.
+- [x] Focused Laboratory Cockpit verification passes 4 tests and 65 assertions; combined L-5/L-7/L-10 service reconciliation passes 12 tests and 205 assertions.
+- [x] The complete Cockpit regression passes 112 tests and 796 assertions, including existing Radiology ancillary-health parity.
+- [x] The complete ancillary feature regression passes 161 tests and 2,207 assertions after a clean, non-overlapping PostgreSQL test-database run.
+- [x] Laravel Pint, TypeScript, production build, UI canon, desktop light and mobile dark Flow drill smoke, semantic table rendering, zero horizontal overflow, and zero console/page errors pass.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, callback action, writeback, or external system is activated by L-10.
 
 #### [ ] L-11 — Add the Lab axis to discharge readiness and ED chips
 

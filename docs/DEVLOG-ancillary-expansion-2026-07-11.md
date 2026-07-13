@@ -1310,3 +1310,43 @@ One-case versus fifty-case query-count parity, AP-LIS/backfill coverage lifecycl
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, diagnosis/sign-out action, writeback, or external system was accessed or activated. L-10 is the next dependency-ordered task and can add Laboratory critical-value and health metrics to the existing Cockpit Flow domain.
+
+## 2026-07-12 — L-10 Laboratory Cockpit Health Metrics
+
+### Outcome
+
+Added Laboratory operational health to the existing Flow Cockpit without creating a second Laboratory cohort or exposing item-level clinical data. `LabFlowBoardService` and `LabDecisionPendingService` now provide aggregate-only Cockpit seams, and `LabCockpitHealthService` composes those workspace-owned facts into current STAT compliance, oldest decision-pending age, and open/at-risk critical callback state.
+
+The Flow Board seam uses its default current Laboratory cohort, existing SLA summary, critical callback state machine, source cutoff, and freshness calculation. It returns the STAT numerator, denominator, and percentage plus open callback count, oldest open age, state rollups, and coarse transport/middleware coverage. The Decision-Pending seam intentionally computes across every validated destination aggregate rather than the one-row display limit used to bound its internal queue build. It returns only gate count, oldest age, and decision-class rollups. Neither seam returns an order, specimen, accession, result, source event, or patient identity.
+
+The composed health service preserves an important empty-state distinction. A Decision-Pending response with no rows becomes a verified zero only when current Laboratory Flow evidence proves that the operational feed is live. If apparent emptiness is caused by unresolved, completed, inactive, or deleted ED/discharge/OR destination evidence, the service retains degraded state and a null value. The Cockpit therefore cannot turn a join failure into successful readiness.
+
+`FlowMetrics` now emits the three already-governed definitions: `flow.ancillary_lab_stat_compliance`, `flow.ancillary_lab_oldest_decision_pending`, and `flow.ancillary_lab_critical_callbacks`. Current values are evaluated by the shared `StatusEngine` from effective server definitions. The deterministic demo resolves to critical STAT compliance, critical oldest pending age, and warning callback state. Thresholds are not reproduced in the metric provider, drill builder, or browser.
+
+Every tile carries live provenance, source label and cutoff, Laboratory workspace ownership, and only the aggregate context appropriate to that metric. Partial optional-feed coverage is recorded separately from source freshness so it does not falsely stale valid compliance or callback evidence. Conversely, stale, degraded, missing, or error-qualified last-known values are explicitly neutralized: their values can remain visible for operational context, but their logical status is normal/unknown and they cannot become a successful, warning, critical, or alert-ticker claim.
+
+The pre-existing reserved Laboratory row in the Flow drill's `Ancillary operational health` table now activates automatically from the cached server tiles. Its three measures are the exact tile display strings, its cutoff and source tag come from the same metadata, and its row status rolls up from those governed tile statuses. The Pharmacy reservation remains visibly unavailable for the later tranche. No client calculation or parallel workflow list was added.
+
+The three Laboratory definitions intentionally have no alert template, so refresh writes definition-backed metric history without putting individual critical-result state on the house ticker. Feature assertions inspect serialized tile metadata and the drill contract for forbidden patient, result, specimen, result-content, and source-critical identities. Only decision-class and callback-state aggregates cross the Cockpit boundary.
+
+### Verification
+
+```text
+Focused Laboratory Cockpit metrics: 4 tests, 65 assertions, PASS
+Combined Lab Flow + Decision-Pending + Cockpit reconciliation: 12 tests, 205 assertions, PASS
+Complete Cockpit regression: 112 tests, 796 assertions, PASS
+Existing Radiology Cockpit regression after FlowMetrics composition change: 4 tests, 55 assertions, PASS
+Complete ancillary feature regression: 161 tests, 2,207 assertions, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-10 PHP implementation/tests: PASS
+Desktop light Flow drill smoke, 1440x1000: HTTP 200, semantic table, no overflow, no console/page errors
+Mobile dark Flow drill smoke, 390x844: HTTP 200, semantic table, no overflow, no console/page errors
+Verified empty, unresolved destination, definition parity, history, no-alert, privacy, cached drill parity, and stale neutralization: PASS
+git diff --check: PASS
+```
+
+The first broad ancillary attempt overlapped another PHPUnit process on the shared `zephyrus_test` PostgreSQL database and failed only with migration/table races. It was discarded as invalid infrastructure evidence; the recorded 161-test regression is the subsequent clean, non-overlapping run.
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, callback action, writeback, or external system was accessed or activated. L-11 is the next dependency-ordered task and can add the Laboratory axis to discharge readiness and authorized ED chips from the validated Decision-Pending destination aggregates.

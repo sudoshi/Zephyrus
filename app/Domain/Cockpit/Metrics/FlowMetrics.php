@@ -10,6 +10,7 @@ use App\Services\Cockpit\MaterializedMetricsReader;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
+use App\Services\Lab\LabCockpitHealthService;
 use App\Services\Radiology\RadiologyCockpitHealthService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
@@ -34,6 +35,7 @@ class FlowMetrics extends BaseMetrics
         private readonly HospitalManifest $manifest,
         private readonly MaterializedMetricsReader $mv,
         private readonly RadiologyCockpitHealthService $radiology,
+        private readonly LabCockpitHealthService $laboratory,
     ) {
         parent::__construct($engine);
     }
@@ -61,6 +63,7 @@ class FlowMetrics extends BaseMetrics
         // arena.performance_signals. Null (tile absent) whenever the Arena is off.
         $worstHandoff = $this->mv->value('flow.worst_handoff_wait');
         $radiology = $this->radiologyHealth();
+        $laboratory = $this->laboratoryHealth();
 
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
@@ -111,6 +114,24 @@ class FlowMetrics extends BaseMetrics
                 $radiology['scannersDown'],
                 $radiology['scannersDown']['scannerTotal'].' active scanners',
             ),
+            $laboratory === null ? null : $this->laboratoryMetric(
+                $ctx,
+                'flow.ancillary_lab_stat_compliance',
+                $laboratory['statCompliance'],
+                (int) $laboratory['statCompliance']['statCompliant'].' of '.(int) $laboratory['statCompliance']['statOrders'].' STAT within governed SLA',
+            ),
+            $laboratory === null ? null : $this->laboratoryMetric(
+                $ctx,
+                'flow.ancillary_lab_oldest_decision_pending',
+                $laboratory['oldestDecisionPending'],
+                $this->decisionPendingContext($laboratory['oldestDecisionPending']),
+            ),
+            $laboratory === null ? null : $this->laboratoryMetric(
+                $ctx,
+                'flow.ancillary_lab_critical_callbacks',
+                $laboratory['criticalCallbacks'],
+                $this->criticalCallbackContext($laboratory['criticalCallbacks']),
+            ),
         ]);
     }
 
@@ -119,6 +140,16 @@ class FlowMetrics extends BaseMetrics
     {
         try {
             return $this->radiology->build();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @return array<string, mixed>|null */
+    private function laboratoryHealth(): ?array
+    {
+        try {
+            return $this->laboratory->build();
         } catch (\Throwable) {
             return null;
         }
@@ -167,6 +198,70 @@ class FlowMetrics extends BaseMetrics
             'flow.ancillary_rad_scanners_down' => $count.' '.($count === 1 ? 'scanner' : 'scanners'),
             default => null,
         };
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function laboratoryMetric(SnapshotContext $ctx, string $key, array $fact, string $context): ?MetricValue
+    {
+        $value = $fact['value'] ?? null;
+        $sourceState = (string) ($fact['sourceState'] ?? 'missing');
+        $sourceCutoffAt = $fact['sourceCutoffAt'] ?? null;
+        if (! is_numeric($value) || ($sourceCutoffAt === null && in_array($sourceState, ['missing', 'error'], true))) {
+            return null;
+        }
+
+        $current = $sourceState === 'fresh';
+        $metadata = [
+            'provenance' => 'live',
+            'dataState' => $current ? 'current' : ($sourceState === 'missing' ? 'unknown' : 'degraded'),
+            'sourceState' => $sourceState,
+            'sourceCutoffAt' => $sourceCutoffAt,
+            'sourceLabel' => (string) ($fact['sourceLabel'] ?? 'Laboratory operational feeds'),
+            'workspaceHref' => '/lab',
+        ];
+        foreach (['statOrders', 'statCompliant', 'pendingCount', 'byDecisionClass', 'atRiskCount', 'oldestOpenAgeMinutes', 'byState', 'coverageState'] as $aggregate) {
+            if (array_key_exists($aggregate, $fact)) {
+                $metadata[$aggregate] = $fact[$aggregate];
+            }
+        }
+
+        return $this->fromKey($ctx, $key, (float) $value, [
+            'display' => $this->laboratoryDisplay($key, (float) $value),
+            'sub' => $current ? $context : 'Last known · '.str_replace('_', ' ', $sourceState).' · '.$context,
+            'updatedAt' => $sourceCutoffAt ?? $ctx->nowIso,
+            'metadata' => $metadata,
+            ...($current ? [] : ['status' => CockpitStatus::NORMAL]),
+        ]);
+    }
+
+    private function laboratoryDisplay(string $key, float $value): ?string
+    {
+        if ($key !== 'flow.ancillary_lab_critical_callbacks') {
+            return null;
+        }
+        $count = (int) $value;
+
+        return $count.' '.($count === 1 ? 'callback' : 'callbacks');
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function decisionPendingContext(array $fact): string
+    {
+        $classes = collect($fact['byDecisionClass'] ?? [])->map(
+            fn (array $row): string => str_replace('_', ' ', (string) $row['decisionClass']).' '.(int) $row['count'],
+        )->implode(' · ');
+        $context = (int) ($fact['pendingCount'] ?? 0).' decision gates';
+
+        return $classes === '' ? $context : $context.' · '.$classes;
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function criticalCallbackContext(array $fact): string
+    {
+        $context = (int) ($fact['atRiskCount'] ?? 0).' at risk';
+        $oldest = $fact['oldestOpenAgeMinutes'] ?? null;
+
+        return $oldest === null ? $context : $context.' · oldest '.(int) $oldest.' min';
     }
 
     /** @param array<string, mixed> $fact */

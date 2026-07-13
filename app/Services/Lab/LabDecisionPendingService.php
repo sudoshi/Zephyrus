@@ -171,6 +171,41 @@ final class LabDecisionPendingService
         ];
     }
 
+    /**
+     * Aggregate-only Cockpit seam derived from every validated destination
+     * aggregate, not the display-limited ranked rows. Patient/result detail is
+     * deliberately discarded before returning.
+     *
+     * @return array<string, mixed>
+     */
+    public function cockpitHealth(): array
+    {
+        $queue = $this->build(['limit' => 1], false, false);
+        $destinations = collect($queue['destinationAggregates']);
+        $pendingCount = (int) $destinations->sum('pendingCount');
+
+        return [
+            'sourceState' => match ($queue['state']) {
+                'source_error' => 'error',
+                'stale' => 'stale',
+                'degraded' => 'degraded',
+                'no_data' => 'missing',
+                default => 'fresh',
+            },
+            'sourceCutoffAt' => $queue['freshness']['sourceCutoffAt'],
+            'sourceLabel' => $queue['freshness']['sourceLabel'],
+            'pendingCount' => $pendingCount,
+            'oldestAgeMinutes' => $pendingCount === 0 ? null : (int) $destinations->max('oldestAgeMinutes'),
+            'byDecisionClass' => $destinations->groupBy('decisionClass')->map(
+                fn (Collection $rows, string $decisionClass): array => [
+                    'decisionClass' => $decisionClass,
+                    'count' => (int) $rows->sum('pendingCount'),
+                    'oldestAgeMinutes' => (int) $rows->max('oldestAgeMinutes'),
+                ],
+            )->sortKeys()->values()->all(),
+        ];
+    }
+
     /** @param array<string, mixed> $input @return array<string, mixed> */
     private function filters(array $input): array
     {

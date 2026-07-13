@@ -52,6 +52,45 @@ final class LabFlowBoardService
         ];
     }
 
+    /**
+     * Aggregate-only health contract for Cockpit consumers. The Laboratory
+     * workspace remains the owner of cohort selection, compliance, callback
+     * state, source cutoff, and freshness; no item detail crosses this seam.
+     *
+     * @return array<string, mixed>
+     */
+    public function cockpitHealth(): array
+    {
+        $filters = $this->filters([]);
+        $orderIds = $this->baseQuery($filters)->pluck('o.ancillary_order_id')->all();
+        $sourceCutoff = $this->baseQuery($filters)->max('o.source_cutoff_at');
+        $sourceCutoffAt = $sourceCutoff === null ? null : CarbonImmutable::parse($sourceCutoff);
+        $freshness = $this->freshness($sourceCutoffAt);
+        $summary = $this->summary($orderIds);
+        $callbacks = $this->criticalCallbacks($orderIds);
+        $registered = strtolower((string) (DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->value('status') ?? ''));
+
+        return [
+            'sourceState' => match (true) {
+                in_array($registered, ['error', 'failed', 'unavailable'], true) => 'error',
+                $summary['currentOrders'] === 0 => 'missing',
+                $freshness['status'] === 'stale' => 'stale',
+                default => 'fresh',
+            },
+            'coverageState' => $summary['degradedOrders'] > 0 ? 'degraded' : 'complete',
+            'sourceCutoffAt' => $sourceCutoffAt?->toAtomString(),
+            'sourceLabel' => $freshness['sourceLabel'],
+            'statCompliancePercent' => $summary['statCompliancePercent'],
+            'statOrders' => $summary['statOrders'],
+            'statCompliant' => $summary['statCompliant'],
+            'criticalCallbacks' => [
+                'open' => $callbacks['open'],
+                'oldestOpenAgeMinutes' => $callbacks['oldestOpenAgeMinutes'],
+                'byState' => $callbacks['byState'],
+            ],
+        ];
+    }
+
     /** @param array<string, mixed> $input @return array<string, mixed> */
     private function filters(array $input): array
     {
