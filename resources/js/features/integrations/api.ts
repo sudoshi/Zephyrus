@@ -532,6 +532,20 @@ const sourceObservabilitySnapshotSchema = z.object({
   openBreaches: z.array(z.object({
     breachId: z.number(), breachUuid: z.string(), metricKey: z.string(), status: z.string(),
     notificationSuppressed: z.boolean(), openedAtIso: z.string(), lastObservedAtIso: z.string(),
+    acknowledged: z.boolean().optional(),
+    escalated: z.boolean().optional(),
+    incidentLinked: z.boolean().optional(),
+    reviewed: z.boolean().optional(),
+    events: z.array(z.object({
+      eventType: z.string(),
+      statusAfter: z.string(),
+      reasonCode: z.string(),
+      notificationSuppressed: z.boolean(),
+      actorUserId: z.number().nullable(),
+      incidentLinked: z.boolean(),
+      occurredAtIso: z.string(),
+      metadata: z.record(z.string(), z.unknown()),
+    })).optional(),
   })),
   contract: z.object({
     appendOnly: z.literal(true), externalCallsAllowed: z.literal(false), missingEvidenceStatus: z.literal('unknown'),
@@ -718,6 +732,37 @@ export async function collectSourceObservation(sourceId: number): Promise<unknow
     observationId: z.number(), observationUuid: z.string(), sourceId: z.number(), status: z.string(),
     maintenanceActive: z.boolean(), observedAtIso: z.string(), evidenceSha256: z.string(),
   }).passthrough(), response.data);
+}
+
+const breachActionResultSchema = z.object({
+  breachUuid: z.string(), sourceId: z.number(), metricKey: z.string(),
+  eventType: z.string(), statusAfter: z.string(), reasonCode: z.string(), occurredAtIso: z.string(),
+}).passthrough();
+
+export interface BreachReviewInput {
+  root_cause_code: string;
+  corrective_action_code: string;
+  recurrence_risk: 'low' | 'medium' | 'high';
+}
+
+export async function acknowledgeSloBreach(sourceId: number, breachUuid: string, reasonCode: string): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/slo-breaches/${breachUuid}/acknowledge`, { reason_code: reasonCode });
+  return parseEnvelope(breachActionResultSchema, response.data);
+}
+
+export async function escalateSloBreach(sourceId: number, breachUuid: string, reasonCode: string): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/slo-breaches/${breachUuid}/escalate`, { reason_code: reasonCode });
+  return parseEnvelope(breachActionResultSchema, response.data);
+}
+
+export async function linkSloBreachIncident(sourceId: number, breachUuid: string, incidentReference: string): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/slo-breaches/${breachUuid}/incident-link`, { incident_reference: incidentReference });
+  return parseEnvelope(breachActionResultSchema, response.data);
+}
+
+export async function reviewSloBreach(sourceId: number, breachUuid: string, input: BreachReviewInput): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/slo-breaches/${breachUuid}/review`, input);
+  return parseEnvelope(breachActionResultSchema, response.data);
 }
 
 export async function createSourceOnboardingVersion(sourceId: number, input: SourceOnboardingInput): Promise<SourceOnboardingProfile> {

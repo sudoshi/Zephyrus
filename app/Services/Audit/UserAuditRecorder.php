@@ -37,6 +37,7 @@ class UserAuditRecorder
         'access_review_campaign', 'access_review_item', 'evidence_export',
         'user_external_identity',
         'system_health',
+        'system_health_component',
         'admin_scope',
         'ai_provider_policy',
     ];

@@ -98,6 +98,42 @@ class AppServiceProvider extends ServiceProvider
             $app->make(\App\Services\Cockpit\Channels\PushAlertChannel::class),
             $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
         ]));
+
+        // INT-OBS 5 + ADM-HEALTH 6: the shared on-call delivery abstraction for
+        // integration SLO breaches and critical system-health observations.
+        // Reuses the SAME inert-by-default channels — a new lane is a new
+        // OperationalAlertChannel binding here, not a new delivery path.
+        $this->app->singleton(\App\Services\Alerting\OperationalAlertDispatcher::class, fn ($app) => new \App\Services\Alerting\OperationalAlertDispatcher([
+            $app->make(\App\Services\Cockpit\Channels\PushAlertChannel::class),
+            $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
+        ], $app->make(ClinicalContentGuard::class)));
+
+        // INT-OBS 4: the PHI-safe OpenTelemetry-compatible metrics/trace seam.
+        // Config-gated (observability.enabled, default OFF) with NO new composer
+        // dependency. The default in-process exporter keeps a bounded ring
+        // buffer; a deployment binds its own OTLP exporter to the
+        // MetricExporter/TraceExporter contracts. Both contracts resolve to ONE
+        // singleton so an in-memory exporter's samples and spans co-locate.
+        $this->app->singleton(\App\Observability\Exporters\InMemoryMetricExporter::class, fn ($app) => new \App\Observability\Exporters\InMemoryMetricExporter(
+            (int) config('observability.memory_buffer', 512),
+        ));
+        $this->app->singleton(\App\Observability\Contracts\MetricExporter::class, function ($app) {
+            return match ((string) config('observability.exporter', 'memory')) {
+                'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
+                default => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+            };
+        });
+        $this->app->singleton(\App\Observability\Contracts\TraceExporter::class, function ($app) {
+            return match ((string) config('observability.exporter', 'memory')) {
+                'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
+                default => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+            };
+        });
+        $this->app->singleton(\App\Observability\MetricRecorder::class, fn ($app) => new \App\Observability\MetricRecorder(
+            $app->make(\App\Observability\Contracts\MetricExporter::class),
+            $app->make(\App\Observability\Contracts\TraceExporter::class),
+            $app->make(ClinicalContentGuard::class),
+        ));
     }
 
     /**

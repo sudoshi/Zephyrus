@@ -7,6 +7,7 @@ return [
     'observability' => [
         'observation_fresh_for_seconds' => max(60, (int) env('INTEGRATION_OBSERVATION_FRESH_SECONDS', 180)),
         'retry_budget_per_run' => max(1, min(20, (int) env('INTEGRATION_RETRY_BUDGET_PER_RUN', 3))),
+        'circuit_breaker_trip_failures' => max(2, (int) env('INTEGRATION_CIRCUIT_BREAKER_TRIP_FAILURES', 5)),
         'queue' => [
             'warning_depth' => max(1, (int) env('INTEGRATION_QUEUE_WARNING_DEPTH', 25)),
             'critical_depth' => max(1, (int) env('INTEGRATION_QUEUE_CRITICAL_DEPTH', 100)),

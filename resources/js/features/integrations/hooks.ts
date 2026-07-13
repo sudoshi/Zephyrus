@@ -17,6 +17,11 @@ import {
   fetchSourceOnboarding,
   fetchSourceObservability,
   collectSourceObservation,
+  acknowledgeSloBreach,
+  escalateSloBreach,
+  linkSloBreachIncident,
+  reviewSloBreach,
+  type BreachReviewInput,
   previewIntegrationReplay,
   proposeSourceConfiguration,
   requestIntegrationReplay,
@@ -92,6 +97,22 @@ export function useSourceObservability(sourceId: number | null) {
 
 export function useCollectSourceObservation() {
   return useRefreshingMutation((sourceId: number) => collectSourceObservation(sourceId));
+}
+
+export function useAcknowledgeSloBreach() {
+  return useRefreshingMutation(({ sourceId, breachUuid, reasonCode }: { sourceId: number; breachUuid: string; reasonCode: string }) => acknowledgeSloBreach(sourceId, breachUuid, reasonCode));
+}
+
+export function useEscalateSloBreach() {
+  return useRefreshingMutation(({ sourceId, breachUuid, reasonCode }: { sourceId: number; breachUuid: string; reasonCode: string }) => escalateSloBreach(sourceId, breachUuid, reasonCode));
+}
+
+export function useLinkSloBreachIncident() {
+  return useRefreshingMutation(({ sourceId, breachUuid, incidentReference }: { sourceId: number; breachUuid: string; incidentReference: string }) => linkSloBreachIncident(sourceId, breachUuid, incidentReference));
+}
+
+export function useReviewSloBreach() {
+  return useRefreshingMutation(({ sourceId, breachUuid, input }: { sourceId: number; breachUuid: string; input: BreachReviewInput }) => reviewSloBreach(sourceId, breachUuid, input));
 }
 
 export function useCredentialVersions(sourceId: number | null, credentialId: number | null) {

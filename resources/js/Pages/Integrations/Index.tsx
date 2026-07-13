@@ -12,8 +12,12 @@ import {
   useQueueIntegrationReplay,
   useSourceObservability,
   useCollectSourceObservation,
+  useAcknowledgeSloBreach,
+  useEscalateSloBreach,
+  useLinkSloBreachIncident,
+  useReviewSloBreach,
 } from '@/features/integrations/hooks';
-import { executeCredentialRotation, type CredentialRotationInput, type IntegrationControlPlane, type IntegrationReplayInput, type IntegrationSource } from '@/features/integrations/api';
+import { executeCredentialRotation, type CredentialRotationInput, type IntegrationControlPlane, type IntegrationReplayInput, type IntegrationSource, type SourceObservabilitySnapshot } from '@/features/integrations/api';
 import type { PageProps } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
@@ -329,17 +333,17 @@ export function ObservabilityPanel({
 
       <Panel title="Open SLO Breaches">
         {openBreaches.length === 0 ? <EmptyRows label="No open SLO breach is recorded for this source." /> : (
-          <Table headings={['Metric', 'Status', 'Notification', 'Opened', 'Last observed']}>
+          <div className="space-y-3">
             {openBreaches.map((breach) => (
-              <tr key={breach.breachUuid}>
-                <td className={primaryCellClass}>{humanize(breach.metricKey)}</td>
-                <td className={cellClass}><StatusBadge value={breach.status} /></td>
-                <td className={cellClass}>{breach.notificationSuppressed ? 'Suppressed by maintenance' : 'Eligible for alerting'}</td>
-                <td className={cellClass}>{formatTime(breach.openedAtIso)}</td>
-                <td className={cellClass}>{formatTime(breach.lastObservedAtIso)}</td>
-              </tr>
+              <BreachWorkflowRow
+                key={breach.breachUuid}
+                sourceId={selectedSourceId}
+                breach={breach}
+                canOperateIntegrations={canOperateIntegrations}
+                onChanged={() => observability.refetch()}
+              />
             ))}
-          </Table>
+          </div>
         )}
       </Panel>
 
@@ -360,6 +364,83 @@ export function ObservabilityPanel({
           </Table>
         )}
       </Panel>
+    </div>
+  );
+}
+
+type OpenBreach = SourceObservabilitySnapshot['openBreaches'][number];
+
+export function BreachWorkflowRow({
+  sourceId,
+  breach,
+  canOperateIntegrations,
+  onChanged,
+}: {
+  sourceId: number;
+  breach: OpenBreach;
+  canOperateIntegrations: boolean;
+  onChanged: () => void;
+}) {
+  const acknowledge = useAcknowledgeSloBreach();
+  const escalate = useEscalateSloBreach();
+  const linkIncident = useLinkSloBreachIncident();
+  const review = useReviewSloBreach();
+  const [incidentReference, setIncidentReference] = useState('');
+  const pending = acknowledge.isPending || escalate.isPending || linkIncident.isPending || review.isPending;
+
+  const run = (mutation: { mutate: (vars: never, opts: { onSuccess: () => void }) => void }, vars: unknown) => {
+    mutation.mutate(vars as never, { onSuccess: onChanged });
+  };
+
+  return (
+    <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">{humanize(breach.metricKey)}</span>
+          <StatusBadge value={breach.status} />
+          {breach.acknowledged ? <StatusBadge value="acknowledged" /> : null}
+          {breach.escalated ? <StatusBadge value="escalated" /> : null}
+          {breach.incidentLinked ? <StatusBadge value="incident linked" /> : null}
+          {breach.reviewed ? <StatusBadge value="reviewed" /> : null}
+        </div>
+        <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          Opened {formatTime(breach.openedAtIso)} · last {formatTime(breach.lastObservedAtIso)}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        {breach.notificationSuppressed ? 'Notification suppressed by planned maintenance.' : 'Eligible for on-call alert delivery.'}
+      </p>
+      {canOperateIntegrations ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <ActionButton disabled={pending} onClick={() => run(acknowledge, { sourceId, breachUuid: breach.breachUuid, reasonCode: 'operator_acknowledged' })}>
+            Acknowledge
+          </ActionButton>
+          <ActionButton disabled={pending} onClick={() => run(escalate, { sourceId, breachUuid: breach.breachUuid, reasonCode: 'operator_escalated' })}>
+            Escalate
+          </ActionButton>
+          <ActionButton disabled={pending} onClick={() => run(review, { sourceId, breachUuid: breach.breachUuid, input: { root_cause_code: 'under_review', corrective_action_code: 'pending', recurrence_risk: 'medium' } })}>
+            Record review
+          </ActionButton>
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor={`incident-${breach.breachUuid}`}>Incident reference</label>
+            <input
+              id={`incident-${breach.breachUuid}`}
+              value={incidentReference}
+              onChange={(event) => setIncidentReference(event.target.value)}
+              placeholder="Incident ref"
+              className="w-32 rounded-md border border-healthcare-border bg-healthcare-surface px-2 py-1 text-xs text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+            />
+            <ActionButton
+              disabled={pending || incidentReference.trim() === ''}
+              onClick={() => run(linkIncident, { sourceId, breachUuid: breach.breachUuid, incidentReference: incidentReference.trim() })}
+            >
+              Link incident
+            </ActionButton>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">operateIntegrations capability required to triage.</p>
+      )}
     </div>
   );
 }

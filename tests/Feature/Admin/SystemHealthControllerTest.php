@@ -126,6 +126,90 @@ final class SystemHealthControllerTest extends TestCase
         ]);
     }
 
+    public function test_critical_required_component_routes_one_operational_alert_on_transition(): void
+    {
+        config()->set('queue.default', 'database');
+        config()->set('cache.default', 'array');
+        // Force the required "sessions" component critical via an invalid cookie policy.
+        config()->set('session.http_only', false);
+
+        $service = app(SystemHealthService::class);
+        $service->collect('scheduled');
+
+        $sessions = collect($service->snapshot()['observations'])->firstWhere('key', 'sessions');
+        $this->assertSame('critical', $sessions['status']);
+        // The shared on-call delivery ledger recorded the transition (inert by
+        // default => 'inert' outcome, but the row exists and is PHI-free).
+        $this->assertDatabaseHas('integration.operational_alert_deliveries', [
+            'alert_domain' => 'system_health',
+            'alert_code' => 'system_health_component_critical',
+            'severity' => 'crit',
+            'subject_type' => 'system_health_component',
+            'subject_reference' => 'sessions',
+        ]);
+        $deliveredAfterFirst = DB::table('integration.operational_alert_deliveries')
+            ->where('subject_reference', 'sessions')->count();
+
+        // A second collection with the SAME critical state must NOT re-page.
+        $service->collect('scheduled');
+        $this->assertSame(
+            $deliveredAfterFirst,
+            DB::table('integration.operational_alert_deliveries')->where('subject_reference', 'sessions')->count(),
+            'A persistently critical component must not re-page on the next tick.',
+        );
+    }
+
+    public function test_operator_can_acknowledge_a_component_and_the_ledger_is_append_only(): void
+    {
+        config()->set('queue.default', 'database');
+        config()->set('cache.default', 'array');
+        app(SystemHealthService::class)->collect('scheduled');
+
+        $auditor = User::factory()->create(['role' => 'auditor', 'is_active' => true, 'must_change_password' => false]);
+        $admin = User::factory()->create(['role' => 'admin', 'is_active' => true, 'must_change_password' => false]);
+
+        // viewSystemHealth-only actors cannot acknowledge.
+        $this->actingAs($auditor)
+            ->postJson('/admin/system-health/database/acknowledge', ['reason' => 'Acknowledged during triage.'])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->postJson('/admin/system-health/database/acknowledge', ['reason' => 'Owned by platform on-call for triage.'])
+            ->assertCreated()
+            ->assertJsonPath('componentKey', 'database');
+
+        $this->assertDatabaseHas('governance.system_health_acknowledgements', [
+            'component_key' => 'database',
+            'acknowledged_by_user_id' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('audit.user_events', [
+            'actor_user_id' => $admin->id,
+            'action' => 'administration.system_health.acknowledge',
+            'target_type' => 'system_health_component',
+            'target_id' => 'database',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson('/admin/system-health/database/acknowledge', ['reason' => 'short'])
+            ->assertStatus(422);
+        $this->actingAs($admin)
+            ->postJson('/admin/system-health/not_a_component/acknowledge', ['reason' => 'Reason long enough here.'])
+            ->assertNotFound();
+
+        $row = DB::table('governance.system_health_acknowledgements')->where('component_key', 'database')->first();
+        DB::beginTransaction();
+        try {
+            DB::table('governance.system_health_acknowledgements')
+                ->where('system_health_acknowledgement_id', $row->system_health_acknowledgement_id)
+                ->update(['reason' => 'tampered reason value']);
+            $this->fail('System health acknowledgements must be append-only.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('append-only', $exception->getMessage());
+        } finally {
+            DB::rollBack();
+        }
+    }
+
     public function test_health_observation_ledger_rejects_update_and_delete(): void
     {
         config()->set('queue.default', 'database');

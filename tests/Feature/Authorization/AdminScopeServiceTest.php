@@ -226,6 +226,10 @@ final class AdminScopeServiceTest extends TestCase
             'POST api/admin/integrations/sources/{source}/payload-quarantines/{quarantine}/purge-requests' => ['source'],
             'POST api/admin/integrations/sources/{source}/payload-quarantines/{quarantine}/release-requests' => ['source'],
             'POST api/admin/integrations/sources/{source}/readiness-assessments' => ['source'],
+            'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/acknowledge' => ['source'],
+            'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/escalate' => ['source'],
+            'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/incident-link' => ['source'],
+            'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/review' => ['source'],
         ];
 
         $actual = collect(Route::getRoutes()->getRoutes())

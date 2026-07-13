@@ -4,6 +4,9 @@ namespace App\Services\Admin;
 
 use App\Models\Governance\SystemHealthObservation;
 use App\Models\User;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
+use App\Services\Alerting\OperationalAlert;
+use App\Services\Alerting\OperationalAlertDispatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +25,11 @@ final class SystemHealthService
 {
     private const STATUSES = ['healthy', 'warning', 'critical', 'unknown', 'disabled'];
 
+    public function __construct(
+        private readonly OperationalAlertDispatcher $alertDispatcher,
+        private readonly ClinicalContentGuard $contentGuard,
+    ) {}
+
     /** @return array<string, mixed> */
     public function collect(string $origin, ?User $actor = null, ?string $correlationId = null): array
     {
@@ -36,6 +44,12 @@ final class SystemHealthService
         $batchUuid = $correlationId ?? (string) Str::uuid7();
         $observedAt = CarbonImmutable::now();
         $freshnessSeconds = max(60, (int) config('admin-health.fresh_for_seconds', 180));
+
+        // Prior status per component so alert delivery fires only on the
+        // transition INTO critical — a persistently critical component never
+        // re-pages, matching the flap-damped cockpit doctrine.
+        $priorStatus = $this->currentStatusByComponent();
+        $newlyCritical = [];
 
         foreach ($this->catalog() as $key => $component) {
             // A manual diagnostic must not manufacture evidence that the
@@ -81,9 +95,131 @@ final class SystemHealthService
                 'recorded_by_user_id' => $actor?->getKey(),
                 'created_at' => $observedAt,
             ]);
+
+            if ($status === 'critical' && (($priorStatus[$key] ?? null) !== 'critical') && (bool) $component['required']) {
+                $newlyCritical[] = ['key' => $key, 'label' => $component['label'], 'errorCode' => $result['errorCode'] ?? null];
+            }
+        }
+
+        foreach ($newlyCritical as $component) {
+            $this->alertDispatcher->dispatch(
+                new OperationalAlert(
+                    severity: 'crit',
+                    domain: 'system_health',
+                    code: 'system_health_component_critical',
+                    title: sprintf('%s is critical', $component['label']),
+                    sourceLabel: $component['key'],
+                    deepLink: '/admin/system-health/'.$component['key'],
+                    facts: array_filter([
+                        'component' => $component['key'],
+                        'error_code' => $component['errorCode'],
+                    ], fn (mixed $value): bool => $value !== null),
+                ),
+                'system_health_component',
+                $component['key'],
+                $batchUuid,
+                $observedAt,
+            );
         }
 
         return $this->snapshot(batchUuid: $batchUuid);
+    }
+
+    /**
+     * Acknowledge a critical/attention system-health component — an operator
+     * triage action recorded in the append-only acknowledgement ledger with a
+     * bounded reason (no content). The observation history is never mutated.
+     *
+     * @return array<string, mixed>
+     */
+    public function acknowledgeComponent(
+        string $componentKey,
+        User $actor,
+        string $reason,
+        ?string $correlationId = null,
+    ): array {
+        if (! array_key_exists($componentKey, $this->catalog())) {
+            abort(404);
+        }
+        if ($correlationId !== null && ! Str::isUuid($correlationId)) {
+            throw new \InvalidArgumentException('System health correlation ID must be a UUID.');
+        }
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 10 || mb_strlen($reason) > 500) {
+            throw new \InvalidArgumentException('System health acknowledgement reason must be 10-500 characters.');
+        }
+
+        $latest = SystemHealthObservation::query()
+            ->where('component_key', $componentKey)
+            ->orderByDesc('system_health_observation_id')
+            ->first();
+        $acknowledgedStatus = $latest !== null
+            && in_array($latest->status, ['critical', 'warning', 'unknown', 'disabled'], true)
+            ? $latest->status
+            : 'unknown';
+
+        $now = CarbonImmutable::now();
+        $row = [
+            'acknowledgement_uuid' => (string) Str::uuid7(),
+            'component_key' => $componentKey,
+            'acknowledged_status' => $acknowledgedStatus,
+            'system_health_observation_id' => $latest?->getKey(),
+            'acknowledged_by_user_id' => $actor->getKey(),
+            'reason' => $reason,
+            'correlation_uuid' => $correlationId,
+            'acknowledged_at' => $now,
+            'created_at' => $now,
+        ];
+        $this->contentGuard->assertSafe($row, 'system_health_acknowledgement_content_rejected');
+        DB::table('governance.system_health_acknowledgements')->insert($row);
+
+        return [
+            'componentKey' => $componentKey,
+            'acknowledgedStatus' => $acknowledgedStatus,
+            'acknowledgementUuid' => $row['acknowledgement_uuid'],
+            'acknowledgedByUserId' => $actor->getKey(),
+            'acknowledgedAtIso' => $now->toIso8601String(),
+        ];
+    }
+
+    /** @return array<string, array<string, mixed>> latest acknowledgement per component */
+    private function latestAcknowledgements(): array
+    {
+        if (! Schema::hasTable('governance.system_health_acknowledgements')) {
+            return [];
+        }
+        $latestIds = DB::table('governance.system_health_acknowledgements')
+            ->selectRaw('max(system_health_acknowledgement_id) as id')
+            ->groupBy('component_key')
+            ->pluck('id');
+
+        return DB::table('governance.system_health_acknowledgements')
+            ->whereIn('system_health_acknowledgement_id', $latestIds)
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(string) $row->component_key => [
+                'acknowledgedStatus' => (string) $row->acknowledged_status,
+                'acknowledgedByUserId' => (int) $row->acknowledged_by_user_id,
+                'acknowledgedAtIso' => CarbonImmutable::parse($row->acknowledged_at)->toIso8601String(),
+            ]])
+            ->all();
+    }
+
+    /** @return array<string, string> latest recorded status keyed by component */
+    private function currentStatusByComponent(): array
+    {
+        if (! Schema::hasTable('governance.system_health_observations')) {
+            return [];
+        }
+        $latestIds = DB::table('governance.system_health_observations')
+            ->selectRaw('max(system_health_observation_id) as observation_id')
+            ->groupBy('component_key')
+            ->pluck('observation_id');
+
+        return SystemHealthObservation::query()
+            ->whereIn('system_health_observation_id', $latestIds)
+            ->get()
+            ->mapWithKeys(fn (SystemHealthObservation $row): array => [$row->component_key => $row->status])
+            ->all();
     }
 
     /** @return array<string, mixed> */
@@ -102,12 +238,14 @@ final class SystemHealthService
                 ->keyBy('component_key');
         }
 
+        $acknowledgements = $this->latestAcknowledgements();
+
         $now = CarbonImmutable::now();
-        $observations = collect($this->catalog())->map(function (array $component, string $key) use ($latest, $now): array {
+        $observations = collect($this->catalog())->map(function (array $component, string $key) use ($latest, $acknowledgements, $now): array {
             /** @var SystemHealthObservation|null $row */
             $row = $latest->get($key);
             if ($row === null) {
-                return $this->missingObservation($key, $component);
+                return $this->missingObservation($key, $component) + ['acknowledgement' => $acknowledgements[$key] ?? null];
             }
 
             $expired = $row->freshness_expires_at->isBefore($now);
@@ -117,6 +255,7 @@ final class SystemHealthService
                 'key' => $key,
                 'label' => $component['label'],
                 'category' => $component['category'],
+                'acknowledgement' => $acknowledgements[$key] ?? null,
                 'status' => $status,
                 'recordedStatus' => $row->status,
                 'summary' => $expired

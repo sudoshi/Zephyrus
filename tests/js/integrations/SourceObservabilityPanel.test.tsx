@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObservabilityPanel } from '@/Pages/Integrations/Index';
 import { useCollectSourceObservation, useSourceObservability } from '@/features/integrations/hooks';
 
+const idleMutation = () => ({ mutate: vi.fn(), isPending: false });
+
 vi.mock('@/features/integrations/hooks', () => ({
   useIntegrationControlPlane: vi.fn(),
   usePreviewIntegrationReplay: vi.fn(),
@@ -12,6 +14,10 @@ vi.mock('@/features/integrations/hooks', () => ({
   useQueueIntegrationReplay: vi.fn(),
   useSourceObservability: vi.fn(),
   useCollectSourceObservation: vi.fn(),
+  useAcknowledgeSloBreach: vi.fn(() => idleMutation()),
+  useEscalateSloBreach: vi.fn(() => idleMutation()),
+  useLinkSloBreachIncident: vi.fn(() => idleMutation()),
+  useReviewSloBreach: vi.fn(() => idleMutation()),
 }));
 
 const snapshot = {
@@ -78,7 +84,7 @@ describe('source observability panel', () => {
     expect(screen.getByText('Breached SLOs').nextElementSibling).toHaveTextContent('2');
     expect(screen.getByText('Unknown SLOs').nextElementSibling).toHaveTextContent('2');
     expect(screen.getByText('freshness')).toBeInTheDocument();
-    expect(screen.getByText('Eligible for alerting')).toBeInTheDocument();
+    expect(screen.getByText('Eligible for on-call alert delivery.')).toBeInTheDocument();
     expect(screen.getByText('warning')).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent('ZPHI-');
   });
@@ -86,10 +92,18 @@ describe('source observability panel', () => {
   it('gates and invokes manual observation through the operator capability', () => {
     const { rerender } = render(<ObservabilityPanel selectedSourceId={7} canOperateIntegrations={false} />);
     expect(screen.queryByRole('button', { name: 'Observe now' })).not.toBeInTheDocument();
-    expect(screen.getByText(/operateIntegrations capability required/)).toBeInTheDocument();
+    expect(screen.getAllByText(/operateIntegrations capability required/).length).toBeGreaterThan(0);
 
     rerender(<ObservabilityPanel selectedSourceId={7} canOperateIntegrations />);
     fireEvent.click(screen.getByRole('button', { name: 'Observe now' }));
     expect(mutate).toHaveBeenCalledWith(7, expect.objectContaining({ onSuccess: expect.any(Function) }));
+  });
+
+  it('exposes the INT-OBS 5 breach workflow controls to an operator', () => {
+    render(<ObservabilityPanel selectedSourceId={7} canOperateIntegrations />);
+    expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Escalate' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Record review' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Link incident' })).toBeInTheDocument();
   });
 });

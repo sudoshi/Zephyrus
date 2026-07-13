@@ -277,6 +277,10 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::post('/admin/system-health/diagnostics', [SystemHealthController::class, 'diagnostics'])
                 ->middleware(['can:runDiagnostics', 'throttle:6,1'])
                 ->name('admin.system-health.diagnostics');
+            Route::post('/admin/system-health/{component}/acknowledge', [SystemHealthController::class, 'acknowledge'])
+                ->middleware(['can:runDiagnostics', 'throttle:30,1'])
+                ->where('component', '[a-z][a-z0-9_]{0,79}')
+                ->name('admin.system-health.acknowledge');
             Route::get('/admin/system-health/{component}', [SystemHealthController::class, 'show'])
                 ->middleware('can:viewSystemHealth')
                 ->where('component', '[a-z][a-z0-9_]{0,79}')

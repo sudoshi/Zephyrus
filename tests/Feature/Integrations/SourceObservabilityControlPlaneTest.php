@@ -4,10 +4,12 @@ namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\Services\IntegrationControlPlaneService;
 use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
+use App\Integrations\Healthcare\Services\SourceHealthDigestService;
 use App\Integrations\Healthcare\Services\SourceLifecycleService;
 use App\Integrations\Healthcare\Services\SourceMaintenanceWindowService;
 use App\Integrations\Healthcare\Services\SourceObservabilityService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
+use App\Integrations\Healthcare\Services\SourceRuntimePressureService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
@@ -351,6 +353,263 @@ final class SourceObservabilityControlPlaneTest extends TestCase
             'collector_origin' => 'scheduled',
             'recorded_by_user_id' => null,
         ]);
+    }
+
+    public function test_runtime_pressure_state_is_derived_from_recorded_evidence_and_ingest_runs(): void
+    {
+        $this->completeOnboarding();
+        $observedAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
+        CarbonImmutable::setTestNow($observedAt);
+        // Recorded 429/Retry-After evidence 30s ago with a 300s window still open.
+        app(SourceRuntimePressureService::class)->recordRateLimit(
+            $this->sourceId,
+            'throttled',
+            429,
+            300,
+            'observability.test',
+            null,
+            null,
+            $observedAt->subSeconds(30),
+        );
+        app(SourceRuntimePressureService::class)->recordCircuitTransition(
+            $this->sourceId,
+            'open',
+            6,
+            'observability.test',
+            null,
+            null,
+            $observedAt->subMinute(),
+        );
+        // Two failed runs in-window consume retry budget.
+        $this->ingestRun($observedAt->subMinutes(10), 'failed', 5, 0, 5, 0);
+        $this->ingestRun($observedAt->subMinutes(8), 'failed', 5, 0, 5, 0);
+
+        $observation = app(SourceObservabilityService::class)->observe($this->sourceId, $observedAt);
+        $runtime = $observation['runtimeState'];
+
+        $this->assertSame('throttled', $runtime['rateLimit']['state']);
+        $this->assertSame(300, $runtime['rateLimit']['retryAfterSeconds']);
+        $this->assertSame('open', $runtime['circuitBreaker']['state']);
+        $this->assertSame(6, $runtime['circuitBreaker']['consecutiveFailures']);
+        $this->assertSame('derived_from_ingest_runs', $runtime['retryBudget']['evidenceCode']);
+        $this->assertNotNull($runtime['retryBudget']['consumedAttempts']);
+        $this->assertGreaterThan(0, $runtime['retryBudget']['consumedAttempts']);
+        $this->assertContains($runtime['retryBudget']['state'], ['strained', 'exhausted']);
+
+        // The pressure ledger is append-only.
+        $row = DB::table('integration.source_runtime_pressure_events')->first();
+        try {
+            DB::transaction(fn () => DB::table('integration.source_runtime_pressure_events')
+                ->where('source_runtime_pressure_event_id', $row->source_runtime_pressure_event_id)
+                ->update(['pressure_state' => 'normal']));
+            $this->fail('Runtime pressure evidence must be append-only.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('append-only', $exception->getMessage());
+        }
+    }
+
+    public function test_open_breach_routes_one_operational_alert_delivery_and_maintenance_suppresses_it(): void
+    {
+        $this->completeOnboarding();
+        $breachAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
+        CarbonImmutable::setTestNow($breachAt);
+        $this->ingestRun($breachAt->subMinutes(5), 'failed', 10, 5, 5, 0);
+        $this->watermark($breachAt->subHours(3));
+
+        app(SourceObservabilityService::class)->observe($this->sourceId, $breachAt);
+
+        // Non-suppressed breaches route through the shared on-call delivery
+        // abstraction (inert by default => 'inert' outcome, but recorded).
+        $this->assertGreaterThan(0, DB::table('integration.operational_alert_deliveries')
+            ->where('alert_domain', 'integration')
+            ->where('alert_code', 'source_slo_breach')
+            ->count());
+
+        // A breach opened during planned maintenance is NOT delivered. Use a
+        // second source so the ledger (append-only) stays untouched.
+        $maintenanceSourceId = $this->cloneSourceForMaintenanceTest();
+        $maintenanceAt = CarbonImmutable::parse('2026-07-12T06:30:00Z'); // Sunday 02:30 EDT.
+        CarbonImmutable::setTestNow($maintenanceAt);
+        DB::table('raw.ingest_runs')->insert([
+            'run_uuid' => (string) Str::uuid7(),
+            'source_id' => $maintenanceSourceId,
+            'connector_key' => 'observability.test',
+            'run_type' => 'fhir_poll',
+            'status' => 'failed',
+            'started_at' => $maintenanceAt->subMinutes(20),
+            'completed_at' => $maintenanceAt->subMinutes(19),
+            'messages_received' => 10,
+            'messages_succeeded' => 5,
+            'messages_failed' => 5,
+            'messages_skipped' => 0,
+            'metadata' => '{}',
+            'created_at' => $maintenanceAt->subMinutes(20),
+            'updated_at' => $maintenanceAt->subMinutes(20),
+        ]);
+        app(SourceObservabilityService::class)->observe($maintenanceSourceId, $maintenanceAt);
+
+        $maintenanceBreachUuids = DB::table('integration.slo_breaches')
+            ->where('source_id', $maintenanceSourceId)
+            ->pluck('breach_uuid')
+            ->all();
+        $this->assertNotEmpty($maintenanceBreachUuids);
+        $this->assertSame(0, DB::table('integration.operational_alert_deliveries')
+            ->where('alert_code', 'source_slo_breach')
+            ->whereIn('subject_reference', $maintenanceBreachUuids)
+            ->count());
+    }
+
+    private function cloneSourceForMaintenanceTest(): int
+    {
+        $sourceId = (int) DB::table('integration.sources')->insertGetId([
+            'source_uuid' => (string) Str::uuid7(),
+            'source_key' => 'observability.fhir.maintenance',
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'tenant_key' => 'OBSERVABILITY_TEST_IDN',
+            'facility_key' => 'OBSERVABILITY_TEST_FACILITY',
+            'source_name' => 'Observability Maintenance Test',
+            'vendor' => 'Test Vendor',
+            'system_class' => 'ehr',
+            'environment' => 'production',
+            'interface_type' => 'fhir_r4',
+            'active_status' => 'testing',
+            'protocol_health_status' => 'healthy',
+            'protocol_health_checked_at' => now(),
+            'contract_status' => 'executed',
+            'baa_status' => 'executed',
+            'phi_allowed' => true,
+            'go_live_status' => 'testing',
+            'lifecycle_state' => 'validating',
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'source_id');
+        app(SourceConfigurationVersionService::class)->initialize($sourceId, null, 'Init maintenance test config authority.', (string) Str::uuid7());
+        app(SourceLifecycleService::class)->initialize($sourceId, null, 'Init maintenance test lifecycle authority.');
+        app(SourceOnboardingService::class)->initialize($sourceId);
+        $onboarding = app(SourceOnboardingService::class);
+        $current = $onboarding->latest($sourceId);
+        $onboarding->revise($sourceId, [
+            'system_version' => '2026.1', 'protocol_profile' => 'FHIR R4', 'owner_name' => 'Owner', 'steward_name' => 'Steward',
+            'network_route_key' => 'private-route-east', 'data_classification' => 'restricted_phi',
+            'permitted_purpose' => 'Support production operational flow coordination.',
+            'phi_permission_basis' => 'Executed BAA and minimum necessary policy.', 'retention_policy_key' => 'clinical-seven-year',
+            'retention_days' => 2555, 'credential_strategy' => 'oauth2', 'conformance_status' => 'passed', 'support_entitlement' => 'critical',
+            'vendor_support_identifier' => 'SUPPORT-OBS-002', 'maintenance_timezone' => 'America/New_York',
+            'contacts' => [['role' => 'owner', 'name' => 'Owner'], ['role' => 'steward', 'name' => 'Steward'], ['role' => 'escalation', 'name' => 'Command Center']],
+            'maintenance_windows' => [['weekday' => 0, 'start_local' => '02:00', 'duration_minutes' => 60, 'purpose' => 'Vendor maintenance']],
+            'slo_definition' => [
+                'evaluation_window_minutes' => 60, 'availability_percent' => 99.9, 'freshness_minutes' => 15, 'completeness_percent' => 99.9,
+                'latency_ms' => 5000, 'error_rate_percent' => 1, 'acknowledgement_seconds' => 30, 'reconciliation_variance_percent' => 1,
+            ],
+        ], (int) $current->source_onboarding_version_id, null, 'Complete maintenance-test SLO authority.');
+
+        return $sourceId;
+    }
+
+    public function test_operator_breach_workflow_endpoints_are_gated_and_append_events(): void
+    {
+        $this->completeOnboarding();
+        $breachAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
+        CarbonImmutable::setTestNow($breachAt);
+        $this->ingestRun($breachAt->subMinutes(5), 'failed', 10, 5, 5, 0);
+        $this->watermark($breachAt->subHours(3));
+        app(SourceObservabilityService::class)->observe($this->sourceId, $breachAt);
+        $breachUuid = (string) DB::table('integration.slo_breaches')->value('breach_uuid');
+
+        // Deny: read-only auditor cannot triage.
+        $auditor = User::factory()->create(['role' => 'auditor']);
+        $this->grantFacilityScope($auditor);
+        $this->selectScope($auditor);
+        $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/slo-breaches/{$breachUuid}/acknowledge", ['reason_code' => 'operator_acknowledged'])
+            ->assertForbidden();
+
+        // Allow: integration operator.
+        $operator = User::factory()->create(['role' => 'integration_operator']);
+        $this->grantFacilityScope($operator);
+        $this->selectScope($operator);
+
+        $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/slo-breaches/{$breachUuid}/acknowledge", ['reason_code' => 'operator_acknowledged'])
+            ->assertCreated()
+            ->assertJsonPath('data.statusAfter', 'acknowledged');
+        $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/slo-breaches/{$breachUuid}/incident-link", ['incident_reference' => 'INC-12345'])
+            ->assertCreated()
+            ->assertJsonPath('data.incidentLinked', true);
+        $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/slo-breaches/{$breachUuid}/escalate", ['reason_code' => 'operator_escalated'])
+            ->assertCreated();
+        $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/slo-breaches/{$breachUuid}/review", [
+            'root_cause_code' => 'upstream_outage',
+            'corrective_action_code' => 'vendor_ticket',
+            'recurrence_risk' => 'medium',
+        ])->assertCreated()->assertJsonPath('data.eventType', 'reviewed');
+
+        $breachId = (int) DB::table('integration.slo_breaches')->value('slo_breach_id');
+        foreach (['acknowledged', 'incident_linked', 'escalated', 'reviewed'] as $eventType) {
+            $this->assertDatabaseHas('integration.slo_breach_events', [
+                'slo_breach_id' => $breachId,
+                'event_type' => $eventType,
+                'actor_user_id' => $operator->id,
+            ]);
+        }
+        // The incident reference is never stored raw — only a SHA-256.
+        $incidentEvent = DB::table('integration.slo_breach_events')
+            ->where('slo_breach_id', $breachId)->where('event_type', 'incident_linked')->first();
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', (string) $incidentEvent->incident_reference_hash);
+        $this->assertStringNotContainsString('INC-12345', (string) $incidentEvent->incident_reference_hash);
+
+        // Post-incident review carries a bounded structured summary — no content.
+        $reviewEvent = DB::table('integration.slo_breach_events')
+            ->where('slo_breach_id', $breachId)->where('event_type', 'reviewed')->first();
+        $this->assertSame('upstream_outage', json_decode((string) $reviewEvent->metadata, true)['root_cause_code']);
+    }
+
+    public function test_observability_metric_seam_is_phi_safe_and_off_by_default(): void
+    {
+        config()->set('observability.enabled', true);
+        config()->set('observability.exporter', 'memory');
+        $this->completeOnboarding();
+        $exporter = app(\App\Observability\Exporters\InMemoryMetricExporter::class);
+        $exporter->flush();
+
+        $observedAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
+        $observation = app(SourceObservabilityService::class)->observe($this->sourceId, $observedAt);
+
+        $samples = $exporter->samples();
+        $this->assertNotEmpty($samples);
+        $sample = collect($samples)->first(fn ($s) => $s->name === 'zephyrus.integration.source_health.observation');
+        $this->assertNotNull($sample);
+        $attributes = $sample->attributes->toArray();
+        $this->assertSame($observation['correlationUuid'], $attributes['zephyrus.correlation.uuid']);
+        $this->assertSame($this->sourceId, $attributes['zephyrus.source.id']);
+        // Attributes carry the safe service resource identity and no content.
+        $this->assertArrayHasKey('service.name', $attributes);
+        $this->assertStringNotContainsString('ZPHI', json_encode($attributes, JSON_THROW_ON_ERROR));
+
+        // A clinical canary on an attribute is rejected by the safe-attribute contract.
+        $this->expectException(\App\Security\ClinicalPayloads\ClinicalPayloadException::class);
+        \App\Observability\SpanAttributes::make(['zephyrus.tainted' => 'ZPHI-OBSERVABILITY-CANARY']);
+    }
+
+    public function test_source_health_digest_labels_mode_and_staleness_for_downstream_contracts(): void
+    {
+        $this->completeOnboarding();
+        $observedAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
+        CarbonImmutable::setTestNow($observedAt);
+        // The source is created in the contributing 'testing' active_status.
+        app(SourceObservabilityService::class)->observe($this->sourceId, $observedAt);
+
+        $digest = app(SourceHealthDigestService::class)->digest($observedAt);
+        $source = collect($digest['sources'])->firstWhere('sourceKey', 'observability.fhir.test');
+        $this->assertNotNull($source);
+        $this->assertSame('live', $source['mode']);
+        $this->assertFalse($source['stale']);
+
+        // After the freshness window elapses the digest marks it stale.
+        $laterDigest = app(SourceHealthDigestService::class)->digest($observedAt->addHour());
+        $laterSource = collect($laterDigest['sources'])->firstWhere('sourceKey', 'observability.fhir.test');
+        $this->assertTrue($laterSource['stale']);
+        $this->assertSame('stale', $laterSource['status']);
     }
 
     private function completeOnboarding(array $sloOverrides = []): object

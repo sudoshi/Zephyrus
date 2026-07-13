@@ -11,8 +11,8 @@ use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\Admin\IntegrationSourceController;
 use App\Http\Controllers\Api\Admin\SourceConfigurationVersionController;
 use App\Http\Controllers\Api\Admin\SourceLifecycleController;
-use App\Http\Controllers\Api\Admin\SourceOnboardingController;
 use App\Http\Controllers\Api\Admin\SourceObservabilityController;
+use App\Http\Controllers\Api\Admin\SourceOnboardingController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
@@ -504,6 +504,14 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:operateIntegrations'])
     ->prefix('admin/integrations')->group(function () {
         Route::post('/sources/{source}/observations', [SourceObservabilityController::class, 'collect'])
             ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/slo-breaches/{breach}/acknowledge', [SourceObservabilityController::class, 'acknowledge'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/escalate', [SourceObservabilityController::class, 'escalate'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/incident-link', [SourceObservabilityController::class, 'linkIncident'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/review', [SourceObservabilityController::class, 'review'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
         Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->middleware('admin.scope:source')->whereNumber('source');
         Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->middleware('admin.scope:source')->whereNumber('source');
         Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir'])->middleware('admin.scope:source');

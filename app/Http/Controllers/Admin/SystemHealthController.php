@@ -64,6 +64,39 @@ final class SystemHealthController extends Controller
         return response()->json($snapshot);
     }
 
+    public function acknowledge(Request $request, string $component): JsonResponse
+    {
+        Gate::authorize('runDiagnostics');
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $component, $validated): array {
+            $result = $this->health->acknowledgeComponent(
+                $component,
+                $request->user(),
+                $validated['reason'],
+                (string) $request->attributes->get(AssignRequestIdentity::ATTRIBUTE),
+            );
+            $this->audit->record('administration.system_health.acknowledge', 'administration', 'success', [
+                'request' => $request,
+                'actor' => $request->user(),
+                'target_type' => 'system_health_component',
+                'target_id' => $component,
+                'metadata' => [
+                    'component_key' => $component,
+                    'acknowledged_status' => $result['acknowledgedStatus'],
+                    'acknowledgement_uuid' => $result['acknowledgementUuid'],
+                ],
+            ]);
+
+            return $result;
+        });
+
+        return response()->json($result, 201);
+    }
+
     private function render(?string $selected = null): Response
     {
         return Inertia::render('Admin/SystemHealth', [

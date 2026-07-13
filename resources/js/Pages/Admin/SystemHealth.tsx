@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
   Activity,
@@ -41,6 +41,11 @@ interface HealthObservation {
   stale: boolean;
   details: Record<string, unknown>;
   href: string;
+  acknowledgement: {
+    acknowledgedStatus: string;
+    acknowledgedByUserId: number;
+    acknowledgedAtIso: string;
+  } | null;
 }
 
 interface HealthSnapshot {
@@ -137,6 +142,29 @@ export default function SystemHealth({ snapshot: initialSnapshot, canRunDiagnost
       );
     } finally {
       setRunning(false);
+    }
+  };
+
+  const [ackReason, setAckReason] = useState('');
+  const [acknowledging, setAcknowledging] = useState(false);
+  const [ackError, setAckError] = useState<string | null>(null);
+
+  const acknowledgeComponent = async (componentKey: string) => {
+    setAcknowledging(true);
+    setAckError(null);
+    try {
+      await axios.post(`/admin/system-health/${componentKey}/acknowledge`, { reason: ackReason.trim() });
+      // Re-fetch the authoritative snapshot via a fresh diagnostic-free reload.
+      router.reload({ only: ['snapshot'] });
+      setAckReason('');
+    } catch (error) {
+      setAckError(
+        axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
+          ? error.response.data.message
+          : 'The acknowledgement did not complete. Review the audit trail.',
+      );
+    } finally {
+      setAcknowledging(false);
     }
   };
 
@@ -242,6 +270,41 @@ export default function SystemHealth({ snapshot: initialSnapshot, canRunDiagnost
                     </div>
                   ))}
                 </dl>
+
+                <div className="mt-4 border-t border-healthcare-border pt-4 dark:border-healthcare-border-dark">
+                  <p className="text-xs font-medium uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">On-call acknowledgement</p>
+                  {selected.acknowledgement ? (
+                    <p className="mt-1 flex items-center gap-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                      <CheckCircle2 className="h-4 w-4 text-healthcare-success dark:text-healthcare-success-dark" aria-hidden="true" />
+                      <span>Acknowledged (<span className="capitalize">{selected.acknowledgement.acknowledgedStatus}</span>) at {formatTime(selected.acknowledgement.acknowledgedAtIso)}.</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Not yet acknowledged.</p>
+                  )}
+                  {canRunDiagnostics ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <label className="sr-only" htmlFor="ack-reason">Acknowledgement reason</label>
+                      <input
+                        id="ack-reason"
+                        value={ackReason}
+                        onChange={(event) => setAckReason(event.target.value)}
+                        placeholder="Triage reason (10-500 chars, no PHI)"
+                        className="w-72 max-w-full rounded-md border border-healthcare-border bg-healthcare-surface px-2 py-1 text-sm text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                      />
+                      <button
+                        type="button"
+                        disabled={acknowledging || ackReason.trim().length < 10}
+                        onClick={() => acknowledgeComponent(selected.key)}
+                        className="rounded-md bg-healthcare-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                      >
+                        {acknowledging ? 'Acknowledging…' : 'Acknowledge'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">runDiagnostics capability required to acknowledge.</p>
+                  )}
+                  {ackError ? <p role="alert" className="mt-2 text-sm text-healthcare-critical dark:text-healthcare-critical-dark">{ackError}</p> : null}
+                </div>
               </div>
             </section>
           ) : (
