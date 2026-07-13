@@ -282,6 +282,32 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
                 ->where('component', '[a-z][a-z0-9_]{0,79}')
                 ->name('admin.system-health.show');
             Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+            // ADM-IAM: bulk deactivation is previewed, then executed as one
+            // rollback-safe transaction; per-member audit inside the commit.
+            Route::post('/users/bulk-deactivation/preview', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'preview'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.bulk-deactivation.preview');
+            Route::post('/users/bulk-deactivation', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'execute'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.bulk-deactivation.execute');
+            Route::post('/users/{user}/revoke-access', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'revokeAccess'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.revoke-access');
+            // ADM-IAM: effective-dated org/facility scopes (manageIdentity) and
+            // direct capability grants (managePrivileges); step-up enforced in
+            // the controllers, audits appended inside the mutations.
+            Route::post('/users/{user}/access-scopes', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeScope'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.access-scopes.store');
+            Route::post('/users/{user}/access-scopes/{scope}/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeScope'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.access-scopes.revoke');
+            Route::post('/users/{user}/capabilities', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeCapability'])
+                ->middleware(['can:managePrivileges', 'throttle:12,1'])
+                ->name('users.capabilities.store');
+            Route::post('/users/{user}/capabilities/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeCapability'])
+                ->middleware(['can:managePrivileges', 'throttle:12,1'])
+                ->name('users.capabilities.revoke');
             Route::post('/users/{user}/external-identities/{identity}/unlink', [ExternalIdentityController::class, 'unlink'])
                 ->middleware(['can:manageIdentity', 'throttle:6,1'])
                 ->name('users.external-identities.unlink');

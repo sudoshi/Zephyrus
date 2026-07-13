@@ -50,6 +50,7 @@ class User extends Authenticatable
         'is_active',
         'phone',
         'deactivated_at',
+        'provisioning_state',
     ];
 
     /**

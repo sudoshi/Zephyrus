@@ -378,12 +378,12 @@ export default function AccessReviews({ campaigns, selectedCampaign, reviewers, 
                       <div><dt className="text-xs text-healthcare-text-secondary">Primary reviewer</dt><dd className="font-medium">{selectedCampaign.primaryReviewer.name}</dd></div>
                       <div><dt className="text-xs text-healthcare-text-secondary">Alternate reviewer</dt><dd className="font-medium">{selectedCampaign.alternateReviewer.name}</dd></div>
                     </dl>
-                    <p className="mt-3 break-all font-mono text-[11px] text-healthcare-text-secondary">Snapshot SHA-256: {selectedCampaign.snapshotSha256}</p>
+                    <p className="mt-3 break-all tabular-nums text-xs text-healthcare-text-secondary">Snapshot SHA-256: {selectedCampaign.snapshotSha256}</p>
                     {completed ? (
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <a href={`/admin/access-reviews/${selectedCampaign.campaignUuid}/evidence.json`} className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-2.5 py-1.5 text-sm dark:border-healthcare-border-dark"><Download className="h-4 w-4" />JSON evidence</a>
                         <a href={`/admin/access-reviews/${selectedCampaign.campaignUuid}/evidence.csv`} className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-2.5 py-1.5 text-sm dark:border-healthcare-border-dark"><Download className="h-4 w-4" />CSV evidence</a>
-                        <span className="break-all font-mono text-[11px] text-healthcare-text-secondary">Canonical evidence SHA-256: {selectedCampaign.evidenceSha256}</span>
+                        <span className="break-all tabular-nums text-xs text-healthcare-text-secondary">Canonical evidence SHA-256: {selectedCampaign.evidenceSha256}</span>
                       </div>
                     ) : selectedCampaign.status === 'open' && canManage ? (
                       <div className="mt-3 space-y-3">
@@ -417,7 +417,7 @@ export default function AccessReviews({ campaigns, selectedCampaign, reviewers, 
                             <div><span className="text-healthcare-text-secondary">Capabilities</span><p>{item.snapshot.effective_capabilities.length}</p></div>
                             <div><span className="text-healthcare-text-secondary">Explicit scopes</span><p>{item.snapshot.explicit_scopes.length}</p></div>
                           </div>
-                          <details className="mt-2 text-xs"><summary className="cursor-pointer font-medium text-healthcare-info">Inspect frozen entitlement evidence</summary><pre className="mt-2 max-h-80 overflow-auto rounded bg-healthcare-surface-secondary p-3 text-[11px] dark:bg-healthcare-surface-hover-dark">{JSON.stringify(item.snapshot, null, 2)}</pre><p className="mt-1 break-all font-mono text-[10px] text-healthcare-text-secondary">SHA-256: {item.snapshotSha256}</p></details>
+                          <details className="mt-2 text-xs"><summary className="cursor-pointer font-medium text-healthcare-info">Inspect frozen entitlement evidence</summary><pre className="mt-2 max-h-80 overflow-auto rounded bg-healthcare-surface-secondary p-3 text-xs dark:bg-healthcare-surface-hover-dark">{JSON.stringify(item.snapshot, null, 2)}</pre><p className="mt-1 break-all tabular-nums text-xs text-healthcare-text-secondary">SHA-256: {item.snapshotSha256}</p></details>
                           {item.decision ? <div className="mt-3 rounded-md bg-healthcare-surface-secondary p-3 text-sm dark:bg-healthcare-surface-hover-dark"><p><strong>{item.decision.value === 'retain' ? 'Retained' : 'Revoked'}</strong> by {item.decision.decidedBy.name} at {formatTime(item.decision.decidedAt)}</p><p className="mt-1 text-healthcare-text-secondary">{item.decision.reasonCode.replaceAll('_', ' ')} — {item.decision.rationale}</p>{item.decision.value === 'revoke' ? <p className="mt-1 text-xs">Remediation evidence: {item.decision.remediated ? 'recorded' : 'missing'}</p> : null}</div> : item.canDecide ? <DecisionForm campaignUuid={selectedCampaign.campaignUuid} item={item} /> : <p className="mt-3 text-xs text-healthcare-text-secondary">Awaiting the independently assigned reviewer.</p>}
                         </article>
                       ))}

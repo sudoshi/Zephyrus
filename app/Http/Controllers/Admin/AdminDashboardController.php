@@ -35,13 +35,14 @@ class AdminDashboardController extends Controller
                 ->where('occurred_at', '>=', $today)
             : null;
 
+        $revealPii = $this->authorization->allows($request->user(), Capability::ManageIdentity);
         $recent = $canViewAudit
             ? UserEvent::query()
                 ->with('actor:id,name,username,email,role')
                 ->orderByDesc('event_cursor')
                 ->limit(8)
                 ->get()
-                ->map(fn (UserEvent $event): array => $this->presenter->present($event))
+                ->map(fn (UserEvent $event): array => $this->presenter->present($event, $revealPii))
                 ->all()
             : [];
 

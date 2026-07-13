@@ -4,7 +4,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
 import InputError from '@/Components/InputError';
 
-export default function Create({ auth }) {
+export default function Create({ auth, sso_only: ssoOnly }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -43,6 +43,11 @@ export default function Create({ auth }) {
 
                     <Card>
                         <Card.Content>
+                            {ssoOnly && (
+                                <div className="mb-6 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/10 p-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    SSO-only policy is active: local account creation with a password is disabled. Accounts are provisioned just-in-time by the identity provider; this form will be rejected on submit.
+                                </div>
+                            )}
                             <form onSubmit={submit} className="space-y-6">
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">

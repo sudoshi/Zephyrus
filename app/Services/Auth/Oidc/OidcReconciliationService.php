@@ -61,6 +61,7 @@ class OidcReconciliationService
             if ($user !== null) {
                 $this->assertActive($user);
                 $this->link($user->id, $claims);
+                $this->markSynced($user);
 
                 return ['user' => $user, 'reason' => 'linked_by_email'];
             }
@@ -71,6 +72,7 @@ class OidcReconciliationService
                 if ($user !== null) {
                     $this->assertActive($user);
                     $this->link($user->id, $claims);
+                    $this->markSynced($user);
 
                     return ['user' => $user, 'reason' => 'linked_by_alias'];
                 }
@@ -86,6 +88,7 @@ class OidcReconciliationService
                 'must_change_password' => false,
                 'role' => $role,
                 'is_active' => true,
+                'provisioning_state' => 'jit',
             ]);
             $user->forceFill(['email_verified_at' => now()])->save();
 
@@ -93,6 +96,14 @@ class OidcReconciliationService
 
             return ['user' => $user, 'reason' => 'created_jit'];
         });
+    }
+
+    /** A pre-existing local/invited account is now bound to the IdP subject. */
+    private function markSynced(User $user): void
+    {
+        if (in_array($user->provisioning_state, ['local', 'invited', null], true)) {
+            $user->forceFill(['provisioning_state' => 'synced'])->save();
+        }
     }
 
     private function assertActive(User $user): void

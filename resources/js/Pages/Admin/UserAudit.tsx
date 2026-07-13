@@ -69,6 +69,7 @@ interface UserAuditProps {
   filters: AuditFilters;
   options: AuditOptions;
   stats: AuditStats;
+  redaction?: { piiVisible: boolean; ipRetentionDays: number };
 }
 
 const inputClass =
@@ -125,7 +126,7 @@ function filterQuery(filters: AuditFilters, page?: number): Record<string, strin
   return query;
 }
 
-export default function UserAudit({ events, filters, options, stats }: UserAuditProps) {
+export default function UserAudit({ events, filters, options, stats, redaction }: UserAuditProps) {
   const [draft, setDraft] = useState<AuditFilters>(filters);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
@@ -190,6 +191,12 @@ export default function UserAudit({ events, filters, options, stats }: UserAudit
       >
         <div className="space-y-4">
           <AdminMetricStrip metrics={metrics} />
+
+          {redaction && !redaction.piiVisible && (
+            <p className="rounded-md border border-healthcare-border bg-healthcare-surface-secondary p-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+              Audit-only view: actor emails are partially masked and client IP addresses are withheld. Identity administration rights are required for unredacted records.
+            </p>
+          )}
 
           <section aria-label="Audit filters">
             <form

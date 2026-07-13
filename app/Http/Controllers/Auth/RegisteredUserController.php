@@ -67,6 +67,8 @@ class RegisteredUserController extends Controller
             'must_change_password' => true,
             'role' => 'user',
             'is_active' => true,
+            // ADM-IAM provisioning-state authority; purely additive metadata.
+            'provisioning_state' => 'invited',
         ]);
 
         $this->audit->bestEffort('auth.registration', 'authentication', 'success', [

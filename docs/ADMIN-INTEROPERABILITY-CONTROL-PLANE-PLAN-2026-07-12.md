@@ -356,12 +356,14 @@ The active-scope contract is explicit and fail closed: no role, including a glob
 
 #### ADM-IAM - Modernize user lifecycle
 
-- [ ] Display identity source, external subject, group reconciliation state, MFA assurance if provided, last login, last meaningful activity, active sessions, and active tokens.
+- [x] Display identity source, external subject, group reconciliation state, MFA assurance if provided, last login, last meaningful activity, active sessions, and active tokens.
 - [ ] Replace normal hard delete with deactivate, revoke, transfer ownership, and retention-aware purge.
-- [ ] Add invite/JIT/SCIM provisioning states and prevent local password creation where SSO-only policy applies.
-- [ ] Add role/capability and facility/unit assignment editors backed by canonical policy services.
-- [ ] Add bulk deactivation and access-review decisions with preview and rollback-safe transactions.
-- [ ] Redact email/IP data according to auditor capability and retention policy.
+- [x] Add invite/JIT/SCIM provisioning states and prevent local password creation where SSO-only policy applies.
+- [x] Add role/capability and facility/unit assignment editors backed by canonical policy services.
+- [x] Add bulk deactivation and access-review decisions with preview and rollback-safe transactions.
+- [x] Redact email/IP data according to auditor capability and retention policy.
+
+**Branch implementation state:** `UserLifecycleReadService` is the shared read model behind the rewritten typed Users Index/Edit pages: identity source, external-subject fingerprints, group reconciliation state (derived from identity link vs last OIDC login; groups re-evaluate on every login), IdP MFA assurance from step-up evidence, last login, last meaningful activity, live session and unexpired token counts. The access-review entitlement snapshot was deliberately left on its own queries because its sha256-frozen evidence format must not change mid-campaign. Hard delete remains denied; targeted revoke (`POST /users/{user}/revoke-access`), deactivation, and dual-control retention-aware purge are live — the second box stays open only for transfer-ownership, which has no ownership model to transfer against yet. `provisioning_state` (invited/jit/scim/synced/local; `scim` reserved — no SCIM endpoint exists) is recorded on creation paths and backfilled; SSO-only policy (`LOCAL_AUTH_ENABLED=false`) fails local password creation/rotation closed server-side for non-break-glass accounts with denied-action audits. Effective-dated organization/facility scope grants (`manageIdentity` + step-up) and direct capability grants (`managePrivileges` + step-up, revocation also retires sessions/tokens) are editable from Users/Edit through `UserAccessProvisioningService` — the same stores `RoleCapabilityService` consumes. Bulk deactivation previews the exact execution order in a rolled-back transaction (protected/self/last-admin/already-inactive blockers reported per member, including combined effects) and executes all-or-nothing with per-user audits. Raw email requires `manageIdentity` (audit-only viewers see masked addresses), client IPs are withheld from presentation entirely for non-identity-admins and age out after `AUDIT_IP_RETENTION_DAYS` (default 90) for everyone, enforced server-side in the presenters. Evidence: focused Admin/Authorization/Governance suites 114 passed / 1,116 assertions (25 new allow-and-deny tests), Vitest 94 page/component tests, TypeScript, Pint, and `scripts/check-ui-canon.sh` all green.
 
 #### ADM-HEALTH - Build system health
 

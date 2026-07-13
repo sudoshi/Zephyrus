@@ -644,7 +644,7 @@ export function SourceConfiguration({
                                     <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         {version.changeReason} · {version.changedFields.join(", ") || "initial snapshot"}
                                     </div>
-                                    <code className="text-[10px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    <code className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                         {version.configurationSha256.slice(0, 16)}…
                                     </code>
                                     {!version.isEffective && (
@@ -1059,7 +1059,7 @@ function SourceOnboardingWorkspace({ source }: { source: IntegrationSource }) {
                 {readiness.supportBadges.map((badge) => (
                     <span
                         key={badge}
-                        className="rounded bg-healthcare-surface px-2 py-1 text-[11px] font-semibold text-healthcare-text-secondary dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark"
+                        className="rounded bg-healthcare-surface px-2 py-1 text-xs font-semibold text-healthcare-text-secondary dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark"
                     >
                         {badge}
                     </span>
@@ -1190,7 +1190,7 @@ function SourceOnboardingWorkspace({ source }: { source: IntegrationSource }) {
                             <div key={item.evidenceRecordId} className="rounded bg-healthcare-surface p-2 text-xs dark:bg-healthcare-surface-dark">
                                 <div className="font-semibold">{item.evidenceType.replaceAll("_", " ")} · {item.evidenceStatus}</div>
                                 <div>{item.displayLabel}</div>
-                                <code className="text-[10px]">ref {item.referenceFingerprint}…</code>
+                                <code className="text-xs">ref {item.referenceFingerprint}…</code>
                             </div>
                         ))}
                     </div>

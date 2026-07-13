@@ -60,6 +60,8 @@ class UserAuditRecorder
         'organization_id', 'facility_id', 'source_id', 'scope_revision',
         'policy_key', 'policy_version', 'rolled_back_to_version', 'surface',
         'provider_mode', 'selected_profile_id', 'fallback_used', 'will_call_paid_provider',
+        'capability', 'scope_id', 'member_count', 'eligible_count', 'blocked_count',
+        'valid_from', 'valid_until',
     ];
 
     private const FORBIDDEN_KEY_FRAGMENTS = [
