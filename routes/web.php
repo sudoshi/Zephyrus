@@ -399,6 +399,33 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.ai-providers.changes.apply');
 
+        // ENT-REG — governed enterprise registry import. Preview is read-gated
+        // (viewEnterpriseSetup); commit request/decision/apply are governed changes
+        // (request → independent decision → exact-hash execution) with step-up
+        // enforced inside GovernedChangeService, throttled here. The per-source
+        // required-topology declaration feeds the source-activation readiness gate.
+        // These are NOT under api/admin/integrations, so the admin-scope boundary
+        // inventory is unchanged: enterprise topology is cross-tenant, gated by
+        // capability rather than per-source admin scope.
+        Route::post('/admin/enterprise/import/preview', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'preview'])
+            ->middleware(['can:viewDeploymentConsole', 'throttle:30,1'])
+            ->name('admin.enterprise.import.preview');
+        Route::post('/admin/enterprise/import/changes', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'store'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->name('admin.enterprise.import.changes.store');
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'decide'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.enterprise.import.changes.decide');
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'apply'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.enterprise.import.changes.apply');
+        Route::put('/admin/enterprise/sources/{source}/required-topology', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'declareSourceTopology'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->whereNumber('source')
+            ->name('admin.enterprise.sources.required-topology');
+
         // User Preferences Route - Using GET with URL parameters
         Route::get('/set-preference/{workflow}', [DashboardController::class, 'setPreference'])
             ->name('user.set-preference')

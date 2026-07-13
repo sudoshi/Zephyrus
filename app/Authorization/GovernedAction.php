@@ -19,6 +19,7 @@ enum GovernedAction: string
     case PurgeUserIdentity = 'purge_user_identity';
     case ApplyCockpitThresholdPolicy = 'apply_cockpit_threshold_policy';
     case ApplyAiProviderPolicy = 'apply_ai_provider_policy';
+    case ApplyEnterpriseRegistryImport = 'apply_enterprise_registry_import';
 
     public function authorCapability(): Capability
     {
@@ -38,6 +39,7 @@ enum GovernedAction: string
             self::PurgeUserIdentity => Capability::ManageIdentity,
             self::ApplyCockpitThresholdPolicy => Capability::ManageCockpitPolicy,
             self::ApplyAiProviderPolicy => Capability::ManageAiGovernance,
+            self::ApplyEnterpriseRegistryImport => Capability::ManageEnterpriseSetup,
         };
     }
 
@@ -47,6 +49,7 @@ enum GovernedAction: string
             self::PurgeUserIdentity => Capability::ManagePrivileges,
             self::ApplyCockpitThresholdPolicy => Capability::ManageCockpitPolicy,
             self::ApplyAiProviderPolicy => Capability::ManageAiGovernance,
+            self::ApplyEnterpriseRegistryImport => Capability::ManageEnterpriseSetup,
             default => Capability::ApproveIntegrationChanges,
         };
     }

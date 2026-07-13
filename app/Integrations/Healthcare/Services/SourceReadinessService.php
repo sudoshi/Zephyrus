@@ -112,6 +112,12 @@ final class SourceReadinessService
             ? CarbonImmutable::parse((string) $facetRow->contract_expires_at)
             : null;
 
+        // ENT-REG: a source may declare the enterprise service lines and locations
+        // it depends on. When present, activation is blocked until every declared
+        // item resolves against the imported registry. Absent declarations do not
+        // gate (the enterprise/facility checks above already bind the topology root).
+        $requiredTopology = $this->requiredTopology($sourceId);
+
         $checks = [];
         $this->check($checks, 'enterprise.organization', 'enterprise', $source->organization_id !== null,
             'A canonical organization is assigned.');
@@ -119,6 +125,16 @@ final class SourceReadinessService
             'A canonical facility is assigned.');
         $this->check($checks, 'enterprise.facility_active', 'enterprise', (bool) $source->facility_is_active,
             'The canonical facility is active.');
+        if ($requiredTopology['hasServiceLines']) {
+            $this->check($checks, 'enterprise.required_service_lines', 'enterprise',
+                $requiredTopology['unresolvedServiceLines'] === [],
+                'Every declared required service line resolves to an active enterprise service line.');
+        }
+        if ($requiredTopology['hasLocations']) {
+            $this->check($checks, 'enterprise.required_locations', 'enterprise',
+                $requiredTopology['unresolvedLocations'] === [],
+                'Every declared required location resolves to an enterprise facility space.');
+        }
         $this->check($checks, 'configuration.immutable_version', 'configuration',
             $source->current_configuration_version_id !== null && filled($source->configuration_sha256),
             'An immutable effective source configuration is present.');
@@ -284,6 +300,12 @@ final class SourceReadinessService
                 'contract' => $facetContract,
                 'contract_expires_at' => $contractExpiresAt?->utc()->toIso8601String(),
                 'incident' => $facetIncident,
+            ],
+            'required_topology' => [
+                'service_lines' => $requiredTopology['serviceLines'],
+                'unresolved_service_lines' => $requiredTopology['unresolvedServiceLines'],
+                'locations' => $requiredTopology['locations'],
+                'unresolved_locations' => $requiredTopology['unresolvedLocations'],
             ],
             'payload_protection' => [
                 'status' => $payloadReadiness['status'],
@@ -491,5 +513,53 @@ final class SourceReadinessService
         $decoded = is_string($value) ? json_decode($value, true) : $value;
 
         return is_array($decoded) && ! array_is_list($decoded) ? $decoded : [];
+    }
+
+    /**
+     * ENT-REG: resolve a source's declared required service lines and locations
+     * against the imported enterprise registry. Service lines must exist and be
+     * active in hosp_ref.service_lines; locations must exist as hosp_space
+     * facility spaces. Unresolved items are the exact codes that block activation.
+     *
+     * @return array{
+     *     hasServiceLines: bool, serviceLines: list<string>, unresolvedServiceLines: list<string>,
+     *     hasLocations: bool, locations: list<string>, unresolvedLocations: list<string>
+     * }
+     */
+    private function requiredTopology(int $sourceId): array
+    {
+        $row = DB::table('integration.source_required_topology')->where('source_id', $sourceId)->first();
+        $serviceLines = $this->decodeList($row?->required_service_line_codes)
+            ? array_values(array_unique(array_map('strval', $this->decodeList($row?->required_service_line_codes))))
+            : [];
+        $locations = $this->decodeList($row?->required_location_space_codes)
+            ? array_values(array_unique(array_map('strval', $this->decodeList($row?->required_location_space_codes))))
+            : [];
+
+        $resolvedServiceLines = $serviceLines === []
+            ? []
+            : DB::table('hosp_ref.service_lines')
+                ->whereIn('service_line_code', $serviceLines)
+                ->where('is_active', true)
+                ->pluck('service_line_code')
+                ->all();
+        $resolvedLocations = $locations === []
+            ? []
+            : DB::table('hosp_space.facility_spaces')
+                ->whereIn('space_code', $locations)
+                ->pluck('space_code')
+                ->all();
+
+        sort($serviceLines);
+        sort($locations);
+
+        return [
+            'hasServiceLines' => $serviceLines !== [],
+            'serviceLines' => $serviceLines,
+            'unresolvedServiceLines' => array_values(array_diff($serviceLines, $resolvedServiceLines)),
+            'hasLocations' => $locations !== [],
+            'locations' => $locations,
+            'unresolvedLocations' => array_values(array_diff($locations, $resolvedLocations)),
+        ];
     }
 }
