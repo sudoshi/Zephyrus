@@ -3,13 +3,18 @@
 namespace App\Integrations\Healthcare\Services;
 
 use App\Models\Integration\Source;
+use App\Models\Org\Facility;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OperationalIntegrationConfigurator
 {
-    public function __construct(private readonly IntegrationConfigurationAuditService $audit) {}
+    public function __construct(
+        private readonly IntegrationConfigurationAuditService $audit,
+        private readonly SourceRegistryService $registry,
+        private readonly CredentialAuthorityService $credentialAuthority,
+    ) {}
 
     /** @return array<string, mixed> */
     public function configureEpicSandbox(
@@ -17,12 +22,15 @@ class OperationalIntegrationConfigurator
         ?string $privateKeyRef = null,
         ?string $keyId = null,
         bool $activate = false,
+        ?string $facilityKey = null,
     ): array {
         $settings = config('integrations.epic_sandbox');
         $sourceKey = (string) $settings['source_key'];
         $correlationId = (string) Str::uuid();
 
-        return DB::transaction(function () use ($settings, $sourceKey, $clientId, $privateKeyRef, $keyId, $activate, $correlationId): array {
+        $scope = $this->enterpriseScope($facilityKey ?: ($settings['facility_key'] ?? null), $activate);
+
+        return DB::transaction(function () use ($settings, $sourceKey, $clientId, $privateKeyRef, $keyId, $activate, $correlationId, $scope): array {
             $source = Source::query()->firstOrNew(['source_key' => $sourceKey]);
             $before = $source->exists ? $this->epicSummary($source) : [];
             if (! $source->exists) {
@@ -52,9 +60,12 @@ class OperationalIntegrationConfigurator
                 ]);
             }
 
-            $source->fill([
-                'tenant_key' => 'default',
-                'facility_key' => null,
+            $source = $this->registry->ensureSource(array_filter([
+                'source_key' => $sourceKey,
+                'organization_id' => $scope['organization_id'] ?? null,
+                'facility_id' => $scope['facility_id'] ?? null,
+                'tenant_key' => $scope['organization_key'] ?? ($source->tenant_key ?: 'default'),
+                'facility_key' => $scope['facility_key'] ?? $source->facility_key,
                 'source_name' => 'Epic FHIR R4 Public Sandbox',
                 'vendor' => 'Epic',
                 'system_class' => 'ehr',
@@ -76,8 +87,7 @@ class OperationalIntegrationConfigurator
                     'managed_by' => 'integrations:configure-operational-sources',
                     'data_classification' => 'synthetic_sandbox',
                 ],
-            ]);
-            $source->save();
+            ], fn (mixed $value): bool => $value !== null));
 
             foreach ([
                 'fhir_base' => [$settings['base_url'], 'smart_backend_services'],
@@ -119,6 +129,12 @@ class OperationalIntegrationConfigurator
                 ],
             );
 
+            $sourceCredentialId = $this->ensureSmartCredentialAuthority(
+                (int) $source->source_id,
+                $existingCredential,
+                $resolvedKeyRef,
+            );
+
             DB::table('integration.smart_backend_credentials')->updateOrInsert(
                 ['source_id' => $source->source_id, 'credential_key' => 'epic-smart-backend'],
                 [
@@ -128,6 +144,7 @@ class OperationalIntegrationConfigurator
                         'credential_uuid',
                     ),
                     'status' => $credentialsReady ? 'configured' : 'activation_required',
+                    'source_credential_id' => $sourceCredentialId,
                     'client_id' => $resolvedClientId,
                     'jwks_secret_ref' => $resolvedKeyRef,
                     'token_url' => $settings['token_url'],
@@ -149,6 +166,82 @@ class OperationalIntegrationConfigurator
 
             return $after;
         });
+    }
+
+    private function ensureSmartCredentialAuthority(
+        int $sourceId,
+        ?object $smartCredential,
+        ?string $secretReference,
+    ): ?int {
+        if (! filled($secretReference)) {
+            return null;
+        }
+
+        $credential = $smartCredential?->source_credential_id !== null
+            ? DB::table('integration.source_credentials')
+                ->where('source_id', $sourceId)
+                ->where('source_credential_id', $smartCredential->source_credential_id)
+                ->first()
+            : null;
+        if ($credential === null) {
+            $credential = DB::table('integration.source_credentials')
+                ->where('source_id', $sourceId)
+                ->where('credential_key', 'epic-smart-backend')
+                ->first();
+        }
+        if ($credential === null) {
+            $credentialId = (int) DB::table('integration.source_credentials')->insertGetId([
+                'source_id' => $sourceId,
+                'credential_key' => 'epic-smart-backend',
+                'credential_type' => 'smart_backend_services',
+                'secret_ref' => $secretReference,
+                'certificate_ref' => null,
+                'jwks_uri' => null,
+                'rotates_at' => null,
+                'credential_state' => 'active',
+                'valid_from' => now(),
+                'is_active' => true,
+                'metadata' => json_encode([
+                    'owner' => 'Integration governance',
+                    'managed_by' => 'integrations:configure-operational-sources',
+                    'runtime' => 'epic_smart_backend',
+                ], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'source_credential_id');
+            $this->credentialAuthority->initialize(
+                $credentialId,
+                null,
+                'Initialize the managed Epic SMART runtime credential authority.',
+            );
+
+            return $credentialId;
+        }
+
+        $current = $credential->current_credential_version_id === null
+            ? $this->credentialAuthority->initialize(
+                (int) $credential->source_credential_id,
+                null,
+                'Adopt the managed Epic SMART runtime credential authority.',
+            )
+            : $this->credentialAuthority->current((int) $credential->source_credential_id);
+        if (! hash_equals((string) $current->secret_ref, (string) $secretReference)
+            || ! in_array((string) $current->credential_state, ['active', 'rotating'], true)) {
+            $this->credentialAuthority->rotate(
+                (int) $credential->source_credential_id,
+                [
+                    'credential_type' => 'smart_backend_services',
+                    'secret_ref' => $secretReference,
+                    'is_active' => true,
+                    'valid_from' => now(),
+                ],
+                null,
+                'Synchronize the managed Epic SMART runtime credential reference.',
+                null,
+            );
+        }
+
+        return (int) $credential->source_credential_id;
     }
 
     /** @return array<string, mixed> */
@@ -195,9 +288,14 @@ class OperationalIntegrationConfigurator
             throw ValidationException::withMessages(['source_key' => 'The HL7 source key is invalid.']);
         }
         $activate = (bool) ($attributes['activate'] ?? false);
+        $scope = $this->enterpriseScope($attributes['facility_key'] ?? null, true);
+        if ($activate && ($attributes['environment'] ?? null) === 'production') {
+            throw ValidationException::withMessages([
+                'activation' => 'Production HL7 activation must use the step-up protected, independently approved Admin activation workflow.',
+            ]);
+        }
         if ($activate && (
-            ($attributes['environment'] ?? null) !== 'production'
-            || ($attributes['contract_status'] ?? null) !== 'executed'
+            ($attributes['contract_status'] ?? null) !== 'executed'
             || ($attributes['baa_status'] ?? null) !== 'executed'
             || ! ($attributes['phi_allowed'] ?? false)
             || ($attributes['go_live_status'] ?? null) !== 'live'
@@ -207,15 +305,18 @@ class OperationalIntegrationConfigurator
             ]);
         }
 
-        return DB::transaction(function () use ($attributes, $sourceKey, $activate): array {
+        return DB::transaction(function () use ($attributes, $sourceKey, $activate, $scope): array {
             $source = Source::query()->firstOrNew(['source_key' => $sourceKey]);
             $before = $source->exists ? $this->hl7SourceSummary($source) : [];
             if (! $source->exists) {
                 $source->source_uuid = (string) Str::uuid();
             }
-            $source->fill([
-                'tenant_key' => 'default',
-                'facility_key' => $attributes['facility_key'] ?? 'main',
+            $source = $this->registry->ensureSource([
+                'source_key' => $sourceKey,
+                'organization_id' => $scope['organization_id'],
+                'facility_id' => $scope['facility_id'],
+                'tenant_key' => $scope['organization_key'],
+                'facility_key' => $scope['facility_key'],
                 'source_name' => $attributes['source_name'],
                 'vendor' => $attributes['vendor'],
                 'system_class' => 'ehr',
@@ -238,7 +339,6 @@ class OperationalIntegrationConfigurator
                     'ingress_route' => '/api/integrations/v1/patient-flow/hl7v2',
                 ],
             ]);
-            $source->save();
 
             $after = $this->hl7SourceSummary($source->fresh());
             if ($before !== $after) {
@@ -296,6 +396,39 @@ class OperationalIntegrationConfigurator
             'phiAllowed' => (bool) $source->phi_allowed,
             'goLiveStatus' => $source->go_live_status,
             'ingressRoute' => '/api/integrations/v1/patient-flow/hl7v2',
+        ];
+    }
+
+    /** @return array{organization_id: int, organization_key: string, facility_id: int, facility_key: string}|null */
+    private function enterpriseScope(?string $facilityKey, bool $required): ?array
+    {
+        $facilityKey = trim((string) $facilityKey);
+        if ($facilityKey === '') {
+            if ($required) {
+                throw ValidationException::withMessages([
+                    'facility_key' => 'A canonical active facility is required for this integration source.',
+                ]);
+            }
+
+            return null;
+        }
+
+        $facility = Facility::query()
+            ->with('organization:organization_id,organization_key')
+            ->where('facility_key', $facilityKey)
+            ->where('is_active', true)
+            ->first();
+        if (! $facility instanceof Facility || $facility->organization === null) {
+            throw ValidationException::withMessages([
+                'facility_key' => 'The integration facility key must identify an active canonical facility.',
+            ]);
+        }
+
+        return [
+            'organization_id' => (int) $facility->organization_id,
+            'organization_key' => (string) $facility->organization->organization_key,
+            'facility_id' => (int) $facility->facility_id,
+            'facility_key' => (string) $facility->facility_key,
         ];
     }
 

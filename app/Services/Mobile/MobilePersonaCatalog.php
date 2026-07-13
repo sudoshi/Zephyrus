@@ -2,12 +2,16 @@
 
 namespace App\Services\Mobile;
 
+use App\Authorization\Capability;
 use App\Models\User;
+use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 
 class MobilePersonaCatalog
 {
+    public function __construct(private readonly RoleCapabilityService $authorization) {}
+
     public const ROLE_IDS = [
         'charge_nurse',
         'bedside_nurse',
@@ -91,7 +95,7 @@ class MobilePersonaCatalog
             return self::ROLE_IDS;
         }
 
-        $roleNames = $user?->getRoleNames()?->map(fn (string $role): string => strtolower(str_replace([' ', '-'], '_', $role))) ?? collect();
+        $roleNames = collect($this->authorization->effectiveRoleIds($user));
         $allowed = [];
         foreach (self::ROLE_IDS as $known) {
             if ($roleNames->contains($known) || $roleNames->contains(fn (string $role): bool => str_contains($role, $known))) {
@@ -113,12 +117,7 @@ class MobilePersonaCatalog
             return false;
         }
 
-        $appRole = $this->canonical($user->role ?? null);
-        if (in_array($appRole, ['admin', 'super_admin', 'superuser'], true)) {
-            return true;
-        }
-
-        return $user->hasRole(['admin', 'super-admin', 'super_admin']);
+        return $this->authorization->allows($user, Capability::AssumeAnyMobilePersona);
     }
 
     private function defaultForUser(?User $user): string
@@ -130,9 +129,7 @@ class MobilePersonaCatalog
 
     private function canonical(?string $roleId): string
     {
-        $roleId = strtolower((string) $roleId);
-
-        return str_replace([' ', '-'], '_', $roleId);
+        return $this->authorization->canonicalRole($roleId) ?? '';
     }
 
     private function assignmentScope(string $roleId): string

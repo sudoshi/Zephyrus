@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AccountSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
+    public function __construct(private readonly AccountSessionService $sessions) {}
+
     /**
      * Update the user's password.
      */
@@ -20,9 +23,11 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
+        $this->sessions->revoke($user, $request, 'password_changed', keepCurrentSession: true);
 
         return back();
     }

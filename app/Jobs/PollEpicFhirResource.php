@@ -5,7 +5,10 @@ namespace App\Jobs;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Integrations\Healthcare\Services\EpicSmartFhirClient;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
+use App\Jobs\Middleware\FailClinicalJobSafely;
+use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -14,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-class PollEpicFhirResource implements ShouldQueue
+class PollEpicFhirResource implements ClinicalPayloadSafeQueueJob, ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -78,8 +81,24 @@ class PollEpicFhirResource implements ShouldQueue
                 'updated_at' => now(),
             ]);
 
-            throw $exception;
+            throw new IntegrationProtocolException($errorCode);
         }
+    }
+
+    /** @return list<FailClinicalJobSafely> */
+    public function middleware(): array
+    {
+        return [new FailClinicalJobSafely];
+    }
+
+    public function clinicalPayloadSafeArguments(): array
+    {
+        return [
+            'runId' => $this->runId,
+            'resourceType' => $this->resourceType,
+            'actorUserId' => $this->actorUserId,
+            'correlationId' => $this->correlationId,
+        ];
     }
 
     public function failed(?Throwable $exception): void

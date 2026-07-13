@@ -11,7 +11,9 @@ use App\Models\Integration\Source;
 use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -25,6 +27,7 @@ class PatientFlowHl7IngestPipeline
         private readonly FlowEventNormalizer $normalizer,
         private readonly FlowEventRepository $events,
         private readonly CanonicalEventWriter $canonicalEvents,
+        private readonly ClinicalPayloadStore $payloads,
     ) {}
 
     /**
@@ -44,24 +47,47 @@ class PatientFlowHl7IngestPipeline
         $messageCreated = false;
 
         try {
-            $message = InboundMessage::firstOrCreate(
-                [
-                    'source_id' => $source->source_id,
-                    'idempotency_key' => $idempotencyKey,
-                ],
-                [
-                    'message_uuid' => (string) Str::uuid(),
-                    'ingest_run_id' => $run->ingest_run_id,
-                    'message_type' => 'HL7V2_ADT',
-                    'external_id' => null,
-                    'payload_hash' => $payloadHash,
-                    'payload' => ['raw_hl7' => $rawHl7],
-                    'received_at' => now(),
-                    'parse_status' => 'received',
-                    'metadata' => ['connector_key' => self::CONNECTOR_KEY],
-                ],
-            );
-            $messageCreated = $message->wasRecentlyCreated;
+            $message = InboundMessage::query()
+                ->where('source_id', $source->source_id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+            if ($message === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'raw_message',
+                    ['raw_hl7' => $rawHl7],
+                );
+                try {
+                    $message = InboundMessage::create([
+                        'message_uuid' => (string) Str::uuid(),
+                        'source_id' => $source->source_id,
+                        'ingest_run_id' => $run->ingest_run_id,
+                        'message_type' => 'HL7V2_ADT',
+                        'external_id' => null,
+                        'idempotency_key' => $idempotencyKey,
+                        'payload_hash' => $payloadHash,
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                        'received_at' => now(),
+                        'parse_status' => 'received',
+                        'metadata' => ['connector_key' => self::CONNECTOR_KEY],
+                    ]);
+                    $messageCreated = true;
+                } catch (QueryException $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_insert_race');
+                    $message = InboundMessage::query()
+                        ->where('source_id', $source->source_id)
+                        ->where('idempotency_key', $idempotencyKey)
+                        ->first();
+                    if ($message === null) {
+                        throw $exception;
+                    }
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_insert_failed');
+
+                    throw $exception;
+                }
+            }
 
             if (! hash_equals((string) $message->payload_hash, $payloadHash)) {
                 throw new PatientFlowIngestException(
@@ -69,6 +95,23 @@ class PatientFlowHl7IngestPipeline
                     'The idempotency key was already used with a different payload.',
                     409,
                 );
+            }
+            if ($message->payload_object_id === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'raw_message',
+                    ['raw_hl7' => $rawHl7],
+                );
+                try {
+                    $message->update([
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_link_failed');
+
+                    throw $exception;
+                }
             }
 
             $existingCanonical = CanonicalEventRecord::query()
@@ -106,12 +149,32 @@ class PatientFlowHl7IngestPipeline
 
             $normalized = $this->normalizer->normalize($rawHl7, 'hl7v2');
 
-            $message->update([
-                'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
-                'external_id' => $normalized['message_control_id'] ?? null,
-                'normalized_payload' => $normalized,
-                'parse_status' => 'normalized',
-            ]);
+            if ($message->normalized_payload_object_id === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'normalized_message',
+                    $normalized,
+                );
+                try {
+                    $message->update([
+                        'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
+                        'external_id' => $normalized['message_control_id'] ?? null,
+                        'normalized_payload' => null,
+                        'normalized_payload_object_id' => $stored->payloadObjectId,
+                        'parse_status' => 'normalized',
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'normalized_message_link_failed');
+
+                    throw $exception;
+                }
+            } else {
+                $message->update([
+                    'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
+                    'external_id' => $normalized['message_control_id'] ?? null,
+                    'parse_status' => 'normalized',
+                ]);
+            }
 
             [$record] = DB::transaction(function () use ($source, $run, $message, $normalized, $idempotencyKey): array {
                 $canonical = new CanonicalOperationalEvent(
@@ -284,6 +347,16 @@ class PatientFlowHl7IngestPipeline
             'status' => 'open',
             'metadata' => [],
         ]);
+    }
+
+    private function discardPayload(int $payloadObjectId, int $sourceId, string $reasonCode): void
+    {
+        $this->payloads->discard(
+            $payloadObjectId,
+            $sourceId,
+            $reasonCode,
+            'Encrypted clinical payload was discarded because the intended database link did not become authoritative.',
+        );
     }
 
     /**

@@ -4,59 +4,56 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Services\Audit\UserAuditRecorder;
+use App\Services\Auth\AccountSessionService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class SessionAuthMiddleware
 {
-    /**
-     * Auto-login middleware that ensures a user is always authenticated.
-     * Replaces traditional authentication with an automatic login as admin user.
-     *
-     * @return mixed
-     */
+    public function __construct(private readonly AccountSessionService $sessions) {}
+
     public function handle(Request $request, Closure $next): Response
     {
-        // If the user is already authenticated, proceed
         if (Auth::check()) {
             return $next($request);
         }
 
-        // Auto-login as admin user
-        $user = User::firstOrCreate(
-            ['username' => 'admin'],
-            [
-                'name' => 'Administrator',
-                'email' => 'admin@example.com',
-                'password' => bcrypt('password'),
-                'workflow_preference' => 'superuser',
-                'must_change_password' => false,
-                'role' => 'admin',
-                'is_active' => true,
-            ]
-        );
+        if ($this->autoLoginIsForbidden()) {
+            return redirect()->guest(route('login'));
+        }
 
-        if ($user->must_change_password || ! in_array($user->role, ['admin', 'bed_manager'], true)) {
-            $user->forceFill([
-                'workflow_preference' => $user->workflow_preference ?: 'superuser',
-                'must_change_password' => false,
-                'role' => 'admin',
-                'is_active' => true,
-            ])->save();
+        $username = trim((string) config('demo.auto_login_username'));
+        $user = $username === ''
+            ? null
+            : User::query()->where('username', $username)->first();
+
+        if (! $user || ! $user->is_active || $user->must_change_password) {
+            Log::warning('Configured demo auto-login account is unavailable.', [
+                'username_configured' => $username !== '',
+                'account_found' => (bool) $user,
+                'account_active' => (bool) ($user?->is_active ?? false),
+                'password_change_required' => (bool) ($user?->must_change_password ?? false),
+            ]);
+
+            return redirect()->guest(route('login'));
         }
 
         $request->attributes->set(UserAuditRecorder::AUTH_METHOD_ATTRIBUTE, 'demo');
         $request->attributes->set(UserAuditRecorder::SOURCE_SURFACE_ATTRIBUTE, 'web');
 
-        // Log the user in
         Auth::login($user);
+        $request->session()->put('workflow', $user->workflow_preference ?: 'superuser');
+        $this->sessions->establish($request, $user);
 
-        // Set the workflow preference in session
-        $request->session()->put('workflow', 'superuser');
-
-        // Proceed with the request
         return $next($request);
+    }
+
+    private function autoLoginIsForbidden(): bool
+    {
+        return app()->environment('production')
+            || ! (bool) config('demo.auto_login_enabled', false);
     }
 }

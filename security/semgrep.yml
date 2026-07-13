@@ -1,0 +1,91 @@
+rules:
+  - id: zephyrus.php.disabled-tls-verification
+    message: Outbound TLS verification must never be disabled.
+    severity: ERROR
+    languages: [php]
+    patterns:
+      - pattern-either:
+          - pattern: Http::withoutVerifying(...)
+          - pattern: $CLIENT->withoutVerifying(...)
+          - pattern: curl_setopt($CURL, CURLOPT_SSL_VERIFYPEER, false)
+          - pattern: $OPTIONS = [..., "verify" => false, ...]
+          - pattern: $OPTIONS = [..., 'verify' => false, ...]
+
+  - id: zephyrus.php.request-to-command-execution
+    message: Request-controlled input must not reach an operating-system command sink.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: $REQUEST->input(...)
+          - pattern-inside: |
+              function $FUNCTION(..., Request $REQUEST, ...) {
+                ...
+              }
+      - pattern-either:
+          - pattern: request(...)
+          - pattern: request()->input(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: exec(...)
+          - pattern: shell_exec(...)
+          - pattern: system(...)
+          - pattern: passthru(...)
+          - pattern: proc_open(...)
+
+  - id: zephyrus.php.request-to-raw-sql
+    message: Request-controlled input must not be interpolated into a raw SQL expression.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: $REQUEST->input(...)
+          - pattern-inside: |
+              function $FUNCTION(..., Request $REQUEST, ...) {
+                ...
+              }
+      - pattern-either:
+          - pattern: request(...)
+          - pattern: request()->input(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: DB::raw(...)
+          - pattern: $QUERY->whereRaw(...)
+          - pattern: $QUERY->selectRaw(...)
+          - pattern: $QUERY->orderByRaw(...)
+
+  - id: zephyrus.javascript.dynamic-code-execution
+    message: Dynamic JavaScript execution is forbidden in application code.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: zephyrus.react.unreviewed-dangerous-html
+    message: dangerouslySetInnerHTML requires a dedicated sanitizer and security review.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern: <$ELEMENT ... dangerouslySetInnerHTML=$VALUE ... />
+
+  - id: zephyrus.python.disabled-tls-verification
+    message: Python HTTP clients must verify TLS certificates.
+    severity: ERROR
+    languages: [python]
+    patterns:
+      - pattern-either:
+          - pattern: requests.$METHOD(..., verify=False, ...)
+          - pattern: httpx.$METHOD(..., verify=False, ...)
+          - pattern: httpx.Client(..., verify=False, ...)
+          - pattern: httpx.AsyncClient(..., verify=False, ...)
+
+  - id: zephyrus.python.shell-command-execution
+    message: Shell command execution is forbidden in healthcare sidecar request paths.
+    severity: ERROR
+    languages: [python]
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$METHOD(..., shell=True, ...)
+          - pattern: os.system(...)

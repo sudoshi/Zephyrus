@@ -12,10 +12,16 @@ class ApiRouteSmokeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_read_api_routes_do_not_return_server_errors(): void
+    public function test_public_health_route_does_not_return_a_server_error(): void
     {
+        $this->getJson('/api/health')->assertOk();
+    }
+
+    public function test_authenticated_legacy_read_api_routes_do_not_return_server_errors(): void
+    {
+        $user = User::factory()->create(['must_change_password' => false]);
+
         foreach ([
-            '/api/health',
             '/api/cases',
             '/api/cases/today',
             '/api/cases/metrics',
@@ -32,7 +38,7 @@ class ApiRouteSmokeTest extends TestCase
             '/api/analytics/historical-trends',
             '/api/improvement/api/nursing-operations',
         ] as $path) {
-            $response = $this->getJson($path);
+            $response = $this->actingAs($user)->getJson($path);
 
             $this->assertLessThan(500, $response->status(), "{$path} returned {$response->status()}.");
         }

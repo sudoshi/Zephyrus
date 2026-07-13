@@ -5,7 +5,10 @@ namespace App\Jobs;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
 use App\Integrations\Healthcare\Services\IntegrationProtocolHealthService;
+use App\Jobs\Middleware\FailClinicalJobSafely;
+use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -13,7 +16,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class RunIntegrationProtocolHealthCheck implements ShouldQueue
+class RunIntegrationProtocolHealthCheck implements ClinicalPayloadSafeQueueJob, ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -73,8 +76,23 @@ class RunIntegrationProtocolHealthCheck implements ShouldQueue
                 'updated_at' => now(),
             ]);
 
-            throw $exception;
+            throw new IntegrationProtocolException($errorCode);
         }
+    }
+
+    /** @return list<FailClinicalJobSafely> */
+    public function middleware(): array
+    {
+        return [new FailClinicalJobSafely];
+    }
+
+    public function clinicalPayloadSafeArguments(): array
+    {
+        return [
+            'runId' => $this->runId,
+            'actorUserId' => $this->actorUserId,
+            'correlationId' => $this->correlationId,
+        ];
     }
 
     public function failed(?Throwable $exception): void

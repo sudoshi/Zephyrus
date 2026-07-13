@@ -5,12 +5,19 @@ namespace Tests\Feature\Integrations;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Integrations\Healthcare\Services\EpicSmartFhirClient;
 use App\Integrations\Healthcare\Services\IntegrationProtocolHealthService;
+use App\Integrations\Healthcare\Services\NetworkRouteService;
 use App\Integrations\Healthcare\Services\OperationalIntegrationConfigurator;
+use App\Integrations\Healthcare\Services\SourceOnboardingService;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Jobs\PollEpicFhirResource;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Jobs\RunIntegrationProtocolHealthCheck;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\User;
+use App\Security\Network\DnsResolver;
+use App\Security\Network\IntegrationUrlPolicy;
+use App\Services\Auth\StepUpAuthenticationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +31,38 @@ class IntegrationOperationalRuntimeTest extends TestCase
     use RefreshDatabase;
 
     private ?string $secretDirectory = null;
+
+    private int $organizationId;
+
+    private int $facilityId;
+
+    private string $facilityKey;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->artisan('deployment:seed-registry')->assertExitCode(0);
+        $organization = Organization::create([
+            'organization_key' => 'RUNTIME_TEST_IDN',
+            'name' => 'Runtime Test IDN',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::create([
+            'organization_id' => $organization->organization_id,
+            'facility_key' => 'RUNTIME_TEST_FACILITY',
+            'facility_name' => 'Runtime Test Facility',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
+        $this->organizationId = (int) $organization->organization_id;
+        $this->facilityId = (int) $facility->facility_id;
+        $this->facilityKey = (string) $facility->facility_key;
+        $this->fakeDns([
+            $this->epicHost() => ['8.8.8.8'],
+            'hl7-gateway.test' => ['8.8.4.4'],
+        ]);
+    }
 
     protected function tearDown(): void
     {
@@ -66,15 +105,16 @@ class IntegrationOperationalRuntimeTest extends TestCase
     public function test_fhir_discovery_runs_on_the_integration_queue_and_records_protocol_health(): void
     {
         config([
-            'integrations.network.allowed_hosts' => ['fhir.epic.com'],
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
             'integrations.network.require_dns_resolution' => false,
         ]);
-        app(OperationalIntegrationConfigurator::class)->configureEpicSandbox();
+        app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(facilityKey: $this->facilityKey);
         $sourceId = (int) DB::table('integration.sources')->where('source_key', 'epic.fhir-r4.sandbox')->value('source_id');
         Http::fake($this->epicDiscoveryResponses());
         Queue::fake();
 
-        $response = $this->actingAs($this->superuser())
+        $user = $this->superuser();
+        $response = $this->selectScope($user, $sourceId)
             ->postJson('/api/admin/integrations/sources/'.$sourceId.'/health-check')
             ->assertAccepted()
             ->assertJsonPath('data.status', 'queued');
@@ -105,7 +145,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
     public function test_epic_smart_backend_poll_signs_a_jwt_and_persists_versioned_fhir_lineage(): void
     {
         config([
-            'integrations.network.allowed_hosts' => ['fhir.epic.com'],
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
             'integrations.network.require_dns_resolution' => false,
         ]);
         $keyReference = $this->privateKeyReference();
@@ -114,6 +154,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
             privateKeyRef: $keyReference,
             keyId: 'test-key-1',
             activate: true,
+            facilityKey: $this->facilityKey,
         );
         $sourceId = (int) $source['sourceId'];
         Http::fake($this->epicDiscoveryResponses());
@@ -133,6 +174,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
                             'id' => 'sandbox-encounter-1',
                             'meta' => ['versionId' => '1', 'lastUpdated' => '2026-07-10T12:00:00Z'],
                             'status' => 'finished',
+                            'identifier' => [['value' => 'RECOGNIZABLE-FHIR-BODY-9911']],
                         ],
                     ]],
                 ], 200, ['Content-Type' => 'application/fhir+json']);
@@ -173,6 +215,16 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'connector_key' => 'epic.fhir-r4',
             'scope_key' => 'Encounter',
         ]);
+        $rawPayload = DB::table('raw.inbound_messages')->where('source_id', $sourceId)->where('message_type', 'FHIR_R4_Encounter')->firstOrFail();
+        $fhirPayload = DB::table('fhir.resource_versions')->where('source_id', $sourceId)->where('fhir_id', 'sandbox-encounter-1')->firstOrFail();
+        $this->assertNull($rawPayload->payload);
+        $this->assertSame('{}', $fhirPayload->resource_data);
+        $this->assertSame((int) $rawPayload->payload_object_id, (int) $fhirPayload->payload_object_id);
+        $this->assertStringNotContainsString('RECOGNIZABLE-FHIR-BODY-9911', json_encode([
+            $rawPayload,
+            $fhirPayload,
+            DB::table('integration.provenance_records')->where('source_id', $sourceId)->get(),
+        ], JSON_THROW_ON_ERROR));
         Http::assertSent(function (Request $request): bool {
             if ($request->url() !== config('integrations.epic_sandbox.token_url')) {
                 return false;
@@ -199,32 +251,56 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $source = app(SourceRegistryService::class)->ensureSource([
             'source_key' => 'replay.test',
             'source_name' => 'Replay Test',
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'tenant_key' => 'RUNTIME_TEST_IDN',
+            'facility_key' => $this->facilityKey,
         ]);
         $pendingId = $this->canonicalEvent((int) $source->source_id, 'pending');
         $this->canonicalEvent((int) $source->source_id, 'projected');
         $user = $this->superuser();
+        $approver = $this->superuser();
         $scope = [
-            'source_id' => $source->source_id,
+            'source_id' => (int) $source->source_id,
             'from' => now()->subHour()->toIso8601String(),
             'to' => now()->addHour()->toIso8601String(),
             'limit' => 50,
         ];
 
-        $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays/preview', $scope)
+        $this->selectScope($user, (int) $source->source_id)->postJson('/api/admin/integrations/enterprise/replays/preview', $scope)
             ->assertOk()
             ->assertJsonPath('data.eligibleEvents', 1)
             ->assertJsonPath('data.mutation', false);
         $this->assertSame(0, DB::table('integration.event_replay_jobs')->count());
 
         Queue::fake();
-        $first = $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays', $scope, ['Idempotency-Key' => 'replay-test-1'])
+        $stepUp = [
+            StepUpAuthenticationService::VERIFIED_AT => time(),
+            StepUpAuthenticationService::METHOD => 'password',
+        ];
+        $changeUuid = $this->selectScope($user, (int) $source->source_id)->withSession($stepUp)
+            ->postJson('/api/admin/integrations/enterprise/replays/requests', [
+                ...$scope,
+                'reason' => 'The bounded replay preview and recovery plan were reviewed.',
+            ])->assertCreated()->json('data.changeRequestUuid');
+        $this->selectScope($approver, (int) $source->source_id)->withSession($stepUp)
+            ->postJson("/api/admin/integrations/governed-changes/{$changeUuid}/decision", [
+                'decision' => 'approved',
+                'reason' => 'Independent reviewer confirmed the replay scope and event count.',
+            ])->assertOk();
+
+        $execution = [...$scope, 'change_request_uuid' => $changeUuid];
+        $first = $this->selectScope($user, (int) $source->source_id)->withSession($stepUp)
+            ->postJson('/api/admin/integrations/enterprise/replays', $execution, ['Idempotency-Key' => 'replay-test-1'])
             ->assertAccepted();
         $replayId = (int) $first->json('data.replayJobId');
-        $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays', $scope, ['Idempotency-Key' => 'replay-test-1'])
-            ->assertOk()->assertJsonPath('data.replayJobId', $replayId)->assertJsonPath('data.created', false);
-        $changedScope = array_merge($scope, ['limit' => 49]);
-        $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays', $changedScope, ['Idempotency-Key' => 'replay-test-1'])
-            ->assertConflict();
+        $this->selectScope($user, (int) $source->source_id)->withSession($stepUp)
+            ->postJson('/api/admin/integrations/enterprise/replays', $execution, ['Idempotency-Key' => 'replay-test-1'])
+            ->assertConflict()->assertJsonPath('error.code', 'change_already_executed');
+        $changedScope = array_merge($execution, ['limit' => 49]);
+        $this->selectScope($user, (int) $source->source_id)->withSession($stepUp)
+            ->postJson('/api/admin/integrations/enterprise/replays', $changedScope, ['Idempotency-Key' => 'replay-test-2'])
+            ->assertConflict()->assertJsonPath('error.code', 'approved_payload_mismatch');
         $job = new ReplayPendingIntegrationEvents($replayId, $user->id, (string) Str::uuid());
         $this->assertSame('database', $job->connection);
         $this->assertSame('integrations', $job->queue);
@@ -250,13 +326,14 @@ class IntegrationOperationalRuntimeTest extends TestCase
     public function test_failed_fhir_poll_dead_letters_and_a_successful_retry_resolves_it(): void
     {
         config([
-            'integrations.network.allowed_hosts' => ['fhir.epic.com'],
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
             'integrations.network.require_dns_resolution' => false,
         ]);
         $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(
             clientId: 'registered-non-production-client',
             privateKeyRef: $this->privateKeyReference(),
             activate: true,
+            facilityKey: $this->facilityKey,
         );
         $sourceId = (int) $source['sourceId'];
         Http::fake($this->epicDiscoveryResponses());
@@ -323,6 +400,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
                 'source_key' => 'epic.adt.production',
                 'source_name' => 'Epic ADT Production',
                 'vendor' => 'Epic',
+                'facility_key' => $this->facilityKey,
                 'environment' => 'production',
                 'contract_status' => 'unknown',
                 'baa_status' => 'unknown',
@@ -339,13 +417,34 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'source_key' => 'epic.adt.production',
             'source_name' => 'Epic ADT Production',
             'vendor' => 'Epic',
+            'facility_key' => $this->facilityKey,
             'environment' => 'production',
             'contract_status' => 'executed',
             'baa_status' => 'executed',
             'phi_allowed' => true,
-            'go_live_status' => 'live',
-            'activate' => true,
+            'go_live_status' => 'testing',
+            'activate' => false,
         ]);
+        $this->completeHl7Readiness((int) $source['sourceId']);
+        $author = $this->superuser();
+        $approver = $this->superuser();
+        $stepUp = [
+            StepUpAuthenticationService::VERIFIED_AT => time(),
+            StepUpAuthenticationService::METHOD => 'password',
+        ];
+        $changeUuid = $this->selectScope($author, (int) $source['sourceId'])->withSession($stepUp)
+            ->postJson("/api/admin/integrations/sources/{$source['sourceId']}/activation-requests", [
+                'reason' => 'Production HL7 contract, BAA, ingress, cutover, and rollback evidence passed review.',
+            ])->assertCreated()->json('data.changeRequestUuid');
+        $this->selectScope($approver, (int) $source['sourceId'])->withSession($stepUp)
+            ->postJson("/api/admin/integrations/governed-changes/{$changeUuid}/decision", [
+                'decision' => 'approved',
+                'reason' => 'Independent reviewer verified the exact source version and production evidence.',
+            ])->assertOk();
+        $this->selectScope($author, (int) $source['sourceId'])->withSession($stepUp)
+            ->postJson("/api/admin/integrations/governed-changes/{$changeUuid}/execute-source-activation")
+            ->assertOk()
+            ->assertJsonPath('data.lifecycleState', 'live');
         $machine = User::factory()->create(['role' => 'integration', 'is_active' => true]);
         $this->artisan('integrations:issue-hl7-token', ['user' => $machine->id, '--expires' => 7])->assertSuccessful();
 
@@ -408,6 +507,11 @@ class IntegrationOperationalRuntimeTest extends TestCase
         return 'file://'.$path;
     }
 
+    private function epicHost(): string
+    {
+        return (string) parse_url((string) config('integrations.epic_sandbox.base_url'), PHP_URL_HOST);
+    }
+
     private function canonicalEvent(int $sourceId, string $projectionStatus): int
     {
         $eventId = (string) Str::uuid();
@@ -434,5 +538,115 @@ class IntegrationOperationalRuntimeTest extends TestCase
     private function superuser(): User
     {
         return User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
+    }
+
+    private function completeHl7Readiness(int $sourceId): void
+    {
+        $endpointId = (int) DB::table('integration.source_endpoints')->insertGetId([
+            'source_id' => $sourceId,
+            'endpoint_type' => 'interface_engine_ingress',
+            'url' => 'https://hl7-gateway.test/interfaces/adt',
+            'auth_type' => 'managed_gateway',
+            'tls_mode' => 'mutual_tls',
+            'is_active' => true,
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'source_endpoint_id');
+        app(NetworkRouteService::class)->create($sourceId, [
+            'route_key' => 'interface-engine-mllp-tls',
+            'source_endpoint_id' => $endpointId,
+            'transport' => 'public_internet',
+            'hostname' => 'hl7-gateway.test',
+            'port' => 443,
+            'dns_policy' => 'public_only',
+            'allowed_ip_cidrs' => [],
+            'egress_policy_key' => 'integration-https-egress',
+            'mtls_required' => false,
+            'change_reason' => 'Authorize the exact managed HL7 gateway route for readiness testing.',
+        ], null);
+        $onboarding = app(SourceOnboardingService::class);
+        $current = $onboarding->latest($sourceId);
+        $onboarding->revise($sourceId, [
+            'system_version' => 'May 2026',
+            'protocol_profile' => 'HL7 v2.5.1 ADT A01-A13 gateway profile',
+            'owner_name' => 'Interface Engineering',
+            'steward_name' => 'Clinical Data Governance',
+            'network_route_key' => 'interface-engine-mllp-tls',
+            'data_classification' => 'restricted_phi',
+            'permitted_purpose' => 'Operate the production ADT patient-flow interface.',
+            'phi_permission_basis' => 'Executed BAA and treatment operations authorization.',
+            'retention_policy_key' => 'adt-interface-7y',
+            'retention_days' => 2555,
+            'credential_strategy' => 'managed_interface_engine',
+            'conformance_status' => 'passed',
+            'support_entitlement' => 'critical',
+            'vendor_support_identifier' => 'EPIC-HL7-SUPPORT',
+            'maintenance_timezone' => 'America/New_York',
+            'contacts' => [
+                ['role' => 'owner', 'name' => 'Interface Engineering', 'email' => 'interfaces@example.test'],
+                ['role' => 'steward', 'name' => 'Clinical Data Governance', 'email' => 'governance@example.test'],
+                ['role' => 'escalation', 'name' => 'Operations Command', 'email' => 'command@example.test'],
+            ],
+            'maintenance_windows' => [
+                ['weekday' => 0, 'start_local' => '02:00', 'duration_minutes' => 60, 'purpose' => 'Interface maintenance'],
+            ],
+            'slo_definition' => [
+                'availability_percent' => 99.99,
+                'freshness_minutes' => 1,
+                'completeness_percent' => 99.9,
+                'latency_ms' => 1000,
+                'error_rate_percent' => 0.1,
+                'acknowledgement_seconds' => 10,
+                'reconciliation_variance_percent' => 0.1,
+            ],
+        ], (int) $current->source_onboarding_version_id, null, 'Complete the production HL7 onboarding readiness profile.');
+
+        foreach ([
+            'contract' => 'verified', 'baa' => 'verified', 'dua' => 'not_required',
+            'conformance_report' => 'verified', 'vendor_approval' => 'verified',
+            'customer_uat' => 'verified', 'test_results' => 'verified',
+            'security_review' => 'verified', 'change_ticket' => 'verified',
+            'cutover_plan' => 'verified', 'rollback_plan' => 'verified',
+        ] as $type => $status) {
+            $onboarding->addEvidence($sourceId, [
+                'evidence_type' => $type,
+                'evidence_status' => $status,
+                'display_label' => str_replace('_', ' ', ucfirst($type)).' HL7 evidence',
+                'reference_uri' => 'https://evidence.test/hl7/'.$type,
+                'artifact_sha256' => str_repeat('e', 64),
+                'issued_at' => now()->subDay(),
+                'expires_at' => now()->addYear(),
+                'reason' => 'Record reviewed production HL7 activation evidence.',
+            ], null);
+        }
+    }
+
+    /** @param array<string, list<string>> $answers */
+    private function fakeDns(array $answers): void
+    {
+        $this->app->instance(DnsResolver::class, new class($answers) extends DnsResolver
+        {
+            /** @param array<string, list<string>> $answers */
+            public function __construct(private readonly array $answers) {}
+
+            public function resolve(string $host): array
+            {
+                return $this->answers[$host] ?? [];
+            }
+        });
+        $this->app->forgetInstance(IntegrationUrlPolicy::class);
+    }
+
+    private function selectScope(User $user, int $sourceId): self
+    {
+        $this->actingAs($user)->put('/admin/active-scope', [
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'source_id' => $sourceId,
+            'return_path' => '/integrations',
+        ])->assertRedirect();
+
+        return $this;
     }
 }

@@ -20,6 +20,9 @@ use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
 use App\Rtdc\Events\CanonicalEvent as RtdcCanonicalEvent;
+use App\Security\ClinicalPayloads\ClinicalPayloadException;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -34,6 +37,7 @@ class SyntheticHealthcareConnector implements HealthcareConnector
         private readonly SyntheticCanonicalEventMapper $mapper,
         private readonly CanonicalEventWriter $writer,
         private readonly RtdcProjectionHandler $projector,
+        private readonly ClinicalPayloadStore $payloads,
     ) {}
 
     public function sourceKey(): string
@@ -117,7 +121,7 @@ class SyntheticHealthcareConnector implements HealthcareConnector
                     inboundMessageId: $record->inbound_message_id,
                     failureStage: 'replay',
                     reasonCode: 'projection_failed',
-                    message: $exception->getMessage(),
+                    message: 'The encrypted canonical event could not be projected during replay.',
                     exceptionClass: $exception::class,
                     context: ['canonical_event_id' => $record->canonical_event_id],
                 );
@@ -168,10 +172,30 @@ class SyntheticHealthcareConnector implements HealthcareConnector
                 }
 
                 $normalized = $this->normalizer->normalize($sourceMessage);
-                $message->update([
-                    'normalized_payload' => $normalized->toArray(),
-                    'parse_status' => 'normalized',
-                ]);
+                if ($message->normalized_payload_object_id === null) {
+                    $stored = $this->payloads->storeJson(
+                        (int) $source->source_id,
+                        'normalized_message',
+                        $normalized->toArray(),
+                    );
+                    try {
+                        $message->update([
+                            'normalized_payload' => null,
+                            'normalized_payload_object_id' => $stored->payloadObjectId,
+                            'parse_status' => 'normalized',
+                        ]);
+                    } catch (Throwable $exception) {
+                        $this->discardPayload(
+                            $stored->payloadObjectId,
+                            (int) $source->source_id,
+                            'normalized_message_link_failed',
+                        );
+
+                        throw $exception;
+                    }
+                } else {
+                    $message->update(['parse_status' => 'normalized']);
+                }
 
                 $events = $this->mapper->map($normalized);
 
@@ -193,11 +217,10 @@ class SyntheticHealthcareConnector implements HealthcareConnector
                     inboundMessageId: $message->inbound_message_id,
                     failureStage: 'mapping',
                     reasonCode: 'message_mapping_failed',
-                    message: $exception->getMessage(),
+                    message: 'The encrypted source message could not be normalized and mapped.',
                     exceptionClass: $exception::class,
                     context: [
                         'message_type' => $message->message_type,
-                        'external_id' => $message->external_id,
                     ],
                 );
             }
@@ -239,6 +262,8 @@ class SyntheticHealthcareConnector implements HealthcareConnector
 
     private function source(): \App\Models\Integration\Source
     {
+        $scope = $this->syntheticEnterpriseScope();
+
         return $this->sources->ensureSource([
             'source_key' => $this->sourceKey(),
             'source_name' => 'Synthetic Command Center Feed',
@@ -246,9 +271,35 @@ class SyntheticHealthcareConnector implements HealthcareConnector
             'system_class' => 'synthetic',
             'interface_type' => 'webhook',
             'environment' => app()->environment('production') ? 'production' : 'sandbox',
-            'active_status' => 'active',
+            'active_status' => $scope === [] ? 'testing' : 'active',
             'metadata' => ['connector_key' => self::CONNECTOR_KEY],
+            ...$scope,
         ]);
+    }
+
+    /** @return array<string, int|string> */
+    private function syntheticEnterpriseScope(): array
+    {
+        $facilityKey = trim((string) config('integrations.synthetic.facility_key'));
+        if ($facilityKey === '') {
+            return [];
+        }
+
+        $facility = \App\Models\Org\Facility::query()
+            ->with('organization:organization_id,organization_key')
+            ->where('facility_key', $facilityKey)
+            ->where('is_active', true)
+            ->first();
+        if ($facility === null || $facility->organization === null) {
+            return [];
+        }
+
+        return [
+            'organization_id' => (int) $facility->organization_id,
+            'facility_id' => (int) $facility->facility_id,
+            'tenant_key' => (string) $facility->organization->organization_key,
+            'facility_key' => (string) $facility->facility_key,
+        ];
     }
 
     private function startRun(
@@ -281,23 +332,66 @@ class SyntheticHealthcareConnector implements HealthcareConnector
         ])));
         $payloadHash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-        return InboundMessage::firstOrCreate(
-            [
-                'source_id' => $sourceId,
-                'idempotency_key' => $idempotencyKey,
-            ],
-            [
+        $existing = InboundMessage::query()
+            ->where('source_id', $sourceId)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+        if ($existing !== null) {
+            if (! hash_equals((string) $existing->payload_hash, $payloadHash)) {
+                throw new ClinicalPayloadException('raw_message_idempotency_conflict');
+            }
+            if ($existing->payload_object_id === null) {
+                $stored = $this->payloads->storeJson($sourceId, 'raw_message', $payload);
+                try {
+                    $existing->update([
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_link_failed');
+
+                    throw $exception;
+                }
+            }
+
+            return $existing;
+        }
+
+        $stored = $this->payloads->storeJson($sourceId, 'raw_message', $payload);
+        try {
+            return InboundMessage::create([
                 'message_uuid' => (string) Str::uuid(),
+                'source_id' => $sourceId,
                 'ingest_run_id' => $runId,
                 'message_type' => $messageType,
                 'external_id' => $externalId,
+                'idempotency_key' => $idempotencyKey,
                 'payload_hash' => $payloadHash,
-                'payload' => $payload,
+                'payload' => null,
+                'payload_object_id' => $stored->payloadObjectId,
                 'received_at' => $payload['received_at'] ?? now(),
                 'parse_status' => 'received',
                 'metadata' => ['connector_key' => self::CONNECTOR_KEY],
-            ],
-        );
+            ]);
+        } catch (QueryException $exception) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_insert_race');
+            $existing = InboundMessage::query()
+                ->where('source_id', $sourceId)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+            if ($existing === null) {
+                throw $exception;
+            }
+            if (! hash_equals((string) $existing->payload_hash, $payloadHash)) {
+                throw new ClinicalPayloadException('raw_message_idempotency_conflict');
+            }
+
+            return $existing;
+        } catch (Throwable $exception) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_insert_failed');
+
+            throw $exception;
+        }
     }
 
     private function projectRecord(
@@ -372,5 +466,15 @@ class SyntheticHealthcareConnector implements HealthcareConnector
             'status' => 'open',
             'metadata' => ['connector_key' => self::CONNECTOR_KEY],
         ]);
+    }
+
+    private function discardPayload(int $payloadObjectId, int $sourceId, string $reasonCode): void
+    {
+        $this->payloads->discard(
+            $payloadObjectId,
+            $sourceId,
+            $reasonCode,
+            'Encrypted clinical payload was discarded because the intended database link did not become authoritative.',
+        );
     }
 }

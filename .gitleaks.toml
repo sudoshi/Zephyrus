@@ -1,0 +1,17 @@
+title = "Zephyrus secret-scanning policy"
+
+[extend]
+useDefault = true
+
+# Keep this file intentionally narrow. Exceptions must identify an exact safe
+# test fixture or public identifier; paths such as .env.production must never
+# be globally allowlisted.
+[[allowlists]]
+description = "Generated dependency and scan-output trees; their manifests are audited separately"
+paths = [
+  '''(^|/)vendor/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)public/build/''',
+  '''(^|/)artifacts/''',
+]
+

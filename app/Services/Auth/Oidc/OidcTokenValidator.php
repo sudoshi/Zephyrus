@@ -61,11 +61,29 @@ class OidcTokenValidator
             }
         }
 
+        $amr = [];
+        if (isset($payload['amr']) && is_array($payload['amr'])) {
+            foreach ($payload['amr'] as $method) {
+                if (is_string($method) && $method !== '') {
+                    $amr[] = $method;
+                }
+            }
+        }
+        $authTime = isset($payload['auth_time']) && is_numeric($payload['auth_time'])
+            ? (int) $payload['auth_time']
+            : null;
+        $acr = isset($payload['acr']) && is_string($payload['acr']) && $payload['acr'] !== ''
+            ? $payload['acr']
+            : null;
+
         return new ValidatedClaims(
             sub: (string) $payload['sub'],
             email: (string) $payload['email'],
             name: (string) $payload['name'],
             groups: $groups,
+            authTime: $authTime,
+            amr: array_values(array_unique($amr)),
+            acr: $acr,
         );
     }
 }

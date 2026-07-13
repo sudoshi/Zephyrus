@@ -42,6 +42,11 @@ config.local.php
 # Playwright MCP scratch captures (per-session browser artifacts)
 /.playwright-mcp/
 
+# Local release/test evidence (retained by CI artifacts, never deployed)
+/artifacts/
+/playwright-report/
+/test-results/
+
 # Firecrawl research captures (untrusted, per-session web artifacts)
 /.firecrawl/
 

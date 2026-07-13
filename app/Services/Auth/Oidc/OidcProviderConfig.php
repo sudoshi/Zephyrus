@@ -33,7 +33,14 @@ class OidcProviderConfig
     {
         $s = $this->settings();
 
-        return $s['enabled'] && $s['discovery_url'] !== '' && $s['client_id'] !== '' && $s['redirect_uri'] !== '';
+        $secretReady = ! (bool) config('auth-drivers.oidc_network.require_client_secret', true)
+            || $s['client_secret'] !== '';
+
+        return $s['enabled']
+            && $s['discovery_url'] !== ''
+            && $s['client_id'] !== ''
+            && $s['redirect_uri'] !== ''
+            && $secretReady;
     }
 
     public function displayName(): string
@@ -90,7 +97,9 @@ class OidcProviderConfig
 
     private function enabled(?AuthProviderSetting $provider): bool
     {
-        return (bool) config('services.oidc.enabled', false) || (bool) ($provider?->is_enabled ?? false);
+        return $provider !== null
+            ? (bool) $provider->is_enabled
+            : (bool) config('services.oidc.enabled', false);
     }
 
     private function stringSetting(array $settings, string $key, string $fallback): string

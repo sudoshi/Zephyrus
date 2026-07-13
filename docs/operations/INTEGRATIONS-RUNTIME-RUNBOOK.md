@@ -7,8 +7,8 @@
 ## Safety properties
 
 - Integration administration remains behind `viewIntegrations` / `manageIntegrations`; no general administrator or operations role inherits it.
-- Outbound checks allow HTTPS only, reject redirects, resolve only allowlisted public hosts, and never serialize an access token or private key.
-- Private keys are referenced as `file:///...` values rooted under `INTEGRATION_SECRET_FILE_ROOT`; the file must be readable by `www-data`, no larger than 64 KiB, and inaccessible to world users.
+- Production outbound connections require an exact governed network route, revalidate and pin target/proxy DNS at connection time, reject redirects, and never persist an address, access token, certificate body, or private key. The configured public-host policy remains only as a non-production fallback.
+- Credential material is referenced through the governed `file`, Vault, AWS Secrets Manager, GCP Secret Manager, or Azure Key Vault provider. Sealed files remain rooted under `INTEGRATION_SECRET_FILE_ROOT` and are subject to owner/group/mode/size/path checks. See `ADMIN-CREDENTIAL-NETWORK-GOVERNANCE-RUNBOOK.md`.
 - Protocol reachability and clinical-data freshness are separate. A successful discovery check does not advance a connector data watermark.
 - Replay preview never mutates. Execution is limited to pending/failed RTDC canonical events, seven days, and 1,000 events; already-projected events cannot be force-replayed.
 - HL7 accepts only a persisted Sanctum bearer token with the exact `integration:patient-flow:ingest` ability, an active dedicated integration identity, and a production/live/PHI-approved source in production.
@@ -131,4 +131,4 @@ sudo -u www-data php artisan queue:retry <failed-job-uuid>
 journalctl -u zephyrus-queue-worker.service -n 100 --no-pager
 ```
 
-Credential rotation uses overlap: provision the new key with Epic, replace the referenced file atomically, clear config only if reference metadata changed, run a health check, then retire the old public key after successful polling. Do not store a PEM, access token, HL7 payload, or client assertion in Git, command history, application logs, or configuration audits.
+Credential rotation uses the immutable authority and dual-control workflow: provision a new provider version, request the exact bounded overlap, obtain independent approval, re-enter and execute the exact payload, validate the new version, run health and a sandbox transaction, then retire the old provider version after the overlap. Follow `ADMIN-CREDENTIAL-NETWORK-GOVERNANCE-RUNBOOK.md`. Do not store a PEM, access token, HL7 payload, or client assertion in Git, command history, application logs, or configuration audits.

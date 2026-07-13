@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
 >
     <testsuites>
@@ -32,7 +32,10 @@
         <!-- The full suite (incl. the flow-window fixtures) exceeds PHP's 128M CLI
              default in a single-process run; raise it so `php artisan test` doesn't OOM. -->
         <ini name="memory_limit" value="512M"/>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_URL" value="http://zephyrus.test" force="true"/>
+        <!-- Deterministic test-only key; never reuse this value outside the test runner. -->
+        <env name="APP_KEY" value="base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
@@ -42,6 +45,21 @@
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="zephyrus_test"/>
         <env name="DB_USERNAME" value="claude_dev"/>
+        <env name="TEST_DB_ISOLATION" value="true"/>
+        <env name="TEST_DB_ADMIN_DATABASE" value="postgres"/>
+        <env name="TEST_NETWORK_GUARD" value="true" force="true"/>
+        <env name="INTEGRATION_SECRET_FILE_ROOT" value="storage/framework/testing/secrets" force="true"/>
+        <env name="OIDC_ENABLED" value="false" force="true"/>
+        <env name="OIDC_DISCOVERY_URL" value="https://idp.test/.well-known/openid-configuration" force="true"/>
+        <env name="OIDC_REDIRECT_URI" value="https://zephyrus.test/auth/oidc/callback" force="true"/>
+        <env name="OIDC_ALLOWED_HOSTS" value="idp.test" force="true"/>
+        <env name="OIDC_ALLOWED_REDIRECT_URIS" value="https://zephyrus.test/auth/oidc/callback" force="true"/>
+        <env name="INTEGRATION_ALLOWED_HOSTS" value="fhir.test" force="true"/>
+        <env name="EPIC_FHIR_BASE_URL" value="https://fhir.test/r4" force="true"/>
+        <env name="EPIC_SMART_CONFIGURATION_URL" value="https://fhir.test/.well-known/smart-configuration" force="true"/>
+        <env name="EPIC_FHIR_TOKEN_URL" value="https://fhir.test/oauth2/token" force="true"/>
+        <env name="EDDY_BASE_URL" value="http://eddy.test" force="true"/>
+        <env name="ARENA_BASE_URL" value="http://arena.test" force="true"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

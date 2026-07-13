@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Authorization\Capability;
+use App\Services\Authorization\RoleCapabilityService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,7 +17,8 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->isAdministrator()) {
+        $user = $request->user();
+        if ($user === null || ! app(RoleCapabilityService::class)->allows($user, Capability::ViewAdministration)) {
             abort(403, 'Unauthorized');
         }
 

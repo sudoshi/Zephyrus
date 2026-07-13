@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\PushNotifier;
 use App\Events\Rtdc\BedsChanged;
 use App\Models\Bed;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use App\Services\Push\ApnsPushNotifier;
 use App\Services\Push\LogPushNotifier;
 use Illuminate\Support\ServiceProvider;
@@ -21,12 +22,13 @@ class HummingbirdServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Use the real APNs sender when configured; otherwise the log-only stub. Same call sites.
-        $this->app->singleton(PushNotifier::class, function () {
+        $this->app->singleton(PushNotifier::class, function ($app) {
             $apns = (array) config('hummingbird.apns', []);
+            $clinicalContent = $app->make(ClinicalContentGuard::class);
 
             return ApnsPushNotifier::isConfigured($apns)
-                ? new ApnsPushNotifier($apns)
-                : new LogPushNotifier;
+                ? new ApnsPushNotifier($apns, $clinicalContent)
+                : new LogPushNotifier($clinicalContent);
         });
     }
 

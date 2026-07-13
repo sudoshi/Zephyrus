@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
  * gzipped budget — no 3D engine, no 771 KB GLB on the phone.
  *
  * The asset is versioned by content hash and persisted to
- * storage/app/flow/floor-plates.json so `GET /api/mobile/v1/flow/floors`
+ * storage/app/private/flow/floor-plates.json so `GET /api/mobile/v1/flow/floors`
  * can serve it with a strong ETag.
  */
 class FloorPlateAssetService

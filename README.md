@@ -234,6 +234,8 @@ npm run test:e2e              # Playwright E2E
 npx tsc --noEmit              # TypeScript check
 ```
 
+The isolated test lanes, concurrent full-suite proof, production-resource guard, and hashed release-evidence workflow are documented in [Testing and Release Evidence](docs/TESTING-AND-RELEASE-EVIDENCE.md).
+
 ---
 
 ## Deployment

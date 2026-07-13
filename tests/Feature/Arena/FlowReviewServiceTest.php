@@ -34,8 +34,9 @@ class FlowReviewServiceTest extends TestCase
 
     private function fakeSidecar(): void
     {
+        $baseUrl = rtrim((string) config('services.arena.url'), '/');
         Http::fake([
-            'arena:8100/discover' => Http::response([
+            $baseUrl.'/discover' => Http::response([
                 'object_types' => ['Bed', 'Transport Job'],
                 'nodes' => [
                     ['id' => 'bed_request', 'activity' => 'Bed request', 'frequency' => 110, 'object_types' => ['Bed']],
@@ -48,13 +49,13 @@ class FlowReviewServiceTest extends TestCase
                 ],
                 'stats' => ['nodes' => 3, 'edges' => 2],
             ], 200),
-            'arena:8100/performance' => Http::response([
+            $baseUrl.'/performance' => Http::response([
                 'handoffs' => [
                     ['object_type' => 'Transport Job', 'source' => 'assign_bed', 'target' => 'transport', 'count' => 22, 'median_sec' => 16560, 'p90_sec' => 28440, 'mean_sec' => 18120],
                 ],
                 'synchronization' => [],
             ], 200),
-            'arena:8100/conformance' => Http::response([
+            $baseUrl.'/conformance' => Http::response([
                 [
                     'pathway' => 'sepsis', 'label' => 'Sepsis (SEP-3)', 'version' => 3, 'owner' => 'ED', 'case_type' => 'sepsis',
                     'cases' => 41, 'conformant' => 35, 'deviant' => 6, 'conformance_rate' => 0.85,
@@ -230,7 +231,8 @@ class FlowReviewServiceTest extends TestCase
     public function test_run_degrades_without_persisting_when_the_sidecar_is_down(): void
     {
         $this->enable();
-        Http::fake(['arena:8100/discover' => Http::response('boom', 500)]);
+        $baseUrl = rtrim((string) config('services.arena.url'), '/');
+        Http::fake([$baseUrl.'/discover' => Http::response('boom', 500)]);
 
         $out = app(FlowReviewService::class)->run();
 

@@ -2,6 +2,22 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Iconify's browser loader schedules remote icon resolution after render. In
+// jsdom that work can outlive a test environment and dispatch React state
+// after `window` has been torn down. Tests exercise our labels and controls,
+// not Iconify's network/cache implementation, so keep the visual seam inert
+// and deterministic while preserving icon metadata in the DOM.
+vi.mock('@iconify/react', async () => {
+  const { createElement } = await import('react');
+
+  return {
+    Icon: ({ icon, ...props }: { icon: unknown; [key: string]: unknown }) => createElement('span', {
+      ...props,
+      'data-icon': typeof icon === 'string' ? icon : 'inline-icon',
+    }),
+  };
+});
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();

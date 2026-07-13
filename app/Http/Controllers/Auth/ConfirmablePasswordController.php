@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\Oidc\OidcProviderConfig;
+use App\Services\Auth\StepUpAuthenticationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,15 +17,17 @@ class ConfirmablePasswordController extends Controller
     /**
      * Show the confirm password view.
      */
-    public function show(): Response
+    public function show(OidcProviderConfig $oidc): Response
     {
-        return Inertia::render('Auth/ConfirmPassword');
+        return Inertia::render('Auth/ConfirmPassword', [
+            'oidcAvailable' => $oidc->isPubliclyAvailable(),
+        ]);
     }
 
     /**
      * Confirm the user's password.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StepUpAuthenticationService $stepUp): RedirectResponse
     {
         if (! Auth::guard('web')->validate([
             'email' => $request->user()->email,
@@ -34,7 +38,7 @@ class ConfirmablePasswordController extends Controller
             ]);
         }
 
-        $request->session()->put('auth.password_confirmed_at', time());
+        $stepUp->markPasswordConfirmed($request);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

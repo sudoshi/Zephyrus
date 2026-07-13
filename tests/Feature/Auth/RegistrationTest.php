@@ -13,6 +13,8 @@ class RegistrationTest extends TestCase
 
     public function test_registration_screen_can_be_rendered(): void
     {
+        config()->set('auth-drivers.local.registration_enabled', true);
+
         $response = $this->get('/register');
 
         $response->assertStatus(200);
@@ -20,6 +22,7 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        config()->set('auth-drivers.local.registration_enabled', true);
         Http::fake();
 
         $response = $this->post('/register', [
@@ -37,5 +40,18 @@ class RegistrationTest extends TestCase
         $this->assertNotNull($user);
         $this->assertSame('test', $user->username);
         $this->assertTrue($user->must_change_password);
+    }
+
+    public function test_self_registration_is_not_available_by_default(): void
+    {
+        config()->set('auth-drivers.local.registration_enabled', false);
+
+        $this->get('/register')->assertNotFound();
+        $this->post('/register', [
+            'name' => 'Unapproved User',
+            'email' => 'unapproved@example.com',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('prod.users', ['email' => 'unapproved@example.com']);
     }
 }

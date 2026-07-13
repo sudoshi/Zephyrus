@@ -17,8 +17,22 @@ class DeploymentConsolePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_demo_guest_is_auto_authenticated_as_console_reader(): void
+    public function test_guest_is_redirected_to_login_by_default(): void
     {
+        $this->get('/admin/enterprise-setup')->assertRedirect('/login');
+    }
+
+    public function test_explicit_nonproduction_demo_account_can_read_the_console(): void
+    {
+        $admin = User::factory()->create([
+            'username' => 'deployment-demo',
+            'role' => 'admin',
+            'must_change_password' => false,
+            'is_active' => true,
+        ]);
+        config()->set('demo.auto_login_enabled', true);
+        config()->set('demo.auto_login_username', $admin->username);
+
         $this->get('/admin/enterprise-setup')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('Deployment/DeploymentConsole'));

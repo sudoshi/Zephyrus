@@ -5,7 +5,6 @@ namespace App\Integrations\Healthcare\Services;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Models\Integration\Source;
 use App\Models\User;
-use App\Security\Network\IntegrationUrlPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +16,8 @@ use Throwable;
 class IntegrationProtocolHealthService
 {
     public function __construct(
-        private readonly IntegrationUrlPolicy $urlPolicy,
-        private readonly IntegrationSecretReferenceResolver $secrets,
+        private readonly CredentialValidationService $credentials,
+        private readonly IntegrationConnectionGuard $connections,
     ) {}
 
     /** @return array<string, mixed> */
@@ -64,21 +63,19 @@ class IntegrationProtocolHealthService
         $baseUrl = rtrim((string) ($connection->base_url ?: $source->base_url), '/');
         $smartUrl = $this->endpointUrl((int) $source->source_id, 'smart_configuration')
             ?? $baseUrl.'/.well-known/smart-configuration';
-        $this->urlPolicy->assertSafe($baseUrl);
-        $this->urlPolicy->assertSafe($smartUrl);
 
-        $smart = $this->json($smartUrl, 'application/json');
+        $smart = $this->json((int) $source->source_id, $smartUrl, 'application/json');
         $tokenUrl = $smart['token_endpoint'] ?? null;
         $capabilities = is_array($smart['capabilities'] ?? null) ? $smart['capabilities'] : [];
         if (! is_string($tokenUrl) || $tokenUrl === '') {
             throw new IntegrationProtocolException('smart_token_endpoint_missing');
         }
-        $this->urlPolicy->assertSafe($tokenUrl);
+        $this->connections->guard((int) $source->source_id, $tokenUrl);
         if (! in_array('client-confidential-asymmetric', $capabilities, true)) {
             throw new IntegrationProtocolException('smart_asymmetric_client_not_supported');
         }
 
-        $statement = $this->json($baseUrl.'/metadata', 'application/fhir+json');
+        $statement = $this->json((int) $source->source_id, $baseUrl.'/metadata', 'application/fhir+json');
         if (($statement['resourceType'] ?? null) !== 'CapabilityStatement') {
             throw new IntegrationProtocolException('fhir_capability_statement_invalid');
         }
@@ -100,9 +97,16 @@ class IntegrationProtocolHealthService
             ->where('source_id', $source->source_id)
             ->orderBy('smart_backend_credential_id')
             ->first();
+        $credentialValidation = $credential?->source_credential_id !== null
+            ? $this->credentials->evaluate(
+                (int) $credential->source_credential_id,
+                CarbonImmutable::now(),
+                persist: true,
+            )
+            : null;
         $credentialReady = filled($credential?->client_id)
-            && filled($credential?->jwks_secret_ref)
-            && $this->secrets->resolvable($credential?->jwks_secret_ref);
+            && $credentialValidation !== null
+            && $credentialValidation['status'] === 'ready';
         $activationStatus = $credentialReady ? 'ready' : 'credential_required';
 
         DB::transaction(function () use ($source, $connection, $statement, $smart, $tokenUrl, $resources, $fhirVersion, $softwareName, $credential, $credentialReady): void {
@@ -197,12 +201,13 @@ class IntegrationProtocolHealthService
     }
 
     /** @return array<string, mixed> */
-    private function json(string $url, string $accept): array
+    private function json(int $sourceId, string $url, string $accept): array
     {
+        $connectionTarget = $this->connections->guard($sourceId, $url);
         $response = Http::accept($accept)
             ->connectTimeout(5)
             ->timeout((int) config('integrations.health_timeout_seconds', 10))
-            ->withOptions(['allow_redirects' => false])
+            ->withOptions($connectionTarget->httpOptions())
             ->get($url);
 
         $this->assertResponse($response);

@@ -2,6 +2,7 @@
 
 namespace App\Integrations\Healthcare\Services;
 
+use App\Security\Secrets\SecretProviderRegistry;
 use App\Support\Api\JsonMap;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -11,12 +12,30 @@ use Illuminate\Support\Facades\Schema;
 
 class IntegrationControlPlaneService
 {
+    public function __construct(private readonly SecretProviderRegistry $secretProviders) {}
+
     /** @return array<string, mixed> */
     public function snapshot(): array
     {
         $sourceMetrics = $this->sourceMetrics();
-        $sources = DB::table('integration.sources')
-            ->orderBy('source_name')
+        $sources = DB::table('integration.sources as source')
+            ->leftJoin('hosp_org.organizations as organization', 'organization.organization_id', '=', 'source.organization_id')
+            ->leftJoin('hosp_org.facilities as facility', 'facility.facility_id', '=', 'source.facility_id')
+            ->leftJoin(
+                'integration.source_configuration_versions as configuration_version',
+                'configuration_version.source_configuration_version_id',
+                '=',
+                'source.current_configuration_version_id',
+            )
+            ->select([
+                'source.*',
+                'organization.name as organization_name',
+                'facility.facility_name',
+                'configuration_version.version_number as configuration_version_number',
+                'configuration_version.configuration_sha256',
+                'configuration_version.created_at as configuration_version_created_at',
+            ])
+            ->orderBy('source.source_name')
             ->get()
             ->map(fn (object $source): array => $this->sourceSummary($source, $sourceMetrics))
             ->values();
@@ -34,7 +53,11 @@ class IntegrationControlPlaneService
             'endpoints' => DB::table('integration.source_endpoints')->count(),
             'capabilities' => DB::table('integration.source_capabilities')->where('supported', true)->count(),
             'credentials' => DB::table('integration.source_credentials')->count()
-                + DB::table('integration.smart_backend_credentials')->count(),
+                + DB::table('integration.smart_backend_credentials')->whereNull('source_credential_id')->count(),
+            'credentialVersions' => DB::table('integration.source_credential_versions')->count(),
+            'credentialValidations' => DB::table('integration.credential_validation_observations')->count(),
+            'networkRoutes' => DB::table('integration.source_network_routes')->where('status', '<>', 'retired')->count(),
+            'blockedNetworkRoutes' => DB::table('integration.source_network_routes')->where('status', 'blocked')->count(),
             'interfaceEngines' => DB::table('integration.interface_engines')->count(),
             'fhirConnections' => DB::table('integration.fhir_client_connections')->count(),
             'smartCredentials' => DB::table('integration.smart_backend_credentials')->count(),
@@ -50,8 +73,17 @@ class IntegrationControlPlaneService
             'terminologyMaps' => DB::table('integration.terminology_maps')->count(),
             'writebackDrafts' => DB::table('ops.writeback_drafts')->count(),
             'configurationAudits' => DB::table('integration.configuration_audits')->count(),
+            'configurationVersions' => DB::table('integration.source_configuration_versions')->count(),
+            'lifecycleEvents' => DB::table('integration.source_lifecycle_events')->count(),
+            'healthObservations' => Schema::hasTable('integration.health_observations')
+                ? DB::table('integration.health_observations')->count()
+                : 0,
+            'openSloBreaches' => Schema::hasTable('integration.slo_breach_events')
+                ? $sourceMetrics['openSloBreaches']->sum()
+                : 0,
             'queuedJobs' => Schema::hasTable('jobs') ? DB::table('jobs')->count() : 0,
             'failedQueueJobs' => Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0,
+            'pendingGovernedChanges' => $this->pendingGovernedChangeCount(),
         ];
 
         return [
@@ -75,8 +107,11 @@ class IntegrationControlPlaneService
             'replayJobs' => $this->replayJobs(),
             'writebackDrafts' => $this->writebackDrafts(),
             'credentials' => $this->credentials(),
+            'secretProviders' => $this->secretProviders->capabilities(),
+            'networkRoutes' => $this->networkRoutes(),
             'templates' => $this->templates(),
             'configurationAudits' => $this->configurationAudits(),
+            'governedChanges' => $this->governedChanges(),
             'audit' => [
                 'provenanceRecords' => DB::table('integration.provenance_records')->count(),
                 'identityLinks' => DB::table('integration.identity_links')->count(),
@@ -96,34 +131,81 @@ class IntegrationControlPlaneService
         $latestMessageAt = $metrics['latestMessages']->get($sourceId);
         $latestSuccessAt = $metrics['latestSuccesses']->get($sourceId);
         $latestRun = $metrics['latestRuns']->get($sourceId);
+        $currentHealth = $metrics['currentHealth']->get($sourceId);
         $lastObserved = $this->latestTimestamp([
             $latestMessageAt,
             $latestSuccessAt,
             $latestRun?->completed_at,
         ]);
-        $health = $this->healthStatus(
+        $derivedHealth = $this->healthStatus(
             (string) $source->active_status,
             $lastObserved,
             $latestRun?->status,
             $latestRun?->started_at,
             $latestSuccessAt,
         );
+        $healthFreshUntil = $currentHealth?->freshness_expires_at !== null
+            ? $this->carbon($currentHealth->freshness_expires_at)
+            : null;
+        $healthObservationStale = $healthFreshUntil !== null && $healthFreshUntil->isPast();
+        $observabilityStatus = $currentHealth?->observation_status !== null
+            ? (string) $currentHealth->observation_status
+            : 'unobserved';
+        $health = $currentHealth !== null
+            ? $this->projectedHealthStatus($observabilityStatus, $healthObservationStale)
+            : $derivedHealth;
+        $sloSummary = $this->decodeMap($currentHealth?->summary_counts);
         $metadata = $this->decodeMap($source->metadata);
 
         return [
             'sourceId' => $sourceId,
             'sourceKey' => $source->source_key,
             'sourceName' => $source->source_name,
+            'organizationId' => $source->organization_id !== null ? (int) $source->organization_id : null,
+            'organizationName' => $source->organization_name,
+            'facilityId' => $source->facility_id !== null ? (int) $source->facility_id : null,
+            'facilityName' => $source->facility_name,
             'vendor' => $source->vendor,
             'systemClass' => $source->system_class,
             'environment' => $source->environment,
             'interfaceType' => $source->interface_type,
             'configuredStatus' => $source->active_status,
             'healthStatus' => $health,
+            'derivedHealthStatus' => $derivedHealth,
+            'observabilityStatus' => $observabilityStatus,
+            'healthObservationId' => $currentHealth?->health_observation_id !== null
+                ? (int) $currentHealth->health_observation_id
+                : null,
+            'healthObservedAtIso' => $this->iso($currentHealth?->observed_at),
+            'healthFreshUntilIso' => $this->iso($currentHealth?->freshness_expires_at),
+            'healthObservationStale' => $healthObservationStale,
+            'maintenanceActive' => (bool) ($currentHealth?->maintenance_active ?? false),
+            'sloDefinitionId' => $currentHealth?->source_slo_definition_id !== null
+                ? (int) $currentHealth->source_slo_definition_id
+                : null,
+            'sloSummary' => [
+                'met' => (int) ($sloSummary['met'] ?? 0),
+                'breached' => (int) ($sloSummary['breached'] ?? 0),
+                'unknown' => (int) ($sloSummary['unknown'] ?? 0),
+                'notApplicable' => (int) ($sloSummary['not_applicable'] ?? 0),
+            ],
+            'queueState' => $this->decodeMap($currentHealth?->queue_state),
+            'runtimeState' => $this->decodeMap($currentHealth?->runtime_state),
+            'openSloBreaches' => (int) $metrics['openSloBreaches']->get($sourceId, 0),
             'protocolHealthStatus' => $source->protocol_health_status,
             'protocolHealthCheckedAtIso' => $this->iso($source->protocol_health_checked_at),
             'protocolHealthErrorCode' => $source->protocol_health_error,
             'goLiveStatus' => $source->go_live_status,
+            'lifecycleState' => $source->lifecycle_state,
+            'lifecycleChangedAtIso' => $this->iso($source->lifecycle_changed_at),
+            'currentConfigurationVersionId' => $source->current_configuration_version_id !== null
+                ? (int) $source->current_configuration_version_id
+                : null,
+            'currentConfigurationVersionNumber' => $source->configuration_version_number !== null
+                ? (int) $source->configuration_version_number
+                : null,
+            'currentConfigurationSha256' => $source->configuration_sha256,
+            'currentConfigurationCreatedAtIso' => $this->iso($source->configuration_version_created_at),
             'contractStatus' => $source->contract_status,
             'baaStatus' => $source->baa_status,
             'phiAllowed' => (bool) $source->phi_allowed,
@@ -158,7 +240,27 @@ class IntegrationControlPlaneService
             ->get(['run.source_id', 'run.status', 'run.started_at', 'run.completed_at'])
             ->keyBy('source_id');
 
+        $currentHealth = Schema::hasTable('integration.source_health_current')
+            ? DB::table('integration.source_health_current')->get()->keyBy('source_id')
+            : collect();
+        $openSloBreaches = collect();
+        if (Schema::hasTable('integration.slo_breach_events')) {
+            $latestBreachEvents = DB::table('integration.slo_breach_events')
+                ->selectRaw('slo_breach_id, max(slo_breach_event_id) AS event_id')
+                ->groupBy('slo_breach_id');
+            $openSloBreaches = DB::table('integration.slo_breaches AS breach')
+                ->joinSub($latestBreachEvents, 'latest', 'latest.slo_breach_id', '=', 'breach.slo_breach_id')
+                ->join('integration.slo_breach_events AS event', 'event.slo_breach_event_id', '=', 'latest.event_id')
+                ->whereIn('event.status_after', ['open', 'suppressed', 'acknowledged'])
+                ->selectRaw('breach.source_id, count(*) AS aggregate')
+                ->groupBy('breach.source_id')
+                ->pluck('aggregate', 'source_id')
+                ->map(fn (mixed $count): int => (int) $count);
+        }
+
         return [
+            'currentHealth' => $currentHealth,
+            'openSloBreaches' => $openSloBreaches,
             'latestMessages' => DB::table('raw.inbound_messages')
                 ->selectRaw('source_id, max(received_at) as observed_at')
                 ->groupBy('source_id')
@@ -462,31 +564,71 @@ class IntegrationControlPlaneService
                 'credential.source_credential_id', 'credential.source_id', 'credential.credential_key',
                 'credential.credential_type', 'credential.secret_ref', 'credential.certificate_ref',
                 'credential.jwks_uri', 'credential.rotates_at', 'credential.is_active',
+                'credential.current_credential_version_id', 'credential.credential_state',
+                'credential.valid_from', 'credential.expires_at', 'credential.rotation_overlap_ends_at',
+                'credential.revoked_at', 'credential.last_used_at',
                 'credential.metadata', 'source.source_name',
             ])
-            ->map(fn (object $row): array => [
-                'credentialId' => 'source:'.$row->source_credential_id,
-                'sourceCredentialId' => (int) $row->source_credential_id,
-                'sourceId' => (int) $row->source_id,
-                'sourceName' => $row->source_name,
-                'credentialKey' => $row->credential_key,
-                'credentialType' => $row->credential_type,
-                'status' => $row->is_active ? 'configured' : 'disabled',
-                'secretReferenceConfigured' => filled($row->secret_ref),
-                'certificateReferenceConfigured' => filled($row->certificate_ref),
-                'jwksConfigured' => filled($row->jwks_uri),
-                'clientIdConfigured' => false,
-                'tokenEndpointConfigured' => false,
-                'rotatesAtIso' => $this->iso($row->rotates_at),
-                'owner' => $this->decodeMap($row->metadata)['owner'] ?? null,
-            ]);
+            ->map(function (object $row): array {
+                $smart = DB::table('integration.smart_backend_credentials')
+                    ->where('source_credential_id', $row->source_credential_id)
+                    ->first();
+                $observation = DB::table('integration.credential_validation_observations')
+                    ->where('source_credential_id', $row->source_credential_id)
+                    ->orderByDesc('credential_validation_observation_id')
+                    ->first();
+                $versionNumber = $row->current_credential_version_id !== null
+                    ? DB::table('integration.source_credential_versions')
+                        ->where('source_credential_version_id', $row->current_credential_version_id)
+                        ->value('version_number')
+                    : null;
+                $certificate = $this->decodeMap($observation?->certificate_metadata);
+
+                return [
+                    'credentialId' => 'source:'.$row->source_credential_id,
+                    'sourceCredentialId' => (int) $row->source_credential_id,
+                    'sourceId' => (int) $row->source_id,
+                    'sourceName' => $row->source_name,
+                    'credentialKey' => $row->credential_key,
+                    'credentialType' => $row->credential_type,
+                    'status' => (string) $row->credential_state,
+                    'credentialState' => (string) $row->credential_state,
+                    'credentialVersionId' => $row->current_credential_version_id !== null ? (int) $row->current_credential_version_id : null,
+                    'credentialVersionNumber' => $versionNumber !== null ? (int) $versionNumber : null,
+                    'secretReferenceConfigured' => filled($row->secret_ref),
+                    'secretProviderScheme' => filled($row->secret_ref) ? parse_url((string) $row->secret_ref, PHP_URL_SCHEME) : null,
+                    'certificateReferenceConfigured' => filled($row->certificate_ref),
+                    'certificateProviderScheme' => filled($row->certificate_ref) ? parse_url((string) $row->certificate_ref, PHP_URL_SCHEME) : null,
+                    'jwksConfigured' => filled($row->jwks_uri),
+                    'clientIdConfigured' => filled($smart?->client_id),
+                    'tokenEndpointConfigured' => filled($smart?->token_url),
+                    'validFromIso' => $this->iso($row->valid_from),
+                    'expiresAtIso' => $this->iso($row->expires_at),
+                    'rotatesAtIso' => $this->iso($row->rotates_at),
+                    'rotationOverlapEndsAtIso' => $this->iso($row->rotation_overlap_ends_at),
+                    'revokedAtIso' => $this->iso($row->revoked_at),
+                    'lastUsedAtIso' => $this->iso($row->last_used_at),
+                    'validationStatus' => $observation?->validation_status ?? 'unobserved',
+                    'rotationState' => $observation?->rotation_state ?? 'unobserved',
+                    'validationErrorCode' => $observation?->error_code,
+                    'validatedAtIso' => $this->iso($observation?->observed_at),
+                    'providerVersion' => $observation?->provider_version,
+                    'providerLeaseExpiresAtIso' => $this->iso($observation?->provider_lease_expires_at),
+                    'certificateChainLength' => isset($certificate['chainLength']) ? (int) $certificate['chainLength'] : null,
+                    'certificateExpiresAtIso' => data_get($certificate, 'leaf.notAfterIso'),
+                    'certificateFingerprintSha256' => data_get($certificate, 'leaf.fingerprintSha256'),
+                    'owner' => $this->decodeMap($row->metadata)['owner'] ?? null,
+                ];
+            });
 
         $smartCredentials = DB::table('integration.smart_backend_credentials as credential')
             ->join('integration.sources as source', 'source.source_id', '=', 'credential.source_id')
+            ->whereNull('credential.source_credential_id')
             ->get([
                 'credential.smart_backend_credential_id', 'credential.source_id', 'credential.credential_key',
                 'credential.status', 'credential.jwks_secret_ref', 'credential.client_id',
-                'credential.token_url', 'credential.rotates_at', 'credential.metadata', 'source.source_name',
+                'credential.token_url', 'credential.issued_at', 'credential.expires_at',
+                'credential.rotates_at', 'credential.metadata', 'source.source_name',
             ])
             ->map(fn (object $row): array => [
                 'credentialId' => 'smart:'.$row->smart_backend_credential_id,
@@ -502,6 +644,25 @@ class IntegrationControlPlaneService
                 'clientIdConfigured' => filled($row->client_id),
                 'tokenEndpointConfigured' => filled($row->token_url),
                 'rotatesAtIso' => $this->iso($row->rotates_at),
+                'credentialState' => $row->status,
+                'credentialVersionId' => null,
+                'credentialVersionNumber' => null,
+                'secretProviderScheme' => filled($row->jwks_secret_ref) ? parse_url((string) $row->jwks_secret_ref, PHP_URL_SCHEME) : null,
+                'certificateProviderScheme' => null,
+                'validFromIso' => null,
+                'expiresAtIso' => $this->iso($row->expires_at ?? null),
+                'rotationOverlapEndsAtIso' => null,
+                'revokedAtIso' => null,
+                'lastUsedAtIso' => $this->iso($row->issued_at ?? null),
+                'validationStatus' => 'unobserved',
+                'rotationState' => 'unobserved',
+                'validationErrorCode' => null,
+                'validatedAtIso' => null,
+                'providerVersion' => null,
+                'providerLeaseExpiresAtIso' => null,
+                'certificateChainLength' => null,
+                'certificateExpiresAtIso' => null,
+                'certificateFingerprintSha256' => null,
                 'owner' => $this->decodeMap($row->metadata)['owner'] ?? null,
             ]);
 
@@ -510,6 +671,53 @@ class IntegrationControlPlaneService
             ->sortBy([['sourceName', 'asc'], ['credentialKey', 'asc']])
             ->values()
             ->all();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function networkRoutes(): array
+    {
+        return DB::table('integration.source_network_routes as route')
+            ->join('integration.sources as source', 'source.source_id', '=', 'route.source_id')
+            ->orderBy('source.source_name')
+            ->orderBy('route.route_key')
+            ->get([
+                'route.source_network_route_id', 'route.source_id', 'route.source_endpoint_id',
+                'route.route_key', 'route.environment', 'route.transport', 'route.hostname',
+                'route.port', 'route.proxy_url', 'route.dns_policy', 'route.allowed_ip_cidrs',
+                'route.egress_policy_key', 'route.mtls_required', 'route.client_credential_id',
+                'route.server_name', 'route.status', 'source.source_name',
+            ])
+            ->map(function (object $row): array {
+                $observation = DB::table('integration.network_route_observations')
+                    ->where('source_network_route_id', $row->source_network_route_id)
+                    ->orderByDesc('network_route_observation_id')
+                    ->first();
+
+                return [
+                    'networkRouteId' => (int) $row->source_network_route_id,
+                    'sourceId' => (int) $row->source_id,
+                    'sourceName' => (string) $row->source_name,
+                    'endpointId' => $row->source_endpoint_id !== null ? (int) $row->source_endpoint_id : null,
+                    'routeKey' => (string) $row->route_key,
+                    'environment' => (string) $row->environment,
+                    'transport' => (string) $row->transport,
+                    'hostname' => (string) $row->hostname,
+                    'port' => (int) $row->port,
+                    'proxyConfigured' => filled($row->proxy_url),
+                    'proxyOrigin' => filled($row->proxy_url) ? $this->urlOrigin((string) $row->proxy_url) : null,
+                    'dnsPolicy' => (string) $row->dns_policy,
+                    'allowedIpCidrs' => $this->decodeList($row->allowed_ip_cidrs),
+                    'egressPolicyKey' => (string) $row->egress_policy_key,
+                    'mtlsRequired' => (bool) $row->mtls_required,
+                    'clientCredentialId' => $row->client_credential_id !== null ? (int) $row->client_credential_id : null,
+                    'serverName' => $row->server_name,
+                    'status' => (string) $row->status,
+                    'lastAddressCount' => $observation !== null ? (int) $observation->address_count : 0,
+                    'lastErrorCode' => $observation?->error_code,
+                    'lastObservedAtIso' => $this->iso($observation?->observed_at),
+                    'policySha256' => $observation?->policy_sha256,
+                ];
+            })->all();
     }
 
     /** @return array<string, mixed> */
@@ -556,6 +764,112 @@ class IntegrationControlPlaneService
                 'correlationId' => $row->correlation_id,
                 'createdAtIso' => $this->iso($row->created_at),
             ])->all();
+    }
+
+    private function pendingGovernedChangeCount(): int
+    {
+        if (! Schema::hasTable('governance.change_requests')) {
+            return 0;
+        }
+
+        return DB::table('governance.change_requests as request')
+            ->leftJoin('governance.change_decisions as decision', 'decision.change_request_uuid', '=', 'request.change_request_uuid')
+            ->where('request.action_type', '!=', 'purge_user_identity')
+            ->where('request.expires_at', '>', now())
+            ->whereNull('decision.change_decision_id')
+            ->count();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function governedChanges(): array
+    {
+        if (! Schema::hasTable('governance.change_requests')) {
+            return [];
+        }
+
+        $successfulExecutions = DB::table('governance.change_executions')
+            ->selectRaw('change_request_uuid, max(executed_at) as executed_at')
+            ->where('outcome', 'success')
+            ->groupBy('change_request_uuid');
+
+        return DB::table('governance.change_requests as request')
+            ->leftJoin('governance.change_decisions as decision', 'decision.change_request_uuid', '=', 'request.change_request_uuid')
+            ->leftJoinSub($successfulExecutions, 'execution', 'execution.change_request_uuid', '=', 'request.change_request_uuid')
+            ->where('request.action_type', '!=', 'purge_user_identity')
+            ->orderByRaw('CASE WHEN decision.change_decision_id IS NULL AND request.expires_at > now() THEN 0 ELSE 1 END')
+            ->orderByDesc('request.requested_at')
+            ->limit(100)
+            ->get([
+                'request.change_request_uuid',
+                'request.action_type',
+                'request.subject_type',
+                'request.subject_id',
+                'request.author_user_id',
+                'request.organization_id',
+                'request.facility_id',
+                'request.requested_at',
+                'request.expires_at',
+                'decision.decision',
+                'decision.decided_by_user_id',
+                'decision.decided_at',
+                'execution.executed_at',
+            ])
+            ->map(fn (object $row): array => [
+                'changeRequestUuid' => $row->change_request_uuid,
+                'actionType' => $row->action_type,
+                'subjectType' => $row->subject_type,
+                'subjectId' => $row->subject_id,
+                'authorUserId' => (int) $row->author_user_id,
+                'organizationId' => $row->organization_id !== null ? (int) $row->organization_id : null,
+                'facilityId' => $row->facility_id !== null ? (int) $row->facility_id : null,
+                'sourceId' => $this->governedSourceId((string) $row->subject_type, (string) $row->subject_id),
+                'status' => match (true) {
+                    $row->executed_at !== null => 'executed',
+                    $row->decision !== null => $row->decision,
+                    now()->isAfter($row->expires_at) => 'expired',
+                    default => 'pending',
+                },
+                'requestedAtIso' => $this->iso($row->requested_at),
+                'expiresAtIso' => $this->iso($row->expires_at),
+                'decidedByUserId' => $row->decided_by_user_id ? (int) $row->decided_by_user_id : null,
+                'decidedAtIso' => $this->iso($row->decided_at),
+                'executedAtIso' => $this->iso($row->executed_at),
+            ])->all();
+    }
+
+    private function governedSourceId(string $subjectType, string $subjectId): ?int
+    {
+        if ($subjectType === 'integration_source' && ctype_digit($subjectId)) {
+            return (int) $subjectId;
+        }
+        if (in_array($subjectType, ['integration_credential', 'integration_source_configuration'], true)) {
+            $sourceId = explode(':', $subjectId, 2)[0];
+
+            return ctype_digit($sourceId) ? (int) $sourceId : null;
+        }
+        if ($subjectType === 'source_activation_window') {
+            $sourceId = DB::table('integration.source_activation_windows')
+                ->where('activation_window_uuid', $subjectId)
+                ->value('source_id');
+
+            return $sourceId !== null ? (int) $sourceId : null;
+        }
+        if ($subjectType === 'payload_quarantine') {
+            $sourceId = DB::table('raw.payload_quarantines')
+                ->where('quarantine_uuid', $subjectId)
+                ->value('source_id');
+
+            return $sourceId !== null ? (int) $sourceId : null;
+        }
+        if ($subjectType === 'clinical_payload') {
+            $sourceId = DB::table('raw.payload_objects')
+                ->where('payload_uuid', $subjectId)
+                ->value('source_id');
+
+            return $sourceId !== null ? (int) $sourceId : null;
+        }
+
+        return null;
     }
 
     private function healthStatus(
@@ -610,6 +924,21 @@ class IntegrationControlPlaneService
         return 'not_configured';
     }
 
+    private function projectedHealthStatus(string $status, bool $stale): string
+    {
+        if ($stale) {
+            return 'stale';
+        }
+
+        return match ($status) {
+            'healthy' => 'healthy',
+            'degraded', 'maintenance' => 'degraded',
+            'failed' => 'failed',
+            'disabled' => 'disabled',
+            default => 'unobserved',
+        };
+    }
+
     /** @param list<mixed> $timestamps */
     private function latestTimestamp(array $timestamps): ?CarbonImmutable
     {
@@ -645,6 +974,14 @@ class IntegrationControlPlaneService
         $decoded = is_string($value) ? json_decode($value, true) : [];
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return list<string> */
+    private function decodeList(mixed $value): array
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+
+        return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
     }
 
     private function urlOrigin(?string $url): ?string

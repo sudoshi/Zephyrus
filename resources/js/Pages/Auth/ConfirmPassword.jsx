@@ -4,7 +4,7 @@ import React from 'react';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { AuthField } from '@/Components/Auth/AuthField';
 
-export default function ConfirmPassword() {
+export default function ConfirmPassword({ oidcAvailable = false }) {
     const [data, setData] = React.useState({ password: '' });
     const [processing, setProcessing] = React.useState(false);
     const [errors, setErrors] = React.useState({});
@@ -49,6 +49,13 @@ export default function ConfirmPassword() {
                     {!processing && <Icon icon="lucide:arrow-right" width="18" height="18" />}
                 </button>
             </form>
+
+            {oidcAvailable && (
+                <a href="/auth/oidc/step-up" className="za-btn-secondary mt-3 inline-flex w-full items-center justify-center gap-2">
+                    <Icon icon="lucide:shield-check" width="18" height="18" />
+                    Reauthenticate with enterprise MFA
+                </a>
+            )}
         </AuthLayout>
     );
 }

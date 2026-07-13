@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Mobile;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Audit\UserAuditRecorder;
+use App\Services\Auth\AccountSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,7 +24,10 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthController extends Controller
 {
-    public function __construct(private readonly UserAuditRecorder $audit) {}
+    public function __construct(
+        private readonly UserAuditRecorder $audit,
+        private readonly AccountSessionService $sessions,
+    ) {}
 
     /**
      * POST /api/auth/token — exchange username (or email) + password for tokens.
@@ -230,8 +234,8 @@ class AuthController extends Controller
             'must_change_password' => false,
         ]);
 
-        // Consume the change token and hand back a full session.
-        $request->user()->currentAccessToken()?->delete();
+        // Revoke every pre-change web/mobile credential, then issue one new pair.
+        $this->sessions->revoke($user, $request, 'password_changed');
 
         $pair = $this->issueTokenPair($user);
         $this->auditAuth($request, 'mobile.auth.password_change', 'success', $user, [

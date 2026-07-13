@@ -11,6 +11,7 @@ class ConfigureOperationalIntegrations extends Command
         {--epic-client-id= : Registered Epic non-production backend client ID}
         {--epic-private-key-ref= : Approved private-key reference; never the key material}
         {--epic-key-id= : Optional public key identifier used in the client assertion}
+        {--facility= : Canonical active facility key that owns the Epic source}
         {--activate-epic : Activate scheduled sandbox polling after credentials are configured}';
 
     protected $description = 'Idempotently configure the governed Epic FHIR sandbox and Patient Flow HL7 ADT boundary.';
@@ -22,6 +23,7 @@ class ConfigureOperationalIntegrations extends Command
             privateKeyRef: $this->option('epic-private-key-ref'),
             keyId: $this->option('epic-key-id'),
             activate: (bool) $this->option('activate-epic'),
+            facilityKey: $this->option('facility'),
         );
         $hl7 = $configurator->configureHl7Boundary();
 

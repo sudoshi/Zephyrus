@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Integrations;
 
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\User;
 use App\Security\Network\DnsResolver;
 use App\Security\Network\IntegrationUrlPolicy;
@@ -15,9 +17,29 @@ class IntegrationConfigurationApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $organizationId;
+
+    private int $facilityId;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->artisan('deployment:seed-registry')->assertExitCode(0);
+        $organization = Organization::create([
+            'organization_key' => 'INTEGRATION_TEST_IDN',
+            'name' => 'Integration Test IDN',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::create([
+            'organization_id' => $organization->organization_id,
+            'facility_key' => 'INTEGRATION_TEST_FACILITY',
+            'facility_name' => 'Integration Test Facility',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
+        $this->organizationId = (int) $organization->organization_id;
+        $this->facilityId = (int) $facility->facility_id;
         config()->set('integrations.network.allowed_hosts', [
             'fhir.vendor.example',
             'api.vendor.example',
@@ -38,7 +60,7 @@ class IntegrationConfigurationApiTest extends TestCase
         $user = $this->user('superuser');
         $correlationId = '018f89a4-3c76-7a0d-a7ac-9e102f51c237';
 
-        $source = $this->actingAs($user)
+        $source = $this->selectScope($user)
             ->withHeader('X-Request-ID', $correlationId)
             ->postJson('/api/admin/integrations/sources', $this->sourcePayload())
             ->assertCreated()
@@ -47,6 +69,7 @@ class IntegrationConfigurationApiTest extends TestCase
             ->assertJsonPath('data.baseUrlOrigin', 'https://fhir.vendor.example')
             ->json('data');
         $sourceId = (int) $source['sourceId'];
+        $this->selectScope($user, $sourceId);
 
         $endpoint = $this->actingAs($user)
             ->postJson("/api/admin/integrations/sources/{$sourceId}/endpoints", [
@@ -114,13 +137,22 @@ class IntegrationConfigurationApiTest extends TestCase
         $this->assertNotNull(DB::table('integration.source_credentials')->where('source_credential_id', $credentialId)->value('secret_ref'));
 
         $this->actingAs($user)
-            ->deleteJson("/api/admin/integrations/sources/{$sourceId}/credentials/{$credentialId}")
+            ->deleteJson("/api/admin/integrations/sources/{$sourceId}/credentials/{$credentialId}", [
+                'reason' => 'Revoke the test credential after configuration verification.',
+            ])
             ->assertNoContent();
+        $this->assertDatabaseHas('integration.source_credentials', [
+            'source_credential_id' => $credentialId,
+            'credential_state' => 'revoked',
+            'is_active' => false,
+        ]);
         $this->actingAs($user)
             ->deleteJson("/api/admin/integrations/sources/{$sourceId}/endpoints/{$endpointId}")
             ->assertNoContent();
         $this->actingAs($user)
-            ->deleteJson("/api/admin/integrations/sources/{$sourceId}")
+            ->deleteJson("/api/admin/integrations/sources/{$sourceId}", [
+                'reason' => 'Retire the completed integration test source configuration.',
+            ])
             ->assertOk()
             ->assertJsonPath('data.activeStatus', 'disabled')
             ->assertJsonPath('data.goLiveStatus', 'retired');
@@ -164,6 +196,7 @@ class IntegrationConfigurationApiTest extends TestCase
     public function test_url_policy_rejects_non_https_unallowlisted_and_private_targets(): void
     {
         $user = $this->user('superuser');
+        $this->selectScope($user);
 
         $cases = [
             'http' => 'http://fhir.vendor.example/r4',
@@ -236,12 +269,132 @@ class IntegrationConfigurationApiTest extends TestCase
         ]);
     }
 
+    public function test_source_updates_create_exact_immutable_versions_and_reset_validation(): void
+    {
+        $user = $this->user('superuser');
+        $sourceId = $this->createSource($user);
+        $source = $this->actingAs($user)
+            ->getJson("/api/admin/integrations/sources/{$sourceId}")
+            ->assertOk()
+            ->assertJsonPath('data.lifecycleState', 'validating')
+            ->assertJsonPath('data.currentConfigurationVersionNumber', 1)
+            ->json('data');
+
+        $this->actingAs($user)
+            ->patchJson("/api/admin/integrations/sources/{$sourceId}", [
+                'source_name' => 'Epic FHIR Production v2',
+            ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['expected_configuration_version_id', 'change_reason']);
+
+        $updated = $this->actingAs($user)
+            ->patchJson("/api/admin/integrations/sources/{$sourceId}", [
+                'source_name' => 'Epic FHIR Production v2',
+                'base_url' => 'https://fhir.vendor.example/r4/tenant-b?route=private',
+                'expected_configuration_version_id' => $source['currentConfigurationVersionId'],
+                'change_reason' => 'Move the validated connector to the approved tenant B route.',
+            ])->assertOk()
+            ->assertJsonPath('data.sourceName', 'Epic FHIR Production v2')
+            ->assertJsonPath('data.lifecycleState', 'configured')
+            ->assertJsonPath('data.currentConfigurationVersionNumber', 2)
+            ->json('data');
+
+        $history = $this->actingAs($user)
+            ->getJson("/api/admin/integrations/sources/{$sourceId}/configuration-versions")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.isEffective', true)
+            ->assertJsonPath('data.0.changedFields.0', 'sourceName')
+            ->assertJsonPath('data.0.changedFields.1', 'baseUrl')
+            ->json('data');
+        $serialized = json_encode($history, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('/r4/tenant-b', $serialized);
+        $this->assertStringNotContainsString('route=private', $serialized);
+        $this->assertNotSame($source['currentConfigurationSha256'], $updated['currentConfigurationSha256']);
+
+        $this->actingAs($user)
+            ->getJson("/api/admin/integrations/sources/{$sourceId}/lifecycle-events")
+            ->assertOk()
+            ->assertJsonPath('data.0.fromState', 'validating')
+            ->assertJsonPath('data.0.toState', 'configured')
+            ->assertJsonPath('data.0.configurationVersionNumber', 2);
+    }
+
+    public function test_versioned_source_projection_cannot_be_mutated_outside_the_ledger(): void
+    {
+        $sourceId = $this->createSource($this->user('superuser'));
+
+        $this->expectException(QueryException::class);
+        DB::table('integration.sources')->where('source_id', $sourceId)->update([
+            'vendor' => 'Tampered vendor',
+        ]);
+    }
+
+    public function test_configuration_versions_are_database_enforced_append_only(): void
+    {
+        $sourceId = $this->createSource($this->user('superuser'));
+        $versionId = (int) DB::table('integration.sources')->where('source_id', $sourceId)
+            ->value('current_configuration_version_id');
+
+        $this->expectException(QueryException::class);
+        DB::table('integration.source_configuration_versions')
+            ->where('source_configuration_version_id', $versionId)
+            ->update(['change_reason' => 'Attempted ledger tampering should always be rejected.']);
+    }
+
+    public function test_lifecycle_transitions_are_explicit_reasoned_and_separate_from_health(): void
+    {
+        $user = $this->user('superuser');
+        $sourceId = $this->createSource($user);
+
+        $this->actingAs($user)
+            ->postJson("/api/admin/integrations/sources/{$sourceId}/lifecycle-transitions", [
+                'to_state' => 'configured',
+                'reason' => 'Return the connector to configuration after validation findings.',
+            ])->assertOk()
+            ->assertJsonPath('data.lifecycleState', 'configured')
+            ->assertJsonPath('data.activeStatus', 'inactive')
+            ->assertJsonPath('data.goLiveStatus', 'planning');
+
+        $this->actingAs($user)
+            ->postJson("/api/admin/integrations/sources/{$sourceId}/lifecycle-transitions", [
+                'to_state' => 'live',
+                'reason' => 'Attempt to bypass the governed activation boundary.',
+            ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['to_state']);
+
+        $this->assertDatabaseHas('integration.source_lifecycle_events', [
+            'source_id' => $sourceId,
+            'from_state' => 'validating',
+            'to_state' => 'configured',
+        ]);
+        $this->assertDatabaseHas('integration.sources', [
+            'source_id' => $sourceId,
+            'protocol_health_status' => 'unobserved',
+        ]);
+    }
+
+    public function test_lifecycle_events_are_database_enforced_append_only(): void
+    {
+        $sourceId = $this->createSource($this->user('superuser'));
+        $eventId = (int) DB::table('integration.source_lifecycle_events')
+            ->where('source_id', $sourceId)
+            ->value('source_lifecycle_event_id');
+
+        $this->expectException(QueryException::class);
+        DB::table('integration.source_lifecycle_events')
+            ->where('source_lifecycle_event_id', $eventId)
+            ->delete();
+    }
+
     private function createSource(User $user): int
     {
-        return (int) $this->actingAs($user)
+        $sourceId = (int) $this->selectScope($user)
             ->postJson('/api/admin/integrations/sources', $this->sourcePayload())
             ->assertCreated()
             ->json('data.sourceId');
+        $this->selectScope($user, $sourceId);
+
+        return $sourceId;
     }
 
     /** @param array<string, mixed> $overrides */
@@ -250,8 +403,6 @@ class IntegrationConfigurationApiTest extends TestCase
         return array_merge([
             'source_key' => 'epic.fhir.production',
             'source_name' => 'Epic FHIR Production',
-            'tenant_key' => 'default',
-            'facility_key' => 'SUMMIT_REGIONAL',
             'vendor' => 'Epic',
             'system_class' => 'ehr',
             'environment' => 'production',
@@ -290,5 +441,17 @@ class IntegrationConfigurationApiTest extends TestCase
     private function user(string $role): User
     {
         return User::factory()->create(['role' => $role, 'must_change_password' => false]);
+    }
+
+    private function selectScope(User $user, ?int $sourceId = null): self
+    {
+        $this->actingAs($user)->put('/admin/active-scope', array_filter([
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'source_id' => $sourceId,
+            'return_path' => '/integrations',
+        ], fn (mixed $value): bool => $value !== null))->assertRedirect();
+
+        return $this;
     }
 }

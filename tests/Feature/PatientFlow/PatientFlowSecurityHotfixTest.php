@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\PatientFlow;
 
+use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\Source;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
@@ -228,6 +231,12 @@ class PatientFlowSecurityHotfixTest extends TestCase
         $this->assertNotNull($message);
         $this->assertNotNull($canonical);
         $this->assertNotNull($flowEvent);
+        $this->assertNull($message->payload);
+        $this->assertNull($message->normalized_payload);
+        $this->assertNotNull($message->payload_object_id);
+        $this->assertNotNull($message->normalized_payload_object_id);
+        $this->assertSame('{}', $canonical->payload);
+        $this->assertNotNull($canonical->payload_object_id);
         $this->assertSame((int) $source->source_id, (int) $flowEvent->source_id);
         $this->assertSame((int) $message->inbound_message_id, (int) $flowEvent->inbound_message_id);
         $this->assertSame((int) $canonical->canonical_event_id, (int) $flowEvent->canonical_event_id);
@@ -250,6 +259,7 @@ class PatientFlowSecurityHotfixTest extends TestCase
         $this->assertSame($first['canonical_event_id'], $retry['canonical_event_id']);
 
         $this->assertSame(1, DB::table('raw.inbound_messages')->where('source_id', $source->source_id)->count());
+        $this->assertStringNotContainsString('OTHER-PATIENT', DB::table('raw.dead_letters')->get()->toJson());
         $this->assertSame(1, DB::table('integration.canonical_events')->where('source_id', $source->source_id)->count());
         $this->assertSame(1, DB::table('flow_core.flow_events')->where('source_id', $source->source_id)->count());
         $this->assertSame(1, DB::table('integration.provenance_records')->where('source_id', $source->source_id)->count());
@@ -414,11 +424,30 @@ class PatientFlowSecurityHotfixTest extends TestCase
     /** @param array<string, mixed> $overrides */
     private function integrationSource(array $overrides = []): Source
     {
-        return Source::create(array_merge([
-            'source_uuid' => (string) Str::uuid(),
+        $organization = Organization::query()->firstOrCreate(
+            ['organization_key' => 'PATIENT_FLOW_SECURITY_IDN'],
+            [
+                'name' => 'Patient Flow Security Test IDN',
+                'kind' => 'idn',
+            ],
+        );
+        $facility = Facility::query()->firstOrCreate(
+            ['facility_key' => 'ZEPHYRUS-500'],
+            [
+                'organization_id' => $organization->organization_id,
+                'facility_name' => 'Patient Flow Security Test Facility',
+                'idn_role' => 'community_hospital',
+                'review_status' => 'client_verified',
+                'is_active' => true,
+            ],
+        );
+
+        return app(SourceRegistryService::class)->ensureSource(array_merge([
             'source_key' => 'ehr.hl7v2',
-            'tenant_key' => 'default',
-            'facility_key' => 'ZEPHYRUS-500',
+            'organization_id' => $organization->organization_id,
+            'facility_id' => $facility->facility_id,
+            'tenant_key' => $organization->organization_key,
+            'facility_key' => $facility->facility_key,
             'source_name' => 'Security Test HL7 v2',
             'vendor' => 'Test EHR',
             'system_class' => 'ehr',

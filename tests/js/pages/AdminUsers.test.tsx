@@ -57,6 +57,7 @@ describe('Admin user pages', () => {
             email: 'admin@example.test',
             role: 'admin',
             is_active: true,
+            is_protected: false,
             created_at: '2026-07-10T00:00:00Z',
           },
         ]}
@@ -65,7 +66,7 @@ describe('Admin user pages', () => {
 
     expect(screen.getByRole('link', { name: /add user/i })).toHaveAttribute('href', '/users/create');
     expect(document.querySelector('a[href="/users/42/edit"]')).toBeInTheDocument();
-    expect(document.querySelector('[data-href="/users/42"][data-method="delete"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-href="/users/42"][data-method="delete"]')).not.toBeInTheDocument();
   });
 
   it('submits create and edit forms to concrete user-management URLs', () => {
@@ -83,10 +84,103 @@ describe('Admin user pages', () => {
           username: 'admin',
           role: 'admin',
           is_active: true,
+          is_protected: false,
         }}
       />,
     );
-    fireEvent.submit(screen.getByRole('button', { name: /update user/i }).closest('form'));
+    const editForm = screen.getByRole('button', { name: /update user/i }).closest('form');
+    fireEvent.submit(editForm);
     expect(put).toHaveBeenCalledWith('/users/42');
+    expect(screen.getAllByRole('combobox').some((element) => element.value === 'routine_profile_update')).toBe(true);
+  });
+
+  it('locks routine identity and access fields for protected accounts', () => {
+    render(
+      <Edit
+        user={{
+          id: 77,
+          name: 'Break Glass',
+          email: 'break-glass@example.test',
+          username: 'break-glass',
+          role: 'admin',
+          is_active: true,
+          is_protected: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/This is a protected account/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toBeDisabled();
+    expect(screen.getByLabelText('Username')).toBeDisabled();
+    expect(screen.getByLabelText('Role')).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: /active account/i })).toBeDisabled();
+  });
+
+  it('renders governed external identity and exceptional purge controls', () => {
+    render(
+      <Edit
+        auth={{
+          user: { id: 9 },
+          can: { manage_identity: true, manage_privileges: true },
+        }}
+        user={{
+          id: 42,
+          name: 'Inactive User',
+          email: 'inactive@example.test',
+          username: 'inactive-user',
+          role: 'user',
+          is_active: false,
+          is_protected: false,
+          identity_purged_at: null,
+          external_identities: [{
+            id: 5,
+            provider: 'authentik',
+            subject_fingerprint: '0123456789abcdef',
+            provider_email_at_link: 'inactive@example.test',
+            is_active: true,
+          }],
+          purge_requests: [{
+            uuid: '019f5a00-0000-7000-8000-000000000001',
+            author_user_id: 7,
+            author_name: 'Identity Author',
+            reason: 'Retention reviewed request for identifier erasure.',
+            status: 'pending',
+          }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Subject fingerprint 0123456789abcdef/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unlink identity/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /request exceptional identity purge/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^purge decision$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^purge decision reason$/i)).toBeInTheDocument();
+    expect(screen.getByText(/requires prior deactivation, recent step-up/i)).toBeInTheDocument();
+  });
+
+  it('makes a purged account visibly immutable', () => {
+    render(
+      <Edit
+        auth={{ can: { manage_identity: true, manage_privileges: true } }}
+        user={{
+          id: 88,
+          name: 'Purged account 88',
+          email: 'purged+88@example.test',
+          username: 'purged_88',
+          role: 'user',
+          is_active: false,
+          is_protected: false,
+          identity_purged_at: '2026-07-13T00:00:00Z',
+          external_identities: [],
+          purge_requests: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/approved identity purge/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toBeDisabled();
+    expect(screen.getByLabelText('Email')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /update user/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /request exceptional identity purge/i })).not.toBeInTheDocument();
   });
 });

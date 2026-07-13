@@ -15,8 +15,9 @@ class ArenaSidecarClientTest extends TestCase
 {
     public function test_discover_posts_ocel_inline_with_params(): void
     {
+        $baseUrl = $this->baseUrl();
         Http::fake([
-            'arena:8100/discover' => Http::response([
+            $baseUrl.'/discover' => Http::response([
                 'object_types' => ['Encounter'],
                 'nodes' => [], 'edges' => [], 'stats' => ['nodes' => 0, 'edges' => 0],
             ], 200),
@@ -25,8 +26,8 @@ class ArenaSidecarClientTest extends TestCase
         $result = (new ArenaSidecarClient)->discover(['events' => [], 'objects' => []], ['Encounter'], 5);
 
         $this->assertSame(['Encounter'], $result['object_types']);
-        Http::assertSent(function ($req) {
-            return $req->url() === 'http://arena:8100/discover'
+        Http::assertSent(function ($req) use ($baseUrl) {
+            return $req->url() === $baseUrl.'/discover'
                 && $req->method() === 'POST'
                 && $req['object_types'] === ['Encounter']
                 && $req['activity_min_freq'] === 5
@@ -36,7 +37,7 @@ class ArenaSidecarClientTest extends TestCase
 
     public function test_discover_omits_optional_params_when_absent(): void
     {
-        Http::fake(['arena:8100/discover' => Http::response(['object_types' => [], 'nodes' => [], 'edges' => [], 'stats' => []], 200)]);
+        Http::fake([$this->baseUrl().'/discover' => Http::response(['object_types' => [], 'nodes' => [], 'edges' => [], 'stats' => []], 200)]);
 
         (new ArenaSidecarClient)->discover(['events' => []]);
 
@@ -45,17 +46,22 @@ class ArenaSidecarClientTest extends TestCase
 
     public function test_health_returns_payload(): void
     {
-        Http::fake(['arena:8100/health' => Http::response(['status' => 'ok', 'engine' => ['pm4py_available' => true]], 200)]);
+        Http::fake([$this->baseUrl().'/health' => Http::response(['status' => 'ok', 'engine' => ['pm4py_available' => true]], 200)]);
 
         $this->assertSame('ok', (new ArenaSidecarClient)->health()['status']);
     }
 
     public function test_failures_degrade_to_null(): void
     {
-        Http::fake(['arena:8100/discover' => Http::response('boom', 500)]);
+        Http::fake([$this->baseUrl().'/discover' => Http::response('boom', 500)]);
         $this->assertNull((new ArenaSidecarClient)->discover(['events' => []]));
 
-        Http::fake(['arena:8100/health' => fn () => throw new \RuntimeException('connect refused')]);
+        Http::fake([$this->baseUrl().'/health' => fn () => throw new \RuntimeException('connect refused')]);
         $this->assertNull((new ArenaSidecarClient)->health());
+    }
+
+    private function baseUrl(): string
+    {
+        return rtrim((string) config('services.arena.url'), '/');
     }
 }

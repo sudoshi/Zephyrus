@@ -20,18 +20,32 @@ class OidcReconciliationService
     public function __construct(
         private readonly array $allowedGroups = ['Zephyrus Users'],
         private readonly array $adminGroups = ['Zephyrus Admins'],
+        private readonly ?ExternalIdentityEventRecorder $events = null,
     ) {}
 
     /** @return array{user: User, reason: string} */
     public function reconcile(ValidatedClaims $claims): array
     {
         return DB::transaction(function () use ($claims): array {
+            // Group membership is evaluated on every login, including already
+            // linked subjects and aliases. Removing a user from all approved
+            // IdP groups therefore removes access at the next authentication.
+            if (! $this->inAnyGroup($claims->groups, [...$this->allowedGroups, ...$this->adminGroups])) {
+                throw new OidcAccessDeniedException('not_in_allowed_group', 'User is not in an allowed Zephyrus group.');
+            }
+
             $identity = UserExternalIdentity::query()
                 ->where('provider', self::PROVIDER)
                 ->where('provider_subject', $claims->sub)
                 ->first();
 
             if ($identity !== null) {
+                if (! $identity->is_active) {
+                    throw new OidcAccessDeniedException(
+                        'identity_unlinked',
+                        'This external identity was administratively unlinked and requires an approved relink.',
+                    );
+                }
                 $user = $identity->user;
                 if ($user === null) {
                     throw new OidcAccessDeniedException('linked_user_missing', 'Linked Zephyrus user no longer exists.');
@@ -62,10 +76,6 @@ class OidcReconciliationService
                 }
             }
 
-            if (! $this->inAnyGroup($claims->groups, [...$this->allowedGroups, ...$this->adminGroups])) {
-                throw new OidcAccessDeniedException('not_in_allowed_group', 'User is not in an allowed Zephyrus group.');
-            }
-
             $role = $this->inAnyGroup($claims->groups, $this->adminGroups) ? 'admin' : 'user';
 
             $user = User::query()->create([
@@ -94,13 +104,22 @@ class OidcReconciliationService
 
     private function link(int $userId, ValidatedClaims $claims): void
     {
-        UserExternalIdentity::query()->create([
+        $identity = UserExternalIdentity::query()->create([
             'user_id' => $userId,
             'provider' => self::PROVIDER,
             'provider_subject' => $claims->sub,
             'provider_email_at_link' => $claims->email,
             'linked_at' => now(),
+            'is_active' => true,
         ]);
+
+        ($this->events ?? app(ExternalIdentityEventRecorder::class))->record(
+            $identity,
+            'linked',
+            null,
+            'oidc_reconciliation',
+            ['link_method' => 'validated_oidc_claims'],
+        );
     }
 
     /** Mirror RegisteredUserController username derivation. */

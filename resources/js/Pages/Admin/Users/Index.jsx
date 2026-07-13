@@ -57,7 +57,12 @@ export default function Index({ auth, users }) {
                                         {users.map((user) => (
                                             <tr key={user.id}>
                                                 <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    {user.name}
+                                                    <span className="inline-flex items-center gap-2">
+                                                        {user.name}
+                                                        {user.is_protected && (
+                                                            <span className="rounded bg-healthcare-warning/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-healthcare-warning">Protected</span>
+                                                        )}
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-2.5 whitespace-nowrap text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                     {user.username}
@@ -90,22 +95,11 @@ export default function Index({ auth, users }) {
                                                     <div className="flex justify-end space-x-2">
                                                         <Link
                                                             href={`/users/${user.id}/edit`}
-                                                            className="text-healthcare-info dark:text-healthcare-info-dark hover:text-healthcare-info-dark dark:hover:text-healthcare-info transition-colors duration-300"
+                                                            aria-label={`Edit ${user.name}`}
+                                                            className="inline-flex items-center gap-1 rounded-md border border-healthcare-border px-2.5 py-1.5 text-healthcare-info transition-colors duration-300 hover:border-healthcare-info hover:text-healthcare-info-dark dark:border-healthcare-border-dark dark:text-healthcare-info-dark dark:hover:border-healthcare-info-dark dark:hover:text-healthcare-info"
                                                         >
-                                                            <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
-                                                        </Link>
-                                                        <Link
-                                                            href={`/users/${user.id}`}
-                                                            method="delete"
-                                                            as="button"
-                                                            className="text-healthcare-critical dark:text-healthcare-critical-dark hover:text-healthcare-critical-dark dark:hover:text-healthcare-critical transition-colors duration-300"
-                                                            onClick={(e) => {
-                                                                if (!confirm('Are you sure you want to delete this user?')) {
-                                                                    e.preventDefault();
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Icon icon="heroicons:trash" className="w-5 h-5" />
+                                                            <Icon icon="heroicons:pencil-square" className="h-4 w-4" aria-hidden="true" />
+                                                            <span>Edit</span>
                                                         </Link>
                                                     </div>
                                                 </td>

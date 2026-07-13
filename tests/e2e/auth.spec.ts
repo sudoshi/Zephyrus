@@ -11,10 +11,10 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
   });
 
-  test('login page has create account section', async ({ page }) => {
+  test('login page does not expose self-registration by default', async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText(/create an account/i)).toBeVisible();
+    await expect(page.getByText(/create an account/i)).toHaveCount(0);
   });
 
   test('shows validation errors for empty login', async ({ page }) => {
@@ -57,15 +57,11 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/\/dashboard|\/change-password/, { timeout: 10000 });
   });
 
-  test('demo web routes auto-authenticate dashboard viewers', async ({ page }) => {
-    await page.route('**/api/cockpit/stream', async (route) => {
-      await route.fulfill({ status: 204, body: '' });
-    });
-
+  test('protected web routes redirect anonymous viewers to login', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-    await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   test('change password modal appears for new users', async ({ page }) => {

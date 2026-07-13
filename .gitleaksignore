@@ -1,0 +1,26 @@
+# Exact reviewed working-tree false positives. A changed path, line, or rule
+# fingerprints differently and must be reviewed again.
+app/Services/Transport/RegionalTransferService.php:generic-api-key:576
+app/Services/Transport/RegionalTransferService.php:generic-api-key:947
+docs/superpowers/plans/2026-07-10-operational-platform-closure-checklist.md:generic-api-key:174
+hummingbird/iosApp/Hummingbird/LiveActivity/HouseGlanceCache.swift:generic-api-key:66
+tests/Feature/Admin/ExternalIdentityLifecycleTest.php:generic-api-key:53
+tests/Feature/Integrations/IntegrationConsoleTest.php:generic-api-key:117
+tests/Feature/Staffing/CanonicalStaffingFulfillmentTest.php:generic-api-key:125
+tests/Feature/Transport/RegionalTransferApiTest.php:generic-api-key:61
+tests/Feature/Transport/TransportLifecycleGovernanceTest.php:generic-api-key:70
+tests/Feature/Transport/TransportLifecycleGovernanceTest.php:generic-api-key:74
+
+# Exact reviewed historical false positives. Commit SHA makes each exception
+# immutable and prevents it from suppressing a future finding at the same path.
+bf55dee1fd463da72cdddecc43513fc9fe515de2:docs/superpowers/plans/2026-07-10-operational-platform-closure-checklist.md:generic-api-key:158
+bf55dee1fd463da72cdddecc43513fc9fe515de2:tests/Feature/Transport/TransportLifecycleGovernanceTest.php:generic-api-key:70
+bf55dee1fd463da72cdddecc43513fc9fe515de2:tests/Feature/Transport/TransportLifecycleGovernanceTest.php:generic-api-key:74
+2beab3547f1356c10efcf1f170a28d77a7f7cee3:tests/Feature/Staffing/CanonicalStaffingFulfillmentTest.php:generic-api-key:125
+74be99a5d712db19a39766500d8348c8272510c2:tests/Feature/Integrations/IntegrationConsoleTest.php:generic-api-key:96
+9ac1b6a7e13f5439cfa6253a831aa76459ea69c7:hummingbird/iosApp/Hummingbird/LiveActivity/HouseGlanceCache.swift:generic-api-key:48
+7c57b446af84c5ffd324410a6ec2fc914fb1d69c:tests/Feature/Transport/RegionalTransferApiTest.php:generic-api-key:61
+7c57b446af84c5ffd324410a6ec2fc914fb1d69c:app/Services/Transport/RegionalTransferService.php:generic-api-key:575
+7c57b446af84c5ffd324410a6ec2fc914fb1d69c:app/Services/Transport/RegionalTransferService.php:generic-api-key:946
+ca97617997c0a018a3649a545d007d8882a53975:domino/rest/tests/workspace/fixtures.py:generic-api-key:143
+ca97617997c0a018a3649a545d007d8882a53975:domino/rest/tests/workspace/fixtures.py:generic-api-key:153

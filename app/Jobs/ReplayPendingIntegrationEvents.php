@@ -5,8 +5,12 @@ namespace App\Jobs;
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
 use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Jobs\Middleware\FailClinicalJobSafely;
+use App\Security\ClinicalPayloads\ClinicalPayloadHydrator;
+use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -14,7 +18,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class ReplayPendingIntegrationEvents implements ShouldQueue
+class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,8 +34,12 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
         $this->onConnection('database')->onQueue('integrations');
     }
 
-    public function handle(RtdcProjectionHandler $projector, IntegrationConfigurationAuditService $audit): void
-    {
+    public function handle(
+        RtdcProjectionHandler $projector,
+        IntegrationConfigurationAuditService $audit,
+        ?ClinicalPayloadHydrator $payloads = null,
+    ): void {
+        $payloads ??= app(ClinicalPayloadHydrator::class);
         $replay = DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $this->replayJobId)->first();
         if (! $replay || in_array($replay->status, ['completed', 'completed_with_errors'], true)) {
             return;
@@ -58,7 +66,12 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
                     eventType: (string) $row->event_type,
                     entityType: $row->entity_type,
                     entityRef: $row->entity_ref,
-                    payload: $this->map($row->payload),
+                    payload: $payloads->required(
+                        $row->payload_object_id !== null ? (int) $row->payload_object_id : null,
+                        (int) $row->source_id,
+                        'canonical_event',
+                        $row->payload,
+                    ),
                     occurredAt: CarbonImmutable::parse($row->occurred_at),
                     idempotencyKey: (string) $row->idempotency_key,
                     correlationId: $row->correlation_id,
@@ -133,6 +146,21 @@ class ReplayPendingIntegrationEvents implements ShouldQueue
             ['status' => 'failed', 'errorCode' => 'replay_job_failed'],
             $this->correlationId,
         );
+    }
+
+    /** @return list<FailClinicalJobSafely> */
+    public function middleware(): array
+    {
+        return [new FailClinicalJobSafely];
+    }
+
+    public function clinicalPayloadSafeArguments(): array
+    {
+        return [
+            'replayJobId' => $this->replayJobId,
+            'actorUserId' => $this->actorUserId,
+            'correlationId' => $this->correlationId,
+        ];
     }
 
     /** @return array<string, mixed> */

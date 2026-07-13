@@ -1,6 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\AccessReviewController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminScopeController;
+use App\Http\Controllers\Admin\AuthorizationCatalogController;
+use App\Http\Controllers\Admin\AuthProviderController;
+use App\Http\Controllers\Admin\ExternalIdentityController;
+use App\Http\Controllers\Admin\IdentityPurgeController;
+use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\CommandCenterController;
@@ -198,6 +205,13 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             ->middleware('can:viewIntegrations')
             ->name('integrations');
 
+        Route::put('/admin/active-scope', [AdminScopeController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('admin.active-scope.update');
+        Route::delete('/admin/active-scope', [AdminScopeController::class, 'destroy'])
+            ->middleware('throttle:30,1')
+            ->name('admin.active-scope.destroy');
+
         // Authorized legacy bookmarks preserve their original functional target.
         Route::get('/deployment', fn () => redirect()->route('admin.enterprise-setup'))
             ->middleware('can:viewDeploymentConsole')
@@ -248,11 +262,62 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // remain on their existing, separately gated surfaces.
         Route::middleware('can:viewAdministration')->group(function () {
             Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
+            Route::get('/admin/auth-providers', [AuthProviderController::class, 'index'])
+                ->middleware('can:viewIdentity')
+                ->name('admin.auth-providers.index');
+            Route::get('/admin/roles-capabilities', AuthorizationCatalogController::class)
+                ->middleware('can:viewAuthorization')
+                ->name('admin.roles-capabilities.index');
+            Route::get('/admin/system-health', [SystemHealthController::class, 'index'])
+                ->middleware('can:viewSystemHealth')
+                ->name('admin.system-health.index');
+            Route::get('/admin/data-protection', \App\Http\Controllers\Admin\DataProtectionController::class)
+                ->middleware('can:viewIntegrations')
+                ->name('admin.data-protection.index');
+            Route::post('/admin/system-health/diagnostics', [SystemHealthController::class, 'diagnostics'])
+                ->middleware(['can:runDiagnostics', 'throttle:6,1'])
+                ->name('admin.system-health.diagnostics');
+            Route::get('/admin/system-health/{component}', [SystemHealthController::class, 'show'])
+                ->middleware('can:viewSystemHealth')
+                ->where('component', '[a-z][a-z0-9_]{0,79}')
+                ->name('admin.system-health.show');
             Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+            Route::post('/users/{user}/external-identities/{identity}/unlink', [ExternalIdentityController::class, 'unlink'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.external-identities.unlink');
+            Route::post('/users/{user}/external-identities/{identity}/relink', [ExternalIdentityController::class, 'relink'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.external-identities.relink');
+            Route::post('/users/{user}/identity-purge-requests', [IdentityPurgeController::class, 'store'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.identity-purge-requests.store');
+            Route::post('/admin/identity-purge-requests/{changeRequestUuid}/decision', [IdentityPurgeController::class, 'decide'])
+                ->middleware(['can:managePrivileges', 'throttle:6,1'])
+                ->name('admin.identity-purge-requests.decision');
+            Route::post('/users/{user}/identity-purge-requests/{changeRequestUuid}/execute', [IdentityPurgeController::class, 'execute'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.identity-purge-requests.execute');
 
             Route::get('/admin/user-audit', [UserAuditController::class, 'index'])
                 ->middleware('can:viewUserAudit')
                 ->name('admin.user-audit.index');
+
+            Route::controller(AccessReviewController::class)
+                ->prefix('/admin/access-reviews')
+                ->name('admin.access-reviews.')
+                ->middleware('can:viewAccessReviews')
+                ->group(function (): void {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->middleware('can:manageAccessReviews')->name('store');
+                    Route::post('/{campaign}/items/{item}/decision', 'decide')
+                        ->middleware('can:manageAccessReviews')->name('decide');
+                    Route::post('/{campaign}/complete', 'complete')
+                        ->middleware('can:manageAccessReviews')->name('complete');
+                    Route::post('/{campaign}/cancel', 'cancel')
+                        ->middleware('can:manageAccessReviews')->name('cancel');
+                    Route::get('/{campaign}/evidence.json', 'evidenceJson')->name('evidence.json');
+                    Route::get('/{campaign}/evidence.csv', 'evidenceCsv')->name('evidence.csv');
+                });
 
             // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
             // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,

@@ -19,20 +19,116 @@ return $builder
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->alias([
+            'admin.scope' => \App\Http\Middleware\RequireAdminScope::class,
+        ]);
+
+        $middleware->prepend(\App\Http\Middleware\AssignRequestIdentity::class);
+
         $middleware->append([
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\AuditUserRequests::class,
+            \App\Http\Middleware\EnsureClinicalFailureOutputSafe::class,
         ]);
+
+        $middleware->api(
+            append: [
+                \App\Http\Middleware\EnforceApiIngressContract::class,
+            ]
+        );
 
         $middleware->web(
             append: [
+                \App\Http\Middleware\EnsureSessionIsCurrent::class,
                 \App\Http\Middleware\HandleInertiaRequests::class,
                 \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             ]
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\App\Services\Auth\StepUpRequired $exception, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'step_up_required',
+                        'message' => $exception->getMessage(),
+                        'reauthentication_url' => route('password.confirm'),
+                    ],
+                ], 428);
+            }
+
+            return redirect()->guest(route('password.confirm'))
+                ->with('status', $exception->getMessage());
+        });
+        $exceptions->render(function (\App\Services\Governance\GovernanceViolation $exception, \Illuminate\Http\Request $request) {
+            $status = match ($exception->reason) {
+                'authorization_denied', 'actor_missing' => 403,
+                'subject_invalid', 'reason_invalid', 'payload_hash_invalid' => 422,
+                default => 409,
+            };
+
+            return response()->json([
+                'error' => [
+                    'code' => $exception->reason,
+                    'message' => $exception->getMessage(),
+                ],
+            ], $status);
+        });
+        $exceptions->render(function (\App\Security\ClinicalPayloads\ClinicalPayloadException $exception) {
+            $code = explode(':', $exception->errorCode, 2)[0];
+            $status = match ($code) {
+                'clinical_payload_authority_mismatch',
+                'clinical_payload_quarantine_missing',
+                'clinical_payload_quarantine_authority_mismatch' => 404,
+                'clinical_payload_kind_invalid',
+                'clinical_payload_classification_invalid',
+                'clinical_payload_content_type_invalid',
+                'clinical_payload_retention_policy_invalid',
+                'clinical_payload_quarantine_reason_invalid',
+                'clinical_payload_quarantine_details_invalid',
+                'clinical_payload_quarantine_inbound_mismatch',
+                'clinical_payload_governance_reference_invalid' => 422,
+                'clinical_content_output_rejected',
+                'clinical_content_audit_rejected',
+                'clinical_content_alert_rejected',
+                'clinical_content_evidence_rejected',
+                'clinical_content_governance_rejected',
+                'clinical_content_quarantine_rejected',
+                'clinical_payload_queue_contract_invalid',
+                'clinical_payload_queue_encryption_required',
+                'clinical_payload_queue_payload_rejected' => 422,
+                'clinical_payload_disk_unavailable',
+                'clinical_payload_storage_write_failed',
+                'clinical_payload_storage_delete_failed',
+                'clinical_payload_key_provider_unavailable',
+                'clinical_payload_read_failed',
+                'clinical_payload_store_failed' => 503,
+                default => 409,
+            };
+            $message = match ($code) {
+                'clinical_payload_authority_mismatch',
+                'clinical_payload_quarantine_missing',
+                'clinical_payload_quarantine_authority_mismatch' => 'The requested clinical-payload authority does not exist in the selected source boundary.',
+                'clinical_payload_deletion_blocked' => 'The clinical payload has unresolved operational dependencies and cannot be purged.',
+                'clinical_payload_legal_hold_active' => 'An active legal hold blocks this clinical-payload operation.',
+                'clinical_payload_storage_delete_failed' => 'Encrypted-object deletion failed closed and remains pending for governed retry.',
+                default => 'The clinical-payload operation failed its governed safety contract.',
+            };
+
+            return response()->json(['error' => ['code' => $code, 'message' => $message]], $status);
+        });
+        $exceptions->render(function (\App\Services\Authorization\AdminScopeViolation $exception, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error' => [
+                        'code' => $exception->reason,
+                        'message' => $exception->getMessage(),
+                    ],
+                ], 409);
+            }
+
+            return back()->with('error', $exception->getMessage());
+        });
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->job(new \App\Jobs\ReconcileRtdcPredictions)->dailyAt('02:00');
@@ -104,6 +200,22 @@ return $builder
             ->everyFiveMinutes()->withoutOverlapping();
         $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
             ->everyFifteenMinutes()->withoutOverlapping();
+        // Append-only, PHI-free evidence for the Admin System Health surface.
+        // This must run synchronously on the scheduler so its own heartbeat does
+        // not depend on a queue worker being healthy.
+        $schedule->command('admin:observe-system-health')
+            ->everyMinute()->withoutOverlapping(5);
+        // Source-scoped SLO evidence is also collected synchronously: queue
+        // degradation is an input to the observation and cannot be allowed to
+        // prevent the observation itself from being persisted.
+        $schedule->command('integrations:observe-source-health --limit=250')
+            ->everyMinute()->onOneServer()->withoutOverlapping(5);
+        // Encrypted clinical payload lifecycle. These commands expose counts
+        // and stable error codes only; no payload content enters scheduler state.
+        $schedule->command('clinical-payloads:lifecycle --execute --limit=100')
+            ->hourly()->onOneServer()->withoutOverlapping(30);
+        $schedule->command('clinical-payloads:verify')
+            ->dailyAt('02:40')->onOneServer()->withoutOverlapping(120);
         // Flow Reconciliation: rebuild the 48-Hour Flow Review baseline artifact
         // (arena.reviews) on a slow cadence — the window is 48h wide, so a 6-hourly
         // refresh keeps GET /api/arena/review fresh without hammering the sidecar.

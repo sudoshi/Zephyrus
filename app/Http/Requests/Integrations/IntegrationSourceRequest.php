@@ -36,14 +36,18 @@ class IntegrationSourceRequest extends FormRequest
                 ? ['prohibited']
                 : ['required', 'string', 'max:160', 'regex:/^[a-z0-9][a-z0-9._-]*$/'],
             'source_name' => [$required, 'string', 'max:255'],
-            'tenant_key' => [$required, 'string', 'max:120', 'regex:/^[a-zA-Z0-9._-]+$/'],
-            'facility_key' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:/^[a-zA-Z0-9._-]+$/'],
+            'tenant_key' => ['prohibited'],
+            'facility_key' => ['prohibited'],
+            'organization_id' => ['prohibited'],
+            'facility_id' => ['prohibited'],
             'vendor' => ['sometimes', 'nullable', 'string', 'max:120'],
             'system_class' => [$required, Rule::in(self::SYSTEM_CLASSES)],
             'environment' => [$required, Rule::in(['sandbox', 'test', 'staging', 'production'])],
             'base_url' => ['sometimes', 'nullable', 'url', new SafeIntegrationUrl(app(IntegrationUrlPolicy::class))],
             'interface_type' => [$required, Rule::in(self::INTERFACE_TYPES)],
-            'active_status' => [$required, Rule::in(['template', 'inactive', 'testing', 'active', 'degraded', 'disabled'])],
+            'active_status' => $updating
+                ? ['prohibited']
+                : ['sometimes', Rule::in(['template', 'inactive', 'testing', 'degraded', 'disabled'])],
             'fhir_version' => ['sometimes', 'nullable', 'string', 'max:40'],
             'us_core_version' => ['sometimes', 'nullable', 'string', 'max:40'],
             'smart_supported' => ['sometimes', 'boolean'],
@@ -52,14 +56,30 @@ class IntegrationSourceRequest extends FormRequest
             'contract_status' => [$required, Rule::in(['unknown', 'planning', 'review', 'executed', 'expired', 'not_required'])],
             'baa_status' => [$required, Rule::in(['unknown', 'planning', 'review', 'executed', 'expired', 'not_required'])],
             'phi_allowed' => ['sometimes', 'boolean'],
-            'go_live_status' => [$required, Rule::in(['not_started', 'planning', 'testing', 'ready', 'live', 'paused', 'retired'])],
+            'go_live_status' => $updating
+                ? ['prohibited']
+                : ['sometimes', Rule::in(['not_started', 'planning', 'testing', 'ready', 'paused', 'retired'])],
             'owner' => ['sometimes', 'nullable', 'string', 'max:120'],
             'expected_cadence_minutes' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:10080'],
+            'expected_configuration_version_id' => $updating ? ['required', 'integer', 'min:1'] : ['prohibited'],
+            'change_reason' => $updating ? ['required', 'string', 'min:10', 'max:500'] : ['prohibited'],
             'secret' => ['prohibited'],
             'password' => ['prohibited'],
             'client_secret' => ['prohibited'],
             'private_key' => ['prohibited'],
             'access_token' => ['prohibited'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if (! $this->route('source') && $this->input('active_status') === 'active') {
+                $validator->errors()->add('active_status', 'Production activation requires an approved governed activation request.');
+            }
+            if (! $this->route('source') && $this->input('go_live_status') === 'live') {
+                $validator->errors()->add('go_live_status', 'Production go-live requires an approved governed activation request.');
+            }
+        });
     }
 }

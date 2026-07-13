@@ -5,6 +5,7 @@ namespace App\Services\Cockpit;
 use App\Contracts\AlertChannel;
 use App\Models\Cockpit\CockpitAlert;
 use App\Models\Ops\MetricDefinition;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -18,11 +19,30 @@ use Illuminate\Support\Facades\Log;
  */
 class AlertFanout
 {
+    private readonly ClinicalContentGuard $clinicalContent;
+
     /** @param list<AlertChannel> $channels */
-    public function __construct(private readonly array $channels) {}
+    public function __construct(private readonly array $channels, ?ClinicalContentGuard $clinicalContent = null)
+    {
+        $this->clinicalContent = $clinicalContent ?? app(ClinicalContentGuard::class);
+    }
 
     public function alertOpened(CockpitAlert $alert): void
     {
+        if ($this->clinicalContent->contains([
+            'facility_key' => $alert->facility_key,
+            'key' => $alert->key,
+            'status' => $alert->status,
+            'text' => $alert->text,
+        ])) {
+            Log::warning('cockpit.alerts.clinical_content_suppressed', [
+                'key' => $alert->key,
+                'status' => $alert->status,
+            ]);
+
+            return;
+        }
+
         if (! $this->shouldPage($alert)) {
             return;
         }

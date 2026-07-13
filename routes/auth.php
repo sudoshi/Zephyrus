@@ -37,9 +37,20 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 
-    Route::get('auth/oidc/redirect', [OidcController::class, 'redirect'])->name('auth.oidc.redirect');
-    Route::get('auth/oidc/callback', [OidcController::class, 'callback'])->name('auth.oidc.callback');
 });
+
+// OIDC state/nonce/PKCE protects the callback. These routes intentionally sit
+// outside `guest` so an authenticated administrator can perform upstream MFA
+// step-up without being redirected away by RedirectIfAuthenticated.
+Route::get('auth/oidc/redirect', [OidcController::class, 'redirect'])
+    ->middleware('throttle:12,1')
+    ->name('auth.oidc.redirect');
+Route::get('auth/oidc/callback', [OidcController::class, 'callback'])
+    ->middleware('throttle:12,1')
+    ->name('auth.oidc.callback');
+Route::get('auth/oidc/step-up', [OidcController::class, 'redirect'])
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('auth.oidc.step-up');
 
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('change-password', [ChangePasswordController::class, 'show'])
@@ -70,9 +81,12 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('logout');
 
     Route::get('admin/auth-providers/{type}', [AuthProviderController::class, 'show'])
-        ->middleware('can:viewAdministration')
+        ->middleware('can:viewIdentity')
         ->name('admin.auth-providers.show');
     Route::put('admin/auth-providers/{type}', [AuthProviderController::class, 'update'])
-        ->middleware('can:viewAdministration')
+        ->middleware('can:manageIdentity')
         ->name('admin.auth-providers.update');
+    Route::post('admin/auth-providers/{type}/diagnostics', [AuthProviderController::class, 'diagnose'])
+        ->middleware(['can:viewIdentity', 'throttle:6,1'])
+        ->name('admin.auth-providers.diagnostics');
 });

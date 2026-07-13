@@ -4,6 +4,7 @@ namespace App\Services\Push;
 
 use App\Contracts\PushNotifier;
 use App\Models\User;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -17,10 +18,15 @@ use Illuminate\Support\Facades\Log;
  */
 class ApnsPushNotifier implements PushNotifier
 {
+    private readonly ClinicalContentGuard $clinicalContent;
+
     /**
      * @param  array<string, mixed>  $config  config('hummingbird.apns')
      */
-    public function __construct(private readonly array $config) {}
+    public function __construct(private readonly array $config, ?ClinicalContentGuard $clinicalContent = null)
+    {
+        $this->clinicalContent = $clinicalContent ?? app(ClinicalContentGuard::class);
+    }
 
     /**
      * @param  array<string, mixed>  $c
@@ -33,6 +39,10 @@ class ApnsPushNotifier implements PushNotifier
 
     public function sendToUser(User $user, string $title, string $body, array $data = []): int
     {
+        $this->clinicalContent->assertSafe(
+            ['title' => $title, 'notification_text' => $body, 'data' => $data],
+            'clinical_content_alert_rejected',
+        );
         $devices = $user->mobileDevices()->whereNull('revoked_at')->where('platform', 'ios')->get();
         if ($devices->isEmpty()) {
             return 0;

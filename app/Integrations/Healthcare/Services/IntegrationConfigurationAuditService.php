@@ -2,11 +2,14 @@
 
 namespace App\Integrations\Healthcare\Services;
 
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class IntegrationConfigurationAuditService
 {
+    public function __construct(private readonly ClinicalContentGuard $clinicalContent) {}
+
     /**
      * @param  array<string, mixed>  $before
      * @param  array<string, mixed>  $after
@@ -21,6 +24,11 @@ class IntegrationConfigurationAuditService
         array $after,
         string $correlationId,
     ): void {
+        $this->clinicalContent->assertSafe(
+            ['before' => $before, 'after' => $after],
+            'clinical_content_audit_rejected',
+        );
+
         DB::table('integration.configuration_audits')->insert([
             'audit_uuid' => (string) Str::uuid(),
             'actor_user_id' => $actorUserId,

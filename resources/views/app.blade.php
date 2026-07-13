@@ -20,7 +20,7 @@
         <meta name="theme-color" content="#ffffff">
 
         <!-- Prevent flash of light mode -->
-        <script>
+        <script nonce="{{ $cspNonce }}">
             (function() {
                 // Check localStorage first
                 const savedTheme = localStorage.getItem('darkMode');
@@ -50,16 +50,8 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
         <!-- Scripts -->
-        @production
-            @php
-                $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
-            @endphp
-            <link rel="stylesheet" href="/build/{{ $manifest['resources/js/app.tsx']['css'][0] }}">
-            <script type="module" src="/build/{{ $manifest['resources/js/app.tsx']['file'] }}"></script>
-        @else
-            @viteReactRefresh
-            @vite(['resources/js/app.tsx'])
-        @endproduction
+        @viteReactRefresh
+        @vite(['resources/js/app.tsx'])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">

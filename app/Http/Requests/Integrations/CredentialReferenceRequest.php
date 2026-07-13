@@ -29,8 +29,12 @@ class CredentialReferenceRequest extends FormRequest
             'certificate_ref' => ['sometimes', 'nullable', 'string', 'max:255', new SecretReference],
             'jwks_uri' => ['sometimes', 'nullable', 'url', new SafeIntegrationUrl(app(IntegrationUrlPolicy::class))],
             'rotates_at' => ['sometimes', 'nullable', 'date', 'after:today'],
+            'valid_from' => ['sometimes', 'nullable', 'date'],
+            'expires_at' => ['sometimes', 'nullable', 'date', 'after:valid_from'],
+            'rotation_overlap_ends_at' => ['sometimes', 'nullable', 'date', 'after:valid_from'],
             'is_active' => ['sometimes', 'boolean'],
             'owner' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'change_reason' => ['sometimes', 'string', 'min:10', 'max:500'],
             'secret' => ['prohibited'],
             'password' => ['prohibited'],
             'client_secret' => ['prohibited'],
@@ -45,6 +49,17 @@ class CredentialReferenceRequest extends FormRequest
         $validator->after(function ($validator): void {
             $credentialId = $this->route('credential');
             if ($credentialId !== null) {
+                $governedFields = [
+                    'credential_type', 'secret_ref', 'certificate_ref', 'jwks_uri',
+                    'rotates_at', 'valid_from', 'expires_at', 'rotation_overlap_ends_at', 'is_active',
+                ];
+                if (collect($governedFields)->contains(fn (string $field): bool => $this->exists($field))) {
+                    $validator->errors()->add(
+                        'credential',
+                        'Credential rotation fields require an approved governed rotation request.',
+                    );
+                }
+
                 $current = DB::table('integration.source_credentials')
                     ->where('source_id', (int) $this->route('source'))
                     ->where('source_credential_id', (int) $credentialId)

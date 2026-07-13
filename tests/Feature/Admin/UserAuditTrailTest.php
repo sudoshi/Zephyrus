@@ -32,7 +32,12 @@ final class UserAuditTrailTest extends TestCase
                 ->component('Admin/Dashboard')
                 ->where('metrics.totalUsers', $userCount)
                 ->where('metrics.activeUsers', $activeUserCount)
-                ->has('sections', 6));
+                ->where('readiness.health.overallStatus', 'degraded')
+                ->has('readiness.readinessMetrics', 7)
+                ->has('readiness.scopeIndicators', 4)
+                ->has('readiness.actionQueue')
+                ->has('sections', 14)
+                ->where('sections.10.href', '/integrations?tab=sources'));
 
         $this->actingAs($admin)->get('/admin/user-audit')
             ->assertOk()
@@ -41,6 +46,39 @@ final class UserAuditTrailTest extends TestCase
                 ->has('events.data')
                 ->has('stats')
                 ->has('options.actions'));
+    }
+
+    public function test_administration_dashboard_redacts_domain_rollups_without_their_capabilities(): void
+    {
+        $facilityAdmin = $this->user('facility_admin');
+        $this->user('user', ['must_change_password' => true]);
+
+        app(UserAuditRecorder::class)->record(
+            'auth.login',
+            'authentication',
+            'failure',
+            ['reason' => 'invalid_credentials'],
+        );
+
+        $this->actingAs($facilityAdmin)->get('/admin')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Dashboard')
+                ->where('metrics.totalUsers', null)
+                ->where('metrics.activeUsers', null)
+                ->where('metrics.mustChangePassword', null)
+                ->where('metrics.failedLoginsToday', null)
+                ->where('readiness.health.visible', false)
+                ->where('readiness.health.overallStatus', 'restricted')
+                ->where('readiness.health.counts', [])
+                ->where('readiness.readinessMetrics.0.value', 'Restricted')
+                ->where('readiness.readinessMetrics.1.value', 'Restricted')
+                ->where('readiness.readinessMetrics.2.value', 'Restricted')
+                ->has('readiness.actionQueue', 0)
+                ->where('recentEvents', [])
+                ->where('canViewAuditActivity', false)
+                ->where('sections.2.state', 'restricted')
+                ->where('sections.2.detail', null));
     }
 
     public function test_password_login_failure_success_and_logout_are_recorded_without_credentials(): void
@@ -172,6 +210,7 @@ final class UserAuditTrailTest extends TestCase
             'password_confirmation' => 'StrongPassword!123',
             'role' => 'user',
             'is_active' => true,
+            'change_reason' => 'new_account',
         ])->assertRedirect(route('users.index'));
 
         $created = User::query()->where('username', 'new-operations')->sole();

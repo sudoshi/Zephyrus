@@ -4,6 +4,7 @@ namespace App\Services\Cockpit\Channels;
 
 use App\Contracts\AlertChannel;
 use App\Models\Cockpit\CockpitAlert;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,13 @@ use Illuminate\Support\Facades\Log;
  */
 class TeamsAlertChannel implements AlertChannel
 {
+    private readonly ClinicalContentGuard $clinicalContent;
+
+    public function __construct(?ClinicalContentGuard $clinicalContent = null)
+    {
+        $this->clinicalContent = $clinicalContent ?? app(ClinicalContentGuard::class);
+    }
+
     public function send(CockpitAlert $alert): int
     {
         $url = (string) config('services.teams.alert_webhook_url', '');
@@ -22,6 +30,10 @@ class TeamsAlertChannel implements AlertChannel
         if ($url === '') {
             return 0;
         }
+        $this->clinicalContent->assertSafe(
+            ['key' => $alert->key, 'status' => $alert->status, 'text' => $alert->text],
+            'clinical_content_alert_rejected',
+        );
 
         try {
             $response = Http::timeout(5)->post($url, [

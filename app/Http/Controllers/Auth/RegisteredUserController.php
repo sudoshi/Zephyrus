@@ -22,6 +22,8 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
+        $this->authorizeRegistration();
+
         return Inertia::render('Auth/Register');
     }
 
@@ -32,6 +34,8 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->authorizeRegistration();
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
@@ -146,5 +150,13 @@ class RegisteredUserController extends Controller
                 <p style=\"color: #6b7280; font-size: 14px;\">If you did not request this account, please ignore this email.</p>
             </div>
         ";
+    }
+
+    private function authorizeRegistration(): void
+    {
+        abort_unless(
+            config('auth-drivers.local.registration_enabled', false),
+            404,
+        );
     }
 }

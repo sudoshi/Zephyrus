@@ -1,23 +1,50 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createIntegrationCredential,
+  createNetworkRoute,
   createIntegrationEndpoint,
   createIntegrationSource,
+  createSourceEvidence,
+  createSourceOnboardingVersion,
+  cancelSourceActivationWindow,
   deleteIntegrationCredential,
   deleteIntegrationEndpoint,
   fetchIntegrationControlPlane,
+  fetchCredentialVersions,
+  fetchNetworkRoutes,
+  fetchSourceConfigurationVersions,
+  fetchSourceLifecycleEvents,
+  fetchSourceOnboarding,
+  fetchSourceObservability,
+  collectSourceObservation,
   previewIntegrationReplay,
+  proposeSourceConfiguration,
+  requestIntegrationReplay,
+  requestCredentialRotation,
+  requestSourceConfigurationApplication,
+  requestSourceActivation,
+  requestScheduledSourceActivation,
+  assessSourceReadiness,
+  transitionSourceLifecycle,
   queueEpicFhirPoll,
   queueIntegrationHealthCheck,
   queueIntegrationReplay,
   retireIntegrationSource,
+  retireNetworkRoute,
   updateIntegrationEndpoint,
   updateIntegrationCredential,
+  updateNetworkRoute,
   updateIntegrationSource,
   type IntegrationCredentialInput,
   type IntegrationEndpointInput,
   type IntegrationSourceInput,
+  type SourceEvidenceInput,
+  type SourceOnboardingInput,
   type IntegrationReplayInput,
+  type NetworkRouteInput,
+  type CredentialRotationInput,
+  validateCredential,
+  validateNetworkRoute,
 } from './api';
 
 const controlPlaneKey = ['admin', 'integrations', 'control-plane'] as const;
@@ -27,6 +54,59 @@ export function useIntegrationControlPlane() {
     queryKey: controlPlaneKey,
     queryFn: fetchIntegrationControlPlane,
     refetchInterval: 60_000,
+  });
+}
+
+export function useSourceConfigurationVersions(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'configuration-versions'],
+    queryFn: () => fetchSourceConfigurationVersions(sourceId as number),
+    enabled: sourceId !== null,
+  });
+}
+
+export function useSourceLifecycleEvents(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'lifecycle-events'],
+    queryFn: () => fetchSourceLifecycleEvents(sourceId as number),
+    enabled: sourceId !== null,
+  });
+}
+
+export function useSourceOnboarding(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'onboarding'],
+    queryFn: () => fetchSourceOnboarding(sourceId as number),
+    enabled: sourceId !== null,
+  });
+}
+
+export function useSourceObservability(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'observability'],
+    queryFn: () => fetchSourceObservability(sourceId as number),
+    enabled: sourceId !== null,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useCollectSourceObservation() {
+  return useRefreshingMutation((sourceId: number) => collectSourceObservation(sourceId));
+}
+
+export function useCredentialVersions(sourceId: number | null, credentialId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'credential', credentialId, 'versions'],
+    queryFn: () => fetchCredentialVersions(sourceId as number, credentialId as number),
+    enabled: sourceId !== null && credentialId !== null,
+  });
+}
+
+export function useNetworkRoutes(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'network-routes'],
+    queryFn: () => fetchNetworkRoutes(sourceId as number),
+    enabled: sourceId !== null,
   });
 }
 
@@ -46,8 +126,51 @@ export function useUpdateIntegrationSource() {
   return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: Partial<Omit<IntegrationSourceInput, 'source_key'>> }) => updateIntegrationSource(sourceId, input));
 }
 
+export function useProposeSourceConfiguration() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: Partial<Omit<IntegrationSourceInput, 'source_key'>> }) => proposeSourceConfiguration(sourceId, input));
+}
+
+export function useRequestSourceConfigurationApplication() {
+  return useRefreshingMutation(({ sourceId, configurationVersionId, reason }: { sourceId: number; configurationVersionId: number; reason: string }) => requestSourceConfigurationApplication(sourceId, configurationVersionId, reason));
+}
+
+export function useTransitionSourceLifecycle() {
+  return useRefreshingMutation(({ sourceId, toState, reason }: { sourceId: number; toState: string; reason: string }) => transitionSourceLifecycle(sourceId, toState, reason));
+}
+
+export function useRequestSourceActivation() {
+  return useRefreshingMutation(({ sourceId, reason }: { sourceId: number; reason: string }) => requestSourceActivation(sourceId, reason));
+}
+
+export function useCreateSourceOnboardingVersion() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: SourceOnboardingInput }) => createSourceOnboardingVersion(sourceId, input));
+}
+
+export function useCreateSourceEvidence() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: SourceEvidenceInput }) => createSourceEvidence(sourceId, input));
+}
+
+export function useAssessSourceReadiness() {
+  return useRefreshingMutation(({ sourceId, evaluatedForAt }: { sourceId: number; evaluatedForAt?: string }) => assessSourceReadiness(sourceId, evaluatedForAt));
+}
+
+export function useRequestScheduledSourceActivation() {
+  return useRefreshingMutation(({ sourceId, input }: {
+    sourceId: number;
+    input: { activate_at: string; window_ends_at: string; requested_timezone: string; reason: string };
+  }) => requestScheduledSourceActivation(sourceId, input));
+}
+
+export function useCancelSourceActivationWindow() {
+  return useRefreshingMutation(({ sourceId, windowUuid, reason }: {
+    sourceId: number;
+    windowUuid: string;
+    reason: string;
+  }) => cancelSourceActivationWindow(sourceId, windowUuid, reason));
+}
+
 export function useRetireIntegrationSource() {
-  return useRefreshingMutation((sourceId: number) => retireIntegrationSource(sourceId));
+  return useRefreshingMutation(({ sourceId, reason }: { sourceId: number; reason: string }) => retireIntegrationSource(sourceId, reason));
 }
 
 export function useCreateIntegrationEndpoint() {
@@ -71,7 +194,33 @@ export function useUpdateIntegrationCredential() {
 }
 
 export function useDeleteIntegrationCredential() {
-  return useRefreshingMutation(({ sourceId, credentialId }: { sourceId: number; credentialId: number }) => deleteIntegrationCredential(sourceId, credentialId));
+  return useRefreshingMutation(({ sourceId, credentialId, reason }: { sourceId: number; credentialId: number; reason: string }) => deleteIntegrationCredential(sourceId, credentialId, reason));
+}
+
+export function useValidateCredential() {
+  return useRefreshingMutation(({ sourceId, credentialId, evaluatedForAt }: { sourceId: number; credentialId: number; evaluatedForAt?: string }) => validateCredential(sourceId, credentialId, evaluatedForAt));
+}
+
+export function useRequestCredentialRotation() {
+  return useRefreshingMutation(({ sourceId, credentialId, input, reason }: {
+    sourceId: number; credentialId: number; input: CredentialRotationInput; reason: string;
+  }) => requestCredentialRotation(sourceId, credentialId, input, reason));
+}
+
+export function useCreateNetworkRoute() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: NetworkRouteInput }) => createNetworkRoute(sourceId, input));
+}
+
+export function useUpdateNetworkRoute() {
+  return useRefreshingMutation(({ sourceId, routeId, input }: { sourceId: number; routeId: number; input: Partial<NetworkRouteInput> }) => updateNetworkRoute(sourceId, routeId, input));
+}
+
+export function useValidateNetworkRoute() {
+  return useRefreshingMutation(({ sourceId, routeId }: { sourceId: number; routeId: number }) => validateNetworkRoute(sourceId, routeId));
+}
+
+export function useRetireNetworkRoute() {
+  return useRefreshingMutation(({ sourceId, routeId, reason }: { sourceId: number; routeId: number; reason: string }) => retireNetworkRoute(sourceId, routeId, reason));
 }
 
 export function useQueueIntegrationHealthCheck() {
@@ -86,6 +235,10 @@ export function usePreviewIntegrationReplay() {
   return useMutation({ mutationFn: (input: IntegrationReplayInput) => previewIntegrationReplay(input) });
 }
 
+export function useRequestIntegrationReplay() {
+  return useMutation({ mutationFn: ({ input, reason }: { input: IntegrationReplayInput; reason: string }) => requestIntegrationReplay(input, reason) });
+}
+
 export function useQueueIntegrationReplay() {
-  return useRefreshingMutation(({ input, idempotencyKey }: { input: IntegrationReplayInput; idempotencyKey: string }) => queueIntegrationReplay(input, idempotencyKey));
+  return useRefreshingMutation(({ input, changeRequestUuid, idempotencyKey }: { input: IntegrationReplayInput; changeRequestUuid: string; idempotencyKey: string }) => queueIntegrationReplay(input, changeRequestUuid, idempotencyKey));
 }

@@ -5,20 +5,22 @@ namespace App\Integrations\Healthcare\Services;
 use App\Integrations\Healthcare\Exceptions\IntegrationCredentialException;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Models\Integration\Source;
-use App\Security\Network\IntegrationUrlPolicy;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 class EpicSmartFhirClient
 {
     private const RESOURCE_TYPES = ['Encounter', 'Location'];
 
     public function __construct(
-        private readonly IntegrationUrlPolicy $urlPolicy,
-        private readonly IntegrationSecretReferenceResolver $secrets,
+        private readonly CredentialRuntimeResolver $credentials,
+        private readonly IntegrationConnectionGuard $connections,
+        private readonly ClinicalPayloadStore $payloads,
     ) {}
 
     /** @return array<string, mixed> */
@@ -57,13 +59,15 @@ class EpicSmartFhirClient
 
         $credential = DB::table('integration.smart_backend_credentials')
             ->where('source_id', $sourceId)->orderBy('smart_backend_credential_id')->first();
-        if (! $credential || ! filled($credential->client_id) || ! filled($credential->jwks_secret_ref) || ! filled($credential->token_url)) {
+        if (! $credential
+            || ! filled($credential->client_id)
+            || $credential->source_credential_id === null
+            || ! filled($credential->token_url)) {
             throw new IntegrationProtocolException('smart_credentials_required');
         }
 
-        $token = $this->accessToken($credential);
+        $token = $this->accessToken($credential, $sourceId);
         $baseUrl = rtrim((string) $connection->base_url, '/');
-        $this->urlPolicy->assertSafe($baseUrl);
         $since = DB::table('integration.connector_watermarks')
             ->where('source_id', $sourceId)
             ->where('connector_key', 'epic.fhir-r4')
@@ -88,7 +92,7 @@ class EpicSmartFhirClient
         $resourceLimit = (int) config('integrations.fhir_resource_limit', 1000);
 
         while ($url !== null && $pages < $pageLimit && $received < $resourceLimit) {
-            $this->urlPolicy->assertSafe($url);
+            $connectionTarget = $this->connections->guard($sourceId, $url);
             if ($this->origin($url) !== $this->origin($baseUrl)) {
                 throw new IntegrationProtocolException('fhir_pagination_origin_mismatch');
             }
@@ -96,7 +100,7 @@ class EpicSmartFhirClient
                 ->accept('application/fhir+json')
                 ->connectTimeout(5)
                 ->timeout((int) config('integrations.health_timeout_seconds', 10) * 3)
-                ->withOptions(['allow_redirects' => false])
+                ->withOptions($connectionTarget->httpOptions())
                 ->get($url, $pages === 0 ? $query : []);
             $bundle = $this->fhirJson($response);
             if (($bundle['resourceType'] ?? null) !== 'Bundle') {
@@ -175,12 +179,15 @@ class EpicSmartFhirClient
     }
 
     /** @return array{accessToken: string, expiresIn: int} */
-    private function accessToken(object $credential): array
+    private function accessToken(object $credential, int $sourceId): array
     {
         $tokenUrl = (string) $credential->token_url;
-        $this->urlPolicy->assertSafe($tokenUrl);
+        $connectionTarget = $this->connections->guard($sourceId, $tokenUrl);
         try {
-            $privateKey = $this->secrets->resolve((string) $credential->jwks_secret_ref);
+            $privateKey = $this->credentials->resolveSecret(
+                $sourceId,
+                (int) $credential->source_credential_id,
+            )->value();
         } catch (IntegrationCredentialException $exception) {
             throw new IntegrationProtocolException($exception->errorCode);
         }
@@ -216,7 +223,7 @@ class EpicSmartFhirClient
             ->acceptJson()
             ->connectTimeout(5)
             ->timeout((int) config('integrations.health_timeout_seconds', 10) * 2)
-            ->withOptions(['allow_redirects' => false])
+            ->withOptions($connectionTarget->httpOptions())
             ->post($tokenUrl, [
                 'grant_type' => 'client_credentials',
                 'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
@@ -248,66 +255,109 @@ class EpicSmartFhirClient
         $versionId = (string) (data_get($resource, 'meta.versionId') ?: 'hash-'.substr($hash, 0, 32));
         $idempotencyKey = 'fhir:sha256:'.hash('sha256', "{$resourceType}\0{$fhirId}\0{$versionId}");
 
-        return DB::transaction(function () use ($sourceId, $resourceType, $resource, $resourceJson, $hash, $fhirId, $versionId, $idempotencyKey, $ingestRunId): bool {
-            $existing = DB::table('raw.inbound_messages')
-                ->where('source_id', $sourceId)
-                ->where('idempotency_key', $idempotencyKey)
-                ->lockForUpdate()->first();
-            if ($existing) {
-                if (! hash_equals((string) $existing->payload_hash, $hash)) {
-                    throw new IntegrationProtocolException('fhir_version_hash_conflict');
-                }
-
-                return false;
+        $existing = DB::table('raw.inbound_messages')
+            ->where('source_id', $sourceId)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+        if ($existing) {
+            if (! hash_equals((string) $existing->payload_hash, $hash)) {
+                throw new IntegrationProtocolException('fhir_version_hash_conflict');
             }
 
-            $messageId = DB::table('raw.inbound_messages')->insertGetId([
-                'message_uuid' => (string) Str::uuid(),
-                'source_id' => $sourceId,
-                'ingest_run_id' => $ingestRunId,
-                'message_type' => 'FHIR_R4_'.$resourceType,
-                'external_id' => Str::limit("{$resourceType}/{$fhirId}/_history/{$versionId}", 190, ''),
-                'idempotency_key' => $idempotencyKey,
-                'payload_hash' => $hash,
-                'payload' => $resourceJson,
-                'normalized_payload' => null,
-                'received_at' => now(),
-                'parse_status' => 'persisted',
-                'metadata' => json_encode(['protocol' => 'fhir_r4'], JSON_THROW_ON_ERROR),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ], 'inbound_message_id');
+            return false;
+        }
 
-            $resourceVersionId = DB::table('fhir.resource_versions')->insertGetId([
-                'source_id' => $sourceId,
-                'resource_type' => $resourceType,
-                'fhir_id' => $fhirId,
-                'version_id' => $versionId,
-                'last_updated' => data_get($resource, 'meta.lastUpdated'),
-                'resource_hash' => $hash,
-                'resource_data' => $resourceJson,
-                'ingest_run_id' => $ingestRunId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ], 'resource_version_id');
+        $stored = $this->payloads->storeJson(
+            $sourceId,
+            'fhir_resource',
+            $resource,
+            contentType: 'application/fhir+json',
+        );
 
-            DB::table('integration.provenance_records')->insert([
-                'source_id' => $sourceId,
-                'inbound_message_id' => $messageId,
-                'canonical_event_id' => null,
-                'target_schema' => 'fhir',
-                'target_table' => 'resource_versions',
-                'target_pk' => (string) $resourceVersionId,
-                'lineage' => json_encode([
-                    'raw_message' => "raw.inbound_messages:{$messageId}",
-                    'projection' => "fhir.resource_versions:{$resourceVersionId}",
-                ], JSON_THROW_ON_ERROR),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        try {
+            $created = DB::transaction(function () use ($sourceId, $resourceType, $resource, $hash, $fhirId, $versionId, $idempotencyKey, $ingestRunId, $stored): bool {
+                $existing = DB::table('raw.inbound_messages')
+                    ->where('source_id', $sourceId)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->lockForUpdate()->first();
+                if ($existing) {
+                    if (! hash_equals((string) $existing->payload_hash, $hash)) {
+                        throw new IntegrationProtocolException('fhir_version_hash_conflict');
+                    }
 
-            return true;
-        });
+                    return false;
+                }
+
+                $messageId = DB::table('raw.inbound_messages')->insertGetId([
+                    'message_uuid' => (string) Str::uuid(),
+                    'source_id' => $sourceId,
+                    'ingest_run_id' => $ingestRunId,
+                    'message_type' => 'FHIR_R4_'.$resourceType,
+                    'external_id' => Str::limit("{$resourceType}/{$fhirId}/_history/{$versionId}", 190, ''),
+                    'idempotency_key' => $idempotencyKey,
+                    'payload_hash' => $hash,
+                    'payload' => null,
+                    'payload_object_id' => $stored->payloadObjectId,
+                    'normalized_payload' => null,
+                    'received_at' => now(),
+                    'parse_status' => 'persisted',
+                    'metadata' => json_encode(['protocol' => 'fhir_r4'], JSON_THROW_ON_ERROR),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], 'inbound_message_id');
+
+                $resourceVersionId = DB::table('fhir.resource_versions')->insertGetId([
+                    'source_id' => $sourceId,
+                    'resource_type' => $resourceType,
+                    'fhir_id' => $fhirId,
+                    'version_id' => $versionId,
+                    'last_updated' => data_get($resource, 'meta.lastUpdated'),
+                    'resource_hash' => $hash,
+                    'resource_data' => json_encode((object) [], JSON_THROW_ON_ERROR),
+                    'payload_object_id' => $stored->payloadObjectId,
+                    'ingest_run_id' => $ingestRunId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], 'resource_version_id');
+
+                DB::table('integration.provenance_records')->insert([
+                    'source_id' => $sourceId,
+                    'inbound_message_id' => $messageId,
+                    'canonical_event_id' => null,
+                    'target_schema' => 'fhir',
+                    'target_table' => 'resource_versions',
+                    'target_pk' => (string) $resourceVersionId,
+                    'lineage' => json_encode([
+                        'raw_message' => "raw.inbound_messages:{$messageId}",
+                        'projection' => "fhir.resource_versions:{$resourceVersionId}",
+                    ], JSON_THROW_ON_ERROR),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return true;
+            });
+        } catch (Throwable $exception) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'fhir_resource_persistence_failed');
+
+            throw $exception;
+        }
+
+        if (! $created) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'fhir_resource_insert_race');
+        }
+
+        return $created;
+    }
+
+    private function discardPayload(int $payloadObjectId, int $sourceId, string $reasonCode): void
+    {
+        $this->payloads->discard(
+            $payloadObjectId,
+            $sourceId,
+            $reasonCode,
+            'Encrypted FHIR payload was discarded because the intended database link did not become authoritative.',
+        );
     }
 
     /** @return array<string, mixed> */

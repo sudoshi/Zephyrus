@@ -20,7 +20,36 @@ jobs:
   backend:
     name: Backend (Laravel / PHPUnit)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      APP_URL: http://zephyrus.test
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: zephyrus_test
+      DB_USERNAME: zephyrus
+      DB_PASSWORD: secret
+      TEST_DB_ISOLATION: "true"
+      TEST_DB_ADMIN_DATABASE: postgres
+      TEST_NETWORK_GUARD: "true"
+      INTEGRATION_SECRET_FILE_ROOT: storage/framework/testing/secrets
+      OIDC_ENABLED: "false"
+      OIDC_DISCOVERY_URL: https://idp.test/.well-known/openid-configuration
+      OIDC_REDIRECT_URI: https://zephyrus.test/auth/oidc/callback
+      OIDC_ALLOWED_HOSTS: idp.test
+      OIDC_ALLOWED_REDIRECT_URIS: https://zephyrus.test/auth/oidc/callback
+      INTEGRATION_ALLOWED_HOSTS: fhir.test
+      EPIC_FHIR_BASE_URL: https://fhir.test/r4
+      EPIC_SMART_CONFIGURATION_URL: https://fhir.test/.well-known/smart-configuration
+      EPIC_FHIR_TOKEN_URL: https://fhir.test/oauth2/token
+      EDDY_BASE_URL: http://eddy.test
+      ARENA_BASE_URL: http://arena.test
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend
 
     services:
       postgres:
@@ -60,36 +89,32 @@ jobs:
       - name: Verify immutable release snapshots
         run: bash tests/Deployment/immutable-release-snapshot.sh
 
-      - name: Copy .env and generate key
-        run: cp .env.example .env && php artisan key:generate
+      - name: Copy environment template
+        run: cp .env.example .env
+
+      - name: Prove test resource isolation
+        run: php scripts/assert-test-environment.php
 
       - name: Run Pint (code style)
         run: ./vendor/bin/pint --test
 
       - name: Run migrations
-        run: php artisan migrate --force
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: zephyrus_test
-          DB_USERNAME: zephyrus
-          DB_PASSWORD: secret
-          CACHE_STORE: array
-          SESSION_DRIVER: array
+        run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
+
+      - name: Prove concurrent database isolation
+        run: bash scripts/verify-test-isolation.sh --focused
 
       - name: Run PHPUnit tests
-        run: php artisan test
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: zephyrus_test
-          DB_USERNAME: zephyrus
-          DB_PASSWORD: secret
-          CACHE_STORE: array
-          SESSION_DRIVER: array
-          QUEUE_CONNECTION: sync
+        run: bash scripts/capture-release-evidence.sh backend-phpunit php artisan test --compact
+
+      - name: Upload backend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release-evidence
+          path: artifacts/release-evidence/backend
+          if-no-files-found: error
+          retention-days: 30
 
   # ---------------------------------------------------------------------------
   # Frontend — TypeScript, Vitest, Vite build
@@ -98,6 +123,8 @@ jobs:
     name: Frontend (Vitest / Vite)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -113,13 +140,70 @@ jobs:
         run: npm ci
 
       - name: TypeScript type check
-        run: npx tsc --noEmit
+        run: bash scripts/capture-release-evidence.sh frontend-typescript npx tsc --noEmit
 
       - name: Run Vitest with coverage
-        run: npx vitest run --coverage
+        run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run --coverage
 
       - name: Vite production build
-        run: npx vite build
+        run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
+
+      - name: Upload frontend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-release-evidence
+          path: artifacts/release-evidence/frontend
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Security — dependency, secret, SAST, and edge-policy release gates
+  # ---------------------------------------------------------------------------
+  security:
+    name: Security (dependencies / secrets / SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/security
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Gitleaks must inspect the complete repository history.
+          fetch-depth: 0
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install pinned security tools
+        run: bash scripts/security/install-tools.sh
+
+      - name: Run security release gates
+        run: bash scripts/capture-release-evidence.sh security-suite bash scripts/security/run-security-suite.sh
+
+      - name: Upload security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-release-evidence
+          path: artifacts/release-evidence/security
+          if-no-files-found: error
+          retention-days: 30
 
   # ---------------------------------------------------------------------------
   # Arena sidecar — OCPM pytest incl. the Part X (X4) PM-LLM-Benchmark copilot
@@ -130,6 +214,8 @@ jobs:
     name: Arena sidecar (pytest / pm4py)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/arena
 
     steps:
       - uses: actions/checkout@v4
@@ -148,5 +234,167 @@ jobs:
           pip install -r requirements.txt pytest
 
       - name: Run OCPM + copilot eval tests
-        working-directory: arena
-        run: python -m pytest tests -q
+        run: bash scripts/capture-release-evidence.sh arena-pytest bash -lc 'cd arena && python -m pytest tests -q'
+
+      - name: Upload Arena evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arena-release-evidence
+          path: artifacts/release-evidence/arena
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Browser — real login and protected-route interaction against a test-only DB
+  # ---------------------------------------------------------------------------
+  browser:
+    name: Browser (Playwright / Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      APP_URL: http://127.0.0.1:8084
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: zephyrus_test
+      DB_USERNAME: zephyrus
+      DB_PASSWORD: secret
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: database
+      LOCAL_AUTH_ENABLED: "true"
+      LOCAL_REGISTRATION_ENABLED: "false"
+      DEMO_AUTO_LOGIN_ENABLED: "false"
+      TEST_USERNAME: e2e_admin
+      TEST_PASSWORD: BrowserOnlyPassword!123
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:8084
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/browser
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: zephyrus_test
+          POSTGRES_USER: zephyrus
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U zephyrus"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          coverage: none
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install application and browser dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Prepare test application
+        run: cp .env.example .env
+
+      - name: Run Playwright
+        run: bash scripts/run-browser-suite.sh
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-release-evidence
+          path: |
+            artifacts/release-evidence/browser
+            playwright-report
+            test-results
+          if-no-files-found: error
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # DAST — passive ZAP scan against a disposable Laravel/database boundary
+  # ---------------------------------------------------------------------------
+  dast:
+    name: DAST (OWASP ZAP baseline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      APP_URL: http://127.0.0.1:8085
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: zephyrus_test
+      DB_USERNAME: zephyrus
+      DB_PASSWORD: secret
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: database
+      LOCAL_AUTH_ENABLED: "true"
+      LOCAL_REGISTRATION_ENABLED: "false"
+      DEMO_AUTO_LOGIN_ENABLED: "false"
+      TEST_USERNAME: e2e_admin
+      TEST_PASSWORD: BrowserOnlyPassword!123
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/dast
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: zephyrus_test
+          POSTGRES_USER: zephyrus
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U zephyrus"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          coverage: none
+
+      - name: Install application dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare test application
+        run: cp .env.example .env
+
+      - name: Run pinned ZAP baseline
+        run: bash scripts/capture-release-evidence.sh dast-zap bash scripts/run-dast-suite.sh
+
+      - name: Upload DAST evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-release-evidence
+          path: artifacts/release-evidence/dast
+          if-no-files-found: error
+          retention-days: 30

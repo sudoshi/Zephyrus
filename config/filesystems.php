@@ -38,6 +38,33 @@ return [
             'report' => false,
         ],
 
+        'clinical-payloads' => [
+            'driver' => 'local',
+            'root' => env('CLINICAL_PAYLOADS_LOCAL_ROOT', storage_path('app/clinical-payloads')),
+            'serve' => false,
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => true,
+        ],
+
+        'clinical-payloads-s3' => [
+            'driver' => 's3',
+            'key' => env('CLINICAL_PAYLOADS_S3_ACCESS_KEY_ID'),
+            'secret' => env('CLINICAL_PAYLOADS_S3_SECRET_ACCESS_KEY'),
+            'token' => env('CLINICAL_PAYLOADS_S3_SESSION_TOKEN'),
+            'region' => env('CLINICAL_PAYLOADS_S3_REGION', 'us-east-1'),
+            'bucket' => env('CLINICAL_PAYLOADS_S3_BUCKET'),
+            'endpoint' => env('CLINICAL_PAYLOADS_S3_ENDPOINT'),
+            'use_path_style_endpoint' => (bool) env('CLINICAL_PAYLOADS_S3_PATH_STYLE', false),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => true,
+            'options' => array_filter([
+                'ServerSideEncryption' => env('CLINICAL_PAYLOADS_S3_SSE', 'aws:kms'),
+                'SSEKMSKeyId' => env('CLINICAL_PAYLOADS_S3_KMS_KEY_ID'),
+            ], fn (mixed $value): bool => filled($value)),
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
