@@ -6,6 +6,8 @@ namespace App\Services\Ancillary;
 
 use App\Data\Ancillary\FreshnessEnvelope;
 use App\Data\Ancillary\ReadinessAxis;
+use App\Services\Lab\LabDecisionPendingService;
+use App\Services\Lab\LabFlowBoardService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -19,6 +21,11 @@ use Illuminate\Support\Facades\DB;
 final class AncillaryReadinessService
 {
     public const DRILL_SOURCES = ['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit'];
+
+    public function __construct(
+        private readonly LabDecisionPendingService $labDecisions,
+        private readonly LabFlowBoardService $labFlow,
+    ) {}
 
     /** @param list<int> $encounterIds @return Collection<int, array<string, mixed>> */
     public function imagingForEncounters(array $encounterIds, string $source = 'rtdc'): Collection
@@ -68,6 +75,18 @@ final class AncillaryReadinessService
             ->get();
 
         return $this->axes($ids, $rows, $source);
+    }
+
+    /** @param list<int> $encounterIds @return Collection<int, array<string, mixed>> */
+    public function laboratoryForEncounters(array $encounterIds, string $source = 'rtdc'): Collection
+    {
+        return $this->laboratoryAxes($encounterIds, 'discharge_gate', $source);
+    }
+
+    /** @param list<int> $edVisitIds @return Collection<int, array<string, mixed>> */
+    public function laboratoryForEdVisits(array $edVisitIds, string $source = 'ed'): Collection
+    {
+        return $this->laboratoryAxes($edVisitIds, 'ed_disposition', $source);
     }
 
     private function openImagingOrders(): Builder
@@ -183,6 +202,109 @@ final class AncillaryReadinessService
             : (json_decode((string) $row->metadata, true) ?: []);
 
         return $row->priority === 'discharge' || filter_var($metadata['discharge_blocking'] ?? false, FILTER_VALIDATE_BOOL);
+    }
+
+    /**
+     * @param  list<int>  $scopeIds
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function laboratoryAxes(array $scopeIds, string $decisionClass, string $source): Collection
+    {
+        $ids = $this->positiveIds($scopeIds);
+        if ($ids === []) {
+            return collect();
+        }
+
+        $source = in_array($source, self::DRILL_SOURCES, true) ? $source : 'ancillary_services';
+        $snapshot = $this->labDecisions->readinessSnapshot();
+        $freshness = $this->laboratoryFreshness($snapshot);
+        $aggregates = collect($snapshot['destinationAggregates'])
+            ->where('decisionClass', $decisionClass)
+            ->keyBy(fn (array $row): int => (int) $row['destinationId']);
+        $unresolved = collect($snapshot['unresolved'])
+            ->where('decisionClass', $decisionClass)
+            ->filter(fn (array $row): bool => $row['destinationId'] !== null)
+            ->groupBy(fn (array $row): int => (int) $row['destinationId']);
+
+        return collect($ids)->mapWithKeys(function (int $scopeId) use ($aggregates, $unresolved, $freshness, $decisionClass, $source): array {
+            $aggregate = $aggregates->get($scopeId);
+            $unresolvedCount = $unresolved->get($scopeId, collect())->count();
+            $pendingCount = (int) ($aggregate['pendingCount'] ?? 0);
+            $blocking = $pendingCount > 0;
+            $status = match (true) {
+                $freshness->status !== 'fresh', $unresolvedCount > 0 => 'unknown',
+                $blocking => 'blocked',
+                default => 'ready',
+            };
+            $topOrderUuid = $aggregate['topOrderUuid'] ?? null;
+            $href = $topOrderUuid === null ? null : '/lab/pending-decisions?'.http_build_query([
+                'decisionClass' => $decisionClass,
+                'orderUuid' => $topOrderUuid,
+                'source' => $source,
+            ]);
+            $label = $decisionClass === 'ed_disposition' ? 'ED disposition' : 'discharge';
+            $explanation = match (true) {
+                $freshness->status !== 'fresh' => 'Laboratory decision evidence is not current; readiness is unknown until a fresh source cutoff arrives.',
+                $unresolvedCount > 0 => sprintf('%d explicit Laboratory %s gate(s) have unresolved destination evidence; readiness is unknown.', $unresolvedCount, $label),
+                $blocking => sprintf('%d validated explicit Laboratory %s gate(s) remain pending verification.', $pendingCount, $label),
+                default => sprintf('No validated explicit Laboratory %s gate is pending; routine and non-gating results do not block this axis.', $label),
+            };
+
+            return [$scopeId => (new ReadinessAxis(
+                key: 'lab',
+                label: 'Lab',
+                status: $status,
+                pendingCount: $pendingCount,
+                oldestAgeMinutes: $aggregate === null ? null : (int) $aggregate['oldestAgeMinutes'],
+                blocking: $blocking,
+                freshness: $freshness,
+                drillTarget: $href,
+                topOrderUuid: $topOrderUuid,
+                drillHref: $href,
+                explanation: $explanation,
+            ))->toArray()];
+        });
+    }
+
+    /** @param array<string, mixed> $snapshot */
+    private function laboratoryFreshness(array $snapshot): FreshnessEnvelope
+    {
+        $queue = $snapshot['freshness'];
+        if ($queue['sourceCutoffAt'] !== null) {
+            return new FreshnessEnvelope(
+                status: $queue['status'],
+                asOf: new \DateTimeImmutable($queue['asOf']),
+                sourceCutoffAt: new \DateTimeImmutable($queue['sourceCutoffAt']),
+                lagMinutes: $queue['lagMinutes'],
+                sourceLabel: $queue['sourceLabel'],
+                explanation: $queue['explanation'],
+            );
+        }
+
+        $operations = $this->labFlow->cockpitHealth();
+        $cutoffValue = $operations['sourceCutoffAt'];
+        if ($cutoffValue === null || $operations['sourceState'] === 'missing') {
+            return new FreshnessEnvelope(
+                status: 'unknown',
+                asOf: new \DateTimeImmutable(now()->toAtomString()),
+                sourceCutoffAt: null,
+                lagMinutes: null,
+                sourceLabel: (string) $operations['sourceLabel'],
+                explanation: 'No current Laboratory operational cutoff is available to verify an empty decision-gate cohort.',
+            );
+        }
+
+        $cutoff = CarbonImmutable::parse($cutoffValue);
+        $stale = in_array($operations['sourceState'], ['stale', 'error'], true);
+
+        return new FreshnessEnvelope(
+            status: $stale ? 'stale' : 'fresh',
+            asOf: new \DateTimeImmutable(now()->toAtomString()),
+            sourceCutoffAt: new \DateTimeImmutable($cutoff->toAtomString()),
+            lagMinutes: max(0, (int) floor($cutoff->diffInSeconds(now(), false) / 60)),
+            sourceLabel: (string) $operations['sourceLabel'],
+            explanation: $stale ? 'The current Laboratory operational feed is stale or reports an error.' : null,
+        );
     }
 
     /** @param list<int> $ids @return list<int> */

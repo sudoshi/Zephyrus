@@ -19,6 +19,7 @@ final readonly class ReadinessAxis
         public ?string $drillTarget,
         public ?string $topOrderUuid = null,
         public ?string $drillHref = null,
+        public ?string $explanation = null,
     ) {
         if (! in_array($status, self::STATUSES, true)) {
             throw new InvalidArgumentException("Unsupported readiness status: {$status}");
@@ -48,6 +49,7 @@ final readonly class ReadinessAxis
             'drillTarget' => $this->drillTarget,
             'topOrderUuid' => $this->topOrderUuid,
             'drillHref' => $this->drillHref,
+            'explanation' => $this->explanation,
         ];
     }
 }

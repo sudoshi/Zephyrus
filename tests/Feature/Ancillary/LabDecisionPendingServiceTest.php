@@ -104,6 +104,9 @@ final class LabDecisionPendingServiceTest extends TestCase
         $this->assertNotEmpty($specimens['data']);
         $this->assertTrue(collect($specimens['data'])->every(fn (array $row): bool => $row['orderUuid'] === $first['orderUuid']));
         $this->assertStringContainsString('orderUuid='.$first['orderUuid'], $first['drill']['specimenHref']);
+        $exact = $service->build(['orderUuid' => $first['orderUuid']]);
+        $this->assertSame([$first['orderUuid']], array_column($exact['data'], 'orderUuid'));
+        $this->assertSame($first['orderUuid'], $exact['filters']['orderUuid']);
 
         DB::flushQueryLog();
         DB::enableQueryLog();
@@ -148,6 +151,7 @@ final class LabDecisionPendingServiceTest extends TestCase
         $this->assertSame(1, $degraded['summary']['unresolvedDestinations']);
         $this->assertCount(2, $degraded['data']);
         $this->assertSame($ed['orderUuid'], $degraded['exclusions']['unresolved'][0]['orderUuid']);
+        $this->assertSame(999999999, $degraded['exclusions']['unresolved'][0]['destinationId']);
 
         DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->update(['status' => 'stale']);
         $stale = $service->build();
@@ -175,6 +179,8 @@ final class LabDecisionPendingServiceTest extends TestCase
         $this->assertTrue(collect($redacted['data'])->every(fn (array $item): bool => $item['patientRef'] === 'Patient context restricted'));
         $this->actingAs($manager)->getJson('/api/lab/pending-decisions?decisionClass=bad')->assertUnprocessable();
         $this->actingAs($manager)->getJson('/api/lab/pending-decisions?urgency=urgent')->assertUnprocessable();
+        $this->actingAs($manager)->getJson('/api/lab/pending-decisions?orderUuid=not-a-uuid')->assertUnprocessable();
+        $this->actingAs($manager)->getJson('/api/lab/pending-decisions?source=untrusted')->assertUnprocessable();
         $this->actingAs($manager)->postJson('/api/lab/pending-decisions', [])->assertMethodNotAllowed();
         auth()->logout();
         $this->getJson('/api/lab/pending-decisions')->assertUnauthorized();

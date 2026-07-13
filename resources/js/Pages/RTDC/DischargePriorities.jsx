@@ -128,9 +128,9 @@ const DischargePriorities = (props) => {
                   {patient.risk} Risk
                 </span>
               </div>
-              {patient.imaging ? (
+              {(Array.isArray(patient.readiness) ? patient.readiness : [patient.imaging, patient.lab].filter(Boolean)).length > 0 ? (
                 <div className="mt-3">
-                  <ReadinessVector axes={[patient.imaging]} variant="compact" onDrill={(href) => router.visit(href)} />
+                  <ReadinessVector axes={Array.isArray(patient.readiness) ? patient.readiness : [patient.imaging, patient.lab].filter(Boolean)} variant="compact" onDrill={(href) => router.visit(href)} />
                 </div>
               ) : null}
             </div>

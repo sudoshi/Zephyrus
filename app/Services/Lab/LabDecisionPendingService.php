@@ -16,6 +16,8 @@ final class LabDecisionPendingService
 
     public const URGENCIES = ['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale'];
 
+    public const DRILL_SOURCES = ['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit'];
+
     private const PRIORITY_RANK = ['stat' => 0, 'urgent' => 1, 'discharge' => 2, 'timed' => 3, 'routine' => 4, 'unknown' => 5];
 
     private const IMPACT_RANK = ['or_gate' => 0, 'discharge_gate' => 1, 'ed_disposition' => 2];
@@ -48,6 +50,7 @@ final class LabDecisionPendingService
                 $unresolved->push([
                     'orderUuid' => (string) $row->order_uuid,
                     'decisionClass' => (string) $row->decision_class,
+                    'destinationId' => $target['id'] ?? $this->fallbackDestinationId($row, $orderMetadata),
                     'reason' => $target === null
                         ? 'The governed decision class has no valid source-linked destination identity.'
                         : 'The source-linked downstream object is absent, inactive, completed, or outside the live operational cohort.',
@@ -180,7 +183,7 @@ final class LabDecisionPendingService
      */
     public function cockpitHealth(): array
     {
-        $queue = $this->build(['limit' => 1], false, false);
+        $queue = $this->readinessSnapshot();
         $destinations = collect($queue['destinationAggregates']);
         $pendingCount = (int) $destinations->sum('pendingCount');
 
@@ -206,6 +209,25 @@ final class LabDecisionPendingService
         ];
     }
 
+    /**
+     * Aggregate-only cross-domain readiness seam. Consumers receive validated
+     * destination rollups, localized unresolved coverage, and source
+     * freshness, but never result, specimen, patient, or clinical content.
+     *
+     * @return array<string, mixed>
+     */
+    public function readinessSnapshot(): array
+    {
+        $queue = $this->build(['limit' => 1], false, false);
+
+        return [
+            'state' => $queue['state'],
+            'freshness' => $queue['freshness'],
+            'destinationAggregates' => $queue['destinationAggregates'],
+            'unresolved' => $queue['exclusions']['unresolved'],
+        ];
+    }
+
     /** @param array<string, mixed> $input @return array<string, mixed> */
     private function filters(array $input): array
     {
@@ -222,6 +244,12 @@ final class LabDecisionPendingService
             'priority' => $priority,
             'unitId' => $unitId === false ? null : $unitId,
             'urgency' => $urgency,
+            'orderUuid' => is_string($input['orderUuid'] ?? null) && preg_match('/^[0-9a-f-]{36}$/i', $input['orderUuid'])
+                ? strtolower($input['orderUuid'])
+                : null,
+            'source' => is_string($input['source'] ?? null) && in_array($input['source'], self::DRILL_SOURCES, true)
+                ? $input['source']
+                : null,
             'limit' => min(100, max(1, (int) ($input['limit'] ?? 50))),
         ];
     }
@@ -275,6 +303,7 @@ final class LabDecisionPendingService
             ->whereNull('r.verified_at')
             ->whereNull('r.cancelled_at')
             ->where(fn (Builder $query): Builder => $query->whereNull('r.result_status')->orWhere('r.result_status', '!=', 'cancelled'))
+            ->when($filters['orderUuid'], fn (Builder $query, string $orderUuid): Builder => $query->where('o.order_uuid', $orderUuid))
             ->when($filters['decisionClass'] !== 'all', fn (Builder $query): Builder => $query->where('c.decision_class', $filters['decisionClass']))
             ->when($filters['priority'], fn (Builder $query, string $priority): Builder => $query->where('o.priority', $priority))
             ->when($filters['unitId'], fn (Builder $query, int $unitId): Builder => $query->where('o.unit_id', $unitId))
@@ -463,6 +492,7 @@ final class LabDecisionPendingService
     {
         $base = DB::table('prod.ancillary_orders as o')->where('o.department', 'lab')->where('o.ordered_at', '>=', now()->subDay())
             ->whereRaw("COALESCE(o.metadata->>'operational_window', 'current') <> 'historical_study_only'")
+            ->when($filters['orderUuid'], fn (Builder $query, string $orderUuid): Builder => $query->where('o.order_uuid', $orderUuid))
             ->when($filters['priority'], fn (Builder $query, string $priority): Builder => $query->where('o.priority', $priority))
             ->when($filters['unitId'], fn (Builder $query, int $unitId): Builder => $query->where('o.unit_id', $unitId));
         $noGate = (clone $base)->join('hosp_ref.lab_test_catalog as c', fn ($join) => $join
@@ -583,5 +613,19 @@ final class LabDecisionPendingService
             'discharge_gate' => 'Discharge readiness is blocked until the Laboratory result is verified.',
             default => 'ED disposition is blocked until the Laboratory result is verified.',
         };
+    }
+
+    /** @param array<string, mixed> $orderMetadata */
+    private function fallbackDestinationId(object $row, array $orderMetadata): ?int
+    {
+        $value = match ((string) $row->decision_class) {
+            'discharge_gate' => $row->encounter_id,
+            'ed_disposition' => $orderMetadata['ed_visit_id'] ?? null,
+            'or_gate' => $orderMetadata['or_case_id'] ?? null,
+            default => null,
+        };
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $id === false ? null : $id;
     }
 }

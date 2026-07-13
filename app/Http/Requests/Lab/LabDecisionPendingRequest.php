@@ -21,6 +21,8 @@ final class LabDecisionPendingRequest extends FormRequest
             'priority' => ['sometimes', 'nullable', 'string', Rule::in(LabFlowBoardService::PRIORITIES)],
             'unitId' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:prod.units,unit_id'],
             'urgency' => ['sometimes', 'string', Rule::in(LabDecisionPendingService::URGENCIES)],
+            'orderUuid' => ['sometimes', 'nullable', 'uuid'],
+            'source' => ['sometimes', 'nullable', 'string', Rule::in(LabDecisionPendingService::DRILL_SOURCES)],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }

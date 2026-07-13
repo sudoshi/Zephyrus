@@ -42,7 +42,7 @@ function payload(overrides: Partial<LabDecisionPending> = {}): LabDecisionPendin
   const base = {
     generatedAt: '2026-07-11T14:00:00+00:00', state: 'normal', stateMessage: 'Decision-pending Laboratory facts and downstream links are current.',
     freshness: { status: 'fresh', asOf: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:58:00+00:00', lagMinutes: 2, sourceLabel: 'Laboratory operational feeds', explanation: null },
-    filters: { decisionClass: 'all', priority: null, unitId: null, urgency: 'all', limit: 50 },
+    filters: { decisionClass: 'all', priority: null, unitId: null, urgency: 'all', orderUuid: null, source: null, limit: 50 },
     filterOptions: { decisionClasses: ['all', 'or_gate', 'discharge_gate', 'ed_disposition'], priorities: ['stat', 'urgent', 'routine'], units: [{ unitId: 2, label: 'OR Holding' }], urgencies: ['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale'] },
     rankingRule: 'Live OR gate, discharge bed impact, ED disposition, then descending age, governed priority, and stable order identity.',
     summary: { visible: 1, resolvedBeforeLimit: 1, orGates: 1, dischargeGates: 0, edDispositions: 0, unresolvedDestinations: 0, breached: 0 },
@@ -87,7 +87,7 @@ describe('Laboratory Decision-Pending Results', () => {
     renderPage(payload({
       state: 'degraded', stateMessage: 'One decision candidate has no validated live downstream destination.',
       summary: { visible: 0, resolvedBeforeLimit: 0, orGates: 0, dischargeGates: 0, edDispositions: 0, unresolvedDestinations: 1, breached: 0 },
-      exclusions: { noGateCatalog: 7, completedOrCancelled: 2, unresolved: [{ orderUuid, decisionClass: 'or_gate', reason: 'Destination absent.' }], explanation: 'Non-gating, completed, and unresolved work is excluded.' },
+      exclusions: { noGateCatalog: 7, completedOrCancelled: 2, unresolved: [{ orderUuid, decisionClass: 'or_gate', destinationId: 17, reason: 'Destination absent.' }], explanation: 'Non-gating, completed, and unresolved work is excluded.' },
       data: [], destinationAggregates: [], canAnnotateBarriers: false,
     }));
     expect(screen.getByRole('alert')).toHaveTextContent(/withheld because their downstream object could not be validated/i);

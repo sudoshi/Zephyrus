@@ -121,6 +121,8 @@ export const labDecisionPendingSchema = z.object({
     decisionClass: z.enum(['all', 'or_gate', 'discharge_gate', 'ed_disposition']),
     priority: z.string().nullable(), unitId: z.number().int().positive().nullable(),
     urgency: z.enum(['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale']),
+    orderUuid: z.string().uuid().nullable(),
+    source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(),
     limit: z.number().int().positive().max(100),
   }).strict(),
   filterOptions: z.object({
@@ -137,7 +139,7 @@ export const labDecisionPendingSchema = z.object({
   }).strict(),
   exclusions: z.object({
     noGateCatalog: z.number().int().nonnegative(), completedOrCancelled: z.number().int().nonnegative(),
-    unresolved: z.array(z.object({ orderUuid: z.string().uuid(), decisionClass: z.string(), reason: z.string() }).strict()),
+    unresolved: z.array(z.object({ orderUuid: z.string().uuid(), decisionClass: z.string(), destinationId: z.number().int().positive().nullable(), reason: z.string() }).strict()),
     explanation: z.string().min(1),
   }).strict(),
   data: z.array(z.object({

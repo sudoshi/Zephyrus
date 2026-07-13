@@ -40,12 +40,23 @@ const imaging = {
   drillHref: '/radiology/worklist?search=11111111-1111-4111-8111-111111111111&source=rtdc',
 };
 
-describe('imaging readiness surfaces', () => {
-  it('renders an accessible RTDC readiness vector and visits its bounded drill', () => {
+const lab = {
+  key: 'lab', label: 'Lab', status: 'blocked' as const, state: 'blocked' as const,
+  pendingCount: 2, oldestAgeMinutes: 75, blocking: true,
+  freshness: { ...freshness, sourceLabel: 'Laboratory operational feeds' },
+  drillTarget: '/lab/pending-decisions?decisionClass=discharge_gate&orderUuid=22222222-2222-4222-8222-222222222222&source=rtdc',
+  topOrderUuid: '22222222-2222-4222-8222-222222222222',
+  drillHref: '/lab/pending-decisions?decisionClass=discharge_gate&orderUuid=22222222-2222-4222-8222-222222222222&source=rtdc',
+  explanation: 'Two explicit discharge gates remain pending.',
+};
+
+describe('ancillary readiness surfaces', () => {
+  it('renders imaging and Lab together in the RTDC vector and visits each bounded drill', () => {
     render(<DischargePriorities
       priority1={[{
         id: 42, name: 'Demo Patient', age: 58, hospital: 'Summit Regional', unit: '5 East', service: 'Internal Medicine',
-        los: 5, expectedLos: 4, unitCapacity: '92%', improvement: 'Rapid', risk: 'Low', priority: 1, imaging,
+        los: 5, expectedLos: 4, unitCapacity: '92%', improvement: 'Rapid', risk: 'Low', priority: 1,
+        imaging, lab, readiness: [imaging, lab],
       }]}
       priority2={[]} priority3={[]} priority4={[]}
       hospitals={['Summit Regional']} services={['Internal Medicine']} units={['5 East']}
@@ -55,30 +66,43 @@ describe('imaging readiness surfaces', () => {
     expect(drill).toHaveTextContent('1 pending · 47 min oldest');
     fireEvent.click(drill);
     expect(visit).toHaveBeenCalledWith(imaging.drillHref);
+    const labDrill = screen.getByRole('button', { name: 'Open Lab: Blocked' });
+    expect(labDrill).toHaveTextContent('2 pending · 75 min oldest');
+    fireEvent.click(labDrill);
+    expect(visit).toHaveBeenCalledWith(lab.drillHref);
   });
 
-  it('renders the ED count and oldest age as an authorized filtered link', () => {
+  it('renders exact Imaging and Lab counts, ages, and filtered links on the ED row', () => {
     render(<Treatment board={[{
       id: 'V0042', edVisitId: 42, patientRef: 'demo', room: 'Acute 2', chiefComplaint: 'Abdominal Pain', esiLevel: 3,
       treatmentMinutes: 61, losMinutes: 120, dispositionMinutes: null, status: 'In Treatment', statusTone: 'info',
       provider: 'Dr. Demo', nurse: 'Nurse Demo', pendingOrders: ['CBC'],
       imaging: { ...imaging, drillTarget: imaging.drillTarget.replace('rtdc', 'ed'), drillHref: imaging.drillHref.replace('rtdc', 'ed') },
+      lab: { ...lab, pendingCount: 1, oldestAgeMinutes: 85, drillTarget: lab.drillTarget.replace('discharge_gate', 'ed_disposition').replace('source=rtdc', 'source=ed'), drillHref: lab.drillHref.replace('discharge_gate', 'ed_disposition').replace('source=rtdc', 'source=ed') },
     }]} acuityMix={[]} />);
 
     const chip = screen.getByRole('link', { name: /Open Imaging: Blocked/ });
     expect(chip).toHaveTextContent('1 imaging · 47 min oldest');
     expect(chip).toHaveAttribute('href', expect.stringContaining('source=ed'));
+    const labChip = screen.getByRole('link', { name: /Open Lab: Blocked/ });
+    expect(labChip).toHaveTextContent('1 pending · 85 min oldest');
+    expect(labChip).toHaveAttribute('href', expect.stringContaining('decisionClass=ed_disposition'));
+    expect(labChip).toHaveAttribute('href', expect.stringContaining('orderUuid='));
+    expect(labChip).toHaveAttribute('href', expect.stringContaining('source=ed'));
   });
 
-  it('announces stale imaging as unknown instead of ready', () => {
+  it('announces stale Imaging and Lab evidence as unknown instead of ready', () => {
     render(<Treatment board={[{
       id: 'V0043', edVisitId: 43, patientRef: 'demo-stale', room: 'Acute 3', chiefComplaint: 'Headache', esiLevel: 3,
       treatmentMinutes: 40, losMinutes: 80, dispositionMinutes: null, status: 'In Treatment', statusTone: 'info',
       provider: 'Dr. Demo', nurse: 'Nurse Demo', pendingOrders: [],
       imaging: { ...imaging, status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...freshness, status: 'stale' } },
+      lab: { ...lab, status: 'ready', state: 'ready', pendingCount: 0, oldestAgeMinutes: null, blocking: false, freshness: { ...freshness, status: 'stale' } },
     }]} acuityMix={[]} />);
 
     expect(screen.getByRole('link', { name: /Open Imaging: Unknown/ })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Open Imaging: Ready/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open Lab: Unknown/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open Lab: Ready/ })).not.toBeInTheDocument();
   });
 });

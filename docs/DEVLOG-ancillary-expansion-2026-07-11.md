@@ -1350,3 +1350,42 @@ git diff --check: PASS
 The first broad ancillary attempt overlapped another PHPUnit process on the shared `zephyrus_test` PostgreSQL database and failed only with migration/table races. It was discarded as invalid infrastructure evidence; the recorded 161-test regression is the subsequent clean, non-overlapping run.
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, callback action, writeback, or external system was accessed or activated. L-11 is the next dependency-ordered task and can add the Laboratory axis to discharge readiness and authorized ED chips from the validated Decision-Pending destination aggregates.
+
+## 2026-07-12 — L-11 Laboratory Discharge and ED Readiness
+
+### Outcome
+
+Added Laboratory as the second shared readiness axis after Imaging on RTDC Discharge Priorities and as an independent, freshness-aware chip on the ED Treatment Board. Both surfaces consume the existing catalog-governed Decision-Pending cohort: no discharge or ED service reinterprets test names, reimplements result-state rules, or queries Laboratory clinical tables directly.
+
+`LabDecisionPendingService::readinessSnapshot()` now exposes the full validated destination aggregates needed by downstream readiness consumers while excluding row-level clinical payloads. The existing L-10 Cockpit aggregate consumes the same snapshot, so department queues, Cockpit health, and cross-domain readiness cannot silently diverge. Each aggregate supplies its explicit decision class and destination, pending count, oldest age, deterministic top order, exact result membership for server-side reconciliation, source cutoff, and freshness. Only the aggregate facts required by readiness are serialized into an axis.
+
+`AncillaryReadinessService` batches discharge encounters and ED visits separately. Discharge consumes only explicit `discharge_gate` aggregates; ED consumes only explicit `ed_disposition` aggregates. A non-gating catalog row, an inferred label match, or an unresolved destination can never become a gate. A validated non-empty aggregate is blocked. An empty scope is ready only when current Lab Flow evidence proves that the Laboratory source is live. Stale, missing, error-qualified, or locally unresolved evidence is unknown rather than falsely green.
+
+Unresolved destination coverage is localized by decision class and destination ID. A fallback linkage ID can identify the affected scope for unknown-state propagation, but it is never accepted as gate evidence. This prevents one inactive or deleted destination from degrading unrelated encounters or visits. One-versus-many query assertions also keep readiness batching within a constant query envelope.
+
+Every blocked axis chooses the same deterministic top order as the Decision-Pending queue and links to `/lab/pending-decisions` with the exact decision class, order UUID, and allowlisted source context. The request, service filters, TypeScript schema, and page form all preserve those filters. A drill from ED or RTDC therefore opens one reconciled item and can retain its origin while operators refine the remaining filters.
+
+`DischargePrioritiesService` preserves its existing Imaging member and patient payload, adds Lab, and publishes an ordered `readiness` vector of Imaging then Lab. The page renders that vector through the shared `ReadinessVector`, with a backward-compatible fallback for older payloads. `TreatmentService` similarly preserves every existing ED row field and Imaging contract while adding Lab. The board's former Imaging-only renderer is now a generic `ReadinessChip` that communicates state with text and an icon, then adds pending count, oldest age, freshness-aware unknown handling, and the exact drill target.
+
+Feature coverage proves two pending discharge labs reconcile to count, oldest age, and deterministic top order; routine CBC work does not block; a latest unverified correction remains blocked until verified; stale populated and empty scopes are unknown; inactive destinations localize unknown coverage; and serialized/browser contracts exclude result UUIDs, specimen UUIDs, source result keys, values, and narratives. Component coverage renders Imaging and Lab together on RTDC and as separate ED columns, including exact source/order links and stale state.
+
+The rendered Chromium regression is retained in `tests/e2e/lab-readiness-smoke.spec.ts`. Against the isolated test database and deterministic ancillary demo it exercises RTDC, ED Treatment, and the exact Decision-Pending drill in desktop light and mobile dark modes. It asserts semantic headings/columns, visible paired readiness, one exact drill result, contextual hidden filters, no document overflow, no forbidden browser keys, and no console or page errors.
+
+### Verification
+
+```text
+Focused Decision-Pending + L-11 Laboratory readiness: 8 tests, 144 assertions, PASS
+Broader L-7 + R-11 + L-11 + model reconciliation: 18 tests, 239 assertions, PASS
+Laboratory Cockpit regression after shared snapshot refactor: 4 tests, 65 assertions, PASS
+React readiness + Decision-Pending + ancillary timeline: 3 files, 11 tests, PASS
+Complete ancillary feature regression: 165 tests, 2,265 assertions, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-11 PHP implementation/tests: PASS
+Desktop light Chromium smoke, 1440x1000: RTDC + ED + exact Lab drill, PASS
+Mobile dark Chromium smoke, 390x844: RTDC + ED, PASS
+Browser semantics, exact one-item drill, privacy, zero document overflow, and zero console/page errors: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, result action, writeback, or external system was accessed or activated. L-12 is the next dependency-ordered task and can implement the Laboratory TAT Study on top of the completed Flow, Specimen, Decision-Pending, Cockpit, and cross-domain readiness contracts.

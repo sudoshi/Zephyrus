@@ -64,23 +64,23 @@ const StatusBadge = ({ status, tone }) => {
     );
 };
 
-const ImagingChip = ({ imaging }) => {
-    if (!imaging) return <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">Unavailable</span>;
+const ReadinessChip = ({ axis, countLabel }) => {
+    if (!axis) return <span className="text-xs text-healthcare-text-tertiary dark:text-healthcare-text-tertiary-dark">Unavailable</span>;
 
-    const stale = imaging.freshness?.status !== 'fresh';
-    const state = stale ? 'unknown' : imaging.state;
+    const stale = axis.freshness?.status !== 'fresh';
+    const state = stale ? 'unknown' : axis.state;
     const config = {
         blocked: { icon: 'heroicons:exclamation-triangle', label: 'Blocked', classes: 'border-healthcare-critical/40 text-healthcare-critical dark:text-healthcare-critical-dark' },
         pending: { icon: 'heroicons:clock', label: 'Pending', classes: 'border-healthcare-warning/40 text-healthcare-warning dark:text-healthcare-warning-dark' },
         ready: { icon: 'heroicons:check-circle', label: 'Ready', classes: 'border-healthcare-success/40 text-healthcare-success dark:text-healthcare-success-dark' },
         unknown: { icon: 'heroicons:question-mark-circle', label: 'Unknown', classes: 'border-healthcare-border text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark' },
     }[state] ?? { icon: 'heroicons:question-mark-circle', label: 'Unknown', classes: 'border-healthcare-border text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark' };
-    const age = imaging.oldestAgeMinutes === null ? 'age unavailable' : `${imaging.oldestAgeMinutes} min oldest`;
-    const content = <><Icon icon={config.icon} className="h-3.5 w-3.5" aria-hidden="true" /><span>{imaging.pendingCount} imaging · {age}</span></>;
+    const age = axis.oldestAgeMinutes === null ? 'age unavailable' : `${axis.oldestAgeMinutes} min oldest`;
+    const content = <><Icon icon={config.icon} className="h-3.5 w-3.5" aria-hidden="true" /><span>{axis.pendingCount} {countLabel} · {age}</span></>;
     const className = `inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium ${config.classes}`;
-    const label = `Open Imaging: ${config.label}. ${imaging.pendingCount} pending, ${age}.`;
+    const label = `Open ${axis.label}: ${config.label}. ${axis.pendingCount} pending, ${age}.`;
 
-    return imaging.drillHref ? <Link href={imaging.drillHref} aria-label={label} className={className}>{content}</Link> : <span aria-label={label} className={className}>{content}</span>;
+    return axis.drillHref ? <Link href={axis.drillHref} aria-label={label} className={className}>{content}</Link> : <span aria-label={label} className={className}>{content}</span>;
 };
 
 const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
@@ -203,6 +203,7 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     ['Care Team', 'left'],
                                                     ['Pending Orders', 'left'],
                                                     ['Imaging', 'left'],
+                                                    ['Lab', 'left'],
                                                 ].map(([h, align]) => (
                                                     <th key={h} className={`px-4 py-3 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-${align}`}>
                                                         {h}
@@ -281,7 +282,10 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <ImagingChip imaging={patient.imaging} />
+                                                        <ReadinessChip axis={patient.imaging} countLabel="imaging" />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <ReadinessChip axis={patient.lab} countLabel="pending" />
                                                     </td>
                                                 </tr>
                                             ))}

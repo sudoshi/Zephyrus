@@ -108,7 +108,11 @@ class TreatmentService
             $rows->pluck('ed_visit_id')->map(fn (mixed $id): int => (int) $id)->all(),
             'ed',
         );
-        $board = $this->board($rows, $now, $imagingByVisit);
+        $labByVisit = $this->readiness->laboratoryForEdVisits(
+            $rows->pluck('ed_visit_id')->map(fn (mixed $id): int => (int) $id)->all(),
+            'ed',
+        );
+        $board = $this->board($rows, $now, $imagingByVisit, $labByVisit);
         $kpis = $this->kpis($board);
         $acuityMix = $this->acuityMix($board);
 
@@ -172,7 +176,7 @@ class TreatmentService
      * @param  \Illuminate\Support\Collection<int,object>  $rows
      * @return list<array<string,mixed>>
      */
-    private function board($rows, Carbon $now, \Illuminate\Support\Collection $imagingByVisit): array
+    private function board($rows, Carbon $now, \Illuminate\Support\Collection $imagingByVisit, \Illuminate\Support\Collection $labByVisit): array
     {
         $board = [];
 
@@ -221,6 +225,7 @@ class TreatmentService
                 'nurse' => $nurse,
                 'pendingOrders' => $orders,
                 'imaging' => $imagingByVisit->get($id),
+                'lab' => $labByVisit->get($id),
             ];
         }
 

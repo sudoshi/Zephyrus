@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-10 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-11 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 35 of 60 tasks complete; 25 remain |
+| Progress | 36 of 60 tasks complete; 24 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1656,24 +1656,50 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Laravel Pint, TypeScript, production build, UI canon, desktop light and mobile dark Flow drill smoke, semantic table rendering, zero horizontal overflow, and zero console/page errors pass.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, callback action, writeback, or external system is activated by L-10.
 
-#### [ ] L-11 — Add the Lab axis to discharge readiness and ED chips
+#### [x] L-11 — Add the Lab axis to discharge readiness and ED chips
 
 **Depends on:** R-11, L-7; blocks X-7
-**Primary files:** shared AncillaryReadinessService; DischargePrioritiesService/page; ED board
+**Primary files:** shared AncillaryReadinessService; LabDecisionPendingService; DischargePrioritiesService/page; ED Treatment service/page; exact-filter request/schema; feature, component, and browser tests
 
 **Work:**
 
-- Extend each discharge readiness vector with the Lab axis and each authorized ED row with pending-lab state.
-- Count only explicit decision-class gates for the encounter.
-- Choose the top drill target deterministically and include pending count/oldest age/freshness.
-- Preserve the imaging axis and the existing patient payload.
+- [x] Add an aggregate-only `readinessSnapshot()` seam to `LabDecisionPendingService` so cross-domain consumers reuse the complete validated Decision-Pending destination aggregate contract without receiving patient, order-row, specimen, result, accession, clinical-value, narrative, or source-event detail.
+- [x] Keep the existing `cockpitHealth()` consumer on that same aggregate snapshot so L-10 and L-11 cannot drift into different validated-gate populations.
+- [x] Extend each unresolved destination exclusion with its validated destination ID when one exists, or a linkage-only fallback ID used solely to localize unknown coverage. Never accept that fallback as evidence of a valid gate.
+- [x] Add exact UUID filtering for `orderUuid` to the Decision-Pending request, service query, exclusion reconciliation, TypeScript contract, and retained browser form state.
+- [x] add an allowlisted contextual `source` filter for `rtdc`, `ed`, `periop`, `flow_board`, `ancillary_services`, or `cockpit`; preserve it through the page without letting it change clinical cohort semantics.
+- [x] Inject the validated Decision-Pending aggregate seam and current Lab Flow cutoff into the shared `AncillaryReadinessService`; do not query Laboratory satellite tables independently from discharge or ED services.
+- [x] Add one batched `laboratoryForEncounters()` projection for explicit `discharge_gate` aggregates and one batched `laboratoryForEdVisits()` projection for explicit `ed_disposition` aggregates.
+- [x] Count only catalog-governed explicit decision classes that resolved to the requested encounter or ED visit. Routine, non-gating, name-inferred, inactive-destination, deleted-destination, and unresolved-destination candidates cannot become a blocking Lab axis.
+- [x] Build every Laboratory axis from the complete destination aggregate, including pending count, oldest age, current cutoff/freshness, blocking flag, plain-language explanation, and deterministic top order UUID.
+- [x] Select the drill target from the existing Decision-Pending rank order and constrain it with decision class, exact order UUID, and caller source so the department queue opens the same top gate shown on the readiness surface.
+- [x] Mark a validated non-empty aggregate `blocked`; mark a verified empty scope `ready` only when current Lab Flow evidence proves a live source; mark stale, missing, error-qualified, or locally unresolved coverage `unknown` and never successful.
+- [x] Localize unresolved coverage by decision class and destination ID so a broken encounter/visit join cannot contaminate unrelated verified-empty scopes.
+- [x] Batch both readiness methods with constant query growth across one or many destination IDs; do not introduce one Decision-Pending or flow query per patient row.
+- [x] Extend `ReadinessAxis` with a nullable explanation while retaining the existing Imaging constructor and serialized contract.
+- [x] Add Lab to every active inpatient payload from `DischargePrioritiesService`, preserve the existing `imaging` member, and publish the future-proof ordered `readiness` vector as Imaging then Lab.
+- [x] Render the ordered readiness vector through the shared `ReadinessVector` on RTDC Discharge Priorities, while retaining a backward-compatible Imaging/Lab fallback for older payloads.
+- [x] Add Lab to every authorized active ED Treatment row, preserving every existing patient and Imaging field.
+- [x] Generalize the ED Imaging chip renderer into a status-text-and-icon `ReadinessChip`, add the Lab column, and show pending count, oldest age, freshness-aware state, and exact drill action without using color alone.
+- [x] Preserve exact contextual filters as hidden inputs on the Decision-Pending page so an operator can refine priority, unit, or urgency without losing the originating readiness target.
+- [x] Add backend, component, schema, privacy, query-bound, and rendered-browser coverage for the complete cross-domain contract.
 
 **Acceptance:**
 
-- Imaging and Lab axes render together and reconcile with department queues.
-- A routine/non-gating result does not block discharge.
-- Completed/corrected results transition readiness correctly.
-- Feature tests cover multiple pending labs and stale feed.
+- [x] RTDC renders Imaging and Lab together in that order for the same patient, and ED renders separate Imaging and Lab columns without changing the existing Imaging payload.
+- [x] Two explicit discharge-gate Laboratory orders reconcile to a pending count of two, their exact oldest age, and the deterministic top order returned by the complete department aggregate.
+- [x] The exact RTDC/ED drill contains the applicable decision class, deterministic top order UUID, and contextual source; opening it renders exactly that validated Decision-Pending item.
+- [x] A routine CBC with decision class `none` does not block discharge, and a verified-empty current scope is ready rather than a fabricated pending state.
+- [x] An unverified corrected result remains blocking because the latest governed result state is not released; verifying the latest correction clears the gate and transitions readiness to ready.
+- [x] A stale populated scope and a stale empty scope both become unknown; neither stale last-known facts nor stale apparent emptiness can render successful readiness.
+- [x] An unresolved inactive destination makes only its matching encounter/visit unknown while an unrelated empty scope with current evidence remains ready.
+- [x] One and many destination scopes execute within the same bounded query envelope, with no patient-count query growth.
+- [x] Serialized readiness and browser text exclude result UUIDs, specimen UUIDs, source result keys, clinical values, and narratives while retaining the established patient payload already authorized on each surface.
+- [x] Focused Decision-Pending and L-11 reconciliation passes 8 tests and 144 assertions; broader L-7/R-11/L-11/model reconciliation passes 18 tests and 239 assertions.
+- [x] React component/schema regression passes 3 files and 11 tests; the complete ancillary feature regression passes 165 tests and 2,265 assertions; the L-10 Cockpit regression remains green at 4 tests and 65 assertions.
+- [x] TypeScript, production build, UI canon, Laravel Pint, and diff whitespace checks pass; existing Browserslist, large-chunk, and 104 arbitrary-line-height warnings remain non-blocking and unchanged.
+- [x] Durable Chromium smoke passes desktop light at 1440x1000 and mobile dark at 390x844 across RTDC, ED Treatment, and the exact Decision-Pending drill with semantic headings/columns, both axes visible, one exact result, zero document overflow, zero forbidden browser keys, and zero console/page errors.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, result action, writeback, or external system is activated by L-11.
 
 #### [ ] L-12 — Implement Lab TAT Study at /analytics/lab-tat
 
