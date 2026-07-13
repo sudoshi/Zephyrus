@@ -181,6 +181,9 @@ final class LabDecisionPendingServiceTest extends TestCase
         $this->actingAs($manager)->getJson('/api/lab/pending-decisions?urgency=urgent')->assertUnprocessable();
         $this->actingAs($manager)->getJson('/api/lab/pending-decisions?orderUuid=not-a-uuid')->assertUnprocessable();
         $this->actingAs($manager)->getJson('/api/lab/pending-decisions?source=untrusted')->assertUnprocessable();
+        $validUnitId = (int) DB::table('prod.units')->where('is_deleted', false)->value('unit_id');
+        $this->actingAs($manager)->getJson('/api/lab/pending-decisions?unitId='.$validUnitId.'&source=ancillary_services')->assertOk()
+            ->assertJsonPath('filters.unitId', $validUnitId)->assertJsonPath('filters.source', 'ancillary_services');
         $this->actingAs($manager)->postJson('/api/lab/pending-decisions', [])->assertMethodNotAllowed();
         auth()->logout();
         $this->getJson('/api/lab/pending-decisions')->assertUnauthorized();

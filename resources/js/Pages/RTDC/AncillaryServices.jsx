@@ -39,8 +39,8 @@ const formatConfiguredAverage = (value) => {
     return Number.isFinite(minutes) ? formatDurationMinutes(minutes) : value;
 };
 
-const radiologyDrillHref = (serviceInfo, service) => {
-    if (serviceInfo?.category !== 'imaging') return null;
+const ownedDrillHref = (serviceInfo, service) => {
+    if (serviceInfo?.category !== 'imaging' && serviceInfo?.id !== 'lab') return null;
 
     // Only server-owned units can satisfy the worklist's exists:prod.units
     // validation. The legacy client fallback is intentionally non-drillable.
@@ -211,7 +211,8 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                 const serviceInfo = services.find(
                                                     (s) => s.id === serviceId
                                                 );
-                                                const drillHref = radiologyDrillHref(serviceInfo, service);
+                                                const drillHref = ownedDrillHref(serviceInfo, service);
+                                                const drillOwner = serviceId === 'lab' ? 'Laboratory Flow Board' : 'Radiology worklist';
                                                 return (
                                                     <div
                                                         key={serviceId}
@@ -250,8 +251,8 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                             {drillHref && (
                                                                 <a
                                                                     href={drillHref}
-                                                                    aria-label={`Open ${serviceInfo?.name ?? serviceId} Radiology worklist for ${unit.name}`}
-                                                                    title="Open Radiology worklist"
+                                                                    aria-label={`Open ${serviceInfo?.name ?? serviceId} ${drillOwner} for ${unit.name}`}
+                                                                    title={`Open ${drillOwner}`}
                                                                     className="rounded p-1 hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-healthcare-info dark:hover:bg-white/10"
                                                                 >
                                                                     <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />

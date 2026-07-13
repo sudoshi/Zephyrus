@@ -64,6 +64,12 @@ class LabFlowBoardTest extends TestCase
         $this->assertNotEmpty($payload['stageDistribution']);
         $this->assertCount(3, collect($payload['oldestItems'])->filter(fn (array $item): bool => $item['decisionContext'] !== null));
         $this->assertNotEmpty($payload['definitions']);
+
+        $critical = app(LabFlowBoardService::class)->build(['lens' => 'critical_callbacks', 'source' => 'cockpit']);
+        $this->assertSame('critical_callbacks', $critical['filters']['lens']);
+        $this->assertSame('cockpit', $critical['filters']['source']);
+        $this->assertSame(1, $critical['summary']['currentOrders']);
+        $this->assertSame(1, $critical['summary']['openCriticalCallbacks']);
     }
 
     public function test_missing_optional_feeds_are_coarse_not_zero_and_empty_stale_error_states_are_explicit(): void
@@ -103,6 +109,10 @@ class LabFlowBoardTest extends TestCase
             ->assertJsonPath('canViewPatientDetail', false)->assertJsonPath('canAnnotateBarriers', false);
         $this->assertStringNotContainsString('demo-discharge-candidate', $redacted->getContent());
         $this->actingAs($manager)->getJson('/api/lab/flow-board?lens=diagnostic')->assertUnprocessable();
+        $this->actingAs($manager)->getJson('/api/lab/flow-board?source=untrusted')->assertUnprocessable();
+        $validUnitId = (int) DB::table('prod.units')->where('is_deleted', false)->value('unit_id');
+        $this->actingAs($manager)->getJson('/api/lab/flow-board?unitId='.$validUnitId.'&source=ancillary_services')->assertOk()
+            ->assertJsonPath('filters.unitId', $validUnitId)->assertJsonPath('filters.source', 'ancillary_services');
         $this->actingAs($manager)->get('/lab?unitId=bad')->assertSessionHasErrors('unitId');
 
         $order = AncillaryOrder::query()->where('department', 'lab')->whereRaw("metadata->>'discharge_blocking' = 'true'")->firstOrFail();

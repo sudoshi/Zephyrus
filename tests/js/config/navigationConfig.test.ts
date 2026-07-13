@@ -261,11 +261,16 @@ describe('navigationConfig', () => {
     expect(paletteHrefs).toEqual(workspaceHrefs);
   });
 
-  it('owns the Laboratory Flow Board from one workspace domain', () => {
+  it('owns every Laboratory workspace leaf once and projects the same leaves to the palette', () => {
     const lab = NAVIGATION.find((domain) => domain.key === 'lab')!;
+    const hrefs = ['/lab', '/lab/specimens', '/lab/pending-decisions', '/lab/blood-bank', '/lab/anatomic-path'];
 
-    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).toEqual(['/lab', '/lab/specimens', '/lab/pending-decisions', '/lab/blood-bank', '/lab/anatomic-path']);
-    expect(navigationOwners('/lab').map((domain) => domain.key)).toEqual(['lab']);
+    expect(lab.groups.flatMap((group) => group.items.map((item) => item.href))).toEqual(hrefs);
+    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).toEqual(hrefs);
+    expect(flattenNavigation(USER_ACCESS).filter((entry) => entry.group === 'Laboratory Operations').map((entry) => entry.href)).toEqual(hrefs);
+    for (const href of hrefs) {
+      expect(navigationOwners(href).map((domain) => domain.key), href).toEqual(['lab']);
+    }
     expect(lab.dashboardHref).toBe('/lab');
   });
 

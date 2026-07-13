@@ -18,8 +18,8 @@ function board(overrides: Partial<LabFlowBoard> = {}): LabFlowBoard {
     generatedAt: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:58:00+00:00',
     state: 'degraded', stateMessage: 'Laboratory coverage is partial; coarse clocks remain visible without fabricated zero-duration segments.',
     freshness: { status: 'fresh', asOf: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:58:00+00:00', lagMinutes: 2, sourceLabel: 'Laboratory operational feeds', explanation: null },
-    filters: { lens: 'all', priority: null, testFamily: null, unitId: null, shift: null },
-    filterOptions: { lenses: ['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'degraded'], priorities: ['stat'], testFamilies: ['troponin'], units: [{ unitId: 1, label: 'ED' }], shifts: ['am_draw', 'day', 'evening', 'night'] },
+    filters: { lens: 'all', priority: null, testFamily: null, unitId: null, shift: null, source: null },
+    filterOptions: { lenses: ['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'critical_callbacks', 'degraded'], priorities: ['stat'], testFamilies: ['troponin'], units: [{ unitId: 1, label: 'ED' }], shifts: ['am_draw', 'day', 'evening', 'night'] },
     summary: { currentOrders: 13, openOrders: 8, statOrders: 3, statCompliant: 1, statCompliancePercent: 33.3, pendingDecisions: 3, openCriticalCallbacks: 1, degradedOrders: 2 },
     coverage: {
       transport: { status: 'missing', granularity: 'coarse', explanation: 'Transport feed is unavailable; collection-to-receipt remains visible as a coarse clock and transit duration is not reported as zero.' },
@@ -67,6 +67,14 @@ describe('Laboratory Flow Board', () => {
     expect(screen.getByRole('heading', { name: 'Annotate Laboratory barrier' })).toBeInTheDocument();
     expect(screen.getByLabelText('Reason')).toHaveValue('LAB_RECOLLECT_REQUIRED');
     expect(screen.getByText(/action is audited/i)).toBeInTheDocument();
+  });
+
+  it('preserves allowlisted drill provenance across lenses and filter submission', () => {
+    renderBoard(board({ filters: { lens: 'critical_callbacks', priority: null, testFamily: null, unitId: 1, shift: null, source: 'cockpit' } }));
+
+    expect(screen.getByRole('link', { name: 'all' })).toHaveAttribute('href', '/lab?unitId=1&source=cockpit');
+    expect(screen.getByRole('link', { name: 'critical callbacks' })).toHaveAttribute('href', '/lab?lens=critical_callbacks&unitId=1&source=cockpit');
+    expect(document.querySelector('input[name="source"]')).toHaveValue('cockpit');
   });
 
   it('renders the intentional empty contract without invented operational rows', () => {

@@ -19,7 +19,7 @@ class AncillaryServicesRadiologyDrillTest extends TestCase
         $this->seed(RtdcSeeder::class);
     }
 
-    public function test_imaging_tiles_carry_unit_scoped_radiology_worklist_drills_only(): void
+    public function test_imaging_and_lab_tiles_carry_unit_scoped_owned_workspace_drills_only(): void
     {
         $payload = app(AncillaryServicesService::class)->build();
 
@@ -36,7 +36,14 @@ class AncillaryServicesRadiologyDrillTest extends TestCase
                 );
             }
 
-            foreach (['pt_ot', 'respiratory', 'dialysis', 'pharmacy', 'lab'] as $serviceId) {
+            if ($unit['services']['lab'] !== null) {
+                $this->assertSame(
+                    "/lab?unitId={$unit['id']}&source=ancillary_services",
+                    $unit['services']['lab']['drillHref'],
+                );
+            }
+
+            foreach (['pt_ot', 'respiratory', 'dialysis', 'pharmacy'] as $serviceId) {
                 if ($unit['services'][$serviceId] !== null) {
                     $this->assertNull($unit['services'][$serviceId]['drillHref']);
                 }

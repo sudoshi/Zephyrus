@@ -1429,3 +1429,47 @@ git diff --check: PASS
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, clinical result action, writeback, or external system was accessed or activated. L-13 is the next dependency-ordered task and can close the Laboratory route/API/navigation/policy ownership ledger on the now-complete L-12 Study surface.
+
+## 2026-07-12 — L-13 Laboratory Route, Navigation, Policy, and Drill Ownership
+
+### Outcome
+
+Closed the Laboratory ownership ledger across five operational pages, the Laboratory TAT Study, six private read APIs, one barrier command, desktop/mobile/palette navigation, and every already-delivered cross-surface handoff. No new clinical result action or parallel route registry was introduced. The existing web/API/controller surfaces remain the authority; L-13 makes their ownership executable and closes the remaining handoff gaps.
+
+`LaboratoryRouteRegistrationTest` now proves the canonical page bookmarks, controller actions, `SessionAuthMiddleware`, named API actions, authentication, `throttle:60,1`, verbs, and one-owner rule. It also proves no POST exists on any read surface, no GET exists on the barrier command, and the minimum-necessary patient-detail capability remains independent from the barrier mutation capability. A hospitalist can see the authorized pseudonymous context without gaining annotation rights; a bed manager receives both; an ordinary user receives neither.
+
+The Laboratory Flow Board now accepts only the established allowlisted drill provenance vocabulary and preserves that source through lens links, filter submission, the strict browser schema, and private API refresh. A new `critical_callbacks` lens selects only orders with an open callback state. Acknowledged and closed loops remain outside that cohort.
+
+RTDC Ancillary Services now hands an available Lab tile to `/lab?unitId={id}&source=ancillary_services`. The same tile component still hands imaging services to the unit-filtered Radiology worklist and leaves support services without an owned destination non-drillable. The rendered label names the actual owner instead of describing every outbound link as Radiology.
+
+The first rendered unit handoff found a real request-validation defect: Laravel interpreted the string rule `exists:prod.units,unit_id` as a database connection named `prod`, causing a valid Lab unit drill to return `Database connection [prod] not configured`. Flow Board, Specimen Tracker, and Decision-Pending now validate through the schema-qualified `Unit` model. Each surface has a valid-unit HTTP regression alongside its malformed-value tests, and the final browser handoff resolves normally with unit and provenance intact.
+
+ED and RTDC discharge continue to emit exact Decision-Pending links with decision class, top order UUID, and source. Perioperative Case Management continues to emit exact Blood Bank and AP/frozen-section links by real OR case ID. These existing joins were reconciled rather than reimplemented.
+
+Cockpit Laboratory metrics now own distinct destinations. STAT compliance links to the STAT-filtered Flow Board, oldest decision-pending age links to Decision-Pending, and critical callbacks link to the new open-callback lens. Every link carries `source=cockpit`. The typed Cockpit text-cell grammar gained a same-origin `href`, and `DataTable` renders it as a semantic, keyboard-focusable link. `DrillBuilder` passes only server-owned workspace links; the metric and table contracts remain aggregate-only and contain no patient, order, specimen, result, callback source key, value, or narrative.
+
+`navigationConfig.ts` remains the single frontend authority. Tests now prove all five Laboratory operational leaves project identically into the desktop workspace domain, mobile drawer, command palette, and local navigation, with Laboratory as their sole active owner. Laboratory TAT remains uniquely Analytics-owned. Existing Radiology and RTDC ownership remains green.
+
+### Verification
+
+```text
+Consolidated Laboratory route/API/capability ledger: 4 tests, 105 assertions, PASS
+Final focused Flow Board + Specimen + Decision-Pending + route reconciliation: 16 tests, 321 assertions, PASS
+RTDC/Perioperative/readiness/Cockpit cross-surface reconciliation: 26 tests, 694 assertions, PASS
+Radiology Cockpit + general Cockpit drill compatibility: 13 tests, 112 assertions, PASS
+Complete ancillary feature regression after the valid-unit repair: 172 tests, 2,764 assertions, PASS
+Flow Board + RTDC Ancillary + navigation + Cockpit DataTable Vitest: 4 files, 40 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over 13 dirty PHP files: PASS
+Isolated zephyrus_test migration/seed and rolling demo refresh: 42 invariants, 0 critical failures, PASS (1 existing warning)
+Chromium ownership and handoff smoke: 5 tests, PASS
+Desktop Laboratory domain, mobile Laboratory drawer, Analytics-owned TAT palette result, RTDC unit/provenance handoff, and three Cockpit semantic metric links: PASS
+Valid-unit Flow Board, Specimen Tracker, and Decision-Pending HTTP validation; malformed provenance; auth; redaction; pagination/limits; and private route contracts: PASS
+git diff --check: PASS
+```
+
+The first browser attempt used the test environment's non-persistent array session driver and redirected authenticated API refreshes to Login. That harness run was discarded; the clean run used the same isolated test database with file-backed test sessions. No application authentication behavior was changed for the harness.
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, clinical result action, writeback, or external system was accessed or activated. L-14 is the next dependency-ordered task and can execute the Laboratory phase verification/release gate over the now-closed route and ownership surface.

@@ -11,9 +11,11 @@ use Illuminate\Support\Facades\DB;
 
 final class LabFlowBoardService
 {
-    public const LENSES = ['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'degraded'];
+    public const LENSES = ['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'critical_callbacks', 'degraded'];
 
     public const PRIORITIES = ['stat', 'urgent', 'routine', 'timed', 'discharge'];
+
+    public const DRILL_SOURCES = ['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit'];
 
     public function __construct(private readonly AncillaryContractSerializer $contracts) {}
 
@@ -99,8 +101,9 @@ final class LabFlowBoardService
         $testFamily = is_string($input['testFamily'] ?? null) && preg_match('/^[a-z0-9_]{1,80}$/', $input['testFamily']) ? $input['testFamily'] : null;
         $unitId = filter_var($input['unitId'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $shift = is_string($input['shift'] ?? null) && in_array($input['shift'], ['am_draw', 'day', 'evening', 'night'], true) ? $input['shift'] : null;
+        $source = is_string($input['source'] ?? null) && in_array($input['source'], self::DRILL_SOURCES, true) ? $input['source'] : null;
 
-        return ['lens' => $lens, 'priority' => $priority, 'testFamily' => $testFamily, 'unitId' => $unitId === false ? null : $unitId, 'shift' => $shift];
+        return ['lens' => $lens, 'priority' => $priority, 'testFamily' => $testFamily, 'unitId' => $unitId === false ? null : $unitId, 'shift' => $shift, 'source' => $source];
     }
 
     /** @return array<string, mixed> */
@@ -129,6 +132,12 @@ final class LabFlowBoardService
             ->when($filters['lens'] === 'inpatient', fn (Builder $query): Builder => $query->where('o.patient_class', 'inpatient'))
             ->when($filters['lens'] === 'discharge_gate', fn (Builder $query): Builder => $query->whereExists(fn ($pending) => $this->pendingDecisionExists($pending, 'discharge_gate')))
             ->when($filters['lens'] === 'or_gate', fn (Builder $query): Builder => $query->whereExists(fn ($pending) => $this->pendingDecisionExists($pending, 'or_gate')))
+            ->when($filters['lens'] === 'critical_callbacks', fn (Builder $query): Builder => $query->whereExists(fn (Builder $critical): Builder => $critical
+                ->selectRaw('1')
+                ->from('prod.lab_results as cr')
+                ->join('prod.lab_critical_values as cc', 'cc.lab_result_id', '=', 'cr.lab_result_id')
+                ->whereColumn('cr.ancillary_order_id', 'o.ancillary_order_id')
+                ->whereNotIn('cc.callback_state', ['acknowledged', 'closed'])))
             ->when($filters['lens'] === 'degraded', fn (Builder $query): Builder => $query->where(function (Builder $degraded): void {
                 $degraded->whereNotExists(fn ($q) => $q->selectRaw('1')->from('prod.lab_specimens as ds')->whereColumn('ds.ancillary_order_id', 'o.ancillary_order_id'))
                     ->orWhereNotExists(fn ($q) => $q->selectRaw('1')->from('prod.ancillary_milestones as dt')->whereColumn('dt.ancillary_order_id', 'o.ancillary_order_id')->where('dt.milestone_code', 'LAB_IN_TRANSIT'))

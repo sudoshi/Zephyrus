@@ -89,7 +89,9 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertSame('live', $stat['metadata']['provenance']);
         $this->assertSame('current', $pending['metadata']['dataState']);
         $this->assertSame('fresh', $callbacks['metadata']['sourceState']);
-        $this->assertSame('/lab', $stat['metadata']['workspaceHref']);
+        $this->assertSame('/lab?priority=stat&source=cockpit', $stat['metadata']['workspaceHref']);
+        $this->assertSame('/lab/pending-decisions?source=cockpit', $pending['metadata']['workspaceHref']);
+        $this->assertSame('/lab?lens=critical_callbacks&source=cockpit', $callbacks['metadata']['workspaceHref']);
         $this->assertSame($pendingHealth['byDecisionClass'], $pending['metadata']['byDecisionClass']);
         $this->assertSame($flowHealth['criticalCallbacks']['byState'], $callbacks['metadata']['byState']);
         $this->assertNotNull($stat['metadata']['sourceCutoffAt']);
@@ -152,6 +154,9 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertSame($tiles->get(self::KEYS[0])['display'], $lab['measure1']['v']);
         $this->assertSame($tiles->get(self::KEYS[1])['display'], $lab['measure2']['v']);
         $this->assertSame($tiles->get(self::KEYS[2])['display'], $lab['measure3']['v']);
+        $this->assertSame('/lab?priority=stat&source=cockpit', $lab['measure1']['href']);
+        $this->assertSame('/lab/pending-decisions?source=cockpit', $lab['measure2']['href']);
+        $this->assertSame('/lab?lens=critical_callbacks&source=cockpit', $lab['measure3']['href']);
         $this->assertSame('fresh', $lab['source']['tag']['text']);
         $this->assertSame('critical', $lab['status']['chip']);
         $this->assertNotSame('—', $lab['cutoff']['v']);

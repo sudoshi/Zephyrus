@@ -25,9 +25,10 @@ export const labFlowBoardSchema = z.object({
   stateMessage: z.string().min(1),
   freshness: sourceFreshnessSchema,
   filters: z.object({
-    lens: z.enum(['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'degraded']),
+    lens: z.enum(['all', 'ed', 'inpatient', 'discharge_gate', 'or_gate', 'critical_callbacks', 'degraded']),
     priority: z.enum(['stat', 'urgent', 'routine', 'timed', 'discharge']).nullable(),
     testFamily: z.string().nullable(), unitId: z.number().int().positive().nullable(), shift: z.enum(['am_draw', 'day', 'evening', 'night']).nullable(),
+    source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(),
   }).strict(),
   filterOptions: z.object({
     lenses: z.array(z.string()), priorities: z.array(z.string()), testFamilies: z.array(z.string()),

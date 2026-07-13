@@ -26,8 +26,8 @@ vi.mock('@/Components/Analytics/Common/TrendChart', () => ({ default: () => null
 vi.mock('@/Components/RTDC/TrendsModal', () => ({ default: () => null }));
 vi.mock('@iconify/react', () => ({ Icon: () => <span aria-hidden="true" /> }));
 
-describe('RTDC Ancillary Services Radiology drill-through', () => {
-  it('links imaging tiles to the unit-scoped Radiology worklist without linking other services', () => {
+describe('RTDC Ancillary Services owned drill-through', () => {
+  it('links imaging and Laboratory tiles to unit-scoped owned workspaces', () => {
     render(<AncillaryServices unitServices={[{
       id: 7,
       name: 'NSICU',
@@ -37,7 +37,7 @@ describe('RTDC Ancillary Services Radiology drill-through', () => {
           trend: [],
           drillHref: '/radiology/worklist?unitId=7&source=ancillary_services',
         },
-        lab: { value: 40, trend: [], drillHref: null },
+        lab: { value: 40, trend: [], drillHref: '/lab?unitId=7&source=ancillary_services' },
       },
     }]} />);
 
@@ -49,8 +49,8 @@ describe('RTDC Ancillary Services Radiology drill-through', () => {
       'href',
       '/radiology/worklist?unitId=7&source=ancillary_services',
     );
-    expect(screen.queryByRole('link', {
-      name: 'Open Lab Radiology worklist for NSICU',
-    })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {
+      name: 'Open Lab Laboratory Flow Board for NSICU',
+    })).toHaveAttribute('href', '/lab?unitId=7&source=ancillary_services');
   });
 });

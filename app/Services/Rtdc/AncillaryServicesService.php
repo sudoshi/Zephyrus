@@ -76,14 +76,19 @@ class AncillaryServicesService
                     'value' => $value,
                     'trend' => $this->trend((int) $unit->unit_id, $serviceId, $value, $nowSec),
                     // The cross-department RTDC page remains the consumer view;
-                    // imaging tiles hand off to the owned Radiology worklist
-                    // with the unit filter and provenance source preserved.
-                    'drillHref' => $category === 'imaging'
-                        ? '/radiology/worklist?'.http_build_query([
+                    // Imaging and Laboratory tiles hand off to their owned
+                    // workspaces with the unit and provenance preserved.
+                    'drillHref' => match (true) {
+                        $category === 'imaging' => '/radiology/worklist?'.http_build_query([
                             'unitId' => (int) $unit->unit_id,
                             'source' => 'ancillary_services',
-                        ])
-                        : null,
+                        ]),
+                        $serviceId === 'lab' => '/lab?'.http_build_query([
+                            'unitId' => (int) $unit->unit_id,
+                            'source' => 'ancillary_services',
+                        ]),
+                        default => null,
+                    },
                 ];
             }
 

@@ -590,10 +590,13 @@ class DrillBuilder
             return ['v' => '—', 'dim' => true];
         }
 
+        $href = $metric['metadata']['workspaceHref'] ?? null;
+
         return [
             'v' => (string) $metric['display'],
             'strong' => true,
             'status' => CockpitStatus::from((string) $metric['status'])->canon(),
+            ...(is_string($href) && str_starts_with($href, '/') ? ['href' => $href] : []),
         ];
     }
 

@@ -19,5 +19,8 @@ test('Flow drill renders the server-computed ancillary health table', async ({ p
   await expect(table.getByText('Laboratory', { exact: true })).toBeVisible();
   await expect(table.getByText('Pharmacy', { exact: true })).toBeVisible();
   await expect(table.getByRole('columnheader', { name: 'Source cutoff' })).toBeVisible();
+  await expect(table.locator('a[href="/lab?priority=stat&source=cockpit"]')).toBeVisible();
+  await expect(table.locator('a[href="/lab/pending-decisions?source=cockpit"]')).toBeVisible();
+  await expect(table.locator('a[href="/lab?lens=critical_callbacks&source=cockpit"]')).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });

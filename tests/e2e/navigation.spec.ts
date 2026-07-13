@@ -77,6 +77,23 @@ test.describe('Top Navigation', () => {
     await expect(page.locator('a[href="/radiology"]')).toHaveCount(1);
   });
 
+  test('Laboratory workspace exposes each operational leaf from one desktop domain', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole('button', { name: 'Workspaces' }).click();
+    await page.getByRole('tab', { name: 'Laboratory' }).click();
+
+    for (const [label, href] of [
+      ['Laboratory Flow Board', '/lab'],
+      ['Specimen Tracker', '/lab/specimens'],
+      ['Decision-Pending Results', '/lab/pending-decisions'],
+      ['Blood Bank Readiness', '/lab/blood-bank'],
+      ['AP Case Aging', '/lab/anatomic-path'],
+    ] as const) {
+      await expect(page.getByRole('link', { name: label })).toHaveAttribute('href', href);
+    }
+    await expect(page.locator('a[href="/lab"]')).toHaveCount(1);
+  });
+
   // P4a (D4): the legacy overview bookmarks are permanent redirects into the
   // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
   test('legacy perioperative overview redirects into the periop drill', async ({ page, request }) => {
@@ -149,6 +166,18 @@ test.describe('Command Palette', () => {
 
     await expect(page).toHaveURL(/\/radiology\/reads/);
   });
+
+  test('finds and opens the Analytics-owned Laboratory TAT Study leaf', async ({ page }) => {
+    await page.keyboard.press('Meta+k');
+    const commandInput = page.locator('[placeholder*="Search"], [placeholder*="search"]');
+    await commandInput.fill('laboratory tat');
+
+    const result = page.getByRole('option', { name: /laboratory tat/i }).first();
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/analytics\/lab-tat/);
+  });
 });
 
 test.describe('Mobile Navigation', () => {
@@ -184,6 +213,17 @@ test.describe('Mobile Navigation', () => {
     await expect(page.getByRole('link', { name: 'Reads & Results' })).toHaveAttribute('href', '/radiology/reads');
   });
 
+  test('mobile drawer exposes the same Laboratory workspace leaves', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open main navigation' }).click();
+    await page.getByRole('button', { name: 'Laboratory' }).click();
+
+    await expect(page.getByRole('link', { name: 'Laboratory Flow Board' })).toHaveAttribute('href', '/lab');
+    await expect(page.getByRole('link', { name: 'Specimen Tracker' })).toHaveAttribute('href', '/lab/specimens');
+    await expect(page.getByRole('link', { name: 'Decision-Pending Results' })).toHaveAttribute('href', '/lab/pending-decisions');
+    await expect(page.getByRole('link', { name: 'Blood Bank Readiness' })).toHaveAttribute('href', '/lab/blood-bank');
+    await expect(page.getByRole('link', { name: 'AP Case Aging' })).toHaveAttribute('href', '/lab/anatomic-path');
+  });
+
   test('mobile command search is accessible', async ({ page }) => {
     await page.getByRole('button', { name: /search/i }).click();
 
@@ -212,6 +252,23 @@ test.describe('RTDC ancillary handoff', () => {
 
     await expect(page).toHaveURL(/\/radiology\/worklist\?unitId=\d+&source=ancillary_services/);
     await expect(page.getByRole('heading', { name: 'Radiology Order Worklist' })).toBeVisible();
+  });
+
+  test('Laboratory tile drills into the unit-scoped Flow Board with provenance', async ({ page }) => {
+    await blockCockpitStream(page);
+    await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: 'Matrix' }).click();
+
+    const drill = page.getByRole('link', { name: /Open Lab Laboratory Flow Board for/i }).first();
+    await expect(drill).toBeVisible();
+    await expect(drill).toHaveAttribute('href', /\/lab\?unitId=\d+&source=ancillary_services/);
+    await drill.click();
+
+    await expect(page).toHaveURL(/\/lab\?unitId=\d+&source=ancillary_services/);
+    await expect(page.getByRole('heading', { name: 'Laboratory Flow Board' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[name="source"]')).toHaveValue('ancillary_services');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   });
 });
 

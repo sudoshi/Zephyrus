@@ -217,7 +217,7 @@ class FlowMetrics extends BaseMetrics
             'sourceState' => $sourceState,
             'sourceCutoffAt' => $sourceCutoffAt,
             'sourceLabel' => (string) ($fact['sourceLabel'] ?? 'Laboratory operational feeds'),
-            'workspaceHref' => '/lab',
+            'workspaceHref' => $this->laboratoryWorkspaceHref($key),
         ];
         foreach (['statOrders', 'statCompliant', 'pendingCount', 'byDecisionClass', 'atRiskCount', 'oldestOpenAgeMinutes', 'byState', 'coverageState'] as $aggregate) {
             if (array_key_exists($aggregate, $fact)) {
@@ -242,6 +242,16 @@ class FlowMetrics extends BaseMetrics
         $count = (int) $value;
 
         return $count.' '.($count === 1 ? 'callback' : 'callbacks');
+    }
+
+    private function laboratoryWorkspaceHref(string $key): string
+    {
+        return match ($key) {
+            'flow.ancillary_lab_stat_compliance' => '/lab?priority=stat&source=cockpit',
+            'flow.ancillary_lab_oldest_decision_pending' => '/lab/pending-decisions?source=cockpit',
+            'flow.ancillary_lab_critical_callbacks' => '/lab?lens=critical_callbacks&source=cockpit',
+            default => '/lab?source=cockpit',
+        };
     }
 
     /** @param array<string, mixed> $fact */

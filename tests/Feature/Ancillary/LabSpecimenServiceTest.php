@@ -167,6 +167,9 @@ class LabSpecimenServiceTest extends TestCase
         $this->assertTrue(collect($redacted['data'])->every(fn (array $row): bool => $row['patientRef'] === 'Patient context restricted'));
         $this->actingAs($manager)->getJson('/api/lab/specimens?status=lost')->assertUnprocessable();
         $this->actingAs($manager)->getJson('/api/lab/specimens?cursor=not-a-cursor')->assertUnprocessable();
+        $validUnitId = (int) DB::table('prod.units')->where('is_deleted', false)->value('unit_id');
+        $this->actingAs($manager)->getJson('/api/lab/specimens?unitId='.$validUnitId)->assertOk()
+            ->assertJsonPath('filters.unitId', $validUnitId);
         auth()->logout();
         $this->getJson('/api/lab/specimens')->assertUnauthorized();
     }

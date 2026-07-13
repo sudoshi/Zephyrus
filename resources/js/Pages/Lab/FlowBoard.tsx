@@ -22,6 +22,7 @@ function lensHref(board: LabFlowBoard, lens: string) {
   if (board.filters.testFamily) query.set('testFamily', board.filters.testFamily);
   if (board.filters.unitId) query.set('unitId', String(board.filters.unitId));
   if (board.filters.shift) query.set('shift', board.filters.shift);
+  if (board.filters.source) query.set('source', board.filters.source);
   const suffix = query.toString();
   return suffix ? `/lab?${suffix}` : '/lab';
 }
@@ -45,6 +46,7 @@ export default function FlowBoard({ flowBoard }: { flowBoard: LabFlowBoard }) {
       <nav aria-label="Laboratory lenses" className="flex flex-wrap gap-2">{board.filterOptions.lenses.map((lens) => <Link key={lens} href={lensHref(board, lens)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium ${board.filters.lens === lens ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{lens.replace('_', ' ')}</Link>)}</nav>
       <form method="get" action="/lab" aria-label="Laboratory filters" className="grid gap-3 rounded-lg border border-healthcare-border bg-healthcare-surface p-4 sm:grid-cols-2 xl:grid-cols-5 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <input type="hidden" name="lens" value={board.filters.lens} />
+        {board.filters.source ? <input type="hidden" name="source" value={board.filters.source} /> : null}
         <label className="text-sm">Priority<select name="priority" defaultValue={board.filters.priority ?? ''} className="mt-1 block w-full rounded-md"><option value="">All priorities</option>{board.filterOptions.priorities.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <label className="text-sm">Test family<select name="testFamily" defaultValue={board.filters.testFamily ?? ''} className="mt-1 block w-full rounded-md"><option value="">All test families</option>{board.filterOptions.testFamilies.map((value) => <option key={value} value={value}>{value.replace('_', ' ')}</option>)}</select></label>
         <label className="text-sm">Shift<select name="shift" defaultValue={board.filters.shift ?? ''} className="mt-1 block w-full rounded-md"><option value="">All shifts</option>{board.filterOptions.shifts.map((value) => <option key={value} value={value}>{value.replace('_', ' ')}</option>)}</select></label>
