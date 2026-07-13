@@ -16,6 +16,10 @@ import {
   useEscalateSloBreach,
   useLinkSloBreachIncident,
   useReviewSloBreach,
+  useSourceStatusFacets,
+  useRecordConformanceFacet,
+  useRecordContractFacet,
+  useRecordIncidentFacet,
 } from '@/features/integrations/hooks';
 import { executeCredentialRotation, type CredentialRotationInput, type IntegrationControlPlane, type IntegrationReplayInput, type IntegrationSource, type SourceObservabilitySnapshot } from '@/features/integrations/api';
 import type { PageProps } from '@/types';
@@ -445,10 +449,101 @@ export function BreachWorkflowRow({
   );
 }
 
-function SourcesPanel({ data, selectedSourceId, hasFacilityScope }: { data: IntegrationControlPlane; selectedSourceId: number | null; hasFacilityScope: boolean }) {
+function FacetBlock({ label, status, detail, tone }: { label: string; status: string; detail?: string; tone?: 'critical' | 'warning' }) {
+  const toneClass = tone === 'critical'
+    ? 'text-healthcare-critical dark:text-healthcare-critical-dark'
+    : tone === 'warning'
+      ? 'text-healthcare-warning dark:text-healthcare-warning-dark'
+      : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark';
+  return (
+    <div className="min-w-0 rounded-md border border-healthcare-border bg-healthcare-surface p-3 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
+      <div className="text-xs/[16px] font-semibold uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</div>
+      <div className={`mt-1 text-sm/[18px] font-semibold ${toneClass}`}>{humanize(status)}</div>
+      {detail ? <div className="mt-0.5 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{detail}</div> : null}
+    </div>
+  );
+}
+
+function StatusFacetsPanel({ selectedSourceId, canOperateIntegrations }: { selectedSourceId: number | null; canOperateIntegrations: boolean }) {
+  const facets = useSourceStatusFacets(selectedSourceId);
+  const conformance = useRecordConformanceFacet();
+  const contract = useRecordContractFacet();
+  const incident = useRecordIncidentFacet();
+  const [conformanceStatus, setConformanceStatus] = useState('passed');
+  const [profileKey, setProfileKey] = useState('');
+  const [incidentStatus, setIncidentStatus] = useState('open');
+  const [reason, setReason] = useState('');
+
+  if (selectedSourceId === null) {
+    return <EmptyRows label="Select an exact organization, facility, and source scope to inspect its status facets." />;
+  }
+  if (facets.isLoading) {
+    return <EmptyRows label="Loading source status facets…" />;
+  }
+  if (facets.isError || !facets.data) {
+    return <div role="alert" className="rounded-md border border-healthcare-critical/40 bg-healthcare-critical/10 p-4 text-sm text-healthcare-critical dark:text-healthcare-critical-dark">Source status facets are unavailable.</div>;
+  }
+  const f = facets.data;
+  const canSubmit = reason.trim().length >= 10;
+  const selectClass = 'min-h-8 rounded-md border border-healthcare-border bg-healthcare-surface px-2 py-1 text-xs/[16px] text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark';
+
+  return (
+    <div className="space-y-4">
+      <p className="max-w-3xl text-sm/[18px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        Six independent facets: lifecycle and conformance/contract are governed, protocol health and data freshness are read-only runtime evidence, and incident status is operator-updatable. None is derived from another.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <FacetBlock label="Lifecycle" status={f.lifecycle.state} detail="Governed transitions" />
+        <FacetBlock label="Protocol health" status={f.protocolHealth.status} detail="Read-only runtime evidence" tone={['failed', 'degraded'].includes(f.protocolHealth.status) ? 'critical' : undefined} />
+        <FacetBlock label="Data freshness" status={f.dataFreshness.stale ? 'stale' : f.dataFreshness.digestStatus} detail="Derived from watermarks" tone={f.dataFreshness.stale ? 'warning' : undefined} />
+        <FacetBlock label="Conformance" status={f.conformance.status} detail={f.conformance.profileKey ? `${f.conformance.profileKey} ${f.conformance.profileVersion ?? ''}`.trim() : 'Governed'} tone={f.conformance.status === 'failed' ? 'critical' : undefined} />
+        <FacetBlock label="Contract" status={f.contract.status} detail={f.contract.expired ? 'Expired' : 'Evidence-pointer only'} tone={f.contract.status === 'active' ? undefined : 'warning'} />
+        <FacetBlock label="Incident" status={f.incident.status} detail="Operator-updatable" tone={['open', 'monitoring'].includes(f.incident.status) ? 'critical' : undefined} />
+      </div>
+      {canOperateIntegrations ? (
+        <div className="space-y-3 rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Conformance
+              <select className={selectClass} value={conformanceStatus} onChange={(e) => setConformanceStatus(e.target.value)}>
+                {['not_started', 'in_progress', 'passed', 'failed', 'waived'].map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Profile key
+              <input className={selectClass} value={profileKey} onChange={(e) => setProfileKey(e.target.value)} placeholder="fhir-r4-us-core" />
+            </label>
+            <ActionButton disabled={!canSubmit || conformance.isPending} onClick={() => conformance.mutate({ sourceId: selectedSourceId, input: { status: conformanceStatus as never, profile_key: profileKey || null, reason: reason.trim() } })}>
+              Record conformance
+            </ActionButton>
+            <ActionButton disabled={!canSubmit || contract.isPending} onClick={() => contract.mutate({ sourceId: selectedSourceId, input: { status: 'pending', reason: reason.trim() } })}>
+              Mark contract pending
+            </ActionButton>
+            <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              Incident
+              <select className={selectClass} value={incidentStatus} onChange={(e) => setIncidentStatus(e.target.value)}>
+                {['none', 'open', 'monitoring', 'resolved'].map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+              </select>
+            </label>
+            <ActionButton disabled={!canSubmit || incident.isPending} onClick={() => incident.mutate({ sourceId: selectedSourceId, input: { status: incidentStatus as never, reason: reason.trim() } })}>
+              Record incident
+            </ActionButton>
+          </div>
+          <label className="block text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            Reason (10–500 characters)
+            <input className={`${selectClass} mt-1 w-full`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Record the governed rationale for this facet change." />
+          </label>
+        </div>
+      ) : <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">operateIntegrations capability required to change governed facets</span>}
+    </div>
+  );
+}
+
+function SourcesPanel({ data, selectedSourceId, hasFacilityScope, canOperateIntegrations }: { data: IntegrationControlPlane; selectedSourceId: number | null; hasFacilityScope: boolean; canOperateIntegrations: boolean }) {
   return (
     <div className="space-y-5">
       <Panel title="Source Administration"><SourceConfiguration data={data} selectedSourceId={selectedSourceId} hasFacilityScope={hasFacilityScope} /></Panel>
+      <Panel title="Status Facets"><StatusFacetsPanel selectedSourceId={selectedSourceId} canOperateIntegrations={canOperateIntegrations} /></Panel>
       <Panel title="Configured Sources"><SourceTable sources={data.sources} /></Panel>
       <Panel title="Endpoint Administration"><EndpointConfiguration data={data} selectedSourceId={selectedSourceId} /></Panel>
       <Panel title="Endpoint Security Posture">
@@ -1114,7 +1209,7 @@ function AuditPanel({
 function ActivePanel({ tab, data, canApprove, canOperateIntegrations, currentUserId, selectedOrganizationId, selectedFacilityId, selectedSourceId, hasFacilityScope, onRefresh }: { tab: TabId; data: IntegrationControlPlane; canApprove: boolean; canOperateIntegrations: boolean; currentUserId: number | null; selectedOrganizationId: number | null; selectedFacilityId: number | null; selectedSourceId: number | null; hasFacilityScope: boolean; onRefresh: () => Promise<void> }) {
   switch (tab) {
     case 'observability': return <ObservabilityPanel selectedSourceId={selectedSourceId} canOperateIntegrations={canOperateIntegrations} />;
-    case 'sources': return <SourcesPanel data={data} selectedSourceId={selectedSourceId} hasFacilityScope={hasFacilityScope} />;
+    case 'sources': return <SourcesPanel data={data} selectedSourceId={selectedSourceId} hasFacilityScope={hasFacilityScope} canOperateIntegrations={canOperateIntegrations} />;
     case 'fhir': return <FhirPanel data={data} selectedSourceId={selectedSourceId} />;
     case 'hl7': return <Hl7Panel data={data} selectedSourceId={selectedSourceId} />;
     case 'applications': return <ApplicationsPanel data={data} />;

@@ -4,6 +4,7 @@ namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\Exceptions\IntegrationCredentialException;
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
+use App\Integrations\Healthcare\Services\CertificateInspector;
 use App\Integrations\Healthcare\Services\CredentialAuthorityService;
 use App\Integrations\Healthcare\Services\CredentialRuntimeResolver;
 use App\Integrations\Healthcare\Services\IntegrationConnectionGuard;
@@ -403,6 +404,87 @@ final class CredentialAndNetworkGovernanceApiTest extends TestCase
         ], JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('BEGIN PRIVATE KEY', $databaseDump);
         $this->assertStringNotContainsString('BEGIN CERTIFICATE', $databaseDump);
+    }
+
+    public function test_required_peer_pin_policy_fails_closed_on_a_mismatched_presented_certificate(): void
+    {
+        [$peerCertificatePem] = $this->serverPeerCertificate('trusted-peer.governed.example');
+        [$roguePeerCertificatePem] = $this->serverPeerCertificate('rogue-peer.attacker.example');
+        $spkiSha256 = app(CertificateInspector::class)->peerFingerprints($peerCertificatePem)['spkiSha256'];
+
+        $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
+        $sourceId = $this->createSource($user);
+        $endpointId = (int) $this->selectScope($user, $sourceId)
+            ->postJson("/api/admin/integrations/sources/{$sourceId}/endpoints", [
+                'endpoint_type' => 'fhir_base',
+                'url' => 'https://fhir.governed.example/r4',
+                'is_active' => true,
+            ])->assertCreated()->json('data.endpointId');
+        $routeId = (int) $this->postJson("/api/admin/integrations/sources/{$sourceId}/network-routes", [
+            'route_key' => 'pinned-peer-route',
+            'source_endpoint_id' => $endpointId,
+            'transport' => 'public_internet',
+            'hostname' => 'fhir.governed.example',
+            'port' => 443,
+            'dns_policy' => 'public_only',
+            'egress_policy_key' => 'integration-https-egress',
+            'change_reason' => 'Authorize the exact production FHIR endpoint before pinning its peer.',
+        ])->assertCreated()->assertJsonPath('data.status', 'validated')->json('data.networkRouteId');
+
+        // A partner contract requires an SPKI pin beyond CA + server-name checks.
+        $policy = $this->postJson("/api/admin/integrations/sources/{$sourceId}/network-routes/{$routeId}/peer-pin-policies", [
+            'pin_mode' => 'spki_sha256',
+            'pinned_fingerprints' => [$spkiSha256],
+            'required' => true,
+            'change_reason' => 'Pin the partner server SPKI as required by the data-sharing contract.',
+        ])->assertCreated()
+            ->assertJsonPath('data.pinMode', 'spki_sha256')
+            ->assertJsonPath('data.required', true)
+            ->json('data');
+        // The stored policy carries only the public fingerprint, never key material.
+        $this->assertSame([$spkiSha256], $policy['pinnedFingerprints']);
+
+        $guard = app(IntegrationConnectionGuard::class);
+        // The presented (matching) peer passes; the rogue peer fails closed.
+        $guard->verifyPeerCertificate($sourceId, 'https://fhir.governed.example/r4', $peerCertificatePem);
+        try {
+            $guard->verifyPeerCertificate($sourceId, 'https://fhir.governed.example/r4', $roguePeerCertificatePem);
+            $this->fail('A required SPKI pin must reject a mismatched presented certificate.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('network_peer_pin_mismatch', $exception->errorCode);
+        }
+        // A required pin with no presented certificate also fails closed.
+        try {
+            $guard->verifyPeerCertificate($sourceId, 'https://fhir.governed.example/r4', null);
+            $this->fail('A required pin must reject a missing presented certificate.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('network_peer_pin_certificate_missing', $exception->errorCode);
+        }
+
+        // Retiring the policy removes enforcement; the route is otherwise unchanged.
+        $this->deleteJson("/api/admin/integrations/sources/{$sourceId}/peer-pin-policies/{$policy['peerPinPolicyId']}", [
+            'reason' => 'The partner contract no longer requires peer pinning.',
+        ])->assertNoContent();
+        $guard->verifyPeerCertificate($sourceId, 'https://fhir.governed.example/r4', $roguePeerCertificatePem);
+
+        $dump = DB::table('integration.source_peer_pin_policies')->get()->toJson();
+        $this->assertStringNotContainsString('BEGIN CERTIFICATE', $dump);
+        $this->assertStringNotContainsString('BEGIN PRIVATE KEY', $dump);
+    }
+
+    /** @return array{string, string} */
+    private function serverPeerCertificate(string $commonName): array
+    {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $this->assertNotFalse($key);
+        $csr = openssl_csr_new(['commonName' => $commonName], $key, ['digest_alg' => 'sha256']);
+        $this->assertNotFalse($csr);
+        $certificate = openssl_csr_sign($csr, null, $key, 365, ['digest_alg' => 'sha256']);
+        $this->assertNotFalse($certificate);
+        $this->assertTrue(openssl_x509_export($certificate, $certificatePem));
+        $this->assertTrue(openssl_pkey_export($key, $privateKeyPem));
+
+        return [$certificatePem, $privateKeyPem];
     }
 
     private function createSource(User $user): int

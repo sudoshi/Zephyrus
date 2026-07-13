@@ -6,6 +6,7 @@ use App\Integrations\Healthcare\Services\NetworkRouteService;
 use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
 use App\Integrations\Healthcare\Services\SourceLifecycleService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
+use App\Integrations\Healthcare\Services\SourceStatusFacetService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
@@ -422,6 +423,31 @@ final class GovernedSourceActivationApiTest extends TestCase
                 'reason' => 'Record reviewed production readiness evidence for testing.',
             ], null);
         }
+
+        // INT-LIFECYCLE: the governed conformance/contract facets are separate
+        // from onboarding evidence; the tightened activation gate requires them.
+        $facets = app(SourceStatusFacetService::class);
+        $facets->recordConformance(
+            $this->sourceId,
+            'passed',
+            'fhir-r4-us-core',
+            '6.1.0',
+            'Vendor conformance verified for the production activation gate.',
+            null,
+        );
+        $contractEvidenceId = (int) DB::table('integration.source_evidence_records')
+            ->where('source_id', $this->sourceId)
+            ->where('evidence_type', 'contract')
+            ->where('evidence_status', 'verified')
+            ->orderByDesc('source_evidence_record_id')
+            ->value('source_evidence_record_id');
+        $facets->recordContract(
+            $this->sourceId,
+            'active',
+            $contractEvidenceId,
+            'Executed contract entitlement present for the production activation gate.',
+            null,
+        );
     }
 
     /** @param array<string, list<string>> $answers */

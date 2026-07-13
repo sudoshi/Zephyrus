@@ -8,6 +8,7 @@ use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
 use App\Integrations\Healthcare\Services\SourceLifecycleService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
 use App\Integrations\Healthcare\Services\SourceReadinessService;
+use App\Integrations\Healthcare\Services\SourceStatusFacetService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
@@ -143,6 +144,7 @@ final class SourceOnboardingAndSchedulingApiTest extends TestCase
             $this->assertStringNotContainsString($reference, $response->getContent());
         }
 
+        $this->completeStatusFacets();
         $assessment = $this->postJson("/api/admin/integrations/sources/{$this->sourceId}/readiness-assessments")
             ->assertCreated()
             ->assertJsonPath('data.status', 'ready')
@@ -585,12 +587,45 @@ final class SourceOnboardingAndSchedulingApiTest extends TestCase
                 'reason' => 'Record reviewed evidence for scheduled activation testing.',
             ], null);
         }
+        $this->completeStatusFacets();
         $assessment = app(SourceReadinessService::class)->evaluate(
             $this->sourceId,
             CarbonImmutable::now(),
             persist: false,
         );
         $this->assertSame('ready', $assessment['status']);
+    }
+
+    /**
+     * INT-LIFECYCLE: the governed conformance/contract facets are separate
+     * authorities from the onboarding evidence; the tightened activation gate
+     * requires conformance passed/waived AND contract active with no open
+     * incident. Drive them into the passing state for readiness fixtures.
+     */
+    private function completeStatusFacets(): void
+    {
+        $facets = app(SourceStatusFacetService::class);
+        $facets->recordConformance(
+            $this->sourceId,
+            'passed',
+            'fhir-r4-us-core',
+            '6.1.0',
+            'Vendor conformance verified for the production activation gate.',
+            null,
+        );
+        $contractEvidenceId = (int) DB::table('integration.source_evidence_records')
+            ->where('source_id', $this->sourceId)
+            ->where('evidence_type', 'contract')
+            ->where('evidence_status', 'verified')
+            ->orderByDesc('source_evidence_record_id')
+            ->value('source_evidence_record_id');
+        $facets->recordContract(
+            $this->sourceId,
+            'active',
+            $contractEvidenceId,
+            'Executed contract entitlement present for the production activation gate.',
+            null,
+        );
     }
 
     /** @return array<string, mixed> */

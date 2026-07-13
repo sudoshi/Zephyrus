@@ -8,6 +8,7 @@ use App\Integrations\Healthcare\Services\CredentialAuthorityService;
 use App\Integrations\Healthcare\Services\CredentialValidationService;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
 use App\Integrations\Healthcare\Services\NetworkRouteService;
+use App\Integrations\Healthcare\Services\PeerPinPolicyService;
 use App\Security\Secrets\SecretProviderRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ final class CredentialNetworkGovernanceController extends Controller
         private readonly CredentialAuthorityService $authority,
         private readonly CredentialValidationService $validation,
         private readonly NetworkRouteService $routes,
+        private readonly PeerPinPolicyService $peerPins,
         private readonly SecretProviderRegistry $providers,
         private readonly IntegrationConfigurationAuditService $audit,
     ) {}
@@ -140,6 +142,68 @@ final class CredentialNetworkGovernanceController extends Controller
         );
 
         return response()->noContent();
+    }
+
+    public function peerPinPolicies(int $source): JsonResponse
+    {
+        return response()->json(['data' => $this->peerPins->policies($source)]);
+    }
+
+    public function upsertPeerPinPolicy(Request $request, int $source, int $route): JsonResponse
+    {
+        $validated = $request->validate([
+            'pin_mode' => ['required', Rule::in(PeerPinPolicyService::PIN_MODES)],
+            'pinned_fingerprints' => ['sometimes', 'array', 'max:8'],
+            'pinned_fingerprints.*' => ['string', 'regex:/^[0-9a-fA-F]{64}$/'],
+            'pinned_issuer_dn' => ['sometimes', 'nullable', 'string', 'max:400'],
+            'expected_peer_subject' => ['sometimes', 'nullable', 'string', 'max:400'],
+            'expected_peer_san' => ['sometimes', 'nullable', 'string', 'max:253'],
+            'required' => ['sometimes', 'boolean'],
+            'effective_from' => ['sometimes', 'nullable', 'date'],
+            'effective_until' => ['sometimes', 'nullable', 'date'],
+            'change_reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+        $policy = $this->peerPins->upsert($source, $route, $validated, $request->user()?->getAuthIdentifier());
+        $this->audit->record(
+            $request->user()?->getAuthIdentifier(),
+            'applied',
+            'peer_pin_policy',
+            $policy['peerPinPolicyId'],
+            'source:'.$source.':route:'.$route,
+            [],
+            $this->auditPinPolicy($policy),
+            $this->correlationId($request),
+        );
+
+        return response()->json(['data' => $policy], 201);
+    }
+
+    public function retirePeerPinPolicy(Request $request, int $source, int $policy): Response
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:500']]);
+        $this->peerPins->retire($source, $policy, (string) $validated['reason']);
+        $this->audit->record(
+            $request->user()?->getAuthIdentifier(),
+            'retired',
+            'peer_pin_policy',
+            $policy,
+            'source:'.$source,
+            [],
+            ['status' => 'retired'],
+            $this->correlationId($request),
+        );
+
+        return response()->noContent();
+    }
+
+    /** @param array<string, mixed> $policy @return array<string, mixed> */
+    private function auditPinPolicy(array $policy): array
+    {
+        return collect($policy)->only([
+            'peerPinPolicyId', 'sourceId', 'networkRouteId', 'pinMode',
+            'pinnedFingerprints', 'pinnedIssuerDn', 'expectedPeerSubject',
+            'expectedPeerSan', 'required', 'effectiveFromIso', 'effectiveUntilIso', 'status',
+        ])->all();
     }
 
     /** @return array<string, mixed> */

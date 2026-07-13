@@ -436,8 +436,43 @@ const sourceLifecycleEventSchema = z.object({
   governedChangeRequestUuid: nullableString, occurredAtIso: nullableString,
 });
 
+const sourceStatusFacetsSchema = z.object({
+  sourceId: z.number(),
+  lifecycle: z.object({ state: z.string(), changedAtIso: nullableString, governed: z.boolean() }),
+  protocolHealth: z.object({ status: z.string(), observedAtIso: nullableString, readOnly: z.boolean() }),
+  dataFreshness: z.object({ stale: z.boolean(), freshUntilIso: nullableString, digestStatus: z.string(), readOnly: z.boolean() }),
+  conformance: z.object({ status: z.string(), profileKey: nullableString, profileVersion: nullableString, governed: z.boolean() }),
+  contract: z.object({ status: z.string(), expiresAtIso: nullableString, expired: z.boolean(), governed: z.boolean() }),
+  incident: z.object({ status: z.string(), operatorUpdatable: z.boolean() }),
+  history: z.object({
+    conformance: z.array(z.record(z.string(), z.unknown())),
+    contract: z.array(z.record(z.string(), z.unknown())),
+    incident: z.array(z.record(z.string(), z.unknown())),
+  }),
+});
+
 export type SourceConfigurationVersion = z.infer<typeof sourceConfigurationVersionSchema>;
 export type SourceLifecycleEvent = z.infer<typeof sourceLifecycleEventSchema>;
+export type SourceStatusFacets = z.infer<typeof sourceStatusFacetsSchema>;
+
+export interface ConformanceFacetInput {
+  status: 'not_started' | 'in_progress' | 'passed' | 'failed' | 'waived';
+  profile_key?: string | null;
+  profile_version?: string | null;
+  reason: string;
+}
+
+export interface ContractFacetInput {
+  status: 'none' | 'pending' | 'active' | 'expired';
+  evidence_record_id?: number | null;
+  reason: string;
+}
+
+export interface IncidentFacetInput {
+  status: 'none' | 'open' | 'monitoring' | 'resolved';
+  breach_uuid?: string | null;
+  reason: string;
+}
 
 const onboardingContactSchema = z.object({
   role: nullableString,
@@ -719,6 +754,26 @@ export async function fetchSourceLifecycleEvents(sourceId: number): Promise<Sour
 export async function fetchSourceOnboarding(sourceId: number): Promise<SourceOnboardingSnapshot> {
   const response = await axios.get(`/api/admin/integrations/sources/${sourceId}/onboarding`);
   return parseEnvelope(sourceOnboardingSnapshotSchema, response.data);
+}
+
+export async function fetchSourceStatusFacets(sourceId: number): Promise<SourceStatusFacets> {
+  const response = await axios.get(`/api/admin/integrations/sources/${sourceId}/status-facets`);
+  return parseEnvelope(sourceStatusFacetsSchema, response.data);
+}
+
+export async function recordConformanceFacet(sourceId: number, input: ConformanceFacetInput): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/status-facets/conformance`, input);
+  return parseEnvelope(z.object({ facet: z.string(), status: z.string() }).passthrough(), response.data);
+}
+
+export async function recordContractFacet(sourceId: number, input: ContractFacetInput): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/status-facets/contract`, input);
+  return parseEnvelope(z.object({ facet: z.string(), status: z.string() }).passthrough(), response.data);
+}
+
+export async function recordIncidentFacet(sourceId: number, input: IncidentFacetInput): Promise<unknown> {
+  const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/status-facets/incident`, input);
+  return parseEnvelope(z.object({ facet: z.string(), status: z.string() }).passthrough(), response.data);
 }
 
 export async function fetchSourceObservability(sourceId: number): Promise<SourceObservabilitySnapshot> {

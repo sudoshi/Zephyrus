@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Admin\SourceConfigurationVersionController;
 use App\Http\Controllers\Api\Admin\SourceLifecycleController;
 use App\Http\Controllers\Api\Admin\SourceObservabilityController;
 use App\Http\Controllers\Api\Admin\SourceOnboardingController;
+use App\Http\Controllers\Api\Admin\SourceStatusFacetController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
@@ -438,12 +439,16 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewIntegrations'])->pre
         ->middleware('admin.scope:source')->whereNumber('source');
     Route::get('/sources/{source}/observability', [SourceObservabilityController::class, 'show'])
         ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/status-facets', [SourceStatusFacetController::class, 'show'])
+        ->middleware('admin.scope:source')->whereNumber('source');
     Route::get('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'index'])->whereNumber('source');
     Route::get('/sources/{source}/credentials', [IntegrationCredentialController::class, 'index'])->whereNumber('source');
     Route::get('/secret-providers', [CredentialNetworkGovernanceController::class, 'providers']);
     Route::get('/sources/{source}/credentials/{credential}/versions', [CredentialNetworkGovernanceController::class, 'credentialVersions'])
         ->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
     Route::get('/sources/{source}/network-routes', [CredentialNetworkGovernanceController::class, 'networkRoutes'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/peer-pin-policies', [CredentialNetworkGovernanceController::class, 'peerPinPolicies'])
         ->middleware('admin.scope:source')->whereNumber('source');
     Route::post('/enterprise/replays/preview', [EnterpriseConnectorController::class, 'previewReplay'])
         ->middleware('admin.scope:source');
@@ -481,6 +486,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->p
         ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
     Route::delete('/sources/{source}/network-routes/{route}', [CredentialNetworkGovernanceController::class, 'retireNetworkRoute'])
         ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::post('/sources/{source}/network-routes/{route}/peer-pin-policies', [CredentialNetworkGovernanceController::class, 'upsertPeerPinPolicy'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::delete('/sources/{source}/peer-pin-policies/{policy}', [CredentialNetworkGovernanceController::class, 'retirePeerPinPolicy'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'policy']);
     Route::post('/sources/{source}/activation-requests', [GovernedIntegrationChangeController::class, 'requestSourceActivation'])
         ->middleware('admin.scope:source')->whereNumber('source');
     Route::post('/sources/{source}/activation-window-requests', [GovernedIntegrationChangeController::class, 'requestScheduledSourceActivation'])
@@ -512,6 +521,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:operateIntegrations'])
             ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
         Route::post('/sources/{source}/slo-breaches/{breach}/review', [SourceObservabilityController::class, 'review'])
             ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/status-facets/conformance', [SourceStatusFacetController::class, 'recordConformance'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/status-facets/contract', [SourceStatusFacetController::class, 'recordContract'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/status-facets/incident', [SourceStatusFacetController::class, 'recordIncident'])
+            ->middleware('admin.scope:source')->whereNumber('source');
         Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->middleware('admin.scope:source')->whereNumber('source');
         Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->middleware('admin.scope:source')->whereNumber('source');
         Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir'])->middleware('admin.scope:source');

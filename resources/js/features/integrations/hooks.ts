@@ -15,6 +15,13 @@ import {
   fetchSourceConfigurationVersions,
   fetchSourceLifecycleEvents,
   fetchSourceOnboarding,
+  fetchSourceStatusFacets,
+  recordConformanceFacet,
+  recordContractFacet,
+  recordIncidentFacet,
+  type ConformanceFacetInput,
+  type ContractFacetInput,
+  type IncidentFacetInput,
   fetchSourceObservability,
   collectSourceObservation,
   acknowledgeSloBreach,
@@ -84,6 +91,26 @@ export function useSourceOnboarding(sourceId: number | null) {
     queryFn: () => fetchSourceOnboarding(sourceId as number),
     enabled: sourceId !== null,
   });
+}
+
+export function useSourceStatusFacets(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'status-facets'],
+    queryFn: () => fetchSourceStatusFacets(sourceId as number),
+    enabled: sourceId !== null,
+  });
+}
+
+export function useRecordConformanceFacet() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: ConformanceFacetInput }) => recordConformanceFacet(sourceId, input));
+}
+
+export function useRecordContractFacet() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: ContractFacetInput }) => recordContractFacet(sourceId, input));
+}
+
+export function useRecordIncidentFacet() {
+  return useRefreshingMutation(({ sourceId, input }: { sourceId: number; input: IncidentFacetInput }) => recordIncidentFacet(sourceId, input));
 }
 
 export function useSourceObservability(sourceId: number | null) {

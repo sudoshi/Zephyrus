@@ -101,6 +101,16 @@ final class SourceReadinessService
         });
         $payloadReadiness = $this->payloads->readiness();
         $roles = collect($contacts)->pluck('role')->filter()->unique()->values()->all();
+        // INT-LIFECYCLE: the three governed/operator facets are separate authorities
+        // from the onboarding profile and lifecycle state; the activation gate reads
+        // each independently so no single collapsed status can green-light a source.
+        $facetRow = DB::table('integration.source_status_facets')->where('source_id', $sourceId)->first();
+        $facetConformance = $facetRow?->conformance_status !== null ? (string) $facetRow->conformance_status : 'not_started';
+        $facetContract = $facetRow?->contract_status !== null ? (string) $facetRow->contract_status : 'none';
+        $facetIncident = $facetRow?->incident_status !== null ? (string) $facetRow->incident_status : 'none';
+        $contractExpiresAt = $facetRow?->contract_expires_at !== null
+            ? CarbonImmutable::parse((string) $facetRow->contract_expires_at)
+            : null;
 
         $checks = [];
         $this->check($checks, 'enterprise.organization', 'enterprise', $source->organization_id !== null,
@@ -171,6 +181,9 @@ final class SourceReadinessService
         $this->check($checks, 'profile.conformance', 'conformance',
             (string) $profile->conformance_status === 'passed',
             'Protocol conformance is currently passed.');
+        $this->check($checks, 'facet.conformance', 'conformance',
+            in_array($facetConformance, ['passed', 'waived'], true),
+            'The governed conformance facet is passed or explicitly waived.');
         $this->check($checks, 'profile.support_entitlement', 'operations',
             (string) $profile->support_entitlement !== 'unknown',
             'The vendor support entitlement is explicit.');
@@ -186,6 +199,13 @@ final class SourceReadinessService
 
         $this->check($checks, 'legal.contract_status', 'legal', (string) $source->contract_status === 'executed',
             'The production contract status is executed.');
+        $this->check($checks, 'facet.contract', 'legal',
+            $facetContract === 'active'
+                && ($contractExpiresAt === null || $contractExpiresAt->greaterThan($evaluatedFor)),
+            'The governed contract facet is active and unexpired at the evaluated activation time.');
+        $this->check($checks, 'facet.incident', 'incident',
+            in_array($facetIncident, ['none', 'resolved'], true),
+            'No source incident is open or under monitoring.');
         $this->evidenceCheck($checks, $evidence, 'contract', $evaluatedFor, false);
         if ((bool) $source->phi_allowed) {
             $this->check($checks, 'legal.baa_status', 'legal', (string) $source->baa_status === 'executed',
@@ -259,6 +279,12 @@ final class SourceReadinessService
                 'input_sha256' => $assessment['inputSha256'],
             ])->all(),
             'network_routes' => $networkAssessments->all(),
+            'status_facets' => [
+                'conformance' => $facetConformance,
+                'contract' => $facetContract,
+                'contract_expires_at' => $contractExpiresAt?->utc()->toIso8601String(),
+                'incident' => $facetIncident,
+            ],
             'payload_protection' => [
                 'status' => $payloadReadiness['status'],
                 'error_code' => $payloadReadiness['errorCode'],

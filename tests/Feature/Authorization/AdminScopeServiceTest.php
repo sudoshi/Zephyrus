@@ -183,6 +183,7 @@ final class AdminScopeServiceTest extends TestCase
             'DELETE api/admin/integrations/sources/{source}/credentials/{credential}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/endpoints/{endpoint}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/network-routes/{route}' => ['source'],
+            'DELETE api/admin/integrations/sources/{source}/peer-pin-policies/{policy}' => ['source'],
             'PATCH api/admin/integrations/sources/{source}' => ['source'],
             'PATCH api/admin/integrations/sources/{source}/credentials/{credential}' => ['source'],
             'PATCH api/admin/integrations/sources/{source}/endpoints/{endpoint}' => ['source'],
@@ -217,6 +218,7 @@ final class AdminScopeServiceTest extends TestCase
             'POST api/admin/integrations/sources/{source}/health-check' => ['source'],
             'POST api/admin/integrations/sources/{source}/lifecycle-transitions' => ['source'],
             'POST api/admin/integrations/sources/{source}/network-routes' => ['source'],
+            'POST api/admin/integrations/sources/{source}/network-routes/{route}/peer-pin-policies' => ['source'],
             'POST api/admin/integrations/sources/{source}/network-routes/{route}/validations' => ['source'],
             'POST api/admin/integrations/sources/{source}/observations' => ['source'],
             'POST api/admin/integrations/sources/{source}/onboarding-versions' => ['source'],
@@ -230,6 +232,9 @@ final class AdminScopeServiceTest extends TestCase
             'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/escalate' => ['source'],
             'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/incident-link' => ['source'],
             'POST api/admin/integrations/sources/{source}/slo-breaches/{breach}/review' => ['source'],
+            'POST api/admin/integrations/sources/{source}/status-facets/conformance' => ['source'],
+            'POST api/admin/integrations/sources/{source}/status-facets/contract' => ['source'],
+            'POST api/admin/integrations/sources/{source}/status-facets/incident' => ['source'],
         ];
 
         $actual = collect(Route::getRoutes()->getRoutes())

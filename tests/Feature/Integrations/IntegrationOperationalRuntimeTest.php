@@ -620,6 +620,19 @@ class IntegrationOperationalRuntimeTest extends TestCase
                 'reason' => 'Record reviewed production HL7 activation evidence.',
             ], null);
         }
+
+        // INT-LIFECYCLE: the tightened activation gate requires the governed
+        // conformance/contract facets to be passed/active independently of
+        // onboarding evidence.
+        $facets = app(\App\Integrations\Healthcare\Services\SourceStatusFacetService::class);
+        $facets->recordConformance($sourceId, 'passed', 'hl7v2-adt', '2.5', 'Vendor conformance verified for HL7 activation.', null);
+        $contractEvidenceId = (int) \Illuminate\Support\Facades\DB::table('integration.source_evidence_records')
+            ->where('source_id', $sourceId)
+            ->where('evidence_type', 'contract')
+            ->where('evidence_status', 'verified')
+            ->orderByDesc('source_evidence_record_id')
+            ->value('source_evidence_record_id');
+        $facets->recordContract($sourceId, 'active', $contractEvidenceId, 'Executed HL7 contract entitlement present.', null);
     }
 
     /** @param array<string, list<string>> $answers */

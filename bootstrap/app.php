@@ -210,6 +210,12 @@ return $builder
         // prevent the observation itself from being persisted.
         $schedule->command('integrations:observe-source-health --limit=250')
             ->everyMinute()->onOneServer()->withoutOverlapping(5);
+        // Credential-rotation threshold crossings page through the shared on-call
+        // dispatcher (INT-SECRET). Thresholds are day-granular and the per-band
+        // dedupe ledger keeps this to one page per crossing, so a daily sweep is
+        // sufficient; channels are inert by default.
+        $schedule->command('integrations:dispatch-credential-rotation-alerts --limit=500')
+            ->dailyAt('06:20')->onOneServer()->withoutOverlapping(30);
         // Encrypted clinical payload lifecycle. These commands expose counts
         // and stable error codes only; no payload content enters scheduler state.
         $schedule->command('clinical-payloads:lifecycle --execute --limit=100')

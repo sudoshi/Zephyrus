@@ -14,28 +14,33 @@ final class IntegrationConnectionGuard
         private readonly NetworkRouteService $routes,
         private readonly IntegrationUrlPolicy $publicPolicy,
         private readonly CredentialRuntimeResolver $credentials,
+        private readonly PeerPinPolicyService $peerPins,
     ) {}
+
+    /**
+     * INT-SECRET — enforce a route's mTLS server-peer trust/pinning policy
+     * against the certificate the peer PRESENTED at connection time. Fails
+     * closed when a required pin does not match. Reuses the route resolution
+     * from guard(); a source/URL with no governed route or no active pin policy
+     * is a no-op. Callers wire this into their TLS verify callback or a
+     * post-handshake inspection of the presented certificate chain.
+     */
+    public function verifyPeerCertificate(int $sourceId, string $url, ?string $peerCertificatePem): void
+    {
+        $route = $this->resolveRoute($sourceId, $url);
+        if ($route === null) {
+            return;
+        }
+        $this->peerPins->enforceForRoute((int) $route->source_network_route_id, $peerCertificatePem);
+    }
 
     public function guard(int $sourceId, string $url): GuardedConnection
     {
         $source = DB::table('integration.sources')->where('source_id', $sourceId)->firstOrFail();
-        $parts = parse_url($url);
-        if (! is_array($parts)
-            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
-            || ! filled($parts['host'] ?? null)
-            || isset($parts['user'])
-            || isset($parts['pass'])) {
-            throw new IntegrationProtocolException('network_endpoint_invalid');
-        }
-        $host = strtolower(rtrim((string) $parts['host'], '.'));
-        $port = (int) ($parts['port'] ?? 443);
-        $route = DB::table('integration.source_network_routes')
-            ->where('source_id', $sourceId)
-            ->where('hostname', $host)
-            ->where('port', $port)
-            ->where('status', '<>', 'retired')
-            ->orderByDesc('source_network_route_id')
-            ->first();
+        $parts = $this->urlParts($url);
+        $host = $parts['host'];
+        $port = $parts['port'];
+        $route = $this->resolveRoute($sourceId, $url);
         if ($route !== null) {
             $inspection = $this->routes->inspect((int) $route->source_network_route_id);
             if ($inspection['status'] !== 'validated') {
@@ -86,5 +91,36 @@ final class IntegrationConnectionGuard
             $public['addresses'],
             null,
         );
+    }
+
+    /** @return array{host: string, port: int} */
+    private function urlParts(string $url): array
+    {
+        $parts = parse_url($url);
+        if (! is_array($parts)
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! filled($parts['host'] ?? null)
+            || isset($parts['user'])
+            || isset($parts['pass'])) {
+            throw new IntegrationProtocolException('network_endpoint_invalid');
+        }
+
+        return [
+            'host' => strtolower(rtrim((string) $parts['host'], '.')),
+            'port' => (int) ($parts['port'] ?? 443),
+        ];
+    }
+
+    private function resolveRoute(int $sourceId, string $url): ?object
+    {
+        $parts = $this->urlParts($url);
+
+        return DB::table('integration.source_network_routes')
+            ->where('source_id', $sourceId)
+            ->where('hostname', $parts['host'])
+            ->where('port', $parts['port'])
+            ->where('status', '<>', 'retired')
+            ->orderByDesc('source_network_route_id')
+            ->first();
     }
 }

@@ -33,7 +33,7 @@ final class OperationalAlertDispatcher
     ) {}
 
     /**
-     * @param  'slo_breach'|'system_health_component'  $subjectType
+     * @param  'slo_breach'|'system_health_component'|'credential_rotation'  $subjectType
      * @return array{delivered:int, recipients:int, attempts:list<array{channel:string,outcome:string,recipients:int}>}
      */
     public function dispatch(

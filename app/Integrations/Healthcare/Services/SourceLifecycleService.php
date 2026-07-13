@@ -4,6 +4,7 @@ namespace App\Integrations\Healthcare\Services;
 
 use App\Services\Governance\GovernanceViolation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -59,6 +60,7 @@ final class SourceLifecycleService
     ): object {
         return DB::transaction(function () use ($sourceId, $actorUserId, $reason, $governedChangeUuid): object {
             $source = $this->source($sourceId, lock: true);
+            $this->initializeStatusFacets($sourceId);
             $existing = DB::table('integration.source_lifecycle_events')
                 ->where('source_id', $sourceId)->orderByDesc('source_lifecycle_event_id')->first();
             if ($existing !== null) {
@@ -80,6 +82,72 @@ final class SourceLifecycleService
                 ['initial' => true],
             );
         });
+    }
+
+    /**
+     * Bootstrap the three governed/operator status facets for a new source at
+     * their base states (conformance not_started, contract none, incident none).
+     * Each projection column is backed by a governing initial event so the facet
+     * separation is real from the moment the source exists. Idempotent.
+     */
+    private function initializeStatusFacets(int $sourceId): void
+    {
+        if (! Schema::hasTable('integration.source_status_facets')
+            || DB::table('integration.source_status_facets')->where('source_id', $sourceId)->exists()) {
+            return;
+        }
+        $occurredAt = now();
+        $conformanceEventId = (int) DB::table('integration.source_conformance_events')->insertGetId([
+            'event_uuid' => (string) Str::uuid7(),
+            'source_id' => $sourceId,
+            'previous_event_id' => null,
+            'conformance_status' => 'not_started',
+            'profile_key' => null,
+            'profile_version' => null,
+            'evidence_reference_sha256' => null,
+            'reason' => 'Initial source conformance facet in the not-started state.',
+            'actor_user_id' => null,
+            'occurred_at' => $occurredAt,
+            'created_at' => $occurredAt,
+        ], 'source_conformance_event_id');
+        $contractEventId = (int) DB::table('integration.source_contract_events')->insertGetId([
+            'event_uuid' => (string) Str::uuid7(),
+            'source_id' => $sourceId,
+            'previous_event_id' => null,
+            'contract_status' => 'none',
+            'source_evidence_record_id' => null,
+            'evidence_reference_sha256' => null,
+            'expires_at' => null,
+            'reason' => 'Initial source contract facet in the none state.',
+            'actor_user_id' => null,
+            'occurred_at' => $occurredAt,
+            'created_at' => $occurredAt,
+        ], 'source_contract_event_id');
+        $incidentEventId = (int) DB::table('integration.source_incident_events')->insertGetId([
+            'event_uuid' => (string) Str::uuid7(),
+            'source_id' => $sourceId,
+            'previous_event_id' => null,
+            'incident_status' => 'none',
+            'incident_reference_hash' => null,
+            'slo_breach_id' => null,
+            'reason' => 'Initial source incident facet in the cleared state.',
+            'actor_user_id' => null,
+            'occurred_at' => $occurredAt,
+            'created_at' => $occurredAt,
+        ], 'source_incident_event_id');
+        DB::table('integration.source_status_facets')->insert([
+            'source_id' => $sourceId,
+            'conformance_status' => 'not_started',
+            'conformance_event_id' => $conformanceEventId,
+            'conformance_profile_key' => null,
+            'conformance_profile_version' => null,
+            'contract_status' => 'none',
+            'contract_event_id' => $contractEventId,
+            'contract_expires_at' => null,
+            'incident_status' => 'none',
+            'incident_event_id' => $incidentEventId,
+            'updated_at' => $occurredAt,
+        ]);
     }
 
     public function transition(

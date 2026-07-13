@@ -7,6 +7,61 @@ use Carbon\CarbonImmutable;
 
 final class CertificateInspector
 {
+    /**
+     * INT-SECRET — the presented-peer fingerprints a pin policy compares against.
+     * Computes the leaf certificate SHA-256, the SubjectPublicKeyInfo (SPKI)
+     * SHA-256, the issuer distinguished name, subject DN, and SANs from a
+     * presented server-peer PEM. Throws on an unreadable certificate so a
+     * required pin fails closed rather than silently passing.
+     *
+     * @return array{certSha256:string, spkiSha256:string, issuerDn:?string, subjectDn:?string, subjectAltNames:list<string>}
+     */
+    public function peerFingerprints(string $peerCertificatePem): array
+    {
+        $certificate = @openssl_x509_read($peerCertificatePem);
+        $parsed = $certificate !== false ? openssl_x509_parse($certificate, false) : false;
+        if ($certificate === false || ! is_array($parsed)) {
+            throw new IntegrationCredentialException('peer_certificate_invalid');
+        }
+        $publicKey = @openssl_pkey_get_public($certificate);
+        $details = $publicKey !== false ? openssl_pkey_get_details($publicKey) : false;
+        if ($details === false || ! isset($details['key']) || ! is_string($details['key'])) {
+            throw new IntegrationCredentialException('peer_public_key_unreadable');
+        }
+        $spkiDer = $this->pemBodyToDer((string) $details['key']);
+        if ($spkiDer === null) {
+            throw new IntegrationCredentialException('peer_public_key_unreadable');
+        }
+        $sans = [];
+        $rawSan = data_get($parsed, 'extensions.subjectAltName');
+        if (is_string($rawSan)) {
+            foreach (explode(',', $rawSan) as $entry) {
+                $entry = trim($entry);
+                if ($entry !== '') {
+                    $sans[] = strtolower($entry);
+                }
+            }
+        }
+
+        return [
+            'certSha256' => strtolower((string) openssl_x509_fingerprint($certificate, 'sha256')),
+            'spkiSha256' => hash('sha256', $spkiDer),
+            'issuerDn' => $this->distinguishedName($parsed['issuer'] ?? []),
+            'subjectDn' => $this->distinguishedName($parsed['subject'] ?? []),
+            'subjectAltNames' => $sans,
+        ];
+    }
+
+    private function pemBodyToDer(string $pem): ?string
+    {
+        if (! preg_match('/-----BEGIN [^-]+-----(.*?)-----END [^-]+-----/s', $pem, $matches)) {
+            return null;
+        }
+        $decoded = base64_decode(preg_replace('/\s+/', '', $matches[1]) ?? '', true);
+
+        return $decoded === false || $decoded === '' ? null : $decoded;
+    }
+
     public function matchesPrivateKey(string $certificatePem, string $privateKeyPem): bool
     {
         $certificate = @openssl_x509_read($certificatePem);
