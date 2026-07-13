@@ -10,16 +10,22 @@ use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Ancillary\AncillaryOrder;
 use App\Models\Integration\Source;
 use App\Services\Demo\DemoClock;
+use App\Services\Rtdc\DischargePrioritiesService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
 abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
 {
+    /** @var array<string, object|null> */
+    private array $clinicalContextCache = [];
+
     public function __construct(
         private readonly SourceRegistryService $sources,
         private readonly CanonicalEventWriter $writer,
         private readonly ProjectionDispatcher $projector,
+        private readonly DischargePrioritiesService $dischargePriorities,
     ) {}
 
     abstract protected function department(): string;
@@ -47,6 +53,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
         if (trim($owner) === '') {
             throw new RuntimeException('Ancillary demo owner must be explicit.');
         }
+        $this->clinicalContextCache = [];
         $scenarios = $this->scenarios($clock);
         $collisions = $this->collisions($scenarios);
         if ($collisions !== []) {
@@ -62,7 +69,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 foreach ($scenario['events'] as $ordinal => $event) {
                     $source = $sources[$event['source'] ?? 'primary'];
                     $canonical = $this->canonicalEvent($clock, $owner, $scenario, $event, $ordinal);
-                    $record = $this->writer->write($canonical, $source);
+                    $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
                     $this->projector->project($canonical->withEventId($record->event_id));
                     $record->update(['projection_status' => 'projected', 'projected_at' => now()]);
                     $events++;
@@ -155,6 +162,12 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             ->where('o.demo_owner', $owner)
             ->where('o.department', $this->department())
             ->pluck('m.canonical_event_id');
+        $milestoneIds = DB::table('prod.ancillary_milestones as m')
+            ->join('prod.ancillary_orders as o', 'o.ancillary_order_id', '=', 'm.ancillary_order_id')
+            ->where('o.demo_owner', $owner)
+            ->where('o.department', $this->department())
+            ->pluck('m.ancillary_milestone_id');
+        $this->removeOwnedOcelProjection($milestoneIds);
         if ($orderUuids->isNotEmpty()) {
             DB::table('ops.operational_events')
                 ->where('source_surface', 'ancillary_sla')
@@ -164,7 +177,10 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
         if ($canonicalIds->isNotEmpty()) {
             DB::table('integration.provenance_records')
                 ->where('target_schema', 'prod')
-                ->whereIn('target_table', ['ancillary_milestones', 'rad_reads', 'rad_critical_results'])
+                ->whereIn('target_table', [
+                    'ancillary_milestones', 'rad_reads', 'rad_critical_results',
+                    'lab_specimens', 'lab_results', 'lab_critical_values',
+                ])
                 ->whereIn('canonical_event_id', $canonicalIds)
                 ->delete();
         }
@@ -174,6 +190,57 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
 
         DB::statement("SELECT set_config('zephyrus.allow_ancillary_demo_reset', 'on', true)");
         $orders->delete();
+    }
+
+    private function removeOwnedOcelProjection(mixed $milestoneIds): void
+    {
+        if ($milestoneIds->isEmpty() || ! Schema::hasTable('ocel.events')) {
+            return;
+        }
+
+        $eventIds = $milestoneIds
+            ->map(fn (mixed $id): string => 'anc-mil-'.(int) $id)
+            ->values();
+        $candidateObjectIds = DB::table('ocel.event_object')
+            ->whereIn('event_id', $eventIds)
+            ->distinct()
+            ->pluck('object_id');
+
+        DB::table('ocel.event_object')->whereIn('event_id', $eventIds)->delete();
+        DB::table('ocel.events')
+            ->where('source_system', 'prod.ancillary_milestones')
+            ->whereIn('id', $eventIds)
+            ->delete();
+
+        if ($candidateObjectIds->isEmpty()) {
+            return;
+        }
+
+        $ownedTypes = [
+            'Ancillary Order', 'Imaging Study', 'Imaging Read', 'Diagnostic Report',
+            'Critical Result', 'Communication Task', 'Laboratory Test', 'Laboratory Specimen',
+            'Laboratory Result', 'AP Case', 'Pathology Specimen', 'Pathology Slide / Block',
+            'Blood Bank Request', 'Blood Product Unit', 'Medication Order', 'Pharmacy Work',
+            'Medication Dose',
+        ];
+        $orphanObjectIds = DB::table('ocel.objects as o')
+            ->whereIn('o.id', $candidateObjectIds)
+            ->whereIn('o.type', $ownedTypes)
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                ->from('ocel.event_object as eo')
+                ->whereColumn('eo.object_id', 'o.id'))
+            ->pluck('o.id');
+        if ($orphanObjectIds->isEmpty()) {
+            return;
+        }
+
+        DB::table('ocel.object_object')
+            ->where(fn ($query) => $query
+                ->whereIn('from_id', $orphanObjectIds)
+                ->orWhereIn('to_id', $orphanObjectIds))
+            ->delete();
+        DB::table('ocel.object_changes')->whereIn('object_id', $orphanObjectIds)->delete();
+        DB::table('ocel.objects')->whereIn('id', $orphanObjectIds)->delete();
     }
 
     /** @param array<string, mixed> $scenario @param array<string, mixed> $event */
@@ -192,6 +259,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'department' => $this->department(),
             'milestone_code' => $code,
             'work_item_type' => $this->workItemType(),
+            'order_uuid' => $this->uuid('order|'.$scenario['source_order_key']),
             'source_order_key' => $scenario['source_order_key'],
             'reconciliation_key' => $scenario['reconciliation_key'],
             'encounter_id' => $context?->encounter_id,
@@ -243,6 +311,11 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
     /** @param array<string, mixed> $scenario */
     private function clinicalContext(int $ordinal, array $scenario): ?object
     {
+        $cacheKey = (string) ($scenario['source_order_key'] ?? $this->department().':'.$ordinal);
+        if (array_key_exists($cacheKey, $this->clinicalContextCache)) {
+            return $this->clinicalContextCache[$cacheKey];
+        }
+
         if (($scenario['metadata']['context'] ?? null) === 'ed') {
             $query = DB::table('prod.ed_visits as v')
                 ->where('v.is_deleted', false)
@@ -250,7 +323,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 ->orderBy('v.ed_visit_id');
             $candidateCount = (clone $query)->count();
 
-            return $candidateCount > 0 ? $query
+            return $this->clinicalContextCache[$cacheKey] = $candidateCount > 0 ? $query
                 ->offset(($ordinal - 1) % $candidateCount)
                 ->first([
                     DB::raw('NULL::bigint AS encounter_id'),
@@ -260,9 +333,40 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 ]) : null;
         }
 
+        $dischargeContext = ($scenario['metadata']['context'] ?? null) === 'discharge';
+        if ($dischargeContext) {
+            $visibleIds = collect($this->dischargePriorities->build())
+                ->only(['priority1', 'priority2', 'priority3', 'priority4'])
+                ->flatten(1)
+                ->pluck('id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->filter(fn (int $id): bool => $id > 0)
+                ->unique()
+                ->values();
+            $eligibleIds = DB::table('prod.encounters as e')
+                ->join('prod.units as u', 'u.unit_id', '=', 'e.unit_id')
+                ->whereIn('e.encounter_id', $visibleIds)
+                ->where('e.status', 'active')
+                ->whereNull('e.discharged_at')
+                ->whereNotNull('e.expected_discharge_date')
+                ->where('e.is_deleted', false)
+                ->where('u.type', '!=', 'ed')
+                ->where('u.is_deleted', false)
+                ->pluck('e.encounter_id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->flip();
+            $visibleIds = $visibleIds->filter(fn (int $id): bool => $eligibleIds->has($id))->values();
+            if ($visibleIds->isNotEmpty()) {
+                $selectedId = $visibleIds->get(($ordinal - 1) % $visibleIds->count());
+
+                return $this->clinicalContextCache[$cacheKey] = DB::table('prod.encounters as e')
+                    ->where('e.encounter_id', $selectedId)
+                    ->first(['e.encounter_id', DB::raw('NULL::bigint AS ed_visit_id'), 'e.unit_id', 'e.patient_ref']);
+            }
+        }
+
         $query = DB::table('prod.encounters as e')
-            ->where('is_deleted', false)
-            ->when(($scenario['metadata']['context'] ?? null) === 'discharge', fn ($q) => $q->whereNotNull('expected_discharge_date'))
+            ->where('e.is_deleted', false)
             ->orderByRaw('CASE WHEN e.discharged_at IS NULL THEN 0 ELSE 1 END')
             ->orderBy('e.encounter_id');
         $candidateCount = (clone $query)->count();
@@ -270,7 +374,8 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             ->offset(($ordinal - 1) % $candidateCount)
             ->first(['e.encounter_id', DB::raw('NULL::bigint AS ed_visit_id'), 'e.unit_id', 'e.patient_ref']) : null;
 
-        return $selected ?? DB::table('prod.encounters')->where('is_deleted', false)->orderBy('encounter_id')->first(['encounter_id', DB::raw('NULL::bigint AS ed_visit_id'), 'unit_id', 'patient_ref']);
+        return $this->clinicalContextCache[$cacheKey] = $selected
+            ?? DB::table('prod.encounters')->where('is_deleted', false)->orderBy('encounter_id')->first(['encounter_id', DB::raw('NULL::bigint AS ed_visit_id'), 'unit_id', 'patient_ref']);
     }
 
     protected function scenario(DemoClock $clock, int $ordinal, int $orderedMinutesAgo, string $priority, string $patientClass, array $events, array $metadata = [], bool $expectedBreach = false): array

@@ -90,13 +90,22 @@ class AncillaryProjectionHandler implements ProjectionHandler
                 ? CarbonImmutable::parse($event->payload['ordered_at'])->utc()
                 : $event->occurredAt;
             $encounterId = $this->resolvedEncounterId($event->payload['encounter_id'] ?? null);
+            $orderUuid = (string) Str::uuid();
+            if (array_key_exists('order_uuid', $event->payload)) {
+                if (! filled($event->payload['demo_owner'] ?? null)
+                    || ! is_string($event->payload['order_uuid'])
+                    || ! Str::isUuid($event->payload['order_uuid'])) {
+                    throw new InvalidArgumentException('A supplied ancillary order UUID is valid only for an owned synthetic event.');
+                }
+                $orderUuid = strtolower($event->payload['order_uuid']);
+            }
             $order = $this->resolveOrder(
                 sourceId: (int) $record->source_id,
                 department: $department,
                 sourceOrderKey: $sourceOrderKey,
                 reconciliationKey: $event->payload['reconciliation_key'] ?? null,
                 creationAttributes: [
-                    'order_uuid' => (string) Str::uuid(),
+                    'order_uuid' => $orderUuid,
                     'work_item_type' => $workItemType,
                     'encounter_id' => $encounterId,
                     'encounter_ref' => $event->payload['encounter_ref'] ?? null,

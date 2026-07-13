@@ -46,7 +46,7 @@ test.describe('Top Navigation', () => {
   test('renders section controls instead of every domain', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    await expect(page.getByRole('link', { name: 'Cockpit' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cockpit' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workspaces' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Study' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'RTDC' })).toHaveCount(0);

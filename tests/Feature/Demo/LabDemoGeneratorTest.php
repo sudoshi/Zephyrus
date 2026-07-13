@@ -10,6 +10,7 @@ use App\Models\Lab\Specimen;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use App\Services\Demo\DemoClock;
 use App\Services\Demo\DemoInvariantService;
+use App\Services\Rtdc\DischargePrioritiesService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AncillaryReferenceSeeder;
 use Database\Seeders\CaseManagementSeeder;
@@ -96,6 +97,15 @@ class LabDemoGeneratorTest extends TestCase
         $this->assertSame(['discharge_gate', 'ed_disposition', 'or_gate'], $pending->pluck('testCatalog.decision_class')->sort()->values()->all());
         $this->assertTrue($pending->every(fn (Result $result): bool => filled($result->metadata['decision_context']['explanation'] ?? null)));
         $this->assertTrue($pending->every(fn (Result $result): bool => (int) ($result->metadata['decision_context']['blocked_object_id'] ?? 0) > 0));
+        $dischargeEncounterId = (int) $pending->first(
+            fn (Result $result): bool => $result->testCatalog->decision_class === 'discharge_gate',
+        )->metadata['decision_context']['blocked_object_id'];
+        $dischargeRows = collect(app(DischargePrioritiesService::class)->build())
+            ->only(['priority1', 'priority2', 'priority3', 'priority4'])->flatten(1);
+        $dischargeRow = $dischargeRows->firstWhere('id', $dischargeEncounterId);
+        $this->assertNotNull($dischargeRow, 'The deterministic discharge gate must remain inside the rendered tier caps.');
+        $this->assertSame('blocked', $dischargeRow['lab']['status']);
+        $this->assertStringContainsString('decisionClass=discharge_gate', $dischargeRow['lab']['drillHref']);
 
         $this->assertSame(['diagnosed', 'processing', 'received', 'signed_out', 'slides_ready'], AnatomicPathologyCase::query()->where('demo_owner', $owner)->distinct()->orderBy('stage')->pluck('stage')->all());
         $this->assertSame(1, AnatomicPathologyCase::query()->where('demo_owner', $owner)->where('frozen_status', 'in_progress')->whereRaw("metadata->'decision_context'->>'explanation' <> ''")->count());

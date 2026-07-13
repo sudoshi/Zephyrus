@@ -3,6 +3,7 @@
 namespace App\Services\Demo\Ancillary;
 
 use App\Services\Demo\DemoClock;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final class AncillaryDemoScenarioService
@@ -23,15 +24,22 @@ final class AncillaryDemoScenarioService
     /** @return array<string, mixed> */
     public function refresh(DemoClock $clock): array
     {
-        return DB::transaction(function () use ($clock): array {
-            $departments = array_map(
-                fn (AncillaryDemoGenerator $generator): array => $generator->refresh($clock, self::OWNER),
-                $this->generators,
-            );
-            $this->registerFreshness();
+        $previousNow = CarbonImmutable::getTestNow();
+        CarbonImmutable::setTestNow($clock->anchor());
 
-            return $this->summary($clock, $departments);
-        }, 3);
+        try {
+            return DB::transaction(function () use ($clock): array {
+                $departments = array_map(
+                    fn (AncillaryDemoGenerator $generator): array => $generator->refresh($clock, self::OWNER),
+                    $this->generators,
+                );
+                $this->registerFreshness();
+
+                return $this->summary($clock, $departments);
+            }, 3);
+        } finally {
+            CarbonImmutable::setTestNow($previousNow);
+        }
     }
 
     /** @param list<array<string, mixed>> $departments @return array<string, mixed> */

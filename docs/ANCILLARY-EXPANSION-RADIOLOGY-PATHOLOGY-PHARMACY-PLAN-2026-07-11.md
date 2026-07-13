@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-13 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-14 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 38 of 60 tasks complete; 22 remain |
+| Progress | 39 of 60 tasks complete; 21 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1816,24 +1816,52 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Existing Radiology and RTDC navigation, route ownership, and handoffs remain intact.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, result action, writeback, or external system is activated by L-13.
 
-#### [ ] L-14 — Pass the Lab phase verification and release gate
+#### [x] L-14 — Pass the Lab phase verification and release gate
 
 **Depends on:** L-1 through L-13
 **Primary evidence:** tests, screenshots, query plans, migration rehearsal, devlog
 
 **Work:**
 
-- Run the full validation stack from R-15 plus lab parser fixtures, decision joins, AP/frozen, blood-bank, critical callback, and OCEL D1/D7 tests.
-- Audit six operational/Study surfaces plus ED/RTDC/Periop compact joins.
-- Save normal, rework, breach, degraded, stale, and empty screenshots.
-- Rehearse additive migration and seeded backfill on production-shaped data.
-- Record release and known limitations.
+- [x] Run file-scoped and dirty Laravel Pint over every Laboratory phase PHP implementation/test file changed since the R-15 baseline and leave `git diff --check` clean.
+- [x] Run the Laboratory satellite migration, model/factory, reference-catalog, and deterministic demo-generator tests, including temporal constraints, source identities, lineage, reset ownership, and invariant failure behavior.
+- [x] Run every fixed HL7 v2/FHIR Laboratory order, collection, ORU, correction, cancellation, multi-specimen, microbiology, critical-value, rejection, and recollect fixture through the normalizer/projector contract.
+- [x] Run focused Flow Board, Specimen Tracker, and Decision-Pending service/page/API/privacy/filter/query-bound tests, including the three explicit `ed_disposition`, `discharge_gate`, and `or_gate` destination joins.
+- [x] Run Blood Bank readiness and Perioperative gate tests for T&S, crossmatch, allocation, MTP, expiry, missing request, exact case drill, aggregate-only access, and blocked/ready/unknown behavior.
+- [x] Run Anatomic Pathology aging and Perioperative frozen-section tests for all stage clocks, historical/current split, pending/resulted/cancelled timers, case linkage, and minimum-necessary disclosure.
+- [x] Run critical-value callback and Cockpit Laboratory health tests for open/acknowledged/escalated loops, oldest-age publication, freshness demotion, safe aggregate drills, and alert-template governance.
+- [x] Run ED and RTDC readiness integration tests proving the ordered Imaging-then-Lab vector, exact Laboratory drill filters, destination-local unresolved coverage, constant query growth, privacy redaction, and backward compatibility with imaging-only payloads/components.
+- [x] Run Laboratory TAT Study tests for the five governed study definitions, cohort/exclusion rules, clinical-lab/microbiology/AP/Blood Bank separation, AM curve, auto-verification, quality/rework, critical callbacks, Pareto, benchmark wording, freshness, lineage, and bounded filters.
+- [x] Run Laboratory route-registration/ownership tests and inventory all five workspace pages, one Study page, six private reads, the single governed barrier mutation, canonical navigation projections, and unchanged Radiology bookmarks.
+- [x] Run the complete ancillary feature regression, then the complete PHP suite and all registered-GET route smoke so the phase gate is not inferred from Laboratory-only coverage.
+- [x] Run the complete Vitest suite, TypeScript compiler, production Vite build, UI-canon scanner, and final frontend privacy/contract tests after any browser-driven repair.
+- [x] Inventory the scheduler and integration surfaces; retain the existing ancillary SLA/OCEL cadence and prove that L-14 adds or activates no connector, credential, queue, endpoint, feature switch, scheduler, or live LIS/AP/blood-bank source.
+- [x] Rebuild the deterministic demo on migration-only `zephyrus_test` plus governed prerequisite catalogs at one frozen anchor; run strict refresh and an independent strict validation with zero critical or warning failures.
+- [x] Project and reconcile the full OCEL window plus two identical ancillary-only windows; prove D1 Laboratory result-verification and D7 Pathology specimen-to-diagnosis events, object links, source-reference uniqueness, and command-level idempotency.
+- [x] Reconcile shared orders/milestones to Laboratory specimens/results/callbacks, AP cases, Blood Bank requests, three decision classes, ED visits, discharge encounters, OR cases, Perioperative compact gates, Cockpit publication, RTDC handoffs, and Study cohorts from the same canonical facts.
+- [x] Capture populated PostgreSQL query plans for Specimen Tracker, Decision-Pending Results, AP stage aging, and Blood Bank OR readiness and prove the intended composite/partial index path for each.
+- [x] Add a dedicated Playwright Laboratory phase-gate specification covering all five operational pages and the Study page in dark desktop plus representative light tablet/mobile viewports.
+- [x] Browser-audit ED Treatment, RTDC Discharge Priorities, Perioperative case management/timeline, RTDC Ancillary Services, and Cockpit Flow drill reconciliation without exposing private result/specimen/source identities.
+- [x] Assert semantic level-one headings/main regions, theme state, document-level containment, zero console/page errors, keyboard focus/details/theme behavior, filter preservation, exact drill provenance, and accessible non-color status semantics.
+- [x] Save and manually inspect full-page evidence for normal, rework, breach, degraded, stale, and empty states across both themes and desktop/tablet/mobile widths; reject direct identifiers, result values/narratives, raw messages, credentials, or clipped/overflowing content.
+- [x] Clone a production-shaped migrated test schema into a disposable database, place governed shared/Radiology seed facts ahead of the Lab tail, rehearse the additive Lab migration and reference/demo backfill, inspect tables/constraints/indexes/catalogs/migration history, and exercise the documented rollback/forward-repair posture without touching production.
+- [x] Reset the shared test database after verification and confirm no owned ancillary/Laboratory/AP/Blood Bank demo facts or rehearsal database remain.
+- [x] Publish a durable L-14 evidence index containing exact commands/results, canonical counts, OCEL reconciliation, query plans, screenshot index, migration timings, rollback posture, privacy review, accepted warnings, activation boundary, and known limitations.
+- [x] Update this plan status/progress and the ancillary devlog only after every release-gate claim has direct evidence.
 
 **Acceptance:**
 
-- All gates pass and the full readiness vector remains backward compatible with imaging-only clients/tests.
-- No live LIS/AP/blood-bank feed is activated without governance evidence.
-- Phase evidence proves all three decision classes and cross-surface reconciliation.
+- [x] File-scoped/final PHP formatting, complete PHP/route smoke, complete frontend, TypeScript, production build, UI canon, browser, and whitespace gates all pass with no waived functional, privacy, invariant, or release failure.
+- [x] Strict demo refresh and independent validation pass at one frozen anchor; owned facts reset idempotently, non-owned facts remain untouched, and Cockpit publication remains invariant-gated.
+- [x] The canonical cohort reconciles exactly across shared Laboratory orders/milestones, specimens/results/callbacks, AP, Blood Bank, all three downstream decision classes, ED/RTDC/Periop joins, Cockpit, Study, and OCEL.
+- [x] D1 Laboratory result-verification and D7 Pathology specimen-to-diagnosis are present in the governed OCEL catalog and populated projection with unique source references; two bounded projections return identical counts.
+- [x] Specimen, decision, AP-aging, and Blood Bank query plans use their intended indexes on populated facts; observed small-fixture timings are documented as planner-path evidence rather than production latency claims.
+- [x] All six canonical Laboratory pages pass the dual-theme responsive browser matrix, and normal, rework, breach, degraded, stale, and empty evidence is present with no horizontal overflow or browser error.
+- [x] ED/RTDC readiness remains ordered Imaging then Lab while imaging-only clients/tests remain valid; Perioperative Blood Bank/frozen gates and Cockpit/RTDC drill targets reconcile to the same server-owned Laboratory facts.
+- [x] Patient/case context remains capability-gated and pseudonymous; Study/Cockpit contracts remain aggregate-only; result values, narratives, direct identifiers, raw source payloads, and credentials remain absent from browser/log evidence.
+- [x] The disposable production-shaped rehearsal proves the additive migration/backfill, retained shared/Radiology facts, complete Lab constraints/indexes/catalogs, safe empty-tail rollback/forward path, and populated forward-repair posture, then is deleted.
+- [x] No live LIS/AP/blood-bank feed is activated without governance evidence, and no production database, deployment, connector, credential, scheduler, queue, feature switch, writeback, or external system is changed by L-14.
+- [x] Release notes enumerate accepted pre-existing command warnings and known demo/data limitations; none is a Laboratory correctness, freshness, privacy, accessibility, or reconciliation failure.
 
 ### Phase 3 — Inpatient Pharmacy
 

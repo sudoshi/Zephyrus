@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Demo;
 
+use App\Domain\Ocel\OcelProjector;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Jobs\RefreshCockpitSnapshot;
 use App\Models\Ancillary\AncillaryOrder;
@@ -77,6 +78,10 @@ class AncillaryDemoScenarioTest extends TestCase
         ])->all());
 
         $first = $service->refresh($clock);
+        $firstProvenanceCount = DB::table('integration.provenance_records')
+            ->where('target_schema', 'prod')
+            ->whereIn('target_table', ['lab_specimens', 'lab_results', 'lab_critical_values'])
+            ->count();
         $firstKeys = AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)
             ->orderBy('department')->orderBy('source_order_key')->pluck('source_order_key')->all();
         $second = $service->refresh($clock);
@@ -84,6 +89,10 @@ class AncillaryDemoScenarioTest extends TestCase
             ->orderBy('department')->orderBy('source_order_key')->pluck('source_order_key')->all();
 
         $this->assertSame($first, $second);
+        $this->assertSame($firstProvenanceCount, DB::table('integration.provenance_records')
+            ->where('target_schema', 'prod')
+            ->whereIn('target_table', ['lab_specimens', 'lab_results', 'lab_critical_values'])
+            ->count());
         $this->assertSame($firstKeys, $secondKeys);
         $this->assertSame(47, $second['orders']);
         $this->assertSame(246, $second['milestones']);
@@ -99,6 +108,68 @@ class AncillaryDemoScenarioTest extends TestCase
             ->where('p.target_table', 'ancillary_milestones')
             ->whereNull('m.ancillary_milestone_id')
             ->count());
+    }
+
+    public function test_refresh_uses_the_explicit_anchor_for_sla_evaluation_and_restores_the_callers_clock(): void
+    {
+        $wallClock = $this->anchor->addMinutes(10);
+        CarbonImmutable::setTestNow($wallClock);
+        $clock = new DemoClock($this->anchor);
+
+        app(AncillaryDemoScenarioService::class)->refresh($clock);
+
+        $invalidOpen = collect(app(DemoInvariantService::class)->run($clock))
+            ->firstWhere('key', 'ancillary.open_breaches_mathematically_valid');
+        $this->assertTrue($invalidOpen['passed']);
+        $this->assertSame('0 invalid open breaches', $invalidOpen['observed']);
+        $this->assertTrue(CarbonImmutable::now()->equalTo($wallClock));
+    }
+
+    public function test_same_day_rolling_refresh_replaces_owned_canonical_and_ocel_rows_without_growth(): void
+    {
+        $service = app(AncillaryDemoScenarioService::class);
+        $projector = app(OcelProjector::class);
+        $firstClock = new DemoClock($this->anchor);
+        $service->refresh($firstClock);
+        $firstProjection = $projector->projectAncillary($firstClock->windowStart(), $firstClock->windowEnd());
+        $firstCounts = $this->ocelCounts();
+        $firstCanonical = DB::table('integration.canonical_events')
+            ->whereRaw("metadata->>'demo_owner' = ?", [AncillaryDemoScenarioService::OWNER])
+            ->orderBy('canonical_event_id')
+            ->firstOrFail();
+        $firstOccurredAt = CarbonImmutable::parse($firstCanonical->occurred_at);
+
+        $nextAnchor = $this->anchor->addMinutes(15);
+        $nextClock = new DemoClock($nextAnchor);
+        $service->refresh($nextClock);
+        $secondProjection = $projector->projectAncillary($nextClock->windowStart(), $nextClock->windowEnd());
+        $secondCanonical = DB::table('integration.canonical_events')
+            ->where('canonical_event_id', $firstCanonical->canonical_event_id)
+            ->firstOrFail();
+
+        $this->assertSame(
+            array_diff_key($firstProjection, ['window' => true]),
+            array_diff_key($secondProjection, ['window' => true]),
+        );
+        $this->assertSame($firstCounts, $this->ocelCounts());
+        $this->assertSame(246, DB::table('integration.canonical_events')
+            ->whereRaw("metadata->>'demo_owner' = ?", [AncillaryDemoScenarioService::OWNER])
+            ->count());
+        $this->assertSame(47, AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->count());
+        $this->assertSame(246, DB::table('prod.ancillary_milestones as m')
+            ->join('prod.ancillary_orders as o', 'o.ancillary_order_id', '=', 'm.ancillary_order_id')
+            ->where('o.demo_owner', AncillaryDemoScenarioService::OWNER)
+            ->count());
+        $this->assertSame(15.0, $firstOccurredAt->diffInMinutes(CarbonImmutable::parse($secondCanonical->occurred_at)));
+        $this->assertTrue(AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->get()
+            ->every(fn (AncillaryOrder $order): bool => CarbonImmutable::instance($order->source_cutoff_at)->equalTo($nextAnchor)));
+        $this->assertSame(0, DB::table('ocel.events as e')
+            ->leftJoin('prod.ancillary_milestones as m', DB::raw('m.ancillary_milestone_id::text'), '=', 'e.source_ref')
+            ->where('e.source_system', 'prod.ancillary_milestones')
+            ->whereNull('m.ancillary_milestone_id')
+            ->count());
+        $this->assertSame([], collect(app(DemoInvariantService::class)->run($nextClock))
+            ->where('category', 'ancillary')->where('severity', 'critical')->where('passed', false)->values()->all());
     }
 
     public function test_scenarios_include_degraded_conflict_rework_discharge_and_warehouse_evidence(): void
@@ -136,6 +207,18 @@ class AncillaryDemoScenarioTest extends TestCase
             ->whereHas('milestones', fn ($query) => $query->where('milestone_code', 'RAD_FINAL'))
             ->whereDoesntHave('milestones', fn ($query) => $query->whereIn('milestone_code', ['RAD_EXAM_START', 'RAD_EXAM_END']))
             ->count());
+    }
+
+    /** @return array{events:int,objects:int,e2o:int,o2o:int,changes:int} */
+    private function ocelCounts(): array
+    {
+        return [
+            'events' => DB::table('ocel.events')->where('source_system', 'prod.ancillary_milestones')->count(),
+            'objects' => DB::table('ocel.objects')->count(),
+            'e2o' => DB::table('ocel.event_object')->count(),
+            'o2o' => DB::table('ocel.object_object')->count(),
+            'changes' => DB::table('ocel.object_changes')->count(),
+        ];
     }
 
     public function test_advancing_anchor_replaces_only_owned_rows_and_moves_natural_keys(): void

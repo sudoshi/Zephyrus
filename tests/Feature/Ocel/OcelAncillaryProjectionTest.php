@@ -125,32 +125,56 @@ class OcelAncillaryProjectionTest extends TestCase
         $this->assertSame(4, $reconciliation['projected_events']);
     }
 
-    public function test_existing_arena_queries_and_sidecar_paths_consume_d1_and_d5_rows(): void
+    public function test_existing_arena_queries_and_sidecar_paths_consume_d1_d5_and_d7_rows(): void
     {
         $rad = AncillaryOrder::factory()->radiology()->create(['ordered_at' => $this->anchor]);
         $lab = AncillaryOrder::factory()->lab()->create(['ordered_at' => $this->anchor]);
+        $pathology = AncillaryOrder::factory()->pathology()->create(['ordered_at' => $this->anchor]);
         $this->milestones($rad, ['RAD_ORDERED', 'RAD_FINAL']);
         $this->milestones($lab, ['LAB_ORDERED', 'LAB_VERIFIED']);
+        $this->milestones($pathology, ['AP_RECEIVED', 'AP_GROSSED', 'AP_SLIDES_READY', 'AP_DIAGNOSED', 'AP_SIGNED_OUT']);
         app(OcelProjector::class)->projectAncillary($this->anchor->subMinute(), $this->anchor->addHour());
 
         $queries = app(ArenaQueryCatalog::class);
         $labRows = $queries->run('activities_for_object_type', ['object_type' => 'Laboratory Test'])['rows'];
         $imagingRows = $queries->run('activities_for_object_type', ['object_type' => 'Imaging Study'])['rows'];
+        $pathologyRows = $queries->run('activities_for_object_type', ['object_type' => 'AP Case'])['rows'];
         $this->assertEqualsCanonicalizing(['test-ordered', 'result-validated'], array_column($labRows, 'activity'));
         $this->assertEqualsCanonicalizing(['imaging-ordered', 'report-finalized'], array_column($imagingRows, 'activity'));
+        $this->assertEqualsCanonicalizing(
+            ['specimen-received', 'blocks-prepared', 'slides-ready', 'diagnosis-recorded', 'report-finalized'],
+            array_column($pathologyRows, 'activity'),
+        );
+
+        foreach ([
+            'result-validated' => 'D1',
+            'specimen-received' => 'D7',
+            'blocks-prepared' => 'D7',
+            'slides-ready' => 'D7',
+            'diagnosis-recorded' => 'D7',
+            'report-finalized' => 'D7',
+        ] as $activity => $processId) {
+            $event = DB::table('ocel.events')
+                ->where('source_system', 'prod.ancillary_milestones')
+                ->where('activity', $activity)
+                ->whereRaw("attrs->'process_ids' @> ?::jsonb", [json_encode([$processId], JSON_THROW_ON_ERROR)])
+                ->first();
+            $this->assertNotNull($event, "{$activity} must retain governed {$processId} process lineage");
+        }
 
         config(['services.arena.url' => 'http://arena-ancillary:8100']);
         Http::fake([
-            'arena-ancillary:8100/discover' => Http::response(['object_types' => ['Laboratory Test', 'Imaging Study'], 'nodes' => [], 'edges' => [], 'stats' => []]),
-            'arena-ancillary:8100/performance' => Http::response(['lifecycles' => [['object_type' => 'Laboratory Test']], 'synchronization' => []]),
+            'arena-ancillary:8100/discover' => Http::response(['object_types' => ['Laboratory Test', 'Imaging Study', 'AP Case'], 'nodes' => [], 'edges' => [], 'stats' => []]),
+            'arena-ancillary:8100/performance' => Http::response(['lifecycles' => [['object_type' => 'Laboratory Test'], ['object_type' => 'AP Case']], 'synchronization' => []]),
             'arena-ancillary:8100/conformance' => Http::response([['pathway' => 'D1', 'cases' => 1, 'conformance_rate' => 1.0]]),
         ]);
         $arena = app(ArenaService::class);
 
-        $this->assertTrue($arena->map(['Laboratory Test', 'Imaging Study'], 1, 'ancillary-phase0', true)['available']);
-        $this->assertTrue($arena->performance(['Laboratory Test', 'Imaging Study'])['available']);
+        $this->assertTrue($arena->map(['Laboratory Test', 'Imaging Study', 'AP Case'], 1, 'ancillary-phase0', true)['available']);
+        $this->assertTrue($arena->performance(['Laboratory Test', 'Imaging Study', 'AP Case'])['available']);
         $this->assertTrue($arena->conformance('D1')['available']);
         $this->assertTrue($arena->conformance('D5')['available']);
+        $this->assertTrue($arena->conformance('D7')['available']);
 
         Http::assertSent(function ($request): bool {
             if (! in_array($request->url(), [
@@ -167,10 +191,12 @@ class OcelAncillaryProjectionTest extends TestCase
 
             return in_array('test-ordered', $activities, true)
                 && in_array('imaging-ordered', $activities, true)
+                && in_array('specimen-received', $activities, true)
                 && in_array('Laboratory Test', $types, true)
-                && in_array('Imaging Study', $types, true);
+                && in_array('Imaging Study', $types, true)
+                && in_array('AP Case', $types, true);
         });
-        Http::assertSentCount(4);
+        Http::assertSentCount(5);
     }
 
     public function test_process_landscape_readiness_advances_only_to_honest_partial_projection(): void

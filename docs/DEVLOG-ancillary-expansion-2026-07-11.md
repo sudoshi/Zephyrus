@@ -1473,3 +1473,49 @@ git diff --check: PASS
 The first browser attempt used the test environment's non-persistent array session driver and redirected authenticated API refreshes to Login. That harness run was discarded; the clean run used the same isolated test database with file-backed test sessions. No application authentication behavior was changed for the harness.
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, clinical result action, writeback, or external system was accessed or activated. L-14 is the next dependency-ordered task and can execute the Laboratory phase verification/release gate over the now-closed route and ownership surface.
+
+## 2026-07-13 — L-14 Laboratory Phase Verification and Release Gate
+
+### Outcome
+
+Closed the Laboratory phase after a complete schema-to-browser release gate and published the durable evidence ledger at `docs/evidence/ancillary/laboratory-l14-2026-07-13/README.md`. The final gate covers clinical Laboratory, Anatomic Pathology, Blood Bank, ED/RTDC/Perioperative readiness, Cockpit, Study analytics, D1/D7 OCEL projection, production-shaped migration rehearsal, populated query plans, route/scheduler/source activation inventory, privacy, accessibility, and dual-theme responsive rendering.
+
+The release pass found three defects that Laboratory-only happy-path checks did not expose. First, the explicit demo anchor was passed into generation and validation but not frozen while SLA projection executed. Wall-clock evaluation could therefore create an open breach that was invalid at the requested anchor. `AncillaryDemoScenarioService` now installs the scenario clock for the refresh transaction and restores the caller's prior Carbon clock in `finally`; regression coverage proves both the frozen evaluation and restoration.
+
+Second, same-day rolling refreshes reused canonical event rows while retaining the previous `received_at`. Reprojection selected stale assertions and accumulated exact-owner Laboratory provenance and OCEL rows that no longer represented the current 246-event scenario. `CanonicalEventWriter` now permits replacement only for the exact matching synthetic owner, refreshes payload/hash/timestamps/pending state, and rejects an owner mismatch. Demo generators supply deterministic UUIDv5 order UUIDs, and `AncillaryProjectionHandler` accepts that supplied identity only for owned synthetic payloads. The refresh removes superseded owned Laboratory provenance and ancillary OCEL projection rows while preserving shared patient, encounter, resource, and process context. Two same-day refreshes now retain 246 canonical owned events, 224 unique current OCEL source references, and zero provenance/OCEL orphans.
+
+Third, the deterministic discharge blocker selected a valid current encounter that could fall outside the bounded Discharge Priorities result set. The shared generator now selects from the actual `DischargePrioritiesService` visible cohort, intersected with current non-ED active encounters that have an expected-discharge date. The rendered readiness gate proves that blocker appears in the capped RTDC surface and its exact Laboratory drill returns one Decision-Pending row.
+
+The final frozen refresh at `2026-07-13T14:32:00Z` produced 47 orders, 246 milestones, and 20 open breaches: 14 Laboratory orders/84 milestones, 16 specimens, 14 result versions, 2 critical callbacks, 6 AP cases, 6 Blood Bank requests, and exactly 3 live clinical-Laboratory decision classes. Both the integrated refresh and independent strict validation passed all 42 invariants with zero critical or warning failures, and Cockpit publication remained enabled only by that green gate.
+
+OCEL reconciliation now proves observed D1 Laboratory result-verification and D7 Pathology specimen-to-diagnosis activities alongside the existing D5 Radiology paths. The current ancillary window contains 224 unique event/source references. Two bounded ancillary projections each returned 224 events, 191 objects, 963 E2O links, 268 O2O links, and 224 object changes. Focused tests assert the exact D1/D7 activities, governed process IDs, source-reference uniqueness, idempotent replay, and existing Arena consumers.
+
+The disposable production-shaped rehearsal cloned an approximately 88 MB migrated schema, loaded governed shared/Radiology facts first, and applied the Laboratory tail additively in 37.74 ms. Populated rollback refused destructive removal as designed; an empty tail rolled down in 0.15 s and forward again. The final clone retained all shared/Radiology fingerprints and contained all six satellite tables, governing constraints, eight required indexes, nine Laboratory catalog rows, 16 specimens, 14 results, 2 callbacks, 6 AP cases, and 6 Blood Bank requests. The backfill passed all 42 invariants in 6.48 s. The clone was deleted.
+
+Populated planner checks selected `lab_specimens_status_collection_idx`, `lab_results_pending_decision_idx`, `ap_cases_stage_aging_idx`, and `bb_readiness_pending_or_idx`. Their sub-millisecond synthetic observations are recorded only as planner-path evidence, not production latency claims.
+
+The new `laboratory-phase-gate.spec.ts` audits all five operational pages and the Laboratory TAT Study in dark desktop and representative light tablet/mobile viewports. The full browser run passed 49 canonical tests with one isolated stale-fixture skip; the stale-source test passed separately. Sixteen manually inspected full-page screenshots cover populated, rework, breach, degraded, stale, and empty evidence. Browser assertions also cover ED Treatment, RTDC Discharge Priorities, Perioperative case gates, RTDC Ancillary Services, Cockpit links, semantic headings/main regions, keyboard focus/details/theme behavior, filter/provenance retention, non-color status, no direct/result/source payload leakage, no console/page errors, and no document overflow.
+
+### Verification
+
+```text
+Final focused demo/Laboratory/OCEL regression: 14 tests, 226 assertions, PASS
+Full PHP suite: 1,096 passed, 18,043 assertions, 1 intentional skip, PASS (545.95 s)
+Registered GET route smoke: 103 routes, 0 failures, PASS
+Canonical refresh: 42 invariants, 0 critical, 0 warning, published=true, PASS
+Independent strict validation: 42 invariants, 0 critical, 0 warning, PASS
+Complete Vitest suite: 107 files, 443 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over 7 dirty PHP files: PASS
+Playwright canonical matrix: 49 passed, 1 isolated stale-fixture skip
+Playwright isolated stale fixture: 1 passed
+Sixteen full-page dual-theme responsive screenshots: manually inspected, PASS
+Disposable migration/backfill/query-plan/rollback/cleanup rehearsal: PASS
+git diff --check: PASS
+```
+
+The inventory contains 426 total routes and the six session-authenticated Laboratory pages. Existing ancillary SLA, OCEL, integration-health/FHIR, and demo-refresh schedules are unchanged. All 15 ancillary integration sources remain synthetic, inactive, or sandboxed. No production deployment, production database, connector, credential, source endpoint, scheduler, queue, feature switch, result action, writeback, or external system was accessed or activated.
+
+L-14 completes 39 of 60 implementation tasks. X-1 is next and can create the Pharmacy, ADC, administration, and discharge satellites on the verified shared spine without changing the completed Radiology or Laboratory contracts.
