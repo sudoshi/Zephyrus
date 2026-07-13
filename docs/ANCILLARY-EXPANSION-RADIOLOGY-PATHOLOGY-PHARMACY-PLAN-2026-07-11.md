@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-2 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 40 of 60 tasks complete; 20 remain |
+| Progress | 41 of 60 tasks complete; 19 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1899,24 +1899,41 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused verification passes 16 tests and 141 assertions across X-1 migration/model/factory coverage; the complete ancillary regression passes 216 tests and 3,354 assertions.
 - [x] No production connector, credential, scheduler, endpoint, deployment, or external system is activated by X-1.
 
-#### [ ] X-2 — Parse RDE/RDS and verification-queue events
+#### [x] X-2 — Parse RDE/RDS and verification-queue events
 
 **Depends on:** X-1, P0-6
 **Primary files:** Pharmacy HL7 and queue-event normalizers/mappers; fixtures
 
 **Work:**
 
-- Parse medication order identity, priority/timing, route, dosage form, local/NDC/RxNorm mapping candidates, encounter, and order status.
-- Map FHIR MedicationRequest and MedicationDispense backfill into the same order/dispense identities; FHIR does not substitute for missing administration events.
-- Map RDE orders, verification queue add/remove, verified state, RDS dispense, modification, and discontinuation.
-- Define a versioned vendor-neutral verification-queue JSON envelope; Epic-specific mapping lives at the adapter edge.
-- Preserve order changes as events and current projection without rewriting history.
+- [x] Add a dedicated Pharmacy HL7 v2 normalizer ahead of the generic ancillary fallback for governed pharmacy, pharmacy-system, EHR, and CPOE sources, accepting `RDE` and `RDS` families only when the source profile explicitly authorizes the family and the `rx` department.
+- [x] Validate the HL7 envelope, message control identity, ORC order group, placer/filler order identity, RXE medication group, and RXD dispense timestamp before canonical mapping; fail closed with precise dead-letter reason codes.
+- [x] Parse medication order identity from ORC-2/ORC-3, preserving both placer and filler identities while using the filler identity as the stable source order key and cross-source `reconciliation_key`.
+- [x] Split the RXE-2 give code into local, RxNorm, and NDC mapping candidates from the primary, alternate, and second-alternate CWE triplets; carry the medication label alongside the codes.
+- [x] Map RXR-1 route, RXE-6 dosage form, ORC-5 order status, PV1 patient class, and PID/PV1 patient/encounter references (HMAC-pseudonymized, never raw) into the shared payload.
+- [x] Derive the governed clock class from HL7 priority/timing plus order context with documented precedence: ORC-16 sepsis reason > ORC-29 outpatient-order-on-inpatient discharge context > TQ1 FD/FIRST DOSE first dose > S/A/STAT/ASAP stat > TQ1 T with an explicit start as timed (carrying TQ1-7 as `due_at`) > routine; the raw HL7 priority code is retained in metadata.
+- [x] Map ORC order control codes NW/XO to `RX_ORDERED` and DC/CA to the terminal `RX_DISCONTINUED`, with discontinuation versus cancellation evidence preserved separately on the satellite; unknown control codes fail closed as `unsupported_order_control`.
+- [x] Treat ORC-9 as the ordering-time assertion on every RDE lifecycle message so an XO modification re-asserts rather than moves the ordered clock; a disagreeing re-assertion surfaces through the shared RX_ORDERED disagreement data-quality flag instead of silently shifting SLA clocks.
+- [x] Preserve XO modifications as appended canonical events and milestone assertions plus an idempotent, correlation-keyed `order_change_log` on `rx_orders` metadata recording exact from/to field changes — current projection updates, history is never rewritten.
+- [x] Map RDS^O13 RXD dispenses to `RX_DISPENSED` and `prod.rx_dispenses` with RXD-7 (falling back to order key + RXD-1) as the source-scoped dispense identity, RXD-3 as the mandatory dispense time, and a governed source-profile `dispense_channel` (iv_room/central/robot/other; `central` default — ADC vends stay with X-3).
+- [x] Define envelope version 1 of the vendor-neutral verification-queue JSON contract (documented field-by-field in `PharmacyVerificationQueueNormalizer`): required envelope_version/control_id/queue_state/occurred_at/source_order_key, optional queue/verifier/backfill fields, and governed removal reasons; Epic-specific field mapping is explicitly confined to the adapter edge and unsupported envelope versions fail closed.
+- [x] Map queue-entered to `RX_QUEUE_IN`, verified and verification-removal to `RX_VERIFIED`, and removal for order discontinuation/cancellation to the terminal `RX_DISCONTINUED`, persisting `prod.rx_verifications` rows with queued/verified/removed evidence, state-rank protection against late re-announcements, and queue-time conflict capture.
+- [x] Add a dedicated FHIR Pharmacy normalizer for policy-enabled `MedicationRequest` and `MedicationDispense` resources under the same governed source-family/department boundary, reconciling through `MedicationRequest/{id}` identities exactly like the Lab FHIR normalizer.
+- [x] Map MedicationRequest identifier, status (stopped/cancelled/entered-in-error/revoked to the terminal milestone), authored time, RxNorm/NDC/local coding, dosage route, priority/category/extension-driven clock class, and pseudonymized patient/encounter context; MedicationDispense joins the same order through authorizingPrescription and requires an explicit whenHandedOver/whenPrepared assertion.
+- [x] Guarantee FHIR never substitutes for missing administration events: the FHIR path cannot emit `RX_ADMINISTERED` and a completed MedicationDispense maps only to `RX_DISPENSED`, proven by explicit zero-administration assertions.
+- [x] Add `PharmacyOrderProjector` to the ancillary projection handler registry to idempotently create/update `prod.rx_orders` one-to-one on the shared `rx` spine order (department `rx`, work item `medication_order`), resolve local/RxNorm/NDC candidates against the governed `hosp_ref.rx_formulary` (adopting codes, label, controlled/hazardous flags, and preparation-branch defaults), and advance order status only along the governed rank so late or out-of-order events never regress dispensed or terminal state.
+- [x] Produce the explicit X-1 `terminology_status='unmapped_local'` flag with both codes null when no mapping candidate or formulary row exists — the order projects normally and is never dead-lettered for missing terminology.
+- [x] Record canonical-event provenance for every projected `rx_orders`, `rx_verifications`, and `rx_dispenses` row, and extend the canonical mapper/handler pass-throughs with the pharmacy operational and assertion metadata keys.
+- [x] Add eight golden HL7 fixtures (STAT sepsis ceftriaxone, routine first-dose ondansetron, timed IV vancomycin, discharge warfarin, XO modify, DC discontinue, RDS dispense, unmapped local compound) plus inline envelope-v1 queue events and FHIR resources in the focused suite.
 
 **Acceptance:**
 
-- Fixtures cover STAT sepsis antibiotic, routine first dose, IV order, discharge prescription, modify, discontinue, and duplicate queue event.
-- Replay is idempotent and terminal state remains correct under late events.
-- Missing terminology mapping produces an explicit unmapped flag, not a failed order.
+- [x] Fixtures cover the STAT sepsis antibiotic, routine first dose, IV order, discharge prescription, modify, discontinue, and duplicate queue events, and each maps to its governed clock class (`sepsis`, `first_dose`, `timed`, `discharge`) with formulary-resolved terminology.
+- [x] Replay is idempotent end-to-end: exact duplicates short-circuit, re-announced queue entries append retained assertions without duplicating or regressing the verification satellite, an XO replay appends no second change-log entry, and a dispense arriving before the verification event keeps `RX_DISPENSED`/`dispensed` state when the queue events land late; a dispense arriving after DC records the fact without resurrecting the terminal order.
+- [x] Missing terminology mapping produces the explicit `unmapped_local` flag with null RxNorm/NDC, zero dead letters, and a normally projected order and milestone.
+- [x] Canonical payload tests prove raw patient/encounter identifiers never cross the operational boundary, and governed sources without the RDE family or the `rx` department scope fail closed to the dead-letter ledger.
+- [x] Focused X-2 verification passes 7 tests and 130 assertions; the complete ancillary regression passes 223 tests and 3,484 assertions and the Pharmacy filter passes 23 tests and 271 assertions.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-2.
 
 #### [ ] X-3 — Ingest ADC transactions and station-level operational signals
 

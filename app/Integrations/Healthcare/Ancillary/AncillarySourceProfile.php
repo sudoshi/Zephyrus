@@ -18,6 +18,7 @@ final readonly class AncillarySourceProfile
         public array $messageFamilies,
         public array $departments,
         public array $milestoneMap,
+        public ?string $dispenseChannel = null,
     ) {}
 
     public static function from(SourceMessage $message): self
@@ -42,6 +43,9 @@ final readonly class AncillarySourceProfile
                     CASE_UPPER,
                 ),
             ),
+            dispenseChannel: is_string($configuration['dispense_channel'] ?? null)
+                ? strtolower(trim($configuration['dispense_channel'])) ?: null
+                : null,
         );
     }
 

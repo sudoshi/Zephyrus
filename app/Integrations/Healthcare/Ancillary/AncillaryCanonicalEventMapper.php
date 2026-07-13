@@ -66,6 +66,11 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'received_at', 'parent_source_specimen_key', 'rejection_reason_code',
             'rejected_at', 'recollect_ordered_at', 'source_critical_key',
             'critical_callback_state',
+            'clock_class', 'due_at', 'local_code', 'rxnorm_cui', 'ndc_code',
+            'medication_label', 'dosage_form', 'hl7_priority', 'order_change',
+            'modified_at', 'discontinued_at', 'queue_state', 'queue_ref',
+            'source_verification_key', 'verifier_ref', 'queued_at', 'removed_at', 'removal_reason',
+            'source_dispense_key', 'dispense_channel', 'dispensed_at', 'fhir_backfill',
         ]);
 
         return new CanonicalOperationalEvent(

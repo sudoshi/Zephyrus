@@ -1554,3 +1554,28 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-1 completes 40 of 60 implementation tasks. X-2 is next and will normalize RDE/RDS and verification-queue events into these contracts.
+
+## 2026-07-13 — X-2 Parse RDE/RDS and Verification-Queue Events
+
+### Outcome
+
+Normalized the Pharmacy order lifecycle into the shared ancillary spine. A dedicated `PharmacyOrderHl7V2Normalizer` accepts `RDE^O11` orders (ORC/RXE/RXR/TQ1) and `RDS^O13` dispenses (ORC/RXD) only from governed sources that explicitly authorize the family and the `rx` department, following the Laboratory source-profile pattern. Order identity keeps both placer and filler keys with the filler as the stable source order key and reconciliation identity; the RXE-2 give code splits into local/RxNorm/NDC mapping candidates across all three CWE triplets; RXR route, RXE-6 dosage form, ORC-5 status, PV1 class, and pseudonymized patient/encounter references complete the shared payload.
+
+Clock classes preserve the X-1 constraint vocabulary with documented precedence: ORC-16 sepsis reason beats ORC-29 discharge context (outpatient order on a non-outpatient class) beats TQ1 first-dose beats STAT beats timed (TQ1 T with an explicit start carried as `due_at`) beats routine. ORC control codes map NW/XO to `RX_ORDERED` and DC/CA to the terminal `RX_DISCONTINUED` with discontinuation and cancellation evidence kept apart on the satellite. The XO contract is the defensible piece: every RDE lifecycle message re-asserts the ordering time in ORC-9, so a modification appends a canonical event and milestone assertion plus a correlation-keyed `order_change_log` entry with exact from/to changes on `rx_orders` — the selected `RX_ORDERED` assertion and SLA clock start never silently move, and a disagreeing re-assertion surfaces through the existing disagreement data-quality flag instead of being averaged away.
+
+The verification queue is a versioned, vendor-neutral JSON envelope (v1) documented field-by-field in `PharmacyVerificationQueueNormalizer`; Epic-specific field mapping is confined to the adapter edge and unsupported envelope versions fail closed. Queue-entered maps to `RX_QUEUE_IN`; verified and verification-removals map to `RX_VERIFIED`; removals for order discontinuation or cancellation map to the terminal milestone. `prod.rx_verifications` rows carry queued/verified/removed evidence with state-rank protection, so a re-announced queue entry after verification appends a retained ledger assertion without duplicating or regressing the satellite.
+
+`PharmacyOrderFhirNormalizer` backfills `MedicationRequest` and `MedicationDispense` into the same identities through `MedicationRequest/{id}` reconciliation keys, mirroring the Lab ServiceRequest pattern; a dispense requires an explicit whenHandedOver/whenPrepared assertion and the FHIR path structurally cannot emit `RX_ADMINISTERED` — dispense data never substitutes for administration evidence. `PharmacyOrderProjector` joins the projection registry: it creates/updates `prod.rx_orders` one-to-one on the shared spine order, resolves terminology against the governed formulary (adopting codes, controlled/hazardous flags, and preparation-branch defaults), advances order status only along the governed rank so a dispense arriving before the verification event holds `dispensed` when the queue events land late and a post-DC dispense records the fact without resurrecting the terminal order, and produces the explicit `unmapped_local` flag with null codes — never a failed message — when no mapping exists. Every projected order, verification, and dispense row records canonical-event provenance.
+
+### Verification
+
+```text
+Laravel Pint over 9 dirty X-2 files: PASS
+PHP syntax checks over all X-2 normalizers/projector/handler/tests: PASS
+Focused PharmacyOrderIngestTest: 7 tests, 130 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 223 tests, 3,484 assertions, PASS
+Pharmacy filter regression (--filter=Pharmacy): 23 tests, 271 assertions, PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-2 completes 41 of 60 implementation tasks. X-3 is next and will ingest ADC vend/return/waste/override and station signals onto the same projector seam.

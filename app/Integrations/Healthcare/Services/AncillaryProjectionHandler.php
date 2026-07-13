@@ -35,6 +35,7 @@ class AncillaryProjectionHandler implements ProjectionHandler
         private readonly \App\Services\Lab\LabOrderProjector $labOrderProjector,
         private readonly \App\Services\Lab\LabResultProjector $labResultProjector,
         private readonly \App\Services\Lab\LabCriticalValueProjector $labCriticalValueProjector,
+        private readonly \App\Services\Pharmacy\PharmacyOrderProjector $pharmacyOrderProjector,
     ) {}
 
     public function key(): string
@@ -243,6 +244,27 @@ class AncillaryProjectionHandler implements ProjectionHandler
                     ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'labResultId' => $critical->lab_result_id, 'callbackState' => $critical->callback_state]],
                 );
             }
+            if ($department === 'rx'
+                && in_array($milestoneCode, \App\Services\Pharmacy\PharmacyOrderProjector::MILESTONES, true)) {
+                $projection = $this->pharmacyOrderProjector->project($order->fresh(), $event, (int) $record->source_id);
+                $medication = $projection['order'];
+                ProvenanceRecord::query()->firstOrCreate(
+                    ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_orders', 'target_pk' => (string) $medication->rx_order_id],
+                    ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'ancillaryOrderId' => $order->ancillary_order_id, 'terminologyStatus' => $medication->terminology_status]],
+                );
+                foreach ($projection['verifications'] as $verification) {
+                    ProvenanceRecord::query()->firstOrCreate(
+                        ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_verifications', 'target_pk' => (string) $verification->rx_verification_id],
+                        ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'sourceVerificationKey' => $verification->source_verification_key]],
+                    );
+                }
+                foreach ($projection['dispenses'] as $dispense) {
+                    ProvenanceRecord::query()->firstOrCreate(
+                        ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_dispenses', 'target_pk' => (string) $dispense->rx_dispense_id],
+                        ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'sourceDispenseKey' => $dispense->source_dispense_key]],
+                    );
+                }
+            }
 
             return (int) $order->ancillary_order_id;
         });
@@ -368,6 +390,8 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'loinc_code' => $payload['loinc_code'] ?? null,
             'add_on' => $payload['add_on'] ?? null,
             'ordered_at_source' => $payload['ordered_at_source'] ?? null,
+            'medication_label' => $payload['medication_label'] ?? null,
+            'dosage_form' => $payload['dosage_form'] ?? null,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
@@ -385,6 +409,12 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'result_status' => $payload['result_status'] ?? null,
             'result_stage' => $payload['result_stage'] ?? null,
             'abnormal_flag' => $payload['abnormal_flag'] ?? null,
+            'queue_state' => $payload['queue_state'] ?? null,
+            'source_verification_key' => $payload['source_verification_key'] ?? null,
+            'removal_reason' => $payload['removal_reason'] ?? null,
+            'source_dispense_key' => $payload['source_dispense_key'] ?? null,
+            'dispense_channel' => $payload['dispense_channel'] ?? null,
+            'order_change' => $payload['order_change'] ?? null,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
