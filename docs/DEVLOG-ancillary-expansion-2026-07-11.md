@@ -1579,3 +1579,28 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-2 completes 41 of 60 implementation tasks. X-3 is next and will ingest ADC vend/return/waste/override and station signals onto the same projector seam.
+
+## 2026-07-13 — X-3 Ingest ADC Transactions and Station-Level Operational Signals
+
+### Outcome
+
+Brought automated dispensing cabinets onto the spine through a versioned, vendor-neutral ADC transaction JSON envelope (v1, message family `RX_ADC`) documented field-by-field in `PharmacyAdcTransactionNormalizer`. Pyxis and Omnicell field mapping is confined to the adapter edge; the envelope carries the vendor transaction identity (the source-scoped natural key), one of the eight X-1 transaction types, an offset-explicit timestamp, a station identity object with its unit mapping, an optional medication object, and an OPTIONAL explicit order link. Unsupported versions, types, quantities, stockout states, and missing station/discrepancy identity all fail closed with precise reason codes under the same governed source-profile boundary as X-2 — the source must authorize both the `RX_ADC` family and the `rx` department.
+
+The routing split is the defensible piece. An order-linked vend travels the existing milestone path: `RX_DISPENSED` on the linked order, an `rx_dispenses` row on the `adc` channel carrying its resolved station, and the station transaction alongside — one event, both ledgers, full provenance. Linked returns and wastes map to the `RX_RETURNED`/`RX_WASTED` catalog milestones as reverse-logistics satellite facts that never advance or regress the governed order status. Everything else — unlinked vends and overrides, refills, discrepancy open/resolve, stockouts — becomes a dedicated `ancillary.pharmacy.adc_transaction` canonical event projected by a new `AdcStationEventProjectionHandler` onto the station registry and transaction ledger only: no ancillary order, no milestone, no SLA clock, exactly the §7.4 "station/unit analytics only" contract. An explicit order reference on a station-scope event links only when it matches exactly one medication order; zero or multiple candidates record `unmatched`/`ambiguous` and attachment is never guessed.
+
+`AdcTransactionProjector` creates/updates `prod.adc_stations` registry rows idempotently from the envelope station identity; an unresolvable or ambiguous unit dead-letters (`unmapped_station_unit`/`ambiguous_station_unit`) instead of being silently coerced. Stockout events set and clear per-medication station-level state (with the `json_encode([])` jsonb trap handled by dropping the empty key). Terminology follows the X-2 rule exactly: formulary-resolved codes adopt the controlled flag, and a missing mapping produces the explicit `unmapped_local` flag with null codes — never a failure. Duplicate vendor transaction identity is idempotent under replay: exact duplicates short-circuit and a re-sent identity with a moved timestamp captures a `replay_conflict` on the single retained row. `AdcStationSignalService` provides the station/unit rollup seams (counts by type with controlled subtotals, open-discrepancy pairing, active stockouts) for X-10/X-11 to consume.
+
+The §13 boundary is structural: envelope v1 defines no user, actor, staff, witness, or badge field and no risk, score, or rank field; vendor user attribution that leaks past the adapter edge never crosses the canonical boundary because payloads are built exclusively from documented fields; and the safety test asserts the schema columns, the documented envelope key list, canonical payloads, and projected rows are all free of any individual or risk dimension.
+
+### Verification
+
+```text
+Laravel Pint over 9 dirty X-3 files: PASS
+PHP syntax checks over all X-3 normalizer/mapper/handler/projector/services/tests: PASS
+Focused AdcTransactionIngestTest: 8 tests, 105 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 231 tests, 3,590 assertions, PASS
+Pharmacy filter regression (--filter=Pharmacy): 23 tests, 271 assertions, PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-3 completes 42 of 60 implementation tasks. X-4 is next and will ingest warehouse/BCMA administration batches with as-of freshness.

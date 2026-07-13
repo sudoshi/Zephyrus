@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-2 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-3 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 41 of 60 tasks complete; 19 remain |
+| Progress | 42 of 60 tasks complete; 18 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1935,25 +1935,30 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused X-2 verification passes 7 tests and 130 assertions; the complete ancillary regression passes 223 tests and 3,484 assertions and the Pharmacy filter passes 23 tests and 271 assertions.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-2.
 
-#### [ ] X-3 — Ingest ADC transactions and station-level operational signals
+#### [x] X-3 — Ingest ADC transactions and station-level operational signals
 
 **Depends on:** X-1, P0-6
 **Primary files:** ADC normalizer/mapper; vendor mapping documentation; fixtures
 
 **Work:**
 
-- Define a canonical ADC transaction envelope for vend, refill, return, waste, override, discrepancy, and stockout with source/station/unit/time and optional order link.
-- Map linked vends to RX_DISPENSED and persist all supported transactions for station/unit rollups.
-- Keep unlinked overrides at station/unit operational level.
-- Add terminology and station mapping with dead-letter/data-quality handling.
-- Never generate user-level risk features, scores, ranks, or labels.
+- [x] Define envelope version 1 of the vendor-neutral ADC transaction JSON contract (message family `RX_ADC`, documented field-by-field in `PharmacyAdcTransactionNormalizer`): required envelope_version/transaction_id/transaction_type/occurred_at plus a station identity object (station_key + unit mapping), an optional medication object (required for vend/refill/return/waste/override), an OPTIONAL explicit order-link object, quantity, controlled flag, discrepancy pairing key, and stockout state; Pyxis/Omnicell field mapping is explicitly confined to the adapter edge and unsupported envelope versions, transaction types, station types, quantities, and stockout states fail closed with precise dead-letter reason codes.
+- [x] Normalize under the same governed source-profile authorization as X-2: the source must authorize the `RX_ADC` family AND the `rx` department, with unauthorized family or department scope failing closed as `source_message_mismatch` to the dead-letter ledger.
+- [x] Map ORDER-LINKED vends to `RX_DISPENSED` on the linked order through the shared milestone path (dispense channel `adc`, `prod.rx_dispenses` row carrying its resolved `adc_station_id`), and persist EVERY supported transaction as a `prod.adc_transactions` row for station/unit rollups via `AdcTransactionProjector`; linked returns/wastes map to the `RX_RETURNED`/`RX_WASTED` catalog milestones as satellite facts that never advance or regress the governed order status.
+- [x] Keep unlinked overrides and all station-scope transactions (refill, discrepancy open/resolve, stockout, unlinked vend/return/waste) at station/unit operational level through a dedicated `ancillary.pharmacy.adc_transaction` canonical event and `AdcStationEventProjectionHandler` — no ancillary order, no milestone, no SLA clock; discrepancy open/resolve carry `RX_DISCREPANCY_OPEN`/`RX_DISCREPANCY_RESOLVED` as station-analytics event codes only and link an order exclusively when the source explicitly links it; an explicit link that matches zero or 2+ medication orders records `unmatched`/`ambiguous` — attachment is never guessed.
+- [x] Create/update `prod.adc_stations` registry rows idempotently from the envelope station identity plus unit mapping (label/type/profile/controlled-capable refresh); an unresolvable or ambiguous unit dead-letters as `unmapped_station_unit`/`ambiguous_station_unit` instead of silent coercion, and stockout events set/clear the per-medication station-level `open_stockouts` state consumed by `AdcStationSignalService::activeStockouts`.
+- [x] Resolve NDC/local medication codes against the governed formulary with the exact X-2 semantics: a missing mapping produces the explicit `unmapped_local` flag with null RxNorm/NDC on the transaction metadata — never a dead letter — and the formulary wins the controlled flag when the code maps.
+- [x] Add station/unit rollup query seams in `AdcStationSignalService` (per-station and per-unit counts by transaction type with controlled subtotals, open-discrepancy anti-join rollup, active stockout map) for the X-10/X-11 pages to consume.
+- [x] Reject/absorb duplicate vendor transaction identity: the source-scoped `transaction_id` natural key short-circuits exact replays, and a re-sent identity with a moved timestamp captures a `replay_conflict` on the single retained row instead of creating a second transaction, dispense, or milestone.
+- [x] Never generate user-level risk features, scores, ranks, or labels: envelope v1 structurally defines no user/actor/staff/witness/badge field, vendor user attribution that leaks past the adapter edge never crosses the canonical boundary, and no aggregate carries an individual dimension.
 
 **Acceptance:**
 
-- Linked vend creates an order milestone; unlinked override creates only an operational station transaction.
-- Stockout, override, refill, waste, and discrepancy rollups are tested.
-- API schemas and tests prove no individual risk score exists.
-- Duplicate vendor transaction identity is rejected/idempotent.
+- [x] A linked vend creates the `RX_DISPENSED` order milestone plus an `rx_dispenses` row (channel `adc`, station attached) plus the station transaction with provenance; an unlinked override creates only an operational station transaction with no milestone, no ancillary order, and no order link.
+- [x] Stockout, override, refill, waste, and discrepancy rollups are tested through station/unit aggregate queries, including open-discrepancy pairing by discrepancy key and per-medication stockout set/clear.
+- [x] Schema, envelope, and projection tests prove no individual risk score or user/actor dimension exists: `prod.adc_transactions`/`prod.adc_stations` columns, the documented envelope key list, canonical event payloads, and projected rows are all asserted free of user/actor/staff/witness/risk/score/rank/diversion fields.
+- [x] Duplicate vendor transaction identity is rejected/idempotent under replay: exact duplicates short-circuit and identity replays with changed payloads retain one row with conflict capture; focused X-3 verification passes 8 tests and 105 assertions, the complete ancillary regression passes 231 tests and 3,590 assertions, and the Pharmacy filter passes 23 tests and 271 assertions.
+- [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-3.
 
 #### [ ] X-4 — Implement warehouse/BCMA administration batch ingestion and freshness
 

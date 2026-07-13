@@ -23,10 +23,54 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             if (! is_array($data)) {
                 throw new InvalidArgumentException('Ancillary normalized order group must be an object.');
             }
-            $events[] = $this->mapOne($payload, $data, $index);
+            $events[] = ($data['adc_station_scope'] ?? false) === true
+                ? $this->mapStationScope($payload, $data, $index)
+                : $this->mapOne($payload, $data, $index);
         }
 
         return $events;
+    }
+
+    /**
+     * Station/unit-scoped ADC operational events carry no milestone and no
+     * ancillary order; they project onto the station registry and the
+     * adc_transactions rollup ledger only.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function mapStationScope(NormalizedPayload $payload, array $data, int $index): CanonicalOperationalEvent
+    {
+        if ($this->required($data, 'department') !== 'rx') {
+            throw new InvalidArgumentException('ADC station-scope events belong to the pharmacy department.');
+        }
+        $transactionKey = $this->required($data, 'source_transaction_key');
+        $transactionType = $this->required($data, 'transaction_type');
+        $stationKey = $this->required($data, 'station_key');
+        $eventType = PharmacyAdcTransactionNormalizer::STATION_EVENT_TYPE;
+
+        $safe = Arr::only($data, [
+            'department', 'adc_station_scope', 'source_transaction_key', 'transaction_type',
+            'rx_event_code', 'station_key', 'station_unit', 'station_label', 'station_type',
+            'station_is_profiled', 'station_controlled_capable', 'local_code', 'ndc_code',
+            'medication_label', 'quantity', 'is_controlled', 'discrepancy_key', 'stockout_state',
+            'linked_order_key', 'demo_owner', 'source_timestamp_valid',
+        ]);
+
+        return new CanonicalOperationalEvent(
+            eventId: (string) Str::uuid(),
+            eventType: $eventType,
+            entityType: 'adc_station',
+            entityRef: $stationKey,
+            payload: $safe,
+            occurredAt: CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt),
+            idempotencyKey: "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$transactionType}:{$transactionKey}",
+            correlationId: $payload->externalId,
+            sequenceKey: $stationKey,
+            metadata: [
+                ...$payload->metadata,
+                'source_message_type' => $payload->messageType,
+            ],
+        );
     }
 
     /** @param array<string, mixed> $data */
@@ -71,6 +115,9 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'modified_at', 'discontinued_at', 'queue_state', 'queue_ref',
             'source_verification_key', 'verifier_ref', 'queued_at', 'removed_at', 'removal_reason',
             'source_dispense_key', 'dispense_channel', 'dispensed_at', 'fhir_backfill',
+            'source_transaction_key', 'transaction_type', 'station_key', 'station_unit',
+            'station_label', 'station_type', 'station_is_profiled', 'station_controlled_capable',
+            'quantity', 'is_controlled',
         ]);
 
         return new CanonicalOperationalEvent(

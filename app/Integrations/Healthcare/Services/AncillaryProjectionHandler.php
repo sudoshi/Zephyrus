@@ -36,6 +36,7 @@ class AncillaryProjectionHandler implements ProjectionHandler
         private readonly \App\Services\Lab\LabResultProjector $labResultProjector,
         private readonly \App\Services\Lab\LabCriticalValueProjector $labCriticalValueProjector,
         private readonly \App\Services\Pharmacy\PharmacyOrderProjector $pharmacyOrderProjector,
+        private readonly \App\Services\Pharmacy\AdcTransactionProjector $adcTransactionProjector,
     ) {}
 
     public function key(): string
@@ -246,7 +247,12 @@ class AncillaryProjectionHandler implements ProjectionHandler
             }
             if ($department === 'rx'
                 && in_array($milestoneCode, \App\Services\Pharmacy\PharmacyOrderProjector::MILESTONES, true)) {
-                $projection = $this->pharmacyOrderProjector->project($order->fresh(), $event, (int) $record->source_id);
+                // Order-linked ADC events resolve their station registry row
+                // before projection so the dispense satellite can carry it.
+                $adcStation = isset($event->payload['source_transaction_key'])
+                    ? $this->adcTransactionProjector->resolveStation($event, (int) $record->source_id)
+                    : null;
+                $projection = $this->pharmacyOrderProjector->project($order->fresh(), $event, (int) $record->source_id, $adcStation?->adc_station_id);
                 $medication = $projection['order'];
                 ProvenanceRecord::query()->firstOrCreate(
                     ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_orders', 'target_pk' => (string) $medication->rx_order_id],
@@ -262,6 +268,13 @@ class AncillaryProjectionHandler implements ProjectionHandler
                     ProvenanceRecord::query()->firstOrCreate(
                         ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'rx_dispenses', 'target_pk' => (string) $dispense->rx_dispense_id],
                         ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'sourceDispenseKey' => $dispense->source_dispense_key]],
+                    );
+                }
+                if ($adcStation !== null) {
+                    $adcTransaction = $this->adcTransactionProjector->project($event, (int) $record->source_id, $adcStation, $medication);
+                    ProvenanceRecord::query()->firstOrCreate(
+                        ['canonical_event_id' => $record->canonical_event_id, 'target_schema' => 'prod', 'target_table' => 'adc_transactions', 'target_pk' => (string) $adcTransaction->adc_transaction_id],
+                        ['source_id' => $record->source_id, 'inbound_message_id' => $record->inbound_message_id, 'lineage' => ['canonicalEventId' => $record->canonical_event_id, 'rxOrderId' => $medication->rx_order_id, 'adcStationId' => $adcStation->adc_station_id, 'sourceTransactionKey' => $adcTransaction->source_transaction_key]],
                     );
                 }
             }
@@ -415,6 +428,9 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'source_dispense_key' => $payload['source_dispense_key'] ?? null,
             'dispense_channel' => $payload['dispense_channel'] ?? null,
             'order_change' => $payload['order_change'] ?? null,
+            'source_transaction_key' => $payload['source_transaction_key'] ?? null,
+            'transaction_type' => $payload['transaction_type'] ?? null,
+            'station_key' => $payload['station_key'] ?? null,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 

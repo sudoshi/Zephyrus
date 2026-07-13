@@ -21,7 +21,7 @@ use InvalidArgumentException;
  */
 final class PharmacyOrderProjector
 {
-    public const MILESTONES = ['RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_DISPENSED', 'RX_DISCONTINUED'];
+    public const MILESTONES = ['RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_DISPENSED', 'RX_RETURNED', 'RX_WASTED', 'RX_DISCONTINUED'];
 
     private const UNSPECIFIED_LOCAL_CODE = 'UNSPECIFIED_LOCAL';
 
@@ -36,7 +36,7 @@ final class PharmacyOrderProjector
     private const VERIFICATION_STATE_RANK = ['queued' => 10, 'verified' => 20, 'removed' => 20, 'rejected' => 20];
 
     /** @return array{order: MedicationOrder, verifications: list<Verification>, dispenses: list<Dispense>} */
-    public function project(AncillaryOrder $order, CanonicalOperationalEvent $event, int $sourceId): array
+    public function project(AncillaryOrder $order, CanonicalOperationalEvent $event, int $sourceId, ?int $adcStationId = null): array
     {
         if ($order->department !== 'rx') {
             throw new InvalidArgumentException('Pharmacy projection requires a pharmacy ancillary order.');
@@ -58,7 +58,7 @@ final class PharmacyOrderProjector
         }
         $dispenses = [];
         if ($milestone === 'RX_DISPENSED' && isset($event->payload['source_dispense_key'])) {
-            $dispenses[] = $this->upsertDispense($order, $medication, $event, $sourceId);
+            $dispenses[] = $this->upsertDispense($order, $medication, $event, $sourceId, $adcStationId);
         }
 
         $this->advanceStatus($medication, $event, $milestone);
@@ -337,6 +337,7 @@ final class PharmacyOrderProjector
         MedicationOrder $medication,
         CanonicalOperationalEvent $event,
         int $sourceId,
+        ?int $adcStationId = null,
     ): Dispense {
         if (! $medication->exists) {
             $medication->save();
@@ -374,6 +375,7 @@ final class PharmacyOrderProjector
             'source_id' => $sourceId,
             'source_dispense_key' => $key,
             'dispense_channel' => $channel,
+            'adc_station_id' => $adcStationId,
             'status' => 'dispensed',
             'dispensed_at' => $dispensedAt,
             'demo_owner' => $order->demo_owner,
@@ -392,8 +394,14 @@ final class PharmacyOrderProjector
             'RX_QUEUE_IN' => 'queued',
             'RX_VERIFIED' => 'verified',
             'RX_DISPENSED' => 'dispensed',
+            // Returned/wasted are reverse-logistics facts on the satellite
+            // ledger; they never advance or regress the order status.
+            'RX_RETURNED', 'RX_WASTED' => null,
             'RX_DISCONTINUED' => isset($payload['cancelled_at']) ? 'cancelled' : 'discontinued',
         };
+        if ($target === null) {
+            return;
+        }
 
         if ($target === 'discontinued' && $medication->discontinued_at === null) {
             $medication->discontinued_at = CarbonImmutable::parse(
