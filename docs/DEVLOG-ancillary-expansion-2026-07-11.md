@@ -1389,3 +1389,43 @@ Browser semantics, exact one-item drill, privacy, zero document overflow, and ze
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, result action, writeback, or external system was accessed or activated. L-12 is the next dependency-ordered task and can implement the Laboratory TAT Study on top of the completed Flow, Specimen, Decision-Pending, Cockpit, and cross-domain readiness contracts.
+
+## 2026-07-12 — L-12 Laboratory TAT Study
+
+### Outcome
+
+Implemented the authenticated Laboratory TAT Study at `/analytics/lab-tat` with a matching private `/api/lab/tat` aggregate. `LabTatAnalyticsService` is the single bounded analytics authority for the clinical-Laboratory cohort, five governed clocks, breakdowns, AM readiness, automation, specimen quality, critical callbacks, barriers, reference evidence, source coverage, and privacy-safe assertion lineage. The page and API use one validated request contract and return the same aggregate.
+
+Five effective-dated, study-only definitions now govern order-to-collection, collection-to-receipt, receipt-to-result, result-to-verification, and order-to-verification in explicit phase sequence. Existing operational STAT, troponin, collection/receipt, callback, AP, and frozen-section policies remain unchanged. Definition scope remains population-only because it participates in Decision-Pending specificity selection; presentation metadata was not added to it. When a governed source definition does not express an unambiguous numeric unit, the Study displays its classification and provenance without inventing a target line.
+
+The primary clinical-Laboratory cohort is bounded to 90 days and 2,000 candidates. It excludes microbiology and explicitly historical study rows, selects current source assertions by the shared precedence contract, and publishes PostgreSQL-compatible median and P90 plus secondary mean. Its five-row waterfall separates collection, transport, analytic, post-analytic, and end-to-end time. The end-to-end clock is also broken down by governed test family, priority, patient class, and facility-time shift without changing population or denominator.
+
+The deterministic demo preserves seven valid order-to-verification intervals of 62, 75, 80, 115, 130, 30, and 45 minutes. These reconcile to median 75, P90 121, and mean 76.71. The AM wave now anchors to the most recent 03:00 facility-local boundary instead of a refresh-relative offset, so the six eligible draws consistently show 50.0% verified by 05:00 and 83.3% by 06:00, with one intentionally incomplete draw. `operational_window` is retained in safe projection metadata and propagated by every ancillary demo generator so current and historical analytical cohorts remain explicit.
+
+Auxiliary metrics stay on their own governed denominators. Auto-verification uses only the latest verified result version. Rejection and recollect rates use original specimens and child evidence without counting recollect children twice. Critical callback aggregates use persisted closed-loop timestamps and the existing callback definition. The barrier Pareto uses linked governed barrier reasons with SLA-definition fallback. Microbiology is reported as stage progression, AP as stage/frozen/sign-out distributions, and blood bank as readiness plus type-screen, crossmatch, and issue clocks; none is blended into the clinical-Laboratory headline.
+
+Every response declares the exact clock, population, cutoff, applied definition records and versions, freshness, degraded mode, coverage, missing milestone pairs, negative exclusions, invalid timestamps, assertion conflicts, truncation, and auxiliary invalid intervals. Stale, partial, missing, or invalid evidence is visibly degraded and cannot become a successful performance claim. The bounded lineage sample retains operational order and milestone UUIDs plus precedence evidence while excluding patient identity, specimen/accession identity, result identity, critical source keys, values, and narratives.
+
+The React Study uses the canonical Analytics shell, strict Zod schema, a five-minute TanStack Query refresh, and `navigationConfig.ts` as its only menu authority. It renders summary evidence, waterfall, daily trend, four breakdowns, AM readiness, automation, specimen quality, critical callbacks, barrier Pareto, separately labeled microbiology/AP/blood-bank cohorts, coverage, references, and lineage. Every visualization has a semantic figure label, text evidence, and an accessible table fallback. Analytics owns the route once across desktop, mobile, command palette, and active-route resolution; the Laboratory operations navigation does not duplicate it.
+
+During regression, adding target-unit metadata to an SLA definition's population scope correctly exposed a contract violation: `LabDecisionPendingService` treated the new key as a population selector and could no longer resolve `lab.stat_tat`. The metadata was removed, the definition matcher remained unchanged, and the complete Decision-Pending regression passed. An earlier broad attempt also overlapped PHPUnit from another worktree on the shared `zephyrus_test` database and produced migration/deadlock noise; it was discarded as invalid infrastructure evidence. The recorded complete ancillary run was clean and non-overlapping.
+
+### Verification
+
+```text
+Focused Laboratory TAT backend: 3 tests, 367 assertions, PASS
+Laboratory frontend and navigation: 7 files, 45 tests, PASS
+Deterministic desktop-light and filtered mobile-dark Chromium smoke: 2 tests, PASS
+Complete ancillary feature regression: 168 tests, 2,646 assertions, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over 13 dirty PHP files: PASS
+PHP syntax checks for the service, request, and controllers: PASS
+Desktop light, 1440x1000: semantic evidence tables, privacy, zero document overflow, zero console/page errors
+Mobile dark filtered view, 390x844: semantic evidence tables, historical labels, privacy, zero document overflow, zero console/page errors
+Bounded query parity at limits 2 and 100, authenticated page/API byte parity, validation, private cache headers, route ownership, and definition version evidence: PASS
+git diff --check: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, clinical result action, writeback, or external system was accessed or activated. L-13 is the next dependency-ordered task and can close the Laboratory route/API/navigation/policy ownership ledger on the now-complete L-12 Study surface.

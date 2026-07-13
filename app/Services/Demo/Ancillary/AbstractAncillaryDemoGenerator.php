@@ -219,6 +219,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'scanner_key' => $scenario['metadata']['scanner_key'] ?? null,
             'demo_context' => $scenario['metadata']['context'] ?? null,
             'demo_shift' => $scenario['metadata']['shift'] ?? null,
+            'operational_window' => $scenario['metadata']['operational_window'] ?? null,
             'or_case_id' => $scenario['metadata']['or_case_id'] ?? null,
             ...$this->radiologyEventPayload($scenario, $event, $occurredAt, $identity),
             ...$this->laboratoryEventPayload($scenario, $event, $occurredAt, $context),

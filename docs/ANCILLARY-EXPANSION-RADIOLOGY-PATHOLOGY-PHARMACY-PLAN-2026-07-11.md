@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-11 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-12 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 36 of 60 tasks complete; 24 remain |
+| Progress | 37 of 60 tasks complete; 23 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1701,24 +1701,65 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Durable Chromium smoke passes desktop light at 1440x1000 and mobile dark at 390x844 across RTDC, ED Treatment, and the exact Decision-Pending drill with semantic headings/columns, both axes visible, one exact result, zero document overflow, zero forbidden browser keys, and zero console/page errors.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, result action, writeback, or external system is activated by L-11.
 
-#### [ ] L-12 — Implement Lab TAT Study at /analytics/lab-tat
+#### [x] L-12 — Implement Lab TAT Study at /analytics/lab-tat
 
 **Depends on:** L-5 through L-10
-**Primary files:** LabTatAnalyticsService; Analytics page/API/navigation
+**Primary files:** LabTatAnalyticsService; LabTatAnalyticsRequest; Analytics/LabTat page and chart components; Laboratory schema/query hook; web/API routes; navigation; demo/reference seeders; feature, component, and browser tests
 
 **Work:**
 
-- Provide median/P90 by test, priority, patient class, and shift.
-- Render collect/transport/analytic/post-analytic waterfall, AM readiness curve, auto-verification trend, rejection/recollect rate, critical callback performance, and barrier Pareto.
-- Separate clinical lab, microbiology, AP, and blood bank rather than mixing incomparable clocks.
-- Include benchmark registry references, data coverage, and invalid interval counts.
+- [x] Add five effective-dated, study-only Laboratory definitions in dependency order: order-to-collection, collection-to-receipt, receipt-to-result, result-to-verification, and order-to-verification.
+- [x] Tag every study definition with a governed phase and sequence; make order-to-verification the primary trend without activating a new operational threshold.
+- [x] Preserve the existing STAT, troponin, collection/receipt, critical-callback, AP, and frozen-section policies; do not repurpose a policy definition as a Study segment.
+- [x] Keep SLA `scope` population-only so Decision-Pending specificity matching remains correct; omit ambiguous target-unit claims rather than adding presentation metadata to population scope.
+- [x] Build one bounded `LabTatAnalyticsService` over current selected assertions and effective definitions; query candidates before assertion hydration and keep query count constant across row limits.
+- [x] Bound the inclusive date range to 90 days and candidate rows to 2,000; validate date order, priority, clinical test family, patient class, shift, and limit on both page and API requests.
+- [x] Exclude microbiology and `historical_study_only` orders from the clinical-Laboratory percentile cohort.
+- [x] Calculate PostgreSQL-compatible median and P90 plus secondary mean for the primary order-to-verification clock and every waterfall segment.
+- [x] Publish order-to-verification breakdowns by governed test family, priority, patient class, and facility-time shift with the same clock, cohort, cutoff, and reference context.
+- [x] Define facility-time shifts as weekday day 07:00–14:59, evening 15:00–18:59, night 19:00–06:59, and weekend all day.
+- [x] Calculate a local-hour AM readiness curve for the explicitly tagged AM draw wave and timed inpatient orders, using the selected `LAB_VERIFIED` assertion as readiness evidence.
+- [x] Correct the rolling demo so its AM wave is always generated from 03:00 local time, including refreshes late in the day or before 03:00, while preserving the established segment distributions and one incomplete draw.
+- [x] Calculate the daily auto-verification trend from the latest verified result version only; exclude preliminary/unverified, microbiology, AP, and blood-bank rows from its denominator.
+- [x] Calculate rejection and recollect rates from original specimens, use child/recollect evidence for rework, and avoid double-counting recollect children in the denominator.
+- [x] Calculate critical callback count, open count, state mix, median, P90, mean, and invalid intervals from persisted closed-loop timestamps while displaying the governed `LAB_VERIFIED → LAB_CRITICAL_ACKED` reference definition.
+- [x] Calculate the persisted Laboratory breach Pareto from the governed barrier reason when linked and the SLA definition when no barrier is linked.
+- [x] Report microbiology as stage progression with explicit current/historical counts and an `outside the live operational window` label; never blend it into short-cycle TAT.
+- [x] Report AP stage mix, receipt-to-sign-out distribution, and frozen-start-to-result distribution as a separate cohort with explicit current/historical counts and governed AP/frozen definitions.
+- [x] Report blood-bank readiness state mix plus separate order-to-type-screen, order-to-crossmatch, and order-to-issue distributions; never blend them into clinical-Laboratory or AP clocks.
+- [x] Preserve `operational_window` in safe projection metadata and propagate it from every deterministic ancillary demo department so historical microbiology and AP rows retain their governed window classification.
+- [x] Return every effective Laboratory/pathology SLA reference with definition UUID, metric key, source reference ID, classification, source label, and only unambiguous numeric policy lines.
+- [x] Distinguish local policy, established reference, site-policy-required, no-numeric-benchmark, and other governed-reference classifications; a benchmark never silently becomes an SLA.
+- [x] Return applied SLA definition records/versions, source cutoff, freshness status, degraded mode, coverage, missing pairs, negative exclusions, invalid timestamps, assertion conflicts, truncation, and auxiliary invalid intervals.
+- [x] Degrade partial, invalid, missing, truncated, or stale evidence; never render stale or partial evidence as a successful performance claim.
+- [x] Return a bounded selected-assertion lineage sample with operational order/milestone UUIDs and source precedence evidence, while excluding patient, specimen/accession, result, source-result, critical-key, value, and narrative content.
+- [x] Add authenticated, throttled, private/no-cache `GET /api/lab/tat` and canonical Inertia `GET /analytics/lab-tat`; keep the Study read-only.
+- [x] Add the Laboratory TAT leaf to the existing Analytics-owned Ancillary Performance group only; do not add it to the Laboratory workspace navigation.
+- [x] Add a strict Zod response contract and TanStack Query hook that refetches the one aggregate every five minutes rather than running per-row timers.
+- [x] Render summary evidence, governed waterfall, daily trend, four breakdowns, AM curve, automation trend, specimen quality, critical callbacks, Pareto, separate cohorts, coverage, references, and lineage in the existing dual-theme Study shell.
+- [x] Give every chart a semantic figure label, an accessible table fallback, exact clock/population/cutoff evidence, text/icon state, tabular numbers, and healthcare design tokens.
+- [x] Add fixed-demo backend coverage for percentile parity, segment calculations, AM readiness, automation, quality, callbacks, barriers, cohort separation, references, privacy, freshness, empty/limit behavior, constant query shape, validation, authentication, page/API parity, cache headers, and route ownership.
+- [x] Add component/schema/navigation coverage for all charts, filters, historical warnings, reference evidence, coverage alert, lineage, workspace link, privacy, and unique Analytics ownership.
+- [x] Add durable Chromium smoke for desktop light and filtered mobile dark views, semantic evidence tables, historical labels, privacy, zero document overflow, and zero console/page errors.
 
 **Acceptance:**
 
-- Percentile, AM-by-hour readiness, and segment calculations pass fixed-fixture tests.
-- Every chart names its clock and population.
-- Historical microbiology/AP data is labeled outside the live operational window.
-- Analytics owns the route uniquely.
+- [x] The deterministic demo's seven valid order-to-verification intervals reconcile to median 75, P90 121, and mean 76.71 using the same linear percentile result as PostgreSQL `percentile_cont`.
+- [x] The waterfall publishes exactly collection, transport, analytic, post-analytic, and end-to-end phases in governed sequence; every row has a definition UUID/version, start/stop codes, median/P90, cutoff, reference label, and exclusion counts.
+- [x] The six-order AM cohort is 50.0% verified by 05:00 and 83.3% by 06:00, then remains 83.3% because one draw intentionally stays incomplete.
+- [x] Test-family, priority, patient-class, and shift breakdowns all reconcile to the same seven primary intervals and retain the primary clock evidence.
+- [x] The latest-result automation cohort contains seven verified results and two auto-verified results; specimen quality reconciles to 13 original specimens, two rejections, two recollects, and 15.4% for each rate.
+- [x] Critical callbacks reconcile to two loops, one open, one completed, a 12-minute completed median/P90, and zero invalid callback intervals.
+- [x] Microbiology exposes one historical progression with preliminary, organism-identification, susceptibility, and final stages; AP exposes one explicitly historical sign-out among six cases; neither contributes to the clinical-Laboratory headline.
+- [x] Blood bank exposes six requests with separate 60-minute type-screen median, 125-minute crossmatch median, and 230-minute issue median.
+- [x] The STAT reference is labeled local policy with 45/60-minute warning/breach lines; the collection-to-receipt reference is established/reference-only and supplies no invented numeric line.
+- [x] The serialized payload and rendered browser contain no patient reference, specimen UUID/source key, result UUID/source key, critical source key, clinical value, or narrative.
+- [x] The service executes the same bounded query count for limit two and limit 100, validates malformed/out-of-policy filters, requires API authentication, and returns byte-equivalent page/API contracts with private no-cache headers.
+- [x] Analytics owns `/analytics/lab-tat` uniquely across desktop menu, mobile drawer, command palette, and active-route resolution; the Laboratory workspace does not duplicate the Study leaf.
+- [x] Focused Laboratory TAT verification passes 3 tests and 367 assertions; Laboratory frontend/navigation verification passes 7 files and 45 tests; deterministic browser smoke passes 2 tests.
+- [x] TypeScript, production build, UI canon, PHP syntax, and targeted Laravel Pint pass; existing Browserslist, large-chunk, and 104 arbitrary-line-height warnings remain non-blocking and unchanged.
+- [x] The clean complete ancillary feature regression passes after L-12 at 168 tests and 2,646 assertions, and `git diff --check` confirms the final documented tranche.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, clinical result action, writeback, or external system is activated by L-12.
 
 #### [ ] L-13 — Register Lab routes, APIs, navigation, policies, and ownership tests
 

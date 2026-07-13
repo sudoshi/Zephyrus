@@ -59,6 +59,14 @@ class LabDemoGeneratorTest extends TestCase
         $this->assertSame(1, $departments['blood_bank']['activeMtp']);
 
         $this->assertSame(6, DB::table('prod.ancillary_orders')->where('demo_owner', $owner)->whereRaw("metadata->>'demo_shift' = 'am_draw'")->count());
+        $this->assertSame(6, DB::table('prod.ancillary_orders')->where('demo_owner', $owner)
+            ->whereRaw("metadata->>'demo_shift' = 'am_draw'")
+            ->whereRaw('EXTRACT(HOUR FROM ordered_at AT TIME ZONE ?) = 3', [config('app.timezone')])
+            ->count());
+        $this->assertSame(1, DB::table('prod.ancillary_orders')->where('demo_owner', $owner)->where('department', 'lab')
+            ->whereRaw("metadata->>'operational_window' = 'historical_study_only'")->count());
+        $this->assertSame(1, DB::table('prod.ancillary_orders')->where('demo_owner', $owner)->where('department', 'pathology')
+            ->whereRaw("metadata->>'operational_window' = 'historical_study_only'")->count());
         $this->assertSame(2, Specimen::query()->where('demo_owner', $owner)->where('status', 'recollect_requested')->count());
         $this->assertSame(2, Specimen::query()->where('demo_owner', $owner)->whereNotNull('parent_specimen_id')->count());
         $this->assertSame(1, Specimen::query()->where('demo_owner', $owner)->where('status', 'in_transit')->count());

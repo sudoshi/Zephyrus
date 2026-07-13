@@ -292,6 +292,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.la
     Route::get('/pending-decisions', [LabFlowBoardController::class, 'pendingDecisions'])->name('pending-decisions');
     Route::get('/blood-bank', [LabFlowBoardController::class, 'bloodBank'])->name('blood-bank');
     Route::get('/anatomic-path', [LabFlowBoardController::class, 'anatomicPathology'])->name('anatomic-path');
+    Route::get('/tat', [LabFlowBoardController::class, 'tat'])->name('tat');
     Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

@@ -225,6 +225,15 @@ describe('navigationConfig', () => {
     }
   });
 
+  it('owns the Laboratory TAT Study route only from Analytics', () => {
+    const href = '/analytics/lab-tat';
+    const occurrences = NAVIGATION.flatMap((domain) => domain.groups.flatMap((group) => group.items.filter((item) => item.href === href).map(() => domain.key)));
+
+    expect(occurrences).toEqual(['analytics']);
+    expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
+    expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).not.toContain(href);
+  });
+
   it('owns every Radiology workspace leaf only from the Radiology domain', () => {
     const hrefs = ['/radiology', '/radiology/worklist', '/radiology/modality', '/radiology/reads'];
     const radiology = NAVIGATION.find((domain) => domain.key === 'radiology')!;

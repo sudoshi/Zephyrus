@@ -8,6 +8,7 @@ use App\Http\Requests\Lab\BloodBankReadinessRequest;
 use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
+use App\Http\Requests\Lab\LabTatAnalyticsRequest;
 use App\Http\Requests\Lab\StoreLabBarrierRequest;
 use App\Services\Lab\AnatomicPathologyService;
 use App\Services\Lab\BloodBankReadinessService;
@@ -15,6 +16,7 @@ use App\Services\Lab\LabBarrierService;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
 use App\Services\Lab\LabSpecimenService;
+use App\Services\Lab\LabTatAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
@@ -55,6 +57,12 @@ final class LabFlowBoardController extends Controller
     public function anatomicPathology(AnatomicPathologyRequest $request, AnatomicPathologyService $pathology): JsonResponse
     {
         return response()->json($pathology->build($request->validated()))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function tat(LabTatAnalyticsRequest $request, LabTatAnalyticsService $analytics): JsonResponse
+    {
+        return response()->json($analytics->build($request->validated()))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
+use App\Http\Controllers\Analytics\LabTatController;
 use App\Http\Controllers\Analytics\RadiologyTatController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
@@ -167,6 +168,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::get('/analytics/room-running', [Analytics\RoomRunningController::class, 'index'])->name('analytics.room-running');
         Route::get('/analytics/turnover-times', [Analytics\TurnoverTimesController::class, 'index'])->name('analytics.turnover-times');
         Route::get('/analytics/radiology-tat', RadiologyTatController::class)->name('analytics.radiology-tat');
+        Route::get('/analytics/lab-tat', LabTatController::class)->name('analytics.lab-tat');
         Route::get('/analytics/ir-utilization', Analytics\IrSuiteController::class)->name('analytics.ir-utilization');
 
         // Operations Routes

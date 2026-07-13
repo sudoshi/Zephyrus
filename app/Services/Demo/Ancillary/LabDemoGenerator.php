@@ -6,6 +6,7 @@ use App\Models\Lab\CriticalValue;
 use App\Models\Lab\Result;
 use App\Models\Lab\Specimen;
 use App\Services\Demo\DemoClock;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final class LabDemoGenerator extends AbstractAncillaryDemoGenerator
@@ -29,43 +30,45 @@ final class LabDemoGenerator extends AbstractAncillaryDemoGenerator
             ->orderBy('scheduled_start_time')
             ->orderBy('case_id')
             ->value('case_id');
-        $downtimeStarted = $clock->anchor()->subMinutes(500)->toIso8601String();
-        $downtimeRestore = $clock->anchor()->subMinutes(405)->toIso8601String();
+        $amAnchor = $this->amDrawAnchor($clock);
+        $am = fn (int $orderOffset, int $elapsed = 0): int => $this->minutesAgo($clock, $amAnchor->addMinutes($orderOffset + $elapsed));
+        $downtimeStarted = $amAnchor->addMinutes(40)->toIso8601String();
+        $downtimeRestore = $amAnchor->addMinutes(135)->toIso8601String();
 
         return [
-            $this->scenario($clock, 1, 550, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 550), $this->e('LAB_COLLECTED', 535),
-                $this->e('LAB_IN_TRANSIT', 530), $this->e('LAB_RECEIVED', 520),
-                $this->e('LAB_ANALYSIS_STARTED', 510),
-                $this->e('LAB_RESULTED', 488, $this->result('BMP-01', '1', 'final', 'BMP', ['auto_verified' => true, 'verified_at' => $clock->anchor()->subMinutes(488)->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
-                $this->e('LAB_VERIFIED', 488, $this->result('BMP-01', '1', 'final', 'BMP', ['auto_verified' => true, 'verified_at' => $clock->anchor()->subMinutes(488)->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
+            $this->scenario($clock, 1, $am(0), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(0)), $this->e('LAB_COLLECTED', $am(0, 15)),
+                $this->e('LAB_IN_TRANSIT', $am(0, 20)), $this->e('LAB_RECEIVED', $am(0, 30)),
+                $this->e('LAB_ANALYSIS_STARTED', $am(0, 40)),
+                $this->e('LAB_RESULTED', $am(0, 62), $this->result('BMP-01', '1', 'final', 'BMP', ['auto_verified' => true, 'verified_at' => $clock->anchor()->subMinutes($am(0, 62))->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
+                $this->e('LAB_VERIFIED', $am(0, 62), $this->result('BMP-01', '1', 'final', 'BMP', ['auto_verified' => true, 'verified_at' => $clock->anchor()->subMinutes($am(0, 62))->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
             ], $this->meta($date, 'AM-01', 'metabolic_panel', 'BMP', 'none', ['shift' => 'am_draw'])),
-            $this->scenario($clock, 2, 545, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 545), $this->e('LAB_COLLECTED', 530),
-                $this->e('LAB_IN_TRANSIT', 522), $this->e('LAB_RECEIVED', 512),
-                $this->e('LAB_ANALYSIS_STARTED', 500),
-                $this->e('LAB_RESULTED', 474, $this->result('CBC-02', '1', 'final', 'CBC', ['analyzer_ref' => 'DEMO-HEME-1'])),
-                $this->e('LAB_VERIFIED', 470, $this->result('CBC-02', '1', 'final', 'CBC', ['verified_at' => $clock->anchor()->subMinutes(470)->toIso8601String(), 'analyzer_ref' => 'DEMO-HEME-1'])),
+            $this->scenario($clock, 2, $am(5), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(5)), $this->e('LAB_COLLECTED', $am(5, 15)),
+                $this->e('LAB_IN_TRANSIT', $am(5, 23)), $this->e('LAB_RECEIVED', $am(5, 33)),
+                $this->e('LAB_ANALYSIS_STARTED', $am(5, 45)),
+                $this->e('LAB_RESULTED', $am(5, 71), $this->result('CBC-02', '1', 'final', 'CBC', ['analyzer_ref' => 'DEMO-HEME-1'])),
+                $this->e('LAB_VERIFIED', $am(5, 75), $this->result('CBC-02', '1', 'final', 'CBC', ['verified_at' => $clock->anchor()->subMinutes($am(5, 75))->toIso8601String(), 'analyzer_ref' => 'DEMO-HEME-1'])),
             ], $this->meta($date, 'AM-02', 'blood_count', 'CBC', 'none', ['shift' => 'am_draw'])),
-            $this->scenario($clock, 3, 540, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 540), $this->e('LAB_COLLECTED', 525),
-                $this->e('LAB_IN_TRANSIT', 520), $this->e('LAB_RECEIVED', 505),
-                $this->e('LAB_RESULTED', 465, $this->result('BMP-03', '1', 'final', 'BMP', ['analyzer_ref' => 'DEMO-CHEM-1'])),
-                $this->e('LAB_VERIFIED', 460, $this->result('BMP-03', '1', 'final', 'BMP', ['verified_at' => $clock->anchor()->subMinutes(460)->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
+            $this->scenario($clock, 3, $am(10), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(10)), $this->e('LAB_COLLECTED', $am(10, 15)),
+                $this->e('LAB_IN_TRANSIT', $am(10, 20)), $this->e('LAB_RECEIVED', $am(10, 35)),
+                $this->e('LAB_RESULTED', $am(10, 75), $this->result('BMP-03', '1', 'final', 'BMP', ['analyzer_ref' => 'DEMO-CHEM-1'])),
+                $this->e('LAB_VERIFIED', $am(10, 80), $this->result('BMP-03', '1', 'final', 'BMP', ['verified_at' => $clock->anchor()->subMinutes($am(10, 80))->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-1'])),
             ], $this->meta($date, 'AM-03', 'metabolic_panel', 'BMP', 'none', ['shift' => 'am_draw'])),
-            $this->scenario($clock, 4, 535, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 535),
+            $this->scenario($clock, 4, $am(15), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(15)),
             ], $this->meta($date, 'AM-04', 'blood_count', 'CBC', 'none', ['shift' => 'am_draw', 'queue_state' => 'collection_pending'])),
-            $this->scenario($clock, 5, 530, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 530), $this->e('LAB_COLLECTED', 515),
-                $this->e('LAB_IN_TRANSIT', 500), $this->e('LAB_RECEIVED', 485),
-                $this->e('LAB_ANALYSIS_STARTED', 450),
-                $this->e('LAB_RESULTED', 420, $this->result('BMP-05', '1', 'final', 'BMP', [
+            $this->scenario($clock, 5, $am(20), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(20)), $this->e('LAB_COLLECTED', $am(20, 15)),
+                $this->e('LAB_IN_TRANSIT', $am(20, 30)), $this->e('LAB_RECEIVED', $am(20, 45)),
+                $this->e('LAB_ANALYSIS_STARTED', $am(20, 80)),
+                $this->e('LAB_RESULTED', $am(20, 110), $this->result('BMP-05', '1', 'final', 'BMP', [
                     'analyzer_ref' => 'DEMO-CHEM-2', 'analyzer_operational_state' => 'rerouted_during_downtime',
                     'analyzer_downtime_started_at' => $downtimeStarted, 'analyzer_expected_restore_at' => $downtimeRestore,
                 ])),
-                $this->e('LAB_VERIFIED', 415, $this->result('BMP-05', '1', 'final', 'BMP', [
-                    'verified_at' => $clock->anchor()->subMinutes(415)->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-2',
+                $this->e('LAB_VERIFIED', $am(20, 115), $this->result('BMP-05', '1', 'final', 'BMP', [
+                    'verified_at' => $clock->anchor()->subMinutes($am(20, 115))->toIso8601String(), 'analyzer_ref' => 'DEMO-CHEM-2',
                     'analyzer_operational_state' => 'rerouted_during_downtime',
                     'analyzer_downtime_started_at' => $downtimeStarted, 'analyzer_expected_restore_at' => $downtimeRestore,
                 ])),
@@ -73,15 +76,15 @@ final class LabDemoGenerator extends AbstractAncillaryDemoGenerator
                 'shift' => 'am_draw', 'analyzer_operational_state' => 'rerouted_during_downtime',
                 'analyzer_downtime_started_at' => $downtimeStarted, 'analyzer_expected_restore_at' => $downtimeRestore,
             ])),
-            $this->scenario($clock, 6, 525, 'timed', 'inpatient', [
-                $this->e('LAB_ORDERED', 525), $this->e('LAB_COLLECTED', 510),
-                $this->e('LAB_IN_TRANSIT', 505), $this->e('LAB_REJECTED', 480, ['rejection_reason_code' => 'CLOTTED']),
-                $this->e('LAB_RECOLLECT_ORDERED', 475, ['source_specimen_key' => "demo:{$date}:lab:AM-06-R", 'parent_source_specimen_key' => "demo:{$date}:lab:AM-06"]),
-                $this->e('LAB_COLLECTED', 455, ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
-                $this->e('LAB_IN_TRANSIT', 450, ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
-                $this->e('LAB_RECEIVED', 440, ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
-                $this->e('LAB_RESULTED', 400, [...$this->result('CBC-06', '1', 'final', 'CBC', ['analyzer_ref' => 'DEMO-HEME-1']), 'source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
-                $this->e('LAB_VERIFIED', 395, [...$this->result('CBC-06', '1', 'final', 'CBC', ['verified_at' => $clock->anchor()->subMinutes(395)->toIso8601String(), 'analyzer_ref' => 'DEMO-HEME-1']), 'source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
+            $this->scenario($clock, 6, $am(25), 'timed', 'inpatient', [
+                $this->e('LAB_ORDERED', $am(25)), $this->e('LAB_COLLECTED', $am(25, 15)),
+                $this->e('LAB_IN_TRANSIT', $am(25, 20)), $this->e('LAB_REJECTED', $am(25, 45), ['rejection_reason_code' => 'CLOTTED']),
+                $this->e('LAB_RECOLLECT_ORDERED', $am(25, 50), ['source_specimen_key' => "demo:{$date}:lab:AM-06-R", 'parent_source_specimen_key' => "demo:{$date}:lab:AM-06"]),
+                $this->e('LAB_COLLECTED', $am(25, 70), ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
+                $this->e('LAB_IN_TRANSIT', $am(25, 75), ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
+                $this->e('LAB_RECEIVED', $am(25, 85), ['source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
+                $this->e('LAB_RESULTED', $am(25, 125), [...$this->result('CBC-06', '1', 'final', 'CBC', ['analyzer_ref' => 'DEMO-HEME-1']), 'source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
+                $this->e('LAB_VERIFIED', $am(25, 130), [...$this->result('CBC-06', '1', 'final', 'CBC', ['verified_at' => $clock->anchor()->subMinutes($am(25, 130))->toIso8601String(), 'analyzer_ref' => 'DEMO-HEME-1']), 'source_specimen_key' => "demo:{$date}:lab:AM-06-R"]),
             ], $this->meta($date, 'AM-06', 'blood_count', 'CBC', 'none', ['shift' => 'am_draw'])),
             $this->scenario($clock, 7, 85, 'stat', 'emergency', [
                 $this->e('LAB_ORDERED', 85), $this->e('LAB_COLLECTED', 80),
@@ -197,5 +200,21 @@ final class LabDemoGenerator extends AbstractAncillaryDemoGenerator
             'decision_class' => $decisionClass,
             ...$attributes,
         ];
+    }
+
+    private function amDrawAnchor(DemoClock $clock): CarbonImmutable
+    {
+        $local = $clock->anchor()->setTimezone((string) config('app.timezone', 'UTC'));
+        $anchor = $local->startOfDay()->addHours(3);
+        if ($local->lessThan($anchor)) {
+            $anchor = $anchor->subDay();
+        }
+
+        return $anchor;
+    }
+
+    private function minutesAgo(DemoClock $clock, CarbonImmutable $at): int
+    {
+        return max(0, (int) round($at->diffInSeconds($clock->anchor(), false) / 60));
     }
 }

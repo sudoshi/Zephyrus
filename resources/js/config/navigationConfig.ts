@@ -375,6 +375,7 @@ const ANALYTICS: NavDomain = {
       title: 'Ancillary Performance',
       items: [
         { label: 'Radiology TAT', href: '/analytics/radiology-tat', icon: Timer },
+        { label: 'Laboratory TAT', href: '/analytics/lab-tat', icon: Timer },
         { label: 'IR Suite Utilization', href: '/analytics/ir-utilization', icon: Activity },
       ],
     },

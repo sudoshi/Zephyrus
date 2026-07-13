@@ -347,6 +347,7 @@ class AncillaryProjectionHandler implements ProjectionHandler
             'discharge_blocking' => $payload['discharge_blocking'] ?? null,
             'demo_context' => $payload['demo_context'] ?? null,
             'demo_shift' => $payload['demo_shift'] ?? null,
+            'operational_window' => $payload['operational_window'] ?? null,
             'ed_visit_id' => $payload['ed_visit_id'] ?? null,
             'or_case_id' => $payload['or_case_id'] ?? null,
             'reconciliation_key' => $payload['reconciliation_key'] ?? null,
