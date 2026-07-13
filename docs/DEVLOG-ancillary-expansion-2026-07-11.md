@@ -1186,3 +1186,45 @@ git diff --check: PASS
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-7 is the next dependency-ordered task and can now join pending result work to the same specimen lineage and downstream-decision contract.
+
+## 2026-07-12 — L-7 Laboratory Decision-Pending Results
+
+### Outcome
+
+Implemented the authenticated Laboratory Decision-Pending Results surface at `/lab/pending-decisions` with a matching private `/api/lab/pending-decisions` contract. `LabDecisionPendingService` is now the single server authority for the pending cohort, effective catalog selection, live destination validation, explicit impact ranking, SLA selection, freshness qualification, cross-domain aggregate, privacy projection, filters, drills, and exclusion diagnostics.
+
+The cohort is intentionally stricter than a query for unverified result rows. Each candidate must be in the current 24-hour Laboratory operational window, resolve an active effective-dated test-catalog entry, carry a catalog decision class other than `none`, and have matching source-projected gate evidence. The service accepts a result `decision_context` only when its decision class, object type, and positive object ID match the catalog class. Before a result exists, it can use the corresponding order linkage (`ed_visit_id`, encounter ID, or `or_case_id`). It never infers impact from the test label or catalog class alone.
+
+Latest-version semantics keep correction and completion behavior coherent. A lateral query selects the newest result for the order/catalog pair. A verified or cancelled latest assertion is excluded; a later unverified correction can remain pending. Result and specimen UUIDs are nullable so an explicitly gated order may enter before the first result assertion without fabricating an object. Historical microbiology remains outside the live queue.
+
+Downstream validation is class-specific. ED disposition requires an active non-deleted visit without departure. Discharge impact requires the exact active non-deleted encounter, an expected discharge date, and no completed discharge. OR impact requires the exact non-deleted source-linked case. Malformed, mismatched, absent, inactive, completed, or deleted destinations are withheld from the ranked queue and counted as unresolved. The page explains degraded state and says no gate was inferred.
+
+The fixed demo produces exactly three visible gates. The current OR coagulation result ranks first. The discharge metabolic panel ranks second and carries an explicit one-bed impact. The ED critical troponin ranks third. Within an impact class, descending age wins, then governed priority, then stable ancillary-order identity. Every row returns its numeric impact and priority ranks, stable sort key, displayed position, and written rationale.
+
+SLA state also remains server-owned. The service selects the most specific active `item_clock` definition ending at `LAB_VERIFIED`, using priority, patient class, and definition scope. The OR result selects the generic `lab.stat_tat` policy and is warning at 55 minutes. The discharge result has no matching configured item clock and says `unconfigured`; it does not borrow an unrelated threshold. The 85-minute ED troponin selects the more-specific `lab.troponin_order_result` policy and is breached. A stale source demotes every item urgency to stale, while a registered source error makes the page source-error.
+
+`destinationAggregates` establishes the exact cross-domain consumer contract needed by L-11 without prematurely editing the ED/discharge UI in this tranche. Each destination aggregate carries class and destination ID, pending count, oldest age, top order UUID, destination drill, and exact result UUID membership. Focused tests prove every visible department-queue result reconciles to one aggregate. L-11 can build readiness axes from these facts without re-querying or recreating queue rules.
+
+Each row shows only operational state: test/catalog identity, pseudonymous patient context, unit, priority, selected milestone, result status/stage/critical and abnormal classifications, order age, effective SLA, destination, decision explanation, source cutoff, and barrier count. Clinical result values, interpretation, narrative, raw payload, direct patient identifiers, and credentials are absent. Roles without ancillary detail capability receive `Patient context restricted`.
+
+Decision-class, priority, unit, SLA-state, and bounded-limit filters are server validated. Exclusion diagnostics separately count non-gating catalog work, completed/cancelled gates, and invalid destinations. An exact `orderUuid` filter was added to the L-6 Specimen Tracker so each decision's specimen drill returns only that order and its recollect lineage. Destination drills point to the established ED Treatment, RTDC Discharge Priorities, or Operations Case Management route.
+
+The pending surface registers no mutation. POST is method-not-allowed. Authorized encounter-linked rows reuse the already governed and audited Laboratory barrier drawer and `/api/lab/barriers`; verification, acknowledgment, order changes, destination changes, and source-system commands remain impossible. `navigationConfig.ts` now projects Flow Board, Specimen Tracker, and Decision-Pending Results from the single Laboratory workspace definition.
+
+### Verification
+
+```text
+Focused Laboratory Decision-Pending backend: 4 tests, 83 assertions, PASS
+Complete ancillary feature regression: 153 tests, 2,011 assertions, PASS
+Decision-Pending + Specimen Tracker + Flow Board + navigation Vitest: 4 files, 35 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-7 PHP implementation/tests/routes and exact specimen drill extension: PASS
+Mobile dark browser smoke, 390x844: HTTP 200, semantic h1/main, empty contract, no overflow, no console/page errors
+Desktop light browser smoke, 1440x1000: HTTP 200, semantic h1/main, empty contract, no overflow, no console/page errors
+Populated, degraded, and empty rendered contracts: PASS in Vitest
+git diff --check: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-8 is the next dependency-ordered task and can build Blood Bank readiness against the now-proven OR gate/destination pattern.

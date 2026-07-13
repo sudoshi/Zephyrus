@@ -77,7 +77,7 @@ export const labSpecimensSchema = z.object({
   filters: z.object({
     status: z.string().nullable(), testFamily: z.string().nullable(), unitId: z.number().int().positive().nullable(), priority: z.string().nullable(),
     rejection: z.enum(['all', 'rejected', 'recollect', 'none']), age: z.enum(['all', '0_29', '30_59', '60_119', '120_plus']),
-    perPage: z.number().int().positive().max(50), cursor: z.string().nullable(),
+    orderUuid: z.string().uuid().nullable(), perPage: z.number().int().positive().max(50), cursor: z.string().nullable(),
   }).strict(),
   filterOptions: z.object({
     statuses: z.array(z.string()), testFamilies: z.array(z.string()),
@@ -109,3 +109,65 @@ export const labSpecimensSchema = z.object({
 }).strict();
 
 export type LabSpecimens = z.infer<typeof labSpecimensSchema>;
+
+const pendingUrgencySchema = z.enum(['breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale']);
+
+export const labDecisionPendingSchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }),
+  state: z.enum(['normal', 'degraded', 'no_data', 'stale', 'source_error']),
+  stateMessage: z.string().min(1),
+  freshness: sourceFreshnessSchema,
+  filters: z.object({
+    decisionClass: z.enum(['all', 'or_gate', 'discharge_gate', 'ed_disposition']),
+    priority: z.string().nullable(), unitId: z.number().int().positive().nullable(),
+    urgency: z.enum(['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale']),
+    limit: z.number().int().positive().max(100),
+  }).strict(),
+  filterOptions: z.object({
+    decisionClasses: z.array(z.string()), priorities: z.array(z.string()),
+    units: z.array(z.object({ unitId: z.number().int().positive(), label: z.string() }).strict()),
+    urgencies: z.array(z.string()),
+  }).strict(),
+  rankingRule: z.string().min(1),
+  summary: z.object({
+    visible: z.number().int().nonnegative(), resolvedBeforeLimit: z.number().int().nonnegative(),
+    orGates: z.number().int().nonnegative(), dischargeGates: z.number().int().nonnegative(),
+    edDispositions: z.number().int().nonnegative(), unresolvedDestinations: z.number().int().nonnegative(),
+    breached: z.number().int().nonnegative(),
+  }).strict(),
+  exclusions: z.object({
+    noGateCatalog: z.number().int().nonnegative(), completedOrCancelled: z.number().int().nonnegative(),
+    unresolved: z.array(z.object({ orderUuid: z.string().uuid(), decisionClass: z.string(), reason: z.string() }).strict()),
+    explanation: z.string().min(1),
+  }).strict(),
+  data: z.array(z.object({
+    pendingKey: z.string().min(1), orderUuid: z.string().uuid(), resultUuid: z.string().uuid().nullable(), specimenUuid: z.string().uuid().nullable(),
+    label: z.string().min(1), testFamily: z.string().min(1), catalogKey: z.string().min(1),
+    patientRef: z.string().min(1), patientClass: z.string().min(1), priority: z.string().min(1),
+    locationLabel: z.string().nullable(), encounterLinked: z.boolean(), currentStage: z.string().min(1),
+    resultState: z.object({ status: z.string(), stage: z.string(), critical: z.boolean(), abnormalFlag: z.string() }).strict(),
+    ageMinutes: z.number().int().nonnegative(), sourceCutoffAt: z.string().datetime({ offset: true }),
+    decisionClass: z.enum(['or_gate', 'discharge_gate', 'ed_disposition']), decisionContext: decisionContextSchema.unwrap(),
+    destination: z.object({
+      objectType: z.enum(['or_case', 'encounter_discharge', 'ed_visit']), id: z.number().int().positive(), label: z.string().min(1),
+      active: z.literal(true), href: z.string().min(1), scheduledAt: nullableIso, expectedDischargeDate: z.string().date().nullable(),
+      bedImpact: z.number().int().nonnegative(), rankReason: z.string().min(1),
+    }).strict(),
+    gateEvidence: z.object({ catalogDecisionClass: z.string(), identitySource: z.enum(['result_decision_context', 'order_linkage']), validated: z.literal(true), explanation: z.string().min(1) }).strict(),
+    sla: z.object({ definition: slaDefinitionSchema.nullable(), startAt: nullableIso, elapsedMinutes: z.number().int().nonnegative().nullable(), urgency: pendingUrgencySchema, explanation: z.string().min(1) }).strict(),
+    ranking: z.object({ impactRank: z.number().int().min(0).max(2), priorityRank: z.number().int().nonnegative(), sortKey: z.string(), reasons: z.array(z.string().min(1)).min(3), position: z.number().int().positive() }).strict(),
+    drill: z.object({ specimenHref: z.string().min(1), destinationHref: z.string().min(1) }).strict(),
+    barrierCount: z.number().int().nonnegative(),
+  }).strict()),
+  destinationAggregates: z.array(z.object({
+    decisionClass: z.enum(['or_gate', 'discharge_gate', 'ed_disposition']), destinationId: z.number().int().positive(),
+    destinationHref: z.string().min(1), pendingCount: z.number().int().positive(), oldestAgeMinutes: z.number().int().nonnegative(),
+    topOrderUuid: z.string().uuid(), resultUuids: z.array(z.string().uuid()),
+  }).strict()),
+  privacy: z.object({ patientContextIncluded: z.boolean(), directPatientIdentifiersIncluded: z.literal(false), resultContentIncluded: z.literal(false), identifierPolicy: z.string() }).strict(),
+  canAnnotateBarriers: z.boolean(),
+  barrierReasons: z.array(z.object({ reasonCode: z.string(), category: z.string(), label: z.string() }).strict()),
+}).strict();
+
+export type LabDecisionPending = z.infer<typeof labDecisionPendingSchema>;
+export type LabDecisionPendingItem = LabDecisionPending['data'][number];

@@ -254,6 +254,7 @@ const LAB: NavDomain = {
       items: [
         { label: 'Laboratory Flow Board', href: '/lab', icon: Activity },
         { label: 'Specimen Tracker', href: '/lab/specimens', icon: FlaskConical },
+        { label: 'Decision-Pending Results', href: '/lab/pending-decisions', icon: GitBranch },
       ],
     },
   ],

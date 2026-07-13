@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Lab;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
 use App\Http\Requests\Lab\StoreLabBarrierRequest;
 use App\Services\Lab\LabBarrierService;
+use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
 use App\Services\Lab\LabSpecimenService;
 use Illuminate\Http\JsonResponse;
@@ -29,5 +31,14 @@ final class LabFlowBoardController extends Controller
     {
         return response()->json($specimens->build($request->validated(), Gate::allows('viewAncillaryPatientDetail')))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function pendingDecisions(LabDecisionPendingRequest $request, LabDecisionPendingService $pending): JsonResponse
+    {
+        return response()->json($pending->build(
+            $request->validated(),
+            Gate::allows('manageAncillaryBarriers'),
+            Gate::allows('viewAncillaryPatientDetail'),
+        ))->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 }

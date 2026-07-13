@@ -23,7 +23,7 @@ function payload(overrides: Partial<LabSpecimens> = {}): LabSpecimens {
   const base = {
     generatedAt: '2026-07-11T14:00:00+00:00', state: 'normal', stateMessage: 'Laboratory specimen facts are current and transport-segmented.',
     freshness: { status: 'fresh', asOf: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:58:00+00:00', lagMinutes: 2, sourceLabel: 'Laboratory specimen feeds', explanation: null },
-    filters: { status: null, testFamily: null, unitId: null, priority: null, rejection: 'all', age: 'all', perPage: 25, cursor: null },
+  filters: { status: null, testFamily: null, unitId: null, priority: null, rejection: 'all', age: 'all', orderUuid: null, perPage: 25, cursor: null },
     filterOptions: { statuses: ['collection_pending', 'recollect_requested'], testFamilies: ['troponin'], units: [{ unitId: 1, label: 'ED' }], priorities: ['stat'], rejections: ['all', 'rejected', 'recollect', 'none'], ageBands: ['all', '0_29', '30_59', '60_119', '120_plus'] },
     coverage: { transport: { status: 'available', columnVisible: true, explanation: 'Transport timestamps are evidenced.' } },
     data: [

@@ -23,6 +23,7 @@ final class LabSpecimenRequest extends FormRequest
             'priority' => ['sometimes', 'nullable', 'string', Rule::in(LabFlowBoardService::PRIORITIES)],
             'rejection' => ['sometimes', 'string', Rule::in(LabSpecimenService::REJECTION_FILTERS)],
             'age' => ['sometimes', 'string', Rule::in(LabSpecimenService::AGE_BANDS)],
+            'orderUuid' => ['sometimes', 'nullable', 'uuid'],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'cursor' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];

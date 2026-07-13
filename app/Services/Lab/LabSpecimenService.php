@@ -77,10 +77,12 @@ final class LabSpecimenService
         $priority = is_string($input['priority'] ?? null) && in_array($input['priority'], LabFlowBoardService::PRIORITIES, true) ? $input['priority'] : null;
         $rejection = is_string($input['rejection'] ?? null) && in_array($input['rejection'], self::REJECTION_FILTERS, true) ? $input['rejection'] : 'all';
         $age = is_string($input['age'] ?? null) && in_array($input['age'], self::AGE_BANDS, true) ? $input['age'] : 'all';
+        $orderUuid = is_string($input['orderUuid'] ?? null) && preg_match('/^[0-9a-f-]{36}$/i', $input['orderUuid']) ? strtolower($input['orderUuid']) : null;
 
         return [
             'status' => $status, 'testFamily' => $family, 'unitId' => $unitId === false ? null : $unitId,
             'priority' => $priority, 'rejection' => $rejection, 'age' => $age,
+            'orderUuid' => $orderUuid,
             'perPage' => min(50, max(1, (int) ($input['perPage'] ?? 25))),
             'cursor' => is_string($input['cursor'] ?? null) && $input['cursor'] !== '' ? $input['cursor'] : null,
         ];
@@ -130,6 +132,9 @@ final class LabSpecimenService
         }
         if ($filters['priority'] !== null) {
             $query->where('o.priority', $filters['priority']);
+        }
+        if ($filters['orderUuid'] !== null) {
+            $query->where('o.order_uuid', $filters['orderUuid']);
         }
         match ($filters['rejection']) {
             'rejected' => $query->whereIn('s.status', ['rejected', 'recollect_requested']),

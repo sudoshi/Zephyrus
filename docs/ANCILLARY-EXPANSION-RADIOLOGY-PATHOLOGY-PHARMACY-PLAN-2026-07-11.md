@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-6 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-7 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 31 of 60 tasks complete; 29 remain |
+| Progress | 32 of 60 tasks complete; 28 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1495,24 +1495,54 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] TypeScript, production build, UI canon, mobile dark and desktop light browser smoke, zero horizontal overflow, and zero console/page errors pass.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system is activated by L-6.
 
-#### [ ] L-7 — Implement Decision-Pending Results at /lab/pending-decisions
+#### [x] L-7 — Implement Decision-Pending Results at /lab/pending-decisions
 
 **Depends on:** L-1 through L-6
 **Primary files:** LabDecisionPendingService; page/API; cross-domain aggregation
 
 **Work:**
 
-- Join pending tests to ED disposition, current discharge cohort, and OR gates using lab_test_catalog.decision_class plus encounter/case linkage.
-- Rank by explicit downstream impact: live OR gate, discharge bed impact, ED disposition, then age/priority; expose the ranking reasons.
-- Show what is pending, current stage, age, SLA, downstream decision, unit/case, freshness, and drill.
-- Avoid inferring a gate from test name alone when the catalog/encounter context does not support it.
+- [x] Add an authenticated `/lab/pending-decisions` Inertia surface and private `/api/lab/pending-decisions` JSON endpoint backed by one `LabDecisionPendingService` and validated `LabDecisionPendingRequest` boundary.
+- [x] Select only the current 24-hour Laboratory operational window and continue excluding `historical_study_only` microbiology history from the live decision queue.
+- [x] Resolve the governed test catalog by exact active local test code and effective date, selecting the newest applicable catalog version rather than using display text.
+- [x] Require two independent gate facts: the catalog decision class and matching source-projected decision context/order linkage; catalog class or test label alone cannot create a gate.
+- [x] Select the latest result version per order/catalog so a verified or cancelled latest assertion leaves the queue while a later unverified correction can remain decision-pending.
+- [x] Support a governed order that is decision-pending before its first result assertion by retaining nullable result/specimen identities and using validated order linkage.
+- [x] Validate ED disposition against a non-deleted active `prod.ed_visits` row, discharge impact against an active non-deleted encounter with an expected discharge date, and OR impact against a valid non-deleted `prod.or_cases` row.
+- [x] Withhold candidates whose destination identity is malformed, class/type mismatched, missing, inactive, completed, deleted, or otherwise outside its live destination cohort; expose the withheld count and reason without inventing a substitute gate.
+- [x] Build one reusable `destinationAggregates` contract keyed by decision class and destination ID with pending count, oldest age, top order, exact result UUID membership, and destination drill target for L-11 consumers.
+- [x] Rank deterministically by explicit downstream impact: live OR gate first, discharge bed impact second, ED disposition third, then descending order age, governed priority, and stable ancillary-order identity.
+- [x] Return the numeric impact/priority ranks, stable sort key, final displayed position, and three written ranking reasons on every item so order is inspectable rather than opaque.
+- [x] Select the most specific effective-dated `item_clock` definition ending at `LAB_VERIFIED` using priority, patient class, and JSON scope; the ED troponin policy outranks the generic STAT policy when both apply.
+- [x] Resolve the definition's selected start assertion and compute elapsed minutes plus normal/warning/breach state from persisted thresholds; show `unconfigured` rather than inventing a threshold when no definition matches.
+- [x] Demote every SLA urgency to stale when source freshness is stale and distinguish normal, degraded, no-data, stale, and source-error page states.
+- [x] Show test/catalog identity, pseudonymous patient context, unit, priority, current ancillary milestone, operational result status/stage/flags, age, selected SLA, destination, decision explanation, source cutoff, and barrier count.
+- [x] Exclude all clinical result values, interpretations, narratives, raw payloads, direct patient identifiers, and source credentials from the service and browser contracts.
+- [x] Add server-side decision-class, priority, unit, SLA-urgency, and bounded result-limit filters; expose exact non-gate, completed/cancelled, and unresolved exclusion counts.
+- [x] Extend the L-6 Specimen Tracker with an inbound exact `orderUuid` filter so every decision row drills to only that order's specimen/recollect chain while preserving existing cursor/filter behavior.
+- [x] Add destination-scoped links carrying the validated visit, encounter, or case ID to the established ED Treatment, RTDC Discharge Priorities, and Operations Case Management routes without prematurely implementing the L-11 readiness chips.
+- [x] Reuse the established audited Laboratory barrier drawer and `/api/lab/barriers` mutation only for authorized encounter-linked items; register no result acknowledgment, verification, order, destination, or source-system mutation.
+- [x] Add strict Zod parsing, a 30-second query refresh, canonical dashboard/page composition, dual-theme healthcare tokens, accessible status/alert/filter/details semantics, responsive identity wrapping, and explicit populated/degraded/empty rendering.
+- [x] Add Decision-Pending Results to the canonical Laboratory workspace in `navigationConfig.ts`; desktop, mobile, command palette, active ownership, and local navigation continue to derive from one source.
+- [x] Add focused service/Inertia/API/privacy/filter/authentication/read-only tests plus rendered tests for ranking, SLA, exact drills, barrier policy, unresolved degradation, and empty state.
 
 **Acceptance:**
 
-- Feature tests cover all three decision classes, no-gate, stale, and completed cases.
-- The same pending result appears consistently in the department queue and destination surface.
-- Sort order is deterministic and explainable.
-- This surface remains read-only except Zephyrus barrier annotation.
+- [x] The fixed demo cohort resolves exactly three current pending decisions—one live OR gate, one discharge gate with one-bed impact, and one active ED disposition—and ranks them in that exact impact order.
+- [x] The OR item selects `lab.stat_tat` and is warning at 55 minutes, the discharge item honestly reports an unconfigured item clock, and the 85-minute ED troponin selects the more-specific `lab.troponin_order_result` definition and is breached.
+- [x] Each department-queue result UUID appears in exactly one matching destination aggregate with the same decision class, destination ID, top order UUID, count, age, and drill target.
+- [x] A non-gating CBC remains excluded even when untrusted order metadata changes its declared decision class and display label to resemble a gated test; the catalog and linkage contract prevent name-based inference.
+- [x] Updating a pending latest result to verified removes it from the queue and raises the completed/cancelled exclusion population.
+- [x] A corrupted downstream ID is withheld, increments the unresolved count, produces degraded state, and never falls back to a guessed ED/encounter/case target.
+- [x] Stale freshness changes the page to stale and every item clock to stale; registered source error produces source-error state rather than a successful health claim.
+- [x] Decision-class, priority, unit, urgency, and limit filters return deterministic populations; the exact specimen drill returns only the selected order.
+- [x] Query count remains constant between one-item and fifty-item display limits and stays within the focused query budget, proving destination, clock, exclusion, filter-option, and barrier lookups do not grow per visible row.
+- [x] Direct patient identifiers and result values/narratives remain absent from authorized, redacted, Inertia, API, and rendered contracts.
+- [x] GET is the only pending-decision route method; POST receives method-not-allowed, and the separately governed/audited Laboratory barrier endpoint is the sole permitted mutation.
+- [x] Focused backend verification passes 4 tests and 83 assertions; combined Decision-Pending, Specimen Tracker, Flow Board, and navigation frontend verification passes 35 tests across 4 files.
+- [x] The complete ancillary feature regression passes 153 tests and 2,011 assertions.
+- [x] TypeScript, production build, UI canon, populated/degraded/empty rendered tests, mobile dark and desktop light browser smoke, zero horizontal overflow, and zero console/page errors pass.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system is activated by L-7.
 
 #### [ ] L-8 — Implement Blood Bank Readiness at /lab/blood-bank and Periop gates
 

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
+use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
 use App\Services\Lab\LabSpecimenService;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +25,17 @@ final class LabController extends Controller
     {
         return Inertia::render('Lab/Specimens', [
             'specimens' => $specimens->build($request->validated(), Gate::allows('viewAncillaryPatientDetail')),
+        ]);
+    }
+
+    public function pendingDecisions(LabDecisionPendingRequest $request, LabDecisionPendingService $pending): Response
+    {
+        return Inertia::render('Lab/PendingDecisions', [
+            'pendingDecisions' => $pending->build(
+                $request->validated(),
+                Gate::allows('manageAncillaryBarriers'),
+                Gate::allows('viewAncillaryPatientDetail'),
+            ),
         ]);
     }
 }
