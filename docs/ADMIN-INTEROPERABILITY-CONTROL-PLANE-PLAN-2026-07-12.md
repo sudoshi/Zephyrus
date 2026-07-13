@@ -376,11 +376,13 @@ Branch implementation evidence: `SystemHealthService`, the `admin:observe-system
 
 #### ADM-POLICY - Govern Cockpit and Eddy policy
 
-- [ ] Version Cockpit threshold policies with owner, scope, unit, direction, validation constraints, effective date, reason, preview, approval, and rollback.
-- [ ] Detect duplicate/ambiguous metric keys and add filtering by domain/scope/status.
-- [ ] Build `/admin/ai-providers` using Zephyrus/Eddy naming and the existing policy service.
-- [ ] Govern model/provider capability, fallback order, cost limits, PHI eligibility, region, and surface routing.
-- [ ] Add dry-run route simulation that stores no prompt or patient content.
+- [x] Version Cockpit threshold policies with owner, scope, unit, direction, validation constraints, effective date, reason, preview, approval, and rollback.
+- [x] Detect duplicate/ambiguous metric keys and add filtering by domain/scope/status.
+- [x] Build `/admin/ai-providers` using Zephyrus/Eddy naming and the existing policy service.
+- [x] Govern model/provider capability, fallback order, cost limits, PHI eligibility, region, and surface routing.
+- [x] Add dry-run route simulation that stores no prompt or patient content.
+
+**Branch implementation state:** Cockpit threshold policy is now an append-only ledger (`governance.cockpit_threshold_policy_versions`, mutation-rejecting trigger, version 1 backfilled for every existing `ops.metric_definitions` row). Changes flow proposal → preview/diff → governed change request → independent decision → hash-bound apply through `CockpitThresholdPolicyService`; the legacy KPI-definition write path appends a `direct_update` version in the same transaction, so the effective policy is never mutated without a version row. Rollback is a new version referencing a prior one. Duplicate and ambiguous metric keys are computed server-side and surfaced with domain/scope/status filtering on the rebuilt `/admin/cockpit/thresholds`. `/admin/ai-providers` ("Eddy AI Providers") governs the canonical `eddy` policy document — profile capability/model/entitlement/cost limits/PHI eligibility/region and per-surface mode/default/fallback order/cloud posture — through the same versioned dual-control flow (`governance.ai_provider_policy_versions`, `AiProviderPolicyService`), with runtime-drift detection surfaced rather than hard-blocked because console/seed provisioning legitimately writes eddy tables. `POST /admin/ai-providers/simulate` accepts only an allowlisted surface descriptor (prompt/content/patient fields explicitly prohibited) and records a single non-content audit event. Four new capabilities (`viewCockpitPolicy`, `manageCockpitPolicy`, `viewAiGovernance`, `manageAiGovernance`) gate the surfaces with dedicated steward profiles; the Admin dashboard's Eddy Governance card is no longer `blocked`. Evidence: focused Admin/Governance/Authorization suites pass (88 tests / 867 assertions, including append-only triggers, author≠approver over HTTP, rollback restoration, no-content simulation, allow-and-deny authorization), Cockpit regression 104 tests, Pint/TypeScript/Vitest clean. AI profile creation from the UI remains a follow-up; the governed document contract already supports it.
 
 ### Phase 2 - Productionize Enterprise and Integration Governance
 

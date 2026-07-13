@@ -17,6 +17,8 @@ enum GovernedAction: string
     case PurgeQuarantinedPayload = 'purge_quarantined_payload';
     case RecoverClinicalPayloadIntegrity = 'recover_clinical_payload_integrity';
     case PurgeUserIdentity = 'purge_user_identity';
+    case ApplyCockpitThresholdPolicy = 'apply_cockpit_threshold_policy';
+    case ApplyAiProviderPolicy = 'apply_ai_provider_policy';
 
     public function authorCapability(): Capability
     {
@@ -34,6 +36,8 @@ enum GovernedAction: string
             self::PurgeQuarantinedPayload,
             self::RecoverClinicalPayloadIntegrity => Capability::ManageDataStewardship,
             self::PurgeUserIdentity => Capability::ManageIdentity,
+            self::ApplyCockpitThresholdPolicy => Capability::ManageCockpitPolicy,
+            self::ApplyAiProviderPolicy => Capability::ManageAiGovernance,
         };
     }
 
@@ -41,6 +45,8 @@ enum GovernedAction: string
     {
         return match ($this) {
             self::PurgeUserIdentity => Capability::ManagePrivileges,
+            self::ApplyCockpitThresholdPolicy => Capability::ManageCockpitPolicy,
+            self::ApplyAiProviderPolicy => Capability::ManageAiGovernance,
             default => Capability::ApproveIntegrationChanges,
         };
     }

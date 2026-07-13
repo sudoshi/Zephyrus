@@ -319,12 +319,55 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
                     Route::get('/{campaign}/evidence.csv', 'evidenceCsv')->name('evidence.csv');
                 });
 
-            // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
-            // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,
-            // both AdminMiddleware-gated + audited.
-            Route::get('/admin/cockpit/thresholds', fn () => Inertia::render('Admin/CockpitThresholds'))
-                ->name('admin.cockpit.thresholds');
         });
+
+        // ADM-POLICY — versioned, dual-controlled Cockpit threshold policy.
+        // Reads require viewCockpitPolicy; every mutation is a governed change
+        // (request → independent decision → execution) with step-up enforced
+        // inside GovernedChangeService, throttled here.
+        Route::get('/admin/cockpit/thresholds', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'index'])
+            ->middleware('can:viewCockpitPolicy')
+            ->name('admin.cockpit.thresholds');
+        Route::post('/admin/cockpit/thresholds/{metricKey}/preview', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'preview'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:30,1'])
+            ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
+            ->name('admin.cockpit.thresholds.preview');
+        Route::post('/admin/cockpit/thresholds/{metricKey}/changes', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'store'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
+            ->name('admin.cockpit.thresholds.changes.store');
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'decide'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.cockpit.thresholds.changes.decide');
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'apply'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.cockpit.thresholds.changes.apply');
+
+        // ADM-POLICY — Zephyrus/Eddy AI provider governance. Same governed
+        // contract as thresholds; the dry-run simulator is read-capability
+        // gated, throttled, and never accepts prompt or patient content.
+        Route::get('/admin/ai-providers', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'index'])
+            ->middleware('can:viewAiGovernance')
+            ->name('admin.ai-providers.index');
+        Route::post('/admin/ai-providers/simulate', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'simulate'])
+            ->middleware(['can:viewAiGovernance', 'throttle:30,1'])
+            ->name('admin.ai-providers.simulate');
+        Route::post('/admin/ai-providers/preview', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'preview'])
+            ->middleware(['can:manageAiGovernance', 'throttle:30,1'])
+            ->name('admin.ai-providers.preview');
+        Route::post('/admin/ai-providers/changes', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'store'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->name('admin.ai-providers.changes.store');
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'decide'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.ai-providers.changes.decide');
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'apply'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.ai-providers.changes.apply');
 
         // User Preferences Route - Using GET with URL parameters
         Route::get('/set-preference/{workflow}', [DashboardController::class, 'setPreference'])

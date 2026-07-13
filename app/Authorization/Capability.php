@@ -34,6 +34,10 @@ enum Capability: string
     case RequestTransportOperations = 'requestTransportOperations';
     case ManageTransportDispatch = 'manageTransportDispatch';
     case ProgressTransportOperations = 'progressTransportOperations';
+    case ViewCockpitPolicy = 'viewCockpitPolicy';
+    case ManageCockpitPolicy = 'manageCockpitPolicy';
+    case ViewAiGovernance = 'viewAiGovernance';
+    case ManageAiGovernance = 'manageAiGovernance';
     case UseEddyActions = 'useEddyActions';
     case WriteOrCases = 'writeOrCases';
     case AssumeAnyMobilePersona = 'assumeAnyMobilePersona';

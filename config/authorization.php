@@ -31,6 +31,10 @@ return [
             Capability::ViewSystemHealth->value,
             Capability::RunDiagnostics->value,
             Capability::ViewEnterpriseSetup->value,
+            Capability::ViewCockpitPolicy->value,
+            Capability::ManageCockpitPolicy->value,
+            Capability::ViewAiGovernance->value,
+            Capability::ManageAiGovernance->value,
             Capability::ManageStaffingOperations->value,
             Capability::RequestTransportOperations->value,
             Capability::ManageTransportDispatch->value,
@@ -106,12 +110,29 @@ return [
             Capability::ViewSystemHealth->value,
             Capability::ViewEnterpriseSetup->value,
             Capability::ViewIntegrations->value,
+            Capability::ViewCockpitPolicy->value,
+            Capability::ViewAiGovernance->value,
         ],
         'facility_admin' => [
             Capability::ViewAdministration->value,
             Capability::ViewEnterpriseSetup->value,
             Capability::ManageFacilityAdministration->value,
             Capability::ManageStaffingOperations->value,
+            Capability::ViewCockpitPolicy->value,
+            Capability::ManageCockpitPolicy->value,
+        ],
+        // Dedicated operational-policy stewards. Cockpit thresholds are a
+        // facility-operations duty; AI governance is its own steward duty and
+        // deliberately does NOT ride along with identity or integration roles.
+        'cockpit_policy_steward' => [
+            Capability::ViewAdministration->value,
+            Capability::ViewCockpitPolicy->value,
+            Capability::ManageCockpitPolicy->value,
+        ],
+        'ai_governance_steward' => [
+            Capability::ViewAdministration->value,
+            Capability::ViewAiGovernance->value,
+            Capability::ManageAiGovernance->value,
         ],
 
         'ops_leader' => [
@@ -291,6 +312,12 @@ return [
             Capability::ManageOutboundPolicy->value,
             Capability::ManageDataStewardship->value,
         ],
+        'Operational policy governance' => [
+            Capability::ViewCockpitPolicy->value,
+            Capability::ManageCockpitPolicy->value,
+            Capability::ViewAiGovernance->value,
+            Capability::ManageAiGovernance->value,
+        ],
         'Healthcare operations' => [
             Capability::ManageStaffingOperations->value,
             Capability::RequestTransportOperations->value,
@@ -317,6 +344,10 @@ return [
         Capability::ViewAudit->value,
         Capability::ViewAccessReviews->value,
         Capability::ManageAccessReviews->value,
+        Capability::ViewCockpitPolicy->value,
+        Capability::ManageCockpitPolicy->value,
+        Capability::ViewAiGovernance->value,
+        Capability::ManageAiGovernance->value,
     ],
 
     'mobile_ability_map' => [

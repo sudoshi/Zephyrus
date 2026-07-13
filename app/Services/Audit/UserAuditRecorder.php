@@ -38,6 +38,7 @@ class UserAuditRecorder
         'user_external_identity',
         'system_health',
         'admin_scope',
+        'ai_provider_policy',
     ];
 
     private const CHANGE_KEYS = [
@@ -57,6 +58,8 @@ class UserAuditRecorder
         'external_identities_unlinked', 'mobile_devices_revoked', 'access_scopes_revoked',
         'batch_uuid', 'component_count', 'critical_count', 'warning_count', 'unknown_count',
         'organization_id', 'facility_id', 'source_id', 'scope_revision',
+        'policy_key', 'policy_version', 'rolled_back_to_version', 'surface',
+        'provider_mode', 'selected_profile_id', 'fallback_used', 'will_call_paid_provider',
     ];
 
     private const FORBIDDEN_KEY_FRAGMENTS = [

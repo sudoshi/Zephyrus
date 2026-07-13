@@ -58,6 +58,10 @@ class AuthServiceProvider extends ServiceProvider
             'requestTransportOperations' => Capability::RequestTransportOperations,
             'manageTransportDispatch' => Capability::ManageTransportDispatch,
             'progressTransportOperations' => Capability::ProgressTransportOperations,
+            'viewCockpitPolicy' => Capability::ViewCockpitPolicy,
+            'manageCockpitPolicy' => Capability::ManageCockpitPolicy,
+            'viewAiGovernance' => Capability::ViewAiGovernance,
+            'manageAiGovernance' => Capability::ManageAiGovernance,
             'useEddyActions' => Capability::UseEddyActions,
             'writeOrCases' => Capability::WriteOrCases,
         ];
