@@ -1629,3 +1629,30 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-4 completes 43 of 60 implementation tasks. X-5 is next and will generate coherent Pharmacy and ADC demo data, including administration through a warehouse cutoff separate from current dispense events.
+
+## 2026-07-13 — X-5 Generate Coherent Pharmacy and ADC Demo Data
+
+### Outcome
+
+Replaced the five-order Pharmacy stub with a 24-order, 105-milestone deterministic cohort that is part of the canonical rolling scenario and travels the governed write path end to end: synthetic canonical events through `CanonicalEventWriter` (exact owner `operations-demo:summit-500-current-operations-v1:ancillary:v1`, deterministic UUIDv5 event and order identities from scenario + anchor + ordinal) into `ProjectionDispatcher`, so every medication order, verification, dispense, ADC transaction, and administration row is created by the X-2/X-3/X-4 projectors — never a direct insert for anything a projector owns. `AbstractAncillaryDemoGenerator` gained the pharmacy payload branch (queue/verification, dispense, station-transaction, and warehouse-administration keys derived per milestone code) plus an `operationalEvents()` hook so the department can contribute non-milestone canonical events — station-scope `ancillary.pharmacy.adc_transaction` events and one non-given `ancillary.pharmacy.administration_record` — through the same owner-replacement machinery.
+
+The distribution follows §11.3: a 09:00–11:00 verification-queue surge (six queue entries pinned to the local window, two still awaiting a pharmacist) against a sparse 07:00 shift-boundary dip; STAT, first-dose, sepsis, discharge, and routine clock classes across ADC, IV-room, and central preparation branches; a missing-dose loop (ADC vend, re-request, central re-dispense); controlled morphine with partial waste; a delivered dose refused per the warehouse record and returned to the cabinet; a shortage order whose `on_shortage` flag pairs with the one open ADC stockout signal on the ED cabinet; IV-room batch preps with batch refs and BUD, including a TPN batch on the `unmapped_local` formulary item. Sepsis clocks tie to REAL demo ED encounters through the shared `clinicalContext('ed')` seam, and both discharge medication rows resolve through the L-14 `DischargePrioritiesService` visible-cohort seam before landing as `rx_discharge_queue` pipeline rows (`ready`, and a discharge-blocking `prior_auth_pending`).
+
+Administration honesty is the defensible piece. All administration facts arrive as one synthetic warehouse MAR extract — `import_batch_key`, `administration_source_class` `bcma_warehouse`, and an explicit `source_cutoff_at` 300 minutes BEFORE the anchor, every `administered_at` at or before that cutoff — through the demo `clinical_warehouse` source, so `PharmacyAdministrationFreshnessService` classifies the tail `batch` (never `fresh`) at the anchor and demotes it to `stale` beyond the cadence tolerance, while ADC and IV-room dispense events stay current-real-time by contrast. One iv_room order jumps verified → dispensed with no prep milestones and no prep rows (the IVWMS-absent degraded branch for X-8), and one deterministic source-precedence conflict has pharmacy and ADC both asserting `RX_DISPENSED` with the catalog precedence selecting pharmacy while both assertions are retained. SLA clocks are exercised with mathematically valid states at the frozen anchor: open breaches for the overdue STAT dispense (25 ≥ 15) and overdue sepsis antibiotic (190 ≥ 180), cleared breaches at 30/80/65/200 minutes, one sepsis order at risk in the warning band, and an on-time STAT vend that carries no breach — timings deliberately respect the `cleared_at >= breached_at` schema guard.
+
+`DemoInvariantService` grew eight Pharmacy findings (28 ancillary findings total): satellites owned and linked, order-ledger milestone codes only (overrides/discrepancies stay station analytics), ADC rows owned and unit-scoped, one open breach per order/SLA clock (global), discharge medications referencing current discharge candidates on live discharge-clock orders, administrations cutoff-qualified with batch identity, sepsis ED contexts valid, and the surge/dip/stockout/shortage/degraded/conflict plausibility band. Refresh is idempotent and owner-safe: two same-anchor refreshes converge byte-for-byte with zero canonical-event or provenance growth; station-scope facts that do not cascade from the order reset (owned transactions, operational provenance, per-medication `open_stockouts` state) are cleared before replay, and non-owned stations/transactions are never touched.
+
+### Verification
+
+```text
+Laravel Pint over 5 dirty X-5 files: PASS (1 style issue fixed)
+PHP syntax checks over generator/abstract/invariants/tests: PASS
+Focused PharmacyDemoGeneratorTest: 1 test, 62 assertions, PASS
+Ancillary demo scenario suite (--filter=AncillaryDemoScenarioTest): 9 tests, 50 assertions, PASS
+Demo regression (--filter=Demo): 47 tests, 4,688 assertions, PASS
+Pharmacy filter regression (--filter=Pharmacy): 32 tests, 462 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 239 tests, 3,719 assertions, PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-5 completes 44 of 60 implementation tasks. X-6 is next and will render the Medication Flow Board at /pharmacy on this cohort.

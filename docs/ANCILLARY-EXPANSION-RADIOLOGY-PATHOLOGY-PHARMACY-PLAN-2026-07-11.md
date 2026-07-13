@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-4 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-5 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 43 of 60 tasks complete; 17 remain |
+| Progress | 44 of 60 tasks complete; 16 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1987,24 +1987,29 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused X-4 verification passes 8 tests and 129 assertions; the complete ancillary regression passes 239 tests and 3,719 assertions and the Pharmacy filter passes 31 tests and 400 assertions.
 - [x] No production connector, credential, source endpoint, scheduler, queue, route, migration, deployment, or external system is activated by X-4.
 
-#### [ ] X-5 — Generate coherent Pharmacy and ADC demo data
+#### [x] X-5 — Generate coherent Pharmacy and ADC demo data
 
 **Depends on:** X-1 through X-4, P0-8
 **Primary files:** PharmacyDemoGenerator; profiles; invariants/tests
 
 **Work:**
 
-- Generate queue surge, shift dips, priority clock classes, preparation branches, batch cutoffs/BUD, dispense/delivery, ADC transactions, missing-dose loops, shortages, discrepancies, and discharge-med statuses.
-- Tie sepsis clocks to real demo ED encounters and discharge medication rows to the current discharge cohort.
-- Generate administration through a warehouse cutoff separate from current dispense events.
-- Include IVWMS-absent degraded scenarios.
+- [x] Replaced the 5-order stub with a 24-order/105-milestone deterministic Pharmacy cohort generated ENTIRELY through the canonical event path (synthetic canonical events → `CanonicalEventWriter` with exact-owner replacement → `ProjectionDispatcher` → the X-2/X-3/X-4 projectors), matching the Lab generator: `AbstractAncillaryDemoGenerator` gained a `pharmacyEventPayload()` branch (queue/verification, dispense, ADC transaction, and warehouse administration keys derived per milestone code) plus an `operationalEvents()` hook that writes non-milestone canonical events (station-scope `ancillary.pharmacy.adc_transaction`, non-given `ancillary.pharmacy.administration_record`) through the same owner-replacement machinery; the owned-provenance reset now also covers `rx_orders`/`rx_verifications`/`rx_dispenses`/`rx_administrations`/`adc_transactions`.
+- [x] Scenario coverage per §11.3: a 09:00–11:00 verification-queue surge (six queue entries pinned to the local surge window, two still awaiting a pharmacist) against a sparse 07:00 shift-boundary dip (two entries); STAT/first-dose/sepsis/routine/timed-free/discharge clock classes; ADC, IV-room, and central preparation branches (formulary-driven `default_prep_branch`); a missing-dose loop (ADC vend → `RX_MISSING_DOSE` → central re-dispense); a shortage order with `on_shortage` plus the matching open ADC stockout signal; controlled morphine with partial waste; a delivered dose refused per the warehouse record and returned to the cabinet; IV-room batch preps with `batch_ref` + BUD on `prod.rx_preps` (including a TPN batch on the `unmapped_local` formulary item).
+- [x] Sepsis clocks are tied to REAL demo ED encounters through the shared `clinicalContext('ed')` seam (order `patient_ref`/`ed_visit_id` come from live `prod.ed_visits` rows) and both discharge medication rows resolve through the shared L-14 `DischargePrioritiesService` visible-cohort seam (`clinicalContext('discharge')`), then land as `prod.rx_discharge_queue` pipeline rows (`ready` and `prior_auth_pending`, the latter discharge-blocking on a live order).
+- [x] Administration facts travel the X-4 canonical path as a synthetic warehouse batch (`import_batch_key` = one MAR extract, `source_cutoff_at` = anchor − 300 minutes, `administration_source_class` = `bcma_warehouse`, every `administered_at` ≤ cutoff) via the demo `clinical_warehouse` source, so admin-derived metrics classify honestly as `batch` through `PharmacyAdministrationFreshnessService` while ADC/IV-room dispense events stay current-real-time by contrast; the refused dose is an administration-record satellite fact that asserts no milestone and never moves the order status.
+- [x] IVWMS-absent degraded branch: one iv_room order jumps `RX_VERIFIED` → `RX_DISPENSED` with no `RX_PREP_*` milestones and no `rx_preps` rows, giving X-8's degraded view structural data; one deterministic source-precedence conflict has pharmacy (primary) and ADC (secondary) both asserting `RX_DISPENSED` with the catalog precedence selecting pharmacy (`assertion_count` = 2 retained).
+- [x] SLA clocks are exercised with mathematically valid states at the frozen anchor: OPEN breaches for a STAT dispense overdue (25 ≥ 15 min) and a sepsis antibiotic overdue (190 ≥ 180 min); CLEARED breaches for a STAT ED vend (30 min), two first doses (80 and 65 min), and a warehouse-cleared sepsis clock (200 min); one sepsis order sits at-risk in the warning band (165 of 180 min); the on-time STAT vend (8 min, ordered inside the threshold window) carries no breach — timings deliberately respect the `cleared_at >= breached_at` schema guard.
+- [x] Extended the §11.4 ancillary invariant family with eight Pharmacy findings in `DemoInvariantService`: `pharmacy_satellites_owned_and_linked` (no orphan rx/adc/discharge rows, exact-owner parents), `pharmacy_milestones_are_order_path_codes` (overrides/discrepancies never on the order ledger), `pharmacy_adc_rows_owned_and_scoped` (stations/transactions resolve to live units), `single_open_breach_per_clock` (one open breach per order/SLA, global), `pharmacy_discharge_meds_reference_live_candidates` (current discharge candidate + live discharge-clock order), `pharmacy_administrations_cutoff_qualified` (batch identity + cutoff strictly earlier than the anchor), `pharmacy_sepsis_ed_context_valid` (real ED visit, same patient), and the `pharmacy_distribution_plausible` warning (surge ≥ 5 in the 09:00–11:00 local window, dip < surge, exactly one stockout station, ≥ 1 shortage/degraded/conflict).
+- [x] Refresh is idempotent and owner-safe: two same-anchor refreshes converge byte-for-byte on the summary and semantic snapshots with zero canonical-event or provenance growth (owner-replacement via the L-14 `CanonicalEventWriter` machinery); station-scope facts that do not cascade from the order reset (owned `adc_transactions`, operational-event provenance, per-medication `open_stockouts` station state) are cleared before replay; non-owned stations/transactions are never touched.
 
 **Acceptance:**
 
-- Fixed-seed distribution and coherence tests pass.
-- Discharge candidates, ED boarders, units/stations, and medication orders all resolve.
-- Admin freshness and degraded prep branches are exercised.
-- Refresh is idempotent and owner-safe.
+- [x] Fixed-seed distribution and coherence tests pass in `PharmacyDemoGeneratorTest` (counts per scenario class: 24 orders, 105 milestones, 8 operational events, 24 verifications, 4 preps, 12 dispenses, 4 administrations, 3 stations, 15 ADC transactions, 2 discharge rows, 1 stockout station, 6 breach rows; surge window shape 6-in-band vs 2 dip).
+- [x] Discharge candidates (both `rx_discharge_queue` encounters inside the rendered `DischargePrioritiesService` tiers), ED boarders (all three sepsis clocks join live `prod.ed_visits` rows with matching `patient_ref`), units/stations (every owned transaction and station resolves to a live `prod.units` row), and medication orders (24/24 project through `PharmacyOrderProjector`) all resolve.
+- [x] Admin freshness is exercised end-to-end: the batch cutoff sits 300 minutes before the anchor, `PharmacyAdministrationFreshnessService::overallEnvelope` classifies `batch` at the anchor (never `fresh`) and demotes to `stale` beyond the cadence tolerance; the degraded IVWMS-absent branch is asserted structurally (dispense milestone, zero prep milestones, zero prep rows).
+- [x] Refresh is idempotent and owner-safe: two refreshes yield identical results and semantic snapshots, no duplicate canonical events (336 exactly), and foreign stations/transactions with null owner survive untouched; the cross-suite `AncillaryDemoScenarioTest` re-proves collision fail-closed and advancing-anchor key movement at the new totals (66 orders, 328 milestones).
+- [x] The full invariant gate passes with ZERO critical failures: the demo refresh + validation path now evaluates 28 ancillary findings (20 prior + 8 Pharmacy) and `zephyrus:demo-refresh --validate` still publishes only on a clean gate.
 
 #### [ ] X-6 — Implement Medication Flow Board at /pharmacy
 

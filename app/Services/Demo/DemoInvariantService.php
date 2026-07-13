@@ -510,6 +510,155 @@ final class DemoInvariantService
             '5 AM results, median 35-50 min, 1 downtime reroute',
             'fixed-anchor Laboratory flow should retain a plausible AM wave and one explicit analyzer degradation branch');
 
+        $invalidPharmacySatellites = $this->scalar(
+            "SELECT
+                (SELECT count(*) FROM prod.rx_orders x LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+                 WHERE x.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ? OR o.department <> 'rx'))
+              + (SELECT count(*) FROM prod.rx_verifications v LEFT JOIN prod.rx_orders x ON x.rx_order_id = v.rx_order_id
+                 WHERE v.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_preps p LEFT JOIN prod.rx_orders x ON x.rx_order_id = p.rx_order_id
+                 WHERE p.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_dispenses d LEFT JOIN prod.rx_orders x ON x.rx_order_id = d.rx_order_id
+                 WHERE d.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_administrations a LEFT JOIN prod.rx_orders x ON x.rx_order_id = a.rx_order_id
+                 WHERE a.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_discharge_queue q LEFT JOIN prod.rx_orders x ON x.rx_order_id = q.rx_order_id
+                 WHERE q.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))",
+            [$owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_satellites_owned_and_linked', 'ancillary', 'critical',
+            $invalidPharmacySatellites === 0, "{$invalidPharmacySatellites} invalid Pharmacy satellites", '0',
+            'owned medication orders, verifications, preps, dispenses, administrations, and discharge rows must resolve to exact-owner rx parents');
+
+        $invalidPharmacyMilestones = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             WHERE o.demo_owner = ? AND o.department = 'rx'
+               AND m.milestone_code NOT IN (
+                 'RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_PREP_STARTED', 'RX_PREP_COMPLETE',
+                 'RX_CHECKED', 'RX_DISPENSED', 'RX_DELIVERED', 'RX_ADMINISTERED', 'RX_MISSING_DOSE',
+                 'RX_RETURNED', 'RX_WASTED', 'RX_DISCONTINUED')",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_milestones_are_order_path_codes', 'ancillary', 'critical',
+            $invalidPharmacyMilestones === 0, "{$invalidPharmacyMilestones} station-analytics codes on the order ledger", '0',
+            'overrides and controlled discrepancies are station/unit analytics only and never appear as demo order milestones');
+
+        $invalidAdcRows = $this->scalar(
+            'SELECT
+                (SELECT count(*) FROM prod.adc_transactions t
+                 LEFT JOIN prod.adc_stations s ON s.adc_station_id = t.adc_station_id
+                 LEFT JOIN prod.units u ON u.unit_id = t.unit_id
+                 WHERE t.demo_owner = ? AND (s.adc_station_id IS NULL OR s.demo_owner IS DISTINCT FROM ?
+                   OR u.unit_id IS NULL OR u.is_deleted = true))
+              + (SELECT count(*) FROM prod.adc_stations s LEFT JOIN prod.units u ON u.unit_id = s.unit_id
+                 WHERE s.demo_owner = ? AND (u.unit_id IS NULL OR u.is_deleted = true))',
+            [$owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_adc_rows_owned_and_scoped', 'ancillary', 'critical',
+            $invalidAdcRows === 0, "{$invalidAdcRows} invalid ADC rows", '0',
+            'owned ADC transactions must resolve to exact-owner stations and every owned station/transaction must map to a live hospital unit');
+
+        $duplicateOpenBreaches = $this->scalar(
+            "SELECT count(*) FROM (
+                SELECT 1 FROM prod.ancillary_breaches
+                WHERE status = 'open'
+                GROUP BY ancillary_order_id, ancillary_sla_definition_id
+                HAVING count(*) > 1
+             ) duplicates",
+            [],
+        );
+        $out[] = $this->finding('ancillary.single_open_breach_per_clock', 'ancillary', 'critical',
+            $duplicateOpenBreaches === 0, "{$duplicateOpenBreaches} duplicated open clocks", '0',
+            'at most one open breach may exist per order and SLA definition');
+
+        $invalidDischargeMeds = $this->scalar(
+            "SELECT count(*) FROM prod.rx_discharge_queue q
+             JOIN prod.rx_orders x ON x.rx_order_id = q.rx_order_id
+             LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+             LEFT JOIN prod.encounters e ON e.encounter_id = q.encounter_id
+             WHERE q.demo_owner = ?
+               AND (o.ancillary_order_id IS NULL OR o.terminal_at IS NOT NULL OR x.clock_class <> 'discharge'
+                 OR e.encounter_id IS NULL OR e.status <> 'active' OR e.discharged_at IS NOT NULL
+                 OR e.expected_discharge_date IS NULL OR e.is_deleted = true)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_discharge_meds_reference_live_candidates', 'ancillary', 'critical',
+            $invalidDischargeMeds === 0, "{$invalidDischargeMeds} invalid discharge medication rows", '0',
+            'every discharge medication row must reference a current discharge candidate and a live discharge-clock order');
+
+        $invalidAdministrations = $this->scalar(
+            "SELECT count(*) FROM prod.rx_administrations a
+             JOIN integration.sources s ON s.source_id = a.source_id
+             WHERE a.demo_owner = ?
+               AND (a.source_cutoff_at IS NULL OR length(btrim(a.import_batch_key)) = 0
+                 OR a.administered_at > a.source_cutoff_at
+                 OR a.source_cutoff_at >= ?::timestamp
+                 OR (a.administration_source_class = 'bcma_warehouse' AND s.system_class <> 'clinical_warehouse'))",
+            [$owner, $anchor],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_administrations_cutoff_qualified', 'ancillary', 'critical',
+            $invalidAdministrations === 0, "{$invalidAdministrations} administrations without an honest cutoff", '0',
+            'every administration fact must carry a warehouse batch identity and a source cutoff strictly earlier than the anchor');
+
+        $invalidSepsisContexts = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             LEFT JOIN prod.ed_visits v ON v.ed_visit_id = NULLIF(o.metadata->>'ed_visit_id', '')::bigint
+             WHERE o.demo_owner = ? AND o.department = 'rx' AND o.priority = 'sepsis'
+               AND (v.ed_visit_id IS NULL OR v.is_deleted = true OR v.patient_ref IS DISTINCT FROM o.patient_ref)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_sepsis_ed_context_valid', 'ancillary', 'critical',
+            $invalidSepsisContexts === 0, "{$invalidSepsisContexts} invalid sepsis ED contexts", '0',
+            'every sepsis medication clock must reference a real non-deleted ED visit for the same patient');
+
+        $pharmacyDistribution = DB::selectOne(
+            "SELECT
+                (SELECT count(*) FROM prod.ancillary_milestones m
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND m.milestone_code = 'RX_QUEUE_IN'
+                   AND o.metadata->>'demo_shift' = 'verify_surge'
+                   AND EXTRACT(HOUR FROM m.occurred_at AT TIME ZONE ?) BETWEEN 9 AND 10) AS surge,
+                (SELECT count(*) FROM prod.ancillary_milestones m
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND m.milestone_code = 'RX_QUEUE_IN'
+                   AND o.metadata->>'demo_shift' = 'shift_boundary_dip') AS dip,
+                (SELECT count(*) FROM prod.adc_stations
+                 WHERE demo_owner = ?
+                   AND coalesce(metadata->'open_stockouts', '{}'::jsonb) NOT IN ('{}'::jsonb, '[]'::jsonb)) AS stockouts,
+                (SELECT count(*) FROM prod.rx_orders WHERE demo_owner = ? AND on_shortage = true) AS shortages,
+                (SELECT count(*) FROM prod.ancillary_orders o
+                 WHERE o.demo_owner = ? AND o.department = 'rx'
+                   AND EXISTS (SELECT 1 FROM prod.rx_orders x WHERE x.ancillary_order_id = o.ancillary_order_id AND x.preparation_branch = 'iv_room')
+                   AND EXISTS (SELECT 1 FROM prod.ancillary_milestones d WHERE d.ancillary_order_id = o.ancillary_order_id AND d.milestone_code = 'RX_DISPENSED')
+                   AND NOT EXISTS (SELECT 1 FROM prod.ancillary_milestones p WHERE p.ancillary_order_id = o.ancillary_order_id
+                     AND p.milestone_code IN ('RX_PREP_STARTED', 'RX_PREP_COMPLETE', 'RX_CHECKED'))) AS degraded,
+                (SELECT count(*) FROM prod.ancillary_current_assertions v
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = v.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND v.assertion_count > 1) AS conflicts",
+            [$owner, (string) config('app.timezone', 'UTC'), $owner, $owner, $owner, $owner, $owner],
+        );
+        $pharmacyDistributionValid = (int) ($pharmacyDistribution->surge ?? 0) >= 5
+            && (int) ($pharmacyDistribution->dip ?? 0) >= 1
+            && (int) ($pharmacyDistribution->dip ?? 0) < (int) ($pharmacyDistribution->surge ?? 0)
+            && (int) ($pharmacyDistribution->stockouts ?? 0) === 1
+            && (int) ($pharmacyDistribution->shortages ?? 0) >= 1
+            && (int) ($pharmacyDistribution->degraded ?? 0) >= 1
+            && (int) ($pharmacyDistribution->conflicts ?? 0) >= 1;
+        $out[] = $this->finding('ancillary.pharmacy_distribution_plausible', 'ancillary', 'warning',
+            $pharmacyDistributionValid,
+            sprintf(
+                '%d surge queue-ins (09:00-11:00); %d dip; %d stockout stations; %d shortages; %d degraded IVWMS branches; %d source conflicts',
+                (int) ($pharmacyDistribution->surge ?? 0),
+                (int) ($pharmacyDistribution->dip ?? 0),
+                (int) ($pharmacyDistribution->stockouts ?? 0),
+                (int) ($pharmacyDistribution->shortages ?? 0),
+                (int) ($pharmacyDistribution->degraded ?? 0),
+                (int) ($pharmacyDistribution->conflicts ?? 0),
+            ),
+            'surge >= 5, 1 <= dip < surge, exactly 1 stockout station, >= 1 shortage, >= 1 degraded branch, >= 1 conflict',
+            'fixed-anchor Pharmacy flow should retain the 09:00-11:00 verification surge shape, a sparse shift-boundary dip, and one deterministic stockout/shortage/degraded/conflict scenario each');
+
         return $out;
     }
 

@@ -35,6 +35,19 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
     /** @return list<array<string, mixed>> */
     abstract protected function scenarios(DemoClock $clock): array;
 
+    /**
+     * Non-milestone canonical events the department contributes to the same
+     * governed write path (station-scope ADC transactions, non-given
+     * administration records). Written after the milestone scenarios inside
+     * the same refresh transaction with the same owner-replacement machinery.
+     *
+     * @return list<array{source: string, event: CanonicalOperationalEvent}>
+     */
+    protected function operationalEvents(DemoClock $clock, string $owner): array
+    {
+        return [];
+    }
+
     public function preview(DemoClock $clock): array
     {
         $scenarios = $this->scenarios($clock);
@@ -76,12 +89,23 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 }
             }
 
+            $operational = 0;
+            foreach ($this->operationalEvents($clock, $owner) as $entry) {
+                $source = $sources[$entry['source'] ?? 'secondary'];
+                $canonical = $entry['event'];
+                $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
+                $this->projector->project($canonical->withEventId($record->event_id));
+                $record->update(['projection_status' => 'projected', 'projected_at' => now()]);
+                $operational++;
+            }
+
             $orders = AncillaryOrder::query()->where('demo_owner', $owner)->where('department', $this->department())->count();
 
             return [
                 'department' => $this->department(),
                 'orders' => $orders,
                 'milestones' => $events,
+                'operationalEvents' => $operational,
                 'breaches' => DB::table('prod.ancillary_breaches as b')
                     ->join('prod.ancillary_orders as o', 'o.ancillary_order_id', '=', 'b.ancillary_order_id')
                     ->where('o.demo_owner', $owner)
@@ -180,6 +204,8 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 ->whereIn('target_table', [
                     'ancillary_milestones', 'rad_reads', 'rad_critical_results',
                     'lab_specimens', 'lab_results', 'lab_critical_values',
+                    'rx_orders', 'rx_verifications', 'rx_dispenses',
+                    'rx_administrations', 'adc_transactions',
                 ])
                 ->whereIn('canonical_event_id', $canonicalIds)
                 ->delete();
@@ -291,6 +317,7 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'or_case_id' => $scenario['metadata']['or_case_id'] ?? null,
             ...$this->radiologyEventPayload($scenario, $event, $occurredAt, $identity),
             ...$this->laboratoryEventPayload($scenario, $event, $occurredAt, $context),
+            ...$this->pharmacyEventPayload($scenario, $event, $occurredAt),
             'source_timestamp_valid' => true,
         ], fn (mixed $value): bool => $value !== null && $value !== '');
 
@@ -503,6 +530,52 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             'analyzer_downtime_started_at' => $event['analyzer_downtime_started_at'] ?? $scenario['metadata']['analyzer_downtime_started_at'] ?? null,
             'analyzer_expected_restore_at' => $event['analyzer_expected_restore_at'] ?? $scenario['metadata']['analyzer_expected_restore_at'] ?? null,
             'operational_window' => $scenario['metadata']['operational_window'] ?? 'current',
+        ], fn (mixed $value): bool => $value !== null && $value !== '');
+    }
+
+    /** @param array<string, mixed> $scenario @param array<string, mixed> $event @return array<string, mixed> */
+    private function pharmacyEventPayload(array $scenario, array $event, mixed $occurredAt): array
+    {
+        if ($this->department() !== 'rx') {
+            return [];
+        }
+
+        $code = (string) $event['code'];
+        $allowed = [
+            'local_code', 'rxnorm_cui', 'ndc_code', 'medication_label', 'dosage_form',
+            'clock_class', 'due_at', 'order_change', 'modified_at', 'discontinued_at',
+            'queue_state', 'queue_ref', 'source_verification_key', 'queued_at', 'verified_at',
+            'removed_at', 'removal_reason',
+            'source_dispense_key', 'dispense_channel', 'dispensed_at',
+            'source_transaction_key', 'transaction_type', 'station_key', 'station_unit',
+            'station_label', 'station_type', 'station_is_profiled', 'station_controlled_capable',
+            'quantity', 'is_controlled', 'discrepancy_key', 'stockout_state',
+            'source_administration_key', 'source_row_version', 'import_batch_key',
+            'administration_source_class', 'administration_status', 'administration_route',
+            'administered_at', 'source_cutoff_at',
+            'administration_local_code', 'administration_ndc_code', 'administration_rxnorm_cui',
+            'administration_medication_label',
+        ];
+        $attributes = array_intersect_key($event, array_flip($allowed));
+
+        return array_filter([
+            ...$attributes,
+            'local_code' => $event['local_code'] ?? $scenario['metadata']['local_code'] ?? null,
+            'medication_label' => $event['medication_label'] ?? $scenario['metadata']['medication_label'] ?? null,
+            'clock_class' => $event['clock_class'] ?? $scenario['metadata']['clock_class'] ?? null,
+            'dosage_form' => $event['dosage_form'] ?? $scenario['metadata']['dosage_form'] ?? null,
+            'queue_state' => match ($code) {
+                'RX_QUEUE_IN' => 'entered',
+                'RX_VERIFIED' => 'verified',
+                default => $event['queue_state'] ?? null,
+            },
+            'source_verification_key' => in_array($code, ['RX_QUEUE_IN', 'RX_VERIFIED'], true)
+                ? ($event['source_verification_key'] ?? $scenario['metadata']['source_verification_key'] ?? null)
+                : ($event['source_verification_key'] ?? null),
+            'queued_at' => $code === 'RX_QUEUE_IN' ? $occurredAt->toIso8601String() : ($event['queued_at'] ?? null),
+            'verified_at' => $code === 'RX_VERIFIED' ? $occurredAt->toIso8601String() : ($event['verified_at'] ?? null),
+            'dispensed_at' => $code === 'RX_DISPENSED' ? $occurredAt->toIso8601String() : ($event['dispensed_at'] ?? null),
+            'administered_at' => $code === 'RX_ADMINISTERED' ? $occurredAt->toIso8601String() : ($event['administered_at'] ?? null),
         ], fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
