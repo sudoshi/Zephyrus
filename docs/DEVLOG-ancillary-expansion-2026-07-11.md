@@ -1656,3 +1656,29 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-5 completes 44 of 60 implementation tasks. X-6 is next and will render the Medication Flow Board at /pharmacy on this cohort.
+
+## 2026-07-13 — X-6 Implement Medication Flow Board at /pharmacy
+
+### Outcome
+
+The Pharmacy phase gets its front door: `/pharmacy` renders the Medication Flow Board on the X-5 cohort through `PharmacyFlowBoardService`, which owns every filter, aggregate, clock state, and freshness qualification server-side per §5.1 — React parses a strict Zod contract and never recomputes authoritative status. The board carries verification queue depth/oldest/median with a four-bucket age distribution over open `rx_verifications` (the application clock is bound into SQL rather than trusting PG `now()`), STAT flags with compliance computed against the ACTIVE `rx.stat_dispense` definition threshold rather than a hard-coded 15, a per-clock-class breach summary (stat/first_dose/sepsis) that reads open/cleared breach FACTS from `prod.ancillary_breaches` joined to their definitions and computes open warnings from the same thresholds while excluding orders already carrying an open breach row, a formulary-driven preparation-branch breakdown (`rx_orders.preparation_branch`, never order-metadata route keys — the demo's central-routed ondansetron conflict order counts as ADC by formulary), and the IVWMS-absent degraded branch (iv_room with neither prep rows nor a prep milestone) whose interior stays a coarse clock, never a fabricated zero.
+
+The honesty split is the defensible piece. `segments.orderToDispense` (median/P90 over selected RX_ORDERED→RX_DISPENSED assertions) renders as basis `real_time` under the order-feed envelope, while `segments.dispenseToAdmin` renders as basis `as_of_cutoff` under the `PharmacyAdministrationFreshnessService` overall envelope with the batch cutoff on the label — and the tail structurally cannot claim real-time: a service clamp demotes any future `fresh` classification to `batch` on this board, and the Zod contract refuses to parse a tail whose freshness claims `fresh`. Sepsis timers tie to `rx.sepsis_abx` with real-time milestone segments plus a strictly as-of administration segment: `administered_as_of` (observed time + cutoff), `no_evidence_as_of_cutoff` (explicitly "not a failure claim"), or `unknown` when the warehouse tail is stale — neither success nor failure, proven by shrinking the cadence tolerance in tests and asserting every evidence-less timer and admin-tail clock class demotes to `unknown` with null openWarnings while recorded breaches stay visible as historical facts and the real-time stat clock is untouched.
+
+Mutation and privacy follow the governed rails. `PharmacyBarrierService` mirrors LabBarrierService onto department rx: policy-checked (`manageAncillaryBarriers`), reference-coded against active rx barrier reasons, audited as `ancillary.barrier.opened`, and linking open `ancillary_breaches` to the new barrier — the test writes a barrier onto the overdue STAT order and proves the open breach row picks up the barrier_id and the pareto surfaces the reason. The contract carries medication label and operational fields only, pseudonymous patient/encounter refs with `viewAncillaryPatientDetail` redaction, and a privacy block asserting no direct identifiers, no dose instructions, and no individual performance; a recursive key scan over the full payload forbids user/staff/pharmacist/nurse/verifier/technician/employee/badge/actor fragments so `verifier_ref` can never leak past the query boundary. Routes land exactly where L-5 landed Laboratory's: Inertia `/pharmacy` in the authenticated web group and GET `/api/pharmacy/flow-board` + POST `/api/pharmacy/barriers` in an authenticated throttled `api.pharmacy.` group; full navigation/domain registration stays with X-13. `Pages/Pharmacy/FlowBoard.tsx` refetches the same endpoint on a 30-second TanStack Query cadence, keeps PageContentLayout as the gutter owner with healthcare tokens and tabular-nums, renders every status with icon + label from server-provided classes, and stays reduced-motion-safe and keyboard-navigable.
+
+### Verification
+
+```text
+Laravel Pint over 9 dirty X-6 files: PASS
+Focused PharmacyFlowBoardTest: 6 tests, 6,325 assertions, PASS
+Pharmacy filter regression (--filter=Pharmacy): 38 tests, 6,787 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 245 tests, 10,055 assertions, PASS
+npx tsc --noEmit: PASS
+npx vite build: PASS
+Focused vitest (tests/js/pharmacy/FlowBoard.test.tsx): 6 tests, PASS
+scripts/check-ui-canon.sh: PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. X-6 completes 45 of 60 implementation tasks. X-7 is next and will build Discharge Medication Readiness and complete the RTDC readiness vector.

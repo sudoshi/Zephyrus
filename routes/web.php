@@ -14,6 +14,7 @@ use App\Http\Controllers\Integrations\IntegrationConsoleController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Ops\OpsConsoleController;
+use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
@@ -92,6 +93,10 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/pending-decisions', [LabController::class, 'pendingDecisions'])->name('pending-decisions');
             Route::get('/blood-bank', [LabController::class, 'bloodBank'])->name('blood-bank');
             Route::get('/anatomic-path', [LabController::class, 'anatomicPathology'])->name('anatomic-path');
+        });
+
+        Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+            Route::get('/', [PharmacyController::class, 'index'])->name('flow-board');
         });
 
         // Improvement Routes

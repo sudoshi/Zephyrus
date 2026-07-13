@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyFlowBoardController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\Radiology\RadiologyFlowBoardController;
 use App\Http\Controllers\Api\RoomController;
@@ -294,6 +295,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.la
     Route::get('/anatomic-path', [LabFlowBoardController::class, 'anatomicPathology'])->name('anatomic-path');
     Route::get('/tat', [LabFlowBoardController::class, 'tat'])->name('tat');
     Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('pharmacy')->name('api.pharmacy.')->group(function () {
+    Route::get('/flow-board', [PharmacyFlowBoardController::class, 'show'])->name('flow-board');
+    Route::post('/barriers', [PharmacyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 
 // Transport command center (web session auth)

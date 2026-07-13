@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-5 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-6 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 44 of 60 tasks complete; 16 remain |
+| Progress | 45 of 60 tasks complete; 15 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2011,24 +2011,29 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Refresh is idempotent and owner-safe: two refreshes yield identical results and semantic snapshots, no duplicate canonical events (336 exactly), and foreign stations/transactions with null owner survive untouched; the cross-suite `AncillaryDemoScenarioTest` re-proves collision fail-closed and advancing-anchor key movement at the new totals (66 orders, 328 milestones).
 - [x] The full invariant gate passes with ZERO critical failures: the demo refresh + validation path now evaluates 28 ancillary findings (20 prior + 8 Pharmacy) and `zephyrus:demo-refresh --validate` still publishes only on a clean gate.
 
-#### [ ] X-6 — Implement Medication Flow Board at /pharmacy
+#### [x] X-6 — Implement Medication Flow Board at /pharmacy
 
 **Depends on:** X-1 through X-5, P0-10
 **Primary files:** PharmacyFlowBoardService; controller/API; Pages/Pharmacy/FlowBoard.tsx
 
 **Work:**
 
-- Render verification queue depth/age, STAT flags, first-dose clocks, sepsis timer segments, breach summary, preparation branch, source freshness, and barrier actions.
-- Show real-time order-to-dispense separately from warehouse-qualified dispense-to-admin tail.
-- Add lenses for priority, unit, branch, shortage, discharge, sepsis, status, and degraded feed.
-- Keep clinical content/dose detail to minimum necessary operational fields.
+- [x] `PharmacyFlowBoardService` owns the whole board server-side per §5.1 (React never recomputes authoritative status): verification queue depth/oldest/median plus a four-bucket age distribution over open `rx_verifications` (the application clock is bound into SQL — never PG `now()` against a frozen test clock), STAT flags with definition-driven compliance (the `rx.stat_dispense` breach threshold is read from the active definition, never hard-coded), summary counts on the governed status rank (open, shortage, discharge, controlled, degraded), and a per-clock-class breach summary for stat/first_dose/sepsis tied to their §8 definitions: open/cleared breach facts from `prod.ancillary_breaches` joined to `prod.ancillary_sla_definitions`, computed open warnings against the same definition thresholds excluding orders already carrying an open breach row, oldest open-breach age, and a server-computed state (breach/warning/normal/unknown) with explanation.
+- [x] Real-time order-to-dispense renders separately from the warehouse-qualified dispense-to-admin tail: `segments.orderToDispense` (median/P90 over selected `RX_ORDERED`→`RX_DISPENSED` current assertions, basis `real_time`, order-feed freshness) versus `segments.dispenseToAdmin` (current-version `given` `rx_administrations` after the selected dispense assertion, basis `as_of_cutoff`, ALWAYS carrying the `PharmacyAdministrationFreshnessService` overall envelope plus its cutoff) — a service clamp demotes any future `fresh` classification to `batch` on this board and the Zod contract refuses to parse a tail claiming `fresh`, so the administration tail structurally can never render as real-time.
+- [x] Sepsis timer segments tie to `rx.sepsis_abx`: per-order real-time segments (ordered/verified/dispensed/delivered from current assertions) plus a strictly as-of administration segment — `administered_as_of` with the observed time and batch cutoff, `no_evidence_as_of_cutoff` explicitly "not a failure claim", or `unknown` when the tail is stale (neither success nor failure) — with timer state derived from recorded breach facts and definition thresholds (complete/breached/warning/running/unknown), never from React-side minute math.
+- [x] Preparation-branch breakdown consumes formulary-driven `rx_orders.preparation_branch` (adc/iv_room/central/unknown — never order-metadata route keys; the demo's central-routed ondansetron conflict order counts as ADC by formulary) with per-branch total/open/degraded counts and an IVWMS coverage block: the degraded branch is an iv_room order with neither `rx_preps` rows nor an `RX_PREP_STARTED` milestone, and its verify-to-dispense interior stays a coarse clock, never a fabricated zero.
+- [x] Lenses and server-side filters per §5.1: lens ∈ all/stat/first_dose/sepsis/shortage/discharge/degraded plus clockClass (priority), preparation branch, order status, unit, and the allowlisted drill `source`; the §9 envelope carries `data`, `filters`, `filterOptions`, `generatedAt`, `sourceCutoffAt`, `freshnessStatus`, `degradedMode`, and `appliedSlaDefinitions`, and the board state machine renders source_error/no_data/stale/degraded/normal distinctly (order-feed freshness and the administration tail envelope are separate contract fields).
+- [x] Barrier actions reuse the governed pattern: `PharmacyBarrierService` (LabBarrierService mirrored to department rx) opens a policy-checked (`manageAncillaryBarriers`), reference-coded (active `hosp_ref.ancillary_barrier_reasons` rx codes only), audited (`ancillary.barrier.opened`) barrier on the encounter-linked order and links open `ancillary_breaches` rows to it; no source-system writeback anywhere.
+- [x] Clinical content stays minimal: medication label plus operational fields only (clock class, branch, status, shortage/controlled flags, current stage, ages) with pseudonymous patient/encounter display refs and `viewAncillaryPatientDetail` redaction; the contract's privacy block asserts no direct identifiers, no dose instructions, and no individual performance dimension.
+- [x] Routes land exactly where L-5 landed Laboratory's: Inertia `/pharmacy` (`pharmacy.flow-board` → `PharmacyController`) inside the authenticated web group, and GET `/api/pharmacy/flow-board` + POST `/api/pharmacy/barriers` in an authenticated, throttled `api.pharmacy.` group (full navigation/domain registration remains X-13).
+- [x] `Pages/Pharmacy/FlowBoard.tsx` (+ `BarrierAnnotationDrawer`) parses the strict Zod contract, refetches the same endpoint through TanStack Query every 30 s, keeps PageContentLayout as gutter owner with healthcare-* tokens + dark pairs and tabular-nums metrics, renders every status with icon + label (never color alone) from server-provided classes, labels the warehouse tail with `SourceFreshnessBadge`, and stays reduced-motion-safe and keyboard-navigable.
 
 **Acceptance:**
 
-- Queue metrics and clock segments pass fixed-fixture tests.
-- Sepsis display cannot imply a current administration when warehouse data is stale.
-- Empty/stale/degraded/error and barrier states are tested.
-- No pharmacist/user performance scoring appears.
+- [x] Queue metrics and clock segments pass fixed-fixture tests over the deterministic X-5 cohort: queue depth 3 / oldest 237 / median 224 with all three in the 60+ bucket; stat 1 open + 1 cleared breach, first_dose 2 cleared, sepsis 1 open + 1 computed warning + 1 cleared; orderToDispense n=11 median 40 / p90 105 versus dispenseToAdmin n=3 median 25 / p90 149 at the 09:00Z cutoff; branch split 17/5/2 with exactly one degraded IVWMS-absent order; and lens/filter cohorts (sepsis 3, shortage 1, central 2, degraded 1, clockClass stat 3).
+- [x] Sepsis display cannot imply a current administration when warehouse data is stale: shrinking the cadence tolerance demotes the tail to `stale`, every evidence-less sepsis timer and its admin segment renders `unknown` ("neither a success nor a failure claim") with the cutoff retained, admin-tail clock classes render `unknown` with null openWarnings while recorded breach counts stay visible as facts and the real-time stat clock is untouched, and the warehouse-recorded administration stays an as-of fact — asserted at service level, plus the Zod contract refusal and a component test for any tail claiming `fresh`.
+- [x] Empty/stale/degraded/error and barrier states are tested: PHPUnit covers no_data/stale/source_error/degraded, the audited barrier write with open-breach linking and pareto surfacing, RBAC redaction (patient refs withheld from frontline), filter validation 422s, and route-auth 401; vitest covers the rendered baseline, stale-tail unknown rendering, the governed drawer, provenance-preserving lenses, and the intentional empty contract.
+- [x] No pharmacist/user performance scoring appears: a recursive contract-key scan forbids user/staff/pharmacist/nurse/verifier/technician/employee/badge/performed_by/actor fragments across the entire payload, and `privacy.individualPerformanceIncluded` is asserted false (`rx_verifications.verifier_ref` never crosses the query boundary).
 
 #### [ ] X-7 — Implement Discharge Medication Readiness and complete the RTDC vector
 
