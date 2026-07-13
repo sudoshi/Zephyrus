@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-14 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 39 of 60 tasks complete; 21 remain |
+| Progress | 40 of 60 tasks complete; 20 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1865,25 +1865,39 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 
 ### Phase 3 — Inpatient Pharmacy
 
-#### [ ] X-1 — Create Pharmacy, ADC, administration, and discharge satellites
+#### [x] X-1 — Create Pharmacy, ADC, administration, and discharge satellites
 
 **Depends on:** P0 complete
 **Primary files:** Pharmacy migration; app/Models/Pharmacy/**; factories; reference seeder
 
 **Work:**
 
-- Create rx_orders with RxNorm, NDC, priority/clock class, preparation branch, controlled/hazardous/shortage flags, and ancillary_order_id.
-- Create rx_verifications, rx_preps, rx_dispenses, rx_administrations, adc_stations, adc_transactions, and rx_discharge_queue.
-- Store administration source cutoff/as-of and import batch identity.
-- Model discharge status transitions as a governed status field/history or milestones; do not rely on display text.
-- Add source-scoped natural keys, order linkage indexes, station/unit rollup indexes, and discharge candidate indexes.
+- [x] Add `hosp_ref.rx_formulary` with deterministic UUID/key identity, local code, optional RxNorm CUI and NDC, governed terminology status, therapeutic class, dosage form/route, default preparation branch, controlled schedule, hazardous/high-alert flags, active/effective interval, and object-shaped metadata.
+- [x] Seed nine governed formulary entries — sepsis/STAT antibiotic, IV-batch vancomycin, routine ADC oral analgesic, first-dose antiemetic, Schedule II opioid, hazardous antineoplastic, unmapped local TPN admixture, discharge anticoagulant, and high-alert heparin infusion — with stable UUIDv5 identifiers and idempotent replay.
+- [x] Add `prod.rx_orders` one-to-one on the shared pharmacy ancillary order with source-scoped natural key, encounter lineage, formulary reference, RxNorm/NDC/terminology snapshot, governed clock class (`stat`, `first_dose`, `sepsis`, `routine`, `timed`, `discharge`), governed preparation branch (`adc`, `iv_room`, `central`, `unknown`), controlled/hazardous/shortage flags, held/discontinued/cancelled status evidence, timed-dose due time, demo ownership, and object metadata.
+- [x] Constrain RxNorm/NDC nullability to the explicit `unmapped_local` terminology state on both formulary and orders: a `mapped` row must carry at least one code and an unmapped row must carry none.
+- [x] Add `prod.rx_verifications` with queue reference, governed queued/verified/removed/rejected states, monotonic queue/verify/remove timestamps, state evidence checks, and an open-queue partial index.
+- [x] Add `prod.rx_preps` with governed prep types (`iv_batch`, `chemo`, `tpn`, `compound`, `repack`, `other`), IV-room/central branch, batch reference, BUD expiry ordering, pending/in-progress/complete/checked/cancelled evidence checks, and active-work/batch indexes.
+- [x] Add `prod.rx_dispenses` with governed channel (`adc`, `iv_room`, `central`, `robot`, `other`), mandatory ADC station identity on ADC vends, delivery/return/cancellation evidence, and a pending-delivery partial index.
+- [x] Add `prod.rx_administrations` requiring NOT NULL administered time, source cutoff/as-of, and non-blank import batch identity; an administration cannot postdate its cutoff, and versioned source-row identity lets corrected warehouse rows append without rewriting history.
+- [x] Add `prod.adc_stations` with source identity, unit rollup linkage, governed station type and operational status, and profiled/controlled-capable flags.
+- [x] Add `prod.adc_transactions` check-constrained to `vend`, `refill`, `return`, `waste`, `override`, `discrepancy_open`, `discrepancy_resolved`, and `stockout`; unlinked overrides stay station/unit-level, discrepancies must carry a pairing key, and no actor, staff, user, or risk-score column exists.
+- [x] Add `prod.rx_discharge_queue` one-to-one on discharge-clock orders with the governed pipeline status vocabulary (`not_started`, `prior_auth_pending`, `verification`, `filling`, `ready`, `delivered`, `unknown`), per-state history timestamps in the established satellite style, planned-discharge target, and delivered/ready evidence and ordering checks.
+- [x] Add projection guards requiring `rx_orders` to attach only to department-`rx` shared orders with matching encounter and `rx_discharge_queue` to attach only to discharge-clock medication orders with matching encounter.
+- [x] Add source-scoped natural keys on all eight fact tables, order-linkage indexes, open-STAT/shortage/controlled partial indexes, station/unit rollup plus open-discrepancy and stockout indexes on `adc_transactions`, and pipeline/pending-discharge-candidate indexes on `rx_discharge_queue`.
+- [x] Add nine Eloquent models in `app/Models/Pharmacy` with immutable time casts, object-safe JSON casts, order/source/encounter/formulary/station/unit relationships, a `medicationOrder` inverse on `AncillaryOrder`, and operational scopes including unresolved-discrepancy and administration-freshness queries.
+- [x] Add factories with a `CreatesPharmacyFixtures` concern covering STAT, first-dose, sepsis, ADC, IV-batch, chemo, TPN, discharge, controlled, shortage, discontinued, and unmapped-local orders plus verification/prep/dispense/administration/station/transaction/discharge-queue states; no factory sets any individual risk output.
+- [x] Extend the guarded PHPUnit multi-schema baseline to the seeder-owned `hosp_ref.rx_formulary` and extend the spine down/up rehearsal to tear down and restore the Pharmacy tail.
+- [x] Guard destructive rollback to empty local/testing satellites; rehearse down/up while the shared ancillary order ledger and Lab catalog survive, and prove populated satellites refuse rollback.
 
 **Acceptance:**
 
-- STAT, first dose, sepsis, ADC, IV batch, chemo, TPN, discharge, controlled, shortage, and discontinued scenarios are representable.
-- RxNorm and NDC may both be null only under an explicit unmapped/local-code state.
-- Administration rows cannot omit source cutoff/import identity.
-- Factories never imply an individual diversion score.
+- [x] STAT, first dose, sepsis, ADC, IV batch, chemo, TPN, discharge, controlled, shortage, and discontinued scenarios are created by factories and proven through governed clock-class, preparation-branch, and flag scopes.
+- [x] RxNorm and NDC may both be null only under the explicit `unmapped_local` state; savepoint-isolated rejection tests prove both the mapped-with-null-codes and unmapped-with-populated-code violations fail at the database.
+- [x] Administration rows cannot omit source cutoff/import identity: NOT NULL columns plus a non-blank import-batch check reject null and whitespace identities, each exercised in its own savepoint so every rejection tests its real constraint.
+- [x] Factories never imply an individual diversion score: schema tests prove no actor/staff/user/risk-score column exists on `rx_orders`, `rx_administrations`, `adc_stations`, or `adc_transactions`, and factory-produced metadata is asserted free of diversion/risk/score/staff/user keys.
+- [x] Focused verification passes 16 tests and 141 assertions across X-1 migration/model/factory coverage; the complete ancillary regression passes 216 tests and 3,354 assertions.
+- [x] No production connector, credential, scheduler, endpoint, deployment, or external system is activated by X-1.
 
 #### [ ] X-2 — Parse RDE/RDS and verification-queue events
 

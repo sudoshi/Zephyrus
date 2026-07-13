@@ -93,6 +93,11 @@ class AncillaryOrder extends Model
         return $this->hasOne(\App\Models\Lab\BloodBankReadiness::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
+    public function medicationOrder(): HasOne
+    {
+        return $this->hasOne(\App\Models\Pharmacy\MedicationOrder::class, 'ancillary_order_id', 'ancillary_order_id');
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
         return $query->whereNull($this->qualifyColumn('terminal_at'));

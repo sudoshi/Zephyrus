@@ -71,6 +71,7 @@ abstract class TestCase extends BaseTestCase
                             'lab_test_catalog',
                             'rad_modalities',
                             'rad_subspecialties',
+                            'rx_formulary',
                             'staff_qualifications',
                             'staff_role_qualification_requirements',
                             'staff_roles'

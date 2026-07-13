@@ -15,6 +15,7 @@ class AncillaryReferenceSeeder extends Seeder
     {
         $this->seedRadiologyCatalogs();
         $this->seedLabTestCatalog();
+        $this->seedRxFormulary();
         $this->seedMilestones();
         $this->seedBarrierReasons();
         $this->seedSlaDefinitions();
@@ -60,6 +61,49 @@ class AncillaryReferenceSeeder extends Seeder
             ['catalog_key' => 'ap.frozen_section', 'local_code' => 'FROZEN_SECTION', 'loinc_code' => null, 'label' => 'Frozen section', 'department' => 'pathology', 'test_family' => 'frozen_section', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'fresh_tissue'],
             ['catalog_key' => 'bb.type_screen', 'local_code' => 'TYPE_SCREEN', 'loinc_code' => null, 'label' => 'Type and screen', 'department' => 'blood_bank', 'test_family' => 'compatibility', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'whole_blood'],
             ['catalog_key' => 'bb.crossmatch', 'local_code' => 'CROSSMATCH', 'loinc_code' => null, 'label' => 'Crossmatch', 'department' => 'blood_bank', 'test_family' => 'compatibility', 'expected_tat_class' => 'stat', 'decision_class' => 'or_gate', 'specimen_type' => 'whole_blood'],
+        ];
+    }
+
+    private function seedRxFormulary(): void
+    {
+        if (! Schema::hasTable('hosp_ref.rx_formulary')) {
+            return;
+        }
+
+        foreach ($this->rxFormulary() as $item) {
+            $formularyKey = $item['formulary_key'];
+            DB::table('hosp_ref.rx_formulary')->updateOrInsert(
+                ['formulary_key' => $formularyKey],
+                [
+                    'formulary_uuid' => (string) Uuid::uuid5(Uuid::NAMESPACE_URL, "zephyrus:rx-formulary:{$formularyKey}"),
+                    ...$item,
+                    'effective_from' => '2026-01-01T00:00:00Z',
+                    'effective_to' => null,
+                    'is_active' => true,
+                    'metadata' => json_encode([
+                        'data_origin' => 'governed_reference',
+                        'individual_risk_scoring' => 'prohibited',
+                    ], JSON_THROW_ON_ERROR),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            );
+        }
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function rxFormulary(): array
+    {
+        return [
+            ['formulary_key' => 'rx.ceftriaxone_iv', 'local_code' => 'CEFTRIAXONE_1G_IV', 'rxnorm_cui' => '2193', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Ceftriaxone 1 g intravenous', 'therapeutic_class' => 'antibiotic', 'dosage_form' => 'injection', 'default_route' => 'intravenous', 'default_prep_branch' => 'adc', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => false],
+            ['formulary_key' => 'rx.vancomycin_iv', 'local_code' => 'VANCOMYCIN_IV', 'rxnorm_cui' => '11124', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Vancomycin intravenous infusion', 'therapeutic_class' => 'antibiotic', 'dosage_form' => 'infusion', 'default_route' => 'intravenous', 'default_prep_branch' => 'iv_room', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => false],
+            ['formulary_key' => 'rx.acetaminophen_tab', 'local_code' => 'ACETAMINOPHEN_500_TAB', 'rxnorm_cui' => '161', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Acetaminophen 500 mg tablet', 'therapeutic_class' => 'analgesic', 'dosage_form' => 'tablet', 'default_route' => 'oral', 'default_prep_branch' => 'adc', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => false],
+            ['formulary_key' => 'rx.ondansetron_inj', 'local_code' => 'ONDANSETRON_INJ', 'rxnorm_cui' => '26225', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Ondansetron injection', 'therapeutic_class' => 'antiemetic', 'dosage_form' => 'injection', 'default_route' => 'intravenous', 'default_prep_branch' => 'adc', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => false],
+            ['formulary_key' => 'rx.morphine_inj', 'local_code' => 'MORPHINE_INJ', 'rxnorm_cui' => '7052', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Morphine injection', 'therapeutic_class' => 'opioid_analgesic', 'dosage_form' => 'injection', 'default_route' => 'intravenous', 'default_prep_branch' => 'adc', 'is_controlled' => true, 'controlled_schedule' => 'II', 'is_hazardous' => false, 'is_high_alert' => true],
+            ['formulary_key' => 'rx.cyclophosphamide_iv', 'local_code' => 'CYCLOPHOSPHAMIDE_IV', 'rxnorm_cui' => '3002', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Cyclophosphamide intravenous infusion', 'therapeutic_class' => 'antineoplastic', 'dosage_form' => 'infusion', 'default_route' => 'intravenous', 'default_prep_branch' => 'iv_room', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => true, 'is_high_alert' => true],
+            ['formulary_key' => 'rx.tpn_adult', 'local_code' => 'TPN_ADULT', 'rxnorm_cui' => null, 'ndc_code' => null, 'terminology_status' => 'unmapped_local', 'label' => 'Total parenteral nutrition, adult admixture', 'therapeutic_class' => 'parenteral_nutrition', 'dosage_form' => 'infusion', 'default_route' => 'intravenous', 'default_prep_branch' => 'iv_room', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => true],
+            ['formulary_key' => 'rx.warfarin_tab', 'local_code' => 'WARFARIN_5_TAB', 'rxnorm_cui' => '11289', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Warfarin 5 mg tablet', 'therapeutic_class' => 'anticoagulant', 'dosage_form' => 'tablet', 'default_route' => 'oral', 'default_prep_branch' => 'central', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => true],
+            ['formulary_key' => 'rx.heparin_infusion', 'local_code' => 'HEPARIN_INFUSION', 'rxnorm_cui' => '5224', 'ndc_code' => null, 'terminology_status' => 'mapped', 'label' => 'Heparin continuous infusion', 'therapeutic_class' => 'anticoagulant', 'dosage_form' => 'infusion', 'default_route' => 'intravenous', 'default_prep_branch' => 'iv_room', 'is_controlled' => false, 'controlled_schedule' => null, 'is_hazardous' => false, 'is_high_alert' => true],
         ];
     }
 

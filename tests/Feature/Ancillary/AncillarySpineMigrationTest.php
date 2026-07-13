@@ -220,10 +220,12 @@ class AncillarySpineMigrationTest extends TestCase
 
     public function test_empty_local_schema_can_rehearse_down_and_up(): void
     {
+        $pharmacyMigration = require database_path('migrations/2026_07_13_000900_create_pharmacy_satellite_tables.php');
         $labMigration = require database_path('migrations/2026_07_12_000800_create_lab_pathology_satellite_tables.php');
         $radiologyMigration = require database_path('migrations/2026_07_11_000500_create_radiology_satellite_tables.php');
         $migration = require database_path('migrations/2026_07_11_000400_create_ancillary_spine_tables.php');
 
+        $pharmacyMigration->down();
         $labMigration->down();
         $radiologyMigration->down();
         $migration->down();
@@ -232,10 +234,12 @@ class AncillarySpineMigrationTest extends TestCase
         $migration->up();
         $radiologyMigration->up();
         $labMigration->up();
+        $pharmacyMigration->up();
         $this->assertTrue(Schema::hasTable('prod.ancillary_orders'));
         $this->assertTrue(Schema::hasTable('prod.ancillary_milestones'));
         $this->assertTrue(Schema::hasTable('prod.rad_exams'));
         $this->assertTrue(Schema::hasTable('prod.lab_results'));
+        $this->assertTrue(Schema::hasTable('prod.rx_orders'));
     }
 
     /** @return array{sourceId: int, canonicalEventId: int, orderId: int} */

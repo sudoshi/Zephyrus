@@ -1519,3 +1519,38 @@ git diff --check: PASS
 The inventory contains 426 total routes and the six session-authenticated Laboratory pages. Existing ancillary SLA, OCEL, integration-health/FHIR, and demo-refresh schedules are unchanged. All 15 ancillary integration sources remain synthetic, inactive, or sandboxed. No production deployment, production database, connector, credential, source endpoint, scheduler, queue, feature switch, result action, writeback, or external system was accessed or activated.
 
 L-14 completes 39 of 60 implementation tasks. X-1 is next and can create the Pharmacy, ADC, administration, and discharge satellites on the verified shared spine without changing the completed Radiology or Laboratory contracts.
+
+## 2026-07-13 — X-1 Pharmacy, ADC, Administration, and Discharge Satellites
+
+### Outcome
+
+Opened the Inpatient Pharmacy phase by adding nine governed PostgreSQL contracts on the verified shared spine: `hosp_ref.rx_formulary`, `prod.rx_orders`, `prod.rx_verifications`, `prod.rx_preps`, `prod.rx_dispenses`, `prod.rx_administrations`, `prod.adc_stations`, `prod.adc_transactions`, and `prod.rx_discharge_queue`. `rx_orders` sits one-to-one on the shared pharmacy ancillary order and a department/encounter trigger rejects non-`rx` attachment, so no parallel order ledger exists.
+
+Terminology is governed at the database: RxNorm and NDC may both be null only under the explicit `unmapped_local` state, and a `mapped` row must carry at least one code, on both the formulary and every order. The nine-entry formulary seed covers the sepsis/STAT antibiotic, IV-batch vancomycin, routine ADC oral, first-dose antiemetic, Schedule II opioid, hazardous antineoplastic, unmapped local TPN admixture, discharge anticoagulant, and high-alert heparin lanes with stable UUIDv5 identity and idempotent replay. Clock class is constrained to `stat`, `first_dose`, `sepsis`, `routine`, `timed`, and `discharge`; preparation branch to `adc`, `iv_room`, `central`, and `unknown`.
+
+Administration facts are honest about their warehouse origin: `administered_at`, `source_cutoff_at`, and a non-blank `import_batch_key` are all mandatory, administration cannot postdate its cutoff, and a versioned source-row unique index lets corrected warehouse rows append without rewriting evidence. ADC transactions are check-constrained to vend, refill, return, waste, override, discrepancy open/resolved, and stockout; discrepancies must carry a pairing key; unlinked overrides stay at station/unit level. Schema tests prove no actor, staff, user, or risk-score column exists anywhere in the Pharmacy tail, and factory metadata is asserted free of diversion/risk/score keys — the regulated-adjacent boundary is structural, not conventional.
+
+The discharge queue models the X-7 pipeline as a governed status field (`not_started`, `prior_auth_pending`, `verification`, `filling`, `ready`, `delivered`, `unknown`) with per-state history timestamps in the established satellite style, a planned-discharge target, evidence checks, and a trigger requiring a discharge-clock medication order. Partial/composite indexes cover open STAT/sepsis work, shortage and controlled worklists, the open verification queue, active IV-room/chemo/TPN preparation, pending delivery, import-batch freshness, station/unit transaction rollups, open discrepancies, stockouts, and pending discharge candidates.
+
+### Models, factories, and rollback posture
+
+Nine Eloquent models in `app/Models/Pharmacy` carry immutable time casts, object-safe JSON casts, full relationship graphs, and operational scopes including an unresolved-discrepancy anti-join and administration `freshSince`. `AncillaryOrder` gained a `medicationOrder` inverse. Factories with a `CreatesPharmacyFixtures` concern represent every acceptance scenario — STAT, first dose, sepsis, ADC, IV batch, chemo, TPN, discharge, controlled, shortage, discontinued, and unmapped-local — plus the verification/prep/dispense/administration/station/transaction/discharge-queue lifecycles.
+
+The migration refuses destructive down outside local/testing and while any fact table is populated; the empty rehearsal removes and restores the Pharmacy tail while the shared order ledger and Lab catalog survive. The spine down/up rehearsal and the guarded PHPUnit multi-schema baseline were extended to the new tail and the seeder-owned formulary. Expected-rejection tests run inside per-assertion savepoints so PostgreSQL transaction poisoning cannot mask which constraint actually fired.
+
+### Verification
+
+```text
+Laravel Pint over X-1 implementation/tests: PASS
+PHP syntax checks over all X-1 migration/models/factories/tests: PASS
+Focused PharmacyMigrationTest: 10 tests, 50 assertions, PASS
+Focused PharmacyModelsAndFactoriesTest: 6 tests, 91 assertions, PASS
+Spine rehearsal and reference-seeder contracts: 20 tests, 428 assertions, PASS
+Complete ancillary feature regression: 216 tests, 3,354 assertions, PASS
+Empty local/testing satellite down/up rehearsal: PASS
+Populated satellite destructive-down refusal: PASS
+Individual attribution/risk-column exclusion checks: PASS
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, route, UI, deployment, or external system was accessed or activated. X-1 completes 40 of 60 implementation tasks. X-2 is next and will normalize RDE/RDS and verification-queue events into these contracts.
