@@ -171,3 +171,61 @@ export const labDecisionPendingSchema = z.object({
 
 export type LabDecisionPending = z.infer<typeof labDecisionPendingSchema>;
 export type LabDecisionPendingItem = LabDecisionPending['data'][number];
+
+export const bloodBankCaseGateSchema = z.object({
+  caseId: z.number().int().positive(), caseLabel: z.string().min(1), surgeryDate: z.string().date(),
+  scheduledStartAt: z.string().datetime({ offset: true }), scheduledDurationMinutes: z.number().int().positive(),
+  minutesToStart: z.number().int(), startTiming: z.enum(['upcoming', 'past_due']),
+  roomLabel: z.string().min(1), serviceLabel: z.string().min(1), locationLabel: z.string().min(1),
+  required: z.boolean(), state: z.enum(['blocked', 'ready', 'not_applicable', 'mtp_active', 'unknown']),
+  ready: z.boolean(), blocking: z.boolean(), mtpActive: z.boolean(), explanation: z.string().min(1),
+  requestCount: z.number().int().nonnegative(), productClasses: z.array(z.string()),
+  units: z.object({ requested: z.number().int().nonnegative(), allocated: z.number().int().nonnegative(), issued: z.number().int().nonnegative() }).strict(),
+  typeScreenState: z.enum(['not_applicable', 'not_required', 'pending', 'ready', 'expired', 'incompatible', 'unknown']),
+  crossmatchState: z.enum(['not_applicable', 'not_required', 'pending', 'ready', 'expired', 'incompatible', 'unknown']),
+  issueState: z.enum(['not_applicable', 'not_issued', 'partial', 'issued']),
+  neededByAt: nullableIso, neededByAligned: z.boolean().nullable(), sourceCutoffAt: nullableIso,
+  freshness: sourceFreshnessSchema,
+  coverage: z.object({ status: z.enum(['complete', 'degraded', 'not_applicable']), explanation: z.string().min(1) }).strict(),
+  requests: z.array(z.object({
+    readinessUuid: z.string().uuid(), orderUuid: z.string().uuid(), productClass: z.string(), readinessState: z.string(),
+    typeScreenState: z.string(), crossmatchState: z.string(), unitsRequested: z.number().int().positive(),
+    unitsAllocated: z.number().int().nonnegative(), unitsIssued: z.number().int().nonnegative(),
+    orderedAt: z.string().datetime({ offset: true }), neededByAt: nullableIso, typeScreenReadyAt: nullableIso,
+    crossmatchReadyAt: nullableIso, allocatedAt: nullableIso, issuedAt: nullableIso, expiresAt: nullableIso,
+    mtpActivatedAt: nullableIso, sourceKey: z.string().min(1),
+  }).strict()),
+  drillHref: z.string().min(1),
+}).strict().superRefine((gate, context) => {
+  if (!gate.required && gate.state !== 'not_applicable' && gate.state !== 'unknown') {
+    context.addIssue({ code: 'custom', path: ['state'], message: 'A case without a requirement must be not applicable unless freshness is unknown.' });
+  }
+  if (gate.ready && gate.state !== 'ready') {
+    context.addIssue({ code: 'custom', path: ['ready'], message: 'Ready flag must match ready state.' });
+  }
+  if (gate.blocking !== ['blocked', 'mtp_active'].includes(gate.state)) {
+    context.addIssue({ code: 'custom', path: ['blocking'], message: 'Blocking flag must match a blocking gate state.' });
+  }
+});
+
+export const bloodBankReadinessSchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }), operatingDate: z.string().date().nullable(),
+  operatingDateMode: z.enum(['latest_operating_day', 'exact_case']),
+  state: z.enum(['normal', 'degraded', 'no_data', 'stale', 'source_error']), stateMessage: z.string().min(1),
+  freshness: sourceFreshnessSchema,
+  filters: z.object({
+    state: z.enum(['all', 'blocked', 'ready', 'not_applicable', 'mtp_active', 'unknown']),
+    productClass: z.enum(['all', 'red_cells', 'plasma', 'platelets', 'cryo', 'whole_blood', 'mixed', 'other']),
+    service: z.string().nullable(), room: z.string().nullable(), caseId: z.number().int().positive().nullable(),
+  }).strict(),
+  filterOptions: z.object({ states: z.array(z.string()), productClasses: z.array(z.string()), services: z.array(z.string()), rooms: z.array(z.string()) }).strict(),
+  summary: z.object({
+    cases: z.number().int().nonnegative(), required: z.number().int().nonnegative(), blocked: z.number().int().nonnegative(),
+    ready: z.number().int().nonnegative(), notApplicable: z.number().int().nonnegative(), unknown: z.number().int().nonnegative(), mtpActive: z.number().int().nonnegative(),
+  }).strict(),
+  data: z.array(bloodBankCaseGateSchema),
+  privacy: z.object({ directPatientIdentifiersIncluded: z.literal(false), bloodProductAllocationControlIncluded: z.literal(false), writebackIncluded: z.literal(false), explanation: z.string().min(1) }).strict(),
+}).strict();
+
+export type BloodBankReadiness = z.infer<typeof bloodBankReadinessSchema>;
+export type BloodBankCaseGate = z.infer<typeof bloodBankCaseGateSchema>;

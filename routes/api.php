@@ -290,6 +290,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.la
     Route::get('/flow-board', [LabFlowBoardController::class, 'show'])->name('flow-board');
     Route::get('/specimens', [LabFlowBoardController::class, 'specimens'])->name('specimens');
     Route::get('/pending-decisions', [LabFlowBoardController::class, 'pendingDecisions'])->name('pending-decisions');
+    Route::get('/blood-bank', [LabFlowBoardController::class, 'bloodBank'])->name('blood-bank');
     Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

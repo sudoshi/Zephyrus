@@ -1228,3 +1228,43 @@ git diff --check: PASS
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system was accessed or activated. L-8 is the next dependency-ordered task and can build Blood Bank readiness against the now-proven OR gate/destination pattern.
+
+## 2026-07-12 — L-8 Blood Bank Readiness and Perioperative Gates
+
+### Outcome
+
+Implemented the authenticated Blood Bank Readiness workspace at `/lab/blood-bank` with a matching private `/api/lab/blood-bank` read contract and case-specific drill. `BloodBankReadinessService` is the single authority for operating-day selection, request aggregation, compatibility/readiness state, schedule arithmetic, freshness, coverage, filters, privacy projection, and the compact gate consumed by Perioperative Case Management.
+
+The operating cohort now follows the actual OR schedule rather than wall-clock coincidence. For an exact `caseId`, the service uses that case's surgery date. Otherwise it selects the latest non-deleted operating date at or before the current clock, with the earliest future operating date as a bounded fallback. The Blood Bank demo generator uses the same rule and selects six cases from one operating day, fixing the earlier fallback that could attach requests to the oldest cases while Case Management displayed the latest scheduled day.
+
+The matrix starts from every non-deleted case on the operating date, not only cases with `prod.bb_readiness` rows. Each gate carries the case and schedule context, room, service, location, planned duration, signed minutes-to-start, upcoming or past-due state, source cutoff, freshness, coverage, and exact drill. Active requests add product class, requested/allocated/issued units, T&S, crossmatch, issue and readiness state, ordered and needed-by timestamps, compatibility milestone timestamps, expiry, MTP lifecycle, source identity, and stable request/order UUIDs. Clinical details and direct patient identifiers remain absent.
+
+Readiness is derived from requirement plus evidence. Cancelled requests do not create a requirement. A complete request is ready; otherwise T&S and crossmatch must be ready or explicitly not required, with an allocation/issue-ready lifecycle state. Any unresolved active requirement is blocked. A case with no active request is `not_applicable`, not required, not ready, and non-blocking; absence is never presented as successful readiness. Stale evidence demotes a case to non-blocking unknown. A needed-by timestamp that does not align with the selected case start produces degraded coverage rather than silently trusting inconsistent schedule evidence.
+
+Active massive-transfusion work is represented as `mtp_active`: a distinct blocking operational condition with request evidence and an explicit explanation. It is deliberately not an activation, allocation, issue, closure, or clinical-command surface. When the MTP closes, the special state clears while any still-unresolved product requirement remains blocked. Cancelling the only active request removes the requirement and produces not-applicable state.
+
+`CaseManagementService` now batch-loads the same gate contract for every procedure on its selected operating day. `CaseTracker` renders the compact linked state in each row, and `CareJourneyCard` renders the same state in the case journey. The previous hard-coded `Labs / Action Required` journey item was removed, eliminating the false flag on cases without a Blood Bank requirement. Focused parity assertions compare every workspace gate with the exact object on its Perioperative procedure.
+
+The React workspace uses the canonical dashboard layout, strict Zod contracts, freshness badge, summary counts, server filters for state/product/service/room/case, responsive request evidence, signed schedule clocks, explicit normal/degraded/no-data/stale/source-error messages, and a 30-second private API refresh. `navigationConfig.ts` remains the only navigation authority and now adds Blood Bank Readiness as the fourth Laboratory operations leaf.
+
+The implementation is query-bounded. Cases and related labels are selected once, active requests and source cutoffs are loaded in batches, and `forCases()` takes the same query count for one case as for the full board. The focused budget remains at four queries, and PostgreSQL `EXPLAIN` confirms `bb_readiness_pending_or_idx` for pending-case readiness access.
+
+### Verification
+
+```text
+Blood Bank demo generator/scenario regression: 8 tests, 75 assertions, PASS
+Focused Blood Bank backend: 4 tests, 122 assertions, PASS
+Complete ancillary feature regression: 157 tests, 2,133 assertions, PASS
+Blood Bank + Decision-Pending + Specimen Tracker + Flow Board + navigation Vitest: 6 files, 42 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-8 PHP implementation/tests/routes: PASS
+Mobile dark Blood Bank smoke, 390x844: HTTP 200, semantic h1/main, no overflow, no allocation controls, no console/page errors
+Desktop light Blood Bank smoke, 1440x1000: HTTP 200, semantic h1/main, no overflow, no allocation controls, no console/page errors
+Desktop light Perioperative Case Management smoke, 1440x1000: HTTP 200, semantic h1/main, no overflow, no allocation controls, no console/page errors
+Midnight +30/-1 minute arithmetic, freshness demotion, needed-by degradation, MTP close, cancellation, and exact cross-surface parity: PASS
+One-case versus full-board query-count parity and bb_readiness_pending_or_idx plan: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, allocation, writeback, or external system was accessed or activated. L-9 is the next dependency-ordered task and can add Anatomic Pathology aging and frozen-section timers on the shared Laboratory/OR foundation.

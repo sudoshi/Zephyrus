@@ -98,8 +98,11 @@ final class BloodBankDemoGenerator extends AbstractAncillaryDemoGenerator
     /** @return list<object> */
     private function cases(DemoClock $clock): array
     {
+        $operatingDate = DB::table('prod.or_cases')->where('is_deleted', false)
+            ->whereDate('surgery_date', '<=', $clock->anchor()->toDateString())->max('surgery_date')
+            ?? DB::table('prod.or_cases')->where('is_deleted', false)->min('surgery_date');
         $cases = DB::table('prod.or_cases')->where('is_deleted', false)
-            ->orderByRaw('CASE WHEN surgery_date = ? THEN 0 ELSE 1 END', [$clock->anchor()->toDateString()])
+            ->whereDate('surgery_date', $operatingDate)
             ->orderBy('scheduled_start_time')->orderBy('case_id')->limit(6)->get(['case_id', 'scheduled_start_time'])->all();
         if ($cases === []) {
             throw new RuntimeException('Blood Bank demo requires at least one current OR case.');

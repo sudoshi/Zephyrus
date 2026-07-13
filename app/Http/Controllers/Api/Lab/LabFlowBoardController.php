@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Lab;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lab\BloodBankReadinessRequest;
 use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
 use App\Http\Requests\Lab\StoreLabBarrierRequest;
+use App\Services\Lab\BloodBankReadinessService;
 use App\Services\Lab\LabBarrierService;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
@@ -40,5 +42,11 @@ final class LabFlowBoardController extends Controller
             Gate::allows('manageAncillaryBarriers'),
             Gate::allows('viewAncillaryPatientDetail'),
         ))->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function bloodBank(BloodBankReadinessRequest $request, BloodBankReadinessService $bloodBank): JsonResponse
+    {
+        return response()->json($bloodBank->build($request->validated()))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 }

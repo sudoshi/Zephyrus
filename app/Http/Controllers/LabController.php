@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lab\BloodBankReadinessRequest;
 use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
+use App\Services\Lab\BloodBankReadinessService;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
 use App\Services\Lab\LabSpecimenService;
@@ -36,6 +38,13 @@ final class LabController extends Controller
                 Gate::allows('manageAncillaryBarriers'),
                 Gate::allows('viewAncillaryPatientDetail'),
             ),
+        ]);
+    }
+
+    public function bloodBank(BloodBankReadinessRequest $request, BloodBankReadinessService $bloodBank): Response
+    {
+        return Inertia::render('Lab/BloodBank', [
+            'bloodBank' => $bloodBank->build($request->validated()),
         ]);
     }
 }

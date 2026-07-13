@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-7 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-8 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 32 of 60 tasks complete; 28 remain |
+| Progress | 33 of 60 tasks complete; 27 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1544,24 +1544,40 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] TypeScript, production build, UI canon, populated/degraded/empty rendered tests, mobile dark and desktop light browser smoke, zero horizontal overflow, and zero console/page errors pass.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, or external system is activated by L-7.
 
-#### [ ] L-8 — Implement Blood Bank Readiness at /lab/blood-bank and Periop gates
+#### [x] L-8 — Implement Blood Bank Readiness at /lab/blood-bank and Periop gates
 
 **Depends on:** L-1, L-4, L-7
 **Primary files:** BloodBankReadinessService; page/API; existing Periop timeline component/service
 
 **Work:**
 
-- Build today’s OR case matrix with requested products, T&S state, crossmatch state, issue state, source cutoff, and time to planned start.
-- Add a compact blood-bank gate to the existing Perioperative case timeline.
-- Show MTP activity as an operational state, not a clinical command.
-- Define readiness based on case requirement plus current blood-bank state; no requirement means not-applicable, not ready.
+- [x] Add authenticated, named, read-only `/lab/blood-bank` and private `/api/lab/blood-bank` GET routes backed by one validated `BloodBankReadinessRequest` and one `BloodBankReadinessService`; reject unsupported filter values, unauthenticated API reads, and every POST/write attempt.
+- [x] Select one operational OR day deterministically: use the exact case surgery date for a case drill, otherwise the latest non-deleted operating date at or before the current clock with an earliest-future fallback. Align the Blood Bank demo generator to that same cohort so its six governed requests are visible on the existing Perioperative board.
+- [x] Build the complete operating-day matrix from non-deleted OR cases rather than only Blood Bank rows, preserving case, room, service, location, schedule, duration, signed minutes-to-start, upcoming/past-due state, and an exact case drill for cases with and without a product requirement.
+- [x] Batch-load all active Blood Bank requests and return product classes; requested, allocated, and issued units; T&S, crossmatch, allocation, and issue state; ordered/needed-by/readiness/expiry/MTP timestamps; order and request UUIDs; source key; source cutoff; and needed-by/schedule alignment without per-case queries.
+- [x] Implement a server-owned readiness state machine: cancelled requests do not create a requirement; complete requests are ready; otherwise required T&S and crossmatch evidence must be ready or explicitly not required; allocation/issue-complete states are ready; unresolved requirements are blocked; and an active MTP is its own blocking operational state.
+- [x] Treat a fresh case with no active request as `not_applicable`, `required=false`, `ready=false`, and `blocking=false`. Never turn absence into success, and demote stale or otherwise unqualified evidence to non-blocking `unknown` rather than asserting a current gate.
+- [x] Reconcile request `needed_by` timestamps to the selected case schedule and expose incomplete/misaligned evidence as degraded coverage. Preserve explicit page-level normal, degraded, no-data, stale, and source-error states with one freshness contract and written explanations.
+- [x] Add the same compact `BloodBankGate` contract to every procedure returned by `CaseManagementService`, the case tracker row, and the case journey. Replace the journey's former hard-coded Laboratory warning so cases without a requirement are no longer falsely flagged.
+- [x] Render the Blood Bank page with canonical layout primitives, freshness and operating-date context, summary counts, state/product/service/room/case filters, responsive case/request evidence, signed schedule clocks, clear MTP wording, strict Zod parsing, and 30-second API refresh.
+- [x] Keep MTP as a read-only operational signal. Add no activation, allocation, issue, closure, acknowledgment, verification, order-change, or source-system writeback control to the service, routes, page, compact gate, or Perioperative surfaces.
+- [x] Declare and test the minimum-necessary browser boundary: direct patient identifiers, clinical detail, product-allocation controls, and writeback are absent. Add Blood Bank Readiness to the single Laboratory navigation authority rather than introducing a parallel menu.
+- [x] Add focused backend and frontend coverage for readiness aggregation, six-request demo distribution, no-requirement cases, MTP lifecycle, cancellation, exact cross-surface parity, midnight arithmetic, freshness and coverage degradation, filters, constant query count, index use, route parity/auth/validation/read-only behavior, request evidence, responsive states, and absence of allocation actions.
 
 **Acceptance:**
 
-- A case missing required readiness is gated on both surfaces.
-- A case without a blood product requirement is not falsely flagged.
-- Time-to-start and source freshness are tested across date boundaries.
-- No blood product allocation/writeback action exists.
+- [x] The fixed cohort resolves six active Blood Bank requests as three blocked, two ready, and one active-MTP case; the summary counts MTP among the four operationally blocked cases and every request reconciles to an OR case shown on the Perioperative board.
+- [x] Every Blood Bank matrix gate is byte-equivalent to the gate placed on the matching `CaseManagementService` procedure, so a missing required readiness state is gated identically in the workspace, tracker row, and case journey.
+- [x] A synthetic operating-day case with no request is present on both surfaces as `not_applicable`, not required, not ready, and non-blocking, with an empty request array and no false Laboratory warning.
+- [x] A 23:45 clock with a next-day 00:15 start reports +30 minutes/upcoming; advancing to 00:16 reports -1 minute/past due. The exact-case date remains the schedule date across midnight.
+- [x] Fresh current evidence preserves the gate; stale evidence changes the page to stale and the case to non-blocking unknown; a request/case needed-by mismatch produces degraded coverage instead of silently claiming readiness.
+- [x] Closing an MTP removes the `mtp_active` state while retaining the unresolved blocking requirement, and cancelling the only active request changes the case to not-applicable without fabricating readiness.
+- [x] Query count is constant for one versus all case gates and remains within four queries; PostgreSQL `EXPLAIN` uses `bb_readiness_pending_or_idx` for pending OR readiness lookup.
+- [x] The browser contract explicitly reports no direct patient identifiers, allocation control, or writeback. GET is the only route method, and rendered tests plus Chromium smoke find no allocation, issue, or MTP command button.
+- [x] Focused backend verification passes 4 tests and 122 assertions; the Blood Bank, Decision-Pending, Specimen Tracker, Flow Board, and navigation frontend regression passes 42 tests across 6 files.
+- [x] The complete ancillary feature regression passes 157 tests and 2,133 assertions.
+- [x] TypeScript, production build, UI canon, mobile dark and desktop light Blood Bank smoke, desktop light Perioperative smoke, semantic main/headings, zero horizontal overflow, and zero console/page errors pass.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, allocation, writeback, or external system is activated by L-8.
 
 #### [ ] L-9 — Implement AP Case Aging at /lab/anatomic-path
 

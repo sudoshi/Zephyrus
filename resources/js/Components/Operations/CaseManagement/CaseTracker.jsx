@@ -5,6 +5,7 @@ import CareJourneyModal from './CareJourneyModal';
 import CareJourneyCard from './CareJourneyCard';
 import { Section, MetricGrid, Panel, metric, STATUS_VAR } from '@/Components/system';
 import { formatDurationMinutes } from '@/lib/duration';
+import BloodBankGate from '@/Components/Lab/BloodBankGate';
 
 // Case Management instrument rebuilt on the gold-standard design system: the KPI
 // wall is one MetricGrid of KpiTiles (status dot + value + gauge + target +
@@ -300,6 +301,7 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
                             status={progressStatus}
                             estimatedCompletion={estimatedCompletion}
                           />
+                          <div className="mt-2"><BloodBankGate gate={proc.bloodBankGate} /></div>
                           {proc.phase === 'Procedure' && (
                             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                               <div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
