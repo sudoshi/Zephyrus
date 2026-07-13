@@ -1268,3 +1268,45 @@ One-case versus full-board query-count parity and bb_readiness_pending_or_idx pl
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, allocation, writeback, or external system was accessed or activated. L-9 is the next dependency-ordered task and can add Anatomic Pathology aging and frozen-section timers on the shared Laboratory/OR foundation.
+
+## 2026-07-12 — L-9 Anatomic Pathology Case Aging and Frozen-Section Timer
+
+### Outcome
+
+Implemented the authenticated Anatomic Pathology Case Aging workspace at `/lab/anatomic-path` with a matching private `/api/lab/anatomic-path` read contract and exact OR-case drill. `AnatomicPathologyService` is the single authority for the bounded operational cohort, stage evidence, age calculations, cohort classification, structural workflow stages, established benchmark references, AP-LIS/backfill coverage, freshness, filters, privacy projection, and the frozen-section timer consumed by Perioperative Case Management.
+
+The operational board covers seven days so multi-day histology work and a recently signed-out case remain visible. Cancelled facts stay out. Exact `caseId` drills bypass the window without bypassing source validation. Each row carries source-scoped AP case/accession identity, OR linkage, procedure/cohort, current stage and timestamp, current-stage age, total age, deterministic age band, and a six-stage received→grossed→processing→slides-ready→diagnosed→signed-out timeline. Missing intermediate evidence remains not asserted or pending; it is never synthesized.
+
+The deterministic AP demo now distinguishes two routine, one complex, one consult/send-out, and two frozen-section cases. The first four carry explicit processing models. Three expose the overnight histology batch and the consult case exposes its external handoff as a structural branch. This makes the overnight floor explainable instead of presenting it as idle delay. Procedure codes and labels likewise distinguish routine, complex, consult/send-out, and frozen work.
+
+The demo's OR joinery was corrected alongside the surface. It now selects all six links from one operating day and chooses the active frozen case from the exact 30–75% Procedure band used by `CaseManagementService`, instead of the previous earliest-case fallback that placed it in Recovery. The resulted frozen case remains source-visible but has no timer.
+
+Three reference lines reproduce the source brief's established CAP guidance: P90 routine AP final within two days, P90 complex AP final within three days, and P90 single-block frozen section within 20 minutes. Every line carries the source-brief section, applicability, and the statement that it is an established reference—not universal or local policy. Routine/complex working-day semantics must be governed locally before any scoring, and the service assigns no breach/success state from these references.
+
+Coverage is explicit and independent. Selected rows must resolve to governed `ap_lis` sources. When a source declares bulk support, each source must have a successful `bulk_backfill` watermark before the page claims historical completeness. Backfill `not_configured` is neutral and written plainly; a missing watermark or AP-LIS classification is degraded. Stale/error source evidence leaves last-known stages visible but suppresses live timers.
+
+`FrozenSectionTimer` advances from the server elapsed value, uses a stable-width tabular clock, links to the exact AP case, and explains that it does not replace pathology communication. `CaseManagementService` asks for timers only for procedure rows whose derived phase is `Procedure`; the service additionally requires a valid non-deleted OR link, in-progress status, start evidence, no result, and fresh source evidence. The same object renders in the case tracker and care journey. Unlinked, Pre-Op, Recovery, stale, cancelled, and resulted work receives no timer.
+
+The React workspace uses the canonical dashboard layout, strict Zod contracts, freshness badge, stage/cohort/status/age filters, summary cards, established-reference cards, coverage messaging, responsive stage timelines, structural-stage callouts, and 30-second private API refresh. `navigationConfig.ts` remains the only navigation authority and now adds AP Case Aging as the fifth Laboratory operations leaf.
+
+The privacy and action boundary remains read-only. The browser receives no direct patient identifiers, diagnosis, narrative, pathologist identity, raw payload, credentials, result/sign-out control, or source-system writeback. Source-scoped accession identity and the OR case reference are the only operational identifiers.
+
+### Verification
+
+```text
+AP demo generator/scenario regression: 8 tests, 75 assertions, PASS
+Focused Anatomic Pathology backend: 4 tests, 74 assertions, PASS
+Complete ancillary feature regression: 161 tests, 2,207 assertions, PASS
+AP + Blood Bank + Decision-Pending + Specimen Tracker + Flow Board + navigation Vitest: 7 files, 46 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (existing Browserslist and large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings only)
+Laravel Pint over the L-9 PHP implementation/tests/routes: PASS
+Mobile dark AP smoke, 390x844: HTTP 200, semantic h1/main, evidence-labeled references, no overflow, no write controls, no console/page errors
+Desktop light AP smoke, 1440x1000: HTTP 200, semantic h1/main, evidence-labeled references, no overflow, no write controls, no console/page errors
+Desktop light Perioperative Case Management smoke, 1440x1000: HTTP 200, semantic h1/main, no overflow, no console/page errors
+239→241 minute age-band transition, terminal completion, active/unlinked/resulted frozen lifecycle, stale/error suppression, and exact Perioperative parity: PASS
+One-case versus fifty-case query-count parity, AP-LIS/backfill coverage lifecycle, and ap_cases_stage_aging_idx plan: PASS
+```
+
+No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, diagnosis/sign-out action, writeback, or external system was accessed or activated. L-10 is the next dependency-ordered task and can add Laboratory critical-value and health metrics to the existing Cockpit Flow domain.

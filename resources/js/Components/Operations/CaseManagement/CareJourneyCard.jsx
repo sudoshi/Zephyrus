@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import { Alert, AlertDescription } from "@/Components/ui/Alert";
 import { formatDurationMinutes } from '@/lib/duration';
 import BloodBankGate from '@/Components/Lab/BloodBankGate';
+import FrozenSectionTimer from '@/Components/Lab/FrozenSectionTimer';
 
 const StatusDot = ({ status, pulse = false }) => {
   const colors = {
@@ -202,6 +203,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
                   <div><span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Blood Bank readiness</span><p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Case requirement and compatibility gate</p></div>
                   <BloodBankGate gate={procedure.bloodBankGate} />
                 </div>
+                {procedure.frozenSectionTimer ? <div className="flex items-center justify-between gap-3 rounded-lg bg-healthcare-background p-3 dark:bg-healthcare-background-dark"><div><span className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Frozen section</span><p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Active intraoperative interpretation timer</p></div><FrozenSectionTimer timer={procedure.frozenSectionTimer} /></div> : null}
               </div>
 
               <div className="space-y-2">

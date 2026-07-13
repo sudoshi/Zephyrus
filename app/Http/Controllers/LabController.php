@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Lab\AnatomicPathologyRequest;
 use App\Http\Requests\Lab\BloodBankReadinessRequest;
 use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
+use App\Services\Lab\AnatomicPathologyService;
 use App\Services\Lab\BloodBankReadinessService;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
@@ -45,6 +47,13 @@ final class LabController extends Controller
     {
         return Inertia::render('Lab/BloodBank', [
             'bloodBank' => $bloodBank->build($request->validated()),
+        ]);
+    }
+
+    public function anatomicPathology(AnatomicPathologyRequest $request, AnatomicPathologyService $pathology): Response
+    {
+        return Inertia::render('Lab/AnatomicPathology', [
+            'pathology' => $pathology->build($request->validated()),
         ]);
     }
 }

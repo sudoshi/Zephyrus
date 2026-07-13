@@ -71,6 +71,9 @@ final class PathologyDemoGenerator extends AbstractAncillaryDemoGenerator
             }
             $caseIds = $this->caseIds($clock);
             $rows = $this->satelliteRows($clock);
+            $cohorts = ['routine', 'complex', 'consult_send_out', 'routine', 'frozen_section', 'frozen_section'];
+            $procedureCodes = ['SURG_PATH_ROUTINE', 'SURG_PATH_COMPLEX', 'AP_CONSULT_SEND_OUT', 'SURG_PATH_ROUTINE', 'FROZEN_SECTION', 'FROZEN_SECTION'];
+            $procedureLabels = ['Routine surgical pathology', 'Complex surgical pathology', 'Consult / send-out pathology', 'Routine surgical pathology', 'Intraoperative frozen section', 'Intraoperative frozen section'];
             foreach ($rows as $index => $row) {
                 $order = $orders[$index];
                 AnatomicPathologyCase::query()->create([
@@ -82,14 +85,19 @@ final class PathologyDemoGenerator extends AbstractAncillaryDemoGenerator
                     'encounter_id' => $order->encounter_id,
                     'source_accession_key' => 'demo-ap-accession-'.$clock->anchor()->toDateString().'-'.($index + 1),
                     'specimen_ref' => 'demo-ap-specimen-'.($index + 1),
-                    'procedure_code' => $index >= 4 ? 'FROZEN_SECTION' : 'SURG_PATH',
-                    'procedure_label' => $index >= 4 ? 'Intraoperative frozen section' : 'Surgical pathology specimen',
-                    'case_type' => $index >= 4 ? 'frozen_section' : 'surgical',
+                    'procedure_code' => $procedureCodes[$index],
+                    'procedure_label' => $procedureLabels[$index],
+                    'case_type' => $index >= 4 ? 'frozen_section' : ($index === 2 ? 'other' : 'surgical'),
                     ...$row,
                     'pathologist_ref' => in_array($row['stage'], ['diagnosed', 'signed_out'], true) || $row['frozen_status'] === 'resulted' ? 'demo-pathologist-on-call' : null,
                     'demo_owner' => $owner,
                     'metadata' => [
                         'cohort' => $index < 4 ? 'overnight_batch' : 'live_frozen_section',
+                        'work_cohort' => $cohorts[$index],
+                        'processing_model' => $index < 4
+                            ? ($index === 2 ? 'consult_send_out_with_overnight_batch' : 'overnight_batch')
+                            : 'intraoperative',
+                        'single_block' => $index >= 4,
                         'operational_window' => $index === 3 ? 'historical_study_only' : 'current',
                         'decision_context' => $index === 4 ? [
                             'decision_class' => 'or_gate', 'blocked_object_type' => 'or_case',
@@ -110,15 +118,22 @@ final class PathologyDemoGenerator extends AbstractAncillaryDemoGenerator
     /** @return list<int> */
     private function caseIds(DemoClock $clock): array
     {
-        $ids = DB::table('prod.or_cases')->where('is_deleted', false)
-            ->orderByRaw('CASE WHEN surgery_date = ? THEN 0 ELSE 1 END', [$clock->anchor()->toDateString()])
-            ->orderBy('scheduled_start_time')->orderBy('case_id')->limit(6)->pluck('case_id')->map(fn ($id): int => (int) $id)->all();
+        $operatingDate = DB::table('prod.or_cases')->where('is_deleted', false)
+            ->whereDate('surgery_date', '<=', $clock->anchor()->toDateString())->max('surgery_date')
+            ?? DB::table('prod.or_cases')->where('is_deleted', false)->min('surgery_date');
+        $all = DB::table('prod.or_cases')->where('is_deleted', false)->whereDate('surgery_date', $operatingDate)
+            ->orderBy('scheduled_start_time')->orderBy('case_id')->pluck('case_id')->map(fn ($id): int => (int) $id)->all();
+        $ids = array_slice($all, 0, 4);
         if ($ids === []) {
             throw new RuntimeException('Pathology demo requires at least one current OR case.');
         }
-        while (count($ids) < 6) {
+        while (count($ids) < 4) {
             $ids[] = $ids[count($ids) % count($ids)];
         }
+        $procedureStart = min(count($all) - 1, max(0, (int) ceil(count($all) * 0.30)));
+        $procedureEnd = min(count($all) - 1, max($procedureStart, (int) ceil(count($all) * 0.75) - 1));
+        $ids[] = $all[$procedureStart];
+        $ids[] = $all[min($procedureEnd, $procedureStart + 1)];
 
         return $ids;
     }

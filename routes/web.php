@@ -90,6 +90,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/specimens', [LabController::class, 'specimens'])->name('specimens');
             Route::get('/pending-decisions', [LabController::class, 'pendingDecisions'])->name('pending-decisions');
             Route::get('/blood-bank', [LabController::class, 'bloodBank'])->name('blood-bank');
+            Route::get('/anatomic-path', [LabController::class, 'anatomicPathology'])->name('anatomic-path');
         });
 
         // Improvement Routes

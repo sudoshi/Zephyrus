@@ -229,3 +229,62 @@ export const bloodBankReadinessSchema = z.object({
 
 export type BloodBankReadiness = z.infer<typeof bloodBankReadinessSchema>;
 export type BloodBankCaseGate = z.infer<typeof bloodBankCaseGateSchema>;
+
+export const frozenSectionTimerSchema = z.object({
+  caseId: z.number().int().positive(), apCaseUuid: z.string().uuid(), label: z.string().min(1),
+  startedAt: z.string().datetime({ offset: true }), elapsedMinutes: z.number().int().nonnegative(), blocking: z.literal(true),
+  explanation: z.string().min(1), sourceCutoffAt: z.string().datetime({ offset: true }), drillHref: z.string().min(1),
+}).strict();
+
+const pathologyTimelineStageSchema = z.object({
+  stage: z.enum(['received', 'grossed', 'processing', 'slides_ready', 'diagnosed', 'signed_out']),
+  label: z.string().min(1), at: nullableIso, state: z.enum(['complete', 'current', 'pending', 'not_asserted']),
+}).strict();
+
+export const anatomicPathologySchema = z.object({
+  generatedAt: z.string().datetime({ offset: true }), lookbackDays: z.number().int().positive(),
+  state: z.enum(['normal', 'degraded', 'no_data', 'stale', 'source_error']), stateMessage: z.string().min(1),
+  freshness: sourceFreshnessSchema,
+  filters: z.object({
+    stage: z.enum(['all', 'specimen_out', 'received', 'grossed', 'processing', 'slides_ready', 'diagnosed', 'signed_out']),
+    cohort: z.enum(['all', 'routine', 'complex', 'consult_send_out', 'frozen_section']), status: z.enum(['all', 'open', 'completed']),
+    ageBand: z.enum(['all', 'under_4h', '4_to_8h', '8_to_24h', '24_to_48h', '48_plus', 'complete']),
+    caseId: z.number().int().positive().nullable(), limit: z.number().int().positive().max(100),
+  }).strict(),
+  filterOptions: z.object({ stages: z.array(z.string()), cohorts: z.array(z.string()), statuses: z.array(z.string()), ageBands: z.array(z.string()) }).strict(),
+  summary: z.object({
+    visible: z.number().int().nonnegative(), matchingBeforeLimit: z.number().int().nonnegative(), open: z.number().int().nonnegative(),
+    completed: z.number().int().nonnegative(), activeFrozen: z.number().int().nonnegative(),
+    byStage: z.array(z.object({ stage: z.string(), label: z.string(), count: z.number().int().nonnegative() }).strict()),
+    byCohort: z.array(z.object({ cohort: z.string(), label: z.string(), count: z.number().int().nonnegative() }).strict()),
+  }).strict(),
+  benchmarkLines: z.array(z.object({
+    key: z.enum(['routine', 'complex', 'frozen_single_block']), label: z.string(), percentile: z.literal(90),
+    thresholdValue: z.number().positive(), thresholdUnit: z.enum(['days', 'minutes']), evidenceLabel: z.string().min(1), applicability: z.string().min(1),
+  }).strict()),
+  coverage: z.object({
+    apLis: z.object({ status: z.enum(['available', 'missing']), explanation: z.string().min(1) }).strict(),
+    backfill: z.object({ status: z.enum(['available', 'missing', 'not_configured']), lastSuccessAt: nullableIso, explanation: z.string().min(1) }).strict(),
+  }).strict(),
+  data: z.array(z.object({
+    apCaseUuid: z.string().uuid(), orderUuid: z.string().uuid(), caseId: z.number().int().positive().nullable(), caseLabel: z.string().nullable(),
+    sourceCaseKey: z.string().min(1), sourceAccessionKey: z.string().nullable(), sourceKey: z.string().min(1),
+    procedureLabel: z.string().min(1), caseType: z.string().min(1), cohort: z.enum(['routine', 'complex', 'consult_send_out', 'frozen_section']),
+    cohortLabel: z.string().min(1), stage: z.string().min(1), stageLabel: z.string().min(1), currentStageAt: z.string().datetime({ offset: true }),
+    stageAgeMinutes: z.number().int().nonnegative().nullable(), totalAgeMinutes: z.number().int().nonnegative(),
+    ageBand: z.enum(['under_4h', '4_to_8h', '8_to_24h', '24_to_48h', '48_plus', 'complete']), terminal: z.boolean(),
+    timeline: z.array(pathologyTimelineStageSchema),
+    structuralStage: z.object({ kind: z.enum(['overnight_batch', 'send_out', 'none']), label: z.string().nullable(), enteredAt: nullableIso, explanation: z.string().nullable() }).strict(),
+    benchmarkKey: z.enum(['routine', 'complex', 'frozen_single_block']).nullable(),
+    frozen: z.object({
+      applicable: z.boolean(), status: z.enum(['not_applicable', 'pending', 'in_progress', 'resulted', 'cancelled']),
+      startedAt: nullableIso, resultedAt: nullableIso, elapsedMinutes: z.number().int().nonnegative().nullable(), timerActive: z.boolean(), timer: frozenSectionTimerSchema.nullable(),
+    }).strict(),
+    sourceCutoffAt: z.string().datetime({ offset: true }), drillHref: z.string().min(1),
+  }).strict()),
+  privacy: z.object({ directPatientIdentifiersIncluded: z.literal(false), diagnosisOrNarrativeIncluded: z.literal(false), writebackIncluded: z.literal(false), explanation: z.string().min(1) }).strict(),
+}).strict();
+
+export type FrozenSectionTimerContract = z.infer<typeof frozenSectionTimerSchema>;
+export type AnatomicPathology = z.infer<typeof anatomicPathologySchema>;
+export type AnatomicPathologyCase = AnatomicPathology['data'][number];

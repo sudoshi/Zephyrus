@@ -2,6 +2,7 @@
 
 namespace App\Services\Operations;
 
+use App\Services\Lab\AnatomicPathologyService;
 use App\Services\Lab\BloodBankReadinessService;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
@@ -65,7 +66,11 @@ class CaseManagementService
 
     private const PHASE_RECOVERY = 'Recovery';
 
-    public function __construct(private readonly HospitalManifest $manifest, private readonly BloodBankReadinessService $bloodBank) {}
+    public function __construct(
+        private readonly HospitalManifest $manifest,
+        private readonly BloodBankReadinessService $bloodBank,
+        private readonly AnatomicPathologyService $pathology,
+    ) {}
 
     /** @return array<string,mixed> */
     public function getData(): array
@@ -89,9 +94,15 @@ class CaseManagementService
 
         $procedures = $this->procedures($anchor);
         $gates = $this->bloodBank->forCases(array_column($procedures, 'id'));
+        $activeProcedureCaseIds = array_column(array_filter(
+            $procedures,
+            fn (array $procedure): bool => $procedure['phase'] === self::PHASE_PROCEDURE,
+        ), 'id');
+        $frozenTimers = $this->pathology->frozenTimersForCases(array_column($procedures, 'id'), $activeProcedureCaseIds);
         $procedures = array_map(fn (array $procedure): array => [
             ...$procedure,
             'bloodBankGate' => $gates->get($procedure['id']),
+            'frozenSectionTimer' => $frozenTimers->get($procedure['id']),
         ], $procedures);
 
         return [

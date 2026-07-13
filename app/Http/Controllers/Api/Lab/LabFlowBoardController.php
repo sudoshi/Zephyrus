@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\Lab;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lab\AnatomicPathologyRequest;
 use App\Http\Requests\Lab\BloodBankReadinessRequest;
 use App\Http\Requests\Lab\LabDecisionPendingRequest;
 use App\Http\Requests\Lab\LabFlowBoardRequest;
 use App\Http\Requests\Lab\LabSpecimenRequest;
 use App\Http\Requests\Lab\StoreLabBarrierRequest;
+use App\Services\Lab\AnatomicPathologyService;
 use App\Services\Lab\BloodBankReadinessService;
 use App\Services\Lab\LabBarrierService;
 use App\Services\Lab\LabDecisionPendingService;
@@ -47,6 +49,12 @@ final class LabFlowBoardController extends Controller
     public function bloodBank(BloodBankReadinessRequest $request, BloodBankReadinessService $bloodBank): JsonResponse
     {
         return response()->json($bloodBank->build($request->validated()))
+            ->withHeaders(['Cache-Control' => 'private, no-cache']);
+    }
+
+    public function anatomicPathology(AnatomicPathologyRequest $request, AnatomicPathologyService $pathology): JsonResponse
+    {
+        return response()->json($pathology->build($request->validated()))
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 }

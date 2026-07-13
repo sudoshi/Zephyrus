@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-8 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, and Laboratory L-1 through L-9 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 33 of 60 tasks complete; 27 remain |
+| Progress | 34 of 60 tasks complete; 26 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -1579,24 +1579,47 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] TypeScript, production build, UI canon, mobile dark and desktop light Blood Bank smoke, desktop light Perioperative smoke, semantic main/headings, zero horizontal overflow, and zero console/page errors pass.
 - [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, allocation, writeback, or external system is activated by L-8.
 
-#### [ ] L-9 — Implement AP Case Aging at /lab/anatomic-path
+#### [x] L-9 — Implement AP Case Aging at /lab/anatomic-path
 
 **Depends on:** L-1, L-4
 **Primary files:** AnatomicPathologyService; page/API; Periop frozen-timer integration
 
 **Work:**
 
-- Render case aging by received, grossed, processing, slides-ready, diagnosed, and signed-out stages.
-- Separate routine, complex, consult/send-out, and frozen-section cohorts.
-- Show CAP-established benchmark lines with evidence label, not as universal policy.
-- Add live frozen-section timer to the linked OR case during the active procedural window.
+- [x] Add authenticated, named, read-only `/lab/anatomic-path` and private `/api/lab/anatomic-path` GET routes backed by one validated `AnatomicPathologyRequest` and one `AnatomicPathologyService`; reject unsupported stage/cohort/status/age filters, unauthenticated API reads, and every POST/write attempt.
+- [x] Select a bounded seven-day AP operational window with an exact linked-OR-case drill override, exclude cancelled facts, order open work by oldest current-stage evidence, retain recently signed-out work, and cap the browser contract after server filters with a separate pre-limit count.
+- [x] Render the complete AP stage chain—received, grossed, processing batch, slides ready, diagnosed, and signed out—with source timestamps, complete/current/pending/not-asserted state, current-stage age, total case age, terminal state, and deterministic aging bands.
+- [x] Preserve pre-receipt `specimen_out` as a filterable current state while keeping the six requested AP stages as the visible case timeline; never fabricate intermediate timestamps when a stage is absent.
+- [x] Add explicit routine, complex, consult/send-out, and frozen-section cohort metadata to the deterministic AP demo, with stable procedure codes/labels and a cohort fallback that defaults only genuinely unclassified non-frozen work to routine.
+- [x] Correct the AP demo's OR-case selection to one current operating day and place the active frozen section inside the same deterministic Procedure band used by Case Management rather than attaching it to an earliest/Recovery case.
+- [x] Represent overnight histology batching and consult/send-out handling as named structural workflow stages with entry evidence and explanations; do not display their elapsed time as unexplained idle delay.
+- [x] Publish three evidence-labeled reference lines from the source brief: routine AP P90 final within two days, complex AP P90 within three days, and single-block frozen-section P90 within 20 minutes. Label every line as established CAP guidance summarized in ACUM-ENG-ANC-001 section 8.1, not universal or local policy, and require local working-day governance before scoring.
+- [x] Add an AP source-coverage contract that independently reports governed AP-LIS classification and bulk-backfill completeness. Treat a bulk-capable source without a successful watermark as degraded, distinguish backfill not configured from missing, and withhold historical-completeness claims when no backfill is declared.
+- [x] Preserve normal, degraded, no-data, stale, and source-error page states. Keep last-known stages visible under stale/error evidence while withholding the live frozen timer when source freshness is not current.
+- [x] Add a reusable `FrozenSectionTimer` that advances from the server-owned elapsed value, links to the exact AP/OR drill, and states that it is operational and does not replace pathology communication or create a clinical command.
+- [x] Batch-load frozen timers into `CaseManagementService` only for valid non-deleted OR cases currently in the Procedure phase. Render the same timer contract in the tracker row and case journey; omit it for Pre-Op/Recovery, unlinked, stale, cancelled, or resulted frozen sections.
+- [x] Build the AP page with canonical layout primitives, source freshness, summary cards, filters, stage timelines, cohort labels, structural-stage callouts, CAP evidence labels, coverage explanations, strict Zod parsing, responsive layouts, and 30-second API refresh.
+- [x] Keep the minimum-necessary boundary explicit: no direct patient identifiers, diagnosis, narrative, pathologist identity, sign-out/result action, or source-system writeback appears in the service, API, page, timer, or Perioperative integration. Add AP Case Aging to the single Laboratory navigation authority.
+- [x] Add focused backend and frontend coverage for six-stage rendering, cohort counts, structural batching, benchmark provenance, clock boundaries, filters, terminal behavior, AP-LIS/backfill degradation, stale/error timer withholding, valid Procedure-phase linkage, unlinked/resulted clearing, query bounds, index use, route parity/auth/validation/read-only behavior, responsive states, and privacy/control absence.
 
 **Acceptance:**
 
-- Aging bucket transitions remain correct as DemoClock advances.
-- Frozen timer appears only for a valid active case and clears when result arrives.
-- Overnight batch is represented as a structural stage, not unexplained idle time.
-- Page supports degraded AP-LIS/backfill detail honestly.
+- [x] The fixed AP cohort contains six cases distributed as two routine, one complex, one consult/send-out, and two frozen sections, with one processing, one slides-ready, two diagnosed, one signed-out, and one received current stage.
+- [x] Every AP case returns exactly six visible timeline stages with source timestamps only where asserted; the four non-frozen cases expose a structural overnight or send-out branch rather than unexplained idle time.
+- [x] A processing case at 239 minutes is `under_4h`; advancing DemoClock two minutes moves it to 241 minutes and `4_to_8h`. The signed-out case remains terminal with a complete aging band and no active-stage clock.
+- [x] Stage, cohort, open/completed, age-band, exact-case, and limit filters return deterministic populations and reject malformed values at both browser read boundaries.
+- [x] The three reference lines carry the 90th percentile, correct two-day/three-day/20-minute values, explicit applicability, source-brief provenance, and the exact disclaimer that they are neither universal nor local policy; no case is scored against an ungoverned working-day interpretation.
+- [x] The active frozen section resolves to a valid Case Management procedure in the Procedure phase and receives the byte-equivalent timer contract on the AP page, tracker row, and case journey.
+- [x] Removing the OR link withholds the timer, a resulted frozen section never receives one, and transitioning the active source row to resulted clears its Perioperative timer on the next service build.
+- [x] Stale AP evidence retains last-known case stages but removes every live timer; registered source error produces `source_error` rather than a successful health claim.
+- [x] A bulk-capable source without a successful backfill watermark produces degraded/missing coverage; adding successful watermarks restores available coverage; a non-AP-LIS source class independently produces degraded AP-LIS coverage.
+- [x] Query count is constant for one versus fifty visible cases and remains within five queries; PostgreSQL `EXPLAIN` uses `ap_cases_stage_aging_idx` for stage-aging access.
+- [x] The browser contract explicitly reports no direct patient identifiers, diagnosis/narrative, or writeback. GET is the only route method, and rendered tests plus Chromium smoke find no sign-out, diagnose, result, or writeback control.
+- [x] AP demo generator/scenario verification passes 8 tests and 75 assertions; focused AP backend verification passes 4 tests and 74 assertions.
+- [x] The AP, Blood Bank, Decision-Pending, Specimen Tracker, Flow Board, and navigation frontend regression passes 46 tests across 7 files.
+- [x] The complete ancillary feature regression passes 161 tests and 2,207 assertions.
+- [x] TypeScript, production build, UI canon, mobile dark and desktop light AP smoke, desktop light Perioperative smoke, semantic main/headings, visible benchmark evidence, zero horizontal overflow, and zero console/page errors pass.
+- [x] No production deployment, production database, connector, credential, source endpoint, scheduler, queue, migration, diagnosis/sign-out action, writeback, or external system is activated by L-9.
 
 #### [ ] L-10 — Add Lab critical-value and health metrics to Cockpit
 

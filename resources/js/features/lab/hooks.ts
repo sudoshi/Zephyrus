@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { bloodBankReadinessSchema, labDecisionPendingSchema, labFlowBoardSchema, labSpecimensSchema, type BloodBankReadiness, type LabDecisionPending, type LabFlowBoard, type LabSpecimens } from './schemas';
+import { anatomicPathologySchema, bloodBankReadinessSchema, labDecisionPendingSchema, labFlowBoardSchema, labSpecimensSchema, type AnatomicPathology, type BloodBankReadiness, type LabDecisionPending, type LabFlowBoard, type LabSpecimens } from './schemas';
 
 export function useLabFlowBoard(initialData: LabFlowBoard) {
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -38,6 +38,16 @@ export function useBloodBankReadiness(initialData: BloodBankReadiness) {
   return useQuery({
     queryKey: ['blood-bank-readiness', search], initialData,
     queryFn: async () => bloodBankReadinessSchema.parse((await axios.get(`/api/lab/blood-bank${search}`)).data),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAnatomicPathology(initialData: AnatomicPathology) {
+  const search = typeof window === 'undefined' ? '' : window.location.search;
+
+  return useQuery({
+    queryKey: ['anatomic-pathology', search], initialData,
+    queryFn: async () => anatomicPathologySchema.parse((await axios.get(`/api/lab/anatomic-path${search}`)).data),
     refetchInterval: 30_000,
   });
 }
