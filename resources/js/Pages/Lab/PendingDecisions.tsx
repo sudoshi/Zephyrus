@@ -1,11 +1,25 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Clock3, GitBranch, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Clock3, GitBranch, ShieldAlert, Sparkles } from 'lucide-react';
 import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { SourceFreshnessBadge } from '@/Components/Ancillary';
 import { useLabDecisionPending } from '@/features/lab/hooks';
 import { labDecisionPendingSchema, type LabDecisionPending } from '@/features/lab/schemas';
+import { AmReadinessCell } from './AmReadinessCell';
 import BarrierAnnotationDrawer from './BarrierAnnotationDrawer';
+
+function forecastToggleHref(data: LabDecisionPending): string {
+  const query = new URLSearchParams();
+  if (data.filters.decisionClass !== 'all') query.set('decisionClass', data.filters.decisionClass);
+  if (data.filters.priority) query.set('priority', data.filters.priority);
+  if (data.filters.unitId) query.set('unitId', String(data.filters.unitId));
+  if (data.filters.urgency !== 'all') query.set('urgency', data.filters.urgency);
+  if (data.filters.orderUuid) query.set('orderUuid', data.filters.orderUuid);
+  if (data.filters.source) query.set('source', data.filters.source);
+  if (!data.amReadinessForecast.enabled) query.set('forecast', 'on');
+  const qs = query.toString();
+  return `/lab/pending-decisions${qs ? `?${qs}` : ''}`;
+}
 
 const STATE_STYLE = {
   normal: 'border-healthcare-success/40 bg-healthcare-success/10 text-healthcare-success dark:text-healthcare-success-dark',
@@ -42,6 +56,25 @@ export default function PendingDecisions({ pendingDecisions }: { pendingDecision
       <div role="status" className={`flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm ${STATE_STYLE[data.state]}`}><span>{data.stateMessage}</span><span className="tabular-nums">Generated {new Date(data.generatedAt).toLocaleTimeString()}</span></div>
       {data.summary.unresolvedDestinations > 0 ? <div role="alert" className="flex items-start gap-2 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/10 p-3 text-sm text-healthcare-warning dark:text-healthcare-warning-dark"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><p>{data.summary.unresolvedDestinations} candidate(s) are withheld because their downstream object could not be validated. No gate is inferred from a test name.</p></div> : null}
       <section aria-label="Ranking rule" className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 text-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark"><strong>Deterministic ranking:</strong> {data.rankingRule}</section>
+      {data.amReadinessForecast.available ? (
+        <section aria-label="AM-readiness forecast" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-healthcare-info/40 bg-healthcare-info/5 p-4 dark:border-healthcare-info-dark/40">
+          <div className="flex items-start gap-2">
+            <Sparkles className="mt-0.5 size-4 text-healthcare-info dark:text-healthcare-info-dark" aria-hidden="true" />
+            <div className="text-sm">
+              <p className="font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">Optional AM-readiness forecast (synthetic planning aid)</p>
+              <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{data.amReadinessForecast.explanation}</p>
+              {data.amReadinessForecast.enabled && data.amReadinessForecast.model ? (
+                <p className="mt-1 text-xs text-healthcare-text-secondary tabular-nums dark:text-healthcare-text-secondary-dark">
+                  Cutoff {data.amReadinessForecast.roundsCutoffLabel} · model {data.amReadinessForecast.model.modelVersion} · calibrated {data.amReadinessForecast.model.calibratedAt ? new Date(data.amReadinessForecast.model.calibratedAt).toLocaleDateString() : 'unknown'} · AUC {data.amReadinessForecast.model.evaluation.discriminationAuc ?? '—'} · {data.amReadinessForecast.model.syntheticLabel}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <Link href={forecastToggleHref(data)} aria-pressed={data.amReadinessForecast.enabled} className={`rounded-md border px-3 py-1.5 text-sm font-medium ${data.amReadinessForecast.enabled ? 'border-healthcare-info bg-healthcare-info text-white' : 'border-healthcare-border text-healthcare-text-secondary dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark'}`}>
+            {data.amReadinessForecast.enabled ? 'Hide forecast' : 'Show forecast'}
+          </Link>
+        </section>
+      ) : null}
       <form method="get" action="/lab/pending-decisions" aria-label="Decision-pending filters" className="grid gap-3 rounded-lg border border-healthcare-border bg-healthcare-surface p-4 sm:grid-cols-2 xl:grid-cols-5 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         {data.filters.orderUuid ? <input type="hidden" name="orderUuid" value={data.filters.orderUuid} /> : null}
         {data.filters.source ? <input type="hidden" name="source" value={data.filters.source} /> : null}
@@ -53,7 +86,7 @@ export default function PendingDecisions({ pendingDecisions }: { pendingDecision
       </form>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{cards.map(({ label, value, Icon }) => <section key={label} className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark"><div className="flex items-center justify-between"><p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</p><Icon className="size-4 text-healthcare-primary" aria-hidden="true" /></div><p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p></section>)}</div>
       <div className="space-y-3">{data.data.map((item) => <article key={item.pendingKey} className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-healthcare-primary px-2 py-0.5 text-xs font-semibold text-white">#{item.ranking.position}</span><h2 className="font-semibold">{item.label}</h2><span className="rounded-md border border-healthcare-border px-2 py-0.5 text-xs dark:border-healthcare-border-dark">{words(item.decisionClass)}</span><span className={`rounded-md border px-2 py-0.5 text-xs ${URGENCY_STYLE[item.sla.urgency]}`}>{words(item.sla.urgency)}</span></div><p className="mt-1 break-all text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{item.patientRef} · {item.locationLabel ?? 'Unit unavailable'} · {item.priority} · {item.testFamily}</p></div><div className="text-right"><p className="text-lg font-semibold tabular-nums">{item.ageMinutes} min</p><p className="text-xs">{words(item.currentStage)}</p></div></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-md bg-healthcare-primary px-2 py-0.5 text-xs font-semibold text-white">#{item.ranking.position}</span><h2 className="font-semibold">{item.label}</h2><span className="rounded-md border border-healthcare-border px-2 py-0.5 text-xs dark:border-healthcare-border-dark">{words(item.decisionClass)}</span><span className={`rounded-md border px-2 py-0.5 text-xs ${URGENCY_STYLE[item.sla.urgency]}`}>{words(item.sla.urgency)}</span></div><p className="mt-1 break-all text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{item.patientRef} · {item.locationLabel ?? 'Unit unavailable'} · {item.priority} · {item.testFamily}</p></div><div className="flex flex-col items-end gap-2 text-right"><div><p className="text-lg font-semibold tabular-nums">{item.ageMinutes} min</p><p className="text-xs">{words(item.currentStage)}</p></div>{item.amReadiness ? <AmReadinessCell forecast={item.amReadiness} /> : null}</div></div>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
           <section className="rounded-md bg-healthcare-background p-3 text-sm dark:bg-healthcare-background-dark"><h3 className="font-medium">What is pending</h3><p className="mt-1">{words(item.resultState.stage)} · {words(item.resultState.status)}{item.resultState.critical ? ' · critical flag' : ''} · {words(item.resultState.abnormalFlag)}</p><p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Operational state only; result values and narratives are excluded.</p></section>
           <section className="rounded-md bg-healthcare-background p-3 text-sm dark:bg-healthcare-background-dark"><h3 className="font-medium">SLA clock</h3>{item.sla.definition ? <><p className="mt-1">{item.sla.definition.label}</p><p className="text-xs">{item.sla.elapsedMinutes ?? 'Unavailable'} min elapsed · warn {item.sla.definition.warningMinutes ?? '—'} · breach {item.sla.definition.breachMinutes ?? '—'}</p></> : <p className="mt-1 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No matching governed item clock; threshold unconfigured.</p>}</section>

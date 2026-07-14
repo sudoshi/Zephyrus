@@ -38,6 +38,7 @@ function payload(overrides: Partial<LabDecisionPending> = {}): LabDecisionPendin
     sla: { definition, startAt: '2026-07-11T13:05:00+00:00', elapsedMinutes: 55, urgency: 'warning' as const, explanation: 'LAB_ORDERED to LAB_VERIFIED.' },
     ranking: { impactRank: 0, priorityRank: 0, sortKey: '0|9999999944|0|1', reasons: ['A live OR start gate is the highest impact class.', 'Older work ranks first, then governed priority.', 'Stable order identity is the tie-breaker.'], position: 1 },
     drill: { specimenHref: `/lab/specimens?orderUuid=${orderUuid}`, destinationHref: '/operations/cases?caseId=17' }, barrierCount: 0,
+    amReadiness: null,
   };
   const base = {
     generatedAt: '2026-07-11T14:00:00+00:00', state: 'normal', stateMessage: 'Decision-pending Laboratory facts and downstream links are current.',
@@ -45,6 +46,7 @@ function payload(overrides: Partial<LabDecisionPending> = {}): LabDecisionPendin
     filters: { decisionClass: 'all', priority: null, unitId: null, urgency: 'all', orderUuid: null, source: null, limit: 50 },
     filterOptions: { decisionClasses: ['all', 'or_gate', 'discharge_gate', 'ed_disposition'], priorities: ['stat', 'urgent', 'routine'], units: [{ unitId: 2, label: 'OR Holding' }], urgencies: ['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale'] },
     rankingRule: 'Live OR gate, discharge bed impact, ED disposition, then descending age, governed priority, and stable order identity.',
+    amReadinessForecast: { available: false, enabled: false, requested: false, roundsCutoffAt: '2026-07-11T08:00:00+00:00', roundsCutoffLabel: 'Morning rounds (08:00 local)', model: null, explanation: 'AM-readiness forecasting is available but off.' },
     summary: { visible: 1, resolvedBeforeLimit: 1, orGates: 1, dischargeGates: 0, edDispositions: 0, unresolvedDestinations: 0, breached: 0 },
     exclusions: { noGateCatalog: 7, completedOrCancelled: 2, unresolved: [], explanation: 'Non-gating, completed, and unresolved work is excluded.' },
     data: [item],
@@ -93,5 +95,33 @@ describe('Laboratory Decision-Pending Results', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/withheld because their downstream object could not be validated/i);
     expect(screen.getByText(/No validated decision-pending Laboratory results match/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add barrier' })).not.toBeInTheDocument();
+  });
+
+  it('renders the opt-in AM-readiness forecast as a distinct planning aid, not an observed status', () => {
+    const model = {
+      modelVersion: 'lab-am-readiness-2026.07.13-synthetic-v1', modelFamily: 'calibrated_logistic', calibratedAt: '2026-07-13T12:00:00+00:00',
+      synthetic: true, syntheticLabel: 'Synthetic demo calibration — planning aid only.', roundsCutoffLabel: 'Morning rounds (08:00 local)', horizonDefinition: 'Verify before rounds.',
+      trainingWindow: { cohortSize: 900 }, featureSchema: ['stage_resulted'],
+      evaluation: { calibrationError: 0.04, discriminationAuc: 0.92, brierScore: 0.11, coverage: { fraction: 1 }, naiveBaseline: { discriminationAuc: 0.5 }, beatsBaseline: true },
+    };
+    const forecast = {
+      kind: 'forecast' as const, availability: 'available' as const, probability: 0.82, band: 'on_track' as const,
+      factors: [{ feature: 'stage_resulted', label: 'Result posted, awaiting verification', contribution: 1.2 }],
+      headwinds: [], missingSignals: [], roundsCutoffAt: '2026-07-11T08:00:00+00:00', roundsCutoffLabel: 'Morning rounds (08:00 local)',
+      explanation: 'Calibrated planning forecast of on-time verification before rounds.',
+    };
+    const value = payload();
+    renderPage({
+      ...value,
+      amReadinessForecast: { available: true, enabled: true, requested: true, roundsCutoffAt: '2026-07-11T08:00:00+00:00', roundsCutoffLabel: 'Morning rounds (08:00 local)', model, explanation: 'This optional forecast predicts on-time verification before the rounds cutoff.' },
+      data: [{ ...value.data[0], amReadiness: forecast }],
+    });
+    // The forecast is explicitly labeled as a synthetic planning aid.
+    expect(screen.getByText(/Optional AM-readiness forecast \(synthetic planning aid\)/)).toBeInTheDocument();
+    // The observed OR-gate SLA state still renders unchanged next to the forecast.
+    expect(screen.getByText(/55 min elapsed · warn 45 · breach 60/)).toBeInTheDocument();
+    // The per-row forecast cell is present and marked as a forecast (not a status).
+    expect(screen.getAllByText('Forecast').length).toBeGreaterThan(0);
+    expect(screen.getByText(/On track for rounds/)).toBeInTheDocument();
   });
 });

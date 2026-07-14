@@ -24,6 +24,7 @@ final class LabDecisionPendingRequest extends FormRequest
             'urgency' => ['sometimes', 'string', Rule::in(LabDecisionPendingService::URGENCIES)],
             'orderUuid' => ['sometimes', 'nullable', 'uuid'],
             'source' => ['sometimes', 'nullable', 'string', Rule::in(LabDecisionPendingService::DRILL_SOURCES)],
+            'forecast' => ['sometimes', 'boolean'],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }

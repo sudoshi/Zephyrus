@@ -1,0 +1,137 @@
+{
+    "modelVersion": "lab-am-readiness-2026.07.13-synthetic-v1",
+    "modelFamily": "calibrated_logistic",
+    "synthetic": true,
+    "syntheticLabel": "Synthetic demo calibration \u2014 planning aid only, trained on generated demo history, not a clinical model.",
+    "target": {
+        "definition": "An open decision-class Laboratory order (discharge_gate / ed_disposition) reaches LAB_VERIFIED before the configured morning-rounds cutoff.",
+        "roundsCutoffLabel": "Morning rounds (08:00 local)",
+        "cutoffRule": "The rounds cutoff is a policy value separate from any SLA/measurement. Features are anchored at the prediction instant; no verification timestamp, result value, or post-prediction evidence enters the feature vector."
+    },
+    "calibratedAt": "2026-07-13T12:00:00+00:00",
+    "featureSchema": [
+        "stage_ordered",
+        "stage_collected",
+        "stage_received",
+        "stage_resulted",
+        "family_chemistry",
+        "family_hematology",
+        "family_coagulation",
+        "family_other",
+        "patient_emergency",
+        "patient_inpatient",
+        "shift_am_draw",
+        "hour_sin",
+        "hour_cos",
+        "is_off_hours",
+        "queue_depth_norm",
+        "analyzer_downtime",
+        "minutes_to_cutoff_norm",
+        "past_cutoff",
+        "processing_pressure"
+    ],
+    "trainingWindow": {
+        "anchor": "2026-07-13T12:00:00+00:00",
+        "cohortSize": 900,
+        "trainCount": 630,
+        "evaluateCount": 270,
+        "splitAt": "2026-07-04T12:00:00+00:00",
+        "trainFrom": "2026-06-13T12:00:00+00:00",
+        "trainTo": "2026-07-04T10:54:00+00:00",
+        "evaluateFrom": "2026-07-04T12:00:00+00:00",
+        "evaluateTo": "2026-07-13T11:03:00+00:00"
+    },
+    "model": {
+        "weights": {
+            "stage_ordered": -1.4409658297196724,
+            "stage_collected": -0.3147859128610714,
+            "stage_received": 0.7690669714374261,
+            "stage_resulted": 1.2702799221863332,
+            "family_chemistry": 0.16366474712697662,
+            "family_hematology": 0.30009757202832854,
+            "family_coagulation": 0.20415991054365373,
+            "family_other": -0.38432707865594307,
+            "patient_emergency": -0.07618013045317767,
+            "patient_inpatient": -0.013889948528356658,
+            "shift_am_draw": 0.43409534602381045,
+            "hour_sin": -0.08297749429172892,
+            "hour_cos": -0.19029690659946835,
+            "is_off_hours": -0.2912798554525929,
+            "queue_depth_norm": -1.447810169600632,
+            "analyzer_downtime": -0.9807904807427371,
+            "minutes_to_cutoff_norm": 2.098117204464406,
+            "past_cutoff": -2.2557801720808572,
+            "processing_pressure": -1.0106246619206665
+        },
+        "bias": 0.3033689172750677,
+        "calibrationCurve": [
+            {
+                "score": 0,
+                "calibrated": 0
+            },
+            {
+                "score": 0.03987,
+                "calibrated": 0.023952
+            },
+            {
+                "score": 0.153495,
+                "calibrated": 0.114754
+            },
+            {
+                "score": 0.248593,
+                "calibrated": 0.166667
+            },
+            {
+                "score": 0.353136,
+                "calibrated": 0.290909
+            },
+            {
+                "score": 0.450842,
+                "calibrated": 0.409091
+            },
+            {
+                "score": 0.552883,
+                "calibrated": 0.567568
+            },
+            {
+                "score": 0.656396,
+                "calibrated": 0.813953
+            },
+            {
+                "score": 0.759401,
+                "calibrated": 0.813953
+            },
+            {
+                "score": 0.848375,
+                "calibrated": 0.884615
+            },
+            {
+                "score": 0.940226,
+                "calibrated": 0.984375
+            },
+            {
+                "score": 1,
+                "calibrated": 0.984375
+            }
+        ]
+    },
+    "evaluation": {
+        "calibrationError": 0.0381,
+        "discriminationAuc": 0.9197,
+        "brierScore": 0.1091,
+        "coverage": {
+            "evaluated": 270,
+            "total": 270,
+            "fraction": 1,
+            "note": "On the synthetic backtest every held-out order carries complete operational features; live coverage is reported per request as stale/missing signals degrade to low-confidence/unavailable."
+        },
+        "naiveBaseline": {
+            "strategy": "training_base_rate",
+            "baseRate": 0.4222,
+            "brierScore": 0.2365,
+            "discriminationAuc": 0.5,
+            "brierSkillScore": 0.5384
+        },
+        "beatsBaseline": true
+    }
+}

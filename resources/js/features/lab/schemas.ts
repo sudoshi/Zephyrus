@@ -113,6 +113,46 @@ export type LabSpecimens = z.infer<typeof labSpecimensSchema>;
 
 const pendingUrgencySchema = z.enum(['breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale']);
 
+const amReadinessModelProvenanceSchema = z.object({
+  modelVersion: z.string(),
+  modelFamily: z.string(),
+  calibratedAt: z.string().nullable(),
+  synthetic: z.boolean(),
+  syntheticLabel: z.string(),
+  roundsCutoffLabel: z.string(),
+  horizonDefinition: z.string(),
+  trainingWindow: z.record(z.string(), z.unknown()),
+  featureSchema: z.array(z.string()),
+  evaluation: z.object({
+    calibrationError: z.number().nullable(),
+    discriminationAuc: z.number().nullable(),
+    brierScore: z.number().nullable(),
+    coverage: z.record(z.string(), z.unknown()).nullable(),
+    naiveBaseline: z.record(z.string(), z.unknown()).nullable(),
+    beatsBaseline: z.boolean().nullable(),
+  }).strict(),
+}).strict();
+
+const amReadinessForecastFactorSchema = z.object({
+  feature: z.string(), label: z.string(), contribution: z.number(),
+}).strict();
+
+const amReadinessForecastSchema = z.object({
+  kind: z.literal('forecast'),
+  availability: z.enum(['available', 'low_confidence', 'unavailable']),
+  probability: z.number().min(0).max(1).nullable(),
+  band: z.enum(['on_track', 'at_risk', 'unlikely']).nullable(),
+  factors: z.array(amReadinessForecastFactorSchema),
+  headwinds: z.array(amReadinessForecastFactorSchema),
+  missingSignals: z.array(z.string()),
+  roundsCutoffAt: z.string().datetime({ offset: true }).nullable(),
+  roundsCutoffLabel: z.string().nullable(),
+  explanation: z.string(),
+}).strict();
+
+export type AmReadinessForecast = z.infer<typeof amReadinessForecastSchema>;
+export type AmReadinessModelProvenance = z.infer<typeof amReadinessModelProvenanceSchema>;
+
 export const labDecisionPendingSchema = z.object({
   generatedAt: z.string().datetime({ offset: true }),
   state: z.enum(['normal', 'degraded', 'no_data', 'stale', 'source_error']),
@@ -132,6 +172,11 @@ export const labDecisionPendingSchema = z.object({
     urgencies: z.array(z.string()),
   }).strict(),
   rankingRule: z.string().min(1),
+  amReadinessForecast: z.object({
+    available: z.boolean(), enabled: z.boolean(), requested: z.boolean(),
+    roundsCutoffAt: z.string().datetime({ offset: true }), roundsCutoffLabel: z.string(),
+    model: amReadinessModelProvenanceSchema.nullable(), explanation: z.string(),
+  }).strict(),
   summary: z.object({
     visible: z.number().int().nonnegative(), resolvedBeforeLimit: z.number().int().nonnegative(),
     orGates: z.number().int().nonnegative(), dischargeGates: z.number().int().nonnegative(),
@@ -161,6 +206,7 @@ export const labDecisionPendingSchema = z.object({
     ranking: z.object({ impactRank: z.number().int().min(0).max(2), priorityRank: z.number().int().nonnegative(), sortKey: z.string(), reasons: z.array(z.string().min(1)).min(3), position: z.number().int().positive() }).strict(),
     drill: z.object({ specimenHref: z.string().min(1), destinationHref: z.string().min(1) }).strict(),
     barrierCount: z.number().int().nonnegative(),
+    amReadiness: amReadinessForecastSchema.nullable(),
   }).strict()),
   destinationAggregates: z.array(z.object({
     decisionClass: z.enum(['or_gate', 'discharge_gate', 'ed_disposition']), destinationId: z.number().int().positive(),

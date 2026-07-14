@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, Pharmacy X-1 through X-14 (Pharmacy phase complete), and predictive P4-1 (calibrated Radiology breach-risk sorting) done; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, Pharmacy X-1 through X-14 (Pharmacy phase complete), and predictive P4-1 (calibrated Radiology breach-risk sorting) and P4-2 (Lab AM-readiness forecasting) done; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 54 of 60 tasks complete; 6 remain |
+| Progress | 55 of 60 tasks complete; 5 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2250,23 +2250,26 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Missing/stale features degrade honestly: a missing queue-depth/scanner signal → `unavailable` (null probability/band), a stale signal (source cutoff beyond the 20-minute tolerance) → `low_confidence`; a feature test nulls all modalities and asserts every scored row is `unavailable`, never a fabricated number.
 - [x] No clinical feature or protected attribute is introduced without review: the ethics guard test asserts `FEATURES` contains only the operational list (no diagnosis, no demographics beyond `patient_class`, no protected attributes).
 
-#### [ ] P4-2 — Add Lab AM-readiness forecasting
+#### [x] P4-2 — Add Lab AM-readiness forecasting
 
-**Depends on:** L-14
-**Primary files:** LabMorningReadinessService; Decision-Pending/RTDC huddle integration
+**Depends on:** L-14, P4-1
+**Primary files:** `app/Services/Lab/AmReadiness/*` (LabMorningReadinessService, AmReadinessBacktester, CalibratedLogisticModel, AmReadinessFeatureExtractor, AmReadinessFeatureSchema, AmReadinessModelArtifact, AmReadinessObservation); `config/lab/am_readiness.php` (rounds-cutoff policy) + `config/lab/am_readiness_model.json` (artifact); `app/Console/Commands/LabBuildAmReadinessModel.php`; LabDecisionPendingService + LabDecisionPendingRequest; ServiceHuddleService; `resources/js/Pages/Lab/{PendingDecisions,AmReadinessCell}.tsx` + `resources/js/Pages/RTDC/ServiceHuddle.jsx` + `features/lab/schemas.ts`
 
 **Work:**
 
-- Predict the probability that explicit decision-class lab work will be verified before the configured rounds cutoff.
-- Use current stage, collection/receipt status, test family, queue conditions, shift, analyzer context, and source freshness.
-- Surface in Decision-Pending Results and the existing RTDC morning huddle as a planning aid with cutoff/model version.
-- Keep the actual readiness vector based on observed state, not prediction.
+- [x] Documented the prediction TARGET and cutoff in the artifact `target` block before training: an OPEN decision-class Laboratory order (the `discharge_gate`/`ed_disposition` classes owned by `LabDecisionPendingService`) reaches `LAB_VERIFIED` before the configured morning-rounds cutoff. The cutoff is a POLICY value in `config/lab/am_readiness.php` (default 08:00 local, separate from any SLA/measurement); the service resolves the next occurrence at prediction time. Features are anchored at the prediction instant so no verification timestamp or result value enters the vector.
+- [x] Froze a 19-feature operational-only schema in `AmReadinessFeatureSchema` — coarse processing stage one-hots (ordered/collected/received/resulted, `LAB_VERIFIED` deliberately absent because a verified order has left the cohort), test-family one-hots (chemistry/hematology/coagulation/other), `patient_class` (emergency/inpatient only — the single admitted patient descriptor), AM-draw-wave flag, cyclical hour, off-hours, scaled same-family decision-class queue depth, analyzer-downtime, scaled minutes-to-cutoff, a past-cutoff indicator, and an off-hours×queue processing-pressure interaction. `FORBIDDEN_SUBSTRINGS` (verified/verify/outcome/result_value/diagnosis/abnormal/critical/protected attributes) is asserted absent by the ethics guard test.
+- [x] Built `AmReadinessBacktester` as a deterministic (seeded) SYNTHETIC demo-history pipeline proof: 900 decision-class orders spread over ~30 days with a known verify-before-cutoff data-generating process (readiness rises with processing progress and remaining time; falls with queue depth, analyzer downtime, being past the cutoff, and off-hours pressure), time-split 70/30 (earlier trains, later evaluates), a dependency-free calibrated logistic regression (batch GD + light L2) with a monotone piecewise-linear reliability curve fitted from training reliability bins.
+- [x] Persisted the versioned artifact `config/lab/am_readiness_model.json` (`modelVersion`, `modelFamily`, `synthetic:true` + `syntheticLabel`, `target` with the rounds-cutoff label, `calibratedAt`, `featureSchema`, `trainingWindow` with both windows, the fitted `model` weights/bias/calibration curve, and `evaluation`). Regenerated by `php artisan lab:build-am-readiness-model` (refuses to write unless it beats the naive baseline). Committed artifact scores AUC ≈ 0.92, calibration error ≈ 0.04, Brier 0.109 vs base-rate 0.237.
+- [x] `LabMorningReadinessService` owns forecasting server-side: loads the artifact, resolves each open decision-class order's available-at-prediction observation (current milestone stage, live same-family decision-class queue depth, analyzer operational state from the latest result metadata, source-cutoff freshness), returns calibrated probability + band (`on_track`/`at_risk`/`unlikely`) + top-3 tailwind and top-3 headwind operational factors + missing-signal list + the resolved rounds cutoff. A `huddleSummary()` aggregate (band counts, mean probability, provenance) feeds the RTDC morning huddle. React only renders.
+- [x] Surfaced the forecast ONLY as an OPT-IN planning aid: a `forecast=on` toggle + provenance banner on Decision-Pending Results (`AmReadinessCell` per row) and a distinct "Lab readiness forecast — planning aid (synthetic)" card on the RTDC Service (morning) Huddle. Both carry the cutoff label, model version, calibration date, AUC, and synthetic label; the cell conveys band by a "Forecast" label + Sparkles icon + text (never color alone), uses neutral/info tokens (never the coral breach treatment), and is never a page alarm, an SLA/urgency status, or a clinical recommendation.
+- [x] CRITICAL boundary: the forecast is NEVER wired into `AncillaryReadinessService`. The observed lab axis (`laboratoryForEncounters`/`laboratoryForEdVisits`) stays derived from observed state; the forecast lives in a separate `amReadiness` field per row (and a separate top-level `amReadinessForecast`/huddle key) and mutates no `sla.urgency`, `destination`, `ranking`, or observed axis state.
 
 **Acceptance:**
 
-- Calibration and naive baseline comparison pass on fixed demo history.
-- Observed and predicted readiness are visually/semantically distinct.
-- No forecast converts an observed blocked axis to ready.
+- [x] Time-based split prevents target leakage: the backtest trains on the earlier window and evaluates on the strictly-later window (`trainTo ≤ evaluateFrom` asserted), and the feature extractor's output keys are exactly the frozen operational schema with no verification/outcome field reachable — proven because `AmReadinessObservation` carries no verification input. Calibration error, discrimination/AUC, coverage, and a naive base-rate baseline (Brier + AUC) are all reported in `evaluation`; the model beats the baseline (AUC ≈ 0.92 vs 0.50, Brier 0.109 < 0.237) — asserted by the unit test on the fixed demo history.
+- [x] Observed and predicted readiness are visually/semantically distinct: a feature test asserts the observed `sla`/`ranking`/`destination`/`currentStage` of every ranked row is byte-identical whether or not the forecast is requested, and the forecast is a separate `amReadiness` structure (`kind: 'forecast'`, no `urgency` key). The huddle keeps the roster (observed) and the forecast aggregate as distinct top-level keys — the forecast never appears inside a patient row. On the page the forecast is a labeled synthetic planning cell/card, not an SLA badge.
+- [x] No forecast converts an observed blocked axis to ready: an explicit test takes the demo discharge-gate encounter (observed lab axis = `blocked`/`blocking`), computes the (potentially high) opt-in forecast, and asserts the observed axis is UNCHANGED (`blocked`, same pending count) after the forecast ran. Missing/stale features degrade honestly — a feature test deletes all results and asserts every forecast is `unavailable` (null probability/band, non-empty missing signals), never a fabricated number.
 
 #### [ ] P4-3 — Add Pharmacy queue and stockout forecasts
 

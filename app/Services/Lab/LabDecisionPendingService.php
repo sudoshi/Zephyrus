@@ -5,6 +5,7 @@ namespace App\Services\Lab;
 use App\Data\Ancillary\FreshnessEnvelope;
 use App\Models\Ancillary\AncillarySlaDefinition;
 use App\Services\Ancillary\AncillaryContractSerializer;
+use App\Services\Lab\AmReadiness\LabMorningReadinessService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -22,7 +23,10 @@ final class LabDecisionPendingService
 
     private const IMPACT_RANK = ['or_gate' => 0, 'discharge_gate' => 1, 'ed_disposition' => 2];
 
-    public function __construct(private readonly AncillaryContractSerializer $contracts) {}
+    public function __construct(
+        private readonly AncillaryContractSerializer $contracts,
+        private readonly LabMorningReadinessService $amReadiness,
+    ) {}
 
     /** @param array<string, mixed> $input @return array<string, mixed> */
     public function build(array $input = [], bool $canAnnotateBarriers = false, bool $canViewPatientDetail = true): array
@@ -133,6 +137,14 @@ final class LabDecisionPendingService
 
                 return $item;
             });
+
+        // Opt-in AM-readiness FORECAST: a calibrated, synthetic planning aid that
+        // predicts on-time verification before the rounds cutoff. It is attached
+        // as a separate `amReadiness` field per row and NEVER mutates the observed
+        // SLA/urgency state, the destination readiness, or the ranking — observed
+        // and predicted stay semantically distinct (§13 + P4-2 acceptance).
+        [$ranked, $forecastState] = $this->attachForecast($ranked, $filters['forecast']);
+
         $counts = $this->exclusionCounts($filters);
         $state = $this->state($ranked, $unresolved, $freshness);
 
@@ -144,6 +156,7 @@ final class LabDecisionPendingService
             'filters' => $filters,
             'filterOptions' => $this->filterOptions(),
             'rankingRule' => 'Live OR gate, discharge bed impact, ED disposition, then descending age, governed priority, and stable order identity.',
+            'amReadinessForecast' => $forecastState,
             'summary' => [
                 'visible' => $ranked->count(),
                 'resolvedBeforeLimit' => $items->count(),
@@ -172,6 +185,68 @@ final class LabDecisionPendingService
             'canAnnotateBarriers' => $canAnnotateBarriers,
             'barrierReasons' => $this->barrierReasons(),
         ];
+    }
+
+    /**
+     * Attach the opt-in AM-readiness forecast to each ranked item and return the
+     * top-level forecast provenance block. The forecast is a calibrated,
+     * synthetic PLANNING AID (P4-2): it predicts the probability that each
+     * decision-class order verifies before the rounds cutoff. It is a separate
+     * `amReadiness` field — it never changes `sla.urgency`, `destination`,
+     * `ranking`, or any observed state, so observed and predicted readiness stay
+     * visually and semantically distinct.
+     *
+     * @param  Collection<int, array<string, mixed>>  $ranked
+     * @return array{0: Collection<int, array<string, mixed>>, 1: array<string, mixed>}
+     */
+    private function attachForecast(Collection $ranked, bool $requested): array
+    {
+        $provenance = $this->amReadiness->provenance();
+        $cutoff = $this->amReadiness->roundsCutoff();
+        $available = $provenance !== null;
+        $enabled = $available && $requested;
+
+        if ($enabled) {
+            $forecasts = $this->amReadiness->forecastByOrderUuid(
+                $ranked->pluck('orderUuid')->map(fn (mixed $uuid): string => (string) $uuid)->all(),
+            );
+            $ranked = $ranked->map(function (array $item) use ($forecasts): array {
+                $item['amReadiness'] = $forecasts[$item['orderUuid']] ?? [
+                    'kind' => 'forecast',
+                    'availability' => 'unavailable',
+                    'probability' => null,
+                    'band' => null,
+                    'factors' => [],
+                    'headwinds' => [],
+                    'missingSignals' => ['queue_depth'],
+                    'roundsCutoffAt' => null,
+                    'roundsCutoffLabel' => null,
+                    'explanation' => 'No operational features were resolvable for this order; no forecast is produced.',
+                ];
+
+                return $item;
+            });
+        } else {
+            $ranked = $ranked->map(function (array $item): array {
+                $item['amReadiness'] = null;
+
+                return $item;
+            });
+        }
+
+        return [$ranked, [
+            'available' => $available,
+            'enabled' => $enabled,
+            'requested' => $requested,
+            'roundsCutoffAt' => $cutoff['at']->toAtomString(),
+            'roundsCutoffLabel' => $cutoff['label'],
+            'model' => $provenance,
+            'explanation' => match (true) {
+                ! $available => 'The Laboratory AM-readiness planning model artifact is not installed.',
+                $enabled => 'This optional forecast predicts on-time verification before the rounds cutoff. It is a calibrated, synthetic-demo planning aid computed server-side — NOT the observed readiness state, an alarm, or a clinical recommendation. Observed SLA/urgency and destination readiness are unchanged.',
+                default => 'AM-readiness forecasting is available but off. Add forecast=on to compute the optional synthetic planning forecast for the ranked queue.',
+            },
+        ]];
     }
 
     /**
@@ -250,6 +325,7 @@ final class LabDecisionPendingService
             'source' => is_string($input['source'] ?? null) && in_array($input['source'], self::DRILL_SOURCES, true)
                 ? $input['source']
                 : null,
+            'forecast' => filter_var($input['forecast'] ?? false, FILTER_VALIDATE_BOOL),
             'limit' => min(100, max(1, (int) ($input['limit'] ?? 50))),
         ];
     }
