@@ -307,6 +307,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('pharmacy')->name('a
     Route::get('/iv-room', [PharmacyIvRoomController::class, 'show'])->name('iv-room');
     Route::get('/dispense', [PharmacyDispenseController::class, 'show'])->name('dispense');
     Route::get('/controlled', [PharmacyControlledController::class, 'show'])->name('controlled');
+    Route::get('/tat', [PharmacyFlowBoardController::class, 'tat'])->name('tat');
     Route::post('/barriers', [PharmacyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

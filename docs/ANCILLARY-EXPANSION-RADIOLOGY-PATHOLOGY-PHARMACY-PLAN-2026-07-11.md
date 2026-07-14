@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-11 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-12 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 50 of 60 tasks complete; 10 remain |
+| Progress | 51 of 60 tasks complete; 9 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2156,24 +2156,27 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] ED lens joins the correct boarded encounter: `MedicationReadinessEdLensTest` proves the medication axis attaches to the right ED visit's open orders, a time-critical dose blocks, an unrelated other-visit order does not leak in, administered orders are ready, and a stale source demotes every scope to unknown.
 - [x] No standalone client-computed PharmacyTile is introduced: all four metrics flow through the server snapshot and the existing DrillBuilder reserved row; no new client tile component exists, and the refresh test asserts no patient/medication/user detail is serialized into the snapshot.
 
-#### [ ] X-12 — Implement Pharmacy TAT Study at /analytics/pharmacy-tat
+#### [x] X-12 — Implement Pharmacy TAT Study at /analytics/pharmacy-tat
 
 **Depends on:** X-6 through X-11
-**Primary files:** PharmacyTatAnalyticsService; Analytics page/API/navigation
+**Primary files:** `app/Services/Pharmacy/PharmacyTatAnalyticsService.php`; `app/Http/Controllers/Analytics/PharmacyTatController.php`; `app/Http/Requests/Pharmacy/PharmacyTatAnalyticsRequest.php`; `app/Http/Controllers/Api/Pharmacy/PharmacyFlowBoardController.php` (`tat` action); `database/seeders/AncillaryReferenceSeeder.php` (rx.study.* segments); `resources/js/Pages/Analytics/PharmacyTat.tsx`; `resources/js/Components/Pharmacy/PharmacyTatCharts.tsx`; `resources/js/features/pharmacy/tat-schemas.ts` + `hooks.ts`; `routes/web.php` + `routes/api.php`
 
 **Work:**
 
-- Provide verification/prepare/dispense/deliver/admin waterfall, median/P90 by priority/shift/unit/branch, queue depth heatmap, missing-dose Pareto, discharge readiness trend, and shortage impact.
-- Separate real-time segments from warehouse-fed administration segments.
-- Expose denominator, cohort, source cutoff, mapping coverage, and benchmark/reference classification.
-- Avoid causal claims about shortages or staffing without designed analysis.
+- [x] Seeded a five-segment governed `rx.study.*` waterfall ladder in `AncillaryReferenceSeeder` — verification (`RX_ORDERED→RX_VERIFIED`), preparation (`RX_VERIFIED→RX_DISPENSED`), dispense (`RX_DISPENSED→RX_DELIVERED`), delivery (`RX_DELIVERED→RX_ADMINISTERED`), and the primary end-to-end order-to-administration (`RX_ORDERED→RX_ADMINISTERED`) — each carrying `study_segment`, `sequence`, `phase`, and an explicit `basis` scope; SLA count moved 27→32 with the seeder test asserting the ordered phase list.
+- [x] `PharmacyTatAnalyticsService.build()` renders the waterfall with **median AND P90 together** (mean is secondary, computed via `AncillaryStatistics`, never alone), plus median/P90 breakdowns by priority, shift, unit, and preparation branch; every percentile is server-computed (React never recomputes).
+- [x] Added a verification queue-depth heatmap (local ISO weekday × hour of day, one queued verification per cell from `prod.rx_verifications`), a missing-dose Pareto grouped by preparation branch (reusing the X-9 `RX_MISSING_DOSE` re-request chain, order-level only), a discharge-readiness trend (discharge-queue orders by planned-discharge day, ready-on-time = `ready_at`/`delivered_at` ≤ `planned_discharge_at`), and a shortage-impact contrast (order-to-administration percentiles split by the current `on_shortage` flag).
+- [x] **Separated real-time from warehouse-fed segments structurally:** any segment stopping on `RX_ADMINISTERED` is `warehouse_as_of` and stops on the deduplicated given administration from `prod.rx_administrations`; its `sourceCutoffAt` is the batch cutoff from `PharmacyAdministrationFreshnessService` (never `fresh` — clamped to `batch`), and real-time segments carry the operational (anchor-time) cutoff. The summary, daily trend, shortage impact, and every warehouse lineage stop-assertion carry the batch cutoff and a `warehouse_as_of` basis flag.
+- [x] Exposed the denominator and cohort definition per chart, the source cutoff (operational and administration), mapping coverage (`mapped` vs `unmapped_local` count/percent — quantified, not hidden), and a benchmark/reference classification per definition (study segments are `no_numeric_benchmark`; policy clocks stay `local_policy`/`site_policy_required`). A benchmark is a labeled reference and never silently an SLA.
+- [x] Kept the analysis **descriptive only** — the shortage and missing-dose panels carry explicit "does not assert" / "no causal claim" language and no shortage/staffing causal inference. No pharmacist, verifier, nurse, or any user-level dimension is computed or exposed anywhere (unit/branch aggregates only); the browser receives a bounded, patient-free lineage sample.
+- [x] Frontend page at `/analytics/pharmacy-tat` (TypeScript, named exports, Zod contract `pharmacyTatSchema` + `usePharmacyTat` hook on a 5-minute Study cadence, TanStack Query): PageContentLayout gutter, Card/Panel surfaces with `shadow-sm`, `healthcare-*` tokens with `dark:` pairs, `tabular-nums` metrics, recharts categorical palette (sanctioned), an accessible-table fallback for every chart **including the heatmap**, dual `SourceFreshnessBadge` (operational + warehouse-as-of), distinct empty/stale/degraded states, and keyboard-navigable filter form.
 
 **Acceptance:**
 
-- Heatmap, percentile, and segment calculations are unit-tested.
-- Every admin-dependent chart has as-of labeling.
-- Missing or unmapped data is quantified.
-- Analytics owns the route uniquely.
+- [x] Heatmap, percentile, and segment calculations are unit-tested against the fixed demo cohort in `PharmacyTatAnalyticsTest` — the order-to-administration median (80)/P90 (176) reconcile to a PostgreSQL `percentile_cont`, the five waterfall phases and their bases assert in order, verification cohort/median/P90 are pinned, and the heatmap cell counts sum to 24 on the Monday anchor.
+- [x] Every admin-dependent chart carries as-of labeling — a dedicated test proves administration segments carry the batch cutoff (anchor − 300 min), the administration freshness is `batch` (never `fresh`), warehouse lineage stops name `RX_ADMINISTERED` with a `warehouse_as_of` basis and the batch cutoff as their received time, and real-time segments do not carry the batch cutoff.
+- [x] Missing or unmapped data is quantified — mapping coverage surfaces the 1 `unmapped_local` order (the TPN admixture) out of 24, and missing/negative/invalid/conflict/truncated intervals remain explicit in the coverage ledger.
+- [x] Analytics owns the route uniquely — a route/nav test asserts `/analytics/pharmacy-tat` resolves to `PharmacyTatController` under session auth and `/api/pharmacy/tat` resolves to `PharmacyFlowBoardController@tat` under `auth`, mirroring the L-12/R-12 ownership assertions. (Full domain/nav registration lands in X-13.)
 
 #### [ ] X-13 — Register Pharmacy routes, APIs, navigation, policies, and ownership tests
 

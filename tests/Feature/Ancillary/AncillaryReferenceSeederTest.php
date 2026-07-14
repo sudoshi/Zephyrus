@@ -38,7 +38,17 @@ class AncillaryReferenceSeederTest extends TestCase
 
         $this->assertSame(60, DB::table('hosp_ref.ancillary_milestone_types')->count());
         $this->assertSame(17, DB::table('hosp_ref.ancillary_barrier_reasons')->count());
-        $this->assertSame(27, AncillarySlaDefinition::query()->count());
+        $this->assertSame(32, AncillarySlaDefinition::query()->count());
+        $this->assertSame(
+            ['verification', 'preparation', 'dispense', 'delivery', 'end_to_end'],
+            AncillarySlaDefinition::query()
+                ->where('department', 'rx')
+                ->get()
+                ->filter(fn (AncillarySlaDefinition $definition): bool => (bool) ($definition->scope['study_segment'] ?? false))
+                ->sortBy(fn (AncillarySlaDefinition $definition): int => (int) ($definition->scope['sequence'] ?? 999))
+                ->map(fn (AncillarySlaDefinition $definition): string => (string) $definition->scope['phase'])
+                ->values()->all(),
+        );
         $this->assertSame(
             ['collection', 'transport', 'analytic', 'post_analytic', 'end_to_end'],
             AncillarySlaDefinition::query()
@@ -181,7 +191,7 @@ class AncillaryReferenceSeederTest extends TestCase
         $this->assertSame(700.0, (float) $metric->warn_edge);
         $this->assertSame(777.0, (float) $metric->crit_edge);
         $this->assertSame(60, DB::table('hosp_ref.ancillary_milestone_types')->count());
-        $this->assertSame(27, AncillarySlaDefinition::query()->count());
+        $this->assertSame(32, AncillarySlaDefinition::query()->count());
         $this->assertSame(9, DB::table('hosp_ref.lab_test_catalog')->count());
         $this->assertSame(9, DB::table('hosp_ref.rx_formulary')->count());
     }

@@ -338,6 +338,15 @@ class AncillaryReferenceSeeder extends Seeder
             $this->sla('rx', 'rx.sepsis_abx', 'Sepsis antibiotic order to administration', 'RX_ORDERED', 'RX_ADMINISTERED', 150, 180, 'item_clock', null, 'sepsis', null, true, 'demo_local_policy'),
             $this->sla('rx', 'rx.discharge_ready', 'Discharge medication queue to delivery', 'RX_QUEUE_IN', 'RX_DELIVERED', null, null, 'item_clock', null, 'discharge', null, false, 'planned_discharge_policy_required'),
             $this->sla('rx', 'rx.discrepancy_age', 'Controlled discrepancy age', 'RX_DISCREPANCY_OPEN', 'RX_DISCREPANCY_RESOLVED', null, null, 'item_clock', null, null, null, false, 'shift_end_policy_required'),
+            // Pharmacy Study segment ladder (X-12). Each segment carries an explicit
+            // basis: real-time order-to-dispense feeds versus the warehouse-fed
+            // administration tail (any segment stopping on RX_ADMINISTERED). The
+            // order-to-administration segment is the primary end-to-end trend.
+            $this->sla('rx', 'rx.study.order_verify', 'Order to pharmacist verification', 'RX_ORDERED', 'RX_VERIFIED', null, null, 'median', null, null, null, false, 'study_clock_no_numeric_benchmark', ['study_segment' => true, 'phase' => 'verification', 'sequence' => 10, 'basis' => 'real_time']),
+            $this->sla('rx', 'rx.study.verify_dispense', 'Verification to dispense', 'RX_VERIFIED', 'RX_DISPENSED', null, null, 'median', null, null, null, false, 'study_clock_no_numeric_benchmark', ['study_segment' => true, 'phase' => 'preparation', 'sequence' => 20, 'basis' => 'real_time']),
+            $this->sla('rx', 'rx.study.dispense_deliver', 'Dispense to delivery', 'RX_DISPENSED', 'RX_DELIVERED', null, null, 'median', null, null, null, false, 'study_clock_no_numeric_benchmark', ['study_segment' => true, 'phase' => 'dispense', 'sequence' => 30, 'basis' => 'real_time']),
+            $this->sla('rx', 'rx.study.deliver_admin', 'Delivery to administration', 'RX_DELIVERED', 'RX_ADMINISTERED', null, null, 'median', null, null, null, false, 'study_clock_no_numeric_benchmark', ['study_segment' => true, 'phase' => 'delivery', 'sequence' => 40, 'basis' => 'warehouse_as_of']),
+            $this->sla('rx', 'rx.study.order_admin', 'Order to administration', 'RX_ORDERED', 'RX_ADMINISTERED', null, null, 'median', null, null, null, false, 'study_clock_no_numeric_benchmark', ['study_segment' => true, 'phase' => 'end_to_end', 'sequence' => 50, 'basis' => 'warehouse_as_of', 'primary_trend' => true]),
         ];
     }
 

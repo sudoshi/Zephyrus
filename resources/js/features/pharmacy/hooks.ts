@@ -5,6 +5,7 @@ import { pharmacyDischargeSchema, type PharmacyDischarge } from './discharge-sch
 import { pharmacyIvRoomSchema, type PharmacyIvRoom } from './iv-room-schemas';
 import { pharmacyDispenseSchema, type PharmacyDispense } from './dispense-schemas';
 import { pharmacyControlledSchema, type PharmacyControlled } from './controlled-schemas';
+import { pharmacyTatSchema, type PharmacyTat } from './tat-schemas';
 
 export function usePharmacyFlowBoard(initialData: PharmacyFlowBoard) {
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -51,5 +52,15 @@ export function usePharmacyControlled(initialData: PharmacyControlled) {
     queryKey: ['pharmacy-controlled'], initialData,
     queryFn: async () => pharmacyControlledSchema.parse((await axios.get('/api/pharmacy/controlled')).data),
     refetchInterval: 45_000,
+  });
+}
+
+export function usePharmacyTat(initialData: PharmacyTat) {
+  const search = typeof window === 'undefined' ? '' : window.location.search;
+
+  return useQuery({
+    queryKey: ['pharmacy-tat', search], initialData,
+    queryFn: async () => pharmacyTatSchema.parse((await axios.get(`/api/pharmacy/tat${search}`)).data),
+    refetchInterval: 300_000,
   });
 }
