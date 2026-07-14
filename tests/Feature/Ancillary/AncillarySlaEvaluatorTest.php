@@ -155,6 +155,60 @@ class AncillarySlaEvaluatorTest extends TestCase
         $this->assertDatabaseHas('prod.ancillary_milestones', ['ancillary_milestone_id' => $original->ancillary_milestone_id]);
     }
 
+    public function test_late_defensible_stop_before_breach_open_resolves_cleanly_without_looping(): void
+    {
+        // A breach opens while no stop assertion exists. Later a defensible stop
+        // (e.g. a warehouse-batch RX_ADMINISTERED) arrives whose occurred_at
+        // precedes the materialized breached_at. The clear must resolve the
+        // breach without violating ancillary_breaches_clear_time_check and
+        // without the per-minute batch retrying the same order forever.
+        $start = CarbonImmutable::parse('2026-07-11T12:00:00Z');
+        [$order] = $this->clockOrder($start, null, $start->addMinutes(130));
+
+        $opened = $this->statResult($order, $start->addMinutes(130));
+        $this->assertTrue($opened['breachOpened']);
+        $breach = AncillaryBreach::query()->where('ancillary_order_id', $order->ancillary_order_id)->firstOrFail();
+        $this->assertSame('open', $breach->status);
+        // breach_minutes for rad.stat_order_final is 120, so breached_at = start + 120min.
+        $this->assertTrue(
+            CarbonImmutable::instance($breach->breached_at)->equalTo($start->addMinutes(120)),
+            'breached_at is materialized at start + breach_minutes',
+        );
+
+        // A late, defensible stop asserts the true completion happened at +110min,
+        // which precedes breached_at (+120min).
+        $lateStop = $this->appendMilestone($order, 'RAD_FINAL', $start->addMinutes(110));
+        $order->update(['source_cutoff_at' => $start->addMinutes(131)]);
+
+        $cleared = $this->statResult($order, $start->addMinutes(131));
+        $this->assertTrue($cleared['breachCleared'], 'the late defensible stop must clear the breach');
+
+        $breach->refresh();
+        $this->assertSame('cleared', $breach->status);
+        $this->assertSame($lateStop->ancillary_milestone_id, $breach->stop_assertion_id);
+        // cleared_at is clamped to breached_at to satisfy the lifecycle constraint;
+        // the true completion instant remains recoverable via stop_assertion_id.
+        $this->assertTrue(
+            CarbonImmutable::instance($breach->cleared_at)->equalTo(CarbonImmutable::instance($breach->breached_at)),
+            'cleared_at is clamped to breached_at when the defensible stop precedes it',
+        );
+        // The true (pre-breach) elapsed is preserved for defensible reconstruction.
+        $this->assertSame('110.000', $breach->elapsed_minutes_at_clear);
+
+        // A subsequent evaluation is idempotent — no loop, no second breach.
+        $repeat = $this->statResult($order, $start->addMinutes(132));
+        $this->assertFalse($repeat['breachCleared']);
+        $this->assertSame(1, AncillaryBreach::query()->where('ancillary_order_id', $order->ancillary_order_id)->count());
+        $this->assertSame(0, AncillaryBreach::query()
+            ->where('ancillary_order_id', $order->ancillary_order_id)
+            ->where('status', 'open')
+            ->count());
+
+        // A safe (batch-path) evaluation reports success, never a permanent failure.
+        $safe = app(SlaEvaluator::class)->evaluateOrderSafely($order, $start->addMinutes(133));
+        $this->assertTrue($safe['ok']);
+    }
+
     public function test_stale_source_is_unknown_and_does_not_open_new_breach(): void
     {
         $start = CarbonImmutable::parse('2026-07-11T12:00:00Z');

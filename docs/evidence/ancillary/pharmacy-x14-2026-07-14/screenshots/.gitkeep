@@ -1,0 +1,8 @@
+# Reserved for the X-14 Playwright dual-theme responsive screenshot capture.
+#
+# The pharmacy-phase-gate.spec.ts screenshots are captured when the spec is run
+# against a live authenticated `php artisan serve` instance with
+# X14_SCREENSHOT_DIR pointed here and X14_CAPTURE_STATES set to `canonical`/`stale`.
+# The sandbox that produced this evidence pack terminates persistent dev servers
+# (exit 144), so the live browser run is deferred to a harness that can serve the
+# app. See ../README.md "Rendered-browser evidence and screenshots".

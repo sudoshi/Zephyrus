@@ -233,13 +233,44 @@ class SlaEvaluator
         float $elapsed,
         CarbonImmutable $at,
     ): AncillaryBreach {
-        $clearedAt = CarbonImmutable::instance($stop->occurred_at)->setTimezone($this->clockTimezone());
+        $defensibleStopAt = CarbonImmutable::instance($stop->occurred_at)->setTimezone($this->clockTimezone());
+        $breachedAt = CarbonImmutable::instance($breach->breached_at)->setTimezone($this->clockTimezone());
+
+        // A late, defensible stop assertion can carry an occurred_at that precedes
+        // the materialized breached_at — for example a warehouse/BCMA administration
+        // whose physical instant is earlier than when the SLA nominally opened its
+        // breach. The materialized lifecycle table enforces cleared_at >= breached_at,
+        // so recording the raw stop instant here would poison the transaction and
+        // leave the breach permanently open (evaluateOrderSafely then retries forever).
+        //
+        // Per §6.4, the true defensible clock is reconstructed from start/stop
+        // assertion IDs — those remain immutable and authoritative. On this
+        // derived state row we therefore clamp cleared_at to breached_at when the
+        // defensible stop precedes it, while preserving the true stop_assertion_id
+        // and the true pre-breach elapsed minutes for reconstruction and flagging
+        // the retraction in metadata. This never weakens the append-only milestone
+        // ledger nor the check constraint's intent (a cleared breach cannot record
+        // a clear instant earlier than it opened).
+        $precedesBreach = $defensibleStopAt->lessThan($breachedAt);
+        $clearedAt = $precedesBreach ? $breachedAt : $defensibleStopAt;
+
+        $metadata = $breach->metadata ?? [];
+        if ($precedesBreach) {
+            $metadata['late_stop_retraction'] = [
+                'reason' => 'defensible_stop_precedes_breach_open',
+                'defensible_stop_at' => $defensibleStopAt->toIso8601String(),
+                'breached_at' => $breachedAt->toIso8601String(),
+                'clamped_cleared_at' => $clearedAt->toIso8601String(),
+            ];
+        }
+
         $breach->update([
             'status' => 'cleared',
             'cleared_at' => $clearedAt,
             'stop_assertion_id' => $stop->ancillary_milestone_id,
             'elapsed_minutes_at_clear' => $elapsed,
             'last_evaluated_at' => $at,
+            'metadata' => $metadata,
         ]);
         $activity = $this->recordActivity('ancillary.sla_cleared', $order, $definition, $breach, $elapsed, $clearedAt);
         $breach->update(['cleared_event_uuid' => $activity['event_uuid']]);

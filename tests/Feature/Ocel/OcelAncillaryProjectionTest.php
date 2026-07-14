@@ -199,6 +199,63 @@ class OcelAncillaryProjectionTest extends TestCase
         Http::assertSentCount(5);
     }
 
+    public function test_d11_and_d12_pharmacy_lineage_is_projected_and_consumable_by_arena(): void
+    {
+        // X-14 gate: the medication order-to-administration (D11) and discharge
+        // medication readiness (D12) processes must carry real object/event
+        // lineage that the existing Arena consumers can read — not merely a label
+        // in process_models. Mirrors the D1/D5/D7 consumer proof above.
+        $pharmacy = AncillaryOrder::factory()->pharmacy()->create([
+            'encounter_ref' => 'SENSITIVE-ENCOUNTER-RX',
+            'ordered_at' => $this->anchor,
+        ]);
+        $this->milestones($pharmacy, [
+            'RX_ORDERED', 'RX_VERIFIED', 'RX_PREP_COMPLETE', 'RX_DISPENSED', 'RX_DELIVERED', 'RX_ADMINISTERED',
+        ]);
+        app(OcelProjector::class)->projectAncillary($this->anchor->subMinute(), $this->anchor->addHour());
+
+        // The medication process families are attached to the emitted events.
+        // D11 (order-to-administration) spans the full chain; D12 (discharge
+        // medication readiness) covers the readiness slice through delivery.
+        $lineage = [
+            ['medication-ordered', 'D11'], ['order-verified', 'D11'], ['dose-prepared', 'D11'],
+            ['dose-dispensed', 'D11'], ['dose-delivered', 'D11'], ['dose-administered', 'D11'],
+            ['medication-ordered', 'D12'], ['order-verified', 'D12'], ['dose-prepared', 'D12'],
+            ['dose-delivered', 'D12'],
+        ];
+        foreach ($lineage as [$activity, $processId]) {
+            $event = DB::table('ocel.events')
+                ->where('source_system', 'prod.ancillary_milestones')
+                ->where('activity', $activity)
+                ->whereRaw("attrs->'process_ids' @> ?::jsonb", [json_encode([$processId], JSON_THROW_ON_ERROR)])
+                ->first();
+            $this->assertNotNull($event, "{$activity} must retain governed {$processId} process lineage");
+        }
+
+        // The pharmacy object/event relations exist for Arena to walk.
+        $medicationOrderRows = app(ArenaQueryCatalog::class)
+            ->run('activities_for_object_type', ['object_type' => 'Medication Order'])['rows'];
+        $this->assertContains('medication-ordered', array_column($medicationOrderRows, 'activity'));
+        $this->assertContains('order-verified', array_column($medicationOrderRows, 'activity'));
+        $this->assertContains('dose-administered', array_column($medicationOrderRows, 'activity'));
+
+        // The existing conformance consumer accepts D11 and D12 against this OCEL.
+        config(['services.arena.url' => 'http://arena-rx:8100']);
+        Http::fake([
+            'arena-rx:8100/conformance' => Http::response([['pathway' => 'D11', 'cases' => 1, 'conformance_rate' => 1.0]]),
+        ]);
+        $arena = app(ArenaService::class);
+        $this->assertTrue($arena->conformance('D11')['available']);
+        $this->assertTrue($arena->conformance('D12')['available']);
+
+        // No sensitive encounter reference leaked into the projected document.
+        $serialized = json_encode([
+            'events' => DB::table('ocel.events')->where('source_system', 'prod.ancillary_milestones')->get(),
+            'objects' => DB::table('ocel.objects')->get(),
+        ], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('SENSITIVE-ENCOUNTER', $serialized);
+    }
+
     public function test_process_landscape_readiness_advances_only_to_honest_partial_projection(): void
     {
         foreach (['D1', 'D5', 'D6', 'D7', 'D11', 'D12'] as $processId) {

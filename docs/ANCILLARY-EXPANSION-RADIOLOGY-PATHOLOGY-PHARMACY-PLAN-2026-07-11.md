@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-13 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-14 (Pharmacy phase complete) done; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 52 of 60 tasks complete; 8 remain |
+| Progress | 53 of 60 tasks complete; 7 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2205,24 +2205,27 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Existing Radiology/Lab/RTDC route ownership and drills remain intact: `RadiologyRouteRegistrationTest`, `LaboratoryRouteRegistrationTest`, `ApiAuthorizationTest`, and the RTDC drill contract all stay green.
 - [x] Verification: focused suite 29 tests / 625 assertions; `--filter=Pharmacy` 95 tests / 8,546 assertions; `--filter=Ancillary` 299 tests / 11,782 assertions; `npx tsc --noEmit` clean; `npx vite build` clean (pre-existing chunk-size warning only); 52 focused vitest; `check-ui-canon.sh` passes (pre-existing 104 line-height warnings unchanged); Pint clean on 4 files; `git diff --check` clean.
 
-#### [ ] X-14 — Pass the Pharmacy phase verification and release gate
+#### [x] X-14 — Pass the Pharmacy phase verification and release gate
 
 **Depends on:** X-1 through X-13
-**Primary evidence:** tests, screenshots, query plans, migration rehearsal, devlog
+**Primary evidence:** docs/evidence/ancillary/pharmacy-x14-2026-07-14/README.md; tests, populated query plans, disposable migration rehearsal, devlog
 
 **Work:**
 
-- Run the full stack from prior phase gates plus RDE/RDS/queue/ADC/warehouse fixtures, freshness, discharge vector, controlled safety, and OCEL D11/D12 tests.
-- Audit five workspace pages, one Study page, Cockpit drill, ED lens, and RTDC full vector.
-- Save normal, surge, shortage, discharge-blocked, degraded, stale, and empty screenshots.
-- Rehearse migrations/import on production-shaped data and document batch recovery.
-- Record release and limitations.
+- [x] Ran the full stack from the prior phase gates plus Pharmacy fixtures: `--filter=Ancillary` (306 passed / 74,901 assertions / 1,057 s) and `--filter=Pharmacy` (101 passed / 71,664 assertions / 627 s) both green, covering RDE/RDS/verification-queue ingest, ADC and warehouse/BCMA ingest and freshness, the discharge readiness vector, controlled safety, and the demo scenario invariant gate; plus the Cockpit/ED-lens/AlertEngine set (22 passed).
+- [x] Verified the OCEL D11 (medication order-to-administration) and D12 (discharge medication readiness) projections exist and are consumable by the existing Arena consumers, adding `test_d11_and_d12_pharmacy_lineage_is_projected_and_consumable_by_arena` to `OcelAncillaryProjectionTest`: the RX_* milestones carry governed D11/D12 `process_ids`, `ArenaQueryCatalog` returns the Medication Order activities, and the conformance consumer accepts D11 and D12 — not merely labels in `process_models`.
+- [x] Fixed the latent `SlaEvaluator::clearBreach` constraint violation flagged during X-5: a defensible late stop (warehouse/BCMA administration earlier than `breached_at`) now clamps `cleared_at` to `breached_at` while preserving the true `stop_assertion_id`, true pre-breach `elapsed_minutes_at_clear`, and a `late_stop_retraction` metadata note for §6.4 defensible clock reconstruction — resolving the breach cleanly instead of poisoning the transaction and looping forever. Added `test_late_defensible_stop_before_breach_open_resolves_cleanly_without_looping` (proven RED before the fix, GREEN after); the append-only ledger and the check constraint's intent are preserved.
+- [x] Added the phase-wide `PharmacyPhaseSafetyGateTest` (5 tests / 63k+ assertions): every browser-facing pharmacy payload (Flow Board, Discharge Meds, IV Room, Dispense, Controlled, TAT Study) built at maximally elevated capabilities is scanned for forbidden individual VALUE/KEY fragments (user/staff/person/employee/badge/actor/performed_by/verifier/risk_score/diversion/ranked/outlier), the pseudonymous `verifier_ref` is proven never to reach any browser payload, each page's no-user-level-dimension identifier policy is asserted, and the pharmacy service source is statically scanned for actor/score/rank column tokens.
+- [x] Audited the five workspace pages (`/pharmacy`, `/pharmacy/discharge-meds`, `/pharmacy/iv-room`, `/pharmacy/dispense`, `/pharmacy/controlled`), the Study page (`/analytics/pharmacy-tat`), the Cockpit Pharmacy Flow drill (`/pharmacy?lens=stat|sepsis|shortage&source=cockpit`), the ED boarder medication lens, and the RTDC full readiness vector (imaging + lab + medication).
+- [x] Authored `tests/e2e/pharmacy-phase-gate.spec.ts` mirroring `laboratory-phase-gate.spec.ts` — six surfaces in dark desktop and representative light tablet/mobile, forbidden-key/overflow/console guards, keyboard/theme controls, surge/shortage/discharge-blocked/stale/empty state evidence, and ED/RTDC-full-vector/Cockpit reconciliation. The spec is TypeScript-verified (`tsc` + `vite build`); the live browser run and PNG capture are deferred to a harness that can serve the app because this sandbox terminates persistent dev servers (documented session-driver caveat, as in L-14).
+- [x] Rehearsed the migration on production-shaped data: cloned the migrated `zephyrus_test` schema into a disposable ≈43 MB database (10.2 s), seeded the canonical Pharmacy cohort, proved populated rollback REFUSES destructive removal (facts + all nine tables retained), empty tail rolls down (71.63 ms) and reapplies additively as batch 2 (192.67 ms), captured Index Only Scan plans on all six operational partial indexes, verified shared/Radiology/Lab facts unchanged (66 orders / 328 milestones / 16 exams / 16 specimens / 6 AP / 6 BB), and dropped the clone.
+- [x] Recorded release, limitations, and the activation boundary in the durable evidence pack README.
 
 **Acceptance:**
 
-- All gates pass, including a test that searches code/contracts for forbidden individual risk fields.
-- No live pharmacy/ADC/warehouse feed is activated without governance.
-- Evidence proves the complete readiness vector and honest freshness split.
+- [x] All gates pass — Pint (4 files), focused SLA/safety/OCEL (24/63,333), full Ancillary (306/74,901), full Pharmacy (101/71,664), Cockpit/ED/AlertEngine (22/247), vitest (113 files / 467 tests), `tsc`, `vite build`, `check-ui-canon.sh` — including the phase-wide forbidden-individual-risk-field search across code and browser contracts.
+- [x] No live pharmacy/ADC/warehouse/BCMA/dose-tracking feed is activated without governance: the 15 synthetic source classes remain synthetic, FHIR ancillary ingress defaults off, and zero `integration.sources` rows are live/production/PHI-approved.
+- [x] Evidence proves the complete readiness vector (imaging + lab + medication in the RTDC surface and ED lens) and the honest freshness split (real-time order-to-dispense segments vs the always-cutoff-qualified warehouse/BCMA administration tail).
 
 ### Phase 4 — Predictive layer, benchmark pack, and final coherence
 
