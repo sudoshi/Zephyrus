@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-10 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-11 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 49 of 60 tasks complete; 11 remain |
+| Progress | 50 of 60 tasks complete; 10 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2130,24 +2130,31 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused verification: `PharmacyControlledTest` 11 passed (1025 assertions), `PharmacyControlledAuthTest` 5 passed (28 assertions), `Controlled.test.tsx` 3 passed; `--filter=Pharmacy` 80 passed (8192 assertions); `--filter=Ancillary` 287 passed (11450 assertions); pint clean; tsc + vite build clean; UI-canon passed.
 - [x] No production connector, credential, scheduler, endpoint, migration, deployment, or external system is activated by X-10; the new config defaults are inert local policy and the export switch is off.
 
-#### [ ] X-11 — Add Pharmacy health metrics to Cockpit and an ED boarder medication lens
+#### [x] X-11 — Add Pharmacy health metrics to Cockpit and an ED boarder medication lens
 
 **Depends on:** X-6, X-9
-**Primary files:** FlowMetrics.php; KPI seeder; DrillBuilder; ED service/page; tests
+**Primary files:** PharmacyCockpitHealthService (new); PharmacyFlowBoardService::cockpitHealth; FlowMetrics.php; AncillaryReadinessService::medicationForEdVisits; TreatmentService; Treatment.jsx; PharmacyCockpitMetricsTest; MedicationReadinessEdLensTest
 
 **Work:**
 
-- Emit queue depth versus hour norm, oldest STAT unverified, sepsis clocks at risk, and shortage-drug stockouts as Flow-domain metrics.
-- Complete the ancillary health table in the Flow drill with all three departments.
-- Add a medication-delay lens to authorized boarded ED rows for home medications/antibiotics.
-- Use current/warehouse split and source freshness.
+- [x] Add `PharmacyFlowBoardService::cockpitHealth()` as the single aggregate-only Pharmacy health seam, computed from the same board cohort, SLA definitions, administration-freshness envelope, and registered source status the workspace uses — no second query battery and no user-level dimension.
+- [x] Emit four Flow-domain metrics through the SAME `FlowMetrics` provider path R-10/L-10 used (already-seeded KPI keys, StatusEngine-resolved status): `flow.ancillary_rx_verification_queue` (queue depth with an hour-norm baseline sub), `flow.ancillary_rx_oldest_stat` (oldest open STAT medication age), `flow.ancillary_rx_sepsis_at_risk` (open sepsis breaches plus computed warnings), and `flow.ancillary_rx_shortage_stockouts` (stations carrying an open stockout for an on_shortage drug).
+- [x] Compute the verification hour-norm as the mean queue entries per distinct clock hour across the retained 24-hour window — a contextual comparison only, never authoritative status.
+- [x] Compute the oldest STAT signal from the board's open-status predicate (`stat` clock class, not administered/discontinued/cancelled/completed), returning null rather than a fabricated zero when no open STAT order remains.
+- [x] Compute shortage-drug stockouts by intersecting the open cohort's on_shortage `local_code` set with each ADC station's `open_stockouts` metadata map (station-wide `*` stockouts count only when an open shortage order exists); aggregate by station only.
+- [x] Freshness-qualify the sepsis-at-risk metric through `PharmacyAdministrationFreshnessService`: because the sepsis clock stops on warehouse-observed administration, a `stale` or `unknown` batch tail makes the value null and demotes the metric's source state so it can never assert a false all-clear or failure, while recorded breach counts remain visible as historical facts.
+- [x] Add `PharmacyCockpitHealthService` (mirroring `RadiologyCockpitHealthService`/`LabCockpitHealthService`) composing the Flow-board health into the four Cockpit facts, carrying per-metric `sourceState`, `sourceCutoffAt`, `sourceLabel`, `workspaceHref`, and the administration state on the sepsis fact.
+- [x] Wire the four metrics into `FlowMetrics::metrics()` behind a guarded `pharmacyHealth()` getter; real-time signals render `current`, and a non-fresh governing source demotes the tile to a last-known, NORMAL, degraded/unknown state so unavailable evidence earns neither green nor an alert.
+- [x] Populate the reserved Pharmacy row in the Flow drill's existing "Ancillary operational health" table (Radiology + Laboratory + Pharmacy) purely from the cached server metric keys the `DrillBuilder` already reserved — no `DrillBuilder` change and no client tile.
+- [x] Add `AncillaryReadinessService::medicationForEdVisits` mirroring `laboratoryForEdVisits`/`imagingForEdVisits`: it joins the boarded ED patient's open medication orders through `ancillary_orders.metadata->>'ed_visit_id'` (the same ED linkage imaging uses), marks a STAT/first-dose/sepsis clock class as blocking, and freshness-qualifies the axis on the Pharmacy order feed.
+- [x] Wire `medicationForEdVisits` into `TreatmentService::build()` alongside imaging and lab, attaching a `medication` readiness axis per board row, and render a third `ReadinessChip` (Medication) plus its column header in `Treatment.jsx`.
 
 **Acceptance:**
 
-- Cockpit and workspace values reconcile.
-- Stale administration cannot create a false sepsis success/failure.
-- ED lens joins the correct boarded encounter.
-- No standalone client-computed PharmacyTile is introduced.
+- [x] Cockpit and workspace values reconcile: `PharmacyCockpitMetricsTest` asserts each Cockpit tile value equals what `PharmacyFlowBoardService::build`/`cockpitHealth` reports for the same frozen anchor, with StatusEngine-parity on every tile.
+- [x] Stale administration cannot create a false sepsis success/failure: collapsing the warehouse cadence tolerance renders the sepsis metric value null with `administrationState = stale`, the tile is skipped entirely (never green, never an alert), and the real-time queue/STAT/stockout signals stay current.
+- [x] ED lens joins the correct boarded encounter: `MedicationReadinessEdLensTest` proves the medication axis attaches to the right ED visit's open orders, a time-critical dose blocks, an unrelated other-visit order does not leak in, administered orders are ready, and a stale source demotes every scope to unknown.
+- [x] No standalone client-computed PharmacyTile is introduced: all four metrics flow through the server snapshot and the existing DrillBuilder reserved row; no new client tile component exists, and the refresh test asserts no patient/medication/user detail is serialized into the snapshot.
 
 #### [ ] X-12 — Implement Pharmacy TAT Study at /analytics/pharmacy-tat
 

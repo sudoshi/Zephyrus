@@ -11,6 +11,7 @@ use App\Services\Cockpit\StatusEngine;
 use App\Services\DashboardService;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Lab\LabCockpitHealthService;
+use App\Services\Pharmacy\PharmacyCockpitHealthService;
 use App\Services\Radiology\RadiologyCockpitHealthService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Cockpit\MetricValue;
@@ -36,6 +37,7 @@ class FlowMetrics extends BaseMetrics
         private readonly MaterializedMetricsReader $mv,
         private readonly RadiologyCockpitHealthService $radiology,
         private readonly LabCockpitHealthService $laboratory,
+        private readonly PharmacyCockpitHealthService $pharmacy,
     ) {
         parent::__construct($engine);
     }
@@ -64,6 +66,7 @@ class FlowMetrics extends BaseMetrics
         $worstHandoff = $this->mv->value('flow.worst_handoff_wait');
         $radiology = $this->radiologyHealth();
         $laboratory = $this->laboratoryHealth();
+        $pharmacy = $this->pharmacyHealth();
 
         return $this->compact([
             $this->fromLegacy($ctx, 'flow.dc_before_noon', 'dbn'),
@@ -132,6 +135,30 @@ class FlowMetrics extends BaseMetrics
                 $laboratory['criticalCallbacks'],
                 $this->criticalCallbackContext($laboratory['criticalCallbacks']),
             ),
+            $pharmacy === null ? null : $this->pharmacyMetric(
+                $ctx,
+                'flow.ancillary_rx_verification_queue',
+                $pharmacy['verificationQueue'],
+                $this->verificationQueueContext($pharmacy['verificationQueue']),
+            ),
+            $pharmacy === null ? null : $this->pharmacyMetric(
+                $ctx,
+                'flow.ancillary_rx_oldest_stat',
+                $pharmacy['oldestStat'],
+                'Oldest open STAT medication',
+            ),
+            $pharmacy === null ? null : $this->pharmacyMetric(
+                $ctx,
+                'flow.ancillary_rx_sepsis_at_risk',
+                $pharmacy['sepsisAtRisk'],
+                $this->sepsisAtRiskContext($pharmacy['sepsisAtRisk']),
+            ),
+            $pharmacy === null ? null : $this->pharmacyMetric(
+                $ctx,
+                'flow.ancillary_rx_shortage_stockouts',
+                $pharmacy['shortageStockouts'],
+                $this->shortageStockoutContext($pharmacy['shortageStockouts']),
+            ),
         ]);
     }
 
@@ -153,6 +180,110 @@ class FlowMetrics extends BaseMetrics
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /** @return array<string, mixed>|null */
+    private function pharmacyHealth(): ?array
+    {
+        try {
+            return $this->pharmacy->build();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Emit one Pharmacy Flow-domain metric from the aggregate health contract.
+     * A value that is null (e.g. sepsis-at-risk with a stale administration
+     * tail) is skipped rather than rendered as a fabricated zero; when the
+     * governing source is not fresh the tile is demoted to a last-known,
+     * NORMAL, degraded/unknown state so unavailable evidence can never earn
+     * green or an alert.
+     *
+     * @param  array<string, mixed>  $fact
+     */
+    private function pharmacyMetric(SnapshotContext $ctx, string $key, array $fact, string $context): ?MetricValue
+    {
+        $value = $fact['value'] ?? null;
+        $sourceState = (string) ($fact['sourceState'] ?? 'missing');
+        $sourceCutoffAt = $fact['sourceCutoffAt'] ?? null;
+        if (! is_numeric($value) || ($sourceCutoffAt === null && in_array($sourceState, ['missing', 'error'], true))) {
+            return null;
+        }
+
+        $current = $sourceState === 'fresh';
+        $metadata = [
+            'provenance' => 'live',
+            'dataState' => $current ? 'current' : ($sourceState === 'missing' ? 'unknown' : 'degraded'),
+            'sourceState' => $sourceState,
+            'sourceCutoffAt' => $sourceCutoffAt,
+            'sourceLabel' => (string) ($fact['sourceLabel'] ?? 'Pharmacy operational feeds'),
+            'workspaceHref' => $this->pharmacyWorkspaceHref($key),
+        ];
+        foreach (['hourNormDepth', 'oldestAgeMinutes', 'openBreaches', 'openWarnings', 'administrationState', 'administrationCutoffAt', 'shortageOrders', 'coverageState'] as $aggregate) {
+            if (array_key_exists($aggregate, $fact)) {
+                $metadata[$aggregate] = $fact[$aggregate];
+            }
+        }
+
+        return $this->fromKey($ctx, $key, (float) $value, [
+            'display' => $this->pharmacyDisplay($key, (float) $value),
+            'sub' => $current ? $context : 'Last known · '.str_replace('_', ' ', $sourceState).' · '.$context,
+            'updatedAt' => $sourceCutoffAt ?? $ctx->nowIso,
+            'metadata' => $metadata,
+            ...($current ? [] : ['status' => CockpitStatus::NORMAL]),
+        ]);
+    }
+
+    private function pharmacyDisplay(string $key, float $value): ?string
+    {
+        $count = (int) $value;
+
+        return match ($key) {
+            'flow.ancillary_rx_verification_queue' => $count.' '.($count === 1 ? 'order' : 'orders'),
+            'flow.ancillary_rx_sepsis_at_risk' => $count.' '.($count === 1 ? 'order' : 'orders'),
+            'flow.ancillary_rx_shortage_stockouts' => $count.' '.($count === 1 ? 'station' : 'stations'),
+            default => null,
+        };
+    }
+
+    private function pharmacyWorkspaceHref(string $key): string
+    {
+        return match ($key) {
+            'flow.ancillary_rx_oldest_stat' => '/pharmacy?lens=stat&source=cockpit',
+            'flow.ancillary_rx_sepsis_at_risk' => '/pharmacy?lens=sepsis&source=cockpit',
+            'flow.ancillary_rx_shortage_stockouts' => '/pharmacy?lens=shortage&source=cockpit',
+            default => '/pharmacy?source=cockpit',
+        };
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function verificationQueueContext(array $fact): string
+    {
+        $context = (int) ($fact['value'] ?? 0).' awaiting verification';
+        $norm = $fact['hourNormDepth'] ?? null;
+        $oldest = $fact['oldestAgeMinutes'] ?? null;
+        $context .= $norm === null ? '' : ' · hour norm '.(int) $norm;
+
+        return $oldest === null ? $context : $context.' · oldest '.(int) $oldest.' min';
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function sepsisAtRiskContext(array $fact): string
+    {
+        $breaches = (int) ($fact['openBreaches'] ?? 0);
+        $warnings = $fact['openWarnings'] ?? null;
+        $context = $breaches.' breached';
+
+        return $warnings === null ? $context : $context.' · '.(int) $warnings.' warning';
+    }
+
+    /** @param array<string, mixed> $fact */
+    private function shortageStockoutContext(array $fact): string
+    {
+        $shortageOrders = (int) ($fact['shortageOrders'] ?? 0);
+
+        return $shortageOrders.' shortage '.($shortageOrders === 1 ? 'order' : 'orders').' affected';
     }
 
     /** @param array<string, mixed> $fact */

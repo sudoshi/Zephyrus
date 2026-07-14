@@ -161,9 +161,10 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertSame('critical', $lab['status']['chip']);
         $this->assertNotSame('—', $lab['cutoff']['v']);
 
+        // The Pharmacy row is now activated by X-11 against the same demo cohort.
         $pharmacy = collect($table['rows'])->firstWhere('service.v', 'Pharmacy');
-        $this->assertSame('not available', $pharmacy['source']['tag']['text']);
-        $this->assertSame('neutral', $pharmacy['status']['chip']);
+        $this->assertSame('fresh', $pharmacy['source']['tag']['text']);
+        $this->assertNotSame('—', $pharmacy['cutoff']['v']);
         $this->assertStringNotContainsString('patient', strtolower(json_encode($lab, JSON_THROW_ON_ERROR)));
         $this->assertStringNotContainsString('resultuuid', strtolower(json_encode($lab, JSON_THROW_ON_ERROR)));
     }

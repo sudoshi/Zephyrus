@@ -204,6 +204,7 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     ['Pending Orders', 'left'],
                                                     ['Imaging', 'left'],
                                                     ['Lab', 'left'],
+                                                    ['Medication', 'left'],
                                                 ].map(([h, align]) => (
                                                     <th key={h} className={`px-4 py-3 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark text-${align}`}>
                                                         {h}
@@ -286,6 +287,9 @@ const Treatment = ({ kpis = {}, board = [], acuityMix = [], meta = {} }) => {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <ReadinessChip axis={patient.lab} countLabel="pending" />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <ReadinessChip axis={patient.medication} countLabel="medication" />
                                                     </td>
                                                 </tr>
                                             ))}

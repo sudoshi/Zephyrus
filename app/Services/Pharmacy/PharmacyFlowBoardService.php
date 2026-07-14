@@ -88,6 +88,169 @@ final class PharmacyFlowBoardService
         ];
     }
 
+    /**
+     * Aggregate-only health contract for the Flow-domain Cockpit. The Pharmacy
+     * workspace remains the owner of cohort selection, queue depth, STAT aging,
+     * sepsis-clock evaluation, stockout state, source cutoff, and freshness; no
+     * order, medication, or patient detail crosses this seam. Real-time signals
+     * (verification queue, oldest STAT) are current; the sepsis-at-risk signal
+     * depends on administration evidence and is qualified by the warehouse
+     * administration cutoff so a stale batch tail can never assert a false
+     * success or failure (§8: freshness-qualified). No pharmacist, verifier, or
+     * any user-level dimension is computed here (§13: unit/station aggregates).
+     *
+     * @return array<string, mixed>
+     */
+    public function cockpitHealth(): array
+    {
+        $filters = $this->filters([]);
+        $ids = $this->baseQuery($filters)->pluck('o.ancillary_order_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $sourceCutoff = $this->baseQuery($filters)->max('o.source_cutoff_at');
+        $sourceCutoffAt = $sourceCutoff === null ? null : CarbonImmutable::parse($sourceCutoff);
+        $freshness = $this->freshness($sourceCutoffAt);
+        $adminEnvelope = $this->administrationTailEnvelope();
+        $definitions = $this->definitions();
+        $summary = $this->summary($ids, $definitions);
+        $verification = $this->verificationQueue($ids);
+        $sepsis = $this->sepsisAtRisk($ids, $definitions, $adminEnvelope);
+        $stockouts = $this->shortageStockouts($ids);
+        $registered = strtolower((string) (DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->value('status') ?? ''));
+
+        return [
+            'sourceState' => match (true) {
+                in_array($registered, ['error', 'failed', 'unavailable'], true) => 'error',
+                $summary['currentOrders'] === 0 => 'missing',
+                $freshness['status'] === 'stale' => 'stale',
+                default => 'fresh',
+            },
+            'coverageState' => $summary['degradedOrders'] > 0 ? 'degraded' : 'complete',
+            'sourceCutoffAt' => $sourceCutoffAt?->toAtomString(),
+            'sourceLabel' => $freshness['sourceLabel'],
+            'verificationQueue' => [
+                'depth' => (int) $verification['depth'],
+                'hourNormDepth' => $this->verificationHourNorm(),
+                'oldestAgeMinutes' => $verification['oldestAgeMinutes'],
+            ],
+            'oldestStatAgeMinutes' => $this->oldestOpenStatAgeMinutes($ids),
+            'sepsisAtRisk' => $sepsis,
+            'shortageStockouts' => $stockouts,
+        ];
+    }
+
+    /**
+     * The hour-norm baseline for verification queue depth: the mean number of
+     * verifications entering the queue per distinct clock hour across the
+     * retained 24-hour window. It is a contextual comparison for the live
+     * depth only — never authoritative status. Null when no history exists.
+     */
+    private function verificationHourNorm(): ?int
+    {
+        $row = DB::table('prod.rx_verifications')
+            ->where('queued_at', '>=', now()->subDay())
+            ->selectRaw("count(*) AS total, count(DISTINCT date_trunc('hour', queued_at)) AS hours")
+            ->first();
+        $hours = (int) ($row->hours ?? 0);
+
+        return $hours === 0 ? null : (int) round((int) $row->total / $hours);
+    }
+
+    /**
+     * Age of the oldest STAT medication order still open (unverified or
+     * undispensed) — a real-time operational signal computed from the same
+     * open-status predicate the board uses. Null when no open STAT order
+     * remains in the cohort.
+     *
+     * @param  list<int>  $ids
+     */
+    private function oldestOpenStatAgeMinutes(array $ids): ?int
+    {
+        if ($ids === []) {
+            return null;
+        }
+        $oldest = DB::table('prod.ancillary_orders as o')
+            ->join('prod.rx_orders as x', 'x.ancillary_order_id', '=', 'o.ancillary_order_id')
+            ->whereIn('o.ancillary_order_id', $ids)
+            ->where('x.clock_class', 'stat')
+            ->whereRaw($this->openStatusPredicate())
+            ->min('o.ordered_at');
+
+        return $oldest === null ? null : max(0, (int) floor(CarbonImmutable::parse($oldest)->diffInSeconds(now(), false) / 60));
+    }
+
+    /**
+     * Aggregate count of open sepsis-antibiotic orders at or past their
+     * governed operational clock (recorded open breaches plus computed open
+     * warnings). Because the sepsis clock stops on warehouse-observed
+     * administration evidence, the count is qualified by the administration
+     * cutoff: when the tail is stale or absent the count is deliberately null
+     * and the state is `unknown` — never a false success (all-clear) or false
+     * failure. Recorded breaches remain visible as historical facts.
+     *
+     * @param  list<int>  $ids
+     * @param  Collection<int, AncillarySlaDefinition>  $definitions
+     * @return array<string, mixed>
+     */
+    private function sepsisAtRisk(array $ids, Collection $definitions, FreshnessEnvelope $adminEnvelope): array
+    {
+        $definition = $definitions->firstWhere('metric_key', self::CLOCK_METRICS['sepsis']);
+        $tailUnavailable = in_array($adminEnvelope->status, ['stale', 'unknown'], true);
+        $openBreaches = $ids === [] || $definition === null ? 0 : $this->breachQuery($ids)->where('b.status', 'open')->where('d.metric_key', self::CLOCK_METRICS['sepsis'])->count();
+        $openWarnings = $tailUnavailable || $ids === [] || $definition === null ? null : $this->openWarnings($ids, 'sepsis', $definition);
+
+        return [
+            'value' => $tailUnavailable ? null : $openBreaches + (int) ($openWarnings ?? 0),
+            'openBreaches' => $openBreaches,
+            'openWarnings' => $openWarnings,
+            'administrationState' => $adminEnvelope->status,
+            'administrationCutoffAt' => $adminEnvelope->sourceCutoffAt?->format(DATE_ATOM),
+            'explanation' => $tailUnavailable
+                ? 'The warehouse administration tail is not current; whether open sepsis antibiotics have been administered cannot be asserted. Recorded breaches remain visible, but no at-risk all-clear or failure is claimed.'
+                : 'The sepsis antibiotic at-risk count reflects open governed breaches and computed warnings, qualified by the administration batch cutoff.',
+        ];
+    }
+
+    /**
+     * Count of stations carrying an active stockout that maps to a medication
+     * currently flagged on_shortage in the open cohort (the shortage-drug
+     * subset of all station stockouts). Station-wide (`*`) stockouts count when
+     * any open shortage order exists. Aggregates by station only — no user or
+     * individual dimension.
+     *
+     * @param  list<int>  $ids
+     * @return array<string, mixed>
+     */
+    private function shortageStockouts(array $ids): array
+    {
+        $shortageCodes = $ids === [] ? collect() : DB::table('prod.ancillary_orders as o')
+            ->join('prod.rx_orders as x', 'x.ancillary_order_id', '=', 'o.ancillary_order_id')
+            ->whereIn('o.ancillary_order_id', $ids)
+            ->where('x.on_shortage', true)
+            ->distinct()
+            ->pluck('x.local_code')
+            ->filter()
+            ->map(fn (mixed $code): string => (string) $code)
+            ->flip();
+        $hasShortageOrder = $shortageCodes->isNotEmpty();
+
+        $stations = DB::table('prod.adc_stations')
+            ->whereRaw("coalesce(metadata->'open_stockouts', '{}'::jsonb) NOT IN ('{}'::jsonb, '[]'::jsonb)")
+            ->pluck('metadata');
+
+        $affected = 0;
+        foreach ($stations as $metadata) {
+            $decoded = is_array($metadata) ? $metadata : (json_decode((string) $metadata, true) ?: []);
+            $open = is_array($decoded['open_stockouts'] ?? null) ? array_keys($decoded['open_stockouts']) : [];
+            $stationAffects = collect($open)->contains(
+                fn (string $key): bool => ($key === '*' && $hasShortageOrder) || $shortageCodes->has($key),
+            );
+            if ($stationAffects) {
+                $affected++;
+            }
+        }
+
+        return ['stations' => $affected, 'shortageOrders' => $shortageCodes->count()];
+    }
+
     /** @param array<string, mixed> $input @return array<string, mixed> */
     private function filters(array $input): array
     {
