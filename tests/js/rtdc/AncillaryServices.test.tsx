@@ -27,7 +27,7 @@ vi.mock('@/Components/RTDC/TrendsModal', () => ({ default: () => null }));
 vi.mock('@iconify/react', () => ({ Icon: () => <span aria-hidden="true" /> }));
 
 describe('RTDC Ancillary Services owned drill-through', () => {
-  it('links imaging and Laboratory tiles to unit-scoped owned workspaces', () => {
+  it('links imaging, Laboratory, and Pharmacy tiles to unit-scoped owned workspaces', () => {
     render(<AncillaryServices unitServices={[{
       id: 7,
       name: 'NSICU',
@@ -38,6 +38,7 @@ describe('RTDC Ancillary Services owned drill-through', () => {
           drillHref: '/radiology/worklist?unitId=7&source=ancillary_services',
         },
         lab: { value: 40, trend: [], drillHref: '/lab?unitId=7&source=ancillary_services' },
+        pharmacy: { value: 55, trend: [], drillHref: '/pharmacy?unitId=7&source=ancillary_services' },
       },
     }]} />);
 
@@ -52,5 +53,8 @@ describe('RTDC Ancillary Services owned drill-through', () => {
     expect(screen.getByRole('link', {
       name: 'Open Lab Laboratory Flow Board for NSICU',
     })).toHaveAttribute('href', '/lab?unitId=7&source=ancillary_services');
+    expect(screen.getByRole('link', {
+      name: 'Open Pharmacy Medication Flow Board for NSICU',
+    })).toHaveAttribute('href', '/pharmacy?unitId=7&source=ancillary_services');
   });
 });

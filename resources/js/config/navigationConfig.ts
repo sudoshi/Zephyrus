@@ -34,6 +34,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   ListChecks,
+  Pill,
   PieChart,
   RefreshCcw,
   Repeat,
@@ -44,6 +45,7 @@ import {
   Shield,
   Siren,
   Stethoscope,
+  Syringe,
   Timer,
   TrendingUp,
   Truck,
@@ -264,6 +266,31 @@ const LAB: NavDomain = {
   ],
 };
 
+const PHARMACY: NavDomain = {
+  key: 'pharmacy',
+  label: 'Pharmacy',
+  icon: Pill,
+  dashboardHref: '/pharmacy',
+  dashboardLabel: 'Medication Flow Board',
+  matchPrefixes: ['/pharmacy'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Medication Flow Board', href: '/pharmacy', icon: Activity },
+        { label: 'Discharge Med Readiness', href: '/pharmacy/discharge-meds', icon: ArrowRightCircle },
+        { label: 'IV Room & Batches', href: '/pharmacy/iv-room', icon: Syringe },
+        { label: 'Dispense & Delivery', href: '/pharmacy/dispense', icon: Truck },
+        // Controlled-substance operational view: server-gated by the dedicated
+        // viewControlledSubstanceOperations capability. The route 403s for an
+        // unauthorized user regardless of the nav link; the leaf is always
+        // listed so the ownership projection stays complete and deterministic.
+        { label: 'Controlled Substances', href: '/pharmacy/controlled', icon: Shield },
+      ],
+    },
+  ],
+};
+
 const TRANSPORT: NavDomain = {
   key: 'transport',
   label: 'Transport',
@@ -376,6 +403,7 @@ const ANALYTICS: NavDomain = {
       items: [
         { label: 'Radiology TAT', href: '/analytics/radiology-tat', icon: Timer },
         { label: 'Laboratory TAT', href: '/analytics/lab-tat', icon: Timer },
+        { label: 'Pharmacy TAT', href: '/analytics/pharmacy-tat', icon: Timer },
         { label: 'IR Suite Utilization', href: '/analytics/ir-utilization', icon: Activity },
       ],
     },
@@ -490,7 +518,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, TRANSPORT, STAFFING],
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

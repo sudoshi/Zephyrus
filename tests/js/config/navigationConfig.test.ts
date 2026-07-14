@@ -48,6 +48,7 @@ describe('navigationConfig', () => {
       'perioperative',
       'radiology',
       'lab',
+      'pharmacy',
       'transport',
       'staffing',
       'analytics',
@@ -70,6 +71,21 @@ describe('navigationConfig', () => {
     }
   });
 
+  it('registers exactly eight workspace domains in the workspaces section', () => {
+    const workspaces = NAV_SECTIONS.find((s) => s.key === 'workspaces')!;
+    expect(workspaces.domains).toHaveLength(8);
+    expect(workspaces.domains.map((d) => d.key)).toEqual([
+      'rtdc',
+      'emergency',
+      'perioperative',
+      'radiology',
+      'lab',
+      'pharmacy',
+      'transport',
+      'staffing',
+    ]);
+  });
+
   it('every workspace domain header points at a live workspace', () => {
     const workspaces = NAV_SECTIONS.find((s) => s.key === 'workspaces')!;
     const hrefs = Object.fromEntries(workspaces.domains.map((d) => [d.key, d.dashboardHref]));
@@ -79,6 +95,7 @@ describe('navigationConfig', () => {
       perioperative: '/operations/room-status',
       radiology: '/radiology',
       lab: '/lab',
+      pharmacy: '/pharmacy',
       transport: '/transport/dispatch',
       staffing: '/staffing',
     });
@@ -234,6 +251,16 @@ describe('navigationConfig', () => {
     expect(domainLocalNavigation('lab', USER_ACCESS).map((item) => item.href)).not.toContain(href);
   });
 
+  it('owns the Pharmacy TAT Study route only from Analytics', () => {
+    const href = '/analytics/pharmacy-tat';
+    const occurrences = NAVIGATION.flatMap((domain) => domain.groups.flatMap((group) => group.items.filter((item) => item.href === href).map(() => domain.key)));
+
+    expect(occurrences).toEqual(['analytics']);
+    expect(navigationOwners(href).map((domain) => domain.key)).toEqual(['analytics']);
+    // The Study leaf never leaks into the Pharmacy workspace's local navigation.
+    expect(domainLocalNavigation('pharmacy', USER_ACCESS).map((item) => item.href)).not.toContain(href);
+  });
+
   it('owns every Radiology workspace leaf only from the Radiology domain', () => {
     const hrefs = ['/radiology', '/radiology/worklist', '/radiology/modality', '/radiology/reads'];
     const radiology = NAVIGATION.find((domain) => domain.key === 'radiology')!;
@@ -272,6 +299,19 @@ describe('navigationConfig', () => {
       expect(navigationOwners(href).map((domain) => domain.key), href).toEqual(['lab']);
     }
     expect(lab.dashboardHref).toBe('/lab');
+  });
+
+  it('owns every Pharmacy workspace leaf once and projects the same leaves to the palette', () => {
+    const pharmacy = NAVIGATION.find((domain) => domain.key === 'pharmacy')!;
+    const hrefs = ['/pharmacy', '/pharmacy/discharge-meds', '/pharmacy/iv-room', '/pharmacy/dispense', '/pharmacy/controlled'];
+
+    expect(pharmacy.groups.flatMap((group) => group.items.map((item) => item.href))).toEqual(hrefs);
+    expect(domainLocalNavigation('pharmacy', USER_ACCESS).map((item) => item.href)).toEqual(hrefs);
+    expect(flattenNavigation(USER_ACCESS).filter((entry) => entry.group === 'Pharmacy Operations').map((entry) => entry.href)).toEqual(hrefs);
+    for (const href of hrefs) {
+      expect(navigationOwners(href).map((domain) => domain.key), href).toEqual(['pharmacy']);
+    }
+    expect(pharmacy.dashboardHref).toBe('/pharmacy');
   });
 
   it('keeps administration in user-menu/palette projections only', () => {

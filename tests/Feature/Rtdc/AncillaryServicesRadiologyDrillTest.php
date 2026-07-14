@@ -43,7 +43,18 @@ class AncillaryServicesRadiologyDrillTest extends TestCase
                 );
             }
 
-            foreach (['pt_ot', 'respiratory', 'dialysis', 'pharmacy'] as $serviceId) {
+            // X-13: Pharmacy hands off to its owned Medication Flow Board, unit
+            // scoped and provenance tagged, exactly as Imaging and Laboratory do.
+            if ($unit['services']['pharmacy'] !== null) {
+                $this->assertSame(
+                    "/pharmacy?unitId={$unit['id']}&source=ancillary_services",
+                    $unit['services']['pharmacy']['drillHref'],
+                );
+            }
+
+            // The remaining support/therapy services stay non-drillable — no
+            // owned workspace, so no fabricated handoff.
+            foreach (['pt_ot', 'respiratory', 'dialysis'] as $serviceId) {
                 if ($unit['services'][$serviceId] !== null) {
                     $this->assertNull($unit['services'][$serviceId]['drillHref']);
                 }

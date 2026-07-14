@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-12 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-13 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 51 of 60 tasks complete; 9 remain |
+| Progress | 52 of 60 tasks complete; 8 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2178,24 +2178,32 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Missing or unmapped data is quantified — mapping coverage surfaces the 1 `unmapped_local` order (the TPN admixture) out of 24, and missing/negative/invalid/conflict/truncated intervals remain explicit in the coverage ledger.
 - [x] Analytics owns the route uniquely — a route/nav test asserts `/analytics/pharmacy-tat` resolves to `PharmacyTatController` under session auth and `/api/pharmacy/tat` resolves to `PharmacyFlowBoardController@tat` under `auth`, mirroring the L-12/R-12 ownership assertions. (Full domain/nav registration lands in X-13.)
 
-#### [ ] X-13 — Register Pharmacy routes, APIs, navigation, policies, and ownership tests
+#### [x] X-13 — Register Pharmacy routes, APIs, navigation, policies, and ownership tests
 
 **Depends on:** X-6 through X-12
-**Primary files:** routes; navigationConfig; controllers; policies; route/nav tests
+**Primary files:** navigationConfig.ts; AncillaryServicesService; RTDC AncillaryServices.jsx; route/nav/drill tests
 
 **Work:**
 
-- Add Pharmacy Workspace domain, five page routes, read APIs, barrier mutations, and Study leaf.
-- Add appropriate access control for controlled-substance aggregate view.
-- Add drill links from RTDC Ancillary Services, discharge vector, ED boarder lens, and Cockpit.
-- Update all navigation projection and route ownership tests.
+- [x] Register `PHARMACY` as the eighth Workspace domain in `navigationConfig.ts` (SSOT for navbar, mega-menu, mobile drawer, and command palette), keyed `pharmacy`, `/pharmacy` dashboard "Medication Flow Board", `matchPrefixes: ['/pharmacy']`, with the `Pill` domain icon and `Syringe` added to the icon imports.
+- [x] List the five operational leaves in order — Medication Flow Board `/pharmacy`, Discharge Med Readiness `/pharmacy/discharge-meds`, IV Room & Batches `/pharmacy/iv-room`, Dispense & Delivery `/pharmacy/dispense`, Controlled Substances `/pharmacy/controlled` — placing Pharmacy after Lab in the `workspaces` section so the three ancillary domains (Radiology → Lab → Pharmacy) sit together after RTDC/Emergency/Perioperative and before Transport (§9.4).
+- [x] Add the `Pharmacy TAT` Study leaf `/analytics/pharmacy-tat` to the Analytics domain's existing "Ancillary Performance" group between Laboratory TAT and IR Suite Utilization, so Analytics is its sole navigation owner and it never appears in Pharmacy local navigation.
+- [x] Confirm the pre-landed route surface (X-6..X-12) is complete and named: five `pharmacy.*` web pages, one `analytics.pharmacy-tat` Study route, six `api.pharmacy.*` reads (flow-board, discharge-readiness, iv-room, dispense, controlled, tat), and the single `api.pharmacy.barriers.store` mutation, all web-session-authenticated and `throttle:60,1`.
+- [x] Document that controlled-substance access is enforced at the route boundary, not the nav: `PharmacyControlledRequest::authorize()` and the API `PharmacyControlledController` both gate on the dedicated `viewControlledSubstanceOperations` capability, so `/pharmacy/controlled` and `/api/pharmacy/controlled` return a clean 403 regardless of whether the nav leaf is shown; the leaf is always listed so the ownership projection stays deterministic.
+- [x] Add a server-owned, unit-scoped Pharmacy handoff from the RTDC Ancillary Services matrix: `AncillaryServicesService` now emits `/pharmacy?unitId={id}&source=ancillary_services` for the `pharmacy` tile, exactly mirroring the Imaging and Laboratory handoffs (`ancillary_services` and `unitId` are already valid on `PharmacyFlowBoardRequest`).
+- [x] Generalize the RTDC drill affordance in `AncillaryServices.jsx`: extended `ownedDrillHref` to the `['lab','pharmacy']` owned set, added a `drillOwnerLabel` helper ("Medication Flow Board" for pharmacy), and repaired two dangling `radiologyDrillHref(...)` references in the expanded-service popovers that L-13's rename had left undefined — the detail popovers now render the owned drill for imaging, lab, and pharmacy.
+- [x] Verify the medication readiness drills added in X-7/X-11 point at real routes: the RTDC discharge vector medication axis and the ED boarder medication lens (`AncillaryReadinessService`) resolve to `/pharmacy?lens=discharge…` and `/pharmacy?lens=all…`, and the Cockpit Flow drills resolve to `/pharmacy?lens=stat|sepsis|shortage&source=cockpit` — all valid lenses/sources on the registered route. No change required.
+- [x] Add `tests/Feature/Ancillary/PharmacyRouteRegistrationTest.php` (6 tests, 121 assertions): canonical page/Study bookmarks + actions + `SessionAuthMiddleware` + single GET owner; Pharmacy-after-Lab-before-RTDC ordering; named/throttled read APIs and the single barrier command with one owner each; anonymous rejection and POST-absence on every read; a no-write-route guard proving no dispense/controlled/IV/Study mutation exists; and the three-way independence of `viewAncillaryPatientDetail`, `manageAncillaryBarriers`, and `viewControlledSubstanceOperations` across frontline / pharmacy_manager / bed_manager / ops_leader.
+- [x] Update the navigation projection tests: `tests/js/config/navigationConfig.test.ts` now asserts the eight-domain workspace count and order, the Pharmacy `/pharmacy` header, exclusive Pharmacy leaf ownership with identical palette projection ("Pharmacy Operations"), and Analytics-only ownership of `/analytics/pharmacy-tat`.
+- [x] Update `tests/Feature/Rtdc/AncillaryServicesRadiologyDrillTest.php` to assert the new unit-scoped Pharmacy drill (dropping `pharmacy` from the non-drillable list) and `tests/js/rtdc/AncillaryServices.test.tsx` to assert the "Open Pharmacy Medication Flow Board" matrix link; added the six `/api/pharmacy/*` reads to the shared `ApiAuthorizationTest` anonymous-rejection list.
 
 **Acceptance:**
 
-- Routes render, authorize, redact, paginate, and validate correctly.
-- Desktop/mobile/palette navigation remains coherent with eight Workspace domains.
-- Controlled page denial is tested.
-- Existing Radiology/Lab/RTDC routes remain intact.
+- [x] All thirteen Pharmacy routes are registered and verified via `route:list`: five web pages, one Study leaf, six read APIs, one barrier POST.
+- [x] Desktop/mobile/palette navigation is coherent with EIGHT Workspace domains — `navigationConfig.test.ts` proves the count, order, header targets, exclusive leaf ownership, and palette parity (52 focused frontend nav tests pass across 5 files).
+- [x] Controlled-substance denial remains tested and green: `PharmacyControlledAuthTest` proves clean 403 with no data leak on both page and API for an unauthorized user, and guest is unauthorized; the nav leaf being listed does not weaken the route gate.
+- [x] Existing Radiology/Lab/RTDC route ownership and drills remain intact: `RadiologyRouteRegistrationTest`, `LaboratoryRouteRegistrationTest`, `ApiAuthorizationTest`, and the RTDC drill contract all stay green.
+- [x] Verification: focused suite 29 tests / 625 assertions; `--filter=Pharmacy` 95 tests / 8,546 assertions; `--filter=Ancillary` 299 tests / 11,782 assertions; `npx tsc --noEmit` clean; `npx vite build` clean (pre-existing chunk-size warning only); 52 focused vitest; `check-ui-canon.sh` passes (pre-existing 104 line-height warnings unchanged); Pint clean on 4 files; `git diff --check` clean.
 
 #### [ ] X-14 — Pass the Pharmacy phase verification and release gate
 

@@ -39,12 +39,25 @@ const formatConfiguredAverage = (value) => {
     return Number.isFinite(minutes) ? formatDurationMinutes(minutes) : value;
 };
 
+const OWNED_DRILL_SERVICES = ['lab', 'pharmacy'];
+
 const ownedDrillHref = (serviceInfo, service) => {
-    if (serviceInfo?.category !== 'imaging' && serviceInfo?.id !== 'lab') return null;
+    if (serviceInfo?.category !== 'imaging' && !OWNED_DRILL_SERVICES.includes(serviceInfo?.id)) {
+        return null;
+    }
 
     // Only server-owned units can satisfy the worklist's exists:prod.units
     // validation. The legacy client fallback is intentionally non-drillable.
     return service?.drillHref ?? null;
+};
+
+// Human-readable owner for the drill affordance. The server owns the href; this
+// only labels the handoff so the accessible name/title matches the destination.
+const drillOwnerLabel = (serviceInfo) => {
+    if (serviceInfo?.id === 'lab') return 'Laboratory Flow Board';
+    if (serviceInfo?.id === 'pharmacy') return 'Medication Flow Board';
+
+    return 'Radiology worklist';
 };
 
 const AncillaryServices = ({ unitServices = null }) => {
@@ -212,7 +225,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                     (s) => s.id === serviceId
                                                 );
                                                 const drillHref = ownedDrillHref(serviceInfo, service);
-                                                const drillOwner = serviceId === 'lab' ? 'Laboratory Flow Board' : 'Radiology worklist';
+                                                const drillOwner = drillOwnerLabel(serviceInfo);
                                                 return (
                                                     <div
                                                         key={serviceId}
@@ -388,12 +401,12 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                                 <strong>Criteria:</strong>{' '}
                                                                 {serviceInfo?.criteria.join(', ')}
                                                             </p>
-                                                            {radiologyDrillHref(serviceInfo, service) && (
+                                                            {ownedDrillHref(serviceInfo, service) && (
                                                                 <a
-                                                                    href={radiologyDrillHref(serviceInfo, service)}
+                                                                    href={ownedDrillHref(serviceInfo, service)}
                                                                     className="inline-flex items-center gap-1 text-sm font-medium text-healthcare-primary hover:underline"
                                                                 >
-                                                                    Open Radiology worklist
+                                                                    Open {drillOwnerLabel(serviceInfo)}
                                                                     <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />
                                                                 </a>
                                                             )}
@@ -574,12 +587,12 @@ const AncillaryServices = ({ unitServices = null }) => {
                                                         <strong>Criteria:</strong>{' '}
                                                         {serviceInfo?.criteria.join(', ')}
                                                     </p>
-                                                    {radiologyDrillHref(serviceInfo, service) && (
+                                                    {ownedDrillHref(serviceInfo, service) && (
                                                         <a
-                                                            href={radiologyDrillHref(serviceInfo, service)}
+                                                            href={ownedDrillHref(serviceInfo, service)}
                                                             className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-healthcare-primary hover:underline"
                                                         >
-                                                            Open Radiology worklist
+                                                            Open {drillOwnerLabel(serviceInfo)}
                                                             <Icon icon="heroicons:arrow-top-right-on-square" className="h-4 w-4" />
                                                         </a>
                                                     )}
