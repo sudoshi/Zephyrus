@@ -1761,3 +1761,32 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. Delivery tracking degrades honestly when absent and no clinical or individual dimension is read or exposed. X-9 completes 48 of 60 implementation tasks. X-10 is next and will build the Controlled Substances operational view at /pharmacy/controlled.
+
+## 2026-07-14 — X-10 Implement Controlled Substances operational view at /pharmacy/controlled
+
+### Outcome
+
+The Controlled Substances OPERATIONAL view is live at `/pharmacy/controlled`. `ControlledSubstanceOperationsService` owns the whole surface server-side (§5.1) and reuses X-3's `AdcStationSignalService` as the shared seam: a new `openDiscrepancyDetails()` returns one row per OPEN controlled discrepancy (matched open→resolve on `discrepancy_key`, the same anti-join the existing `openDiscrepancies()` rollup uses), carrying only operational dimensions — station, unit, opened-at, the pseudonymous discrepancy key, and the medication label from metadata — while `controlledStationRollup()`/`controlledUnitRollup()` provide controlled-only override/vend/discrepancy counts by station and unit. `adc_transactions` keeps its no-user-column shape; nothing here touches a user, actor, staff, or individual dimension.
+
+This is the diversion-adjacent boundary (§13), and the single hard rule held throughout: there is NO individual, user, staff, person, verifier, actor, performed-by, per-person risk score, or ranked staff list anywhere in the service, DTO, API, page, config, or tests. The only dimensions are station and unit. Each open discrepancy is aged against a SHIFT-END reconciliation policy — the applicable shift-end is the most recent configured shift boundary (07:00/19:00 local by default) at or before the open time. Only `opened_at` is measured; the shift-end times, timezone, reconciliation grace, and controlled override target rate are LOCAL POLICY read from the new `config/pharmacy.php` (`pharmacy.controlled`), kept strictly separate from measured timestamps. "Past policy" is a server-provided `agingStatus` (`due_this_shift`/`at_shift_end`/`past_policy`) the view renders without any raw-minute compare in JSX. The controlled override rate is count ÷ a DECLARED controlled-vend denominator × 100; a station with no controlled vend shows `hasDenominator=false`, a null rate, and `no_data` status — no data, never a fabricated 0 %. The app clock (`CarbonImmutable::now()`) is bound into every SQL comparison.
+
+The out-of-scope statement is a first-class contract `scope` block (`diversionInvestigationInScope=false`, `individualScoringInScope=false`, `individualPerformanceIncluded=false`, `userLevelDimensionIncluded=false`, `aggregationLevel=unit_and_station`, `tone=operational_non_accusatory`) AND is rendered verbatim as visible page text: this is an operational reconciliation view; diversion investigation and individual scoring are out of scope. Access is gated behind a dedicated `viewControlledSubstanceOperations` ability (new in `AuthServiceProvider`, restricted to super_admin/superuser/ops_leader/admin/pharmacy_manager/pharmacy_operations_lead/controlled_substance_officer — frontline `user` and `executive` denied), enforced by `PharmacyControlledRequest::authorize()` so an unauthorized caller gets a clean 403 before the service ever runs and no controlled data reaches the response. Aggregate export is deferred: `export_enabled=false` in config and the contract's `exportStatement` declares any future export must be separately capability-gated, audited via `UserAuditRecorder`, and free of individual data. `Pages/Pharmacy/Controlled.tsx` refetches every 45 s through TanStack Query, keeps PageContentLayout as gutter owner with healthcare-* tokens and tabular-nums metrics, renders every rate/aging state with icon + label (never color alone) from server-provided status, and surfaces distinct empty/degraded/stale/no-data states with `SourceFreshnessBadge`; the strict Zod contract (`controlled-schemas.ts`) rejects a rate without a denominator and pins both scope flags to literal false.
+
+The safety posture is proved directly: the service test scans the DATA surface only (never the deliberate disclaimer text) for user/staff/person/actor/verifier/employee/badge/performed_by/risk_score/rank/diversion-score fragments and recursively guards every key, asserts an accusatory-language scan (divert/suspect/culprit/blame/theft/steal) over the data comes back clean, ages the ED morphine discrepancy `past_policy` against the 07:00 EDT shift-end, keeps a five-minute-old discrepancy within-shift under a generous grace, and flips a resolved pair from open to closed. A `SET LOCAL enable_seqscan = off` `EXPLAIN (FORMAT JSON)` test evidences the open-discrepancy anti-join can reach X-1's `adc_transactions_open_discrepancy_idx`. The auth test proves a `user`-role account is denied 403 on both the page and API with no controlled detail in the body, a guest is unauthorized, and pharmacy/ops leadership are authorized.
+
+### Verification
+
+```text
+Laravel Pint over 11 dirty X-10 files: PASS (1 phpdoc style issue auto-fixed)
+Focused PharmacyControlledTest: 11 tests, 1,025 assertions, PASS
+Focused PharmacyControlledAuthTest: 5 tests, 28 assertions, PASS
+Full Pharmacy suite (--filter=Pharmacy): 80 tests, 8,192 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 287 tests, 11,450 assertions, PASS
+npx tsc --noEmit: PASS
+npx vite build: PASS (existing Browserslist and large-chunk warnings only)
+Focused vitest (tests/js/pharmacy/Controlled.test.tsx): 3 tests, PASS
+scripts/check-ui-canon.sh: PASS (pre-existing arbitrary-line-height warnings only)
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces gated by a dedicated controlled-substance capability. No individual, user, or staff dimension and no diversion or per-person risk score is computed or exposed anywhere; aggregate export is deferred and off. X-10 completes 49 of 60 implementation tasks; 11 remain. X-11 is next and will add Pharmacy health metrics to the Cockpit and an ED boarder medication lens.

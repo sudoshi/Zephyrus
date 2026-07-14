@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyControlledController;
 use App\Http\Controllers\Api\Pharmacy\PharmacyDischargeReadinessController;
 use App\Http\Controllers\Api\Pharmacy\PharmacyDispenseController;
 use App\Http\Controllers\Api\Pharmacy\PharmacyFlowBoardController;
@@ -305,6 +306,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('pharmacy')->name('a
     Route::get('/discharge-readiness', [PharmacyDischargeReadinessController::class, 'show'])->name('discharge-readiness');
     Route::get('/iv-room', [PharmacyIvRoomController::class, 'show'])->name('iv-room');
     Route::get('/dispense', [PharmacyDispenseController::class, 'show'])->name('dispense');
+    Route::get('/controlled', [PharmacyControlledController::class, 'show'])->name('controlled');
     Route::post('/barriers', [PharmacyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

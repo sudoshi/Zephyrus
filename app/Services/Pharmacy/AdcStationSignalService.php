@@ -56,6 +56,55 @@ final class AdcStationSignalService
     }
 
     /**
+     * OPEN controlled discrepancies (opened without a matching resolve),
+     * one row per open discrepancy, carrying only operational dimensions:
+     * the owning station and unit, the opened-at timestamp, the pseudonymous
+     * discrepancy key, and the medication label from metadata. NO user, actor,
+     * staff, or individual dimension exists — adc_transactions carries none, and
+     * none is projected here. Aging against the shift-end policy is computed by
+     * the caller from opened_at; this service only pairs open with resolved.
+     *
+     * @return Collection<int, object{adc_station_id: int, unit_id: ?int, discrepancy_key: string, opened_at: string, is_controlled: bool, medication_label: ?string}>
+     */
+    public function openDiscrepancyDetails(): Collection
+    {
+        return AdcTransaction::query()
+            ->openDiscrepancies()
+            ->orderBy('occurred_at')
+            ->get([
+                'adc_station_id',
+                'unit_id',
+                'discrepancy_key',
+                DB::raw('occurred_at::text as opened_at'),
+                'is_controlled',
+                DB::raw("metadata->>'medication_label' as medication_label"),
+            ]);
+    }
+
+    /**
+     * CONTROLLED-only transaction counts per station and type inside the
+     * window. Every row is grouped by station and transaction type only —
+     * this is the diversion-adjacent pattern surface (§13), and it carries no
+     * user, actor, or individual dimension by construction.
+     *
+     * @return Collection<int, object{adc_station_id: int, unit_id: ?int, transaction_type: string, transaction_count: int}>
+     */
+    public function controlledStationRollup(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->controlledRollup('adc_station_id', $from, $to);
+    }
+
+    /**
+     * CONTROLLED-only transaction counts per unit and type inside the window.
+     *
+     * @return Collection<int, object{unit_id: int, transaction_type: string, transaction_count: int}>
+     */
+    public function controlledUnitRollup(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->controlledRollup('unit_id', $from, $to);
+    }
+
+    /**
      * Stations carrying at least one open stockout, with the per-medication
      * open map maintained by the projector.
      *
@@ -67,6 +116,35 @@ final class AdcStationSignalService
             ->whereRaw("coalesce(metadata->'open_stockouts', '{}'::jsonb) NOT IN ('{}'::jsonb, '[]'::jsonb)")
             ->orderBy('adc_station_id')
             ->get();
+    }
+
+    /**
+     * CONTROLLED-only rollup by the given dimension. Mirrors rollup() but
+     * filters to controlled transactions so the controlled-substance view never
+     * inherits a non-controlled denominator. Station/unit grouping only.
+     *
+     * @return Collection<int, object>
+     */
+    private function controlledRollup(string $dimension, CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $columns = [
+            $dimension,
+            'transaction_type',
+            DB::raw('count(*)::int as transaction_count'),
+        ];
+        $groups = [$dimension, 'transaction_type'];
+        if ($dimension === 'adc_station_id') {
+            $columns[] = DB::raw('max(unit_id) as unit_id');
+        }
+
+        return AdcTransaction::query()
+            ->controlled()
+            ->whereNotNull($dimension)
+            ->whereBetween('occurred_at', [$from, $to])
+            ->groupBy($groups)
+            ->orderBy($dimension)
+            ->orderBy('transaction_type')
+            ->get($columns);
     }
 
     /** @return Collection<int, object> */

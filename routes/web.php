@@ -100,6 +100,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/discharge-meds', [PharmacyController::class, 'dischargeMeds'])->name('discharge-meds');
             Route::get('/iv-room', [PharmacyController::class, 'ivRoom'])->name('iv-room');
             Route::get('/dispense', [PharmacyController::class, 'dispense'])->name('dispense');
+            Route::get('/controlled', [PharmacyController::class, 'controlled'])->name('controlled');
         });
 
         // Improvement Routes

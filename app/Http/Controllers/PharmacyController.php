@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Pharmacy\PharmacyControlledRequest;
 use App\Http\Requests\Pharmacy\PharmacyDischargeReadinessRequest;
 use App\Http\Requests\Pharmacy\PharmacyDispenseRequest;
 use App\Http\Requests\Pharmacy\PharmacyFlowBoardRequest;
 use App\Http\Requests\Pharmacy\PharmacyIvRoomRequest;
+use App\Services\Pharmacy\ControlledSubstanceOperationsService;
 use App\Services\Pharmacy\PharmacyDischargeReadinessService;
 use App\Services\Pharmacy\PharmacyDispenseService;
 use App\Services\Pharmacy\PharmacyFlowBoardService;
@@ -41,6 +43,19 @@ final class PharmacyController extends Controller
     {
         return Inertia::render('Pharmacy/Dispense', [
             'dispense' => $dispense->build($request->validated(), Gate::allows('viewAncillaryPatientDetail')),
+        ]);
+    }
+
+    /**
+     * Controlled-substance OPERATIONAL view (§X-10). Gated by the dedicated
+     * viewControlledSubstanceOperations capability: the FormRequest authorizes
+     * before this method runs, so an unauthorized user is denied with a clean
+     * 403 and no controlled data is ever rendered into the page.
+     */
+    public function controlled(PharmacyControlledRequest $request, ControlledSubstanceOperationsService $controlled): Response
+    {
+        return Inertia::render('Pharmacy/Controlled', [
+            'controlled' => $controlled->build(),
         ]);
     }
 }

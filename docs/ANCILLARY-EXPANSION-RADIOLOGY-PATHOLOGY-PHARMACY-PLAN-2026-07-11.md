@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-9 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-10 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 48 of 60 tasks complete; 12 remain |
+| Progress | 49 of 60 tasks complete; 11 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2103,24 +2103,32 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused X-9 verification passes 12 PHPUnit tests (228 assertions) and 4 vitest tests; the full Pharmacy suite passes 64 tests (7,139 assertions), the complete ancillary regression passes 271 tests (10,405 assertions), and `npx tsc --noEmit`, `npx vite build`, and `scripts/check-ui-canon.sh` all pass.
 - [x] No production connector, credential, source endpoint, scheduler, queue, migration, deployment, or external system is activated by X-9; delivery tracking degrades honestly when absent and no clinical or individual dimension is read or exposed anywhere in the contract.
 
-#### [ ] X-10 — Implement Controlled Substances operational view at /pharmacy/controlled
+#### [x] X-10 — Implement Controlled Substances operational view at /pharmacy/controlled
 
 **Depends on:** X-3, X-5
-**Primary files:** ControlledSubstanceOperationsService; page/API; safety tests
+**Primary files:** ControlledSubstanceOperationsService; AdcStationSignalService (controlled rollups + open-discrepancy details); config/pharmacy.php; PharmacyControlledController (API) + PharmacyController::controlled (page); PharmacyControlledRequest; AuthServiceProvider (viewControlledSubstanceOperations); routes; Pages/Pharmacy/Controlled.tsx + controlled-schemas.ts + usePharmacyControlled; safety/auth/service/vitest tests
 
 **Work:**
 
-- Show open discrepancy count, age against shift-end policy, and override/discrepancy patterns by unit and station.
-- Include an explicit page/API statement that diversion investigation and individual scoring are out of scope.
-- Restrict access through an appropriate capability/policy if required by deployment governance.
-- Provide aggregate export only if separately authorized and audited.
+- [x] Added `ControlledSubstanceOperationsService` that owns the entire payload server-side (§5.1): the OPEN controlled-discrepancy count, each open discrepancy's AGE against a configured shift-end reconciliation policy, and controlled override/discrepancy PATTERNS aggregated by unit and station only.
+- [x] Reused `AdcStationSignalService` for the open-discrepancy pairing — added `openDiscrepancyDetails()` (one row per open discrepancy, matched open→resolve on `discrepancy_key`, carrying only station/unit/opened-at/discrepancy-key/medication-label) and controlled-only `controlledStationRollup()`/`controlledUnitRollup()` — with no user, actor, staff, or individual column touched anywhere.
+- [x] Aged each open discrepancy against the SHIFT-END policy: the applicable shift-end is the most recent configured shift boundary at or before the open time; only `opened_at` is measured, the shift-end and grace are LOCAL POLICY (config), and "past policy" is a server-provided `agingStatus` the view renders without any raw-minute comparison.
+- [x] Added `config/pharmacy.php` (`pharmacy.controlled`) holding the shift-end times/timezone/label, reconciliation grace minutes, controlled override target rate, pattern window hours, and an `export_enabled=false` switch — all configuration, defensively normalized in the service, never a measured event.
+- [x] Held the diversion-adjacent boundary: NO individual, user, staff, person, verifier, actor, performed-by, per-person risk score, or ranked staff list exists in the service, DTO, API, page, tests, or config. Override/discrepancy rates are computed over a DECLARED controlled-vend denominator (null → "no data", never a fabricated 0%). The out-of-scope disclaimer text is the only place scope language appears, and the safety scan targets the data surface, not the disclaimer.
+- [x] Included an EXPLICIT out-of-scope statement as a first-class contract `scope` block (`diversionInvestigationInScope=false`, `individualScoringInScope=false`, `aggregationLevel=unit_and_station`, `tone=operational_non_accusatory`) AND rendered it verbatim as visible page text: diversion investigation and individual scoring are out of scope.
+- [x] Gated the page and API behind a dedicated `viewControlledSubstanceOperations` ability (new in `AuthServiceProvider`) restricting to pharmacy operational leadership and ops leaders (super_admin/superuser/ops_leader/admin/pharmacy_manager/pharmacy_operations_lead/controlled_substance_officer); plain frontline (`user`) and `executive` are denied. `PharmacyControlledRequest::authorize()` enforces it so an unauthorized caller gets a clean 403 before the service runs — no controlled data leaks.
+- [x] Deferred aggregate export: `export_enabled=false` and the contract's `exportStatement` declares export is not enabled and any future export must be separately capability-gated, audited (UserAuditRecorder), and free of individual data.
+- [x] Registered the page route `GET /pharmacy/controlled` (`PharmacyController::controlled`) and the API `GET /api/pharmacy/controlled` (`api.pharmacy.controlled`) alongside X-9's Dispense routes, with the §9 envelope (generatedAt/sourceCutoffAt/freshnessStatus/degradedMode/state/freshness/policy/window/data/scope) and a `private, no-cache, no-store` API header.
+- [x] Built `Pages/Pharmacy/Controlled.tsx` (named + default export) with a Zod contract (`controlled-schemas.ts`) and `usePharmacyControlled` (TanStack Query, 45s poll): PageContentLayout gutter, healthcare-* tokens with dark: pairs, tabular-nums metrics, server-provided rate/aging status by icon+label (never color alone, never a raw-minute compare in JSX), distinct empty/degraded/stale/no-data states, `SourceFreshnessBadge`, and an operational, non-accusatory tone throughout.
 
 **Acceptance:**
 
-- Service, DTO, API, page, tests, and exports contain no individual risk score or ranked staff list.
-- Aging clocks and resolution transitions are tested.
-- Unauthorized users receive the correct denial without leaking existence/detail.
-- Status remains operational and non-accusatory.
+- [x] The service, DTO, API, page, config, and tests contain no individual risk score or ranked staff list — proved by a recursive contract-key guard plus a value scan over the DATA surface (forbidding user/staff/person/actor/verifier/employee/badge/performed_by/risk_score/rank/diversion-score fragments) that excludes the intentional out-of-scope disclaimer text.
+- [x] Aging clocks and resolution transitions are tested: the ED morphine discrepancy is aged `past_policy` against the 07:00 EDT shift-end, a generous grace keeps a five-minute-old discrepancy within the shift, and inserting a matching `discrepancy_resolved` on the same key flips the pair from open to closed so it no longer counts.
+- [x] Unauthorized users receive the correct denial without leaking existence/detail: a `user`-role account gets 403 on BOTH the page and the API, the denial body carries no discrepancy/station/unit/scope/freshness detail, and a guest is unauthorized — while pharmacy_manager/ops_leader/admin/superuser/controlled_substance_officer are authorized.
+- [x] Status remains operational and non-accusatory: the out-of-scope disclaimer is asserted present in the contract and the tone fields, and the data surface is scanned to contain no accusatory framing (divert/suspect/culprit/blame/theft/steal).
+- [x] Focused verification: `PharmacyControlledTest` 11 passed (1025 assertions), `PharmacyControlledAuthTest` 5 passed (28 assertions), `Controlled.test.tsx` 3 passed; `--filter=Pharmacy` 80 passed (8192 assertions); `--filter=Ancillary` 287 passed (11450 assertions); pint clean; tsc + vite build clean; UI-canon passed.
+- [x] No production connector, credential, scheduler, endpoint, migration, deployment, or external system is activated by X-10; the new config defaults are inert local policy and the export switch is off.
 
 #### [ ] X-11 — Add Pharmacy health metrics to Cockpit and an ED boarder medication lens
 
