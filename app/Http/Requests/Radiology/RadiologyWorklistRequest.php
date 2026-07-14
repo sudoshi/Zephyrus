@@ -26,6 +26,7 @@ class RadiologyWorklistRequest extends FormRequest
             'sort' => ['sometimes', 'string', Rule::in(RadiologyWorklistService::SORTS)],
             'search' => ['sometimes', 'nullable', 'string', 'min:3', 'max:64', 'regex:/^[A-Za-z0-9_.:-]+$/'],
             'source' => ['sometimes', 'nullable', 'string', Rule::in(RadiologyWorklistService::DEEP_LINK_SOURCES)],
+            'risk' => ['sometimes', 'boolean'],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'cursor' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];

@@ -72,19 +72,51 @@ const selectedClockSchema = z.object({
   elapsedMinutes: z.number().nonnegative().nullable(), warningMinutes: z.number().int().nonnegative().nullable(), breachMinutes: z.number().int().nonnegative().nullable(), definitionUuid: z.string().uuid(),
 }).strict();
 
+const breachRiskModelProvenanceSchema = z.object({
+  modelVersion: z.string(),
+  modelFamily: z.string(),
+  calibratedAt: z.string().nullable(),
+  synthetic: z.boolean(),
+  syntheticLabel: z.string(),
+  trainingWindow: z.record(z.string(), z.unknown()),
+  featureSchema: z.array(z.string()),
+  evaluation: z.object({
+    calibrationError: z.number().nullable(),
+    discriminationAuc: z.number().nullable(),
+    coverage: z.record(z.string(), z.unknown()).nullable(),
+    naiveBaseline: z.record(z.string(), z.unknown()).nullable(),
+    beatsBaseline: z.boolean().nullable(),
+  }).strict(),
+}).strict();
+
+const breachRiskScoreSchema = z.object({
+  availability: z.enum(['available', 'low_confidence', 'unavailable']),
+  probability: z.number().min(0).max(1).nullable(),
+  band: z.enum(['low', 'moderate', 'high']).nullable(),
+  factors: z.array(z.object({ feature: z.string(), label: z.string(), contribution: z.number() }).strict()),
+  missingSignals: z.array(z.string()),
+  explanation: z.string(),
+}).strict();
+
+export type BreachRiskScore = z.infer<typeof breachRiskScoreSchema>;
+export type BreachRiskModelProvenance = z.infer<typeof breachRiskModelProvenanceSchema>;
+
 export const radiologyWorklistSchema = z.object({
   generatedAt: z.string().datetime({ offset: true }),
   freshness: sourceFreshnessSchema,
   filters: z.object({
     lens: z.enum(['all', 'ed', 'inpatient', 'discharge', 'degraded']), priority: z.string().nullable(), modality: z.string().nullable(), unitId: z.number().int().positive().nullable(),
     state: z.enum(['normal', 'warning', 'breach', 'degraded']).nullable(), sort: z.enum(['oldest', 'newest', 'priority', 'breach_risk']), search: z.string().nullable(),
-    source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(), perPage: z.number().int().positive().max(50), cursor: z.string().nullable(),
+    source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(), risk: z.boolean(), perPage: z.number().int().positive().max(50), cursor: z.string().nullable(),
   }).strict(),
   filterOptions: z.object({
     lenses: z.array(z.string()), priorities: z.array(z.string()), modalities: z.array(z.object({ code: z.string(), label: z.string() }).strict()),
     units: z.array(z.object({ unitId: z.number().int().positive(), label: z.string() }).strict()), sorts: z.array(z.string()), deepLinkSources: z.array(z.string()),
   }).strict(),
-  predictiveSort: z.object({ available: z.boolean(), enabled: z.boolean(), explanation: z.string() }).strict(),
+  predictiveSort: z.object({
+    available: z.boolean(), enabled: z.boolean(), requested: z.boolean(), explanation: z.string(),
+    model: breachRiskModelProvenanceSchema.nullable(),
+  }).strict(),
   data: z.array(z.object({
     orderId: z.number().int().positive(), orderUuid: z.string().uuid(), label: z.string(), patientRef: z.string(), patientClass: z.string(), priority: z.string(), modality: z.string().nullable(),
     locationLabel: z.string().nullable(), ageMinutes: z.number().int().nonnegative(), status: z.enum(['normal', 'warning', 'breach', 'degraded']), currentState: z.string(),
@@ -93,6 +125,7 @@ export const radiologyWorklistSchema = z.object({
     barriers: z.array(z.object({ barrierId: z.number().int().positive(), reasonCode: z.string().nullable(), label: z.string(), owner: z.string().nullable(), openedAt: z.string().datetime({ offset: true }) }).strict()),
     sourceAssertions: z.array(z.object({ milestoneUuid: z.string().uuid(), code: z.string(), occurredAt: z.string().datetime({ offset: true }), receivedAt: z.string().datetime({ offset: true }), sourceKey: z.string(), sourceRank: z.number().int(), selected: z.boolean() }).strict()),
     transportSegment: z.array(timelineMilestoneSchema).nullable(),
+    risk: breachRiskScoreSchema.nullable(),
     timeline: z.object({ orderUuid: z.string().uuid(), label: z.string(), milestones: z.array(timelineMilestoneSchema), clock: selectedClockSchema.nullable(), freshness: sourceFreshnessSchema, degradedMode: z.boolean(), degradedExplanation: z.string().nullable() }).strict(),
   }).strict()),
   privacy: z.object({ patientContextIncluded: z.boolean(), identifierPolicy: z.string() }).strict(),

@@ -3,6 +3,7 @@
 namespace App\Services\Radiology;
 
 use App\Services\Ancillary\AncillaryReadinessService;
+use App\Services\Radiology\BreachRisk\RadiologyBreachRiskService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\Cursor;
@@ -19,6 +20,7 @@ final class RadiologyWorklistService
     public function __construct(
         private readonly RadiologyFlowBoardService $flowBoard,
         private readonly AncillaryReadinessService $readiness,
+        private readonly RadiologyBreachRiskService $breachRisk,
     ) {}
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
@@ -30,6 +32,7 @@ final class RadiologyWorklistService
         $cursor = $this->cursor($filters['cursor']);
         $page = $query->cursorPaginate($filters['perPage'], ['*'], 'cursor', $cursor);
         $rows = collect($page->items());
+        $riskScores = $this->riskScores($filters, $rows);
 
         return [
             'generatedAt' => now()->toAtomString(),
@@ -40,12 +43,8 @@ final class RadiologyWorklistService
                 'sorts' => self::SORTS,
                 'deepLinkSources' => self::DEEP_LINK_SOURCES,
             ],
-            'predictiveSort' => [
-                'available' => true,
-                'enabled' => false,
-                'explanation' => 'Breach-risk ordering uses current governed breach state and age only; predictive scoring remains disabled until P4-1.',
-            ],
-            'data' => $this->serializeRows($rows, $context, $canViewPatientDetail),
+            'predictiveSort' => $this->predictiveSort($filters, $riskScores !== null),
+            'data' => $this->serializeRows($rows, $context, $canViewPatientDetail, $riskScores),
             'privacy' => [
                 'patientContextIncluded' => $canViewPatientDetail,
                 'identifierPolicy' => $canViewPatientDetail
@@ -62,6 +61,50 @@ final class RadiologyWorklistService
         ];
     }
 
+    /**
+     * Server-side breach-risk scoring for the visible page, only when the opt-in
+     * `risk` flag is set and the model artifact is loadable. Returns null when
+     * scoring is not requested/available so the row serializer omits the column.
+     *
+     * @param  array<string, mixed>  $filters
+     * @param  Collection<int, object>  $rows
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function riskScores(array $filters, Collection $rows): ?array
+    {
+        if (! $filters['risk'] || $rows->isEmpty() || ! $this->breachRisk->isAvailable()) {
+            return null;
+        }
+        $orderIds = $rows->pluck('ancillary_order_id')->map(fn (mixed $id): int => (int) $id)->all();
+
+        return $this->breachRisk->scoreOrders($orderIds);
+    }
+
+    /** @param array<string, mixed> $filters @return array<string, mixed> */
+    private function predictiveSort(array $filters, bool $scored): array
+    {
+        $provenance = $this->breachRisk->provenance();
+        if ($provenance === null) {
+            return [
+                'available' => false,
+                'enabled' => false,
+                'requested' => (bool) $filters['risk'],
+                'model' => null,
+                'explanation' => 'The Radiology breach-risk planning model artifact is not installed.',
+            ];
+        }
+
+        return [
+            'available' => true,
+            'enabled' => $scored,
+            'requested' => (bool) $filters['risk'],
+            'model' => $provenance,
+            'explanation' => $scored
+                ? 'Optional planning risk is a calibrated, synthetic-demo sort aid computed server-side from current operational load — it is not an alarm, a breach status, or a clinical recommendation. Missing or stale signals show as low-confidence or unavailable.'
+                : 'Breach-risk scoring is available but off. Add risk=on to compute the optional synthetic planning score for the visible page.',
+        ];
+    }
+
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     private function filters(array $filters): array
     {
@@ -73,6 +116,7 @@ final class RadiologyWorklistService
         $sort = is_string($filters['sort'] ?? null) && in_array($filters['sort'], self::SORTS, true) ? $filters['sort'] : 'oldest';
         $search = is_string($filters['search'] ?? null) ? trim($filters['search']) : null;
         $source = is_string($filters['source'] ?? null) && in_array($filters['source'], self::DEEP_LINK_SOURCES, true) ? $filters['source'] : null;
+        $risk = filter_var($filters['risk'] ?? false, FILTER_VALIDATE_BOOL);
 
         return [
             'lens' => $lens,
@@ -83,6 +127,7 @@ final class RadiologyWorklistService
             'sort' => $sort,
             'search' => $search === '' ? null : $search,
             'source' => $source,
+            'risk' => $risk,
             'perPage' => min(50, max(1, (int) ($filters['perPage'] ?? 25))),
             'cursor' => is_string($filters['cursor'] ?? null) && $filters['cursor'] !== '' ? $filters['cursor'] : null,
         ];
@@ -184,8 +229,8 @@ final class RadiologyWorklistService
         return $cursor;
     }
 
-    /** @param Collection<int, object> $rows @param array<string, mixed> $context @return list<array<string, mixed>> */
-    private function serializeRows(Collection $rows, array $context, bool $canViewPatientDetail): array
+    /** @param Collection<int, object> $rows @param array<string, mixed> $context @param array<int, array<string, mixed>>|null $riskScores @return list<array<string, mixed>> */
+    private function serializeRows(Collection $rows, array $context, bool $canViewPatientDetail, ?array $riskScores = null): array
     {
         if ($rows->isEmpty()) {
             return [];
@@ -204,7 +249,7 @@ final class RadiologyWorklistService
             ->whereIn('b.encounter_id', $encounterIds)->where('b.status', 'open')->where('b.is_deleted', false)
             ->get(['b.barrier_id', 'b.encounter_id', 'b.reason_code', 'b.owner', 'b.opened_at', 'r.label'])->groupBy('encounter_id');
 
-        return $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context, $imagingByOrder, $canViewPatientDetail): array {
+        $serialized = $rows->map(function (object $row) use ($catalog, $selected, $assertions, $barriers, $context, $imagingByOrder, $canViewPatientDetail, $riskScores): array {
             $orderAssertions = $assertions->get($row->ancillary_order_id, collect());
             $selectedByCode = $orderAssertions->groupBy('milestone_code')->map(function (Collection $group) use ($row, $selected): ?object {
                 $current = $selected->get($row->ancillary_order_id.'|'.$group->first()->milestone_code);
@@ -284,6 +329,14 @@ final class RadiologyWorklistService
                     ];
                 })->values()->all(),
                 'transportSegment' => $transportPresent ? collect($timelineMilestones)->whereIn('code', ['RAD_TRANSPORT_REQUESTED', 'RAD_TRANSPORT_COMPLETE'])->values()->all() : null,
+                'risk' => $riskScores === null ? null : ($riskScores[(int) $row->ancillary_order_id] ?? [
+                    'availability' => 'unavailable',
+                    'probability' => null,
+                    'band' => null,
+                    'factors' => [],
+                    'missingSignals' => ['queue_depth'],
+                    'explanation' => 'No operational features were resolvable for this order; no score is produced.',
+                ]),
                 'timeline' => [
                     'orderUuid' => (string) $row->order_uuid,
                     'label' => $row->procedure_label ?: (($row->modality_code ?: 'Unknown modality').' imaging'),
@@ -295,6 +348,30 @@ final class RadiologyWorklistService
                 ],
             ];
         })->all();
+
+        // Page-local planning re-rank: when risk sorting is opted in, order the
+        // already-paginated page by the model score so the deterministic DB
+        // cursor keeps pagination stable while the visible ordering reflects risk.
+        if ($riskScores !== null) {
+            usort($serialized, function (array $a, array $b): int {
+                $rankA = $this->riskRank($a['risk'] ?? null);
+                $rankB = $this->riskRank($b['risk'] ?? null);
+
+                return $rankB <=> $rankA;
+            });
+        }
+
+        return $serialized;
+    }
+
+    /** Sort key for the page-local risk re-rank; unavailable sinks to the bottom. */
+    private function riskRank(?array $risk): float
+    {
+        if ($risk === null || $risk['availability'] === 'unavailable' || $risk['probability'] === null) {
+            return -1.0;
+        }
+
+        return (float) $risk['probability'];
     }
 
     /** @param Collection<string, object|null> $selectedByCode @param list<array<string, mixed>> $definitions @return array<string, mixed>|null */
