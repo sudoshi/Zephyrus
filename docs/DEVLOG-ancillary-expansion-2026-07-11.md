@@ -1735,3 +1735,29 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. No clinical compounding recipe or actionable preparation instruction is read or exposed. X-8 completes 47 of 60 implementation tasks. X-9 is next and will build the Dispense and Delivery workspace at /pharmacy/dispense.
+
+## 2026-07-13 — X-9 Implement Dispense and Delivery at /pharmacy/dispense
+
+### Outcome
+
+The Dispense and Delivery workspace is live. `PharmacyDispenseService` owns the whole surface server-side (§5.1) and reuses X-3's `AdcStationSignalService` as the shared rollup seam so its denominator is identical to X-8's waste denominator — ADC vend transactions in the station-scope window. Per station and per unit it computes override and stockout **rates** as count ÷ a DECLARED vend denominator × 100, never a bare count masquerading as a rate: each row carries the raw counts, `denominatorCount`, `hasDenominator`, and a single server-side target fold (`rateStatus` → `no_data`/`within_target`/`near_target`/`over_target`) so the view renders status, never a raw-rate compare in JSX. The measured rates are kept strictly distinct from LOCAL POLICY: a `policy.kind = 'local_policy'` block declares configured override/stockout target rates (5 %/2 %) as reference lines, separate from the observed rates. The window is 24 h with the app clock (`CarbonImmutable::now()`) bound into every SQL comparison, never PG `now()`.
+
+Shortage-flag context joins `on_shortage` orders in the current operational window to their unit and the shortage-context station key/reason/noted-at that X-5 asserts on the owned satellite row — the verified-but-blocked Ceftriaxone order surfaces with its `RX_STOCKOUT` reason and ED-cabinet linkage. Vend-to-refill duration is measured per station with a `LATERAL` join taking the most recent prior vend before each refill (median and max minutes, pair count); a refill with no preceding vend in the window is excluded, never reported as a zero interval. Missing-dose / re-request chains are orders carrying an `RX_MISSING_DOSE` current assertion followed by a later `RX_DISPENSED` in the append-only milestone ledger (the X-5 missing-dose loop → central re-dispense); they are counted and surfaced with the re-dispense channel read from `rx_dispenses`. OPTIONAL delivery segments measure `dispensed_at`→`delivered_at` where a delivery timestamp exists; because the demo projector never sets `delivered_at`, the segment degrades to an explicit `coverage: 'absent'` statement with a null interval — never a fabricated delivery time and never a zero (a targeted test backfills one `delivered_at` to prove the available path flips to a measured 20-minute median).
+
+This is the diversion-adjacent boundary (§13). Every aggregate is grouped by station or unit only; `adc_transactions` keeps its no-user-column shape. Order-linked drill (shortage orders, missing-dose chains) is gated behind `viewAncillaryPatientDetail` — the aggregate station/unit view stays fully populated when the gate is closed (order UUIDs null, patient refs "Patient context restricted"). An explicit safety test asserts the contract carries no user/actor/staff/verifier/risk/rank field and no individual outlier list, and the `privacy` block declares `individualPerformanceIncluded`/`diversionScoringIncluded`/`userLevelDimensionIncluded` all false. A station with no vends (the ICU cabinet, which only receives a refill) shows `hasDenominator = false`, null rates, and `no_data` status — no data, never a fabricated 0 %; the strict Zod contract (`dispense-schemas.ts`) rejects a rate without a denominator and a delivery interval without coverage. The `/pharmacy/dispense` Inertia page and GET `/api/pharmacy/dispense` endpoint land in the same authenticated, throttled groups X-6/X-7/X-8 used; `Pages/Pharmacy/Dispense.tsx` refetches every 45 s through TanStack Query, keeps PageContentLayout as gutter owner with healthcare-* tokens and tabular-nums metrics, visually separates the dashed local-policy panel from the measured rollup, and renders every rate/coverage state with icon + label (never color alone) from server-provided status. A `SET LOCAL enable_seqscan = off` `EXPLAIN (FORMAT JSON)` test evidences that the station rollup can reach X-1's `adc_transactions_station_rollup_idx`.
+
+### Verification
+
+```text
+Laravel Pint over 7 dirty X-9 files: PASS
+Focused PharmacyDispenseTest: 12 tests, 228 assertions, PASS
+Full Pharmacy suite (--filter=Pharmacy): 64 tests, 7,139 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 271 tests, 10,405 assertions, PASS
+npx tsc --noEmit: PASS
+npx vite build: PASS (existing Browserslist and large-chunk warnings only)
+Focused vitest (tests/js/pharmacy/Dispense.test.tsx): 4 tests, PASS
+scripts/check-ui-canon.sh: PASS (pre-existing arbitrary-line-height warnings only)
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. Delivery tracking degrades honestly when absent and no clinical or individual dimension is read or exposed. X-9 completes 48 of 60 implementation tasks. X-10 is next and will build the Controlled Substances operational view at /pharmacy/controlled.
