@@ -94,7 +94,7 @@ export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMe
               onClick={() => setSelectedKey(domain.key)}
               className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${
                 selectedDomain
-                  ? 'bg-healthcare-surface text-healthcare-primary shadow-sm dark:bg-healthcare-surface-dark dark:text-healthcare-primary-dark'
+                  ? 'bg-healthcare-surface text-healthcare-primary shadow-sm dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark'
                   : 'text-healthcare-text-secondary hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark'
               }`}
             >

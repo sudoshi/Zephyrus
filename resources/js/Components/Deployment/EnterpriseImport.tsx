@@ -53,7 +53,7 @@ type ChangeHistoryEntry = {
 };
 
 const INPUT =
-  'w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary placeholder:text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark';
+  'w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary placeholder:text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark';
 
 const BTN_PRIMARY =
   'inline-flex items-center gap-1.5 rounded-md bg-healthcare-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50';

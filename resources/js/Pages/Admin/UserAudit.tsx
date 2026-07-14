@@ -193,7 +193,7 @@ export default function UserAudit({ events, filters, options, stats, redaction }
           <AdminMetricStrip metrics={metrics} />
 
           {redaction && !redaction.piiVisible && (
-            <p className="rounded-md border border-healthcare-border bg-healthcare-surface-secondary p-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+            <p className="rounded-md border border-healthcare-border bg-healthcare-surface-secondary p-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-hover-dark dark:text-healthcare-text-secondary-dark">
               Audit-only view: actor emails are partially masked and client IP addresses are withheld. Identity administration rights are required for unredacted records.
             </p>
           )}

@@ -114,7 +114,7 @@ function LifecycleCell({ lifecycle }: { lifecycle?: LifecycleSummary }) {
         <div className="flex flex-col gap-0.5">
             <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark capitalize">
                 {lifecycle.identity_source}
-                <span className="ml-1.5 rounded bg-healthcare-surface-secondary dark:bg-healthcare-surface-secondary-dark px-1.5 py-0.5 text-xs font-medium uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                <span className="ml-1.5 rounded bg-healthcare-surface-secondary dark:bg-healthcare-surface-hover-dark px-1.5 py-0.5 text-xs font-medium uppercase text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                     {lifecycle.provisioning_state}
                 </span>
             </span>
@@ -245,7 +245,7 @@ export default function Index({ users, redaction }: IndexProps) {
                     </div>
 
                     {redaction && !redaction.piiVisible && (
-                        <div className="mb-4 rounded-md border border-healthcare-border bg-healthcare-surface-secondary p-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+                        <div className="mb-4 rounded-md border border-healthcare-border bg-healthcare-surface-secondary p-3 text-sm text-healthcare-text-secondary dark:border-healthcare-border-dark dark:bg-healthcare-surface-hover-dark dark:text-healthcare-text-secondary-dark">
                             <span className="inline-flex items-center gap-1.5">
                                 <Icon icon="heroicons:eye-slash" className="h-4 w-4" aria-hidden="true" />
                                 Email addresses are partially masked for your role; identity administration rights are required to view contact details.
@@ -415,7 +415,7 @@ export default function Index({ users, redaction }: IndexProps) {
                                                         {user.email ?? '—'}
                                                     </td>
                                                     <td className="px-4 py-2.5 whitespace-nowrap">
-                                                        <span className="inline-flex items-center rounded-md bg-healthcare-surface-secondary dark:bg-healthcare-surface-secondary-dark px-2 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark capitalize">
+                                                        <span className="inline-flex items-center rounded-md bg-healthcare-surface-secondary dark:bg-healthcare-surface-hover-dark px-2 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark capitalize">
                                                             {user.role}
                                                         </span>
                                                     </td>

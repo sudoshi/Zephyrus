@@ -238,7 +238,7 @@ function PurgeRequestRow({ userId, request, actorId, canApprove, canExecute }: {
                         Requested by {request.author_name || `user ${request.author_user_id}`}
                     </p>
                 </div>
-                <span className="h-fit rounded bg-healthcare-surface-secondary px-2 py-1 text-xs font-semibold uppercase text-healthcare-text-secondary dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+                <span className="h-fit rounded bg-healthcare-surface-secondary px-2 py-1 text-xs font-semibold uppercase text-healthcare-text-secondary dark:bg-healthcare-surface-hover-dark dark:text-healthcare-text-secondary-dark">
                     {request.status}
                 </span>
             </div>
@@ -642,7 +642,7 @@ function CapabilityPanel({ user, authorization, disabled }: {
                         </h3>
                         <p className="mt-1 flex flex-wrap gap-1">
                             {authorization.effective_roles.length > 0 ? authorization.effective_roles.map((role) => (
-                                <span key={role} className="rounded bg-healthcare-surface-secondary px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+                                <span key={role} className="rounded bg-healthcare-surface-secondary px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-healthcare-surface-hover-dark dark:text-healthcare-text-secondary-dark">
                                     {role}
                                 </span>
                             )) : <span className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">None</span>}
@@ -654,7 +654,7 @@ function CapabilityPanel({ user, authorization, disabled }: {
                         </h3>
                         <p className="mt-1 flex flex-wrap gap-1">
                             {authorization.effective_capabilities.map((capability) => (
-                                <span key={capability} className="rounded bg-healthcare-surface-secondary px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-healthcare-surface-secondary-dark dark:text-healthcare-text-secondary-dark">
+                                <span key={capability} className="rounded bg-healthcare-surface-secondary px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-healthcare-surface-hover-dark dark:text-healthcare-text-secondary-dark">
                                     {capability}
                                 </span>
                             ))}
@@ -767,7 +767,7 @@ export default function Edit({
                         </h1>
                         <Link
                             href="/users"
-                            className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-secondary-dark transition-colors duration-300"
+                            className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-hover-dark transition-colors duration-300"
                         >
                             Back to Users
                         </Link>
