@@ -97,6 +97,10 @@ class DischargePrioritiesService
             collect($encounters)->pluck('encounter_id')->map(fn (mixed $id): int => (int) $id)->all(),
             'rtdc',
         );
+        $medByEncounter = $this->readiness->medicationForEncounters(
+            collect($encounters)->pluck('encounter_id')->map(fn (mixed $id): int => (int) $id)->all(),
+            'rtdc',
+        );
 
         foreach ($encounters as $row) {
             $unitType = (string) $row->unit_type;
@@ -118,6 +122,7 @@ class DischargePrioritiesService
             $tier = $this->assignTier($occupancy, $improvement);
             $imaging = $imagingByEncounter->get((int) $row->encounter_id);
             $lab = $labByEncounter->get((int) $row->encounter_id);
+            $medication = $medByEncounter->get((int) $row->encounter_id);
 
             $tiers[$tier][] = [
                 'patient' => [
@@ -135,7 +140,8 @@ class DischargePrioritiesService
                     'priority' => $tier,
                     'imaging' => $imaging,
                     'lab' => $lab,
-                    'readiness' => collect([$imaging, $lab])->filter()->values()->all(),
+                    'medication' => $medication,
+                    'readiness' => collect([$imaging, $lab, $medication])->filter()->values()->all(),
                 ],
                 'sort' => $ratio,
             ];

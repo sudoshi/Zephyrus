@@ -8,6 +8,7 @@ use App\Data\Ancillary\FreshnessEnvelope;
 use App\Data\Ancillary\ReadinessAxis;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Lab\LabFlowBoardService;
+use App\Services\Pharmacy\PharmacyDischargeReadinessService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -25,6 +26,7 @@ final class AncillaryReadinessService
     public function __construct(
         private readonly LabDecisionPendingService $labDecisions,
         private readonly LabFlowBoardService $labFlow,
+        private readonly PharmacyDischargeReadinessService $pharmacyDischarge,
     ) {}
 
     /** @param list<int> $encounterIds @return Collection<int, array<string, mixed>> */
@@ -87,6 +89,68 @@ final class AncillaryReadinessService
     public function laboratoryForEdVisits(array $edVisitIds, string $source = 'ed'): Collection
     {
         return $this->laboratoryAxes($edVisitIds, 'ed_disposition', $source);
+    }
+
+    /** @param list<int> $encounterIds @return Collection<int, array<string, mixed>> */
+    public function medicationForEncounters(array $encounterIds, string $source = 'rtdc'): Collection
+    {
+        $ids = $this->positiveIds($encounterIds);
+        if ($ids === []) {
+            return collect();
+        }
+
+        $source = in_array($source, self::DRILL_SOURCES, true) ? $source : 'ancillary_services';
+        $snapshot = $this->pharmacyDischarge->readinessSnapshot();
+        $freshness = $snapshot['freshness'];
+        /** @var Collection<int, array<string, mixed>> $byEncounter */
+        $byEncounter = $snapshot['byEncounter'];
+
+        return collect($ids)->mapWithKeys(function (int $scopeId) use ($byEncounter, $freshness, $source): array {
+            $aggregate = $byEncounter->get($scopeId);
+            // No discharge medication work for this encounter -> not applicable.
+            if ($aggregate === null) {
+                return [$scopeId => (new ReadinessAxis(
+                    key: 'medication',
+                    label: 'Medication',
+                    status: 'not_applicable',
+                    pendingCount: 0,
+                    oldestAgeMinutes: null,
+                    blocking: false,
+                    freshness: $freshness,
+                    drillTarget: null,
+                    explanation: 'No discharge medication is queued for this encounter; the medication axis is not applicable.',
+                ))->toArray()];
+            }
+
+            $pendingCount = (int) $aggregate['pendingCount'];
+            $blocking = (bool) $aggregate['blocking'];
+            $status = match (true) {
+                $freshness->status !== 'fresh', $aggregate['unknown'] => 'unknown',
+                $blocking => 'blocked',
+                default => 'ready',
+            };
+            $href = '/pharmacy?'.http_build_query(['lens' => 'discharge', 'source' => $source]);
+            $explanation = match (true) {
+                $freshness->status !== 'fresh' => 'Pharmacy discharge evidence is not current; medication readiness is unknown until a fresh source cutoff arrives.',
+                $aggregate['unknown'] => 'A discharge medication row reports an unknown pipeline state; medication readiness is unknown.',
+                $blocking => sprintf('%d discharge medication step(s) remain before this patient is medication-ready.', $pendingCount),
+                default => 'All discharge medications for this encounter are ready or delivered.',
+            };
+
+            return [$scopeId => (new ReadinessAxis(
+                key: 'medication',
+                label: 'Medication',
+                status: $status,
+                pendingCount: $pendingCount,
+                oldestAgeMinutes: $aggregate['oldestAgeMinutes'] === null ? null : (int) $aggregate['oldestAgeMinutes'],
+                blocking: $blocking,
+                freshness: $freshness,
+                drillTarget: $href,
+                topOrderUuid: $aggregate['topQueueUuid'],
+                drillHref: $href,
+                explanation: $explanation,
+            ))->toArray()];
+        });
     }
 
     private function openImagingOrders(): Builder

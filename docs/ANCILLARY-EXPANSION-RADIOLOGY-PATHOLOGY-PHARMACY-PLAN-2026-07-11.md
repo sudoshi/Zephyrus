@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-6 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-7 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 45 of 60 tasks complete; 15 remain |
+| Progress | 46 of 60 tasks complete; 14 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2035,25 +2035,28 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Empty/stale/degraded/error and barrier states are tested: PHPUnit covers no_data/stale/source_error/degraded, the audited barrier write with open-breach linking and pareto surfacing, RBAC redaction (patient refs withheld from frontline), filter validation 422s, and route-auth 401; vitest covers the rendered baseline, stale-tail unknown rendering, the governed drawer, provenance-preserving lenses, and the intentional empty contract.
 - [x] No pharmacist/user performance scoring appears: a recursive contract-key scan forbids user/staff/pharmacist/nurse/verifier/technician/employee/badge/performed_by/actor fragments across the entire payload, and `privacy.individualPerformanceIncluded` is asserted false (`rx_verifications.verifier_ref` never crosses the query boundary).
 
-#### [ ] X-7 — Implement Discharge Medication Readiness and complete the RTDC vector
+#### [x] X-7 — Implement Discharge Medication Readiness and complete the RTDC vector
 
 **Depends on:** L-11, X-5, X-6
 **Primary files:** PharmacyDischargeReadinessService; page/API; shared readiness; DischargePrioritiesService
 
 **Work:**
 
-- Build today’s planned discharges by status: not started, prior authorization pending, verification, filling/preparing, ready, delivered, unknown.
-- Calculate target-relative age and ready-by-target percentage with explicit cohort definition.
-- Add medication axis to RTDC readiness, making imaging + lab + medication complete.
-- Deep-link both directions between discharge candidates and filtered pharmacy work.
-- Treat PA pending as a workflow state/barrier, not a payer writeback.
+- [x] `PharmacyDischargeReadinessService` owns the whole surface server-side (§5.1): it builds today's planned discharges by the governed `rx_discharge_queue.pipeline_status` field (not started, prior authorization pending, verification, filling/preparing, ready, delivered, unknown) — never display text — with per-stage counts and oldest aging, and is deliberately self-contained (it recomputes the active non-ED inpatient discharge-candidate predicate itself rather than depending on `DischargePrioritiesService`, breaking the readiness→discharge→pharmacy cycle).
+- [x] Target-relative aging and ready-by-target compliance: each queue row exposes minutes relative to its `planned_discharge_at` target (negative ahead / positive overdue) and a server-computed `targetState` (on_track/overdue/met/late/unknown); the summary reports a `readyByTargetPercent` (rows that reached ready/delivered at or before their target ÷ cohort) that is null whenever the source is not fresh, with an explicit `cohortDefinition` string naming who counts and who is not-applicable.
+- [x] The shared medication axis is added to `AncillaryReadinessService::medicationForEncounters()`, batched and keyed by encounter, delegating to `PharmacyDischargeReadinessService::readinessSnapshot()` exactly as the lab axis delegates to `LabDecisionPendingService`; `DischargePrioritiesService::build()` now attaches `imaging` + `lab` + `medication` so the RTDC readiness vector is complete, and the existing `ReadinessVector` component renders the third axis (including `not_applicable`) with no frontend change.
+- [x] Bidirectional deep links: each discharge queue item drills to the filtered `/pharmacy?lens=discharge` work and back to `/rtdc/discharge-priorities`; the axis drill target is the same allowlisted `source`-tagged pharmacy discharge lens.
+- [x] Prior-authorization pending is a governed pipeline state that is barrier-annotatable through the existing `PharmacyBarrierService` seam and is NEVER a payer writeback; no source-system mutation exists anywhere in this service.
+- [x] `/pharmacy/discharge-meds` Inertia page (`PharmacyController::dischargeMeds`) + GET `/api/pharmacy/discharge-readiness` in the authenticated, throttled `api.pharmacy.` group; `Pages/Pharmacy/DischargeMeds.tsx` parses a strict Zod contract, refetches through TanStack Query every 60 s, keeps PageContentLayout as gutter owner with healthcare-* tokens + dark pairs and tabular-nums metrics, renders every target/pipeline status with icon + label (never color alone) from server-provided classes, and stays reduced-motion-safe and keyboard-navigable.
 
 **Acceptance:**
 
-- Pipeline transitions and target calculations are tested.
-- All three readiness axes render and reconcile to department services.
-- Candidate with no discharge medications is not-applicable rather than falsely ready/blocked.
-- Stale source is unknown/degraded.
+- [x] Pipeline transitions and target calculations are tested: the build payload proves all seven governed stages are present, stage counts sum to the queue-row total, `readyByTargetPercent` is a bounded integer when fresh, and a prior-auth-pending row surfaces as a blocking workflow state with a coherent target state.
+- [x] All three readiness axes render and reconcile to department services: the medication axis pending count for a blocking encounter equals `PharmacyDischargeReadinessService::readinessSnapshot()` and the underlying `rx_discharge_queue` blocking-row count, and the RTDC Discharge Priorities payload exposes `['imaging','lab','medication']` for a listed candidate (the L-11 two-axis reconciliation assertion was updated to the completed three-axis vector).
+- [x] A candidate with no discharge medications is `not_applicable` (never falsely ready or blocked) — proven against a real active non-ED inpatient encounter with no queue row.
+- [x] A stale source renders the axis `unknown` and the page `state` `stale` with a null `readyByTargetPercent`.
+- [x] Focused X-7 verification passes 6 PHPUnit tests (43 assertions) and 3 vitest tests; the RTDC/ED/discharge readiness integration suite passes 4 tests (57 assertions) after the three-axis update; the complete ancillary regression, `npx tsc --noEmit`, `npx vite build`, and `scripts/check-ui-canon.sh` all pass.
+- [x] No production connector, credential, source endpoint, scheduler, queue, migration, deployment, or external system is activated by X-7.
 
 #### [ ] X-8 — Implement IV Room and Batches at /pharmacy/iv-room
 

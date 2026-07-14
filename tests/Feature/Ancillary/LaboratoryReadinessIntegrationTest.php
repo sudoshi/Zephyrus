@@ -97,7 +97,9 @@ final class LaboratoryReadinessIntegrationTest extends TestCase
 
         $dischargePatient = $this->findPatient(app(DischargePrioritiesService::class)->build(), $encounterId);
         $this->assertSame($lab, $dischargePatient['lab']);
-        $this->assertSame(['imaging', 'lab'], array_column($dischargePatient['readiness'], 'key'));
+        // The RTDC vector now accretes the medication axis (X-7): imaging + lab + medication.
+        $this->assertSame(['imaging', 'lab', 'medication'], array_column($dischargePatient['readiness'], 'key'));
+        $this->assertContains($dischargePatient['medication']['status'], ['ready', 'pending', 'blocked', 'unknown', 'not_applicable']);
         $this->assertSame($imaging->order_uuid, $dischargePatient['imaging']['topOrderUuid']);
 
         $edAggregate = collect($pending['destinationAggregates'])->first(

@@ -1682,3 +1682,30 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. X-6 completes 45 of 60 implementation tasks. X-7 is next and will build Discharge Medication Readiness and complete the RTDC readiness vector.
+
+## 2026-07-13 — X-7 Implement Discharge Medication Readiness and complete the RTDC vector
+
+### Outcome
+
+The RTDC readiness vector is now complete: imaging + lab + medication. `PharmacyDischargeReadinessService` owns the discharge-medication surface entirely server-side (§5.1) — it builds today's planned discharges from the governed `rx_discharge_queue.pipeline_status` field (never display text), grouped through the seven governed stages (not_started, prior_auth_pending, verification, filling, ready, delivered, unknown) with per-stage counts and oldest aging. Each row exposes minutes relative to its `planned_discharge_at` target and a server-computed `targetState` (on_track/overdue/met/late/unknown), and the summary reports a `readyByTargetPercent` that is null whenever the source is not fresh, alongside an explicit `cohortDefinition` naming who counts and who is not-applicable. The service is deliberately self-contained — it recomputes the active non-ED inpatient discharge-candidate predicate itself rather than depending on `DischargePrioritiesService`, breaking the readiness→discharge→pharmacy dependency cycle.
+
+The shared medication axis lands in `AncillaryReadinessService::medicationForEncounters()`, batched and keyed by encounter, delegating to `PharmacyDischargeReadinessService::readinessSnapshot()` exactly as the lab axis delegates to `LabDecisionPendingService`. `DischargePrioritiesService::build()` now attaches all three axes so every listed candidate carries the full vector, and the existing `ReadinessVector` component renders the third axis — including the `not_applicable` state for a candidate with no discharge medication — with no frontend change. An encounter with no discharge-medication queue row resolves to `not_applicable` (never falsely ready or blocked); a stale source renders the axis `unknown` and the page `state` `stale` with a null compliance percentage. Prior-authorization pending is a governed pipeline state that is barrier-annotatable through the existing `PharmacyBarrierService` seam and is never a payer writeback.
+
+The `/pharmacy/discharge-meds` Inertia page and GET `/api/pharmacy/discharge-readiness` endpoint land in the same authenticated groups L-5 used; `Pages/Pharmacy/DischargeMeds.tsx` parses a strict Zod contract, refetches every 60 s through TanStack Query, keeps PageContentLayout as gutter owner with healthcare-* tokens and tabular-nums metrics, renders every target/pipeline status with icon + label (never color alone) from server-provided classes, and deep-links both directions between discharge candidates and the filtered `/pharmacy?lens=discharge` pharmacy work. The L-11 two-axis reconciliation assertion (`['imaging','lab']`) was updated to the completed three-axis vector — the expected shape change from accreting the medication axis.
+
+### Verification
+
+```text
+Laravel Pint over 7 dirty X-7 files: PASS
+Focused PharmacyDischargeReadinessTest: 6 tests, 43 assertions, PASS
+RTDC/ED/discharge readiness integration (--filter=LaboratoryReadinessIntegrationTest): 4 tests, 57 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 251 tests, 10,087 assertions, PASS
+npx tsc --noEmit: PASS
+npx vite build: PASS (existing Browserslist and large-chunk warnings only)
+Focused vitest (tests/js/pharmacy/DischargeMeds.test.tsx): 3 tests, PASS
+Full pharmacy + ancillary vitest (ReadinessSurfaces + tests/js/pharmacy): 12 tests, PASS
+scripts/check-ui-canon.sh: PASS (pre-existing arbitrary-line-height warnings only)
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. X-7 completes 46 of 60 implementation tasks. X-8 is next and will build the IV Room and Batches workspace at /pharmacy/iv-room.
