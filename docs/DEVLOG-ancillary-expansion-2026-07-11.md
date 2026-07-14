@@ -1709,3 +1709,29 @@ git diff --check: PASS
 ```
 
 No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. X-7 completes 46 of 60 implementation tasks. X-8 is next and will build the IV Room and Batches workspace at /pharmacy/iv-room.
+
+## 2026-07-13 — X-8 Implement IV Room and Batches at /pharmacy/iv-room
+
+### Outcome
+
+The IV Room and Batches workspace is live. `PharmacyIvRoomService` owns the whole surface server-side (§5.1): it reads `prod.rx_preps` — joined to `rx_orders`/`ancillary_orders`/`units` and filtered to the same current operational window X-6 uses — selecting operational fields only (batch identity, prep type/branch/state, and the measured `started_at`/`completed_at`/`checked_at`/`bud_expires_at` timestamps). No ingredient, diluent, additive, recipe, or dose field is ever read or exposed, and there is no pharmacist/technician/verifier or any user-level dimension anywhere in the contract. Preps group into current/next batches by `batch_ref` (unbatched preps group by prep type), each batch carrying prep/active counts, per-state counts, earliest start, latest compound, the soonest measured BUD, its policy-derived BUD state, and a `budCrossesDayBoundary` flag. The service also renders a chemo preparation timeline (chemo-type preps with stage progression from real timestamps) and an active-work queue (`pending`/`in_progress` preps, oldest-first) whose elapsed is measured from the first real timestamp and flagged `elapsedIsMeasured` — never a fabricated zero.
+
+Policy and configuration are a deliberately separate surface. A `policy` block (`kind: configuration`) declares the TPN daily production cutoff (configured local hour + timezone + the next enforceable cutoff instant relative to the app clock) and the BUD warning window (configured minutes), each with a description naming it a policy value, not an observed event. The BUD warning window is applied to the measured `bud_expires_at` to produce `within_window`/`expiring`/`expired`/`none` states. Every duration and BUD comparison binds the application clock in PHP (`CarbonImmutable::now()`), never PG `now()`, and freshness derives from the order-feed `source_cutoff_at`, never a prep timestamp (a prep can be hours old yet current from a fresh feed). Across-day-boundary handling is proven: at a 14:00Z anchor the 24 h TPN BUD lands on `2026-07-12T14:00Z` and is flagged `budCrossesDayBoundary`, while the next enforceable TPN cutoff is today at `18:00Z`; a sibling test folds an elapsed AM-batch BUD to `expired`.
+
+The IVWMS-absent degraded view mirrors X-6's degraded predicate exactly: iv_room orders with neither `rx_preps` rows nor an `RX_PREP_STARTED` milestone (the X-5 degraded branch — the seeded Cyclophosphamide order) get a coarse `RX_VERIFIED`→`RX_DISPENSED` interval and an explicit coverage statement that disclaims zero duration. No prep stages, batch identity, or BUD are fabricated, and the interval is null (never zero) when the verify anchor is missing. Waste measures link to `prod.adc_transactions` `waste` rows over an explicit 24 h window with an explicit denominator (vend transactions in the same station-scope window) and a `wastePerHundredVends` rate that is null when the denominator is zero; `windowStartAt`/`windowEndAt` and a unit/station-aggregate basis statement are declared. The `/pharmacy/iv-room` Inertia page and GET `/api/pharmacy/iv-room` endpoint land in the same authenticated, throttled groups X-6/X-7 used; `Pages/Pharmacy/IvRoom.tsx` parses a strict Zod contract (`iv-room-schemas.ts`), refetches every 45 s through TanStack Query, keeps PageContentLayout as gutter owner with healthcare-* tokens and tabular-nums metrics, visually separates the dashed policy panel from measured timing, and renders BUD state and IVWMS coverage with icon + label (never color alone) from server-provided state.
+
+### Verification
+
+```text
+Laravel Pint over 7 dirty X-8 files: PASS
+Focused PharmacyIvRoomTest: 8 tests, 81 assertions, PASS
+Full Pharmacy suite (--filter=Pharmacy): 52 tests, 6,911 assertions, PASS
+Complete ancillary feature regression (--filter=Ancillary): 259 tests, 10,174 assertions, PASS
+npx tsc --noEmit: PASS
+npx vite build: PASS (existing Browserslist and large-chunk warnings only)
+Focused vitest (tests/js/pharmacy/IvRoom.test.tsx): 4 tests, PASS
+scripts/check-ui-canon.sh: PASS (pre-existing arbitrary-line-height warnings only)
+git diff --check: PASS
+```
+
+No production database, connector, credential, scheduler, queue, deployment, or external system was accessed or activated; the new routes are authenticated web-session surfaces only. No clinical compounding recipe or actionable preparation instruction is read or exposed. X-8 completes 47 of 60 implementation tasks. X-9 is next and will build the Dispense and Delivery workspace at /pharmacy/dispense.

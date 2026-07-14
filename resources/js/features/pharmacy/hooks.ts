@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { pharmacyFlowBoardSchema, type PharmacyFlowBoard } from './schemas';
 import { pharmacyDischargeSchema, type PharmacyDischarge } from './discharge-schemas';
+import { pharmacyIvRoomSchema, type PharmacyIvRoom } from './iv-room-schemas';
 
 export function usePharmacyFlowBoard(initialData: PharmacyFlowBoard) {
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -20,5 +21,15 @@ export function usePharmacyDischargeReadiness(initialData: PharmacyDischarge) {
     queryKey: ['pharmacy-discharge-readiness', search], initialData,
     queryFn: async () => pharmacyDischargeSchema.parse((await axios.get(`/api/pharmacy/discharge-readiness${search}`)).data),
     refetchInterval: 60_000,
+  });
+}
+
+export function usePharmacyIvRoom(initialData: PharmacyIvRoom) {
+  const search = typeof window === 'undefined' ? '' : window.location.search;
+
+  return useQuery({
+    queryKey: ['pharmacy-iv-room', search], initialData,
+    queryFn: async () => pharmacyIvRoomSchema.parse((await axios.get(`/api/pharmacy/iv-room${search}`)).data),
+    refetchInterval: 45_000,
   });
 }

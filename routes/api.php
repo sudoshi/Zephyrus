@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
 use App\Http\Controllers\Api\Pharmacy\PharmacyDischargeReadinessController;
 use App\Http\Controllers\Api\Pharmacy\PharmacyFlowBoardController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyIvRoomController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\Radiology\RadiologyFlowBoardController;
 use App\Http\Controllers\Api\RoomController;
@@ -301,6 +302,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.la
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('pharmacy')->name('api.pharmacy.')->group(function () {
     Route::get('/flow-board', [PharmacyFlowBoardController::class, 'show'])->name('flow-board');
     Route::get('/discharge-readiness', [PharmacyDischargeReadinessController::class, 'show'])->name('discharge-readiness');
+    Route::get('/iv-room', [PharmacyIvRoomController::class, 'show'])->name('iv-room');
     Route::post('/barriers', [PharmacyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 

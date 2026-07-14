@@ -98,6 +98,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
             Route::get('/', [PharmacyController::class, 'index'])->name('flow-board');
             Route::get('/discharge-meds', [PharmacyController::class, 'dischargeMeds'])->name('discharge-meds');
+            Route::get('/iv-room', [PharmacyController::class, 'ivRoom'])->name('iv-room');
         });
 
         // Improvement Routes

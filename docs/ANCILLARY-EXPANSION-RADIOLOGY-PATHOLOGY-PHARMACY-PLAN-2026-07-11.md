@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-7 complete; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, and Pharmacy X-1 through X-8 complete; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 46 of 60 tasks complete; 14 remain |
+| Progress | 47 of 60 tasks complete; 13 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2058,24 +2058,27 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Focused X-7 verification passes 6 PHPUnit tests (43 assertions) and 3 vitest tests; the RTDC/ED/discharge readiness integration suite passes 4 tests (57 assertions) after the three-axis update; the complete ancillary regression, `npx tsc --noEmit`, `npx vite build`, and `scripts/check-ui-canon.sh` all pass.
 - [x] No production connector, credential, source endpoint, scheduler, queue, migration, deployment, or external system is activated by X-7.
 
-#### [ ] X-8 — Implement IV Room and Batches at /pharmacy/iv-room
+#### [x] X-8 — Implement IV Room and Batches at /pharmacy/iv-room
 
 **Depends on:** X-1, X-5, X-6
 **Primary files:** PharmacyIvRoomService; page/API
 
 **Work:**
 
-- Render current/next batches, BUD windows, TPN cutoff, chemo preparation timeline, active work, and waste measures.
-- Separate policy/configuration from measured timestamps.
-- Provide degraded verify-to-dispense view when IVWMS is absent.
-- Do not expose clinical compounding recipes or actionable preparation instructions.
+- [x] `PharmacyIvRoomService` owns the whole surface server-side (§5.1): it reads `prod.rx_preps` (joined to `rx_orders`/`ancillary_orders`/`units`, filtered to the same current operational window X-6 uses) selecting operational fields only — batch identity, prep type/branch/state, and the measured `started_at`/`completed_at`/`checked_at`/`cancelled_at`/`bud_expires_at` timestamps — never an ingredient, diluent, additive, recipe, or dose field. It groups preps into current/next batches by `batch_ref` (unbatched preps group by prep type), each batch carrying prep/active counts, per-state counts, earliest start, latest compound, the soonest measured BUD, its policy-derived BUD state, and a `budCrossesDayBoundary` flag; it renders a chemo preparation timeline (chemo-type preps with stage progression from real timestamps) and an active-work queue (`pending`/`in_progress` preps oldest-first) whose elapsed is measured from the first real timestamp and flagged `elapsedIsMeasured`, never a fabricated zero.
+- [x] Policy/configuration is a declared surface, structurally separate from measured timestamps: a `policy` block (`kind: configuration`) exposes the TPN daily production cutoff (configured local hour + timezone + the next enforceable cutoff instant relative to the app clock) and the BUD warning window (configured minutes), each with a description that names it a policy value, not an observed event. The BUD warning window is applied to the measured `bud_expires_at` to produce `within_window`/`expiring`/`expired`/`none` states; the app clock is bound into every duration/BUD comparison in PHP (`CarbonImmutable::now()`), never PG `now()`, and freshness derives from the order-feed `source_cutoff_at`, never a prep timestamp.
+- [x] Degraded IVWMS-absent view: iv_room orders with neither `rx_preps` rows nor an `RX_PREP_STARTED` milestone (the X-5 degraded branch, matching X-6's degraded predicate) get a coarse `RX_VERIFIED`→`RX_DISPENSED` interval and an explicit coverage statement; no prep stages, batch identity, or BUD are fabricated, and the interval is null (never zero) when the verify anchor is missing. A prep-type filter cannot match the prep-less degraded cohort, so it is correctly suppressed to zero under a filter.
+- [x] Waste measures link to `prod.adc_transactions` `waste` rows over an explicit 24 h window with an explicit denominator (vend transactions in the same station-scope window) and a `wastePerHundredVends` rate that is null when the denominator is zero; the block declares its `windowStartAt`/`windowEndAt` and a basis statement affirming unit/station aggregation with no user-level dimension. The privacy block affirms `compoundingRecipeIncluded`/`doseInstructionsIncluded`/`individualPerformanceIncluded` are all false.
+- [x] Page `/pharmacy/iv-room` (`PharmacyController::ivRoom`) + GET `/api/pharmacy/iv-room` (registered in the authenticated, throttled `api.pharmacy.` group beside X-6/X-7) return the §9 envelope (`data`, `filters`, `filterOptions`, `generatedAt`, `sourceCutoffAt`, `freshnessStatus`, `degradedMode`, `appliedSlaDefinitions` = `[]` since no §8 clock stops on a batch, plus the `policy` block). `Pages/Pharmacy/IvRoom.tsx` parses a strict Zod contract (`iv-room-schemas.ts`), refetches through TanStack Query every 45 s, keeps PageContentLayout as gutter owner with `healthcare-*` tokens + dark pairs and `tabular-nums` metrics, renders BUD state and IVWMS coverage with icon + label (never color alone) from server-provided state, visually separates the dashed policy panel from measured timing, and stays reduced-motion-safe and keyboard-navigable with distinct empty/degraded/stale states and a SourceFreshnessBadge.
 
 **Acceptance:**
 
-- DemoClock cutoff/BUD calculations pass across day boundaries.
-- Missing IVWMS removes unsupported stages and shows coverage.
-- Waste/batch metrics declare denominator and time range.
-- Accessibility and UI canon pass.
+- [x] DemoClock cutoff/BUD calculations pass across day boundaries: at a 14:00Z anchor the 24 h TPN BUD lands `2026-07-12T14:00Z` (a different calendar day, `budCrossesDayBoundary` true) and classifies `within_window`, while the next enforceable TPN cutoff is today at `18:00Z`; a sibling test moves an AM-batch BUD into the past and asserts it folds to `expired` with a non-positive minutes-remaining while the next-day TPN BUD stays `within_window`.
+- [x] Missing IVWMS removes unsupported stages and shows coverage: the single degraded iv_room order (Cyclophosphamide, verified→dispensed, no `rx_preps` rows) renders `coverage: partial` with a coarse verify-to-dispense interval > 0, carries no `stages` key, and its coverage statement names the coarse clock and disclaims zero duration; the order is confirmed to have zero `rx_preps` rows in the database.
+- [x] Waste/batch metrics declare denominator and time range: the waste block reports the seeded controlled-substance partial-waste event with an explicit vend denominator count > 0, a `wastePerHundredVends` float, `windowHours` = 24, and ordered `windowStartAt` < `windowEndAt` with the end equal to the app clock.
+- [x] Accessibility and UI canon pass: `scripts/check-ui-canon.sh` passes with no new violations from the page, and the vitest component test proves BUD state, IVWMS coverage, and the coarse-clock label all render with icon + label; a null waste rate renders as an em dash and an unmeasured prep renders "not measured" rather than a fabricated zero.
+- [x] Focused X-8 verification passes 8 PHPUnit tests (81 assertions) and 4 vitest tests; the full Pharmacy suite passes 52 tests (6,911 assertions), the complete ancillary regression passes 259 tests (10,174 assertions), and `npx tsc --noEmit`, `npx vite build`, and `scripts/check-ui-canon.sh` all pass.
+- [x] No production connector, credential, source endpoint, scheduler, queue, migration, deployment, or external system is activated by X-8; no clinical compounding recipe or actionable preparation instruction is read or exposed, and no individual/user-level dimension exists anywhere in the contract.
 
 #### [ ] X-9 — Implement Dispense and Delivery at /pharmacy/dispense
 
