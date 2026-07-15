@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import FlowBoard from '@/Pages/Pharmacy/FlowBoard';
 import { pharmacyFlowBoardSchema, type PharmacyFlowBoard } from '@/features/pharmacy/schemas';
+import { queueForecastFixture } from './forecastFixtures';
 
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
@@ -32,9 +33,10 @@ function board(overrides: Partial<PharmacyFlowBoard> = {}): PharmacyFlowBoard {
     freshnessStatus: 'fresh', degradedMode: true, state: 'degraded',
     stateMessage: 'Pharmacy coverage is partial; coarse clocks and cutoff-qualified administration facts remain visible without fabricated segments.',
     freshness: freshFeeds, administrationFreshness: batchTail,
-    filters: { lens: 'all', clockClass: null, branch: null, status: null, unitId: null, source: null },
+    filters: { lens: 'all', clockClass: null, branch: null, status: null, unitId: null, source: null, forecast: false },
     filterOptions: { lenses: ['all', 'stat', 'first_dose', 'sepsis', 'shortage', 'discharge', 'degraded'], clockClasses: ['stat', 'sepsis'], branches: ['adc', 'iv_room', 'central'], statuses: ['queued', 'verified'], units: [{ unitId: 1, label: 'ED' }] },
     appliedSlaDefinitions: [],
+    planningForecast: { requested: false, enabled: false, queue: null, explanation: 'Planning forecasts are off by default.' },
     data: {
       summary: { currentOrders: 24, openOrders: 21, statOrders: 3, statCompliant: 1, statCompliancePercent: 33.3, verificationQueueDepth: 3, openBreaches: 2, shortageOrders: 1, dischargeOrders: 2, controlledOrders: 1, degradedOrders: 1 },
       verificationQueue: {
@@ -156,6 +158,23 @@ describe('Medication Flow Board', () => {
     expect(screen.getByRole('link', { name: 'all' })).toHaveAttribute('href', '/pharmacy?unitId=1&source=cockpit');
     expect(screen.getByRole('link', { name: 'sepsis' })).toHaveAttribute('href', '/pharmacy?lens=sepsis&unitId=1&source=cockpit');
     expect(document.querySelector('input[name="source"]')).toHaveValue('cockpit');
+  });
+
+  it('keeps the synthetic planning forecast off by default and renders it only after opt-in', () => {
+    const hidden = renderBoard();
+    expect(screen.getByRole('link', { name: 'Show planning forecast' })).toHaveAttribute('href', '/pharmacy?forecast=1');
+    expect(screen.queryByRole('heading', { name: /Synthetic planning forecast · verification queue/ })).not.toBeInTheDocument();
+    hidden.unmount();
+
+    const value = board();
+    renderBoard(board({
+      filters: { ...value.filters, forecast: true },
+      planningForecast: { requested: true, enabled: true, queue: queueForecastFixture(), explanation: 'Synthetic planning forecast requested.' },
+    }));
+    expect(screen.getByRole('heading', { name: /Synthetic planning forecast · verification queue/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Hide planning forecast' })).toHaveAttribute('href', '/pharmacy');
+    expect(screen.getByText(/Both are lower than the hour-of-week and last-value baselines: yes/)).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Synthetic hourly verification queue-depth projection' })).toBeInTheDocument();
   });
 
   it('renders the intentional empty contract without invented operational rows', () => {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { sourceFreshnessSchema } from '@/Components/Ancillary/schemas';
+import { pharmacyStockoutForecastSchema } from './forecast-schemas';
 
 const iso = z.string().datetime({ offset: true });
 const nullableIso = iso.nullable();
@@ -98,7 +99,7 @@ export const pharmacyDispenseSchema = z.object({
   state: z.enum(['normal', 'stale', 'degraded', 'no_data']),
   stateMessage: z.string().min(1),
   freshness: sourceFreshnessSchema,
-  filters: z.object({ stationType: z.string().nullable() }).strict(),
+  filters: z.object({ stationType: z.string().nullable(), forecast: z.boolean() }).strict(),
   filterOptions: z.object({ stationType: z.array(z.string()) }).strict(),
   appliedSlaDefinitions: z.array(z.unknown()),
   policy: z.object({
@@ -110,6 +111,12 @@ export const pharmacyDispenseSchema = z.object({
     hours: z.number().int().positive(),
     startAt: iso,
     endAt: iso,
+  }).strict(),
+  planningForecast: z.object({
+    requested: z.boolean(),
+    enabled: z.boolean(),
+    stockout: pharmacyStockoutForecastSchema.nullable(),
+    explanation: z.string().min(1),
   }).strict(),
   data: z.object({
     summary: z.object({

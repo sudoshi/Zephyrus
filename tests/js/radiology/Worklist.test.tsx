@@ -19,9 +19,9 @@ const final = { code: 'RAD_FINAL', label: 'Final report', state: 'current' as co
 function payload(overrides: Partial<RadiologyWorklist> = {}): RadiologyWorklist {
   return radiologyWorklistSchema.parse({
     generatedAt: '2026-07-11T14:00:00+00:00', freshness,
-    filters: { lens: 'discharge', priority: null, modality: null, unitId: null, state: null, sort: 'oldest', search: null, source: 'rtdc', perPage: 1, cursor: null },
+    filters: { lens: 'discharge', priority: null, modality: null, unitId: null, state: null, sort: 'oldest', search: null, source: 'rtdc', risk: false, perPage: 1, cursor: null },
     filterOptions: { lenses: ['all', 'ed', 'inpatient', 'discharge', 'degraded'], priorities: ['routine'], modalities: [{ code: 'CT', label: 'Computed tomography' }], units: [], sorts: ['oldest', 'newest', 'priority', 'breach_risk'], deepLinkSources: ['flow_board', 'rtdc'] },
-    predictiveSort: { available: true, enabled: false, explanation: 'Predictive scoring remains disabled until P4-1.' },
+    predictiveSort: { available: true, enabled: false, requested: false, explanation: 'Predictive scoring is available as an opt-in planning aid.', model: null },
     data: [{
       orderId: 1, orderUuid: '11111111-1111-4111-8111-111111111111', label: 'Discharge-pending chest CT', patientRef: 'demo-patient', patientClass: 'inpatient', priority: 'routine', modality: 'CT', locationLabel: '5 East', ageMinutes: 120, status: 'breach', currentState: 'final',
       downstreamImpact: { edDecision: false, dischargeBlocking: true, orCaseId: null },
@@ -32,6 +32,7 @@ function payload(overrides: Partial<RadiologyWorklist> = {}): RadiologyWorklist 
         { milestoneUuid: '33333333-3333-4333-8333-333333333333', code: 'RAD_FINAL', occurredAt: '2026-07-11T12:58:00+00:00', receivedAt: '2026-07-11T13:02:00+00:00', sourceKey: 'demo.ris', sourceRank: 2, selected: false },
       ],
       transportSegment: [transport],
+      risk: null,
       timeline: { orderUuid: '11111111-1111-4111-8111-111111111111', label: 'Discharge-pending chest CT', milestones: [ordered, transport, final], clock: { metricKey: 'rad.ed_image_final', label: 'ED images available to final', state: 'complete', startMilestoneCode: 'RAD_IMAGES_AVAILABLE', stopMilestoneCode: 'RAD_FINAL', startedAt: '2026-07-11T12:40:00+00:00', stoppedAt: '2026-07-11T13:00:00+00:00', elapsedMinutes: 20, warningMinutes: 30, breachMinutes: 60, definitionUuid: '44444444-4444-4444-8444-444444444444' }, freshness, degradedMode: false, degradedExplanation: null },
     }],
     privacy: { patientContextIncluded: true, identifierPolicy: 'Authorized pseudonymous patient context.' },

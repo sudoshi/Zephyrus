@@ -40,6 +40,7 @@ final class PharmacyFlowBoardService
     public function __construct(
         private readonly AncillaryContractSerializer $contracts,
         private readonly PharmacyAdministrationFreshnessService $administrationFreshness,
+        private readonly PharmacyForecastService $forecasts,
     ) {}
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
@@ -66,6 +67,14 @@ final class PharmacyFlowBoardService
             'filters' => $filters,
             'filterOptions' => $this->filterOptions(),
             'appliedSlaDefinitions' => $definitions->map(fn (AncillarySlaDefinition $definition): array => $this->contracts->slaDefinition($definition))->values()->all(),
+            'planningForecast' => [
+                'requested' => $filters['forecast'],
+                'enabled' => $filters['forecast'],
+                'queue' => $filters['forecast'] ? $this->forecasts->queueForecast() : null,
+                'explanation' => $filters['forecast']
+                    ? 'Synthetic planning forecast requested. It is isolated from observed queue state and governed SLA evaluation.'
+                    : 'Planning forecasts are off by default. Add forecast=1 to request the separate synthetic queue projection.',
+            ],
             'data' => [
                 'summary' => $summary,
                 'verificationQueue' => $this->verificationQueue($ids),
@@ -260,8 +269,9 @@ final class PharmacyFlowBoardService
         $status = is_string($input['status'] ?? null) && in_array($input['status'], self::STATUSES, true) ? $input['status'] : null;
         $unitId = filter_var($input['unitId'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $source = is_string($input['source'] ?? null) && in_array($input['source'], self::DRILL_SOURCES, true) ? $input['source'] : null;
+        $forecast = filter_var($input['forecast'] ?? false, FILTER_VALIDATE_BOOL);
 
-        return ['lens' => $lens, 'clockClass' => $clockClass, 'branch' => $branch, 'status' => $status, 'unitId' => $unitId === false ? null : $unitId, 'source' => $source];
+        return ['lens' => $lens, 'clockClass' => $clockClass, 'branch' => $branch, 'status' => $status, 'unitId' => $unitId === false ? null : $unitId, 'source' => $source, 'forecast' => $forecast];
     }
 
     /** @return array<string, mixed> */

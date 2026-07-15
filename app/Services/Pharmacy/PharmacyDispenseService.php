@@ -52,6 +52,7 @@ final class PharmacyDispenseService
     public function __construct(
         private readonly AncillaryContractSerializer $contracts,
         private readonly AdcStationSignalService $signals,
+        private readonly PharmacyForecastService $forecasts,
     ) {}
 
     /**
@@ -95,6 +96,14 @@ final class PharmacyDispenseService
                 'startAt' => $windowStart->toAtomString(),
                 'endAt' => $now->toAtomString(),
             ],
+            'planningForecast' => [
+                'requested' => $filters['forecast'],
+                'enabled' => $filters['forecast'],
+                'stockout' => $filters['forecast'] ? $this->forecasts->stockoutForecast($now, $filters['stationType']) : null,
+                'explanation' => $filters['forecast']
+                    ? 'Synthetic planning forecast requested. It is isolated from observed stockouts, station rollups, and policy rates.'
+                    : 'Planning forecasts are off by default. Add forecast=1 to request the separate station-medication stockout projection.',
+            ],
             'data' => [
                 'summary' => $this->summary($stations, $now),
                 'stations' => $stations,
@@ -122,8 +131,9 @@ final class PharmacyDispenseService
     private function filters(array $input): array
     {
         $stationType = is_string($input['stationType'] ?? null) && $input['stationType'] !== '' ? $input['stationType'] : null;
+        $forecast = filter_var($input['forecast'] ?? false, FILTER_VALIDATE_BOOL);
 
-        return ['stationType' => $stationType];
+        return ['stationType' => $stationType, 'forecast' => $forecast];
     }
 
     /**

@@ -1995,3 +1995,42 @@ git diff --check: PASS
 ```
 
 No production deployment, production database, connector, credential, source endpoint, scheduler, queue, feature switch, clinical action, writeback, or external system was accessed or activated. The model is trained and calibrated ONLY on synthetic demo history and is labelled synthetic everywhere it surfaces; it is a planning aid, never an alarm or clinical recommendation, and it never converts an observed blocked readiness axis to ready — observed and predicted readiness are separate fields end to end. No individual, user, staff, or protected-attribute feature is used — only operational load and configuration state, with `patient_class` the single admitted patient descriptor. P4-2 completes 55 of 60 implementation tasks; 5 remain. P4-3 (Pharmacy queue and stockout forecasts) is next and reuses this feature-schema → observation → calibrated-model → artifact → opt-in-surface pattern.
+
+
+## 2026-07-15 — P4-3 Pharmacy Queue and Stockout Forecasts
+
+### Outcome
+
+Extended the Phase 4 predictive layer to Pharmacy with two separate calibrated **planning forecasts**: an eight-hour verification-queue depth series and a six-hour station/medication stockout-pressure estimate. Both are server-computed, synthetic, non-clinical, and opt-in (`forecast=1`, off by default). They live under a separate `planningForecast` contract and never replace or mutate observed queue depth, SLA state, Flow state, station rates, shortage/open-stockout facts, Cockpit state, readiness axes, alerts, or default operational sorting.
+
+The targets are deliberately distinct in the committed `config/pharmacy/forecast_model.json` artifact. The queue target forecasts hourly open verification depth from the current observed depth, hour-of-week arrival/completion history, recent net trend, and demand whose `due_at` was already known, clamping negative depth and publishing an uncertainty interval. The deterministic 42-day backtest uses a strictly later 30% evaluation window and reports MAE 0.2373, RMSE 0.2916, and WAPE 0.001; it beats both the declared hour-of-week baseline (MAE 1.1305 / RMSE 1.3379) and last-value baseline (MAE 1.2886 / RMSE 1.5713).
+
+The stockout target estimates whether a station/medication position reaches zero within six hours, but only when the optional `adc_stations.metadata.inventory` snapshot supplies structurally valid on-hand, par, and cutoff evidence. Its frozen ten-feature schema is station/medication operational state only: on-hand/par pressure, vend/refill velocity and cadence, shortage/station state, time context, and interactions. A current open stockout is handled before the model and remains an observed fact—not a predictive feature. The deterministic 900-row time-split calibrated logistic backtest reports AUC 0.8978, Brier 0.0762, and calibration error 0.037, beating the base-rate Brier 0.14/AUC 0.5 baseline. `pharmacy:build-forecast-model` refuses publication unless the queue beats both baselines and stockout beats its baseline.
+
+Inventory honesty is enforced end to end. A current valid snapshot yields probability, text band, factors, horizon, cutoff, and station/medication identity; a tolerably stale snapshot is explicitly `low_confidence`; missing, invalid, or unusably stale inventory yields null probability/band plus separately named velocity-pressure context; and a current open stockout remains `observed` with no model probability. Medication terminology status is retained and an unknown local code is never inferred to be mapped. Deterministic demo inventory covers current, observed-stockout, stale, and velocity-only states.
+
+`PharmacyForecastService` is the sole scoring authority. Strict Zod contracts and the Flow Board/Dispense React panels only validate and render. Both pages provide a clearly labeled synthetic planning section, model/calibration/evaluation provenance, semantic tables, icon-plus-text state labels, responsive containment, and keyboard-focusable off-by-default controls. Desktop/light and mobile/dark Chromium smoke passed with no console or page errors.
+
+The broad release gate caught and repaired two contract defects. Carbon's fractional-hour result initially crossed the queue contract as a float and blanked the strict frontend panel; the service now emits floored whole `historyHours` and the feature suite asserts the integer boundary. The complete Vitest run also found a stale P4-1 Radiology Worklist fixture missing the strict risk opt-in fields; the fixture now represents the off-by-default contract and the full frontend suite is green.
+
+The explicit feature denylist and structural/source/payload tests prove no user, staff, pharmacist, technician, nurse, verifier, badge, actor, diagnosis, result, protected attribute, controlled-diversion score, or ranking score enters the model or browser contract. Station/medication aggregates are the only forecast grain.
+
+### Verification
+
+```text
+Laravel Pint: PASS (16 changed PHP files)
+PharmacyForecastModelTest + PharmacyForecastTest: 14 passed, 395 assertions
+Affected Pharmacy/Cockpit/demo regression: 29 passed, 69,868 assertions
+Full Pharmacy regression (--filter=Pharmacy): 115 passed, 72,144 assertions, PASS (967.74 s)
+Full Ancillary regression (--filter=Ancillary): 325 passed, 75,492 assertions, PASS (1,036.53 s)
+pharmacy:build-forecast-model: queue MAE 0.2373 / RMSE 0.2916 (beats hour-of-week and last-value: yes); stockout AUC 0.8978 / Brier 0.0762 (beats base rate: yes)
+Deterministic demo refresh: 50 invariants, 0 critical failures, 0 warnings, cockpit published
+Full Vitest: 113 files, 470 tests, PASS
+Pharmacy forecast Playwright smoke: 2 tests, PASS
+npx tsc --noEmit: PASS
+npm run build: PASS (7,914 modules, 44.16 s; existing Browserslist/large-chunk warnings only)
+scripts/check-ui-canon.sh: PASS (104 pre-existing arbitrary-line-height warnings in untouched Transport pages only; raw-palette ratchet ≤ 76)
+git diff --check: PASS
+```
+
+The durable evidence record is `docs/evidence/ancillary/pharmacy-p4-3-2026-07-15/README.md`. No production deployment, production database, connector, credential, source endpoint, scheduler, queue worker, alert, clinical action, writeback, or external system was accessed or activated. P4-3 completes 56 of 60 implementation tasks; 4 remain. P4-4 (Radiology follow-up recommendation tracking) is next.

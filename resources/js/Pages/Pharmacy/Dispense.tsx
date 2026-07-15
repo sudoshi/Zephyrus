@@ -5,6 +5,7 @@ import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { SourceFreshnessBadge } from '@/Components/Ancillary';
 import { usePharmacyDispense } from '@/features/pharmacy/hooks';
 import { pharmacyDispenseSchema, type PharmacyDispense, type PharmacyDispenseRateStatus, type PharmacyDispenseStation } from '@/features/pharmacy/dispense-schemas';
+import { StockoutForecastPanel } from './ForecastPanels';
 
 const STATE_STYLE = {
   normal: 'border-healthcare-success/40 bg-healthcare-success/10 text-healthcare-success dark:text-healthcare-success-dark',
@@ -21,11 +22,16 @@ const RATE_META = {
   over_target: { label: 'Over target', Icon: AlertTriangle, className: 'text-healthcare-critical dark:text-healthcare-critical-dark' },
 } as const;
 
-function stationTypeHref(stationType: string | null) {
+function stationTypeHref(stationType: string | null, forecast: boolean) {
   const query = new URLSearchParams();
   if (stationType) query.set('stationType', stationType);
+  if (forecast) query.set('forecast', '1');
   const suffix = query.toString();
   return suffix ? `/pharmacy/dispense?${suffix}` : '/pharmacy/dispense';
+}
+
+function forecastHref(board: PharmacyDispense) {
+  return stationTypeHref(board.filters.stationType, !board.filters.forecast);
 }
 
 const stamp = (value: string | null) => value === null ? '—' : new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -109,10 +115,15 @@ export default function Dispense({ dispense }: { dispense: PharmacyDispense }) {
         </dl>
       </section>
 
-      <nav aria-label="Station type" className="flex flex-wrap gap-2">
-        <Link href={stationTypeHref(null)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.stationType === null ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>All stations</Link>
-        {board.filterOptions.stationType.map((type) => <Link key={type} href={stationTypeHref(board.filters.stationType === type ? null : type)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.stationType === type ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{type.replaceAll('_', ' ')}</Link>)}
-      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="Station type" className="flex flex-wrap gap-2">
+          <Link href={stationTypeHref(null, board.filters.forecast)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.stationType === null ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>All stations</Link>
+          {board.filterOptions.stationType.map((type) => <Link key={type} href={stationTypeHref(board.filters.stationType === type ? null : type, board.filters.forecast)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.stationType === type ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{type.replaceAll('_', ' ')}</Link>)}
+        </nav>
+        <Link href={forecastHref(board)} preserveState aria-pressed={board.filters.forecast} className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.forecast ? 'border-healthcare-info bg-healthcare-info text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{board.filters.forecast ? 'Hide planning forecast' : 'Show planning forecast'}</Link>
+      </div>
+
+      {board.planningForecast.requested && board.planningForecast.stockout ? <StockoutForecastPanel forecast={board.planningForecast.stockout} /> : null}
 
       <section className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <div className="flex items-center justify-between"><h2 className="font-semibold">Station rollup</h2><span className="text-sm tabular-nums">{board.data.stations.length} stations</span></div>

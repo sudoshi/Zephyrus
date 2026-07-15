@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import Dispense from '@/Pages/Pharmacy/Dispense';
 import { pharmacyDispenseSchema, type PharmacyDispense } from '@/features/pharmacy/dispense-schemas';
+import { stockoutForecastFixture } from './forecastFixtures';
 
 vi.mock('@inertiajs/react', () => ({
   Head: () => null,
@@ -30,7 +31,7 @@ function payload(overrides: Partial<PharmacyDispense> = {}): PharmacyDispense {
     generatedAt: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:35:00+00:00',
     freshnessStatus: 'fresh', degradedMode: false, state: 'normal', stateMessage: 'Dispense and delivery facts are current.',
     freshness: freshFeeds,
-    filters: { stationType: null },
+    filters: { stationType: null, forecast: false },
     filterOptions: { stationType: ['emergency', 'general'] },
     appliedSlaDefinitions: [],
     policy: {
@@ -39,6 +40,7 @@ function payload(overrides: Partial<PharmacyDispense> = {}): PharmacyDispense {
       stockoutTargetRate: { label: 'Stockout rate target', ratePercent: 2, denominatorLabel: 'ADC vend transactions in the window', description: 'Locally configured maximum stockout rate. Policy reference line, not an observed event.' },
     },
     window: { hours: 24, startAt: '2026-07-10T14:00:00+00:00', endAt: '2026-07-11T14:00:00+00:00' },
+    planningForecast: { requested: false, enabled: false, stockout: null, explanation: 'Planning forecasts are off by default.' },
     data: {
       summary: { stationsReporting: 3, stationsWithDenominator: 2, stationsWithoutDenominator: 1, totalVends: 6, totalOverrides: 1, totalStockouts: 1, overrideRatePercent: 16.7, stockoutRatePercent: 16.7, stationsOverOverrideTarget: 2, stationsWithActiveStockout: 1 },
       stations: [
@@ -148,5 +150,27 @@ describe('Dispense and Delivery', () => {
     }));
     expect(screen.getByText(/No automated dispensing cabinet transactions/)).toBeInTheDocument();
     expect(screen.getByText('No stations reported transactions in the current window.')).toBeInTheDocument();
+  });
+
+  it('keeps stockout forecasting opt-in and visibly separates observed, forecast, stale, and velocity-only states', () => {
+    const hidden = renderPage();
+    expect(screen.getByRole('link', { name: 'Show planning forecast' })).toHaveAttribute('href', '/pharmacy/dispense?forecast=1');
+    expect(screen.queryByRole('heading', { name: /Synthetic planning forecast · stockout pressure/ })).not.toBeInTheDocument();
+    hidden.unmount();
+
+    const value = payload();
+    renderPage(payload({
+      filters: { ...value.filters, forecast: true },
+      planningForecast: { requested: true, enabled: true, stockout: stockoutForecastFixture(), explanation: 'Synthetic planning forecast requested.' },
+    }));
+
+    expect(screen.getByRole('heading', { name: /Synthetic planning forecast · stockout pressure/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Hide planning forecast' })).toHaveAttribute('href', '/pharmacy/dispense');
+    expect(screen.getByText('Observed stockout')).toBeInTheDocument();
+    expect(screen.getByText('Forecast available')).toBeInTheDocument();
+    expect(screen.getByText('Low confidence')).toBeInTheDocument();
+    expect(screen.getByText('Velocity only')).toBeInTheDocument();
+    expect(screen.getAllByText('No probability band')).toHaveLength(2);
+    expect(screen.getByText(/Brier 0.0762 versus base-rate 0.14/)).toBeInTheDocument();
   });
 });

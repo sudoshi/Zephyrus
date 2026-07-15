@@ -6,6 +6,7 @@ import { SourceFreshnessBadge } from '@/Components/Ancillary';
 import { usePharmacyFlowBoard } from '@/features/pharmacy/hooks';
 import { pharmacyFlowBoardSchema, type PharmacyFlowBoard, type PharmacySepsisTimer } from '@/features/pharmacy/schemas';
 import BarrierAnnotationDrawer from './BarrierAnnotationDrawer';
+import { QueueForecastPanel } from './ForecastPanels';
 
 const STATE_STYLE = {
   normal: 'border-healthcare-success/40 bg-healthcare-success/10 text-healthcare-success dark:text-healthcare-success-dark',
@@ -45,6 +46,20 @@ function lensHref(board: PharmacyFlowBoard, lens: string) {
   if (board.filters.status) query.set('status', board.filters.status);
   if (board.filters.unitId) query.set('unitId', String(board.filters.unitId));
   if (board.filters.source) query.set('source', board.filters.source);
+  if (board.filters.forecast) query.set('forecast', '1');
+  const suffix = query.toString();
+  return suffix ? `/pharmacy?${suffix}` : '/pharmacy';
+}
+
+function forecastHref(board: PharmacyFlowBoard) {
+  const query = new URLSearchParams();
+  if (board.filters.lens !== 'all') query.set('lens', board.filters.lens);
+  if (board.filters.clockClass) query.set('clockClass', board.filters.clockClass);
+  if (board.filters.branch) query.set('branch', board.filters.branch);
+  if (board.filters.status) query.set('status', board.filters.status);
+  if (board.filters.unitId) query.set('unitId', String(board.filters.unitId));
+  if (board.filters.source) query.set('source', board.filters.source);
+  if (!board.filters.forecast) query.set('forecast', '1');
   const suffix = query.toString();
   return suffix ? `/pharmacy?${suffix}` : '/pharmacy';
 }
@@ -99,10 +114,14 @@ export default function FlowBoard({ flowBoard }: { flowBoard: PharmacyFlowBoard 
   return <DashboardLayout><Head title="Medication Flow Board" /><PageContentLayout title="Medication Flow Board" subtitle="Verification queue, governed medication clocks, preparation branches, and the cutoff-qualified administration tail from governed operational facts" headerContent={<SourceFreshnessBadge value={board.freshness} />}>
     <div className="space-y-4">
       <div role="status" className={`flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm ${STATE_STYLE[board.state]}`}><span>{board.stateMessage}</span><span className="tabular-nums">Generated {new Date(board.generatedAt).toLocaleTimeString()}</span></div>
-      <nav aria-label="Pharmacy lenses" className="flex flex-wrap gap-2">{board.filterOptions.lenses.map((lens) => <Link key={lens} href={lensHref(board, lens)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium ${board.filters.lens === lens ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{lens.replaceAll('_', ' ')}</Link>)}</nav>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="Pharmacy lenses" className="flex flex-wrap gap-2">{board.filterOptions.lenses.map((lens) => <Link key={lens} href={lensHref(board, lens)} preserveState className={`rounded-md border px-3 py-1.5 text-sm font-medium ${board.filters.lens === lens ? 'border-healthcare-primary bg-healthcare-primary text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{lens.replaceAll('_', ' ')}</Link>)}</nav>
+        <Link href={forecastHref(board)} preserveState aria-pressed={board.filters.forecast} className={`rounded-md border px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-healthcare-info ${board.filters.forecast ? 'border-healthcare-info bg-healthcare-info text-white' : 'border-healthcare-border dark:border-healthcare-border-dark'}`}>{board.filters.forecast ? 'Hide planning forecast' : 'Show planning forecast'}</Link>
+      </div>
       <form method="get" action="/pharmacy" aria-label="Pharmacy filters" className="grid gap-3 rounded-lg border border-healthcare-border bg-healthcare-surface p-4 sm:grid-cols-2 xl:grid-cols-5 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
         <input type="hidden" name="lens" value={board.filters.lens} />
         {board.filters.source ? <input type="hidden" name="source" value={board.filters.source} /> : null}
+        {board.filters.forecast ? <input type="hidden" name="forecast" value="1" /> : null}
         <label className="text-sm">Priority clock<select name="clockClass" defaultValue={board.filters.clockClass ?? ''} className="mt-1 block w-full rounded-md"><option value="">All clock classes</option>{board.filterOptions.clockClasses.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></label>
         <label className="text-sm">Preparation branch<select name="branch" defaultValue={board.filters.branch ?? ''} className="mt-1 block w-full rounded-md"><option value="">All branches</option>{board.filterOptions.branches.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></label>
         <label className="text-sm">Status<select name="status" defaultValue={board.filters.status ?? ''} className="mt-1 block w-full rounded-md"><option value="">All statuses</option>{board.filterOptions.statuses.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></label>
@@ -110,6 +129,7 @@ export default function FlowBoard({ flowBoard }: { flowBoard: PharmacyFlowBoard 
         <div className="flex items-end"><button type="submit" className="w-full rounded-md bg-healthcare-primary px-3 py-2 text-sm font-semibold text-white">Apply filters</button></div>
       </form>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{cards.map(({ label, value, Icon }) => <section key={label} className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark"><div className="flex items-center justify-between"><p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{label}</p><Icon className="size-4 text-healthcare-primary" aria-hidden="true" /></div><p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p></section>)}</div>
+      {board.planningForecast.requested && board.planningForecast.queue ? <QueueForecastPanel forecast={board.planningForecast.queue} /> : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-lg border border-healthcare-border bg-healthcare-surface p-4 dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">

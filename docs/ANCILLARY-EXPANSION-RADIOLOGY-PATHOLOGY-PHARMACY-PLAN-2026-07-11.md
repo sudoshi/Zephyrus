@@ -4,11 +4,11 @@
 | --- | --- |
 | Document ID | ACUM-ENG-ANC-001-IMPL |
 | Date | 2026-07-11 |
-| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, Pharmacy X-1 through X-14 (Pharmacy phase complete), and predictive P4-1 (calibrated Radiology breach-risk sorting) and P4-2 (Lab AM-readiness forecasting) done; production connector activation remains governance-gated |
+| Status | Implementation in progress; shared P0, Radiology R-1 through R-15, Laboratory L-1 through L-14, Pharmacy X-1 through X-14 (Pharmacy phase complete), and predictive P4-1 (calibrated Radiology breach-risk sorting), P4-2 (Lab AM-readiness forecasting), and P4-3 (Pharmacy queue and stockout forecasts) done; production connector activation remains governance-gated |
 | Source brief | docs/Zephyrus_Ancillary_Expansion_Plan.pdf, 37 pages |
 | Scope | Shared ancillary milestone spine, Radiology, Pathology and Laboratory, Inpatient Pharmacy, cross-module readiness, Cockpit, Study analytics, process intelligence, demo data, integration, validation, and release |
 | Backlog size | 60 dependency-ordered implementation tasks: 10 shared, 15 Radiology, 14 Lab, 14 Pharmacy, 7 predictive and polish |
-| Progress | 55 of 60 tasks complete; 5 remain |
+| Progress | 56 of 60 tasks complete; 4 remain |
 | Primary outcome | **Where is the order stuck, whose patient is it blocking, and what barrier clears it?** |
 
 ---
@@ -2271,23 +2271,48 @@ Each task below includes scope, concrete seams, dependencies, and acceptance. A 
 - [x] Observed and predicted readiness are visually/semantically distinct: a feature test asserts the observed `sla`/`ranking`/`destination`/`currentStage` of every ranked row is byte-identical whether or not the forecast is requested, and the forecast is a separate `amReadiness` structure (`kind: 'forecast'`, no `urgency` key). The huddle keeps the roster (observed) and the forecast aggregate as distinct top-level keys — the forecast never appears inside a patient row. On the page the forecast is a labeled synthetic planning cell/card, not an SLA badge.
 - [x] No forecast converts an observed blocked axis to ready: an explicit test takes the demo discharge-gate encounter (observed lab axis = `blocked`/`blocking`), computes the (potentially high) opt-in forecast, and asserts the observed axis is UNCHANGED (`blocked`, same pending count) after the forecast ran. Missing/stale features degrade honestly — a feature test deletes all results and asserts every forecast is `unavailable` (null probability/band, non-empty missing signals), never a fabricated number.
 
-#### [ ] P4-3 — Add Pharmacy queue and stockout forecasts
+#### [x] P4-3 — Add Pharmacy queue and stockout forecasts
 
 **Depends on:** X-14
-**Primary files:** PharmacyForecastService; Flow/Dispense pages
+**Primary files:** `app/Services/Pharmacy/Forecast/*`; `app/Services/Pharmacy/PharmacyForecastService.php`; `config/pharmacy/forecast_model.json`; `app/Console/Commands/PharmacyBuildForecastModel.php`; Pharmacy Flow/Dispense services, requests, schemas, pages, demo, and tests
 
 **Work:**
 
-- Forecast queue depth by hour/day from time series and known scheduled demand.
-- Forecast station-level stockout risk from dispense velocity, par/on-hand when available, refill cadence, and shortage flag.
-- Avoid claiming stockout prediction when inventory/on-hand is absent; provide velocity pressure instead.
-- Surface as planning series/sort, not alarms.
+- [x] Declare both prediction targets before calibration: hourly open verification-queue depth across a bounded eight-hour planning horizon, and the probability that a station-medication inventory position reaches zero within six hours.
+- [x] Keep the two targets, horizons, denominators, cutoffs, evaluation metrics, and baselines distinct in the committed model artifact and every browser contract; never present one composite “Pharmacy risk” score.
+- [x] Define the queue observation at each hourly cutoff from verification arrivals minus verified/removed exits, using only evidence available at that cutoff; future scheduled demand may enter only from medication orders whose `due_at` was already known.
+- [x] Forecast queue depth from the current open depth, historical hour-of-week arrival and completion rates, recent trend, and explicitly scheduled due demand; clamp impossible negative depth and publish an uncertainty interval for every horizon point.
+- [x] Compare the queue model against both declared baselines on a strictly later evaluation window: seasonal hour-of-week expectation and persistence/last-value depth; report MAE, RMSE, WAPE, coverage, and the exact winner rule.
+- [x] Define an optional station inventory snapshot contract in `adc_stations.metadata.inventory` keyed by governed local medication code with `on_hand`, `par_level`, `captured_at`, and optional refill-cadence evidence; reject invalid, negative, future, or structurally incomplete entries.
+- [x] Freeze a station/medication-only stockout feature schema using on-hand/par ratio, recent vend velocity, recent refill quantity/cadence, shortage flag, station operational state, hour/weekend context, and pressure interactions; handle a current open stockout as a pre-model observed-state control branch rather than a predictive feature.
+- [x] Add an explicit feature denylist and structural tests proving no user, staff, pharmacist, technician, nurse, verifier, badge, actor, patient diagnosis, result, controlled-diversion score, or protected attribute is used.
+- [x] Build a deterministic synthetic Pharmacy forecast backtest with a time-based train/evaluation split, a transparent calibrated logistic stockout model, and a nonnegative queue forecaster; persist calibration, discrimination, error, coverage, and baseline evidence.
+- [x] Require the model-build command to refuse artifact publication unless the queue model beats both seasonal and last-value baselines under the declared winner rule and the stockout model beats its base-rate baseline with useful discrimination.
+- [x] Calculate station/medication vend velocity and refill cadence only from station-level ADC facts in the declared lookback; retain the medication terminology status and do not infer a mapped medication when the local code is unknown.
+- [x] When valid on-hand/par evidence exists, return calibrated stockout probability, text band, top operational drivers, horizon, snapshot cutoff, coverage/confidence, and station/medication identity; use neutral planning vocabulary and never the breach/alarm treatment.
+- [x] When on-hand or par evidence is absent, invalid, or unusably stale, return no stockout probability or band; publish a separately named `velocity_pressure` observation with vend/refill/shortage evidence and a written limitation instead of fabricating inventory.
+- [x] Treat a stale-but-valid inventory snapshot as low-confidence evidence with a visible cutoff and missing-signal list; a current open stockout remains an observed operational fact and is not relabeled as a prediction.
+- [x] Implement `PharmacyForecastService` as the sole server authority for the queue series, stockout rows, factor explanations, coverage, artifact provenance, and privacy posture; React validates and renders without recomputing forecasts or thresholds.
+- [x] Add an off-by-default `forecast` request flag to both Flow Board and Dispense page/API contracts; preserve byte-equivalent observed summaries, states, SLA statuses, queue ordering, station rates, and freshness when forecasting is disabled or enabled.
+- [x] Surface the queue forecast on `/pharmacy` as a clearly labeled synthetic planning series with current depth, scheduled-demand contribution, interval, model version, calibration window, and baseline comparison.
+- [x] Surface station stockout planning on `/pharmacy/dispense` as a separate station/medication list that may be sorted by available probability while unavailable/velocity-only rows remain last; do not alter the observed station rollup or create a notification/alarm.
+- [x] Extend strict Zod contracts and responsive dual-theme components with semantic tables/text fallbacks, icon-plus-text bands, keyboard-visible controls, privacy-safe fields, and honest unavailable/low-confidence states.
+- [x] Seed deterministic demo inventory for only a governed subset of ADC station/medication pairs while retaining at least one velocity-only station, one shortage/open-stockout observation, and one stale snapshot so every evidence state is reproducible.
+- [x] Add unit and feature coverage for time-split leakage prevention, artifact determinism, baseline wins, scheduled-demand contribution, nonnegative queue depth, calibration monotonicity, current/stale/missing/invalid inventory, velocity-only fallback, station sorting, API/Inertia parity, observed-state immutability, and browser-contract privacy.
+- [x] Run the full Pharmacy/Ancillary regression, frontend tests, TypeScript, production build, UI canon, Pint, and whitespace checks; record existing warnings separately from functional evidence.
+- [x] Keep all live Pharmacy/ADC/inventory feeds, scheduler changes, queue workers, alerts, writeback, and production deployment outside P4-3; the committed artifact remains explicitly synthetic until real calibration is governed.
 
 **Acceptance:**
 
-- Forecast beats a declared seasonal/last-value baseline on demo backtest.
-- Coverage and missing inventory limitations are explicit.
-- No individual staff features are used.
+- [x] The deterministic queue backtest uses a strictly later evaluation window and beats both declared seasonal hour-of-week and last-value baselines under the committed MAE/RMSE winner rule; all metrics and cohort windows are persisted.
+- [x] The deterministic stockout backtest reports calibration error, AUC, Brier score, coverage, and base-rate baseline; it beats the baseline and the calibration map remains monotone and bounded.
+- [x] Queue horizon points reconcile to current depth, historical rates, and already-known scheduled demand, remain nonnegative, carry uncertainty, and never overwrite observed queue depth or SLA state.
+- [x] A valid current inventory snapshot yields a station/medication stockout probability and operational factor explanation; stale evidence is low confidence; absent/invalid inventory yields null probability/band plus explicit velocity pressure only.
+- [x] Observed open stockouts, shortage flags, station rates, Flow state, Cockpit state, and readiness axes remain observed facts and are byte-equivalent with forecast mode off/on; no forecast opens an alert or changes an operational sort by default.
+- [x] Every forecast is explicitly labeled synthetic, planning-only, server-computed, model/version/cutoff qualified, and non-clinical; both pages offer a visible off-by-default toggle and accessible text/table evidence.
+- [x] Feature-schema, service-source, payload, and frontend tests prove there is no individual staff/user/actor/verifier feature or output and no controlled-substance diversion/ranking score.
+- [x] Focused model/service/UI coverage plus complete Pharmacy/Ancillary, Vitest, TypeScript, build, UI-canon, Pint, and whitespace gates pass with no waived forecast, privacy, freshness, or baseline failure.
+- [x] No production database, deployment, connector, credential, source endpoint, scheduler, queue worker, alert, clinical action, writeback, or external system is changed or activated by P4-3.
 
 #### [ ] P4-4 — Add Radiology follow-up recommendation tracking
 

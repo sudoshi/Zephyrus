@@ -23,6 +23,7 @@ final class PharmacyFlowBoardRequest extends FormRequest
             'status' => ['sometimes', 'nullable', 'string', Rule::in(PharmacyFlowBoardService::STATUSES)],
             'unitId' => ['sometimes', 'nullable', 'integer', 'min:1', Rule::exists(Unit::class, 'unit_id')],
             'source' => ['sometimes', 'nullable', 'string', Rule::in(PharmacyFlowBoardService::DRILL_SOURCES)],
+            'forecast' => ['sometimes', 'boolean'],
         ];
     }
 }

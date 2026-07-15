@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { sourceFreshnessSchema, slaDefinitionSchema } from '@/Components/Ancillary/schemas';
+import { pharmacyQueueForecastSchema } from './forecast-schemas';
 
 const iso = z.string().datetime({ offset: true });
 const nullableIso = iso.nullable();
@@ -114,6 +115,7 @@ export const pharmacyFlowBoardSchema = z.object({
     status: z.string().nullable(),
     unitId: z.number().int().positive().nullable(),
     source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(),
+    forecast: z.boolean(),
   }).strict(),
   filterOptions: z.object({
     lenses: z.array(z.string()),
@@ -123,6 +125,12 @@ export const pharmacyFlowBoardSchema = z.object({
     units: z.array(z.object({ unitId: z.number().int().positive(), label: z.string() }).strict()),
   }).strict(),
   appliedSlaDefinitions: z.array(slaDefinitionSchema),
+  planningForecast: z.object({
+    requested: z.boolean(),
+    enabled: z.boolean(),
+    queue: pharmacyQueueForecastSchema.nullable(),
+    explanation: z.string().min(1),
+  }).strict(),
   data: z.object({
     summary: z.object({
       currentOrders: z.number().int().nonnegative(),

@@ -321,6 +321,54 @@ final class PharmacyDemoGenerator extends AbstractAncillaryDemoGenerator
             ];
             $shortage->save();
 
+            // P4-3 optional station inventory evidence. Two current snapshots,
+            // one stale-but-valid snapshot, one already-observed stockout, and
+            // an ICU station with transaction velocity but no inventory are
+            // deliberate so every forecast coverage state is reproducible.
+            $inventoryByStation = [
+                $this->stationRegistry()['ed']['key'] => [
+                    'ONDANSETRON_INJ' => [
+                        'medication_label' => 'Ondansetron injection',
+                        'on_hand' => 2,
+                        'par_level' => 12,
+                        'captured_at' => $anchor->subMinutes(20)->toIso8601String(),
+                        'refill_cadence_minutes' => 240,
+                    ],
+                    'CEFTRIAXONE_1G_IV' => [
+                        'medication_label' => 'Ceftriaxone 1 g intravenous',
+                        'on_hand' => 0,
+                        'par_level' => 8,
+                        'captured_at' => $anchor->subMinutes(20)->toIso8601String(),
+                        'refill_cadence_minutes' => 180,
+                    ],
+                ],
+                $this->stationRegistry()['medsurg']['key'] => [
+                    'ACETAMINOPHEN_500_TAB' => [
+                        'medication_label' => 'Acetaminophen 500 mg tablet',
+                        'on_hand' => 18,
+                        'par_level' => 40,
+                        'captured_at' => $anchor->subMinutes(25)->toIso8601String(),
+                        'refill_cadence_minutes' => 360,
+                    ],
+                    'MORPHINE_INJ' => [
+                        'medication_label' => 'Morphine injection',
+                        'on_hand' => 3,
+                        'par_level' => 10,
+                        'captured_at' => $anchor->subMinutes(180)->toIso8601String(),
+                        'refill_cadence_minutes' => 480,
+                    ],
+                ],
+            ];
+            foreach ($inventoryByStation as $stationKey => $inventory) {
+                $station = AdcStation::query()
+                    ->where('demo_owner', $owner)
+                    ->where('source_station_key', $stationKey)
+                    ->firstOrFail();
+                $stationMetadata = is_array($station->metadata) ? $station->metadata : [];
+                $station->metadata = [...$stationMetadata, 'inventory' => $inventory];
+                $station->save();
+            }
+
             // IV-room preparation satellites (batch refs + BUD). Scenario 14
             // deliberately gets none: that is the IVWMS-absent degraded branch.
             foreach ([
@@ -387,9 +435,10 @@ final class PharmacyDemoGenerator extends AbstractAncillaryDemoGenerator
 
     /**
      * Station-scope facts do not cascade from the ancillary order reset: the
-     * transaction ledger, its provenance, and the per-medication stockout
-     * state on owned registry stations are cleared here before replay so two
-     * same-anchor refreshes converge. Non-owned rows are never selected.
+     * transaction ledger, its provenance, per-medication stockout state, and
+     * optional planning inventory on owned registry stations are cleared here
+     * before replay so two same-anchor refreshes converge. Non-owned rows are
+     * never selected.
      */
     private function resetOwnedStationScopeFacts(string $owner): void
     {
@@ -413,9 +462,10 @@ final class PharmacyDemoGenerator extends AbstractAncillaryDemoGenerator
             $metadata = is_array($station->metadata) ? $station->metadata : [];
             if (array_key_exists('open_stockouts', $metadata)) {
                 unset($metadata['open_stockouts']);
-                $station->metadata = $metadata;
-                $station->save();
             }
+            unset($metadata['inventory']);
+            $station->metadata = $metadata;
+            $station->save();
         });
     }
 

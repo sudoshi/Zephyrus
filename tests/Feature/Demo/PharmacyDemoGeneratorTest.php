@@ -195,6 +195,16 @@ class PharmacyDemoGeneratorTest extends TestCase
         $this->assertCount(1, $stockouts);
         $this->assertSame('demo:rx:station:ED-01', $stockouts->first()->source_station_key);
         $this->assertArrayHasKey('CEFTRIAXONE_1G_IV', $stockouts->first()->metadata['open_stockouts']);
+        $stationInventory = AdcStation::query()->where('demo_owner', $owner)->get()->keyBy('source_station_key');
+        $edInventory = $stationInventory['demo:rx:station:ED-01']->metadata['inventory'];
+        $this->assertSame([2, 12], [$edInventory['ONDANSETRON_INJ']['on_hand'], $edInventory['ONDANSETRON_INJ']['par_level']]);
+        $this->assertSame(0, $edInventory['CEFTRIAXONE_1G_IV']['on_hand'], 'The observed stockout also carries an explicit zero inventory fact.');
+        $this->assertSame(
+            $this->anchor->subMinutes(180)->toIso8601String(),
+            $stationInventory['demo:rx:station:MS-01']->metadata['inventory']['MORPHINE_INJ']['captured_at'],
+            'The deterministic stale inventory snapshot drives the low-confidence forecast branch.',
+        );
+        $this->assertArrayNotHasKey('inventory', $stationInventory['demo:rx:station:ICU-01']->metadata, 'ICU deliberately exercises velocity-only coverage.');
         $shortage = $orders->get($key(11));
         $this->assertTrue((bool) $shortage->on_shortage);
         $this->assertSame('CEFTRIAXONE_1G_IV', $shortage->local_code);
@@ -242,7 +252,7 @@ class PharmacyDemoGeneratorTest extends TestCase
             'transactions' => AdcTransaction::query()->where('demo_owner', $owner)->orderBy('source_transaction_key')->get()
                 ->map(fn (AdcTransaction $row): array => [$row->source_transaction_key, $row->transaction_type, (bool) $row->is_controlled, $row->occurred_at->toIso8601String()])->all(),
             'stations' => AdcStation::query()->where('demo_owner', $owner)->orderBy('source_station_key')->get()
-                ->map(fn (AdcStation $row): array => [$row->source_station_key, $row->station_type, array_keys($row->metadata['open_stockouts'] ?? [])])->all(),
+                ->map(fn (AdcStation $row): array => [$row->source_station_key, $row->station_type, array_keys($row->metadata['open_stockouts'] ?? []), $row->metadata['inventory'] ?? null])->all(),
             'preps' => Preparation::query()->where('demo_owner', $owner)->orderBy('source_prep_key')->get()
                 ->map(fn (Preparation $row): array => [$row->source_prep_key, $row->prep_state, $row->batch_ref])->all(),
             'discharge' => DischargeQueueItem::query()->where('demo_owner', $owner)->orderBy('source_queue_key')->get()

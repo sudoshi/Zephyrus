@@ -15,6 +15,7 @@ final class PharmacyDispenseRequest extends FormRequest
     {
         return [
             'stationType' => ['sometimes', 'nullable', 'string', 'max:24'],
+            'forecast' => ['sometimes', 'boolean'],
         ];
     }
 }
