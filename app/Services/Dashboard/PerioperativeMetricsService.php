@@ -3,6 +3,7 @@
 namespace App\Services\Dashboard;
 
 use App\Services\Analytics\PrimetimeUtilizationService;
+use App\Services\Analytics\SuiteMetricCalculator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -28,9 +29,6 @@ use Illuminate\Support\Facades\DB;
  */
 class PerioperativeMetricsService
 {
-    /** On-time grace window for first-case starts (minutes). */
-    private const FCOTS_GRACE_MIN = 15;
-
     /** Case-length accuracy tolerance band (fraction of scheduled duration). */
     private const ACCURACY_BAND = 0.10;
 
@@ -47,6 +45,8 @@ class PerioperativeMetricsService
         'Neurosurgery',
         'Orthopedics',
     ];
+
+    public function __construct(private readonly SuiteMetricCalculator $suiteMetrics) {}
 
     /** @return array<string,mixed> */
     public function build(): array
@@ -272,9 +272,7 @@ class PerioperativeMetricsService
         }
 
         $rows = DB::select(
-            'SELECT s.name AS service,
-                    COUNT(*) AS total_first,
-                    SUM(CASE WHEN c.first_start <= c.sched + INTERVAL \'15 minutes\' THEN 1 ELSE 0 END) AS on_time
+            'SELECT s.name AS service, c.first_start, c.sched
              FROM (
                  SELECT DISTINCT ON (oc.room_id, oc.surgery_date)
                      oc.case_service_id AS sid,
@@ -289,24 +287,26 @@ class PerioperativeMetricsService
                    AND oc.surgery_date <= ?
                  ORDER BY oc.room_id, oc.surgery_date, oc.scheduled_start_time ASC
              ) c
-             JOIN prod.services s ON s.service_id = c.sid
-             GROUP BY s.name',
+             JOIN prod.services s ON s.service_id = c.sid',
             [$from, $to]
         );
 
         $byService = [];
-        $totalFirst = 0;
-        $totalOnTime = 0;
+        $counts = [];
         foreach ($rows as $r) {
-            $tf = (int) $r->total_first;
-            $ot = (int) $r->on_time;
-            if ($tf <= 0) {
+            $onTime = $this->suiteMetrics->firstCaseOnTime($r->sched, $r->first_start);
+            if ($onTime === null) {
                 continue;
             }
-            $byService[$this->serviceLabel($r->service)] = (int) round(100.0 * $ot / $tf);
-            $totalFirst += $tf;
-            $totalOnTime += $ot;
+            $label = $this->serviceLabel($r->service);
+            $counts[$label]['total'] = ($counts[$label]['total'] ?? 0) + 1;
+            $counts[$label]['onTime'] = ($counts[$label]['onTime'] ?? 0) + ($onTime ? 1 : 0);
         }
+        foreach ($counts as $label => $count) {
+            $byService[$label] = (int) round(100.0 * $count['onTime'] / $count['total']);
+        }
+        $totalFirst = array_sum(array_column($counts, 'total'));
+        $totalOnTime = array_sum(array_column($counts, 'onTime'));
 
         $overall = $totalFirst > 0 ? (int) round(100.0 * $totalOnTime / $totalFirst) : 0;
 
@@ -597,9 +597,8 @@ class PerioperativeMetricsService
             return 0.0;
         }
 
-        $row = DB::selectOne(
-            'SELECT COUNT(*) AS total_first,
-                    SUM(CASE WHEN c.first_start <= c.sched + INTERVAL \'15 minutes\' THEN 1 ELSE 0 END) AS on_time
+        $rows = DB::select(
+            'SELECT c.first_start, c.sched
              FROM (
                  SELECT DISTINCT ON (oc.room_id, oc.surgery_date)
                      l.procedure_start_time AS first_start,
@@ -615,10 +614,9 @@ class PerioperativeMetricsService
              ) c',
             [$from, $to]
         );
+        $values = collect($rows)->map(fn (object $row): ?bool => $this->suiteMetrics->firstCaseOnTime($row->sched, $row->first_start))->filter(fn (?bool $value): bool => $value !== null);
 
-        $total = (int) ($row->total_first ?? 0);
-
-        return $total > 0 ? round(100.0 * (int) ($row->on_time ?? 0) / $total, 1) : 0.0;
+        return $values->isNotEmpty() ? round(100.0 * $values->filter()->count() / $values->count(), 1) : 0.0;
     }
 
     private function avgTurnoverMin(?string $from, ?string $to): float

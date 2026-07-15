@@ -876,7 +876,9 @@ final class OperationalDemoDataService
         for ($i = 0; $i < 20; $i++) {
             $scenario = $this->transportScenario($units, $i, true);
             $requestedAt = $anchor->copy()->subMinutes(12 + ($i * 5));
-            $neededAt = $requestedAt->copy()->addMinutes([25, 40, 55, 70][$i % 4]);
+            $neededAt = in_array($i, [4, 9, 14, 19], true)
+                ? $anchor->copy()->subMinutes(5 + (($i % 3) * 5))
+                : $anchor->copy()->addMinutes(15 + (($i % 4) * 10));
             $status = $scenario['statuses'][$i % count($scenario['statuses'])];
             $events += $this->createTransport($scenario, $status, $requestedAt, $neededAt, "active:{$i}");
             $active++;
@@ -916,7 +918,7 @@ final class OperationalDemoDataService
 
         $base = [
             'type' => $type,
-            'priority' => ['routine', 'urgent', 'routine', 'stat'][$index % 4],
+            'priority' => ['routine', 'routine', 'urgent', 'routine', 'stat', 'routine', 'urgent', 'routine', 'urgent', 'routine'][$index % 10],
             'origin' => $originUnit->name,
             'destination' => $diagnostic,
             'mode' => ['wheelchair', 'stretcher', 'bed'][$index % 3],

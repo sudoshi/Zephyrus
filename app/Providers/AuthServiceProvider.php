@@ -115,6 +115,68 @@ class AuthServiceProvider extends ServiceProvider
         'or_nurse',
     ];
 
+    /** @var list<string> */
+    private const ANCILLARY_BARRIER_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'bed_manager',
+        'radiology_manager',
+    ];
+
+    /**
+     * Roles permitted to view the controlled-substance OPERATIONAL aggregate
+     * view (§X-10). This is a diversion-ADJACENT surface that exposes unit and
+     * station operational aggregates ONLY — never any individual, user, or
+     * staff dimension, and never a diversion or per-person risk score. Access is
+     * a deployment-governance restriction independent of patient-detail
+     * authorization: pharmacy operational leadership and ops leaders, never
+     * plain frontline ('user') or 'executive' accounts. Narrow by design.
+     *
+     * @var list<string>
+     */
+    private const CONTROLLED_SUBSTANCE_OPERATIONS_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'pharmacy_manager',
+        'pharmacy_operations_lead',
+        'controlled_substance_officer',
+    ];
+
+    /**
+     * Roles permitted to receive the minimum-necessary pseudonymous patient
+     * context carried by ancillary operational worklists. Aggregate Study
+     * pages never return patient context regardless of this capability.
+     *
+     * @var list<string>
+     */
+    private const ANCILLARY_PATIENT_DETAIL_ROLES = [
+        'super_admin',
+        'superuser',
+        'ops_leader',
+        'admin',
+        'bed_manager',
+        'house_supervisor',
+        'capacity_lead',
+        'charge_nurse',
+        'hospitalist',
+        'emergency_physician',
+        'emergency_nurse',
+        'case_manager',
+        'discharge_coordinator',
+        'periop_manager',
+        'or_nurse',
+        'radiology_manager',
+        'radiologist',
+        'radiologic_technologist',
+        'ct_technologist',
+        'mri_technologist',
+        'sonographer',
+    ];
+
     /**
      * Register any authentication / authorization services.
      */
@@ -180,6 +242,24 @@ class AuthServiceProvider extends ServiceProvider
             self::OR_CASE_WRITE_ROLES,
             true,
         ) || $user->hasRole(['admin', 'super-admin', 'super_admin', 'periop_manager', 'or_nurse']));
+
+        Gate::define('manageAncillaryBarriers', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::ANCILLARY_BARRIER_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
+
+        Gate::define('viewAncillaryPatientDetail', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::ANCILLARY_PATIENT_DETAIL_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
+
+        Gate::define('viewControlledSubstanceOperations', fn (User $user): bool => in_array(
+            self::canonicalRole((string) $user->role),
+            self::CONTROLLED_SUBSTANCE_OPERATIONS_ROLES,
+            true,
+        ) || $user->hasRole(['admin', 'super-admin', 'super_admin']));
     }
 
     private static function canonicalRole(string $role): string

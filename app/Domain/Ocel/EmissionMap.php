@@ -415,6 +415,212 @@ final class EmissionMap
     }
 
     /**
+     * prod.ancillary_milestones joined to the shared order/catalog becomes one
+     * object-centric event. Object identities are UUID- or hash-derived and
+     * deliberately exclude source order, patient, encounter, accession, and
+     * medication identifiers.
+     */
+    public static function forAncillaryMilestone(object $row): ?EmittedEvent
+    {
+        if (empty($row->ancillary_milestone_id) || empty($row->order_uuid) || empty($row->occurred_at) || empty($row->ocel_event_type)) {
+            return null;
+        }
+
+        $orderKey = (string) $row->order_uuid;
+        $orderId = 'anc-order-'.$orderKey;
+        $orderMetadata = self::decodeJson($row->order_metadata ?? null);
+        $objects = [[
+            'id' => $orderId,
+            'type' => 'Ancillary Order',
+            'qualifier' => 'subject',
+            'attrs' => array_filter([
+                'department' => $row->department ?? null,
+                'work_item_type' => $row->work_item_type ?? null,
+                'priority' => $row->priority ?? null,
+                'patient_class' => $row->patient_class ?? null,
+                'discharge_blocking' => $orderMetadata['discharge_blocking'] ?? null,
+            ], fn (mixed $value): bool => $value !== null),
+        ]];
+        $o2o = [];
+
+        $encounterRef = ! empty($row->encounter_ref)
+            ? (string) $row->encounter_ref
+            : (! empty($row->encounter_id) ? (string) $row->encounter_id : null);
+        if ($encounterRef !== null) {
+            $encounterId = 'enc-'.self::hashRef($encounterRef);
+            $objects[] = ['id' => $encounterId, 'type' => 'Encounter', 'qualifier' => 'context'];
+            $o2o[] = ['from' => $orderId, 'to' => $encounterId, 'qualifier' => 'for'];
+        }
+
+        if (! empty($row->unit_abbreviation)) {
+            $unitId = 'unit-'.self::slug($row->unit_abbreviation);
+            $objects[] = ['id' => $unitId, 'type' => 'Unit', 'qualifier' => 'location'];
+            $o2o[] = ['from' => $orderId, 'to' => $unitId, 'qualifier' => 'in'];
+        }
+
+        [$domainObjects, $domainRelations] = self::ancillaryDomainObjects(
+            (string) $row->department,
+            (string) $row->milestone_code,
+            $orderKey,
+            $orderId,
+            $orderMetadata,
+        );
+        $objects = array_values(array_reduce($domainObjects, function (array $carry, array $object): array {
+            $carry[$object['id']] = $object;
+
+            return $carry;
+        }, array_column($objects, null, 'id')));
+        $o2o = [...$o2o, ...$domainRelations];
+        $at = Carbon::parse($row->occurred_at);
+
+        return new EmittedEvent(
+            id: 'anc-mil-'.$row->ancillary_milestone_id,
+            activity: (string) $row->ocel_event_type,
+            timestamp: $at,
+            sourceSystem: 'prod.ancillary_milestones',
+            sourceRef: (string) $row->ancillary_milestone_id,
+            objects: $objects,
+            o2o: $o2o,
+            attrs: array_filter([
+                'department' => $row->department ?? null,
+                'milestone_code' => $row->milestone_code ?? null,
+                'phase' => $row->phase ?? null,
+                'priority' => $row->priority ?? null,
+                'source_rank' => isset($row->source_rank) ? (int) $row->source_rank : null,
+                'source_class' => $row->system_class ?? null,
+                'process_ids' => self::decodeJson($row->process_ids ?? null),
+            ], fn (mixed $value): bool => $value !== null),
+            changes: [[
+                'object_id' => $orderId,
+                'attr' => 'current_milestone',
+                'value' => (string) $row->milestone_code,
+                'at' => $at,
+            ]],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array{list<array{id:string,type:string,qualifier:string,attrs?:array<string,mixed>}>, list<array{from:string,to:string,qualifier:string}>}
+     */
+    private static function ancillaryDomainObjects(
+        string $department,
+        string $code,
+        string $orderKey,
+        string $orderId,
+        array $metadata,
+    ): array {
+        $objects = [];
+        $relations = [];
+        $add = function (string $id, string $type, string $qualifier, string $relation = 'part-of') use (&$objects, &$relations, $orderId): void {
+            $objects[] = ['id' => $id, 'type' => $type, 'qualifier' => $qualifier];
+            $relations[] = ['from' => $id, 'to' => $orderId, 'qualifier' => $relation];
+        };
+
+        if ($department === 'rad') {
+            $studyId = 'imaging-study-'.$orderKey;
+            $add($studyId, 'Imaging Study', 'work-item', 'fulfills');
+            if (in_array($code, ['RAD_PRELIM', 'RAD_FINAL', 'RAD_CRITICAL_NOTIFIED', 'RAD_CRITICAL_ACKED', 'RAD_FOLLOWUP_TRACKED'], true)) {
+                $readId = 'imaging-read-'.$orderKey;
+                $add($readId, 'Imaging Read', 'result');
+                $relations[] = ['from' => $readId, 'to' => $studyId, 'qualifier' => 'interprets'];
+            }
+            if (in_array($code, ['RAD_FINAL', 'RAD_CRITICAL_NOTIFIED', 'RAD_CRITICAL_ACKED', 'RAD_FOLLOWUP_TRACKED'], true)) {
+                $reportId = 'diagnostic-report-rad-'.$orderKey;
+                $add($reportId, 'Diagnostic Report', 'report');
+                $relations[] = ['from' => $reportId, 'to' => $studyId, 'qualifier' => 'reports'];
+            }
+            if (in_array($code, ['RAD_CRITICAL_NOTIFIED', 'RAD_CRITICAL_ACKED', 'RAD_FOLLOWUP_TRACKED'], true)) {
+                $findingId = 'critical-result-rad-'.$orderKey;
+                $communicationId = 'communication-rad-'.$orderKey;
+                $add($findingId, 'Critical Result', 'result');
+                $add($communicationId, 'Communication Task', 'communication');
+                $relations[] = ['from' => $communicationId, 'to' => $findingId, 'qualifier' => 'communicates'];
+            }
+            self::addAncillaryResource($objects, $relations, $metadata['scanner_ref'] ?? null, 'scanner', 'Scanner', $orderId);
+        } elseif ($department === 'lab') {
+            $testId = 'laboratory-test-'.$orderKey;
+            $add($testId, 'Laboratory Test', 'work-item', 'fulfills');
+            if (! in_array($code, ['LAB_ORDERED', 'LAB_CANCELLED'], true)) {
+                $specimenId = 'laboratory-specimen-'.$orderKey;
+                $add($specimenId, 'Laboratory Specimen', 'specimen');
+                $relations[] = ['from' => $specimenId, 'to' => $testId, 'qualifier' => 'supports'];
+            }
+            if (in_array($code, ['LAB_PRELIM', 'LAB_RESULTED', 'LAB_VERIFIED', 'LAB_CRITICAL_NOTIFIED', 'LAB_CRITICAL_ACKED', 'LAB_CORRECTED'], true)) {
+                $resultId = 'laboratory-result-'.$orderKey;
+                $add($resultId, 'Laboratory Result', 'result');
+                $relations[] = ['from' => $resultId, 'to' => $testId, 'qualifier' => 'result-of'];
+            }
+            self::addAncillaryResource($objects, $relations, $metadata['analyzer_ref'] ?? null, 'analyzer', 'Analyzer', $orderId);
+        } elseif ($department === 'pathology') {
+            $caseId = 'ap-case-'.$orderKey;
+            $specimenId = 'pathology-specimen-'.$orderKey;
+            $add($caseId, 'AP Case', 'work-item', 'fulfills');
+            $add($specimenId, 'Pathology Specimen', 'specimen');
+            $relations[] = ['from' => $specimenId, 'to' => $caseId, 'qualifier' => 'part-of'];
+            if (in_array($code, ['AP_GROSSED', 'AP_PROCESSING_BATCH', 'AP_SLIDES_READY', 'AP_DIAGNOSED', 'AP_SIGNED_OUT'], true)) {
+                $slideId = 'pathology-slide-block-'.$orderKey;
+                $add($slideId, 'Pathology Slide / Block', 'resource');
+                $relations[] = ['from' => $slideId, 'to' => $specimenId, 'qualifier' => 'derived-from'];
+            }
+            if (in_array($code, ['AP_DIAGNOSED', 'AP_SIGNED_OUT', 'AP_FROZEN_RESULTED'], true)) {
+                $reportId = 'diagnostic-report-ap-'.$orderKey;
+                $add($reportId, 'Diagnostic Report', 'report');
+                $relations[] = ['from' => $reportId, 'to' => $caseId, 'qualifier' => 'reports'];
+            }
+            self::addAncillaryResource($objects, $relations, $metadata['pathologist_assignment_ref'] ?? null, 'pathologist-assignment', 'Pathologist Assignment', $orderId);
+        } elseif ($department === 'blood_bank') {
+            $requestId = 'blood-bank-request-'.$orderKey;
+            $add($requestId, 'Blood Bank Request', 'work-item', 'fulfills');
+            if (in_array($code, ['BB_TNS_READY', 'BB_CROSSMATCH_READY'], true)) {
+                $add('blood-bank-specimen-'.$orderKey, 'Laboratory Specimen', 'specimen');
+            }
+            if ($code === 'BB_UNIT_ISSUED') {
+                $add('blood-product-unit-'.$orderKey, 'Blood Product Unit', 'result');
+            }
+        } elseif ($department === 'rx') {
+            $medicationId = 'medication-order-'.$orderKey;
+            $workId = 'pharmacy-work-'.$orderKey;
+            $add($medicationId, 'Medication Order', 'work-item', 'fulfills');
+            $add($workId, 'Pharmacy Work', 'resource');
+            $relations[] = ['from' => $workId, 'to' => $medicationId, 'qualifier' => 'processes'];
+            if (! in_array($code, ['RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_DISCONTINUED'], true)) {
+                $doseId = 'medication-dose-'.$orderKey;
+                $add($doseId, 'Medication Dose', 'dose');
+                $relations[] = ['from' => $doseId, 'to' => $medicationId, 'qualifier' => 'dose-of'];
+            }
+            self::addAncillaryResource(
+                $objects,
+                $relations,
+                $metadata['adc_station_ref'] ?? $metadata['preparation_resource_ref'] ?? null,
+                'medication-resource',
+                'Medication Resource',
+                $orderId,
+            );
+        }
+
+        return [$objects, $relations];
+    }
+
+    /** @param list<array<string, mixed>> $objects @param list<array<string, string>> $relations */
+    private static function addAncillaryResource(
+        array &$objects,
+        array &$relations,
+        mixed $reference,
+        string $prefix,
+        string $type,
+        string $orderId,
+    ): void {
+        if (! is_scalar($reference) || trim((string) $reference) === '') {
+            return;
+        }
+
+        $id = $prefix.'-'.self::hashRef((string) $reference);
+        $objects[] = ['id' => $id, 'type' => $type, 'qualifier' => 'resource'];
+        $relations[] = ['from' => $id, 'to' => $orderId, 'qualifier' => 'serves'];
+    }
+
+    /**
      * Normalise a jsonb column that Postgres/PDO may hand back as a JSON string
      * or (already-decoded) array.
      *

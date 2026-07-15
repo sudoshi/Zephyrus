@@ -1,0 +1,1 @@
+{"control_id":"MPPS-DISC-1","source_order_key":"RAD-MPPS-DISC","source_study_key":"ACC-MPPS-DISC","sop_instance_uid":"1.2.840.secret.discontinued","status":"DISCONTINUED","occurred_at":"2026-07-11T13:15:00-04:00","performed_start_at":"2026-07-11T13:00:00-04:00","modality":"MRI","scanner_key":"MRI-1","source_signature":{"algorithm":"EdDSA","key_id":"relay-key-1","verified":true}}

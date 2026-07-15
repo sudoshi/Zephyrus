@@ -32,6 +32,8 @@ class PersonaRelayPolicy
         'patient.operational_state_changed',
         'alert.acknowledged',
         'alert.escalated',
+        'ancillary.sla_breached',
+        'ancillary.sla_cleared',
     ];
 
     public const NOT_EMITTED_YET_EVENT_TYPES = [
@@ -99,6 +101,12 @@ class PersonaRelayPolicy
                 'activity_only' => ['executive', 'pi_lead'],
                 'push_tier' => 'warning',
             ],
+            str_starts_with($eventType, 'ancillary.') => [
+                'affected_roles' => ['house_supervisor', 'capacity_lead', 'charge_nurse'],
+                'notify_now' => $eventType === 'ancillary.sla_breached' ? ['house_supervisor'] : [],
+                'activity_only' => ['executive', 'pi_lead'],
+                'push_tier' => $eventType === 'ancillary.sla_breached' ? 'warning' : 'activity',
+            ],
             default => [
                 'affected_roles' => ['house_supervisor', 'capacity_lead'],
                 'notify_now' => [],
@@ -133,6 +141,7 @@ class PersonaRelayPolicy
             'recommendation.',
             'action.',
             'alert.',
+            'ancillary.',
         ] as $prefix) {
             if (str_starts_with($eventType, $prefix)) {
                 return true;

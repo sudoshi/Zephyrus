@@ -82,7 +82,58 @@ class IntegrationConnectorTemplateSeeder extends Seeder
             ['vendor_key' => 'epic', 'label' => 'Epic Connector Template', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => true, 'smart_backend' => true], 'steps' => ['Confirm BAA and interface scope', 'Register a backend-services client', 'Validate ADT and FHIR read scopes', 'Stage approval-gated writeback']],
             ['vendor_key' => 'oracle_health', 'label' => 'Oracle Health Connector Template', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => true, 'smart_backend' => true], 'steps' => ['Confirm Millennium environment', 'Discover the FHIR capability statement', 'Configure interface-engine ADT feed', 'Stage approval-gated writeback']],
             ['vendor_key' => 'meditech', 'label' => 'MEDITECH Connector Template', 'system_class' => 'ehr', 'capabilities' => ['hl7v2' => true, 'fhir_r4' => 'site_dependent'], 'steps' => ['Confirm Expanse integration path', 'Map ADT and location codes', 'Validate backfill windows', 'Keep writeback draft-only until certified']],
+            ...$this->ancillaryPlaybooks(),
         ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function ancillaryPlaybooks(): array
+    {
+        $definitions = [
+            ['rad_orders', 'Radiology ORM/OMI Orders', 'radiology', ['ORM', 'OMI'], 'ingest_radiology_orders'],
+            ['rad_reports', 'Radiology ORU Reports', 'radiology_reporting', ['ORU'], 'ingest_radiology_reports'],
+            ['rad_mpps', 'Radiology MPPS Relay', 'pacs', ['MPPS'], 'ingest_forwarded_mpps'],
+            ['rad_scheduling', 'Radiology SIU Scheduling', 'ris', ['SIU'], 'ingest_radiology_scheduling'],
+            ['lab_orders', 'Laboratory OML/ORM Orders', 'lis', ['OML', 'ORM'], 'ingest_laboratory_orders'],
+            ['lab_results', 'Laboratory ORU Results', 'lis', ['ORU'], 'ingest_laboratory_results'],
+            ['lab_middleware', 'Laboratory Middleware Events', 'lab_middleware', ['ANALYZER', 'AUTOVERIFICATION'], 'ingest_laboratory_middleware'],
+            ['pathology_blood_bank', 'Pathology and Blood Bank Events', 'ap_lis_blood_bank', ['ORU', 'BARCODE', 'WORKFLOW'], 'ingest_pathology_blood_bank'],
+            ['rx_orders_dispense', 'Pharmacy RDE/RDS Orders and Dispense', 'pharmacy', ['RDE', 'RDS'], 'ingest_pharmacy_orders_dispense'],
+            ['rx_verification', 'Pharmacy Verification Queue', 'pharmacy', ['QUEUE'], 'ingest_pharmacy_verification'],
+            ['rx_adc', 'ADC Transactions', 'adc', ['VEND', 'RETURN', 'WASTE', 'OVERRIDE'], 'ingest_adc_transactions'],
+            ['rx_administration', 'BCMA/eMAR Administration Warehouse', 'clinical_warehouse', ['BATCH'], 'ingest_administration_batch'],
+            ['shared_adt_linkage', 'Shared ADT Encounter Linkage', 'ehr', ['ADT'], 'ingest_ancillary_adt_linkage'],
+        ];
+
+        return array_map(function (array $definition): array {
+            [$key, $label, $systemClass, $messageFamilies, $ability] = $definition;
+
+            return [
+                'vendor_key' => 'ancillary_'.$key,
+                'label' => $label.' Template',
+                'system_class' => $systemClass,
+                'capabilities' => [
+                    'direction' => 'read_only_ingest',
+                    'message_families' => $messageFamilies,
+                    'https_boundary' => true,
+                    'mllp_terminated_upstream' => true,
+                    'required_machine_ability' => 'integration:ancillary:'.$ability,
+                    'pipeline' => ['raw', 'canonical', 'ancillary_projection', 'provenance', 'dead_letter'],
+                    'source_defaults' => [
+                        'active_status' => 'inactive',
+                        'phi_allowed' => false,
+                        'go_live_status' => 'not_started',
+                    ],
+                    'writeback' => false,
+                ],
+                'steps' => [
+                    'Confirm contract, BAA, PHI approval, source identity, and network allowlist',
+                    'Bind one governed source and endpoint to the declared message family',
+                    'Validate non-production golden messages, replay, staleness, and sanitized dead letters',
+                    'Activate only after source-specific governance evidence is recorded',
+                ],
+            ];
+        }, $definitions);
     }
 
     /** @return list<array<string, mixed>> */

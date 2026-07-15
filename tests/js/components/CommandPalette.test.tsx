@@ -166,5 +166,16 @@ describe('CommandPalette', () => {
 
       expect(screen.getByText('Bed Tracking')).toBeInTheDocument();
     });
+
+    it('projects every Radiology workspace leaf from the shared navigation config', () => {
+      useUIStore.setState({ commandPaletteOpen: true });
+
+      render(React.createElement(CommandPalette));
+
+      expect(screen.getByTestId('command-group-Radiology Operations')).toBeInTheDocument();
+      for (const label of ['Imaging Flow Board', 'Order Worklist', 'Modality Utilization', 'Reads & Results']) {
+        expect(screen.getByText(label)).toBeInTheDocument();
+      }
+    });
   });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Integrations\Healthcare\Synthetic;
 
+use App\Integrations\Healthcare\Ancillary\AncillaryEventVocabulary;
 use App\Integrations\Healthcare\Contracts\HealthcareConnector;
 use App\Integrations\Healthcare\DTO\BackfillRequest;
 use App\Integrations\Healthcare\DTO\ConnectorCapabilities;
@@ -11,7 +12,7 @@ use App\Integrations\Healthcare\DTO\ReplayRequest;
 use App\Integrations\Healthcare\DTO\SourceMessage;
 use App\Integrations\Healthcare\DTO\WebhookEnvelope;
 use App\Integrations\Healthcare\Services\CanonicalEventWriter;
-use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Integrations\Healthcare\Services\ProjectionDispatcher;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\CanonicalEventRecord;
 use App\Models\Integration\ConnectorWatermark;
@@ -33,7 +34,7 @@ class SyntheticHealthcareConnector implements HealthcareConnector
         private readonly SyntheticMessageNormalizer $normalizer,
         private readonly SyntheticCanonicalEventMapper $mapper,
         private readonly CanonicalEventWriter $writer,
-        private readonly RtdcProjectionHandler $projector,
+        private readonly ProjectionDispatcher $projector,
     ) {}
 
     public function sourceKey(): string
@@ -51,6 +52,7 @@ class SyntheticHealthcareConnector implements HealthcareConnector
                 RtdcCanonicalEvent::ENCOUNTER_DISCHARGED,
                 RtdcCanonicalEvent::BED_STATUS_CHANGED,
                 RtdcCanonicalEvent::ACUITY_CHANGED,
+                ...AncillaryEventVocabulary::eventTypes(),
             ],
             metadata: ['purpose' => 'integration foundation test harness'],
         );
@@ -334,6 +336,12 @@ class SyntheticHealthcareConnector implements HealthcareConnector
 
     private function writeProvenance(int $sourceId, int $messageId, CanonicalEventRecord $record): void
     {
+        if (str_starts_with((string) $record->event_type, 'ancillary.')) {
+            // AncillaryProjectionHandler writes milestone-specific provenance
+            // transactionally with the append-only assertion.
+            return;
+        }
+
         ProvenanceRecord::create([
             'source_id' => $sourceId,
             'inbound_message_id' => $messageId,

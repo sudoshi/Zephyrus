@@ -21,6 +21,18 @@ class ApiAuthorizationTest extends TestCase
             '/api/facility/model/summary',
             '/api/patient-flow/summary',
             '/api/rtdc/units',
+            '/api/radiology/flow-board',
+            '/api/radiology/worklist',
+            '/api/radiology/modality',
+            '/api/radiology/reads',
+            '/api/radiology/tat',
+            '/api/radiology/ir-utilization',
+            '/api/pharmacy/flow-board',
+            '/api/pharmacy/discharge-readiness',
+            '/api/pharmacy/iv-room',
+            '/api/pharmacy/dispense',
+            '/api/pharmacy/controlled',
+            '/api/pharmacy/tat',
             '/api/transport/overview',
             '/api/evs/overview',
             '/api/staffing/overview',
@@ -172,8 +184,12 @@ class ApiAuthorizationTest extends TestCase
             'patient_class_id' => $or['patientClassId'],
         ]);
 
+        $caseId = (int) DB::table('prod.or_cases')
+            ->where('patient_id', 'ORWRITE-001')
+            ->value('case_id');
+
         $this->assertDatabaseHas('prod.or_logs', [
-            'case_id' => 1,
+            'case_id' => $caseId,
             'tracking_date' => '2026-07-09',
             'primary_procedure' => 'Appendectomy',
             'is_deleted' => false,

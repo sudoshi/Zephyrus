@@ -9,7 +9,10 @@ use Illuminate\Validation\ValidationException;
 
 class OperationalIntegrationConfigurator
 {
-    public function __construct(private readonly IntegrationConfigurationAuditService $audit) {}
+    public function __construct(
+        private readonly IntegrationConfigurationAuditService $audit,
+        private readonly FhirResourcePolicy $fhirResources,
+    ) {}
 
     /** @return array<string, mixed> */
     public function configureEpicSandbox(
@@ -110,7 +113,7 @@ class OperationalIntegrationConfigurator
                     'base_url' => $settings['base_url'],
                     'fhir_version' => '4.0.1',
                     'polling_payload' => json_encode([
-                        'resource_types' => ['Encounter', 'Location'],
+                        'resource_types' => $this->fhirResources->enabledResourceTypes(),
                         'cadence_minutes' => 15,
                         'credential_activation_required' => ! $credentialsReady,
                     ], JSON_THROW_ON_ERROR),

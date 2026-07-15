@@ -40,6 +40,14 @@ describe('DataTable', () => {
     expect(screen.getByLabelText('ESI 2 (Warning)')).toBeInTheDocument();
   });
 
+  it('renders a governed workspace href as a semantic link cell', () => {
+    render(<DataTable columns={[{ key: 'measure', header: 'Measure' }]} rows={[{
+      measure: { v: '33.3%', strong: true, href: '/lab?priority=stat&source=cockpit' },
+    }]} caption="Ancillary health" />);
+
+    expect(screen.getByRole('link', { name: '33.3%' })).toHaveAttribute('href', '/lab?priority=stat&source=cockpit');
+  });
+
   it('renders an empty string for a missing cell instead of crashing', () => {
     render(<DataTable columns={columns} rows={[{ unit: 'PACU' }]} caption="sparse" />);
     expect(screen.getByText('PACU')).toBeInTheDocument();

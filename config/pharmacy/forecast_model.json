@@ -1,0 +1,339 @@
+{
+    "modelVersion": "rx-forecast-2026.07.15-synthetic-v1",
+    "modelFamily": "seasonal_queue_and_calibrated_logistic_stockout",
+    "synthetic": true,
+    "syntheticLabel": "Synthetic demo calibration \u2014 operational planning aid only; not a clinical, staffing, diversion, or production inventory model.",
+    "calibratedAt": "2026-07-15T12:00:00+00:00",
+    "targets": {
+        "queue": {
+            "definition": "Open pharmacy verification-queue depth at each hourly cutoff across the next eight hours.",
+            "horizonHours": 8,
+            "cutoffRule": "Depth, hour-of-day history, recent trend, and due_at demand must be known at the prediction cutoff; no future completion enters the feature set."
+        },
+        "stockout": {
+            "definition": "A station-medication inventory position with valid on-hand and par evidence reaches zero within six hours.",
+            "horizonHours": 6,
+            "cutoffRule": "Features use the inventory snapshot and station-level transactions available at predicted_at; an already-open stockout remains observed and is excluded from prediction."
+        }
+    },
+    "queue": {
+        "modelFamily": "nonnegative_seasonal_net_plus_known_demand",
+        "trainingWindow": {
+            "cohortSize": 1008,
+            "trainCount": 705,
+            "evaluateCount": 303,
+            "trainFrom": "2026-06-03T12:00:00+00:00",
+            "trainTo": "2026-07-02T20:00:00+00:00",
+            "evaluateFrom": "2026-07-02T21:00:00+00:00",
+            "evaluateTo": "2026-07-15T11:00:00+00:00"
+        },
+        "model": {
+            "scheduledDemandWeight": 0.8,
+            "expectedScheduledDemand": 2,
+            "recentTrendWeight": 0.35,
+            "seasonalNetByHourOfWeek": [
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                1.25,
+                1.25,
+                1.25,
+                1.25,
+                0.55,
+                0.55,
+                0.55,
+                0.55,
+                -0.15,
+                -0.15,
+                -0.15,
+                -0.15,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                1.25,
+                1.25,
+                1.25,
+                1.25,
+                0.55,
+                0.55,
+                0.55,
+                0.55,
+                -0.15,
+                -0.15,
+                -0.15,
+                -0.15,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                1.25,
+                1.25,
+                1.25,
+                1.25,
+                0.55,
+                0.55,
+                0.55,
+                0.55,
+                -0.15,
+                -0.15,
+                -0.15,
+                -0.15,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                1.25,
+                1.25,
+                1.25,
+                1.25,
+                0.55,
+                0.55,
+                0.55,
+                0.55,
+                -0.15,
+                -0.15,
+                -0.15,
+                -0.15,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.45,
+                1.25,
+                1.25,
+                1.25,
+                1.25,
+                0.55,
+                0.55,
+                0.55,
+                0.55,
+                -0.15,
+                -0.15,
+                -0.15,
+                -0.15,
+                0.35,
+                0.35,
+                0.35,
+                0.35,
+                -0.45,
+                -0.45,
+                -0.45,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                1.1,
+                1.1,
+                1.1,
+                1.1,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                -0.3,
+                -0.3,
+                -0.3,
+                -0.3,
+                0.19999999999999998,
+                0.19999999999999998,
+                0.19999999999999998,
+                0.19999999999999998,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                -0.6,
+                1.1,
+                1.1,
+                1.1,
+                1.1,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                -0.3,
+                -0.3,
+                -0.3,
+                -0.3,
+                0.19999999999999998,
+                0.19999999999999998,
+                0.19999999999999998,
+                0.19999999999999998,
+                -0.6,
+                -0.6,
+                -0.6
+            ],
+            "residualRmse": 0.2916
+        },
+        "evaluation": {
+            "mae": 0.2373,
+            "rmse": 0.2916,
+            "wape": 0.001,
+            "coverage": {
+                "evaluated": 303,
+                "total": 303,
+                "fraction": 1
+            },
+            "baselines": {
+                "seasonalHourOfWeek": {
+                    "strategy": "current_depth_plus_hour_of_week_net",
+                    "mae": 1.1305,
+                    "rmse": 1.3379,
+                    "wape": 0.0049
+                },
+                "lastValue": {
+                    "strategy": "persistence_current_depth",
+                    "mae": 1.2886,
+                    "rmse": 1.5713,
+                    "wape": 0.0056
+                }
+            },
+            "winnerRule": "Model MAE and RMSE must both be lower than both declared baselines on the later evaluation window.",
+            "beatsBaselines": true
+        }
+    },
+    "stockout": {
+        "modelFamily": "calibrated_logistic",
+        "featureSchema": [
+            "inventory_ratio",
+            "vend_velocity_norm",
+            "refill_velocity_norm",
+            "refill_gap_norm",
+            "shortage_flag",
+            "station_downtime",
+            "hour_sin",
+            "hour_cos",
+            "is_weekend",
+            "inventory_pressure"
+        ],
+        "trainingWindow": {
+            "cohortSize": 900,
+            "trainCount": 630,
+            "evaluateCount": 270,
+            "trainFrom": "2026-06-08T00:00:00+00:00",
+            "trainTo": "2026-07-04T05:00:00+00:00",
+            "evaluateFrom": "2026-07-04T06:00:00+00:00",
+            "evaluateTo": "2026-07-15T11:00:00+00:00"
+        },
+        "model": {
+            "weights": {
+                "inventory_ratio": -2.569720907288397,
+                "vend_velocity_norm": 0.9823520779659213,
+                "refill_velocity_norm": -1.1382350940833852,
+                "refill_gap_norm": 0.9043972142184611,
+                "shortage_flag": 0.9324749337663976,
+                "station_downtime": 0.5301482624250812,
+                "hour_sin": 0.28539274971051976,
+                "hour_cos": -0.020899143426914943,
+                "is_weekend": -0.1862803566139803,
+                "inventory_pressure": 1.7703530325176917
+            },
+            "bias": -1.6037553480888926,
+            "calibrationCurve": [
+                {
+                    "score": 0,
+                    "calibrated": 0
+                },
+                {
+                    "score": 0.035059,
+                    "calibrated": 0.03125
+                },
+                {
+                    "score": 0.143125,
+                    "calibrated": 0.043956
+                },
+                {
+                    "score": 0.245472,
+                    "calibrated": 0.122807
+                },
+                {
+                    "score": 0.344542,
+                    "calibrated": 0.315789
+                },
+                {
+                    "score": 0.450881,
+                    "calibrated": 0.558824
+                },
+                {
+                    "score": 0.556087,
+                    "calibrated": 0.653846
+                },
+                {
+                    "score": 0.640205,
+                    "calibrated": 0.761905
+                },
+                {
+                    "score": 0.751163,
+                    "calibrated": 0.875
+                },
+                {
+                    "score": 0.852427,
+                    "calibrated": 1
+                },
+                {
+                    "score": 0.927023,
+                    "calibrated": 1
+                },
+                {
+                    "score": 1,
+                    "calibrated": 1
+                }
+            ]
+        },
+        "evaluation": {
+            "calibrationError": 0.037,
+            "discriminationAuc": 0.8978,
+            "brierScore": 0.0762,
+            "coverage": {
+                "evaluated": 270,
+                "total": 270,
+                "fraction": 1
+            },
+            "naiveBaseline": {
+                "strategy": "training_base_rate",
+                "baseRate": 0.2,
+                "brierScore": 0.14,
+                "discriminationAuc": 0.5
+            },
+            "beatsBaseline": true
+        }
+    }
+}

@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             // Connector definitions are explicit templates, never observed-health
             // records. Loading the Integrations page never mutates this catalog.
             IntegrationConnectorTemplateSeeder::class,
+            // Shared ancillary milestone/barrier/SLA policy catalogs. Department
+            // demo generators and projectors depend on these stable codes.
+            AncillaryReferenceSeeder::class,
             // Reference projection is explicit and precedes any scenario-owned
             // workforce rows. Demo roll-forward never mutates the taxonomy.
             StaffingReferenceSeeder::class,

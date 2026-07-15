@@ -1,0 +1,131 @@
+{
+    "modelVersion": "rad-breach-risk-2026.07.13-synthetic-v1",
+    "modelFamily": "calibrated_logistic",
+    "synthetic": true,
+    "syntheticLabel": "Synthetic demo calibration \u2014 planning aid only, trained on generated demo history, not a clinical model.",
+    "target": {
+        "definition": "An open imaging order breaches its applicable policy SLA (RAD_ORDERED\u2192RAD_FINAL for STAT, RAD_IMAGES_AVAILABLE\u2192RAD_FINAL for emergency) within the declared prediction horizon.",
+        "horizonMinutes": 60,
+        "cutoffRule": "Label and features are anchored at ordered_at; no post-order evidence enters the feature vector."
+    },
+    "calibratedAt": "2026-07-13T12:00:00+00:00",
+    "featureSchema": [
+        "hour_sin",
+        "hour_cos",
+        "is_weekend",
+        "is_off_hours",
+        "modality_ct",
+        "modality_mri",
+        "modality_us",
+        "modality_other",
+        "priority_stat",
+        "priority_urgent",
+        "patient_emergency",
+        "patient_inpatient",
+        "queue_depth_norm",
+        "stage_age_norm",
+        "scanner_down",
+        "staffing_pressure"
+    ],
+    "trainingWindow": {
+        "anchor": "2026-07-13T12:00:00+00:00",
+        "cohortSize": 900,
+        "trainCount": 630,
+        "evaluateCount": 270,
+        "splitAt": "2026-07-04T12:00:00+00:00",
+        "trainFrom": "2026-06-13T12:00:00+00:00",
+        "trainTo": "2026-07-04T10:54:00+00:00",
+        "evaluateFrom": "2026-07-04T12:00:00+00:00",
+        "evaluateTo": "2026-07-13T11:03:00+00:00"
+    },
+    "model": {
+        "weights": {
+            "hour_sin": 0.13682832784709104,
+            "hour_cos": 0.46691836690542393,
+            "is_weekend": 0.36217587271489987,
+            "is_off_hours": 0.7218395405565006,
+            "modality_ct": -0.23542213973708226,
+            "modality_mri": -0.441744309513683,
+            "modality_us": -0.206688408562917,
+            "modality_other": -0.20804954976583023,
+            "priority_stat": 0.25746643504874583,
+            "priority_urgent": 0.1447594028547115,
+            "patient_emergency": 0.33770853531323425,
+            "patient_inpatient": -0.37410335679696916,
+            "queue_depth_norm": 1.557508871785207,
+            "stage_age_norm": -0.08419727123557663,
+            "scanner_down": 1.2524438669046536,
+            "staffing_pressure": 1.3539068229197468
+        },
+        "bias": -1.1755155769392203,
+        "calibrationCurve": [
+            {
+                "score": 0,
+                "calibrated": 0
+            },
+            {
+                "score": 0.097441,
+                "calibrated": 0
+            },
+            {
+                "score": 0.16117,
+                "calibrated": 0.084746
+            },
+            {
+                "score": 0.251822,
+                "calibrated": 0.191489
+            },
+            {
+                "score": 0.349942,
+                "calibrated": 0.363636
+            },
+            {
+                "score": 0.449119,
+                "calibrated": 0.6
+            },
+            {
+                "score": 0.560938,
+                "calibrated": 0.6
+            },
+            {
+                "score": 0.654966,
+                "calibrated": 0.609756
+            },
+            {
+                "score": 0.755005,
+                "calibrated": 0.716216
+            },
+            {
+                "score": 0.854037,
+                "calibrated": 0.923729
+            },
+            {
+                "score": 0.940717,
+                "calibrated": 0.927536
+            },
+            {
+                "score": 1,
+                "calibrated": 0.927536
+            }
+        ]
+    },
+    "evaluation": {
+        "calibrationError": 0.0484,
+        "discriminationAuc": 0.8087,
+        "brierScore": 0.1682,
+        "coverage": {
+            "evaluated": 270,
+            "total": 270,
+            "fraction": 1,
+            "note": "On the synthetic backtest every held-out order carries complete operational features; live coverage is reported per request as stale/missing signals degrade to low-confidence/unavailable."
+        },
+        "naiveBaseline": {
+            "strategy": "training_base_rate",
+            "baseRate": 0.619,
+            "brierScore": 0.2307,
+            "discriminationAuc": 0.5,
+            "brierSkillScore": 0.2706
+        },
+        "beatsBaseline": true
+    }
+}

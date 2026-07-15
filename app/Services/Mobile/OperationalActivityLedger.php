@@ -328,6 +328,7 @@ class OperationalActivityLedger
             str_starts_with($eventType, 'transport.') => 'transport',
             str_starts_with($eventType, 'evs.') => 'evs',
             str_starts_with($eventType, 'staffing.') => 'staffing',
+            str_starts_with($eventType, 'ancillary.') => 'ancillary',
             str_starts_with($eventType, 'or.') => 'or',
             str_starts_with($eventType, 'recommendation.'), str_starts_with($eventType, 'action.') => 'ops',
             default => 'ops',

@@ -119,7 +119,7 @@ class DemoTuningSeeder extends Seeder
             UPDATE prod.encounters
             SET expected_discharge_date = (admitted_at + ((2 + floor(random()*4))||' days')::interval)::date,
                 updated_at = now()
-            WHERE is_deleted = false AND expected_discharge_date IS NOT NULL AND expected_discharge_date < admitted_at
+            WHERE is_deleted = false AND expected_discharge_date IS NOT NULL AND expected_discharge_date < admitted_at::date
         ");
     }
 
@@ -202,14 +202,12 @@ class DemoTuningSeeder extends Seeder
         }
     }
 
-    /** 4. Refresh active transport/EVS SLAs to a near-now spread (UTC-aligned wall clock). */
+    /** 4. Refresh active EVS SLAs to a near-now spread (UTC-aligned wall clock). */
     private function refreshSlas(): void
     {
-        DB::update("
-            UPDATE prod.transport_requests
-            SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*150) - 40)||' minutes')::interval
-            WHERE requested_by = ? AND is_deleted = false AND status NOT IN ('completed', 'canceled', 'failed')
-        ", [OperationalDemoDataService::OWNER]);
+        // OperationalDemoDataService exclusively owns its transport scenario,
+        // including the deterministic four-of-twenty overdue cohort. Rewriting
+        // those deadlines here made strict demo validation nondeterministic.
         DB::update("
             UPDATE prod.evs_requests
             SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 30)||' minutes')::interval

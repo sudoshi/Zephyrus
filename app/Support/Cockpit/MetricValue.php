@@ -40,7 +40,7 @@ final readonly class MetricValue
      * Build from a raw number + its kpi_definition, resolving status through
      * the StatusEngine exactly once.
      *
-     * @param  array{label?: string, display?: string, sub?: string, trend?: list<int|float>, trendLabel?: string, updatedAt?: string, metadata?: array<string, mixed>}  $overrides
+     * @param  array{label?: string, display?: string, sub?: string, trend?: list<int|float>, trendLabel?: string, updatedAt?: string, metadata?: array<string, mixed>, status?: CockpitStatus}  $overrides
      */
     public static function fromDefinition(
         float $value,
@@ -60,7 +60,12 @@ final readonly class MetricValue
             display: $overrides['display'] ?? self::defaultDisplay($value, $unit),
             unit: $unit,
             sub: $overrides['sub'] ?? null,
-            status: $engine->resolveStatus($value, $definition),
+            // Fresh values always use StatusEngine. A server-side data-quality
+            // adapter may explicitly demote stale/unknown last-known values to
+            // NORMAL so unavailable evidence can never earn green or alert.
+            status: ($overrides['status'] ?? null) === CockpitStatus::NORMAL
+                ? CockpitStatus::NORMAL
+                : $engine->resolveStatus($value, $definition),
             target: $definition->target_value !== null ? (float) $definition->target_value : null,
             direction: $definition->direction ?? 'neutral',
             trend: $overrides['trend'] ?? [],

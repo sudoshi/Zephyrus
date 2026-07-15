@@ -38,9 +38,9 @@ class RoomRunningService
     private const PROFILE_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
     /** Prime-time window used for the room-occupancy utilisation rate. */
-    private const PRIME_START_HOUR = 7;
+    private const PRIME_START_HOUR = SuiteMetricCalculator::ROOM_RUNNING_START_HOUR;
 
-    private const PRIME_END_HOUR = 18; // 07:00-18:00 => 11h => 660 min
+    private const PRIME_END_HOUR = SuiteMetricCalculator::ROOM_RUNNING_END_HOUR; // 07:00-18:00 => 11h => 660 min
 
     /** Three-letter calendar month abbreviations, January .. December. */
     private const MONTH_ABBR = [

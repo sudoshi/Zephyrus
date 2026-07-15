@@ -14,19 +14,16 @@ use Illuminate\Support\Str;
 
 class EpicSmartFhirClient
 {
-    private const RESOURCE_TYPES = ['Encounter', 'Location'];
-
     public function __construct(
         private readonly IntegrationUrlPolicy $urlPolicy,
         private readonly IntegrationSecretReferenceResolver $secrets,
+        private readonly FhirResourcePolicy $resourcePolicy,
     ) {}
 
     /** @return array<string, mixed> */
     public function poll(int $sourceId, string $resourceType, int $ingestRunId): array
     {
-        if (! in_array($resourceType, self::RESOURCE_TYPES, true)) {
-            throw new IntegrationProtocolException('fhir_resource_not_allowed');
-        }
+        $this->resourcePolicy->assertResourceAllowed($resourceType);
 
         $source = Source::query()->findOrFail($sourceId);
         if (strtolower((string) $source->vendor) !== 'epic' || ! str_contains(strtolower((string) $source->interface_type), 'fhir')) {
@@ -60,6 +57,7 @@ class EpicSmartFhirClient
         if (! $credential || ! filled($credential->client_id) || ! filled($credential->jwks_secret_ref) || ! filled($credential->token_url)) {
             throw new IntegrationProtocolException('smart_credentials_required');
         }
+        $this->resourcePolicy->assertCredentialAllows($resourceType, $credential->scope_payload);
 
         $token = $this->accessToken($credential);
         $baseUrl = rtrim((string) $connection->base_url, '/');

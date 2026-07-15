@@ -6,6 +6,7 @@ use App\Models\Reference\CaseStatus;
 use App\Models\Reference\Service;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ORCase extends Model
 {
@@ -104,6 +105,16 @@ class ORCase extends Model
     public function safetyNotes()
     {
         return $this->hasMany(CaseSafetyNote::class, 'case_id', 'case_id');
+    }
+
+    public function anatomicPathologyCases(): HasMany
+    {
+        return $this->hasMany(\App\Models\Lab\AnatomicPathologyCase::class, 'case_id', 'case_id');
+    }
+
+    public function bloodBankReadiness(): HasMany
+    {
+        return $this->hasMany(\App\Models\Lab\BloodBankReadiness::class, 'case_id', 'case_id');
     }
 
     // Scopes

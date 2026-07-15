@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Lab\LabFlowBoardController;
 use App\Http\Controllers\Api\Mobile\ActivityController as MobileActivityController;
 use App\Http\Controllers\Api\Mobile\AltitudeController as MobileAltitudeController;
 use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
@@ -51,7 +52,13 @@ use App\Http\Controllers\Api\ORCaseController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowIngestController;
 use App\Http\Controllers\Api\PatientFlow\PatientFlowStreamController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyControlledController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyDischargeReadinessController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyDispenseController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyFlowBoardController;
+use App\Http\Controllers\Api\Pharmacy\PharmacyIvRoomController;
 use App\Http\Controllers\Api\ProviderController;
+use App\Http\Controllers\Api\Radiology\RadiologyFlowBoardController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\Rtdc\BarrierController;
 use App\Http\Controllers\Api\Rtdc\BedRequestController;
@@ -272,6 +279,36 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('rtdc')->group(funct
     Route::post('/bed-requests', [BedRequestController::class, 'store']);
     Route::get('/bed-requests/{bedRequestId}/recommendations', [BedRequestController::class, 'recommendations']);
     Route::post('/bed-requests/{bedRequestId}/decision', [BedRequestController::class, 'decision']);
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('radiology')->name('api.radiology.')->group(function () {
+    Route::get('/flow-board', [RadiologyFlowBoardController::class, 'show'])->name('flow-board');
+    Route::get('/worklist', [RadiologyFlowBoardController::class, 'worklist'])->name('worklist');
+    Route::get('/modality', [RadiologyFlowBoardController::class, 'modality'])->name('modality');
+    Route::get('/reads', [RadiologyFlowBoardController::class, 'reads'])->name('reads');
+    Route::get('/tat', [RadiologyFlowBoardController::class, 'tat'])->name('tat');
+    Route::get('/ir-utilization', [RadiologyFlowBoardController::class, 'irSuite'])->name('ir-utilization');
+    Route::post('/barriers', [RadiologyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('lab')->name('api.lab.')->group(function () {
+    Route::get('/flow-board', [LabFlowBoardController::class, 'show'])->name('flow-board');
+    Route::get('/specimens', [LabFlowBoardController::class, 'specimens'])->name('specimens');
+    Route::get('/pending-decisions', [LabFlowBoardController::class, 'pendingDecisions'])->name('pending-decisions');
+    Route::get('/blood-bank', [LabFlowBoardController::class, 'bloodBank'])->name('blood-bank');
+    Route::get('/anatomic-path', [LabFlowBoardController::class, 'anatomicPathology'])->name('anatomic-path');
+    Route::get('/tat', [LabFlowBoardController::class, 'tat'])->name('tat');
+    Route::post('/barriers', [LabFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
+});
+
+Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('pharmacy')->name('api.pharmacy.')->group(function () {
+    Route::get('/flow-board', [PharmacyFlowBoardController::class, 'show'])->name('flow-board');
+    Route::get('/discharge-readiness', [PharmacyDischargeReadinessController::class, 'show'])->name('discharge-readiness');
+    Route::get('/iv-room', [PharmacyIvRoomController::class, 'show'])->name('iv-room');
+    Route::get('/dispense', [PharmacyDispenseController::class, 'show'])->name('dispense');
+    Route::get('/controlled', [PharmacyControlledController::class, 'show'])->name('controlled');
+    Route::get('/tat', [PharmacyFlowBoardController::class, 'tat'])->name('tat');
+    Route::post('/barriers', [PharmacyFlowBoardController::class, 'storeBarrier'])->name('barriers.store');
 });
 
 // Transport command center (web session auth)

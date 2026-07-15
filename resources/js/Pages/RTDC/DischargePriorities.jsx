@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { router } from '@inertiajs/react';
 import { Icon } from '@iconify/react';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
 import generateMockDischargeData from '@/utils/generateMockDischargeData';
 import { formatDurationHours } from '@/lib/duration';
+import { ReadinessVector } from '@/Components/Ancillary';
 
 const DischargePriorities = (props) => {
   const mockData = {
@@ -126,6 +128,11 @@ const DischargePriorities = (props) => {
                   {patient.risk} Risk
                 </span>
               </div>
+              {(Array.isArray(patient.readiness) ? patient.readiness : [patient.imaging, patient.lab].filter(Boolean)).length > 0 ? (
+                <div className="mt-3">
+                  <ReadinessVector axes={Array.isArray(patient.readiness) ? patient.readiness : [patient.imaging, patient.lab].filter(Boolean)} variant="compact" onDrill={(href) => router.visit(href)} />
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

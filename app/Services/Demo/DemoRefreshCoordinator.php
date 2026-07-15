@@ -3,6 +3,7 @@
 namespace App\Services\Demo;
 
 use App\Jobs\RefreshCockpitSnapshot;
+use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -32,7 +33,16 @@ final class DemoRefreshCoordinator
 
     private const SEED_VERSION = '2026-07-10-wave1';
 
-    public function __construct(private readonly DemoInvariantService $invariants) {}
+    public function __construct(
+        private readonly DemoInvariantService $invariants,
+        private readonly AncillaryDemoScenarioService $ancillary,
+    ) {}
+
+    /** @return array<string, mixed> */
+    public function previewAncillary(DemoClock $clock): array
+    {
+        return $this->ancillary->preview($clock);
+    }
 
     /**
      * @return array{refreshId:string,status:string,anchor:string,durationMs:int,
@@ -72,12 +82,22 @@ final class DemoRefreshCoordinator
                     '--refresh' => true,
                 ]));
             }
+            $domains[] = $this->step('ancillary', fn () => $this->ancillary->refresh($clock));
+            $domains[] = $this->step('ancillary_ocel', fn () => Artisan::call('ocel:project-ancillary', [
+                '--since' => $clock->windowStart()->toIso8601String(),
+                '--until' => $clock->windowEnd()->toIso8601String(),
+            ]));
             // NB: no flow:snapshot --backfill here. The rebase already shifts the fixture
             // occupancy_snapshots to cover the trailing window; --backfill is an initial-seed
             // helper ("history on day one") and re-running it every cycle appends off-hour
             // duplicate checkpoints (the rebase nudges prior rows off their hour-aligned upsert
             // key). Ongoing current-hour capture is the separate hourly flow:snapshot schedule.
             $domains[] = $this->step('source_freshness', fn () => $this->refreshSourceFreshness());
+
+            $failedDomains = array_values(array_filter($domains, fn (array $domain): bool => ! $domain['ok']));
+            if ($failedDomains !== []) {
+                throw new \RuntimeException('demo refresh domain failed: '.implode(', ', array_column($failedDomains, 'domain')));
+            }
 
             $findings = $this->invariants->run($clock);
             $critical = array_values(array_filter($findings, fn ($f) => $f['severity'] === 'critical' && ! $f['passed']));
@@ -179,16 +199,16 @@ final class DemoRefreshCoordinator
 
     // ---- helpers ----
 
-    /** @return array{domain:string,ok:bool,ms:int,exit:?int,error:?string} */
+    /** @return array{domain:string,ok:bool,ms:int,exit:?int,error:?string,result:mixed} */
     private function step(string $domain, callable $fn): array
     {
         $t0 = microtime(true);
         try {
-            $exit = $fn();
+            $result = $fn();
 
-            return ['domain' => $domain, 'ok' => ($exit === null || $exit === 0), 'ms' => (int) round((microtime(true) - $t0) * 1000), 'exit' => is_int($exit) ? $exit : null, 'error' => null];
+            return ['domain' => $domain, 'ok' => ($result === null || ! is_int($result) || $result === 0), 'ms' => (int) round((microtime(true) - $t0) * 1000), 'exit' => is_int($result) ? $result : null, 'error' => null, 'result' => is_array($result) ? $result : null];
         } catch (Throwable $e) {
-            return ['domain' => $domain, 'ok' => false, 'ms' => (int) round((microtime(true) - $t0) * 1000), 'exit' => null, 'error' => $e->getMessage()];
+            return ['domain' => $domain, 'ok' => false, 'ms' => (int) round((microtime(true) - $t0) * 1000), 'exit' => null, 'error' => $e->getMessage(), 'result' => null];
         }
     }
 
