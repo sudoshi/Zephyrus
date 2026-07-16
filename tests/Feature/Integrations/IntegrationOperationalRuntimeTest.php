@@ -287,6 +287,275 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $this->assertStringNotContainsString('RECOGNIZABLE-FHIR-BODY-9911', json_encode($span->toArray(), JSON_THROW_ON_ERROR));
     }
 
+    public function test_fhir_search_uses_an_inclusive_cursor_strict_handling_and_safe_operation_outcomes(): void
+    {
+        $sourceId = $this->readyEpicSource();
+        $runId = $this->fhirRun($sourceId, (string) Str::uuid());
+        $cursor = '2026-07-10T12:00:00Z';
+        DB::table('integration.connector_watermarks')->insert([
+            'source_id' => $sourceId,
+            'connector_key' => 'fhir.r4',
+            'scope_type' => 'resource_type',
+            'scope_key' => 'Encounter',
+            'watermark_kind' => 'last_updated',
+            'watermark_value' => $cursor,
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $strictSearchSeen = false;
+        Http::swap(new HttpFactory);
+        Http::fake(function (Request $request) use (&$strictSearchSeen, $cursor) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => 'strict-search-token', 'expires_in' => 300]);
+            }
+            if (str_starts_with($request->url(), config('integrations.epic_sandbox.base_url').'/Encounter')) {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+                $strictSearchSeen = $request->hasHeader('Prefer', 'handling=strict')
+                    && ($query['_lastUpdated'] ?? null) === 'ge'.$cursor
+                    && ($query['_sort'] ?? null) === '_lastUpdated';
+
+                return Http::response([
+                    'resourceType' => 'Bundle',
+                    'type' => 'searchset',
+                    'entry' => [
+                        [
+                            'search' => ['mode' => 'include'],
+                            'resource' => ['resourceType' => 'Patient', 'id' => 'included-patient'],
+                        ],
+                        [
+                            'search' => ['mode' => 'outcome'],
+                            'resource' => [
+                                'resourceType' => 'OperationOutcome',
+                                'issue' => [[
+                                    'severity' => 'warning',
+                                    'code' => 'processing',
+                                    'diagnostics' => 'RECOGNIZABLE-OUTCOME-DIAGNOSTIC-9911',
+                                ]],
+                            ],
+                        ],
+                        [
+                            'search' => ['mode' => 'match'],
+                            'resource' => [
+                                'resourceType' => 'Encounter',
+                                'id' => 'inclusive-boundary-encounter',
+                                'meta' => ['versionId' => '1', 'lastUpdated' => $cursor],
+                                'status' => 'finished',
+                            ],
+                        ],
+                    ],
+                ], 200, ['Content-Type' => 'application/fhir+json']);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $result = app(SmartBackendFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+
+        $this->assertTrue($strictSearchSeen);
+        $this->assertSame('search', $result['pollingInteraction']);
+        $this->assertSame(1, $result['resourcesReceived']);
+        $this->assertSame(1, $result['resourcesPersisted']);
+        $this->assertSame(2, $result['resourcesSkipped']);
+        $this->assertSame(1, $result['operationOutcomes']);
+        $this->assertSame(1, DB::table('raw.inbound_messages')->where('source_id', $sourceId)->count());
+        $this->assertStringNotContainsString('RECOGNIZABLE-OUTCOME-DIAGNOSTIC-9911', (string) json_encode([
+            DB::table('raw.inbound_messages')->where('source_id', $sourceId)->get(),
+            DB::table('integration.source_runtime_pressure_events')->where('source_id', $sourceId)->get(),
+        ], JSON_THROW_ON_ERROR));
+
+        Http::swap(new HttpFactory);
+        Http::fake(function (Request $request) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => 'outcome-error-token', 'expires_in' => 300]);
+            }
+
+            return Http::response([
+                'resourceType' => 'Bundle',
+                'type' => 'searchset',
+                'entry' => [[
+                    'search' => ['mode' => 'outcome'],
+                    'resource' => [
+                        'resourceType' => 'OperationOutcome',
+                        'issue' => [[
+                            'severity' => 'error',
+                            'code' => 'invalid',
+                            'diagnostics' => 'RECOGNIZABLE-FATAL-DIAGNOSTIC-7744',
+                        ]],
+                    ],
+                ]],
+            ], 200, ['Content-Type' => 'application/fhir+json']);
+        });
+        try {
+            app(SmartBackendFhirClient::class)->poll($sourceId, 'Encounter', $this->fhirRun($sourceId, (string) Str::uuid()));
+            $this->fail('An error OperationOutcome must fail the search without exposing its diagnostics.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('fhir_operation_outcome_error', $exception->errorCode);
+            $this->assertStringNotContainsString('RECOGNIZABLE-FATAL-DIAGNOSTIC-7744', $exception->getMessage());
+        }
+        $this->assertSame(
+            CarbonImmutable::parse($cursor)->toIso8601String(),
+            CarbonImmutable::parse((string) DB::table('integration.connector_watermarks')
+                ->where('source_id', $sourceId)
+                ->where('scope_key', 'Encounter')
+                ->where('watermark_kind', 'last_updated')
+                ->value('watermark_value'))->toIso8601String(),
+        );
+    }
+
+    public function test_fhir_type_history_persists_encrypted_versions_and_deletion_tombstones(): void
+    {
+        $sourceId = $this->readyEpicSource();
+        $profile = app(FhirResourceProfileService::class)->configure(
+            $sourceId,
+            'Encounter',
+            ['polling_interaction' => 'history'],
+            null,
+            'Use type history so version changes and deletions are captured.',
+            (string) Str::uuid(),
+        );
+        $this->assertSame('history', $profile->polling_interaction);
+        $this->assertSame('enabled', $profile->profile_status);
+
+        $runId = $this->fhirRun($sourceId, (string) Str::uuid());
+        $strictHistorySeen = false;
+        Http::swap(new HttpFactory);
+        Http::fake(function (Request $request) use (&$strictHistorySeen) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => 'history-token', 'expires_in' => 300]);
+            }
+            if (str_starts_with($request->url(), config('integrations.epic_sandbox.base_url').'/Encounter/_history')) {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+                $strictHistorySeen = $request->hasHeader('Prefer', 'handling=strict')
+                    && ($query['_count'] ?? null) === '100'
+                    && ! isset($query['_since']);
+
+                return Http::response([
+                    'resourceType' => 'Bundle',
+                    'type' => 'history',
+                    'entry' => [
+                        [
+                            'resource' => [
+                                'resourceType' => 'Encounter',
+                                'id' => 'history-encounter',
+                                'meta' => ['versionId' => '2', 'lastUpdated' => '2026-07-10T12:00:00Z'],
+                                'status' => 'finished',
+                                'identifier' => [['value' => 'RECOGNIZABLE-HISTORY-BODY-5511']],
+                            ],
+                            'request' => ['method' => 'PUT', 'url' => 'Encounter/history-encounter'],
+                            'response' => ['status' => '200', 'etag' => 'W/"2"', 'lastModified' => '2026-07-10T12:00:00Z'],
+                        ],
+                        [
+                            'request' => ['method' => 'DELETE', 'url' => 'Encounter/deleted-encounter'],
+                            'response' => ['status' => '204', 'etag' => 'W/"4"', 'lastModified' => '2026-07-10T12:05:00Z'],
+                        ],
+                    ],
+                ], 200, ['Content-Type' => 'application/fhir+json']);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $result = app(SmartBackendFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+
+        $this->assertTrue($strictHistorySeen);
+        $this->assertSame('history', $result['pollingInteraction']);
+        $this->assertSame(2, $result['resourcesReceived']);
+        $this->assertSame(2, $result['resourcesPersisted']);
+        $this->assertSame(1, $result['resourcesDeleted']);
+        $this->assertDatabaseHas('fhir.resource_versions', [
+            'source_id' => $sourceId,
+            'fhir_id' => 'history-encounter',
+            'version_id' => '2',
+            'deleted_at' => null,
+        ]);
+        $this->assertDatabaseHas('fhir.resource_versions', [
+            'source_id' => $sourceId,
+            'fhir_id' => 'deleted-encounter',
+            'version_id' => '4',
+        ]);
+        $activeVersion = DB::table('fhir.resource_versions')->where('fhir_id', 'history-encounter')->firstOrFail();
+        $tombstone = DB::table('fhir.resource_versions')->where('fhir_id', 'deleted-encounter')->firstOrFail();
+        $this->assertNotNull($activeVersion->payload_object_id);
+        $this->assertNotNull($tombstone->deleted_at);
+        $this->assertNull($tombstone->payload_object_id);
+        $this->assertSame('{}', $tombstone->resource_data);
+        $this->assertDatabaseHas('raw.inbound_messages', [
+            'source_id' => $sourceId,
+            'message_type' => 'FHIR_R4_Encounter_DELETE',
+            'payload_object_id' => null,
+        ]);
+        $this->assertSame('2026-07-10T12:05:00+00:00', CarbonImmutable::parse((string) DB::table('integration.connector_watermarks')
+            ->where('source_id', $sourceId)
+            ->where('scope_key', 'Encounter')
+            ->where('watermark_kind', 'history_since')
+            ->value('watermark_value'))->toIso8601String());
+        $this->assertStringNotContainsString('RECOGNIZABLE-HISTORY-BODY-5511', (string) json_encode([
+            DB::table('raw.inbound_messages')->where('source_id', $sourceId)->get(),
+            DB::table('fhir.resource_versions')->where('source_id', $sourceId)->get(),
+        ], JSON_THROW_ON_ERROR));
+
+        $inclusiveSinceSeen = false;
+        Http::swap(new HttpFactory);
+        Http::fake(function (Request $request) use (&$inclusiveSinceSeen) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => 'history-cursor-token', 'expires_in' => 300]);
+            }
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $inclusiveSinceSeen = isset($query['_since'])
+                && CarbonImmutable::parse((string) $query['_since'])->equalTo(CarbonImmutable::parse('2026-07-10T12:05:00Z'));
+
+            return Http::response(
+                ['resourceType' => 'Bundle', 'type' => 'history', 'entry' => []],
+                200,
+                ['Content-Type' => 'application/fhir+json'],
+            );
+        });
+        $secondResult = app(SmartBackendFhirClient::class)->poll(
+            $sourceId,
+            'Encounter',
+            $this->fhirRun($sourceId, (string) Str::uuid()),
+        );
+        $this->assertTrue($inclusiveSinceSeen);
+        $this->assertFalse($secondResult['watermarkAdvanced']);
+        $this->assertSame(2, DB::table('fhir.resource_versions')->where('source_id', $sourceId)->count());
+    }
+
+    public function test_fhir_history_profile_fails_closed_without_type_history_capability(): void
+    {
+        config([
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
+            'integrations.network.require_dns_resolution' => false,
+        ]);
+        $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(
+            clientId: 'search-only-client',
+            privateKeyRef: $this->privateKeyReference(),
+            activate: true,
+            facilityKey: $this->facilityKey,
+        );
+        $sourceId = (int) $source['sourceId'];
+        Http::fake($this->epicDiscoveryResponses(historyResourceTypes: []));
+        app(IntegrationProtocolHealthService::class)->check($sourceId);
+
+        $profile = app(FhirResourceProfileService::class)->configure(
+            $sourceId,
+            'Encounter',
+            ['polling_interaction' => 'history'],
+            null,
+            'Reject type history until the server advertises that interaction.',
+            (string) Str::uuid(),
+        );
+
+        $this->assertSame('history', $profile->polling_interaction);
+        $this->assertSame('configured', $profile->profile_status);
+        try {
+            app(FhirResourceProfileService::class)->requirePollable($sourceId, 'Encounter');
+            $this->fail('History polling must remain blocked without history-type conformance evidence.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('fhir_polling_interaction_not_supported', $exception->errorCode);
+        }
+    }
+
     public function test_generic_smart_fhir_core_governs_dynamic_resource_profiles_and_vendor_policy(): void
     {
         $sourceId = $this->readyEpicSource();
@@ -305,6 +574,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.resourceType', 'Observation')
+            ->assertJsonPath('data.pollingInteraction', 'search')
             ->assertJsonPath('data.status', 'configured')
             ->assertJsonPath('data.versionNumber', 1);
         $observation = DB::table('integration.fhir_resource_profiles')
@@ -1089,8 +1359,10 @@ class IntegrationOperationalRuntimeTest extends TestCase
         array $resourceTypes = ['Encounter', 'Location'],
         ?string $tokenUrl = null,
         ?array $searchableResourceTypes = null,
+        ?array $historyResourceTypes = null,
     ): array {
         $searchableResourceTypes ??= $resourceTypes;
+        $historyResourceTypes ??= $searchableResourceTypes;
 
         return [
             config('integrations.epic_sandbox.smart_configuration_url') => Http::response([
@@ -1129,6 +1401,9 @@ class IntegrationOperationalRuntimeTest extends TestCase
                                 ['code' => 'read'],
                                 in_array($resourceType, $searchableResourceTypes, true)
                                     ? ['code' => 'search-type']
+                                    : null,
+                                in_array($resourceType, $historyResourceTypes, true)
+                                    ? ['code' => 'history-type']
                                     : null,
                             ])),
                             'versioning' => 'versioned',

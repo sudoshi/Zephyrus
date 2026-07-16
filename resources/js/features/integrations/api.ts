@@ -138,6 +138,7 @@ const fhirResourceProfileSchema = z.object({
   canonicalProfileVersion: nullableString,
   status: z.string(),
   pollEnabled: z.boolean(),
+  pollingInteraction: z.enum(['search', 'history']),
   cadenceMinutes: z.number(),
   pageSize: z.number(),
   pageLimit: z.number(),
@@ -493,6 +494,7 @@ export type FhirResourceProfileInput = {
   canonical_profile_url?: string | null;
   canonical_profile_version?: string | null;
   poll_enabled: boolean;
+  polling_interaction: 'search' | 'history';
   cadence_minutes: number;
   page_size: number;
   page_limit: number;

@@ -1,6 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page);
+});
 
 test.setTimeout(120_000);
 
@@ -226,17 +231,19 @@ test('ED, RTDC full vector, and Cockpit compact joins reconcile to owned Pharmac
   // RTDC full readiness vector: imaging + lab + medication all present.
   await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Matrix' }).click();
-  await expect(page.getByText('Imaging', { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('Laboratory', { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('Medication', { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Radiology worklist for/i }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Lab Laboratory Flow Board for/i }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Pharmacy Medication Flow Board for/i }).first()).toBeVisible();
   await expectContainedAndPrivate(page, 'rtdc-full-vector');
 
   // Cockpit Flow drill reconciles Pharmacy to its owned destinations.
   await page.goto('/dashboard?drill=flow', { waitUntil: 'domcontentloaded' });
   const table = page.getByRole('table', { name: 'Ancillary operational health' });
   await expect(table.getByText('Pharmacy', { exact: true })).toBeVisible();
+  // The compact cockpit row is deliberately bounded to queue, STAT age, and
+  // shortage station measures; sepsis detail remains on the owned workspace.
+  await expect(table.locator('a[href="/pharmacy?source=cockpit"]')).toBeVisible();
   await expect(table.locator('a[href="/pharmacy?lens=stat&source=cockpit"]')).toBeVisible();
-  await expect(table.locator('a[href="/pharmacy?lens=sepsis&source=cockpit"]')).toBeVisible();
   await expect(table.locator('a[href="/pharmacy?lens=shortage&source=cockpit"]')).toBeVisible();
   await expectContainedAndPrivate(page, 'cockpit-compact-join');
 

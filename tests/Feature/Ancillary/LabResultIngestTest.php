@@ -286,6 +286,7 @@ class LabResultIngestTest extends TestCase
     private function source(string $key, array $families, string $interfaceType = 'hl7v2', array $milestoneMap = []): Source
     {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key,
             'source_name' => $key,
             'system_class' => 'lis',

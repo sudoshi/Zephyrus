@@ -192,14 +192,18 @@ class IntegrationProtocolHealthService
 
             DB::table('integration.source_capabilities')->where('source_id', $source->source_id)->where('capability_type', 'fhir_resource')->delete();
             foreach ($conformance['resources'] as $resource) {
-                if (! in_array('search-type', $resource['interactions'], true)) {
+                $pollingInteractions = array_values(array_intersect(
+                    ['search-type', 'history-type'],
+                    $resource['interactions'],
+                ));
+                if ($pollingInteractions === []) {
                     continue;
                 }
                 DB::table('integration.source_capabilities')->insert([
                     'source_id' => $source->source_id,
                     'resource_type' => $resource['resourceType'],
                     'capability_type' => 'fhir_resource',
-                    'operation' => 'search-type',
+                    'operation' => implode('+', $pollingInteractions),
                     'supported' => true,
                     'metadata' => json_encode([
                         'conformanceObservationId' => $conformance['observationId'],
@@ -215,7 +219,14 @@ class IntegrationProtocolHealthService
             }
             $this->fhirProfiles->reconcileCapabilities(
                 (int) $source->source_id,
-                $conformance['searchableResourceTypes'],
+                collect($conformance['resources'])
+                    ->filter(fn (array $resource): bool => array_intersect(
+                        ['search-type', 'history-type'],
+                        $resource['interactions'],
+                    ) !== [])
+                    ->pluck('resourceType')
+                    ->values()
+                    ->all(),
             );
 
             return $conformance;

@@ -5,7 +5,10 @@ import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { Providers } from './Providers/HeroUIProvider';
 import { NavigationProgress } from './Components/NavigationProgress';
+import { registerLocalIconifyCollections } from './iconify-bundle';
 import type { ReactNode } from 'react';
+
+registerLocalIconifyCollections();
 
 interface InertiaAppProps {
     Component: React.ComponentType<Record<string, unknown>>;

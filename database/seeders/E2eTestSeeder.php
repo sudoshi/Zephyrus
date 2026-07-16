@@ -8,11 +8,13 @@ use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
 use App\Services\Auth\Oidc\ExternalIdentityEventRecorder;
+use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
+use App\Services\Demo\DemoClock;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 
-/** Provision only the deterministic browser-test actor and non-PHI RTDC fixtures. */
+/** Provision the deterministic browser actor and synthetic cross-domain release fixtures. */
 class E2eTestSeeder extends Seeder
 {
     public function run(): void
@@ -119,6 +121,17 @@ class E2eTestSeeder extends Seeder
             'metadata' => ['fixture' => 'browser_test'],
         ]);
 
-        $this->call(RtdcSeeder::class);
+        $this->call([
+            RtdcSeeder::class,
+            CaseManagementSeeder::class,
+            StaffingReferenceSeeder::class,
+            CommandCenterDemoSeeder::class,
+            AncillaryReferenceSeeder::class,
+        ]);
+
+        // Browser assertions span Perioperative, RTDC, Cockpit, Laboratory,
+        // Radiology, and Pharmacy. Seed their shared synthetic cohort against
+        // one immutable clock so every drill and readiness join reconciles.
+        app(AncillaryDemoScenarioService::class)->refresh(new DemoClock);
     }
 }

@@ -294,7 +294,7 @@ const VariantsViewPanel = () => {
     {
       title: 'Process Variants',
       items: [
-        { id: 'summary', label: 'Summary', icon: 'carbon:summary' },
+        { id: 'summary', label: 'Summary', icon: 'carbon:summary-kpi' },
         { id: 'outliers', label: 'Outliers', icon: 'carbon:warning' },
         { id: 'statistics', label: 'Statistics', icon: 'carbon:chart-line' }
       ]

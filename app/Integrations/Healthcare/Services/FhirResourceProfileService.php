@@ -98,6 +98,9 @@ final class FhirResourceProfileService
             }
 
             $pollEnabled = (bool) ($input['poll_enabled'] ?? $existing?->poll_enabled ?? true);
+            $pollingInteraction = $this->pollingInteraction(
+                $input['polling_interaction'] ?? $existing?->polling_interaction ?? 'search',
+            );
             $values = [
                 'configuration_version_id' => $source->current_configuration_version_id,
                 'canonical_profile_url' => $this->optionalString(
@@ -113,10 +116,13 @@ final class FhirResourceProfileService
                     80,
                 ),
                 'profile_status' => $pollEnabled
-                    ? ((string) ($existing?->profile_status ?? '') === 'enabled' ? 'enabled' : 'configured')
+                    ? ((string) ($existing?->profile_status ?? '') === 'enabled'
+                        && $pollingInteraction === (string) ($existing?->polling_interaction ?? 'search')
+                            ? 'enabled'
+                            : 'configured')
                     : 'suspended',
                 'poll_enabled' => $pollEnabled,
-                'polling_interaction' => 'search',
+                'polling_interaction' => $pollingInteraction,
                 'cadence_minutes' => $this->boundedInteger($input['cadence_minutes'] ?? $existing?->cadence_minutes ?? 15, 1, 10080),
                 'page_size' => $this->boundedInteger($input['page_size'] ?? $existing?->page_size ?? 100, 1, 1000),
                 'page_limit' => $this->boundedInteger($input['page_limit'] ?? $existing?->page_limit ?? 10, 1, 100),
@@ -237,10 +243,15 @@ final class FhirResourceProfileService
                 }
 
                 $advertisedNow = isset($advertised[(string) $profile->resource_type]);
+                $interactionAdvertised = $advertisedNow && $this->interactionAdvertised(
+                    $sourceId,
+                    (string) $profile->resource_type,
+                    (string) $profile->polling_interaction,
+                );
                 $scopeAuthorized = $this->scopeAllows($sourceId, (string) $profile->resource_type);
                 $nextStatus = match (true) {
-                    $advertisedNow && $scopeAuthorized && (bool) $profile->poll_enabled => 'enabled',
-                    (! $advertisedNow || ! $scopeAuthorized) && (string) $profile->profile_status === 'enabled' => 'suspended',
+                    $advertisedNow && $interactionAdvertised && $scopeAuthorized && (bool) $profile->poll_enabled => 'enabled',
+                    (! $advertisedNow || ! $interactionAdvertised || ! $scopeAuthorized) && (string) $profile->profile_status === 'enabled' => 'suspended',
                     default => (string) $profile->profile_status,
                 };
                 if ($nextStatus === (string) $profile->profile_status) {
@@ -255,11 +266,13 @@ final class FhirResourceProfileService
                         'reason_code' => match (true) {
                             $nextStatus === 'enabled' => 'capability_and_scope_confirmed',
                             ! $advertisedNow => 'capability_missing_profile_suspended',
+                            ! $interactionAdvertised => 'interaction_missing_profile_suspended',
                             default => 'smart_scope_missing_profile_suspended',
                         },
                         'change_reason' => match (true) {
                             $nextStatus === 'enabled' => 'Enable polling after capability and SMART scope confirmation.',
                             ! $advertisedNow => 'Suspend polling because the server capability is no longer advertised.',
+                            ! $interactionAdvertised => 'Suspend polling because the approved FHIR interaction is no longer advertised.',
                             default => 'Suspend polling because the required SMART system read scope is unavailable.',
                         },
                         'configured_by_user_id' => null,
@@ -292,6 +305,9 @@ final class FhirResourceProfileService
         }
         if (! $this->scopeAllows($sourceId, $resourceType)) {
             throw new IntegrationProtocolException('smart_scope_not_authorized_for_resource');
+        }
+        if (! $this->interactionAdvertised($sourceId, $resourceType, (string) $profile->polling_interaction)) {
+            throw new IntegrationProtocolException('fhir_polling_interaction_not_supported');
         }
         if ((string) $profile->profile_status !== 'enabled') {
             throw new IntegrationProtocolException('fhir_resource_profile_not_enabled');
@@ -377,6 +393,36 @@ final class FhirResourceProfileService
         }
 
         return $value;
+    }
+
+    private function pollingInteraction(mixed $value): string
+    {
+        $value = strtolower(trim((string) $value));
+        if (! in_array($value, ['search', 'history'], true)) {
+            throw new InvalidArgumentException('fhir_polling_interaction_invalid');
+        }
+
+        return $value;
+    }
+
+    private function interactionAdvertised(int $sourceId, string $resourceType, string $pollingInteraction): bool
+    {
+        $payload = DB::table('integration.fhir_client_connections as connection')
+            ->join('integration.fhir_conformance_resource_observations as resource', function ($join): void {
+                $join->on(
+                    'resource.fhir_conformance_observation_id',
+                    '=',
+                    'connection.current_conformance_observation_id',
+                )->on('resource.source_id', '=', 'connection.source_id');
+            })
+            ->where('connection.source_id', $sourceId)
+            ->where('resource.resource_type', $resourceType)
+            ->orderByDesc('connection.fhir_client_connection_id')
+            ->value('resource.interaction_payload');
+        $interactions = is_string($payload) ? json_decode($payload, true) : $payload;
+        $required = $pollingInteraction === 'history' ? 'history-type' : 'search-type';
+
+        return is_array($interactions) && in_array($required, $interactions, true);
     }
 
     private function different(mixed $left, mixed $right): bool

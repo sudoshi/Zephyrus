@@ -43,11 +43,19 @@ class E2eTestSeederTest extends TestCase
             ->getJson('/api/admin/integrations/control-plane');
         $controlPlane
             ->assertOk()
-            ->assertJsonPath('data.counts.sources', 1)
+            ->assertJsonPath('data.counts.sources', 16)
             ->assertJsonPath('data.counts.fhirConnections', 0);
         $controlPlaneDocument = json_decode($controlPlane->getContent(), false, 512, JSON_THROW_ON_ERROR);
-        $this->assertInstanceOf(\stdClass::class, $controlPlaneDocument->data->sources[0]->queueState);
-        $this->assertInstanceOf(\stdClass::class, $controlPlaneDocument->data->sources[0]->runtimeState);
+        $e2eSource = collect($controlPlaneDocument->data->sources)
+            ->firstWhere('sourceKey', 'e2e.fhir.source');
+        $this->assertNotNull($e2eSource);
+        $this->assertInstanceOf(\stdClass::class, $e2eSource->queueState);
+        $this->assertInstanceOf(\stdClass::class, $e2eSource->runtimeState);
+
+        $this->assertDatabaseCount('prod.ancillary_orders', 66);
+        $this->assertDatabaseCount('prod.ancillary_milestones', 328);
+        $this->assertDatabaseHas('prod.or_cases', ['is_deleted' => false]);
+        $this->assertDatabaseHas('prod.encounters', ['status' => 'active', 'is_deleted' => false]);
 
         $target = User::query()->where('username', 'e2e_lifecycle_target')->firstOrFail();
         $this->assertSame('Browser Lifecycle Target', $target->name);

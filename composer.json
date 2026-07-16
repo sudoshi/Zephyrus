@@ -70,10 +70,16 @@
         "test:admin": "bash scripts/test-suite.sh admin",
         "test:migration": "bash scripts/test-suite.sh migration",
         "test:conformance": "bash scripts/test-suite.sh conformance",
-        "test:browser": "bash scripts/test-suite.sh browser",
+        "test:browser": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash scripts/test-suite.sh browser"
+        ],
         "test:security": "bash scripts/security/run-security-suite.sh",
         "test:dast": "bash scripts/run-dast-suite.sh",
-        "test:full": "bash scripts/test-suite.sh full",
+        "test:full": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash scripts/test-suite.sh full"
+        ],
         "test:concurrent": "bash scripts/verify-test-isolation.sh --full"
     },
     "extra": {

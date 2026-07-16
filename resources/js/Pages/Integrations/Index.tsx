@@ -586,6 +586,7 @@ export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { d
   const [canonicalProfileUrl, setCanonicalProfileUrl] = useState('');
   const [canonicalProfileVersion, setCanonicalProfileVersion] = useState('');
   const [pollEnabled, setPollEnabled] = useState(true);
+  const [pollingInteraction, setPollingInteraction] = useState<'search' | 'history'>('search');
   const [cadenceMinutes, setCadenceMinutes] = useState('15');
   const [pageSize, setPageSize] = useState('100');
   const [pageLimit, setPageLimit] = useState('10');
@@ -597,6 +598,7 @@ export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { d
     setCanonicalProfileUrl(profile.canonicalProfileUrl ?? '');
     setCanonicalProfileVersion(profile.canonicalProfileVersion ?? '');
     setPollEnabled(profile.pollEnabled);
+    setPollingInteraction(profile.pollingInteraction);
     setCadenceMinutes(String(profile.cadenceMinutes));
     setPageSize(String(profile.pageSize));
     setPageLimit(String(profile.pageLimit));
@@ -692,11 +694,12 @@ export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { d
       </Panel>
       <Panel title="Governed Resource Profiles">
         {selectedConnection?.resourceProfiles.length ? (
-          <Table headings={['Resource', 'Canonical Profile', 'Status', 'Cadence', 'Limits', 'Version', 'Controls']}>
+          <Table headings={['Resource', 'Canonical Profile', 'Interaction', 'Status', 'Cadence', 'Limits', 'Version', 'Controls']}>
             {selectedConnection.resourceProfiles.map((profile) => (
               <tr key={profile.profileId}>
                 <td className={primaryCellClass}>{profile.resourceType}</td>
                 <td className={cellClass}>{profile.canonicalProfileUrl ?? 'Base R4 resource'}{profile.canonicalProfileVersion ? ` | ${profile.canonicalProfileVersion}` : ''}</td>
+                <td className={cellClass}>{profile.pollingInteraction === 'history' ? 'Type history' : 'Type search'}</td>
                 <td className={cellClass}><StatusBadge value={profile.status} /></td>
                 <td className={cellClass}>{profile.pollEnabled ? `${profile.cadenceMinutes} min` : 'Polling disabled'}</td>
                 <td className={cellClass}>{profile.pageSize}/page · {profile.pageLimit} pages · {profile.resourceLimit} resources</td>
@@ -721,6 +724,7 @@ export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { d
               <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Canonical profile URL<input className={inputClass} value={canonicalProfileUrl} onChange={(event) => setCanonicalProfileUrl(event.target.value)} placeholder="https://hl7.org/fhir/us/core/..." /></label>
               <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Profile version<input className={inputClass} value={canonicalProfileVersion} onChange={(event) => setCanonicalProfileVersion(event.target.value)} placeholder="7.0.0" /></label>
               <label className="flex items-end gap-2 pb-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"><input type="checkbox" checked={pollEnabled} onChange={(event) => setPollEnabled(event.target.checked)} />Polling enabled</label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Polling interaction<select className={inputClass} value={pollingInteraction} onChange={(event) => setPollingInteraction(event.target.value as 'search' | 'history')}><option value="search">Type search (_lastUpdated)</option><option value="history">Type history (_since + deletes)</option></select></label>
               <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cadence minutes<input className={inputClass} type="number" min="1" max="10080" value={cadenceMinutes} onChange={(event) => setCadenceMinutes(event.target.value)} /></label>
               <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Page size<input className={inputClass} type="number" min="1" max="1000" value={pageSize} onChange={(event) => setPageSize(event.target.value)} /></label>
               <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Page limit<input className={inputClass} type="number" min="1" max="100" value={pageLimit} onChange={(event) => setPageLimit(event.target.value)} /></label>
@@ -735,6 +739,7 @@ export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { d
                   canonical_profile_url: canonicalProfileUrl || null,
                   canonical_profile_version: canonicalProfileVersion || null,
                   poll_enabled: pollEnabled,
+                  polling_interaction: pollingInteraction,
                   cadence_minutes: Number(cadenceMinutes),
                   page_size: Number(pageSize),
                   page_limit: Number(pageLimit),

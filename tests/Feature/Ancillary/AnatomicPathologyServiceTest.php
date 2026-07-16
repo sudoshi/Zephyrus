@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Ancillary;
 
+use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
 use App\Models\User;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use App\Services\Demo\DemoClock;
@@ -16,6 +17,7 @@ use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -123,7 +125,7 @@ final class AnatomicPathologyServiceTest extends TestCase
     {
         $service = app(AnatomicPathologyService::class);
         $sourceIds = DB::table('prod.ap_cases')->pluck('source_id')->unique();
-        DB::table('integration.sources')->whereIn('source_id', $sourceIds)->update(['bulk_supported' => true]);
+        $this->reviseSources($sourceIds->all(), ['bulk_supported' => true], 'Enable AP history backfill for the coverage test.');
         $missing = $service->build();
         $this->assertSame('degraded', $missing['state']);
         $this->assertSame('missing', $missing['coverage']['backfill']['status']);
@@ -147,11 +149,11 @@ final class AnatomicPathologyServiceTest extends TestCase
         $this->assertSame('available', $available['coverage']['backfill']['status']);
         $this->assertNotNull($available['coverage']['backfill']['lastSuccessAt']);
 
-        DB::table('integration.sources')->whereIn('source_id', $sourceIds)->update(['system_class' => 'generic_lis']);
+        $this->reviseSources($sourceIds->all(), ['system_class' => 'generic_lis'], 'Exercise missing AP LIS source coverage safely.');
         $wrongSource = $service->build();
         $this->assertSame('degraded', $wrongSource['state']);
         $this->assertSame('missing', $wrongSource['coverage']['apLis']['status']);
-        DB::table('integration.sources')->whereIn('source_id', $sourceIds)->update(['system_class' => 'ap_lis']);
+        $this->reviseSources($sourceIds->all(), ['system_class' => 'ap_lis'], 'Restore AP LIS source coverage for freshness checks.');
 
         DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->update(['status' => 'stale']);
         $stale = $service->build();
@@ -195,5 +197,24 @@ final class AnatomicPathologyServiceTest extends TestCase
 
         $this->assertSame('lab/anatomic-path', Route::getRoutes()->getByName('lab.anatomic-path')?->uri());
         $this->assertSame('api/lab/anatomic-path', Route::getRoutes()->getByName('api.lab.anatomic-path')?->uri());
+    }
+
+    /** @param list<int> $sourceIds @param array<string, mixed> $updates */
+    private function reviseSources(array $sourceIds, array $updates, string $reason): void
+    {
+        $versions = app(SourceConfigurationVersionService::class);
+        foreach ($sourceIds as $sourceId) {
+            $currentVersionId = (int) DB::table('integration.sources')
+                ->where('source_id', $sourceId)
+                ->value('current_configuration_version_id');
+            $versions->reviseAndApply(
+                $sourceId,
+                $updates,
+                $currentVersionId,
+                null,
+                $reason,
+                (string) Str::uuid(),
+            );
+        }
     }
 }

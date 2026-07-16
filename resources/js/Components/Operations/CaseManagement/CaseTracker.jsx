@@ -282,7 +282,7 @@ const CaseTracker = ({ procedures, specialties, locations, stats }) => {
                         <td className="py-3 px-2">
                           <div className="space-y-1">
                             <div className="flex items-center space-x-1">
-                              <Icon icon="heroicons:clock-4" className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
+                              <Icon icon="heroicons:clock" className="h-4 w-4 text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark" />
                               <span className="text-healthcare-text-primary dark:text-healthcare-text-primary-dark tabular-nums">{proc.startTime}</span>
                             </div>
                             <div className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

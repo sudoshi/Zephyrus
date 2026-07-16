@@ -70,6 +70,7 @@ class RadiologyBreachRiskSortingTest extends TestCase
         $this->assertNotEmpty($model['syntheticLabel']);
         $this->assertArrayHasKey('calibrationError', $model['evaluation']);
         $this->assertArrayHasKey('discriminationAuc', $model['evaluation']);
+        $this->assertArrayHasKey('brierScore', $model['evaluation']);
         $this->assertArrayHasKey('coverage', $model['evaluation']);
         $this->assertArrayHasKey('naiveBaseline', $model['evaluation']);
 

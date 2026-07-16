@@ -9,6 +9,7 @@ use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\Source;
 use App\Models\Radiology\CriticalResult;
 use App\Models\Radiology\Exam;
+use App\Models\Raw\InboundMessage;
 use Database\Seeders\AncillaryReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -119,7 +120,10 @@ class RadiologyOperationalEventIngestTest extends TestCase
 
         $source = $this->source('pacs.mpps.privacy', 'pacs', ['MPPS'], 'mpps');
         $this->ingest($source, 'MPPS', 'mpps-start');
-        $normalized = json_encode(DB::table('raw.inbound_messages')->where('source_id', $source->source_id)->value('normalized_payload'), JSON_THROW_ON_ERROR);
+        $normalized = json_encode(
+            InboundMessage::query()->where('source_id', $source->source_id)->firstOrFail()->normalized_payload,
+            JSON_THROW_ON_ERROR,
+        );
         $this->assertStringNotContainsString('1.2.840.secret.1', $normalized);
         $this->assertStringNotContainsString('signature_value', $normalized);
         $this->assertStringContainsString('source_sop_instance_uid_hash', $normalized);
@@ -128,6 +132,7 @@ class RadiologyOperationalEventIngestTest extends TestCase
     private function source(string $key, string $systemClass, array $families, string $sourceClass): Source
     {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key, 'source_name' => $key, 'system_class' => $systemClass, 'interface_type' => 'forwarded_json',
             'active_status' => 'active', 'phi_allowed' => true,
             'metadata' => ['ancillary_source_class' => $sourceClass, 'ancillary_ingest' => ['enabled' => true, 'message_families' => $families, 'departments' => ['rad']]],

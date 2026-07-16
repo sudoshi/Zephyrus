@@ -134,6 +134,7 @@ describe('integration control-plane API', () => {
           canonicalProfileVersion: '7.0.0',
           status: 'enabled',
           pollEnabled: true,
+          pollingInteraction: 'search',
           cadenceMinutes: 5,
           pageSize: 100,
           pageLimit: 10,
@@ -153,6 +154,7 @@ describe('integration control-plane API', () => {
       canonicalProfileVersion: '7.0.0',
       status: 'enabled',
       pollEnabled: true,
+      pollingInteraction: 'search',
       cadenceMinutes: 5,
       pageSize: 100,
       pageLimit: 10,
@@ -209,6 +211,7 @@ describe('integration control-plane API', () => {
       canonicalProfileVersion: null,
       status: 'configured',
       pollEnabled: true,
+      pollingInteraction: 'search',
       cadenceMinutes: 5,
       pageSize: 100,
       pageLimit: 10,
@@ -229,6 +232,7 @@ describe('integration control-plane API', () => {
       canonical_profile_url: null,
       canonical_profile_version: null,
       poll_enabled: true,
+      polling_interaction: 'search',
       cadence_minutes: 5,
       page_size: 100,
       page_limit: 10,
@@ -238,7 +242,7 @@ describe('integration control-plane API', () => {
     const retired = await retireFhirResourceProfile(3, 14, 'Retire the superseded Observation profile.');
 
     expect(retired.status).toBe('retired');
-    expect(mocked.put).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/resource-profiles/Observation', expect.objectContaining({ cadence_minutes: 5 }));
+    expect(mocked.put).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/resource-profiles/Observation', expect.objectContaining({ cadence_minutes: 5, polling_interaction: 'search' }));
     expect(mocked.delete).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/resource-profiles/14', { data: { reason: 'Retire the superseded Observation profile.' } });
   });
 

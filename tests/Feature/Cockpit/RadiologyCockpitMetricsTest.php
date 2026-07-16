@@ -43,6 +43,7 @@ class RadiologyCockpitMetricsTest extends TestCase
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $this->seed([CockpitKpiDefinitionSeeder::class, AncillaryReferenceSeeder::class]);
         $this->source = app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => 'test.radiology.cockpit',
             'source_name' => 'Test Radiology Cockpit Source',
             'system_class' => 'radiology_reporting',

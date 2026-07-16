@@ -83,6 +83,7 @@ const breachRiskModelProvenanceSchema = z.object({
   evaluation: z.object({
     calibrationError: z.number().nullable(),
     discriminationAuc: z.number().nullable(),
+    brierScore: z.number().nullable(),
     coverage: z.record(z.string(), z.unknown()).nullable(),
     naiveBaseline: z.record(z.string(), z.unknown()).nullable(),
     beatsBaseline: z.boolean().nullable(),

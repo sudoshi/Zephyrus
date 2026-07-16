@@ -9,7 +9,7 @@ import { NETWORK_FACILITY_NAMES } from '@/constants/summitHospital';
 const viewPresets = {
     clinical: {
         label: 'Clinical View',
-        icon: 'carbon:user-medical',
+        icon: 'carbon:user-profile',
         nodeCount: 60,
         arcCount: 8,
         parallelismFactor: 30,

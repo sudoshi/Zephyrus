@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page);
+});
 
 test('Flow drill renders the server-computed ancillary health table', async ({ page }) => {
   const consoleErrors: string[] = [];

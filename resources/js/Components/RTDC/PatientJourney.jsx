@@ -102,7 +102,7 @@ const PatientJourney = ({ patient }) => {
                       />
                     ) : (
                       <Icon 
-                        icon="heroicons:circle" 
+                        icon="heroicons:minus-circle"
                         className={`w-8 h-8 ${getPhaseColor(event.type, event.isAlert, event.isAnticipated)}`}
                         style={{ 
                           fill: event.type === 'milestone' ? 'transparent' : 'currentColor',

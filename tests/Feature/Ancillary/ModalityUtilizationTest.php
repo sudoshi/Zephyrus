@@ -122,6 +122,7 @@ class ModalityUtilizationTest extends TestCase
     private function source(string $key, string $systemClass): Source
     {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key,
             'source_name' => $key,
             'system_class' => $systemClass,

@@ -39,6 +39,7 @@ final class RadiologyTatAnalyticsTest extends TestCase
         CarbonImmutable::setTestNow($this->anchor);
         $this->seed(AncillaryReferenceSeeder::class);
         $this->source = app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => 'tat-test.reporting', 'source_name' => 'TAT test reporting',
             'system_class' => 'radiology_reporting', 'interface_type' => 'hl7v2',
             'active_status' => 'active', 'phi_allowed' => false,

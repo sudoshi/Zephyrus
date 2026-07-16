@@ -222,7 +222,7 @@ function CareJourneyCard({ procedure, measurements, onClose }) {
           {/* Procedure Transport Panel */}
           <div className="bg-healthcare-surface dark:bg-healthcare-surface-dark rounded-lg shadow p-4">
             <h3 className="font-semibold mb-4 flex items-center text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-              <Icon icon="heroicons:clock-4" className="h-5 w-5 mr-2 text-healthcare-info dark:text-healthcare-info-dark" />
+              <Icon icon="heroicons:clock" className="h-5 w-5 mr-2 text-healthcare-info dark:text-healthcare-info-dark" />
               Procedure Transport
             </h3>
             <div className="grid grid-cols-3 gap-4">

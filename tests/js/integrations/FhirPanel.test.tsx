@@ -47,6 +47,7 @@ const data = {
       canonicalProfileVersion: '7.0.0',
       status: 'enabled',
       pollEnabled: true,
+      pollingInteraction: 'search',
       cadenceMinutes: 5,
       pageSize: 100,
       pageLimit: 10,
@@ -84,6 +85,8 @@ describe('FHIR resource profile governance panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText('Resource type')).toHaveValue('Observation');
     expect(screen.getByLabelText('Cadence minutes')).toHaveValue(5);
+    expect(screen.getByLabelText('Polling interaction')).toHaveValue('search');
+    fireEvent.change(screen.getByLabelText('Polling interaction'), { target: { value: 'history' } });
     fireEvent.change(screen.getByLabelText('Change reason'), {
       target: { value: 'Approve the revised Observation polling cadence.' },
     });
@@ -91,7 +94,7 @@ describe('FHIR resource profile governance panel', () => {
     expect(configure).toHaveBeenCalledWith(expect.objectContaining({
       sourceId: 3,
       resourceType: 'Observation',
-      input: expect.objectContaining({ cadence_minutes: 5, poll_enabled: true }),
+      input: expect.objectContaining({ cadence_minutes: 5, poll_enabled: true, polling_interaction: 'history' }),
     }), expect.any(Object));
 
     fireEvent.click(screen.getByRole('button', { name: 'Retire' }));

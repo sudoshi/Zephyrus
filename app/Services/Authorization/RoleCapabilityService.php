@@ -8,6 +8,7 @@ use App\Authorization\Capability;
 use App\Models\Auth\UserAccessScope;
 use App\Models\Org\Facility;
 use App\Models\Org\StaffAssignment;
+use App\Models\Org\StaffMember;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -38,20 +39,25 @@ final class RoleCapabilityService
         }
 
         try {
-            $workforceRoles = StaffAssignment::query()
+            $staffMemberIds = StaffMember::query()
+                ->where('user_id', $user->getKey())
                 ->where('is_active', true)
-                ->whereHas('staffMember', fn (Builder $query) => $query
-                    ->where('user_id', $user->getKey())
-                    ->where('is_active', true))
-                ->where(function (Builder $query): void {
-                    $query->whereNull('effective_start')->orWhere('effective_start', '<=', today());
-                })
-                ->where(function (Builder $query): void {
-                    $query->whereNull('effective_end')->orWhere('effective_end', '>=', today());
-                })
-                ->pluck('role_code')
-                ->map($this->canonicalRole(...));
-            $roles = $roles->merge($workforceRoles);
+                ->pluck('staff_member_id');
+
+            if ($staffMemberIds->isNotEmpty()) {
+                $workforceRoles = StaffAssignment::query()
+                    ->whereIn('staff_member_id', $staffMemberIds)
+                    ->where('is_active', true)
+                    ->where(function (Builder $query): void {
+                        $query->whereNull('effective_start')->orWhere('effective_start', '<=', today());
+                    })
+                    ->where(function (Builder $query): void {
+                        $query->whereNull('effective_end')->orWhere('effective_end', '>=', today());
+                    })
+                    ->pluck('role_code')
+                    ->map($this->canonicalRole(...));
+                $roles = $roles->merge($workforceRoles);
+            }
         } catch (QueryException) {
             // Workforce data is additive; its absence may not elevate access.
         }

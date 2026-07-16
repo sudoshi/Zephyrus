@@ -1,6 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page);
+});
 
 test.setTimeout(120_000);
 
@@ -113,7 +118,16 @@ async function openSurface(
   await page.setViewportSize(viewport);
   await page.goto(surface.route, { waitUntil: 'domcontentloaded' });
 
-  await expect(page.getByRole('heading', { name: surface.heading, level: 1 })).toBeVisible({ timeout: 60_000 });
+  try {
+    await expect(page.getByRole('heading', { name: surface.heading, level: 1 })).toBeVisible({ timeout: 60_000 });
+  } catch (error) {
+    throw new Error([
+      error instanceof Error ? error.message : String(error),
+      `URL: ${page.url()}`,
+      `Console errors: ${JSON.stringify(errors.consoleErrors)}`,
+      `Page errors: ${JSON.stringify(errors.pageErrors)}`,
+    ].join('\n'));
+  }
   await expect(page.getByRole('main')).toBeVisible();
   await expect(page.locator('html')).toHaveClass(dark ? /\bdark\b/ : /^(?!.*\bdark\b)/);
   await expect(page.getByRole('status').first()).toBeVisible();

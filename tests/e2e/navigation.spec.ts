@@ -227,6 +227,10 @@ test.describe('Mobile Navigation', () => {
 });
 
 test.describe('RTDC ancillary handoff', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page);
+  });
+
   test('imaging tile drills into the unit-scoped Radiology worklist', async ({ page }) => {
     await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
@@ -247,7 +251,6 @@ test.describe('RTDC ancillary handoff', () => {
   });
 
   test('Laboratory tile drills into the unit-scoped Flow Board with provenance', async ({ page }) => {
-    await blockCockpitStream(page);
     await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: 'Matrix' }).click();

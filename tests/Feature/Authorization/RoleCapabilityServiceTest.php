@@ -12,6 +12,7 @@ use App\Models\Org\StaffMember;
 use App\Models\User;
 use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -224,6 +225,25 @@ final class RoleCapabilityServiceTest extends TestCase
         );
         $this->assertFalse($decision->allowed);
         $this->assertSame('scope_missing', $decision->reason);
+    }
+
+    public function test_users_without_staff_identity_skip_the_assignment_ledger(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->assertSame(['user'], $this->authorization->effectiveRoleIds($user));
+
+        $queries = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $this->assertTrue($queries->contains(
+            fn (string $query): bool => str_contains($query, 'hosp_org"."staff_members'),
+        ));
+        $this->assertFalse($queries->contains(
+            fn (string $query): bool => str_contains($query, 'hosp_org"."staff_assignments'),
+        ));
     }
 
     public function test_laravel_gates_and_mobile_abilities_are_adapters_to_the_service(): void
