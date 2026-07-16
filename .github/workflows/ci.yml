@@ -15,10 +15,106 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Backend — Pint, PHPUnit, migrations
+  # Backend — quality/migrations plus deterministic PHPUnit shards
   # ---------------------------------------------------------------------------
-  backend:
-    name: Backend (Laravel / PHPUnit)
+  backend-quality:
+    name: Backend (Laravel / quality)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      APP_URL: http://zephyrus.test
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: zephyrus_test
+      DB_USERNAME: zephyrus
+      DB_PASSWORD: secret
+      TEST_DB_ISOLATION: "true"
+      TEST_DB_ADMIN_DATABASE: postgres
+      TEST_NETWORK_GUARD: "true"
+      INTEGRATION_SECRET_FILE_ROOT: storage/framework/testing/secrets
+      OIDC_ENABLED: "false"
+      OIDC_DISCOVERY_URL: https://idp.test/.well-known/openid-configuration
+      OIDC_REDIRECT_URI: https://zephyrus.test/auth/oidc/callback
+      OIDC_ALLOWED_HOSTS: idp.test
+      OIDC_ALLOWED_REDIRECT_URIS: https://zephyrus.test/auth/oidc/callback
+      INTEGRATION_ALLOWED_HOSTS: fhir.test
+      EPIC_FHIR_BASE_URL: https://fhir.test/r4
+      EPIC_SMART_CONFIGURATION_URL: https://fhir.test/.well-known/smart-configuration
+      EPIC_FHIR_TOKEN_URL: https://fhir.test/oauth2/token
+      EDDY_BASE_URL: http://eddy.test
+      ARENA_BASE_URL: http://arena.test
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend-quality
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: zephyrus_test
+          POSTGRES_USER: zephyrus
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U zephyrus -d zephyrus_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Verify immutable release snapshots
+        run: bash tests/Deployment/immutable-release-snapshot.sh
+
+      - name: Copy environment template
+        run: cp .env.example .env
+
+      - name: Prove test resource isolation
+        run: php scripts/assert-test-environment.php
+
+      - name: Run Pint (code style)
+        run: ./vendor/bin/pint --test
+
+      - name: Run migrations
+        run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
+
+      - name: Prove concurrent database isolation
+        run: bash scripts/verify-test-isolation.sh --focused
+
+      - name: Upload backend quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-quality-release-evidence
+          path: artifacts/release-evidence/backend-quality
+          if-no-files-found: error
+          retention-days: 30
+
+  backend-tests:
+    name: Backend tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -49,7 +145,20 @@ jobs:
       CACHE_STORE: array
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync
-      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend-${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - unit
+          - feature-0
+          - feature-1
+          - feature-2
+          - feature-3
+          - feature-4
+          - feature-5
+          - feature-6
+          - feature-7
 
     services:
       postgres:
@@ -61,7 +170,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U zephyrus"
+          --health-cmd="pg_isready -U zephyrus -d zephyrus_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -74,7 +183,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
-          coverage: xdebug
+          coverage: none
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -86,33 +195,24 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Verify immutable release snapshots
-        run: bash tests/Deployment/immutable-release-snapshot.sh
-
       - name: Copy environment template
         run: cp .env.example .env
 
       - name: Prove test resource isolation
         run: php scripts/assert-test-environment.php
 
-      - name: Run Pint (code style)
-        run: ./vendor/bin/pint --test
-
       - name: Run migrations
         run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
 
-      - name: Prove concurrent database isolation
-        run: bash scripts/verify-test-isolation.sh --focused
+      - name: Run PHPUnit shard
+        run: bash scripts/capture-release-evidence.sh backend-phpunit-${{ matrix.shard }} scripts/ci/run-backend-test-shard.sh "${{ matrix.shard }}"
 
-      - name: Run PHPUnit tests
-        run: bash scripts/capture-release-evidence.sh backend-phpunit php artisan test --compact
-
-      - name: Upload backend evidence
+      - name: Upload backend shard evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-release-evidence
-          path: artifacts/release-evidence/backend
+          name: backend-${{ matrix.shard }}-release-evidence
+          path: artifacts/release-evidence/backend-${{ matrix.shard }}
           if-no-files-found: error
           retention-days: 30
 
