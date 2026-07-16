@@ -364,6 +364,7 @@ jobs:
       DB_PASSWORD: secret
       CACHE_STORE: array
       QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: log
       SESSION_DRIVER: database
       LOCAL_AUTH_ENABLED: "true"
       LOCAL_REGISTRATION_ENABLED: "false"
@@ -448,6 +449,7 @@ jobs:
       DB_PASSWORD: secret
       CACHE_STORE: array
       QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: log
       SESSION_DRIVER: database
       LOCAL_AUTH_ENABLED: "true"
       LOCAL_REGISTRATION_ENABLED: "false"
@@ -481,8 +483,17 @@ jobs:
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
           coverage: none
 
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
       - name: Install application dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
 
       - name: Prepare test application
         run: cp .env.example .env

@@ -12,13 +12,18 @@ Dotenv::createImmutable($projectRoot)->safeLoad();
 $operation = $argv[1] ?? '';
 $database = $argv[2] ?? '';
 
-if (! in_array($operation, ['create', 'drop'], true)) {
-    fwrite(STDERR, "Usage: php scripts/manage-test-database.php create|drop zephyrus_test_e2e<12 hex>\n");
+if (! in_array($operation, ['create', 'drop', 'list-orphans'], true)) {
+    fwrite(STDERR, "Usage: php scripts/manage-test-database.php create|drop zephyrus_test_e2e<12 hex> | list-orphans\n");
     exit(64);
 }
 
-if (! preg_match('/^zephyrus_test_e2e[a-f0-9]{12}$/', $database)) {
+if ($operation !== 'list-orphans' && ! preg_match('/^zephyrus_test_e2e[a-f0-9]{12}$/', $database)) {
     fwrite(STDERR, "Refusing to manage a database outside the browser-test namespace.\n");
+    exit(64);
+}
+
+if ($operation === 'list-orphans' && $database !== '') {
+    fwrite(STDERR, "list-orphans does not accept a database name.\n");
     exit(64);
 }
 
@@ -55,6 +60,18 @@ try {
         $password,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
     );
+
+    if ($operation === 'list-orphans') {
+        $statement = $pdo->prepare('SELECT datname FROM pg_database WHERE datname LIKE :pattern ORDER BY datname');
+        $statement->execute(['pattern' => 'zephyrus_test_%']);
+        $orphans = array_values(array_filter(
+            $statement->fetchAll(PDO::FETCH_COLUMN),
+            static fn (mixed $name): bool => is_string($name)
+                && preg_match('/^zephyrus_test_(?:e2e)?[a-f0-9]{12}$/', $name) === 1,
+        ));
+        fwrite(STDOUT, json_encode($orphans, JSON_THROW_ON_ERROR).PHP_EOL);
+        exit(0);
+    }
 
     $identifier = '"'.$database.'"';
     if ($operation === 'create') {

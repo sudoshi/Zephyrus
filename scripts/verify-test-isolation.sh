@@ -40,7 +40,7 @@ if [[ $STATUS -ne 0 ]]; then
     exit 1
 fi
 
-ORPHANS="$(php artisan tinker --execute='$rows = collect(DB::select("select datname from pg_database where datname like ? order by datname", ["zephyrus_test_%"]))->pluck("datname")->all(); echo "__ZEPHYRUS_ORPHANS__".json_encode($rows);' 2>/dev/null | sed -n 's/^__ZEPHYRUS_ORPHANS__//p')"
+ORPHANS="$(php scripts/manage-test-database.php list-orphans)"
 if [[ "$ORPHANS" != "[]" ]]; then
     echo "Concurrent suites left disposable databases behind: ${ORPHANS:-unknown}" >&2
     exit 1

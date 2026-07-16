@@ -30,6 +30,7 @@ export DB_CONNECTION=pgsql
 export DB_DATABASE="$DATABASE"
 export CACHE_STORE=array
 export QUEUE_CONNECTION=sync
+export BROADCAST_CONNECTION=log
 export SESSION_DRIVER=database
 export LOCAL_AUTH_ENABLED=true
 export LOCAL_REGISTRATION_ENABLED=false

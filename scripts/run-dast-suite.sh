@@ -38,6 +38,7 @@ export DB_CONNECTION=pgsql
 export DB_DATABASE="$DATABASE"
 export CACHE_STORE=array
 export QUEUE_CONNECTION=sync
+export BROADCAST_CONNECTION=log
 export SESSION_DRIVER=database
 export LOCAL_AUTH_ENABLED=true
 export LOCAL_REGISTRATION_ENABLED=false
@@ -70,6 +71,10 @@ php -r 'file_put_contents($argv[1], "base64:".base64_encode(random_bytes(32)), L
 php scripts/manage-test-database.php create "$DATABASE"
 php artisan migrate --force --no-interaction
 php artisan db:seed --class=Database\\Seeders\\E2eTestSeeder --force --no-interaction
+
+if [[ "${DAST_SKIP_BUILD:-false}" != "true" ]]; then
+    npm run build
+fi
 
 (
     cd public
