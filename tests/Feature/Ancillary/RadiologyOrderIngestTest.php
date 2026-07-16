@@ -97,7 +97,7 @@ class RadiologyOrderIngestTest extends TestCase
 
     private function source(string $key, array $families): Source
     {
-        return app(SourceRegistryService::class)->ensureSource(['source_key' => $key, 'source_name' => $key, 'system_class' => 'ris', 'interface_type' => 'hl7v2', 'active_status' => 'active', 'phi_allowed' => true, 'metadata' => ['ancillary_ingest' => ['enabled' => true, 'message_families' => $families, 'departments' => ['rad']]]]);
+        return app(SourceRegistryService::class)->ensureSource([...$this->canonicalIntegrationSourceScope(), 'source_key' => $key, 'source_name' => $key, 'system_class' => 'ris', 'interface_type' => 'hl7v2', 'active_status' => 'active', 'phi_allowed' => true, 'metadata' => ['ancillary_ingest' => ['enabled' => true, 'message_families' => $families, 'departments' => ['rad']]]]);
     }
 
     private function fixture(string $name): string

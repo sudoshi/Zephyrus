@@ -27,7 +27,7 @@ class FacilityExportPlatesCommand extends Command
         $gzBytes = strlen(gzencode(json_encode($document, JSON_UNESCAPED_SLASHES), 9));
 
         $this->info("Exported {$document['version']}: {$floorCount} floors, {$shapeTotal} shapes, ".
-            number_format($bytes / 1024, 1).' KB raw / '.number_format($gzBytes / 1024, 1).' KB gzipped → storage/app/'.FloorPlateAssetService::ASSET_PATH);
+            number_format($bytes / 1024, 1).' KB raw / '.number_format($gzBytes / 1024, 1).' KB gzipped → storage/app/private/'.FloorPlateAssetService::ASSET_PATH);
 
         foreach ($document['floors'] as $floor) {
             if ($floor['shape_count'] > 500) {

@@ -4,18 +4,22 @@ namespace App\Http\Controllers\Auth;
 
 use App\Auth\AuthDriverRegistry;
 use App\Http\Controllers\Controller;
+use App\Security\Network\OidcUrlPolicy;
+use App\Security\Network\UnsafeOidcUrl;
 use App\Services\Audit\UserAuditRecorder;
+use App\Services\Auth\AccountSessionService;
 use App\Services\Auth\Oidc\Exceptions\OidcAccessDeniedException;
 use App\Services\Auth\Oidc\Exceptions\OidcException;
 use App\Services\Auth\Oidc\Exceptions\OidcTokenInvalidException;
 use App\Services\Auth\Oidc\OidcDiscoveryService;
 use App\Services\Auth\Oidc\OidcHandshakeStore;
+use App\Services\Auth\Oidc\OidcHttpClient;
 use App\Services\Auth\Oidc\OidcProviderConfig;
 use App\Services\Auth\Oidc\OidcTokenValidator;
+use App\Services\Auth\StepUpAuthenticationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,21 +27,35 @@ use Symfony\Component\HttpFoundation\Response;
 class OidcController extends Controller
 {
     public function redirect(
+        Request $request,
         OidcHandshakeStore $store,
         OidcDiscoveryService $discovery,
         OidcProviderConfig $config,
+        OidcUrlPolicy $urlPolicy,
     ): Response {
         $this->ensureEnabled($config);
 
         try {
+            $urlPolicy->assertAllowedRedirectUri($config->redirectUri());
             $authorize = $discovery->authorizationEndpoint();
-        } catch (OidcException $e) {
-            return $this->fail('discovery_failed', $e);
+        } catch (UnsafeOidcUrl $exception) {
+            return $this->fail($exception->reason, $exception);
+        } catch (OidcException $exception) {
+            return $this->fail($exception->reason, $exception);
         }
 
         $nonce = Str::random(32);
         $verifier = $this->codeVerifier();
-        $state = $store->putState(['nonce' => $nonce, 'code_verifier' => $verifier]);
+        $purpose = $request->routeIs('auth.oidc.step-up') ? 'step_up' : 'login';
+        if ($purpose === 'step_up' && $request->user() === null) {
+            abort(401);
+        }
+        $state = $store->putState([
+            'nonce' => $nonce,
+            'code_verifier' => $verifier,
+            'purpose' => $purpose,
+            'user_id' => $request->user()?->getAuthIdentifier(),
+        ]);
 
         $params = [
             'response_type' => 'code',
@@ -49,8 +67,14 @@ class OidcController extends Controller
             'code_challenge' => $this->codeChallenge($verifier),
             'code_challenge_method' => 'S256',
         ];
+        if ($purpose === 'step_up') {
+            $params['prompt'] = 'login';
+            $params['max_age'] = '0';
+        }
 
-        return redirect()->away($authorize.'?'.http_build_query($params));
+        $separator = str_contains($authorize, '?') ? '&' : '?';
+
+        return redirect()->away($authorize.$separator.http_build_query($params));
     }
 
     public function callback(
@@ -60,6 +84,10 @@ class OidcController extends Controller
         OidcTokenValidator $validator,
         AuthDriverRegistry $registry,
         OidcProviderConfig $config,
+        OidcHttpClient $http,
+        OidcUrlPolicy $urlPolicy,
+        AccountSessionService $sessions,
+        StepUpAuthenticationService $stepUp,
     ): RedirectResponse {
         $this->ensureEnabled($config);
 
@@ -77,23 +105,22 @@ class OidcController extends Controller
         }
 
         try {
-            $tokenResponse = Http::asForm()->post($discovery->tokenEndpoint(), [
+            $urlPolicy->assertAllowedRedirectUri($config->redirectUri());
+            $tokenResponse = $http->postFormJson($discovery->tokenEndpoint(), [
                 'grant_type' => 'authorization_code',
                 'code' => $code,
                 'redirect_uri' => $config->redirectUri(),
                 'client_id' => $config->clientId(),
                 'client_secret' => $config->clientSecret(),
                 'code_verifier' => $meta['code_verifier'],
-            ]);
-        } catch (\Throwable $e) {
-            return $this->fail('token_exchange_failed', $e);
+            ], 'token');
+        } catch (UnsafeOidcUrl $exception) {
+            return $this->fail($exception->reason, $exception);
+        } catch (OidcException $exception) {
+            return $this->fail($exception->reason, $exception);
         }
 
-        if ($tokenResponse->failed()) {
-            return $this->fail('token_exchange_failed', null);
-        }
-
-        $idToken = (string) ($tokenResponse->json('id_token') ?? '');
+        $idToken = (string) ($tokenResponse['id_token'] ?? '');
         if ($idToken === '') {
             return $this->fail('missing_id_token', null);
         }
@@ -112,16 +139,37 @@ class OidcController extends Controller
 
         $user = $result->user;
 
+        if (($meta['purpose'] ?? 'login') === 'step_up') {
+            $expectedUserId = (int) ($meta['user_id'] ?? 0);
+            if ($request->user() === null || $expectedUserId < 1
+                || (int) $request->user()->getAuthIdentifier() !== $expectedUserId
+                || (int) $user->getAuthIdentifier() !== $expectedUserId) {
+                $this->auditFailure('step_up_identity_mismatch', $request);
+
+                return redirect()->route('password.confirm')
+                    ->with('status', 'Enterprise reauthentication must use the same Zephyrus identity.');
+            }
+
+            if (! $stepUp->markOidcMfa($request, $claims)) {
+                $this->auditFailure('step_up_mfa_required', $request);
+
+                return redirect()->route('password.confirm')
+                    ->with('status', 'The identity provider did not return recent MFA evidence.');
+            }
+
+            return redirect()->intended(route('dashboard'));
+        }
+
         // Mirror AuthenticatedSessionController::store session setup (web guard).
         $request->attributes->set(UserAuditRecorder::AUTH_METHOD_ATTRIBUTE, 'oidc');
         $request->attributes->set(UserAuditRecorder::SOURCE_SURFACE_ATTRIBUTE, 'web');
         Auth::guard('web')->login($user, remember: false);
         $request->session()->regenerate();
-        $request->session()->put('username', $user->username);
         if ($user->workflow_preference === null) {
             $user->update(['workflow_preference' => 'superuser']);
         }
-        $request->session()->put('user_id', $user->id);
+        $sessions->establish($request, $user);
+        $stepUp->markOidcMfa($request, $claims);
 
         return redirect()->intended(route('dashboard'));
     }

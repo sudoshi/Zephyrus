@@ -377,6 +377,7 @@ class PharmacyAdministrationImportTest extends TestCase
     private function source(string $key, array $families, array $departments = ['rx'], string $systemClass = 'clinical_warehouse'): Source
     {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key,
             'source_name' => $key,
             'system_class' => $systemClass,

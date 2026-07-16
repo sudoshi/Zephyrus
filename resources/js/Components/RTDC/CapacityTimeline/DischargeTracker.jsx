@@ -21,9 +21,9 @@ const MilestoneStatus = ({ status }) => {
         switch (status) {
             case 'completed': return 'heroicons:check-circle';
             case 'in_progress': return 'heroicons:clock';
-            case 'pending': return 'heroicons:circle';
+            case 'pending': return 'heroicons:minus-circle';
             case 'blocked': return 'heroicons:exclamation-circle';
-            default: return 'heroicons:circle';
+            default: return 'heroicons:minus-circle';
         }
     };
 

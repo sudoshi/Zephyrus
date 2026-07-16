@@ -13,6 +13,7 @@ use App\Domain\Cockpit\Metrics\RtdcMetrics;
 use App\Domain\Cockpit\Metrics\ServiceLineMetrics;
 use App\Domain\Cockpit\Metrics\StaffingMetrics;
 use App\Domain\Cockpit\SnapshotContext;
+use App\Integrations\Healthcare\Services\SourceHealthDigestService;
 use App\Models\Cockpit\CockpitSnapshot;
 use App\Models\Ops\MetricDefinition;
 use App\Services\CommandCenterDataService;
@@ -76,6 +77,7 @@ class SnapshotBuilder
         private readonly MetricValueWriter $writer,
         private readonly AlertEngine $alerts,
         private readonly MetricTrendReader $trends,
+        private readonly SourceHealthDigestService $sourceHealth,
     ) {}
 
     /** @return array<string, mixed> */
@@ -225,8 +227,28 @@ class SnapshotBuilder
         );
         $payload['domains'] = $domains;
         $payload['alerts'] = $this->deriveAlerts($domains, $okrs, $ctx);
+        // INT-OBS 6: contributing integration source health rides on every
+        // snapshot so a stale/degraded upstream visibly degrades the cockpit.
+        $payload['sourceHealth'] = $this->safeSourceHealth();
 
         return ['payload' => $payload, 'context' => $ctx];
+    }
+
+    /**
+     * A bad digest must never blank the snapshot (PG 25P02 discipline). An
+     * absent key degrades gracefully — the frontend Zod field is optional.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function safeSourceHealth(): ?array
+    {
+        try {
+            return $this->sourceHealth->digest();
+        } catch (\Throwable $e) {
+            Log::warning('cockpit.snapshot.source_health_failed', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**

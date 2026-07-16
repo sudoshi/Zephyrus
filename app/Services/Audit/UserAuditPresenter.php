@@ -3,11 +3,17 @@
 namespace App\Services\Audit;
 
 use App\Models\Audit\UserEvent;
+use App\Services\Identity\IdentityRedactionService;
 
 class UserAuditPresenter
 {
-    /** @return array<string, mixed> */
-    public function present(UserEvent $event): array
+    public function __construct(private readonly IdentityRedactionService $redaction) {}
+
+    /**
+     * @param  bool  $revealPii  false redacts actor email and withholds client IP
+     * @return array<string, mixed>
+     */
+    public function present(UserEvent $event, bool $revealPii = true): array
     {
         $actor = $event->actor;
         $actorIdentity = $actor !== null
@@ -15,7 +21,7 @@ class UserAuditPresenter
                 'id' => $actor->getKey(),
                 'name' => $actor->name,
                 'username' => $actor->username,
-                'email' => $actor->email,
+                'email' => $this->redaction->presentEmail($actor->email, $revealPii),
                 'role' => $actor->role,
             ]
             : ($event->actor_user_id !== null || $event->actor_username !== null
@@ -45,7 +51,7 @@ class UserAuditPresenter
             'routeUri' => $event->uri_template,
             'httpMethod' => $event->http_method,
             'responseStatus' => $event->http_status,
-            'clientIp' => $event->client_ip,
+            'clientIp' => $this->redaction->presentClientIp($event->client_ip, $event->occurred_at, $revealPii),
             'userAgent' => $event->user_agent,
             'changes' => $event->changes ?? [],
             'metadata' => $event->metadata ?? [],

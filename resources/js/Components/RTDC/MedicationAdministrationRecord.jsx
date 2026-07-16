@@ -8,11 +8,11 @@ const MedicationAdministrationRecord = ({ medications }) => {
     const getRouteIcon = (route) => {
         switch (route) {
             case 'PO':
-                return 'heroicons:pill';
+                return 'mdi:pill';
             case 'IV':
                 return 'heroicons:beaker';
             case 'IM':
-                return 'heroicons:syringe';
+                return 'mdi:syringe';
             case 'SC':
                 return 'heroicons:arrow-down-circle';
             default:

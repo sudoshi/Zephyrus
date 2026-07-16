@@ -10,6 +10,8 @@ use App\Models\Ancillary\AncillaryOrder;
 use App\Models\Encounter;
 use App\Models\Integration\CanonicalEventRecord;
 use App\Models\Integration\ProvenanceRecord;
+use App\Models\Pharmacy\AdcTransaction;
+use App\Models\Pharmacy\MedicationOrder;
 use App\Services\Ancillary\AncillaryProjectionRebuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +88,50 @@ class AncillaryProjectionHandler implements ProjectionHandler
             $workItemType = (string) ($event->payload['work_item_type'] ?? self::WORK_ITEM_TYPES[$department] ?? '');
             if ($workItemType !== (self::WORK_ITEM_TYPES[$department] ?? null)) {
                 throw new InvalidArgumentException('Ancillary work-item type does not match its department.');
+            }
+
+            $transactionKey = trim((string) ($event->payload['source_transaction_key'] ?? ''));
+            if ($department === 'rx' && $transactionKey !== '') {
+                $existingTransaction = AdcTransaction::query()
+                    ->where('source_id', $record->source_id)
+                    ->where('source_transaction_key', $transactionKey)
+                    ->first();
+                if ($existingTransaction !== null) {
+                    $medication = $existingTransaction->rx_order_id === null
+                        ? null
+                        : MedicationOrder::query()->find($existingTransaction->rx_order_id);
+                    if ($medication === null) {
+                        throw new InvalidArgumentException('A replayed order-linked ADC transaction lost its governed order link.');
+                    }
+                    $station = $this->adcTransactionProjector->resolveStation($event, (int) $record->source_id);
+                    $transaction = $this->adcTransactionProjector->project(
+                        $event,
+                        (int) $record->source_id,
+                        $station,
+                        $medication,
+                    );
+                    ProvenanceRecord::query()->firstOrCreate(
+                        [
+                            'canonical_event_id' => $record->canonical_event_id,
+                            'target_schema' => 'prod',
+                            'target_table' => 'adc_transactions',
+                            'target_pk' => (string) $transaction->adc_transaction_id,
+                        ],
+                        [
+                            'source_id' => $record->source_id,
+                            'inbound_message_id' => $record->inbound_message_id,
+                            'lineage' => [
+                                'canonicalEventId' => $record->canonical_event_id,
+                                'rxOrderId' => $medication->rx_order_id,
+                                'adcStationId' => $station->adc_station_id,
+                                'sourceTransactionKey' => $transaction->source_transaction_key,
+                                'replayConflict' => true,
+                            ],
+                        ],
+                    );
+
+                    return (int) $medication->ancillary_order_id;
+                }
             }
 
             $sourceOrderKey = $this->requiredString($event->payload, 'source_order_key');

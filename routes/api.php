@@ -1,11 +1,19 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\ClinicalPayloadGovernanceController;
+use App\Http\Controllers\Api\Admin\CredentialNetworkGovernanceController;
 use App\Http\Controllers\Api\Admin\EnterpriseConnectorController;
+use App\Http\Controllers\Api\Admin\GovernedIntegrationChangeController;
 use App\Http\Controllers\Api\Admin\IntegrationControlPlaneController;
 use App\Http\Controllers\Api\Admin\IntegrationCredentialController;
 use App\Http\Controllers\Api\Admin\IntegrationEndpointController;
 use App\Http\Controllers\Api\Admin\IntegrationHealthController;
 use App\Http\Controllers\Api\Admin\IntegrationSourceController;
+use App\Http\Controllers\Api\Admin\SourceConfigurationVersionController;
+use App\Http\Controllers\Api\Admin\SourceLifecycleController;
+use App\Http\Controllers\Api\Admin\SourceObservabilityController;
+use App\Http\Controllers\Api\Admin\SourceOnboardingController;
+use App\Http\Controllers\Api\Admin\SourceStatusFacetController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\BlockScheduleController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
@@ -97,7 +105,7 @@ Route::get('/health', function () {
             'database' => 'disconnected',
         ], 503);
     }
-});
+})->middleware('throttle:public-health');
 
 // Command Center drill-downs (web session auth)
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->group(function () {
@@ -249,7 +257,7 @@ Route::post('/integrations/v1/patient-flow/hl7v2', [PatientFlowIngestController:
     ->middleware([
         'auth:sanctum',
         \App\Http\Middleware\RequireMachineToken::class.':integration:patient-flow:ingest',
-        'throttle:120,1',
+        'throttle:machine-ingest',
     ]);
 
 // RTDC — Real-Time Demand Capacity (web session auth)
@@ -444,7 +452,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
 });
 
 // Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
-Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('eddy/agent')->group(function () {
+Route::middleware([
+    'auth:sanctum',
+    \App\Http\Middleware\RequireMachineToken::class.':ops:draft',
+    'throttle:machine-agent',
+])->prefix('eddy/agent')->group(function () {
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
 });
 
@@ -456,30 +468,157 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewIntegrations'])->pre
     Route::get('/enterprise', [EnterpriseConnectorController::class, 'summary']);
     Route::get('/sources', [IntegrationSourceController::class, 'index']);
     Route::get('/sources/{source}', [IntegrationSourceController::class, 'show'])->whereNumber('source');
+    Route::get('/sources/{source}/configuration-versions', [SourceConfigurationVersionController::class, 'index'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/lifecycle-events', [SourceLifecycleController::class, 'index'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/onboarding', [SourceOnboardingController::class, 'show'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/observability', [SourceObservabilityController::class, 'show'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/status-facets', [SourceStatusFacetController::class, 'show'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/fhir/conformance', [EnterpriseConnectorController::class, 'fhirConformance'])
+        ->middleware('admin.scope:source')->whereNumber('source');
     Route::get('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'index'])->whereNumber('source');
     Route::get('/sources/{source}/credentials', [IntegrationCredentialController::class, 'index'])->whereNumber('source');
+    Route::get('/secret-providers', [CredentialNetworkGovernanceController::class, 'providers']);
+    Route::get('/sources/{source}/credentials/{credential}/versions', [CredentialNetworkGovernanceController::class, 'credentialVersions'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
+    Route::get('/sources/{source}/network-routes', [CredentialNetworkGovernanceController::class, 'networkRoutes'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/peer-pin-policies', [CredentialNetworkGovernanceController::class, 'peerPinPolicies'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/enterprise/replays/preview', [EnterpriseConnectorController::class, 'previewReplay'])
+        ->middleware('admin.scope:source');
 });
 
 Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->prefix('admin/integrations')->group(function () {
-    Route::post('/sources', [IntegrationSourceController::class, 'store']);
-    Route::patch('/sources/{source}', [IntegrationSourceController::class, 'update'])->whereNumber('source');
-    Route::delete('/sources/{source}', [IntegrationSourceController::class, 'destroy'])->whereNumber('source');
-    Route::post('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'store'])->whereNumber('source');
-    Route::patch('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'update'])->whereNumber(['source', 'endpoint']);
-    Route::delete('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'destroy'])->whereNumber(['source', 'endpoint']);
-    Route::post('/sources/{source}/credentials', [IntegrationCredentialController::class, 'store'])->whereNumber('source');
-    Route::patch('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'update'])->whereNumber(['source', 'credential']);
-    Route::delete('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'destroy'])->whereNumber(['source', 'credential']);
-    Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->whereNumber('source');
-    Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->whereNumber('source');
-    Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir']);
-    Route::post('/enterprise/replays/preview', [EnterpriseConnectorController::class, 'previewReplay']);
-    Route::post('/enterprise/replays', [EnterpriseConnectorController::class, 'queueReplay']);
-    Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft']);
+    Route::post('/sources', [IntegrationSourceController::class, 'store'])->middleware('admin.scope:facility');
+    Route::patch('/sources/{source}', [IntegrationSourceController::class, 'update'])->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/configuration-versions', [SourceConfigurationVersionController::class, 'store'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/lifecycle-transitions', [SourceLifecycleController::class, 'transition'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/onboarding-versions', [SourceOnboardingController::class, 'storeVersion'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/evidence', [SourceOnboardingController::class, 'storeEvidence'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/readiness-assessments', [SourceOnboardingController::class, 'assess'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/activation-windows/{windowUuid}/cancel', [SourceOnboardingController::class, 'cancelWindow'])
+        ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('windowUuid');
+    Route::delete('/sources/{source}', [IntegrationSourceController::class, 'destroy'])->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'store'])->middleware('admin.scope:source')->whereNumber('source');
+    Route::patch('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'update'])->middleware('admin.scope:source')->whereNumber(['source', 'endpoint']);
+    Route::delete('/sources/{source}/endpoints/{endpoint}', [IntegrationEndpointController::class, 'destroy'])->middleware('admin.scope:source')->whereNumber(['source', 'endpoint']);
+    Route::post('/sources/{source}/credentials', [IntegrationCredentialController::class, 'store'])->middleware('admin.scope:source')->whereNumber('source');
+    Route::patch('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'update'])->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
+    Route::delete('/sources/{source}/credentials/{credential}', [IntegrationCredentialController::class, 'destroy'])->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
+    Route::post('/sources/{source}/credentials/{credential}/validations', [CredentialNetworkGovernanceController::class, 'validateCredential'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
+    Route::post('/sources/{source}/network-routes', [CredentialNetworkGovernanceController::class, 'createNetworkRoute'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::patch('/sources/{source}/network-routes/{route}', [CredentialNetworkGovernanceController::class, 'updateNetworkRoute'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::post('/sources/{source}/network-routes/{route}/validations', [CredentialNetworkGovernanceController::class, 'validateNetworkRoute'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::delete('/sources/{source}/network-routes/{route}', [CredentialNetworkGovernanceController::class, 'retireNetworkRoute'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::post('/sources/{source}/network-routes/{route}/peer-pin-policies', [CredentialNetworkGovernanceController::class, 'upsertPeerPinPolicy'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
+    Route::delete('/sources/{source}/peer-pin-policies/{policy}', [CredentialNetworkGovernanceController::class, 'retirePeerPinPolicy'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'policy']);
+    Route::put('/sources/{source}/fhir/resource-profiles/{resourceType}', [EnterpriseConnectorController::class, 'configureFhirResourceProfile'])
+        ->middleware('admin.scope:source')->whereNumber('source')->where('resourceType', '[A-Z][A-Za-z]{1,79}');
+    Route::delete('/sources/{source}/fhir/resource-profiles/{profile}', [EnterpriseConnectorController::class, 'retireFhirResourceProfile'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'profile']);
+    Route::post('/sources/{source}/activation-requests', [GovernedIntegrationChangeController::class, 'requestSourceActivation'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/activation-window-requests', [GovernedIntegrationChangeController::class, 'requestScheduledSourceActivation'])
+        ->middleware('admin.scope:source')->whereNumber('source');
+    Route::post('/sources/{source}/configuration-versions/{version}/application-requests', [GovernedIntegrationChangeController::class, 'requestSourceConfigurationApplication'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'version']);
+    Route::post('/sources/{source}/credentials/{credential}/rotation-requests', [GovernedIntegrationChangeController::class, 'requestCredentialRotation'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'credential']);
+    Route::post('/governed-changes/{changeRequestUuid}/execute-source-activation', [GovernedIntegrationChangeController::class, 'executeSourceActivation'])
+        ->middleware('admin.scope:governed_change')->whereUuid('changeRequestUuid');
+    Route::post('/governed-changes/{changeRequestUuid}/execute-source-activation-schedule', [GovernedIntegrationChangeController::class, 'executeScheduledSourceActivation'])
+        ->middleware('admin.scope:governed_change')->whereUuid('changeRequestUuid');
+    Route::post('/governed-changes/{changeRequestUuid}/execute-source-configuration', [GovernedIntegrationChangeController::class, 'executeSourceConfigurationApplication'])
+        ->middleware('admin.scope:governed_change')->whereUuid('changeRequestUuid');
+    Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/credentials/{credential}/execute-rotation', [GovernedIntegrationChangeController::class, 'executeCredentialRotation'])
+        ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+        ->whereUuid('changeRequestUuid')->whereNumber(['source', 'credential']);
 });
 
+Route::middleware(['web', 'auth', 'throttle:60,1', 'can:operateIntegrations'])
+    ->prefix('admin/integrations')->group(function () {
+        Route::post('/sources/{source}/observations', [SourceObservabilityController::class, 'collect'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/slo-breaches/{breach}/acknowledge', [SourceObservabilityController::class, 'acknowledge'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/escalate', [SourceObservabilityController::class, 'escalate'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/incident-link', [SourceObservabilityController::class, 'linkIncident'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/slo-breaches/{breach}/review', [SourceObservabilityController::class, 'review'])
+            ->middleware('admin.scope:source')->whereNumber('source')->whereUuid('breach');
+        Route::post('/sources/{source}/status-facets/conformance', [SourceStatusFacetController::class, 'recordConformance'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/status-facets/contract', [SourceStatusFacetController::class, 'recordContract'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/status-facets/incident', [SourceStatusFacetController::class, 'recordIncident'])
+            ->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/health-check', [EnterpriseConnectorController::class, 'healthCheck'])->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/sources/{source}/fhir/poll', [EnterpriseConnectorController::class, 'pollFhir'])->middleware('admin.scope:source')->whereNumber('source');
+        Route::post('/enterprise/fhir/capability-discovery', [EnterpriseConnectorController::class, 'discoverFhir'])->middleware('admin.scope:source');
+        Route::post('/enterprise/writeback-drafts', [EnterpriseConnectorController::class, 'createWritebackDraft'])->middleware('admin.scope:source');
+        Route::post('/sources/{source}/payload-quarantines/{quarantine}/release-requests', [ClinicalPayloadGovernanceController::class, 'requestQuarantineRelease'])
+            ->middleware('admin.scope:source')->whereNumber(['source', 'quarantine']);
+        Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/payload-quarantines/{quarantine}/execute-release', [ClinicalPayloadGovernanceController::class, 'executeQuarantineRelease'])
+            ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+            ->whereUuid('changeRequestUuid')->whereNumber(['source', 'quarantine']);
+    });
+
+Route::middleware(['web', 'auth', 'throttle:30,1', 'can:executeDestructiveReplay'])
+    ->prefix('admin/integrations')->group(function () {
+        Route::post('/enterprise/replays/requests', [EnterpriseConnectorController::class, 'requestReplay'])->middleware('admin.scope:source');
+        Route::post('/enterprise/replays', [EnterpriseConnectorController::class, 'queueReplay'])->middleware(['admin.scope:source', 'admin.scope:governed_change']);
+    });
+
+Route::middleware(['web', 'auth', 'throttle:30,1', 'can:manageDataStewardship'])
+    ->prefix('admin/integrations')->group(function () {
+        Route::post('/sources/{source}/payload-objects/{object}/hold-requests', [ClinicalPayloadGovernanceController::class, 'requestHold'])
+            ->middleware('admin.scope:source')->whereNumber(['source', 'object']);
+        Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/payload-objects/{object}/execute-hold', [ClinicalPayloadGovernanceController::class, 'executeHold'])
+            ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+            ->whereUuid('changeRequestUuid')->whereNumber(['source', 'object']);
+        Route::post('/sources/{source}/payload-objects/{object}/purge-requests', [ClinicalPayloadGovernanceController::class, 'requestObjectPurge'])
+            ->middleware('admin.scope:source')->whereNumber(['source', 'object']);
+        Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/payload-objects/{object}/execute-purge', [ClinicalPayloadGovernanceController::class, 'executeObjectPurge'])
+            ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+            ->whereUuid('changeRequestUuid')->whereNumber(['source', 'object']);
+        Route::post('/sources/{source}/payload-objects/{object}/integrity-recovery-requests', [ClinicalPayloadGovernanceController::class, 'requestIntegrityRecovery'])
+            ->middleware('admin.scope:source')->whereNumber(['source', 'object']);
+        Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/payload-objects/{object}/execute-integrity-recovery', [ClinicalPayloadGovernanceController::class, 'executeIntegrityRecovery'])
+            ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+            ->whereUuid('changeRequestUuid')->whereNumber(['source', 'object']);
+        Route::post('/sources/{source}/payload-quarantines/{quarantine}/purge-requests', [ClinicalPayloadGovernanceController::class, 'requestQuarantinePurge'])
+            ->middleware('admin.scope:source')->whereNumber(['source', 'quarantine']);
+        Route::post('/governed-changes/{changeRequestUuid}/sources/{source}/payload-quarantines/{quarantine}/execute-purge', [ClinicalPayloadGovernanceController::class, 'executeQuarantinePurge'])
+            ->middleware(['admin.scope:governed_change', 'admin.scope:source'])
+            ->whereUuid('changeRequestUuid')->whereNumber(['source', 'quarantine']);
+    });
+
+Route::middleware(['web', 'auth', 'throttle:30,1', 'can:approveIntegrationChanges'])
+    ->prefix('admin/integrations')->group(function () {
+        Route::post('/governed-changes/{changeRequestUuid}/decision', [GovernedIntegrationChangeController::class, 'decide'])
+            ->middleware('admin.scope:governed_change')->whereUuid('changeRequestUuid');
+    });
+
 // OR Cases
-Route::prefix('cases')->middleware('throttle:60,1')->group(function () {
+Route::prefix('cases')->middleware(['web', 'auth', 'throttle:web-api'])->group(function () {
     Route::get('/', [ORCaseController::class, 'index']);
     Route::get('/today', [ORCaseController::class, 'todaysCases']);
     Route::get('/metrics', [ORCaseController::class, 'metrics']);
@@ -491,12 +630,14 @@ Route::prefix('cases')->middleware(['web', 'auth', 'throttle:60,1', 'can:writeOr
 });
 
 // Block Schedule
-Route::prefix('blocks')->middleware('throttle:60,1')->group(function () {
+Route::prefix('blocks')->middleware(['web', 'auth', 'throttle:web-api'])->group(function () {
     Route::get('/', [BlockScheduleController::class, 'index']);
-    Route::post('/', [BlockScheduleController::class, 'store']);
     Route::get('/utilization', [BlockScheduleController::class, 'utilization']);
     Route::get('/service-utilization', [BlockScheduleController::class, 'serviceUtilization']);
     Route::get('/room-utilization', [BlockScheduleController::class, 'roomUtilization']);
+});
+Route::prefix('blocks')->middleware(['web', 'auth', 'throttle:sensitive-web-api', 'can:writeOrCases'])->group(function () {
+    Route::post('/', [BlockScheduleController::class, 'store']);
 });
 
 // Analytics
@@ -513,21 +654,21 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('analytics')->group(
         ->where('metricKey', '[A-Za-z0-9_\-]+');
 });
 
-Route::prefix('analytics')->middleware('throttle:60,1')->group(function () {
+Route::prefix('analytics')->middleware(['web', 'auth', 'throttle:web-api'])->group(function () {
     Route::get('/service-performance', [AnalyticsController::class, 'servicePerformance']);
     Route::get('/provider-performance', [AnalyticsController::class, 'providerPerformance']);
     Route::get('/historical-trends', [AnalyticsController::class, 'historicalTrends']);
 });
 
 // Reference Data
-Route::middleware('throttle:60,1')->group(function () {
+Route::middleware(['web', 'auth', 'throttle:web-api'])->group(function () {
     Route::get('/services', [ServiceController::class, 'index']);
     Route::get('/rooms', [RoomController::class, 'index']);
     Route::get('/providers', [ProviderController::class, 'index']);
 });
 
 // Improvement Process Maps
-Route::prefix('improvement')->middleware('throttle:60,1')->group(function () {
+Route::prefix('improvement')->middleware(['web', 'auth', 'throttle:web-api'])->group(function () {
     Route::get('/api/nursing-operations', function () {
         $workflow = request('workflow', 'Bed Placement');
 
@@ -622,9 +763,9 @@ Route::prefix('improvement')->middleware('throttle:60,1')->group(function () {
 
 // Public token exchange (tightly rate-limited). Issuance honors must_change_password.
 Route::prefix('auth')->group(function () {
-    Route::post('/token', [MobileAuthController::class, 'token'])->middleware('throttle:10,1');
+    Route::post('/token', [MobileAuthController::class, 'token'])->middleware('throttle:credential-exchange');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'throttle:mobile-authenticated'])->group(function () {
         Route::post('/token/refresh', [MobileAuthController::class, 'refresh']);
         Route::post('/token/revoke', [MobileAuthController::class, 'revoke']);
         Route::post('/change-password', [MobileAuthController::class, 'changePassword']);
@@ -635,7 +776,7 @@ Route::prefix('auth')->group(function () {
 // `CheckForAnyAbility:mobile:read` rejects narrowly-scoped tokens (e.g. the
 // must_change_password challenge token) while admin `*` tokens pass. Write-vs-read
 // ability splitting (mobile:act) + per-resource Policies land with the P1 writes.
-Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'throttle:120,1'])->prefix('mobile/v1')->group(function () {
+Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'throttle:mobile-api'])->prefix('mobile/v1')->group(function () {
     Route::get('/me', [MobileMeController::class, 'show']);
     Route::put('/me/preferences', [MobileMeController::class, 'updatePreferences']);
 

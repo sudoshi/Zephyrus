@@ -24,14 +24,16 @@ export function AdminMetricStrip({ metrics }: { metrics: readonly AdminMetric[] 
           <dt className="truncate text-xs font-medium text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             {metric.label}
           </dt>
-          <dd className={`mt-0.5 text-xl font-semibold tabular-nums ${metricTone[metric.tone ?? 'default']}`}>
-            {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+          <dd className="mt-0.5">
+            <span className={`block text-xl font-semibold tabular-nums ${metricTone[metric.tone ?? 'default']}`}>
+              {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+            </span>
+            {metric.detail ? (
+              <span className="mt-0.5 block truncate text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                {metric.detail}
+              </span>
+            ) : null}
           </dd>
-          {metric.detail ? (
-            <p className="truncate text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-              {metric.detail}
-            </p>
-          ) : null}
         </div>
       ))}
     </dl>

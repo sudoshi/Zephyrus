@@ -128,23 +128,23 @@ const STATUS_CATEGORIES = ['New', 'In-Progress', 'Completed'];
 const getObjectTypeIcon = (type) => {
   switch (type) {
     case 'Patient':
-      return 'healthicons:patient-boy';
+      return 'healthicons:regular-patient';
     case 'Nurse':
       return 'healthicons:nurse';
     case 'Physician':
       return 'healthicons:doctor-male';
     case 'Bed':
-      return 'healthicons:stretcher';
+      return 'healthicons:inpatient';
     case 'Medication':
       return 'healthicons:medicines';
     case 'Location':
       return 'healthicons:hospital';
     case 'Equipment':
-      return 'healthicons:medical-equipment';
+      return 'healthicons:machinery';
     case 'Test':
-      return 'healthicons:lab-sample';
+      return 'healthicons:medical-sample';
     case 'Document':
-      return 'healthicons:clinical-documents';
+      return 'healthicons:medical-records';
     default:
       return 'healthicons:ui-menu';
   }

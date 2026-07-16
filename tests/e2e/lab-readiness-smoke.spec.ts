@@ -1,4 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page);
+});
 
 const sensitiveKeys = ['resultUuid', 'specimenUuid', 'sourceResultKey'];
 

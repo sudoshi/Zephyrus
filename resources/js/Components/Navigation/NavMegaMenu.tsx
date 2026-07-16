@@ -17,7 +17,7 @@ export function NavMegaMenu({ domain, access, active }: NavMegaMenuProps) {
         aria-current={active ? 'page' : undefined}
         className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 py-1.5 text-base font-medium transition-all duration-300 hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
           active
-            ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+            ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
             : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
         }`}
       >

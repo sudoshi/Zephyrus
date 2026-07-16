@@ -8,6 +8,12 @@ class IntegrationUrlPolicy
 
     public function assertSafe(string $url): void
     {
+        $this->assertSafeAndResolve($url);
+    }
+
+    /** @return array{scheme: string, host: string, port: int, addresses: list<string>} */
+    public function assertSafeAndResolve(string $url): array
+    {
         $parts = parse_url($url);
         if (! is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
             throw new UnsafeIntegrationUrl('The endpoint URL must include a scheme and host.');
@@ -54,6 +60,13 @@ class IntegrationUrlPolicy
                 throw new UnsafeIntegrationUrl('The endpoint resolves to a private or reserved network address.');
             }
         }
+
+        return [
+            'scheme' => $scheme,
+            'host' => $host,
+            'port' => $port,
+            'addresses' => $addresses,
+        ];
     }
 
     /** @param list<string> $redirectUrls */
@@ -106,7 +119,7 @@ class IntegrationUrlPolicy
             || $host === 'instance-data.ec2.internal';
     }
 
-    private function isPublicAddress(string $address): bool
+    public function isPublicAddress(string $address): bool
     {
         return filter_var(
             $address,

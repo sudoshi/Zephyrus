@@ -55,6 +55,16 @@ if [[ ! -d "$REPOSITORY_ROOT/node_modules" ]]; then
     exit 1
 fi
 
+# Production releases fail before publication unless the root-owned Apache
+# edge policy, ModSecurity, and OWASP CRS contract are active and match this
+# release. Prepare the host once with deploy/apache/install-zephyrus-edge-security.sh.
+echo "🛡️  Verifying production edge prerequisites..."
+if ! sudo php "$REPOSITORY_ROOT/scripts/security/verify-edge-security.php" --contract --apache; then
+    echo "❌ Error: Production WAF/edge prerequisites are not ready"
+    echo "💡 Review deploy/apache/install-zephyrus-edge-security.sh"
+    exit 1
+fi
+
 RELEASE_TEMP="$(mktemp -d "${TMPDIR:-/tmp}/zephyrus-release.XXXXXX")"
 RELEASE_ROOT="$RELEASE_TEMP/release"
 IMMUTABLE_HELPER="$RELEASE_TEMP/create-release-snapshot.sh"
@@ -251,6 +261,15 @@ fi
 if ! curl -s -o /dev/null -w "%{http_code}" -H "Host: zephyrus.acumenus.net" http://localhost | grep -q "^[23]"; then
     echo "❌ Error: Site is not responding correctly"
     echo "💡 Check the Laravel logs: tail -f /var/www/Zephyrus/storage/logs/laravel.log"
+    exit 1
+fi
+
+# The application smoke proves reachability; this second probe proves that the
+# public TLS boundary actually enforces the release's headers, method policy,
+# and sensitive-path denial rules.
+if ! sudo php /var/www/Zephyrus/scripts/security/verify-edge-security.php \
+    --contract --apache --live=https://zephyrus.acumenus.net; then
+    echo "❌ Error: Live production edge verification failed"
     exit 1
 fi
 

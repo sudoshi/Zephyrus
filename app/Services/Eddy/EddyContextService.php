@@ -2,6 +2,7 @@
 
 namespace App\Services\Eddy;
 
+use App\Integrations\Healthcare\Services\SourceHealthDigestService;
 use App\Models\User;
 use App\Services\Ops\Agents\AgentToolRegistry;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +22,10 @@ class EddyContextService
     /** Surfaces that warrant the cross-domain executive situation block. */
     private const HOUSE_WIDE_SURFACES = ['chat', 'command_center', 'improvement'];
 
-    public function __construct(private readonly AgentToolRegistry $registry) {}
+    public function __construct(
+        private readonly AgentToolRegistry $registry,
+        private readonly SourceHealthDigestService $sourceHealth,
+    ) {}
 
     /**
      * @return array<string, mixed> empty when unavailable
@@ -55,6 +59,9 @@ class EddyContextService
                 'census_lag_minutes' => $summary['censusLagMinutes'] ?? null,
                 'status' => $summary['sourceFreshnessStatus'] ?? 'warning',
             ],
+            // INT-OBS 6: contributing integration source health so Eddy never
+            // reasons over a silently stale/synthetic feed as if it were live.
+            'integration_source_health' => $this->integrationSourceHealth(),
             'findings' => array_map(
                 static fn (array $f): array => [
                     'key' => $f['key'] ?? '',
@@ -69,8 +76,39 @@ class EddyContextService
             $context = array_merge($context, $this->houseWide($user));
         }
 
-        // Belt-and-suspenders: strip any PHI-shaped keys before egress.
         return (array) $this->registry->redact($context);
+    }
+
+    /**
+     * A compact, PHI-free integration-source-health block for the chat envelope.
+     * Fail-open like the rest of the context.
+     *
+     * @return array<string, mixed>
+     */
+    private function integrationSourceHealth(): array
+    {
+        try {
+            $digest = $this->sourceHealth->digest();
+        } catch (\Throwable $e) {
+            Log::info('eddy.context.source_health_unavailable', ['error' => $e->getMessage()]);
+
+            return ['overall_status' => 'unknown', 'any_stale' => null, 'any_degraded' => null, 'live_source_count' => null, 'synthetic_source_count' => null, 'sources' => []];
+        }
+
+        return [
+            'overall_status' => $digest['overallStatus'],
+            'any_stale' => $digest['anyStale'],
+            'any_degraded' => $digest['anyDegraded'],
+            'live_source_count' => $digest['liveSourceCount'],
+            'synthetic_source_count' => $digest['syntheticSourceCount'],
+            'sources' => array_map(static fn (array $s): array => [
+                'source_key' => $s['sourceKey'],
+                'system_class' => $s['systemClass'],
+                'mode' => $s['mode'],
+                'status' => $s['status'],
+                'stale' => $s['stale'],
+            ], $digest['sources']),
+        ];
     }
 
     /**

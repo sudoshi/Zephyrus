@@ -2,8 +2,10 @@
 
 namespace App\Services\Audit;
 
+use App\Http\Middleware\AssignRequestIdentity;
 use App\Models\Audit\UserEvent;
 use App\Models\User;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,24 +32,47 @@ class UserAuditRecorder
 
     private const SOURCE_SURFACES = ['web', 'web_api', 'hummingbird', 'system'];
 
-    private const TARGET_TYPES = ['user', 'auth_provider', 'cockpit_metric', 'ancillary_barrier'];
+    private const TARGET_TYPES = [
+        'user', 'auth_provider', 'cockpit_metric', 'governed_change',
+        'access_review_campaign', 'access_review_item', 'evidence_export',
+        'user_external_identity',
+        'system_health',
+        'system_health_component',
+        'admin_scope',
+        'ai_provider_policy',
+        'ancillary_barrier',
+    ];
 
     private const CHANGE_KEYS = [
         'role', 'is_active', 'must_change_password', 'provider_enabled',
         'ok_edge', 'warn_edge', 'crit_edge', 'refresh_secs',
         'display_name_changed', 'settings_changed', 'alert_template_changed',
+        'auth_session_version', 'remember_token_invalidated', 'api_tokens_revoked',
+        'database_sessions_revoked',
         'barrier_status',
     ];
 
     private const METADATA_KEYS = [
         'changed_fields', 'remembered', 'guard', 'token_kind', 'challenge_required',
         'password_change_required', 'provider_type', 'metric_key', 'page_visit',
+        'step_up_method', 'governed_action', 'decision', 'change_request_uuid',
+        'campaign_uuid', 'item_uuid', 'evidence_sha256',
+        'subject_user_id', 'provider', 'subject_fingerprint', 'link_active',
+        'external_identities_unlinked', 'mobile_devices_revoked', 'access_scopes_revoked',
+        'batch_uuid', 'component_count', 'critical_count', 'warning_count', 'unknown_count',
+        'organization_id', 'facility_id', 'source_id', 'scope_revision',
+        'policy_key', 'policy_version', 'rolled_back_to_version', 'surface',
+        'provider_mode', 'selected_profile_id', 'fallback_used', 'will_call_paid_provider',
+        'capability', 'scope_id', 'member_count', 'eligible_count', 'blocked_count',
+        'valid_from', 'valid_until',
     ];
 
     private const FORBIDDEN_KEY_FRAGMENTS = [
         'password', 'token', 'secret', 'credential', 'authorization', 'cookie', 'claim',
         'code', 'nonce', 'state', 'body', 'payload', 'mrn', 'patient', 'free_text', 'note',
     ];
+
+    public function __construct(private readonly ClinicalContentGuard $clinicalContent) {}
 
     /**
      * Strictly insert an audit event. Call this inside the same DB transaction as
@@ -110,7 +135,7 @@ class UserAuditRecorder
         $sessionId = $context['session_id'] ?? $this->sessionId($request);
         $route = $request?->route();
 
-        $event = UserEvent::query()->create([
+        $attributes = [
             'event_uuid' => (string) Str::uuid7(),
             'occurred_at' => $context['occurred_at'] ?? now(),
             'actor_user_id' => $actor?->getKey(),
@@ -136,7 +161,10 @@ class UserAuditRecorder
             'changes' => $this->sanitizeChanges($context['changes'] ?? []),
             'metadata' => $this->sanitizeMetadata($context['metadata'] ?? []),
             'schema_version' => 1,
-        ]);
+        ];
+        $this->clinicalContent->assertSafe($attributes, 'clinical_content_audit_rejected');
+
+        $event = UserEvent::query()->create($attributes);
 
         $this->markRequestAudited($request);
 
@@ -293,6 +321,11 @@ class UserAuditRecorder
 
     private function requestUuid(?Request $request): string
     {
+        $assigned = $request?->attributes->get(AssignRequestIdentity::ATTRIBUTE);
+        if (is_string($assigned) && Str::isUuid($assigned)) {
+            return $assigned;
+        }
+
         $existing = $request?->attributes->get(self::REQUEST_UUID_ATTRIBUTE);
         if (is_string($existing) && Str::isUuid($existing)) {
             return $existing;

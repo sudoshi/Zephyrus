@@ -3,18 +3,33 @@
 namespace App\Services\Cockpit\Channels;
 
 use App\Contracts\AlertChannel;
+use App\Contracts\OperationalAlertChannel;
 use App\Models\Cockpit\CockpitAlert;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
+use App\Services\Alerting\OperationalAlert;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Teams webhook lane for opened cockpit alerts. Inert until
- * TEAMS_ALERT_WEBHOOK_URL is configured. The alert text is the rendered
- * alert_template — aggregate operational counts only (same PHI-free class as
- * the public Reverb board channels).
+ * Teams webhook lane for opened cockpit alerts AND shared operational alerts
+ * (INT-OBS 5 / ADM-HEALTH 6). Inert until TEAMS_ALERT_WEBHOOK_URL is
+ * configured. The alert text is aggregate operational counts/labels only —
+ * the same PHI-free class as the public Reverb board channels.
  */
-class TeamsAlertChannel implements AlertChannel
+class TeamsAlertChannel implements AlertChannel, OperationalAlertChannel
 {
+    private readonly ClinicalContentGuard $clinicalContent;
+
+    public function __construct(?ClinicalContentGuard $clinicalContent = null)
+    {
+        $this->clinicalContent = $clinicalContent ?? app(ClinicalContentGuard::class);
+    }
+
+    public function name(): string
+    {
+        return 'teams';
+    }
+
     public function send(CockpitAlert $alert): int
     {
         $url = (string) config('services.teams.alert_webhook_url', '');
@@ -22,20 +37,47 @@ class TeamsAlertChannel implements AlertChannel
         if ($url === '') {
             return 0;
         }
+        $this->clinicalContent->assertSafe(
+            ['key' => $alert->key, 'status' => $alert->status, 'text' => $alert->text],
+            'clinical_content_alert_rejected',
+        );
 
+        return $this->post($url, sprintf(
+            '%s **Zephyrus %s** — %s',
+            $alert->status === 'crit' ? '◆' : '▲',
+            $alert->status === 'crit' ? 'CRITICAL' : 'warning',
+            $alert->text,
+        ), $alert->key);
+    }
+
+    public function deliver(OperationalAlert $alert): int
+    {
+        $url = (string) config('services.teams.alert_webhook_url', '');
+
+        if ($url === '') {
+            return 0;
+        }
+        $this->clinicalContent->assertSafe($alert->toGuardedPayload(), 'clinical_content_alert_rejected');
+
+        $suffix = $alert->sourceLabel !== null ? sprintf(' [%s]', $alert->sourceLabel) : '';
+
+        return $this->post($url, sprintf(
+            '%s **Zephyrus %s** — %s%s',
+            $alert->isCritical() ? '◆' : '▲',
+            $alert->isCritical() ? 'CRITICAL' : 'warning',
+            $alert->title,
+            $suffix,
+        ), $alert->code);
+    }
+
+    private function post(string $url, string $text, string $auditKey): int
+    {
         try {
-            $response = Http::timeout(5)->post($url, [
-                'text' => sprintf(
-                    '%s **Zephyrus %s** — %s',
-                    $alert->status === 'crit' ? '◆' : '▲',
-                    $alert->status === 'crit' ? 'CRITICAL' : 'warning',
-                    $alert->text,
-                ),
-            ]);
+            $response = Http::timeout(5)->post($url, ['text' => $text]);
 
             return $response->successful() ? 1 : 0;
         } catch (\Throwable $e) {
-            Log::warning('cockpit.alerts.teams_send_failed', ['key' => $alert->key, 'error' => $e->getMessage()]);
+            Log::warning('cockpit.alerts.teams_send_failed', ['key' => $auditKey, 'error' => $e->getMessage()]);
 
             return 0;
         }

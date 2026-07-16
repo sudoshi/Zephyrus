@@ -3,6 +3,7 @@
 namespace Tests\Feature\Cockpit;
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -12,6 +13,8 @@ use Tests\TestCase;
  */
 class LegacyOverviewRedirectTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** The D4 map: legacy overview URL → cockpit drill domain. */
     private const REDIRECTS = [
         '/dashboard/rtdc' => 'rtdc',
@@ -23,8 +26,7 @@ class LegacyOverviewRedirectTest extends TestCase
 
     public function test_legacy_overviews_redirect_to_the_matching_cockpit_drill(): void
     {
-        $user = User::query()->first();
-        $this->assertNotNull($user, 'seeded user required');
+        $user = User::factory()->create(['is_active' => true]);
 
         foreach (self::REDIRECTS as $uri => $domain) {
             $this->actingAs($user)
@@ -44,8 +46,7 @@ class LegacyOverviewRedirectTest extends TestCase
 
     public function test_home_route_is_deleted(): void
     {
-        $user = User::query()->first();
-        $this->assertNotNull($user, 'seeded user required');
+        $user = User::factory()->create(['is_active' => true]);
 
         $this->actingAs($user)->get('/home')->assertNotFound();
     }

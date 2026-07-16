@@ -1,4 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page);
+});
 
 const forbidden = ['patient_ref', 'specimen_uuid', 'source_specimen_key', 'result_uuid', 'source_result_key', 'source_critical_key'];
 

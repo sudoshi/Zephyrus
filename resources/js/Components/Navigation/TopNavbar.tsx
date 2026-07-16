@@ -69,7 +69,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
                     aria-current={active ? 'page' : undefined}
                     className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-healthcare-hover dark:hover:bg-healthcare-hover-dark ${
                       active
-                        ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                        ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
                         : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
                     }`}
                   >
@@ -102,7 +102,7 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
                   aria-current={active ? 'page' : undefined}
                   className={`hidden items-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-healthcare-hover xl:flex dark:hover:bg-healthcare-hover-dark ${
                     active
-                      ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                      ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
                       : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark'
                   }`}
                 >

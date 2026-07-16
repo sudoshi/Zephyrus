@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Route as IlluminateRoute;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -46,12 +48,14 @@ class ApiAuthorizationTest extends TestCase
         }
     }
 
-    public function test_public_legacy_read_routes_are_explicitly_public(): void
+    public function test_legacy_clinical_and_reference_routes_reject_anonymous_requests(): void
     {
         foreach ([
-            '/api/health',
+            '/api/cases',
+            '/api/cases/today',
             '/api/cases/metrics',
             '/api/cases/room-status',
+            '/api/blocks',
             '/api/blocks/utilization',
             '/api/blocks/service-utilization',
             '/api/blocks/room-utilization',
@@ -63,11 +67,49 @@ class ApiAuthorizationTest extends TestCase
             '/api/analytics/historical-trends',
             '/api/improvement/api/nursing-operations',
         ] as $path) {
-            $response = $this->getJson($path);
-
-            $this->assertNotContains($response->status(), [401, 403], "{$path} unexpectedly requires auth.");
-            $this->assertLessThan(500, $response->status(), "{$path} returned {$response->status()}.");
+            $this->getJson($path)->assertUnauthorized();
         }
+
+        $this->postJson('/api/blocks', [])->assertUnauthorized();
+        $this->getJson('/api/health')->assertOk();
+    }
+
+    public function test_every_api_route_except_the_reviewed_public_allowlist_requires_authentication(): void
+    {
+        $publicAllowlist = ['api/health', 'api/auth/token'];
+
+        $unprotected = collect(Route::getRoutes()->getRoutes())
+            ->filter(fn (IlluminateRoute $route): bool => str_starts_with($route->uri(), 'api/'))
+            ->reject(fn (IlluminateRoute $route): bool => in_array($route->uri(), $publicAllowlist, true))
+            ->reject(function (IlluminateRoute $route): bool {
+                return collect($route->gatherMiddleware())->contains(
+                    fn (string $middleware): bool => $middleware === 'auth'
+                        || str_starts_with($middleware, 'auth:')
+                        || str_contains($middleware, 'Authenticate'),
+                );
+            })
+            ->map(fn (IlluminateRoute $route): string => implode('|', $route->methods()).' '.$route->uri())
+            ->values()
+            ->all();
+
+        $this->assertSame([], $unprotected, 'API routes without an explicit authentication boundary.');
+    }
+
+    public function test_every_api_route_has_an_explicit_rate_limit(): void
+    {
+        $unthrottled = collect(Route::getRoutes()->getRoutes())
+            ->filter(fn (IlluminateRoute $route): bool => str_starts_with($route->uri(), 'api/'))
+            ->reject(function (IlluminateRoute $route): bool {
+                return collect($route->gatherMiddleware())->contains(
+                    fn (string $middleware): bool => str_starts_with($middleware, 'throttle:')
+                        || str_contains($middleware, 'ThrottleRequests'),
+                );
+            })
+            ->map(fn (IlluminateRoute $route): string => implode('|', $route->methods()).' '.$route->uri())
+            ->values()
+            ->all();
+
+        $this->assertSame([], $unthrottled, 'API routes without an explicit rate-limit class.');
     }
 
     public function test_admin_middleware_and_deployment_gates_are_distinct(): void
@@ -96,8 +138,8 @@ class ApiAuthorizationTest extends TestCase
         ])->assertForbidden();
         $this->actingAs($superuser)->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
             'source_key' => 'epic.fhir.sandbox',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('source_id');
+        ])->assertConflict()
+            ->assertJsonPath('error.code', 'admin_scope_required');
     }
 
     public function test_mobile_bff_requires_sanctum_read_and_act_abilities(): void
@@ -128,14 +170,46 @@ class ApiAuthorizationTest extends TestCase
             'params' => ['unit' => '3W', 'barrier' => 'imaging'],
         ];
 
+        $user = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
+
+        $wildcard = $user->createToken('human-admin', ['*'])->plainTextToken;
+        $this->withToken($wildcard)
+            ->postJson('/api/eddy/agent/actions/propose', $payload)
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'machine_ability_required');
+        $this->app['auth']->forgetGuards();
+
+        $readOnly = $user->createToken('eddy-reader', ['ops:read'])->plainTextToken;
+        $this->withToken($readOnly)
+            ->postJson('/api/eddy/agent/actions/propose', $payload)
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'machine_ability_required');
+        $this->app['auth']->forgetGuards();
+
+        $draft = $user->createToken('eddy-agent', ['ops:read', 'ops:draft'])->plainTextToken;
+        $this->withToken($draft)
+            ->postJson('/api/eddy/agent/actions/propose', $payload)
+            ->assertCreated();
+    }
+
+    public function test_eddy_agent_callback_rejects_anonymous_and_browser_session_callers(): void
+    {
+        $payload = [
+            'action_type' => 'flag_barrier',
+            'title' => 'Imaging delay blocking discharges',
+            'surface' => 'rtdc',
+            'rationale' => 'Two discharges are held on pending CT reads.',
+            'runner_up' => 'Escalate to the radiology charge instead.',
+            'params' => ['unit' => '3W', 'barrier' => 'imaging'],
+        ];
+
         $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertUnauthorized();
 
         $user = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false]);
-        Sanctum::actingAs($user, ['ops:read']);
-        $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertForbidden();
-
-        Sanctum::actingAs($user, ['ops:read', 'ops:draft']);
-        $this->postJson('/api/eddy/agent/actions/propose', $payload)->assertCreated();
+        $this->actingAs($user)
+            ->postJson('/api/eddy/agent/actions/propose', $payload)
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'machine_token_required');
     }
 
     public function test_legacy_case_writes_require_web_authentication(): void

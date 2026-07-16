@@ -19,6 +19,9 @@ export function useLiveCockpit() {
   const qc = useQueryClient();
 
   useEffect(() => {
+    const client = echo;
+    if (client === null) return;
+
     // Refresh only the LIVE surfaces on a snapshot ping — snapshot / face / drill
     // / patient. The near-static catalogs (['cockpit','scopes'], ['cockpit',
     // 'kpi-definitions']) are deliberately excluded so a per-minute ping doesn't
@@ -31,12 +34,12 @@ export function useLiveCockpit() {
           q.queryKey[1] !== 'kpi-definitions',
       });
 
-    echo.channel('hospital.cockpit').listen('.cockpit.updated', refetch);
-    echo.connector.pusher.connection.bind('connected', refetch);
+    client.channel('hospital.cockpit').listen('.cockpit.updated', refetch);
+    client.connector.pusher.connection.bind('connected', refetch);
 
     return () => {
-      echo.leaveChannel('hospital.cockpit');
-      echo.connector.pusher.connection.unbind('connected', refetch);
+      client.leaveChannel('hospital.cockpit');
+      client.connector.pusher.connection.unbind('connected', refetch);
     };
   }, [qc]);
 }

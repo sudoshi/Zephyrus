@@ -65,7 +65,7 @@ const PatientJourney = ({ patient }) => {
         </div>
       </div>
       
-      <div className="relative bg-healthcare-surface-secondary dark:bg-healthcare-surface-secondary-dark rounded-2xl p-8 mt-4">
+      <div className="relative bg-healthcare-surface-secondary dark:bg-healthcare-surface-hover-dark rounded-2xl p-8 mt-4">
         {/* Long pill timeline container */}
         <div className="relative min-h-[160px] bg-healthcare-background/50 dark:bg-healthcare-background-dark/50 rounded-full p-6 shadow-md">
           {/* Progress gradient */}
@@ -102,7 +102,7 @@ const PatientJourney = ({ patient }) => {
                       />
                     ) : (
                       <Icon 
-                        icon="heroicons:circle" 
+                        icon="heroicons:minus-circle"
                         className={`w-8 h-8 ${getPhaseColor(event.type, event.isAlert, event.isAnticipated)}`}
                         style={{ 
                           fill: event.type === 'milestone' ? 'transparent' : 'currentColor',

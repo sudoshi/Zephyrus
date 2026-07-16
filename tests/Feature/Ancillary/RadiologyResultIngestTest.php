@@ -106,7 +106,7 @@ class RadiologyResultIngestTest extends TestCase
 
     private function source(string $key, array $families, string $systemClass = 'radiology_reporting'): Source
     {
-        return app(SourceRegistryService::class)->ensureSource(['source_key' => $key, 'source_name' => $key, 'system_class' => $systemClass, 'interface_type' => 'hl7v2', 'active_status' => 'active', 'phi_allowed' => true, 'metadata' => ['ancillary_ingest' => ['enabled' => true, 'message_families' => $families, 'departments' => ['rad']]]]);
+        return app(SourceRegistryService::class)->ensureSource([...$this->canonicalIntegrationSourceScope(), 'source_key' => $key, 'source_name' => $key, 'system_class' => $systemClass, 'interface_type' => 'hl7v2', 'active_status' => 'active', 'phi_allowed' => true, 'metadata' => ['ancillary_ingest' => ['enabled' => true, 'message_families' => $families, 'departments' => ['rad']]]]);
     }
 
     private function fixture(string $name): string

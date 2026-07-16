@@ -10,6 +10,8 @@ use App\Models\Integration\Source;
 use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -23,6 +25,7 @@ final class AncillaryMessageIngestPipeline
         private readonly AncillaryCanonicalEventMapper $mapper,
         private readonly CanonicalEventWriter $writer,
         private readonly ProjectionDispatcher $projector,
+        private readonly ClinicalPayloadStore $payloads,
     ) {}
 
     /**
@@ -43,20 +46,7 @@ final class AncillaryMessageIngestPipeline
             $payloadJson = json_encode($sourceMessage->payload, JSON_THROW_ON_ERROR);
             $payloadHash = hash('sha256', $payloadJson);
             $idempotencyKey = $this->idempotencyKey($sourceMessage, $payloadHash);
-            $message = InboundMessage::query()->firstOrCreate(
-                ['source_id' => $source->source_id, 'idempotency_key' => $idempotencyKey],
-                [
-                    'message_uuid' => (string) Str::uuid(),
-                    'ingest_run_id' => $run->ingest_run_id,
-                    'message_type' => substr($sourceMessage->messageType, 0, 120),
-                    'external_id' => $this->boundedNullable($sourceMessage->externalId, 190),
-                    'payload_hash' => $payloadHash,
-                    'payload' => $sourceMessage->payload,
-                    'received_at' => $sourceMessage->receivedAt ?? now(),
-                    'parse_status' => 'received',
-                    'metadata' => ['connector_key' => self::CONNECTOR_KEY],
-                ],
-            );
+            $message = $this->recordRawMessage($source, $run, $sourceMessage, $payloadHash, $idempotencyKey);
             $messageCreated = $message->wasRecentlyCreated;
 
             if (! hash_equals((string) $message->payload_hash, $payloadHash)) {
@@ -91,12 +81,35 @@ final class AncillaryMessageIngestPipeline
                 ],
             );
             $normalized = $this->normalizers->normalize($enriched);
-            $message->update([
+            $normalizedAttributes = [
                 'message_type' => substr($normalized->messageType, 0, 120),
                 'external_id' => $this->boundedNullable($normalized->externalId, 190),
-                'normalized_payload' => $normalized->toArray(),
                 'parse_status' => 'normalized',
-            ]);
+            ];
+            if ($message->normalized_payload_object_id === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'normalized_message',
+                    $normalized->toArray(),
+                );
+                try {
+                    $message->update([
+                        ...$normalizedAttributes,
+                        'normalized_payload' => null,
+                        'normalized_payload_object_id' => $stored->payloadObjectId,
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload(
+                        $stored->payloadObjectId,
+                        (int) $source->source_id,
+                        'normalized_message_link_failed',
+                    );
+
+                    throw $exception;
+                }
+            } else {
+                $message->update($normalizedAttributes);
+            }
             $events = $this->mapper->map($normalized);
             if ($events === []) {
                 throw new AncillaryIngestException('empty_canonical_mapping', 'The ancillary message did not produce a canonical event.', 'canonical_mapping');
@@ -132,6 +145,80 @@ final class AncillaryMessageIngestPipeline
 
             throw $safe;
         }
+    }
+
+    private function recordRawMessage(
+        Source $source,
+        IngestRun $run,
+        SourceMessage $sourceMessage,
+        string $payloadHash,
+        string $idempotencyKey,
+    ): InboundMessage {
+        $sourceId = (int) $source->source_id;
+        $existing = InboundMessage::query()
+            ->where('source_id', $sourceId)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+        if ($existing !== null) {
+            if ($existing->payload_object_id === null) {
+                $stored = $this->payloads->storeJson($sourceId, 'raw_message', $sourceMessage->payload);
+                try {
+                    $existing->update([
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_link_failed');
+
+                    throw $exception;
+                }
+            }
+
+            return $existing;
+        }
+
+        $stored = $this->payloads->storeJson($sourceId, 'raw_message', $sourceMessage->payload);
+        try {
+            return InboundMessage::query()->create([
+                'message_uuid' => (string) Str::uuid(),
+                'source_id' => $sourceId,
+                'ingest_run_id' => $run->ingest_run_id,
+                'message_type' => substr($sourceMessage->messageType, 0, 120),
+                'external_id' => $this->boundedNullable($sourceMessage->externalId, 190),
+                'idempotency_key' => $idempotencyKey,
+                'payload_hash' => $payloadHash,
+                'payload' => null,
+                'payload_object_id' => $stored->payloadObjectId,
+                'received_at' => $sourceMessage->receivedAt ?? now(),
+                'parse_status' => 'received',
+                'metadata' => ['connector_key' => self::CONNECTOR_KEY],
+            ]);
+        } catch (QueryException $exception) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_insert_race');
+            $existing = InboundMessage::query()
+                ->where('source_id', $sourceId)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+            if ($existing === null) {
+                throw $exception;
+            }
+
+            return $existing;
+        } catch (Throwable $exception) {
+            $this->discardPayload($stored->payloadObjectId, $sourceId, 'raw_message_insert_failed');
+
+            throw $exception;
+        }
+    }
+
+    private function discardPayload(int $payloadObjectId, int $sourceId, string $reasonCode): void
+    {
+        $this->payloads->discard(
+            $payloadObjectId,
+            $sourceId,
+            $reasonCode,
+            'Encrypted clinical payload was discarded because the intended database link did not become authoritative.',
+        );
     }
 
     private function authorizedSource(string $sourceKey): Source

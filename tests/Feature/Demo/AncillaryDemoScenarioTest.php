@@ -165,8 +165,18 @@ class AncillaryDemoScenarioTest extends TestCase
             ->where('o.demo_owner', AncillaryDemoScenarioService::OWNER)
             ->count());
         $this->assertSame(15.0, $firstOccurredAt->diffInMinutes(CarbonImmutable::parse($secondCanonical->occurred_at)));
-        $this->assertTrue(AncillaryOrder::query()->where('demo_owner', AncillaryDemoScenarioService::OWNER)->get()
-            ->every(fn (AncillaryOrder $order): bool => CarbonImmutable::instance($order->source_cutoff_at)->equalTo($nextAnchor)));
+        $unexpectedCutoffs = AncillaryOrder::query()
+            ->where('demo_owner', AncillaryDemoScenarioService::OWNER)
+            ->get()
+            ->reject(fn (AncillaryOrder $order): bool => CarbonImmutable::instance($order->source_cutoff_at)->equalTo($nextAnchor))
+            ->map(fn (AncillaryOrder $order): array => [
+                'sourceOrderKey' => $order->source_order_key,
+                'department' => $order->department,
+                'sourceCutoffAt' => CarbonImmutable::instance($order->source_cutoff_at)->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+        $this->assertSame([], $unexpectedCutoffs);
         $this->assertSame(0, DB::table('ocel.events as e')
             ->leftJoin('prod.ancillary_milestones as m', DB::raw('m.ancillary_milestone_id::text'), '=', 'e.source_ref')
             ->where('e.source_system', 'prod.ancillary_milestones')

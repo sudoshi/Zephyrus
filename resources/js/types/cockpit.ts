@@ -165,6 +165,34 @@ export const drillPayloadSchema = z.object({
 });
 export type DrillPayload = z.infer<typeof drillPayloadSchema>;
 
+// INT-OBS 6 — per-source health ride-along. Additive/optional so the frozen
+// contract and every existing consumer/test keep parsing untouched; a stale or
+// degraded upstream source is now visible on the snapshot ('No silent
+// fallback'). PHI-free by construction: stable keys, statuses, and mode only.
+export const cockpitSourceHealthEntrySchema = z.object({
+  sourceKey: z.string(),
+  systemClass: z.string(),
+  environment: z.string(),
+  mode: z.enum(['live', 'synthetic']),
+  status: z.string(),
+  recordedStatus: z.string().nullable(),
+  stale: z.boolean(),
+  lastObservedAtIso: z.string().nullable(),
+  freshUntilIso: z.string().nullable(),
+});
+export type CockpitSourceHealthEntry = z.infer<typeof cockpitSourceHealthEntrySchema>;
+
+export const cockpitSourceHealthSchema = z.object({
+  generatedAtIso: z.string(),
+  overallStatus: z.string(),
+  anyStale: z.boolean(),
+  anyDegraded: z.boolean(),
+  liveSourceCount: z.number(),
+  syntheticSourceCount: z.number(),
+  sources: z.array(cockpitSourceHealthEntrySchema),
+});
+export type CockpitSourceHealth = z.infer<typeof cockpitSourceHealthSchema>;
+
 export const cockpitSnapshotSectionsSchema = z.object({
   asOf: z.string(),
   facility: z.object({
@@ -177,6 +205,9 @@ export const cockpitSnapshotSectionsSchema = z.object({
   alerts: z.array(cockpitAlertSchema),
   okrs: z.array(okrCardSchema),
   domains: z.record(z.string(), cockpitDomainSchema),
+  // Optional + nullable: a snapshot built before this field, or one whose
+  // digest failed, still parses cleanly.
+  sourceHealth: cockpitSourceHealthSchema.nullish(),
 });
 export type CockpitSnapshotSections = z.infer<typeof cockpitSnapshotSectionsSchema>;
 

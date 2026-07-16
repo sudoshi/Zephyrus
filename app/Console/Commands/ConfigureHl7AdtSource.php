@@ -11,7 +11,7 @@ class ConfigureHl7AdtSource extends Command
         {source-key : Stable lowercase source key supplied in X-Integration-Source}
         {--name= : Operator-facing source name}
         {--vendor=Epic : EHR or interface-engine vendor}
-        {--facility=main : Facility key}
+        {--facility= : Canonical active facility key}
         {--environment=sandbox : sandbox, testing, or production}
         {--contract-status=unknown : Contract governance status}
         {--baa-status=unknown : BAA governance status}

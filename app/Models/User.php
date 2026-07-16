@@ -3,6 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Authorization\Capability;
+use App\Models\Auth\UserAccessScope;
+use App\Models\Auth\UserExternalIdentity;
+use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +21,11 @@ class User extends Authenticatable
     // mobile companion (mobile access tokens) and by the Eddy agent (short-TTL,
     // ability-scoped tokens). Additive: the web session-cookie auth flow is unchanged.
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
+
+    /** Keep a just-created model aligned with the database authorization default. */
+    protected $attributes = [
+        'is_active' => true,
+    ];
 
     /**
      * The table associated with the model.
@@ -40,6 +49,8 @@ class User extends Authenticatable
         'role',
         'is_active',
         'phone',
+        'deactivated_at',
+        'provisioning_state',
     ];
 
     /**
@@ -61,6 +72,10 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'must_change_password' => 'boolean',
         'is_active' => 'boolean',
+        'is_protected' => 'boolean',
+        'auth_session_version' => 'integer',
+        'deactivated_at' => 'immutable_datetime',
+        'identity_purged_at' => 'immutable_datetime',
     ];
 
     /**
@@ -82,10 +97,7 @@ class User extends Authenticatable
      */
     public function isAdministrator(): bool
     {
-        $role = str_replace([' ', '-'], '_', strtolower(trim((string) $this->role)));
-
-        return in_array($role, ['admin', 'super_admin'], true)
-            || $this->hasRole(['admin', 'super-admin', 'super_admin']);
+        return app(RoleCapabilityService::class)->allows($this, Capability::ViewAdministration);
     }
 
     /**
@@ -118,6 +130,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Effective-dated organization/facility boundaries granted to this account.
+     */
+    public function accessScopes(): HasMany
+    {
+        return $this->hasMany(UserAccessScope::class, 'user_id');
+    }
+
+    public function externalIdentities(): HasMany
+    {
+        return $this->hasMany(UserExternalIdentity::class, 'user_id');
+    }
+
+    /**
      * Sanctum token abilities granted to this user, derived from role + workflow.
      * Admins get full access; everyone else gets the read/act baseline plus their
      * workflow scope. Used when issuing mobile access tokens.
@@ -126,16 +151,6 @@ class User extends Authenticatable
      */
     public function mobileTokenAbilities(): array
     {
-        if ($this->hasRole(['super-admin', 'admin'])) {
-            return ['*'];
-        }
-
-        $abilities = ['mobile:read', 'mobile:act'];
-
-        if ($this->workflow_preference) {
-            $abilities[] = 'workflow:'.$this->workflow_preference;
-        }
-
-        return $abilities;
+        return app(RoleCapabilityService::class)->mobileTokenAbilities($this);
     }
 }

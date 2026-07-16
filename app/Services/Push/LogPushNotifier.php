@@ -4,6 +4,7 @@ namespace App\Services\Push;
 
 use App\Contracts\PushNotifier;
 use App\Models\User;
+use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -14,8 +15,19 @@ use Illuminate\Support\Facades\Log;
  */
 class LogPushNotifier implements PushNotifier
 {
+    private readonly ClinicalContentGuard $clinicalContent;
+
+    public function __construct(?ClinicalContentGuard $clinicalContent = null)
+    {
+        $this->clinicalContent = $clinicalContent ?? app(ClinicalContentGuard::class);
+    }
+
     public function sendToUser(User $user, string $title, string $body, array $data = []): int
     {
+        $this->clinicalContent->assertSafe(
+            ['title' => $title, 'notification_text' => $body, 'data' => $data],
+            'clinical_content_alert_rejected',
+        );
         $devices = $user->mobileDevices()->whereNull('revoked_at')->get();
 
         foreach ($devices as $device) {

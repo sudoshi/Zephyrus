@@ -11,7 +11,7 @@ class OidcHandshakeStore
 
     private const STATE_PREFIX = 'oidc:state:';
 
-    /** @param array{nonce: string, code_verifier: string} $meta */
+    /** @param array{nonce: string, code_verifier: string, purpose?: string, user_id?: int|null} $meta */
     public function putState(array $meta): string
     {
         $state = Str::random(48);
@@ -20,7 +20,7 @@ class OidcHandshakeStore
         return $state;
     }
 
-    /** @return array{nonce: string, code_verifier: string}|null */
+    /** @return array{nonce: string, code_verifier: string, purpose?: string, user_id?: int|null}|null */
     public function consumeState(string $state): ?array
     {
         return Cache::pull(self::STATE_PREFIX.$state);

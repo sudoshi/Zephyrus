@@ -3,7 +3,10 @@
 namespace App\Jobs;
 
 use App\Integrations\Healthcare\Services\EnterpriseConnectorControlService;
+use App\Jobs\Middleware\FailClinicalJobSafely;
+use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -11,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class DispatchScheduledIntegrationHealthChecks implements ShouldQueue
+class DispatchScheduledIntegrationHealthChecks implements ClinicalPayloadSafeQueueJob, ShouldBeEncrypted, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -33,5 +36,16 @@ class DispatchScheduledIntegrationHealthChecks implements ShouldQueue
             ->orderBy('source_id')
             ->pluck('source_id')
             ->each(fn (mixed $sourceId) => $connectors->queueHealthCheck((int) $sourceId, null, (string) Str::uuid()));
+    }
+
+    /** @return list<FailClinicalJobSafely> */
+    public function middleware(): array
+    {
+        return [new FailClinicalJobSafely];
+    }
+
+    public function clinicalPayloadSafeArguments(): array
+    {
+        return [];
     }
 }

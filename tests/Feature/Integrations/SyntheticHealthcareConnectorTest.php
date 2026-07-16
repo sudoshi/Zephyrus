@@ -6,6 +6,8 @@ use App\Integrations\Healthcare\DTO\ReplayRequest;
 use App\Integrations\Healthcare\DTO\WebhookEnvelope;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Integrations\Healthcare\Synthetic\SyntheticHealthcareConnector;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\User;
 use Database\Seeders\IntegrationConnectorTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +19,32 @@ use Tests\TestCase;
 class SyntheticHealthcareConnectorTest extends TestCase
 {
     use RefreshDatabase;
+
+    private int $organizationId;
+
+    private int $facilityId;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->artisan('deployment:seed-registry')->assertExitCode(0);
+        $organization = Organization::create([
+            'organization_key' => 'SYNTHETIC_TEST_IDN',
+            'name' => 'Synthetic Test IDN',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::create([
+            'organization_id' => $organization->organization_id,
+            'facility_key' => 'SYNTHETIC_TEST_FACILITY',
+            'facility_name' => 'Synthetic Test Facility',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
+        $this->organizationId = (int) $organization->organization_id;
+        $this->facilityId = (int) $facility->facility_id;
+        config()->set('integrations.synthetic.facility_key', $facility->facility_key);
+    }
 
     public function test_integration_foundation_tables_exist(): void
     {
@@ -102,6 +130,14 @@ class SyntheticHealthcareConnectorTest extends TestCase
             'connector_key' => 'synthetic.healthcare',
             'scope_type' => 'webhook',
         ]);
+        $message = DB::table('raw.inbound_messages')->where('external_id', 'msg-enc-start-1')->firstOrFail();
+        $canonical = DB::table('integration.canonical_events')->where('entity_ref', 'synthetic-patient-1')->firstOrFail();
+        $this->assertNull($message->payload);
+        $this->assertNull($message->normalized_payload);
+        $this->assertNotNull($message->payload_object_id);
+        $this->assertNotNull($message->normalized_payload_object_id);
+        $this->assertSame('{}', $canonical->payload);
+        $this->assertNotNull($canonical->payload_object_id);
     }
 
     public function test_synthetic_connector_is_idempotent_for_duplicate_external_message(): void
@@ -156,6 +192,10 @@ class SyntheticHealthcareConnectorTest extends TestCase
         $this->assertDatabaseMissing('prod.operational_events', [
             'encounter_ref' => 'synthetic-patient-invalid',
         ]);
+        $this->assertStringNotContainsString(
+            'synthetic-patient-invalid',
+            DB::table('raw.dead_letters')->get()->toJson(),
+        );
     }
 
     public function test_synthetic_replay_projects_canonical_events_without_duplicates(): void
@@ -228,13 +268,14 @@ class SyntheticHealthcareConnectorTest extends TestCase
         $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
         $source = app(SourceRegistryService::class)->ensureSource([
             'source_key' => 'epic.fhir.sandbox',
+            ...$this->sourceScope(),
             'vendor' => 'Epic',
             'interface_type' => 'fhir_r4',
             'active_status' => 'testing',
         ]);
         Queue::fake();
 
-        $this->actingAs($user)
+        $this->selectScope($user, (int) $source->source_id)
             ->postJson('/api/admin/integrations/enterprise/fhir/capability-discovery', [
                 'source_id' => $source->source_id,
                 'fhir_version' => '4.0.1',
@@ -253,10 +294,17 @@ class SyntheticHealthcareConnectorTest extends TestCase
     public function test_writeback_draft_creates_pending_ops_approval_gate(): void
     {
         $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
+        $source = app(SourceRegistryService::class)->ensureSource([
+            'source_key' => 'epic.fhir.sandbox',
+            'source_name' => 'Epic FHIR Sandbox',
+            'vendor' => 'Epic',
+            'interface_type' => 'fhir_r4',
+            ...$this->sourceScope(),
+        ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->selectScope($user, (int) $source->source_id)
             ->postJson('/api/admin/integrations/enterprise/writeback-drafts', [
-                'source_key' => 'epic.fhir.sandbox',
+                'source_id' => $source->source_id,
                 'vendor' => 'Epic',
                 'target_system' => 'epic',
                 'resource_type' => 'Task',
@@ -265,7 +313,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
                     'resourceType' => 'Task',
                     'status' => 'requested',
                     'intent' => 'order',
-                    'description' => 'Draft bed placement task',
+                    'description' => 'RECOGNIZABLE-WRITEBACK-PATIENT-4411',
                 ],
             ])
             ->assertOk()
@@ -289,6 +337,20 @@ class SyntheticHealthcareConnectorTest extends TestCase
             'approval_id' => $response->json('data.approvalId'),
             'status' => 'pending',
         ]);
+        $draft = DB::table('ops.writeback_drafts')
+            ->where('writeback_draft_id', $response->json('data.writebackDraftId'))
+            ->firstOrFail();
+        $this->assertSame('{}', $draft->resource_payload);
+        $this->assertNotNull($draft->payload_object_id);
+        $this->assertSame(
+            'RECOGNIZABLE-WRITEBACK-PATIENT-4411',
+            app(\App\Integrations\Healthcare\Services\EnterpriseConnectorControlService::class)
+                ->writebackPayload((int) $draft->writeback_draft_id, (int) $source->source_id)['description'],
+        );
+        $this->assertStringNotContainsString(
+            'RECOGNIZABLE-WRITEBACK-PATIENT-4411',
+            json_encode($draft, JSON_THROW_ON_ERROR),
+        );
     }
 
     private function seedCapacityFixture(): array
@@ -317,5 +379,28 @@ class SyntheticHealthcareConnectorTest extends TestCase
         ], 'bed_id');
 
         return [$unitId, $bedId];
+    }
+
+    /** @return array<string, int|string> */
+    private function sourceScope(): array
+    {
+        return [
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'tenant_key' => 'SYNTHETIC_TEST_IDN',
+            'facility_key' => 'SYNTHETIC_TEST_FACILITY',
+        ];
+    }
+
+    private function selectScope(User $user, int $sourceId): self
+    {
+        $this->actingAs($user)->put('/admin/active-scope', [
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'source_id' => $sourceId,
+            'return_path' => '/integrations',
+        ])->assertRedirect();
+
+        return $this;
     }
 }

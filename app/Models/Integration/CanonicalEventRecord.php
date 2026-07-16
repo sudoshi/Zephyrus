@@ -4,6 +4,7 @@ namespace App\Models\Integration;
 
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -19,9 +20,20 @@ class CanonicalEventRecord extends Model
         'occurred_at' => 'datetime',
         'received_at' => 'datetime',
         'projected_at' => 'datetime',
-        'payload' => 'array',
         'metadata' => 'array',
     ];
+
+    protected function payload(): Attribute
+    {
+        return Attribute::make(get: fn (mixed $value, array $attributes): array => app(
+            \App\Security\ClinicalPayloads\ClinicalPayloadHydrator::class,
+        )->required(
+            isset($attributes['payload_object_id']) ? (int) $attributes['payload_object_id'] : null,
+            (int) $attributes['source_id'],
+            'canonical_event',
+            $value,
+        ));
+    }
 
     public function source(): BelongsTo
     {

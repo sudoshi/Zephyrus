@@ -38,6 +38,7 @@ final class IrSuiteAnalyticsTest extends TestCase
         CarbonImmutable::setTestNow($this->anchor);
         $this->seed(AncillaryReferenceSeeder::class);
         $this->source = app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => 'ir-test.mpps', 'source_name' => 'IR test MPPS', 'system_class' => 'mpps',
             'interface_type' => 'forwarded_json', 'active_status' => 'active', 'phi_allowed' => false,
             'metadata' => ['ancillary_source_class' => 'mpps'],

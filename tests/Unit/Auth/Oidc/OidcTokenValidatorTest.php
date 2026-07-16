@@ -26,12 +26,9 @@ final class OidcTokenValidatorTest extends TestCase
 
     private function discovery(array $jwks): OidcDiscoveryService
     {
-        return new class('x', $jwks) extends OidcDiscoveryService
+        return new class($jwks) extends OidcDiscoveryService
         {
-            public function __construct(string $url, private array $jwksData)
-            {
-                parent::__construct($url);
-            }
+            public function __construct(private array $jwksData) {}
 
             public function issuer(): string
             {
@@ -59,11 +56,18 @@ final class OidcTokenValidatorTest extends TestCase
     public function test_accepts_a_valid_token_and_extracts_claims(): void
     {
         [$priv, $jwks] = $this->keypair();
-        $claims = (new OidcTokenValidator($this->discovery($jwks), 'client-123'))->validate($this->mint($priv), 'n1');
+        $claims = (new OidcTokenValidator($this->discovery($jwks), 'client-123'))->validate($this->mint($priv, [
+            'auth_time' => time(),
+            'amr' => ['pwd', 'mfa'],
+            'acr' => 'urn:example:loa:2',
+        ]), 'n1');
 
         $this->assertSame('sub-1', $claims->sub);
         $this->assertSame('u@example.com', $claims->email);
         $this->assertContains('Zephyrus Users', $claims->groups);
+        $this->assertContains('mfa', $claims->amr);
+        $this->assertSame('urn:example:loa:2', $claims->acr);
+        $this->assertIsInt($claims->authTime);
     }
 
     public function test_rejects_wrong_audience(): void

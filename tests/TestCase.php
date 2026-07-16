@@ -2,93 +2,96 @@
 
 namespace Tests;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
+use App\Security\Secrets\Providers\FileSecretProvider;
+use App\Security\Secrets\SecretProviderRegistry;
+use App\Services\Auth\AccountSessionService;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Support\Facades\Http;
+use Tests\Support\InMemorySecretProvider;
 
 abstract class TestCase extends BaseTestCase
 {
-    /**
-     * Laravel's PostgreSQL `migrate:fresh` only discovers tables on the
-     * configured search path (`prod,public`). Zephyrus deliberately owns many
-     * additional schemas, so data in ops, hosp_org, integration, OCEL, and the
-     * other application schemas otherwise survives between PHPUnit processes.
-     *
-     * RefreshDatabase still owns per-test transactions. This one guarded reset
-     * establishes the empty non-search-path baseline immediately after its
-     * first migration pass and before the first test executes.
-     */
-    private static bool $multiSchemaBaselineReset = false;
+    /** @var array<string, int|string>|null */
+    private ?array $canonicalIntegrationScope = null;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->resetNonSearchPathSchemasOnce();
+        if (filter_var(getenv('TEST_NETWORK_GUARD') ?: 'false', FILTER_VALIDATE_BOOL)) {
+            Http::preventStrayRequests();
+        }
+
+        $this->app->singleton(SecretProviderRegistry::class, fn ($app) => new SecretProviderRegistry([
+            $app->make(FileSecretProvider::class),
+            new InMemorySecretProvider('vault'),
+            new InMemorySecretProvider('aws-secretsmanager'),
+            new InMemorySecretProvider('gcp-secretmanager'),
+            new InMemorySecretProvider('azure-keyvault'),
+        ]));
+
+        config([
+            'clinical-payloads.enabled' => true,
+            'clinical-payloads.disk' => 'clinical-payloads',
+            'clinical-payloads.key_reference' => 'vault://testing/clinical-payload-kek',
+            'clinical-payloads.allow_local_in_production' => false,
+            'filesystems.disks.clinical-payloads' => [
+                'driver' => 'local',
+                'root' => storage_path('framework/testing/clinical-payloads/'.getmypid()),
+                'serve' => false,
+                'visibility' => 'private',
+                'throw' => true,
+                'report' => false,
+            ],
+        ]);
+
         $this->withoutVite();
     }
 
-    private function resetNonSearchPathSchemasOnce(): void
+    public function actingAs(Authenticatable $user, $guard = null)
     {
-        if (
-            self::$multiSchemaBaselineReset
-            || ! in_array(RefreshDatabase::class, class_uses_recursive(static::class), true)
-        ) {
-            return;
+        if ($user instanceof Model && $user->exists) {
+            $user->refresh();
         }
 
-        $connection = (string) config('database.default');
-        $databaseName = (string) config("database.connections.{$connection}.database");
-        if (! app()->environment('testing') || $databaseName !== 'zephyrus_test') {
-            throw new RuntimeException(
-                "Refusing the PHPUnit multi-schema reset outside the guarded zephyrus_test database; resolved {$databaseName}."
-            );
+        parent::actingAs($user, $guard);
+
+        return $this->withSession([
+            AccountSessionService::SESSION_VERSION_KEY => (int) ($user->auth_session_version ?? 0),
+        ]);
+    }
+
+    /** @return array{organization_id: int, facility_id: int, tenant_key: string, facility_key: string} */
+    protected function canonicalIntegrationSourceScope(): array
+    {
+        if ($this->canonicalIntegrationScope !== null) {
+            return $this->canonicalIntegrationScope;
         }
 
-        // RefreshDatabase has migrated the prod/public search path and opened
-        // the first test transaction. Temporarily leave that empty wrapper so
-        // the reset becomes the durable process baseline, then restore it for
-        // the test and for Laravel's registered teardown callback.
-        $database = DB::connection();
-        if ($database->transactionLevel() !== 1) {
-            throw new RuntimeException('Expected one RefreshDatabase wrapper transaction before the multi-schema reset.');
-        }
-        $database->rollBack();
+        $organization = Organization::query()->firstOrCreate(
+            ['organization_key' => 'TEST_INTEGRATION_IDN'],
+            ['name' => 'Test Integration IDN', 'kind' => 'idn'],
+        );
+        $facility = Facility::query()->firstOrCreate(
+            ['facility_key' => 'TEST_INTEGRATION_FACILITY'],
+            [
+                'organization_id' => $organization->organization_id,
+                'facility_name' => 'Test Integration Facility',
+                'idn_role' => 'community_hospital',
+                'review_status' => 'client_verified',
+                'is_active' => true,
+            ],
+        );
 
-        $tables = collect(DB::select(<<<'SQL'
-            SELECT format('%I.%I', schemaname, tablename) AS qualified_name
-            FROM pg_tables
-            WHERE schemaname NOT LIKE 'pg_%'
-              AND schemaname <> 'information_schema'
-              AND (
-                    schemaname NOT IN ('prod', 'public', 'hosp_ref')
-                    OR (
-                        schemaname = 'hosp_ref'
-                        AND tablename IN (
-                            'ancillary_barrier_reasons',
-                            'ancillary_milestone_types',
-                            'lab_test_catalog',
-                            'rad_modalities',
-                            'rad_subspecialties',
-                            'rx_formulary',
-                            'staff_qualifications',
-                            'staff_role_qualification_requirements',
-                            'staff_roles'
-                        )
-                    )
-                  )
-            ORDER BY schemaname, tablename
-            SQL))
-            ->pluck('qualified_name')
-            ->filter()
-            ->all();
-
-        if ($tables !== []) {
-            DB::statement('TRUNCATE TABLE '.implode(', ', $tables).' RESTART IDENTITY CASCADE');
-        }
-
-        $database->beginTransaction();
-        self::$multiSchemaBaselineReset = true;
+        return $this->canonicalIntegrationScope = [
+            'organization_id' => (int) $organization->organization_id,
+            'facility_id' => (int) $facility->facility_id,
+            'tenant_key' => (string) $organization->organization_key,
+            'facility_key' => (string) $facility->facility_key,
+        ];
     }
 }

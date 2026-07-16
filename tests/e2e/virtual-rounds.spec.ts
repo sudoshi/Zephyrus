@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
 
 /**
  * Virtual Rounds board (Phase 1 gate: the unit board is usable without the
@@ -7,16 +8,9 @@ import { expect, test } from '@playwright/test';
  * CI environments without the flag stay green.
  */
 
-const USERNAME = process.env.TEST_USERNAME || 'admin';
-const PASSWORD = process.env.TEST_PASSWORD || 'password';
-
 test.describe('Virtual Rounds board', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', USERNAME);
-    await page.fill('input[name="password"]', PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/dashboard|rtdc|home/i, { timeout: 15_000 });
+    await loginAsTestUser(page);
   });
 
   test('renders the board shell and command bar', async ({ page }) => {

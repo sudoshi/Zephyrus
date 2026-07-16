@@ -33,6 +33,7 @@ import {
   LineChart,
   LayoutDashboard,
   LayoutGrid,
+  KeyRound,
   ListChecks,
   Pill,
   PieChart,
@@ -43,6 +44,7 @@ import {
   Search,
   ScrollText,
   Shield,
+  ShieldCheck,
   Siren,
   Stethoscope,
   Syringe,
@@ -64,6 +66,11 @@ export interface NavigationCapabilities {
   readonly manage_staffing_alignment?: boolean;
   readonly view_administration?: boolean;
   readonly view_user_audit?: boolean;
+  readonly view_access_reviews?: boolean;
+  readonly manage_access_reviews?: boolean;
+  readonly view_authorization?: boolean;
+  readonly view_system_health?: boolean;
+  readonly run_diagnostics?: boolean;
 }
 
 /** Server-shared feature flags (Inertia `features` prop). A leaf gated on a
@@ -477,6 +484,24 @@ const ADMIN: NavDomain = {
           icon: ScrollText,
           adminOrCapability: 'view_user_audit',
         },
+        {
+          label: 'Access Reviews',
+          href: '/admin/access-reviews',
+          icon: ShieldCheck,
+          adminOrCapability: 'view_access_reviews',
+        },
+        {
+          label: 'System Health',
+          href: '/admin/system-health',
+          icon: HeartPulse,
+          requiredCapability: 'view_system_health',
+        },
+        {
+          label: 'Roles & Capabilities',
+          href: '/admin/roles-capabilities',
+          icon: Shield,
+          requiredCapability: 'view_authorization',
+        },
         { label: 'User Management', href: '/users', icon: Users, adminOnly: true },
         // P8 WS-6b — the cockpit threshold editor (band-edge tuning, audited).
         { label: 'Cockpit Thresholds', href: '/admin/cockpit/thresholds', icon: Settings, adminOnly: true },
@@ -486,9 +511,12 @@ const ADMIN: NavDomain = {
           icon: Building2,
           requiredCapability: 'view_enterprise_setup',
         },
-        // NOTE: "Auth Providers" intentionally omitted — admin/auth-providers/{type}
-        // is a JSON API endpoint with no Inertia page, so a nav link would break
-        // navigation. Re-add once a real OIDC admin Inertia page exists.
+        {
+          label: 'Authentication Providers',
+          href: '/admin/auth-providers',
+          icon: KeyRound,
+          adminOrCapability: 'view_administration',
+        },
       ],
     },
   ],

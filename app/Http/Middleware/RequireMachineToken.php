@@ -54,6 +54,7 @@ class RequireMachineToken
                 'code' => $code,
                 'message' => $message,
             ],
+            'request_id' => request()->attributes->get(AssignRequestIdentity::ATTRIBUTE),
         ], 403);
     }
 }

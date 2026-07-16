@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AccountSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,8 @@ use Inertia\Response;
 
 class ChangePasswordController extends Controller
 {
+    public function __construct(private readonly AccountSessionService $sessions) {}
+
     /**
      * Display the change password page.
      */
@@ -49,6 +52,7 @@ class ChangePasswordController extends Controller
             'password' => Hash::make($request->new_password),
             'must_change_password' => false,
         ]);
+        $this->sessions->revoke($user, $request, 'password_changed', keepCurrentSession: true);
 
         return redirect()->route('dashboard')->with('status', 'Password changed successfully.');
     }

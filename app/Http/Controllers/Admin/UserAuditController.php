@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Audit\UserEvent;
 use App\Services\Audit\UserAuditPresenter;
+use App\Services\Identity\IdentityRedactionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -14,7 +15,10 @@ use Inertia\Response;
 
 class UserAuditController extends Controller
 {
-    public function __construct(private readonly UserAuditPresenter $presenter) {}
+    public function __construct(
+        private readonly UserAuditPresenter $presenter,
+        private readonly IdentityRedactionService $redaction,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -55,8 +59,9 @@ class UserAuditController extends Controller
             ->paginate((int) ($filters['per_page'] ?? 25))
             ->withQueryString();
 
+        $revealPii = $this->redaction->canViewSensitiveIdentity($request->user());
         $records = collect($paginator->items())
-            ->map(fn (UserEvent $event): array => $this->presenter->present($event))
+            ->map(fn (UserEvent $event): array => $this->presenter->present($event, $revealPii))
             ->all();
 
         $events = $paginator->toArray();
@@ -65,6 +70,10 @@ class UserAuditController extends Controller
         return Inertia::render('Admin/UserAudit', [
             'events' => $events,
             'stats' => $stats,
+            'redaction' => [
+                'piiVisible' => $revealPii,
+                'ipRetentionDays' => $this->redaction->ipRetentionDays(),
+            ],
             'filters' => [
                 'search' => $filters['search'] ?? '',
                 'action' => $filters['action'] ?? '',

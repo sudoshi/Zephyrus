@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Audit\UserEvent;
 use App\Models\User;
 use App\Services\Auth\Oidc\OidcHandshakeStore;
 use Firebase\JWT\JWT;
@@ -13,6 +14,17 @@ use Tests\TestCase;
 final class OidcControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config()->set('auth-drivers.oidc_network.allowed_hosts', ['idp']);
+        config()->set('auth-drivers.oidc_network.allowed_ports', [443]);
+        config()->set('auth-drivers.oidc_network.allowed_redirect_uris', ['https://app.test/auth/oidc/callback']);
+        config()->set('auth-drivers.oidc_network.require_https', true);
+        config()->set('auth-drivers.oidc_network.require_dns_resolution', false);
+        config()->set('auth-drivers.oidc_network.max_response_bytes', 1_048_576);
+    }
 
     private function enableOidc(): void
     {
@@ -48,6 +60,31 @@ final class OidcControllerTest extends TestCase
         $this->assertStringContainsString('https://idp/authorize', $loc);
         $this->assertStringContainsString('code_challenge_method=S256', $loc);
         $this->assertStringContainsString('client_id=client-123', $loc);
+    }
+
+    public function test_authenticated_oidc_step_up_requests_fresh_upstream_authentication(): void
+    {
+        $this->enableOidc();
+        $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $response = $this->actingAs($user)->get('/auth/oidc/step-up')->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+
+        $this->assertStringContainsString('prompt=login', $location);
+        $this->assertStringContainsString('max_age=0', $location);
+        $this->assertStringContainsString('code_challenge_method=S256', $location);
+    }
+
+    public function test_redirect_fails_closed_when_callback_uri_is_not_deployment_approved(): void
+    {
+        $this->enableOidc();
+        config()->set('auth-drivers.oidc_network.allowed_redirect_uris', ['https://different.test/callback']);
+
+        $this->get('/auth/oidc/redirect')->assertRedirect(route('login'));
+        $this->assertDatabaseHas('audit.user_events', [
+            'action' => 'auth.login',
+            'outcome' => 'failure',
+            'reason' => 'oidc_redirect_not_allowed',
+        ]);
     }
 
     public function test_rejects_a_callback_with_an_unknown_state(): void
@@ -150,5 +187,30 @@ final class OidcControllerTest extends TestCase
         $res->assertRedirect(route('login'));
         $this->assertGuest();
         $this->assertNull(User::where('email', 'stranger@example.com')->first());
+    }
+
+    public function test_callback_rejects_token_endpoint_redirect_without_following_it(): void
+    {
+        [, $jwks] = $this->enableOidcWithKeys();
+        $store = app(OidcHandshakeStore::class);
+        $state = $store->putState(['nonce' => 'the-nonce', 'code_verifier' => 'the-verifier']);
+
+        Http::fake([
+            'https://idp/.well-known/openid-configuration' => Http::response([
+                'issuer' => 'https://idp',
+                'authorization_endpoint' => 'https://idp/authorize',
+                'token_endpoint' => 'https://idp/token',
+                'jwks_uri' => 'https://idp/jwks',
+            ]),
+            'https://idp/jwks' => Http::response($jwks),
+            'https://idp/token' => Http::response('', 302, ['Location' => 'https://idp/other-token']),
+        ]);
+
+        $this->get('/auth/oidc/callback?state='.$state.'&code=abc')
+            ->assertRedirect(route('login'));
+
+        $event = UserEvent::query()->where('action', 'auth.login')->latest('event_cursor')->firstOrFail();
+        $this->assertSame('token_redirect_rejected', $event->reason);
+        Http::assertSentCount(3);
     }
 }

@@ -80,7 +80,7 @@ export function MobileNavDrawer({ sections, access, url }: MobileNavDrawerProps)
                           aria-current={sectionActive ? 'page' : undefined}
                           className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${
                             sectionActive
-                              ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                              ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
                               : 'text-healthcare-text-primary hover:bg-healthcare-hover dark:text-healthcare-text-primary-dark dark:hover:bg-healthcare-hover-dark'
                           }`}
                         >
@@ -133,7 +133,7 @@ export function MobileNavDrawer({ sections, access, url }: MobileNavDrawerProps)
                                             <DisclosureButton
                                               className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${
                                                 domainActive
-                                                  ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-primary-dark'
+                                                  ? 'bg-healthcare-hover text-healthcare-primary dark:bg-healthcare-hover-dark dark:text-healthcare-text-primary-dark'
                                                   : 'text-healthcare-text-secondary hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark'
                                               }`}
                                             >

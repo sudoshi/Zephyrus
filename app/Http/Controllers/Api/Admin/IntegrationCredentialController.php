@@ -44,11 +44,15 @@ class IntegrationCredentialController extends Controller
 
     public function destroy(Request $request, int $source, int $credential): Response
     {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
         $this->configuration->deleteCredential(
             $source,
             $credential,
             $request->user()?->getAuthIdentifier(),
             $this->correlationId($request),
+            (string) $validated['reason'],
         );
 
         return response()->noContent();

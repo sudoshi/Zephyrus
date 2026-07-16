@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\PatientFlow;
 
+use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\Source;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
+use App\Observability\Exporters\InMemoryMetricExporter;
 use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -198,6 +202,10 @@ class PatientFlowSecurityHotfixTest extends TestCase
 
     public function test_machine_ingress_writes_canonical_lineage_and_is_idempotent(): void
     {
+        config()->set('observability.enabled', true);
+        config()->set('observability.exporter', 'memory');
+        $telemetry = app(InMemoryMetricExporter::class);
+        $telemetry->flush();
         $this->createTwoUnits();
         $source = $this->integrationSource();
         $user = User::factory()->create(['role' => 'integration']);
@@ -228,6 +236,12 @@ class PatientFlowSecurityHotfixTest extends TestCase
         $this->assertNotNull($message);
         $this->assertNotNull($canonical);
         $this->assertNotNull($flowEvent);
+        $this->assertNull($message->payload);
+        $this->assertNull($message->normalized_payload);
+        $this->assertNotNull($message->payload_object_id);
+        $this->assertNotNull($message->normalized_payload_object_id);
+        $this->assertSame('{}', $canonical->payload);
+        $this->assertNotNull($canonical->payload_object_id);
         $this->assertSame((int) $source->source_id, (int) $flowEvent->source_id);
         $this->assertSame((int) $message->inbound_message_id, (int) $flowEvent->inbound_message_id);
         $this->assertSame((int) $canonical->canonical_event_id, (int) $flowEvent->canonical_event_id);
@@ -250,10 +264,29 @@ class PatientFlowSecurityHotfixTest extends TestCase
         $this->assertSame($first['canonical_event_id'], $retry['canonical_event_id']);
 
         $this->assertSame(1, DB::table('raw.inbound_messages')->where('source_id', $source->source_id)->count());
+        $this->assertStringNotContainsString('OTHER-PATIENT', DB::table('raw.dead_letters')->get()->toJson());
         $this->assertSame(1, DB::table('integration.canonical_events')->where('source_id', $source->source_id)->count());
         $this->assertSame(1, DB::table('flow_core.flow_events')->where('source_id', $source->source_id)->count());
         $this->assertSame(1, DB::table('integration.provenance_records')->where('source_id', $source->source_id)->count());
         $this->assertSame(2, DB::table('raw.ingest_runs')->where('source_id', $source->source_id)->count());
+
+        $rootSpans = collect($telemetry->spans())
+            ->filter(fn ($span) => $span->name === 'zephyrus.integration.hl7.receipt_to_projection');
+        $canonicalSpans = collect($telemetry->spans())
+            ->filter(fn ($span) => $span->name === 'zephyrus.integration.canonical.write');
+        $this->assertCount(2, $rootSpans);
+        $this->assertCount(1, $canonicalSpans);
+        $projectedSpan = $rootSpans->first(fn ($span) => $span->attributes->toArray()['zephyrus.outcome'] === 'projected');
+        $canonicalSpan = $canonicalSpans->first();
+        $this->assertSame($first['canonical_event_id'], $projectedSpan->attributes->toArray()['zephyrus.event.uuid']);
+        $this->assertSame(
+            $projectedSpan->attributes->toArray()['zephyrus.correlation.uuid'],
+            $canonicalSpan->attributes->toArray()['zephyrus.correlation.uuid'],
+        );
+        $this->assertStringNotContainsString('MACHINE-PATIENT', json_encode(
+            array_map(fn ($span) => $span->toArray(), $telemetry->spans()),
+            JSON_THROW_ON_ERROR,
+        ));
 
         $this->withToken($token)
             ->postJson('/api/integrations/v1/patient-flow/hl7v2', [
@@ -414,11 +447,30 @@ class PatientFlowSecurityHotfixTest extends TestCase
     /** @param array<string, mixed> $overrides */
     private function integrationSource(array $overrides = []): Source
     {
-        return Source::create(array_merge([
-            'source_uuid' => (string) Str::uuid(),
+        $organization = Organization::query()->firstOrCreate(
+            ['organization_key' => 'PATIENT_FLOW_SECURITY_IDN'],
+            [
+                'name' => 'Patient Flow Security Test IDN',
+                'kind' => 'idn',
+            ],
+        );
+        $facility = Facility::query()->firstOrCreate(
+            ['facility_key' => 'ZEPHYRUS-500'],
+            [
+                'organization_id' => $organization->organization_id,
+                'facility_name' => 'Patient Flow Security Test Facility',
+                'idn_role' => 'community_hospital',
+                'review_status' => 'client_verified',
+                'is_active' => true,
+            ],
+        );
+
+        return app(SourceRegistryService::class)->ensureSource(array_merge([
             'source_key' => 'ehr.hl7v2',
-            'tenant_key' => 'default',
-            'facility_key' => 'ZEPHYRUS-500',
+            'organization_id' => $organization->organization_id,
+            'facility_id' => $facility->facility_id,
+            'tenant_key' => $organization->organization_key,
+            'facility_key' => $facility->facility_key,
             'source_name' => 'Security Test HL7 v2',
             'vendor' => 'Test EHR',
             'system_class' => 'ehr',

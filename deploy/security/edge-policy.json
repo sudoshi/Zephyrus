@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "policy_version": "1.0.0",
+  "application": "zephyrus",
+  "production_origin": "https://zephyrus.acumenus.net",
+  "apache_include": "/etc/apache2/zephyrus/edge-security.conf",
+  "apache_tls_vhost": "/etc/apache2/sites-enabled/zephyrus.acumenus.net-le-ssl.conf",
+  "required_modules": [
+    "headers_module",
+    "rewrite_module",
+    "security2_module",
+    "ssl_module"
+  ],
+  "waf": {
+    "engine": "ModSecurity",
+    "ruleset": "OWASP Core Rule Set",
+    "mode": "blocking",
+    "inbound_anomaly_threshold": 5,
+    "request_body_limit_bytes": 10485760,
+    "default_api_body_limit_bytes": 1048576
+  },
+  "required_response_headers": [
+    "Content-Security-Policy",
+    "Cross-Origin-Opener-Policy",
+    "Cross-Origin-Resource-Policy",
+    "Permissions-Policy",
+    "Referrer-Policy",
+    "Strict-Transport-Security",
+    "X-Content-Type-Options",
+    "X-Frame-Options"
+  ],
+  "blocked_path_patterns": [
+    "^/(?:\\.env|\\.git|storage|vendor)(?:/|$)",
+    "^/(?:artisan|composer\\.(?:json|lock)|package(?:-lock)?\\.json|phpunit\\.xml)(?:$|/)"
+  ],
+  "machine_ingress": [
+    {
+      "path": "/api/integrations/v1/patient-flow/hl7v2",
+      "application_authentication": "scoped rotating bearer token",
+      "edge_transport_requirement": "mTLS or explicit partner CIDR allowlist before production enablement",
+      "maximum_body_bytes": 1048576
+    },
+    {
+      "path_prefix": "/api/eddy/agent",
+      "application_authentication": "scoped rotating machine token",
+      "edge_transport_requirement": "loopback/private network or explicit partner CIDR allowlist",
+      "maximum_body_bytes": 1048576
+    }
+  ],
+  "release_rules": {
+    "critical_or_high_findings_allowed": false,
+    "production_phi_allowed_without_live_edge_verification": false,
+    "waiver_requires_expiry_owner_and_compensating_control": true
+  }
+}

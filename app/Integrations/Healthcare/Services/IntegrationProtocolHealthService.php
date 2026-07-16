@@ -3,10 +3,11 @@
 namespace App\Integrations\Healthcare\Services;
 
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
+use App\Integrations\Healthcare\Exceptions\IntegrationThrottledException;
 use App\Models\Integration\Source;
 use App\Models\User;
-use App\Security\Network\IntegrationUrlPolicy;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -17,8 +18,12 @@ use Throwable;
 class IntegrationProtocolHealthService
 {
     public function __construct(
-        private readonly IntegrationUrlPolicy $urlPolicy,
-        private readonly IntegrationSecretReferenceResolver $secrets,
+        private readonly CredentialValidationService $credentials,
+        private readonly IntegrationConnectionGuard $connections,
+        private readonly SourceRuntimePressureService $runtimePressure,
+        private readonly FhirResourceProfileService $fhirProfiles,
+        private readonly FhirVendorConformanceService $vendorConformance,
+        private readonly FhirConformanceObservationService $fhirConformance,
     ) {}
 
     /** @return array<string, mixed> */
@@ -26,8 +31,12 @@ class IntegrationProtocolHealthService
     {
         $source = Source::query()->findOrFail($sourceId);
         $interface = strtolower((string) $source->interface_type);
+        $connectorKey = 'integration.protocol-health';
 
         try {
+            if (str_contains($interface, 'fhir')) {
+                $this->runtimePressure->beforePartnerCall($sourceId, $connectorKey);
+            }
             $result = match (true) {
                 str_contains($interface, 'fhir') => $this->checkFhir($source),
                 str_contains($interface, 'hl7') => $this->checkHl7($source),
@@ -39,11 +48,31 @@ class IntegrationProtocolHealthService
                 'protocol_health_checked_at' => now(),
                 'protocol_health_error' => null,
             ])->save();
+            if (str_contains($interface, 'fhir')) {
+                $this->runtimePressure->recordPartnerSuccess($sourceId, $connectorKey);
+            }
 
             return $result;
         } catch (IntegrationProtocolException $exception) {
             $this->recordFailure($source, $exception->errorCode);
+            if (str_contains($interface, 'fhir') && ! $exception instanceof IntegrationThrottledException) {
+                $this->runtimePressure->recordPartnerFailure(
+                    $sourceId,
+                    $connectorKey,
+                    $exception->errorCode,
+                );
+            }
             throw $exception;
+        } catch (ConnectionException) {
+            $this->recordFailure($source, 'protocol_transport_unavailable');
+            if (str_contains($interface, 'fhir')) {
+                $this->runtimePressure->recordPartnerFailure(
+                    $sourceId,
+                    $connectorKey,
+                    'protocol_transport_unavailable',
+                );
+            }
+            throw new IntegrationProtocolException('protocol_transport_unavailable');
         } catch (Throwable $exception) {
             $this->recordFailure($source, 'protocol_health_check_failed');
             throw new IntegrationProtocolException('protocol_health_check_failed');
@@ -64,21 +93,19 @@ class IntegrationProtocolHealthService
         $baseUrl = rtrim((string) ($connection->base_url ?: $source->base_url), '/');
         $smartUrl = $this->endpointUrl((int) $source->source_id, 'smart_configuration')
             ?? $baseUrl.'/.well-known/smart-configuration';
-        $this->urlPolicy->assertSafe($baseUrl);
-        $this->urlPolicy->assertSafe($smartUrl);
 
-        $smart = $this->json($smartUrl, 'application/json');
+        $smart = $this->json((int) $source->source_id, $smartUrl, 'application/json');
         $tokenUrl = $smart['token_endpoint'] ?? null;
         $capabilities = is_array($smart['capabilities'] ?? null) ? $smart['capabilities'] : [];
         if (! is_string($tokenUrl) || $tokenUrl === '') {
             throw new IntegrationProtocolException('smart_token_endpoint_missing');
         }
-        $this->urlPolicy->assertSafe($tokenUrl);
+        $this->connections->guard((int) $source->source_id, $tokenUrl);
         if (! in_array('client-confidential-asymmetric', $capabilities, true)) {
             throw new IntegrationProtocolException('smart_asymmetric_client_not_supported');
         }
 
-        $statement = $this->json($baseUrl.'/metadata', 'application/fhir+json');
+        $statement = $this->json((int) $source->source_id, $baseUrl.'/metadata', 'application/fhir+json');
         if (($statement['resourceType'] ?? null) !== 'CapabilityStatement') {
             throw new IntegrationProtocolException('fhir_capability_statement_invalid');
         }
@@ -87,25 +114,38 @@ class IntegrationProtocolHealthService
             throw new IntegrationProtocolException('fhir_r4_version_required');
         }
 
-        $resources = collect(data_get($statement, 'rest.0.resource', []))
-            ->pluck('type')
-            ->filter(fn (mixed $type): bool => is_string($type) && preg_match('/^[A-Z][A-Za-z]{1,79}$/', $type) === 1)
-            ->unique()->sort()->values()->all();
         $softwareName = trim((string) data_get($statement, 'software.name', 'Unknown'));
-        if (strtolower((string) $source->vendor) === 'epic' && ! str_contains(strtolower($softwareName), 'epic')) {
-            throw new IntegrationProtocolException('fhir_vendor_mismatch');
-        }
+        $this->vendorConformance->assertCapabilityStatement($source, $statement);
 
         $credential = DB::table('integration.smart_backend_credentials')
             ->where('source_id', $source->source_id)
             ->orderBy('smart_backend_credential_id')
             ->first();
+        $credentialValidation = $credential?->source_credential_id !== null
+            ? $this->credentials->evaluate(
+                (int) $credential->source_credential_id,
+                CarbonImmutable::now(),
+                persist: true,
+            )
+            : null;
+        $configuredTokenUrl = $this->endpointUrl((int) $source->source_id, 'oauth_token');
+        foreach ([$credential?->token_url, $configuredTokenUrl] as $expectedTokenUrl) {
+            if (filled($expectedTokenUrl) && ! hash_equals((string) $expectedTokenUrl, $tokenUrl)) {
+                throw new IntegrationProtocolException('smart_token_endpoint_drift');
+            }
+        }
         $credentialReady = filled($credential?->client_id)
-            && filled($credential?->jwks_secret_ref)
-            && $this->secrets->resolvable($credential?->jwks_secret_ref);
+            && $credentialValidation !== null
+            && $credentialValidation['status'] === 'ready';
         $activationStatus = $credentialReady ? 'ready' : 'credential_required';
 
-        DB::transaction(function () use ($source, $connection, $statement, $smart, $tokenUrl, $resources, $fhirVersion, $softwareName, $credential, $credentialReady): void {
+        $conformance = DB::transaction(function () use ($source, $connection, $statement, $smart, $tokenUrl, $fhirVersion, $softwareName, $credential, $credentialReady): array {
+            $conformance = $this->fhirConformance->capture(
+                (int) $source->source_id,
+                (int) $connection->fhir_client_connection_id,
+                $statement,
+                $smart,
+            );
             DB::table('integration.fhir_client_connections')
                 ->where('fhir_client_connection_id', $connection->fhir_client_connection_id)
                 ->update([
@@ -122,12 +162,20 @@ class IntegrationProtocolHealthService
                             'name' => $softwareName,
                             'version' => data_get($statement, 'software.version'),
                         ],
-                        'formats' => array_values(array_filter((array) ($statement['format'] ?? []), 'is_string')),
-                        'resourceTypes' => $resources,
+                        'formats' => $conformance['formats'],
+                        'resourceTypes' => collect($conformance['resources'])->pluck('resourceType')->all(),
+                        'searchableResourceTypes' => $conformance['searchableResourceTypes'],
+                        'systemInteractions' => $conformance['systemInteractions'],
+                        'observationId' => $conformance['observationId'],
+                        'documentSha256' => $conformance['capabilityDocumentSha256'],
                     ], JSON_THROW_ON_ERROR),
                     'smart_configuration' => json_encode([
                         'tokenEndpoint' => $tokenUrl,
-                        'capabilities' => array_values(array_filter((array) ($smart['capabilities'] ?? []), 'is_string')),
+                        'grantTypes' => $conformance['smart']['grantTypes'],
+                        'tokenAuthMethods' => $conformance['smart']['tokenAuthMethods'],
+                        'capabilities' => $conformance['smart']['capabilities'],
+                        'observationId' => $conformance['observationId'],
+                        'documentSha256' => $conformance['smartDocumentSha256'],
                     ], JSON_THROW_ON_ERROR),
                     'updated_at' => now(),
                 ]);
@@ -137,24 +185,51 @@ class IntegrationProtocolHealthService
                     ->where('smart_backend_credential_id', $credential->smart_backend_credential_id)
                     ->update([
                         'status' => $credentialReady ? 'ready' : 'activation_required',
-                        'token_url' => $tokenUrl,
+                        'token_url' => filled($credential->token_url) ? $credential->token_url : $tokenUrl,
                         'updated_at' => now(),
                     ]);
             }
 
             DB::table('integration.source_capabilities')->where('source_id', $source->source_id)->where('capability_type', 'fhir_resource')->delete();
-            foreach ($resources as $resourceType) {
+            foreach ($conformance['resources'] as $resource) {
+                $pollingInteractions = array_values(array_intersect(
+                    ['search-type', 'history-type'],
+                    $resource['interactions'],
+                ));
+                if ($pollingInteractions === []) {
+                    continue;
+                }
                 DB::table('integration.source_capabilities')->insert([
                     'source_id' => $source->source_id,
-                    'resource_type' => $resourceType,
+                    'resource_type' => $resource['resourceType'],
                     'capability_type' => 'fhir_resource',
-                    'operation' => 'read_search',
+                    'operation' => implode('+', $pollingInteractions),
                     'supported' => true,
-                    'metadata' => json_encode([], JSON_THROW_ON_ERROR),
+                    'metadata' => json_encode([
+                        'conformanceObservationId' => $conformance['observationId'],
+                        'interactions' => $resource['interactions'],
+                        'baseProfileUrl' => $resource['baseProfileUrl'],
+                        'supportedProfileCount' => count($resource['supportedProfiles']),
+                        'searchParameterCount' => count($resource['searchParameters']),
+                        'operationCount' => count($resource['operations']),
+                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             }
+            $this->fhirProfiles->reconcileCapabilities(
+                (int) $source->source_id,
+                collect($conformance['resources'])
+                    ->filter(fn (array $resource): bool => array_intersect(
+                        ['search-type', 'history-type'],
+                        $resource['interactions'],
+                    ) !== [])
+                    ->pluck('resourceType')
+                    ->values()
+                    ->all(),
+            );
+
+            return $conformance;
         });
 
         return [
@@ -162,7 +237,14 @@ class IntegrationProtocolHealthService
             'protocol' => 'fhir_r4_smart',
             'vendor' => $softwareName,
             'fhirVersion' => $fhirVersion,
-            'supportedResourceCount' => count($resources),
+            'conformanceObservationId' => $conformance['observationId'],
+            'declaredResourceCount' => count($conformance['resources']),
+            'supportedResourceCount' => count($conformance['searchableResourceTypes']),
+            'supportsBatch' => in_array('batch', $conformance['systemInteractions'], true),
+            'supportsTransaction' => in_array('transaction', $conformance['systemInteractions'], true),
+            'supportsBulkData' => $conformance['supportsBulkData'],
+            'supportsSubscriptions' => $conformance['supportsSubscriptions'],
+            'warnings' => $conformance['warnings'],
             'activationStatus' => $activationStatus,
         ];
     }
@@ -197,15 +279,16 @@ class IntegrationProtocolHealthService
     }
 
     /** @return array<string, mixed> */
-    private function json(string $url, string $accept): array
+    private function json(int $sourceId, string $url, string $accept): array
     {
+        $connectionTarget = $this->connections->guard($sourceId, $url);
         $response = Http::accept($accept)
             ->connectTimeout(5)
             ->timeout((int) config('integrations.health_timeout_seconds', 10))
-            ->withOptions(['allow_redirects' => false])
+            ->withOptions($connectionTarget->httpOptions())
             ->get($url);
 
-        $this->assertResponse($response);
+        $this->assertResponse($response, $sourceId);
         if (strlen($response->body()) > 5_242_880) {
             throw new IntegrationProtocolException('protocol_response_too_large');
         }
@@ -217,10 +300,23 @@ class IntegrationProtocolHealthService
         return $payload;
     }
 
-    private function assertResponse(Response $response): void
+    private function assertResponse(Response $response, int $sourceId): void
     {
         if ($response->redirect()) {
             throw new IntegrationProtocolException('protocol_redirect_rejected');
+        }
+        if ($response->status() === 429) {
+            $retryAfter = $this->runtimePressure->retryAfterSeconds($response->header('Retry-After'));
+            $this->runtimePressure->recordRateLimit(
+                $sourceId,
+                'throttled',
+                429,
+                $retryAfter,
+                'integration.protocol-health',
+                'protocol_health_rate_limited',
+            );
+
+            throw new IntegrationThrottledException($retryAfter, 'protocol_http_429');
         }
         if (! $response->successful()) {
             throw new IntegrationProtocolException('protocol_http_'.$response->status());

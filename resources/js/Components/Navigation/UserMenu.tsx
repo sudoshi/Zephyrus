@@ -8,6 +8,7 @@ import {
   LogOut,
   ScrollText,
   Settings,
+  ShieldCheck,
   User,
   Users,
 } from 'lucide-react';
@@ -40,6 +41,14 @@ export function getUserMenuItems(access: NavigationAccess): UserMenuItem[] {
       label: 'User Audit',
       icon: ScrollText,
       href: '/admin/user-audit',
+      section: 'administration',
+    });
+  }
+  if (access.isAdmin || access.can?.view_access_reviews) {
+    items.push({
+      label: 'Access Reviews',
+      icon: ShieldCheck,
+      href: '/admin/access-reviews',
       section: 'administration',
     });
   }

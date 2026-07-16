@@ -69,9 +69,28 @@ final class OidcReconciliationServiceTest extends TestCase
         $admin = User::factory()->create(['email' => 'admin@acumenus.net', 'is_active' => true]);
         OidcEmailAlias::create(['alias_email' => 'me@personal.com', 'canonical_email' => 'admin@acumenus.net']);
 
-        $res = $this->reconciler()->reconcile($this->claims(['email' => 'me@personal.com', 'groups' => []]));
+        $res = $this->reconciler()->reconcile($this->claims(['email' => 'me@personal.com']));
 
         $this->assertSame('linked_by_alias', $res['reason']);
         $this->assertSame($admin->id, $res['user']->id);
+    }
+
+    public function test_group_removal_denies_an_already_linked_subject(): void
+    {
+        $user = User::factory()->create(['email' => 'linked@example.com', 'is_active' => true]);
+        UserExternalIdentity::create([
+            'user_id' => $user->id,
+            'provider' => 'authentik',
+            'provider_subject' => 'linked-subject',
+            'provider_email_at_link' => $user->email,
+            'linked_at' => now(),
+        ]);
+
+        $this->expectException(OidcAccessDeniedException::class);
+        $this->reconciler()->reconcile($this->claims([
+            'sub' => 'linked-subject',
+            'email' => $user->email,
+            'groups' => ['Removed From Zephyrus'],
+        ]));
     }
 }

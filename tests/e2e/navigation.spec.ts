@@ -1,31 +1,23 @@
 import { test, expect } from '@playwright/test';
-import type { APIRequestContext, Page } from '@playwright/test';
-
-// Zephyrus demo web routes use SessionAuthMiddleware and auto-authenticate as admin.
-async function blockCockpitStream(page: Page) {
-  await page.route('**/api/cockpit/stream', async (route) => {
-    await route.fulfill({ status: 204, body: '' });
-  });
-}
+import type { Page } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
 
 async function openDashboard(page: Page) {
-  await blockCockpitStream(page);
+  await loginAsTestUser(page);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
 }
 
 async function expectLegacyRedirect(
-  request: APIRequestContext,
   page: Page,
   legacyPath: string,
   drill: string
 ) {
-  const redirect = await request.get(legacyPath, { maxRedirects: 0 });
+  const redirect = await page.request.get(legacyPath, { maxRedirects: 0 });
   expect(redirect.status()).toBe(302);
   expect(redirect.headers().location ?? '').toContain(`/dashboard?drill=${drill}`);
 
-  await blockCockpitStream(page);
   await page.goto(legacyPath, { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(new RegExp(`/dashboard\\?drill=${drill}`));
 }
@@ -96,20 +88,20 @@ test.describe('Top Navigation', () => {
 
   // P4a (D4): the legacy overview bookmarks are permanent redirects into the
   // cockpit drill layer — the old URL must land on /dashboard?drill={domain}.
-  test('legacy perioperative overview redirects into the periop drill', async ({ page, request }) => {
-    await expectLegacyRedirect(request, page, '/dashboard/perioperative', 'periop');
+  test('legacy perioperative overview redirects into the periop drill', async ({ page }) => {
+    await expectLegacyRedirect(page, '/dashboard/perioperative', 'periop');
   });
 
-  test('legacy RTDC overview redirects into the rtdc drill', async ({ page, request }) => {
-    await expectLegacyRedirect(request, page, '/dashboard/rtdc', 'rtdc');
+  test('legacy RTDC overview redirects into the rtdc drill', async ({ page }) => {
+    await expectLegacyRedirect(page, '/dashboard/rtdc', 'rtdc');
   });
 
-  test('legacy emergency overview redirects into the ed drill', async ({ page, request }) => {
-    await expectLegacyRedirect(request, page, '/dashboard/emergency', 'ed');
+  test('legacy emergency overview redirects into the ed drill', async ({ page }) => {
+    await expectLegacyRedirect(page, '/dashboard/emergency', 'ed');
   });
 
-  test('legacy improvement overview redirects into the quality drill', async ({ page, request }) => {
-    await expectLegacyRedirect(request, page, '/dashboard/improvement', 'quality');
+  test('legacy improvement overview redirects into the quality drill', async ({ page }) => {
+    await expectLegacyRedirect(page, '/dashboard/improvement', 'quality');
   });
 });
 
@@ -235,6 +227,10 @@ test.describe('Mobile Navigation', () => {
 });
 
 test.describe('RTDC ancillary handoff', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page);
+  });
+
   test('imaging tile drills into the unit-scoped Radiology worklist', async ({ page }) => {
     await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
@@ -255,7 +251,6 @@ test.describe('RTDC ancillary handoff', () => {
   });
 
   test('Laboratory tile drills into the unit-scoped Flow Board with provenance', async ({ page }) => {
-    await blockCockpitStream(page);
     await page.goto('/rtdc/ancillary-services', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('main')).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: 'Matrix' }).click();

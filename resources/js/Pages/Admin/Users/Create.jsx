@@ -4,7 +4,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import Card from '@/Components/Dashboard/Card';
 import InputError from '@/Components/InputError';
 
-export default function Create({ auth }) {
+export default function Create({ auth, sso_only: ssoOnly }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -13,6 +13,7 @@ export default function Create({ auth }) {
         password_confirmation: '',
         role: 'user',
         is_active: true,
+        change_reason: 'new_account',
     });
 
     const submit = (e) => {
@@ -34,7 +35,7 @@ export default function Create({ auth }) {
                         </h1>
                         <Link
                             href="/users"
-                            className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-secondary-dark transition-colors duration-300"
+                            className="inline-flex items-center px-4 py-2 bg-healthcare-surface dark:bg-healthcare-surface-dark border border-healthcare-border dark:border-healthcare-border-dark rounded-md text-healthcare-text-primary dark:text-healthcare-text-primary-dark hover:bg-healthcare-surface-secondary dark:hover:bg-healthcare-surface-hover-dark transition-colors duration-300"
                         >
                             Back to Users
                         </Link>
@@ -42,6 +43,11 @@ export default function Create({ auth }) {
 
                     <Card>
                         <Card.Content>
+                            {ssoOnly && (
+                                <div className="mb-6 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/10 p-3 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                    SSO-only policy is active: local account creation with a password is disabled. Accounts are provisioned just-in-time by the identity provider; this form will be rejected on submit.
+                                </div>
+                            )}
                             <form onSubmit={submit} className="space-y-6">
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
@@ -56,6 +62,23 @@ export default function Create({ auth }) {
                                         required
                                     />
                                     <InputError message={errors.name} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="change_reason" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                        Reason for creation
+                                    </label>
+                                    <select
+                                        id="change_reason"
+                                        value={data.change_reason}
+                                        onChange={(e) => setData('change_reason', e.target.value)}
+                                        className="mt-1 block w-full rounded-md border-healthcare-border dark:border-healthcare-border-dark bg-healthcare-surface dark:bg-healthcare-surface-dark text-healthcare-text-primary dark:text-healthcare-text-primary-dark focus:border-healthcare-info dark:focus:border-healthcare-info-dark focus:ring-healthcare-info dark:focus:ring-healthcare-info-dark"
+                                        required
+                                    >
+                                        <option value="new_account">New workforce account</option>
+                                        {auth?.can?.manage_privileges && <option value="approved_privileged_account">Approved privileged account</option>}
+                                    </select>
+                                    <InputError message={errors.change_reason} className="mt-2" />
                                 </div>
 
                                 <div>
@@ -118,7 +141,7 @@ export default function Create({ auth }) {
                                     <InputError message={errors.password_confirmation} className="mt-2" />
                                 </div>
 
-                                <div>
+                                {auth?.can?.manage_privileges && <div>
                                     <label htmlFor="role" className="block text-sm font-medium text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                         Role
                                     </label>
@@ -133,7 +156,7 @@ export default function Create({ auth }) {
                                         <option value="superuser">Superuser</option>
                                     </select>
                                     <InputError message={errors.role} className="mt-2" />
-                                </div>
+                                </div>}
 
                                 <div>
                                     <label className="flex items-center gap-2">

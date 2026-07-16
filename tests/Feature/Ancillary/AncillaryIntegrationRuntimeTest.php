@@ -11,6 +11,8 @@ use App\Integrations\Healthcare\Services\AncillaryBulkBackfillAdapter;
 use App\Integrations\Healthcare\Services\AncillaryMessageIngestPipeline;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\Source;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use Database\Seeders\AncillaryReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +24,35 @@ class AncillaryIntegrationRuntimeTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $organizationId;
+
+    private int $facilityId;
+
+    private string $facilityKey;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->artisan('deployment:seed-registry')->assertExitCode(0);
         $this->seed(AncillaryReferenceSeeder::class);
+
+        $organization = Organization::create([
+            'organization_key' => 'ANCILLARY_RUNTIME_IDN',
+            'name' => 'Ancillary Runtime Test IDN',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::create([
+            'organization_id' => $organization->organization_id,
+            'facility_key' => 'ANCILLARY_RUNTIME_FACILITY',
+            'facility_name' => 'Ancillary Runtime Test Facility',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
+
+        $this->organizationId = (int) $organization->organization_id;
+        $this->facilityId = (int) $facility->facility_id;
+        $this->facilityKey = (string) $facility->facility_key;
     }
 
     public function test_governed_hl7_order_traverses_raw_canonical_projection_and_provenance(): void
@@ -187,8 +214,7 @@ class AncillaryIntegrationRuntimeTest extends TestCase
 
     public function test_inactive_or_non_phi_source_is_rejected_before_raw_storage(): void
     {
-        $source = $this->source('anc.disabled', 'ris', ['ORM'], ['rad']);
-        $source->update(['active_status' => 'inactive', 'phi_allowed' => false]);
+        $source = $this->source('anc.disabled', 'ris', ['ORM'], ['rad'], active: false);
 
         $this->expectException(AncillaryIngestException::class);
         try {
@@ -315,14 +341,19 @@ class AncillaryIntegrationRuntimeTest extends TestCase
         array $families,
         array $departments,
         array $milestoneMap = [],
+        bool $active = true,
     ): Source {
         return app(SourceRegistryService::class)->ensureSource([
             'source_key' => $key,
             'source_name' => $key,
             'system_class' => $systemClass,
             'interface_type' => 'hl7v2',
-            'active_status' => 'active',
-            'phi_allowed' => true,
+            'active_status' => $active ? 'active' : 'inactive',
+            'phi_allowed' => $active,
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'tenant_key' => 'ANCILLARY_RUNTIME_IDN',
+            'facility_key' => $this->facilityKey,
             'metadata' => [
                 'ancillary_ingest' => [
                     'enabled' => true,

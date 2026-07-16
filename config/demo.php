@@ -11,6 +11,29 @@
 return [
     'enabled' => (bool) env('DEMO_MODE', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Explicit local/demo session bootstrap
+    |--------------------------------------------------------------------------
+    |
+    | This switch is intentionally independent from DEMO_MODE. DEMO_MODE may
+    | drive synthetic operational data on a protected demonstration host, but
+    | it must never make that host anonymously accessible. Production is also
+    | denied in SessionAuthMiddleware even if this value is misconfigured.
+    |
+    */
+    'auto_login_enabled' => filter_var(
+        env('DEMO_AUTO_LOGIN_ENABLED', false),
+        FILTER_VALIDATE_BOOL,
+    ),
+
+    'auto_login_username' => (string) env('DEMO_AUTO_LOGIN_USERNAME', ''),
+
+    'show_credentials' => filter_var(
+        env('DEMO_SHOW_CREDENTIALS', false),
+        FILTER_VALIDATE_BOOL,
+    ),
+
     'scenario' => (string) env('DEMO_SCENARIO', 'summit-reference'),
 
     // Operational window width (±half around the anchor) used by DemoClock.

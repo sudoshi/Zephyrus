@@ -11,7 +11,10 @@ use App\Models\Integration\Source;
 use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use App\Observability\MetricRecorder;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -25,6 +28,8 @@ class PatientFlowHl7IngestPipeline
         private readonly FlowEventNormalizer $normalizer,
         private readonly FlowEventRepository $events,
         private readonly CanonicalEventWriter $canonicalEvents,
+        private readonly ClinicalPayloadStore $payloads,
+        private readonly MetricRecorder $metrics,
     ) {}
 
     /**
@@ -36,6 +41,57 @@ class PatientFlowHl7IngestPipeline
         ?string $requestedIdempotencyKey = null,
         array $requestMetadata = [],
     ): array {
+        $startedAt = hrtime(true);
+        $attributes = ['zephyrus.connector.key' => self::CONNECTOR_KEY];
+        $requestId = $requestMetadata['request_id'] ?? null;
+        if (is_string($requestId) && Str::isUuid($requestId)) {
+            $attributes['zephyrus.correlation.uuid'] = $requestId;
+        }
+
+        try {
+            $result = $this->performIngest($sourceKey, $rawHl7, $requestedIdempotencyKey, $requestMetadata);
+            $receipt = $result['receipt'];
+            $this->metrics->span(
+                'zephyrus.integration.hl7.receipt_to_projection',
+                'ok',
+                $this->durationMs($startedAt),
+                [
+                    ...$attributes,
+                    'zephyrus.source.id' => $result['sourceId'],
+                    'zephyrus.run.uuid' => $receipt['run_id'],
+                    'zephyrus.message.uuid' => $receipt['message_id'],
+                    'zephyrus.event.uuid' => $receipt['canonical_event_id'],
+                    'zephyrus.outcome' => $receipt['duplicate'] ? 'duplicate' : 'projected',
+                ],
+            );
+
+            return $receipt;
+        } catch (Throwable $exception) {
+            $this->metrics->span(
+                'zephyrus.integration.hl7.receipt_to_projection',
+                'error',
+                $this->durationMs($startedAt),
+                [
+                    ...$attributes,
+                    'error.type' => $exception instanceof PatientFlowIngestException
+                        ? $exception->errorCode
+                        : 'hl7_ingest_failed',
+                ],
+            );
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @return array{receipt: array{accepted: true, duplicate: bool, status: string, run_id: string, message_id: string, canonical_event_id: string}, sourceId: int}
+     */
+    private function performIngest(
+        string $sourceKey,
+        string $rawHl7,
+        ?string $requestedIdempotencyKey,
+        array $requestMetadata,
+    ): array {
         $source = $this->authorizedSource($sourceKey);
         $payloadHash = hash('sha256', $rawHl7);
         $idempotencyKey = $this->idempotencyKey($requestedIdempotencyKey, $payloadHash);
@@ -44,24 +100,47 @@ class PatientFlowHl7IngestPipeline
         $messageCreated = false;
 
         try {
-            $message = InboundMessage::firstOrCreate(
-                [
-                    'source_id' => $source->source_id,
-                    'idempotency_key' => $idempotencyKey,
-                ],
-                [
-                    'message_uuid' => (string) Str::uuid(),
-                    'ingest_run_id' => $run->ingest_run_id,
-                    'message_type' => 'HL7V2_ADT',
-                    'external_id' => null,
-                    'payload_hash' => $payloadHash,
-                    'payload' => ['raw_hl7' => $rawHl7],
-                    'received_at' => now(),
-                    'parse_status' => 'received',
-                    'metadata' => ['connector_key' => self::CONNECTOR_KEY],
-                ],
-            );
-            $messageCreated = $message->wasRecentlyCreated;
+            $message = InboundMessage::query()
+                ->where('source_id', $source->source_id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+            if ($message === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'raw_message',
+                    ['raw_hl7' => $rawHl7],
+                );
+                try {
+                    $message = InboundMessage::create([
+                        'message_uuid' => (string) Str::uuid(),
+                        'source_id' => $source->source_id,
+                        'ingest_run_id' => $run->ingest_run_id,
+                        'message_type' => 'HL7V2_ADT',
+                        'external_id' => null,
+                        'idempotency_key' => $idempotencyKey,
+                        'payload_hash' => $payloadHash,
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                        'received_at' => now(),
+                        'parse_status' => 'received',
+                        'metadata' => ['connector_key' => self::CONNECTOR_KEY],
+                    ]);
+                    $messageCreated = true;
+                } catch (QueryException $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_insert_race');
+                    $message = InboundMessage::query()
+                        ->where('source_id', $source->source_id)
+                        ->where('idempotency_key', $idempotencyKey)
+                        ->first();
+                    if ($message === null) {
+                        throw $exception;
+                    }
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_insert_failed');
+
+                    throw $exception;
+                }
+            }
 
             if (! hash_equals((string) $message->payload_hash, $payloadHash)) {
                 throw new PatientFlowIngestException(
@@ -70,6 +149,23 @@ class PatientFlowHl7IngestPipeline
                     409,
                 );
             }
+            if ($message->payload_object_id === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'raw_message',
+                    ['raw_hl7' => $rawHl7],
+                );
+                try {
+                    $message->update([
+                        'payload' => null,
+                        'payload_object_id' => $stored->payloadObjectId,
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'raw_message_link_failed');
+
+                    throw $exception;
+                }
+            }
 
             $existingCanonical = CanonicalEventRecord::query()
                 ->where('inbound_message_id', $message->inbound_message_id)
@@ -77,7 +173,10 @@ class PatientFlowHl7IngestPipeline
             if (! $messageCreated && $existingCanonical?->projection_status === 'projected') {
                 $this->completeRun($run, skipped: true);
 
-                return $this->receipt($run, $message, $existingCanonical, true);
+                return [
+                    'receipt' => $this->receipt($run, $message, $existingCanonical, true),
+                    'sourceId' => (int) $source->source_id,
+                ];
             }
 
             $parsed = Hl7V2Message::parse($rawHl7);
@@ -106,12 +205,32 @@ class PatientFlowHl7IngestPipeline
 
             $normalized = $this->normalizer->normalize($rawHl7, 'hl7v2');
 
-            $message->update([
-                'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
-                'external_id' => $normalized['message_control_id'] ?? null,
-                'normalized_payload' => $normalized,
-                'parse_status' => 'normalized',
-            ]);
+            if ($message->normalized_payload_object_id === null) {
+                $stored = $this->payloads->storeJson(
+                    (int) $source->source_id,
+                    'normalized_message',
+                    $normalized,
+                );
+                try {
+                    $message->update([
+                        'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
+                        'external_id' => $normalized['message_control_id'] ?? null,
+                        'normalized_payload' => null,
+                        'normalized_payload_object_id' => $stored->payloadObjectId,
+                        'parse_status' => 'normalized',
+                    ]);
+                } catch (Throwable $exception) {
+                    $this->discardPayload($stored->payloadObjectId, (int) $source->source_id, 'normalized_message_link_failed');
+
+                    throw $exception;
+                }
+            } else {
+                $message->update([
+                    'message_type' => 'ADT^'.($normalized['trigger_event'] ?? 'UNKNOWN'),
+                    'external_id' => $normalized['message_control_id'] ?? null,
+                    'parse_status' => 'normalized',
+                ]);
+            }
 
             [$record] = DB::transaction(function () use ($source, $run, $message, $normalized, $idempotencyKey): array {
                 $canonical = new CanonicalOperationalEvent(
@@ -168,7 +287,10 @@ class PatientFlowHl7IngestPipeline
 
             $this->completeRun($run);
 
-            return $this->receipt($run, $message, $record, ! $messageCreated);
+            return [
+                'receipt' => $this->receipt($run, $message, $record, ! $messageCreated),
+                'sourceId' => (int) $source->source_id,
+            ];
         } catch (PatientFlowIngestException $exception) {
             $this->fail($run, $message, $messageCreated, $exception);
 
@@ -284,6 +406,21 @@ class PatientFlowHl7IngestPipeline
             'status' => 'open',
             'metadata' => [],
         ]);
+    }
+
+    private function discardPayload(int $payloadObjectId, int $sourceId, string $reasonCode): void
+    {
+        $this->payloads->discard(
+            $payloadObjectId,
+            $sourceId,
+            $reasonCode,
+            'Encrypted clinical payload was discarded because the intended database link did not become authoritative.',
+        );
+    }
+
+    private function durationMs(int $startedAt): int
+    {
+        return max(0, min(86_400_000, (int) ((hrtime(true) - $startedAt) / 1_000_000)));
     }
 
     /**

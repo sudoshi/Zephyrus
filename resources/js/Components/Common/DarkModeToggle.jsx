@@ -1,10 +1,8 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import { Icon } from '@iconify/react';
-import  { useDarkMode, HEALTHCARE_COLORS } from '@/hooks/useDarkMode';
+import { Moon, Sun } from 'lucide-react';
 
 const DarkModeToggle = ({ isDarkMode, onToggle }) => {
-  const colors = HEALTHCARE_COLORS[isDarkMode ? 'dark' : 'light'];
+  const ThemeIcon = isDarkMode ? Sun : Moon;
 
   return (
     <button
@@ -23,8 +21,7 @@ const DarkModeToggle = ({ isDarkMode, onToggle }) => {
       title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
     >
       <div className="relative w-5 h-5">
-        <Icon 
-          icon={isDarkMode ? 'heroicons:sun' : 'heroicons:moon'} 
+        <ThemeIcon
           className="w-5 h-5 absolute inset-0 transform transition-all duration-300 rotate-0 group-hover:rotate-12"
           aria-hidden="true"
         />

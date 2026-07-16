@@ -64,7 +64,7 @@ const CapacityHuddleTracker = () => {
                 <Card.Title>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                            <Icon icon="heroicons:users-group" className="w-5 h-5" />
+                            <Icon icon="heroicons:users" className="w-5 h-5" />
                             <span>Capacity Huddle Tracker</span>
                         </div>
                         <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">

@@ -136,6 +136,36 @@ class MobileAuthTest extends TestCase
         $this->withToken($token)->getJson('/api/mobile/v1/me')->assertStatus(401);
     }
 
+    public function test_password_change_revokes_all_prior_tokens_before_issuing_one_new_pair(): void
+    {
+        $user = $this->activeUser(['must_change_password' => true]);
+        $oldAccess = $user->createToken('old-mobile', ['mobile:read'])->plainTextToken;
+        $changeToken = $this->postJson('/api/auth/token', [
+            'username' => $user->username,
+            'password' => 'password',
+        ])->json('change_token');
+
+        $response = $this->withToken($changeToken)->postJson('/api/auth/change-password', [
+            'current_password' => 'password',
+            'new_password' => 'NewMobilePassword!123',
+            'new_password_confirmation' => 'NewMobilePassword!123',
+        ])->assertOk()->assertJsonStructure(['access_token', 'refresh_token']);
+
+        $user->refresh();
+        $this->assertFalse($user->must_change_password);
+        $this->assertSame(1, $user->auth_session_version);
+        $this->assertSame(2, $user->tokens()->count());
+        $this->assertNotSame($oldAccess, $response->json('access_token'));
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($oldAccess)->getJson('/api/mobile/v1/me')->assertUnauthorized();
+        $this->assertDatabaseHas('audit.user_events', [
+            'action' => 'security.user.access_revoked',
+            'reason' => 'password_changed',
+            'target_id' => (string) $user->id,
+        ]);
+    }
+
     public function test_device_registration_is_stored_for_the_user(): void
     {
         $user = $this->activeUser();

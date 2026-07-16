@@ -472,7 +472,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                 } text-sm font-medium rounded-l-md`}
                                 onClick={() => setViewMode('table')}
                             >
-                                <Icon icon="heroicons:table" className="w-4 h-4 mr-1.5" />
+                                <Icon icon="heroicons:table-cells" className="w-4 h-4 mr-1.5" />
                                 Table
                             </button>
                             <button
@@ -483,7 +483,7 @@ const AncillaryServices = ({ unitServices = null }) => {
                                 } text-sm font-medium rounded-r-md -ml-px`}
                                 onClick={() => setViewMode('matrix')}
                             >
-                                <Icon icon="heroicons:view-grid" className="w-4 h-4 mr-1.5" />
+                                <Icon icon="heroicons:squares-2x2" className="w-4 h-4 mr-1.5" />
                                 Matrix
                             </button>
                             <button

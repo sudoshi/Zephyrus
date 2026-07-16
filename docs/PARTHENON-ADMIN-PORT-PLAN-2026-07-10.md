@@ -1,8 +1,8 @@
 # Parthenon Administrator Port Plan for Zephyrus
 
 **Date:** 2026-07-10  
-**Status:** In progress  
-**Current release:** Administration foundation and user audit trail implemented  
+**Status:** Historical port inventory; superseded for go-forward work by `docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md`
+**Current release:** Releases A-B record the original administration foundation; later implementation status and dependency order live only in the canonical control-plane plan
 **Authority:** This document governs Parthenon Administrator capability ports into Zephyrus.
 
 ## 1. Objective
@@ -285,12 +285,4 @@ The new audit migration must be present before the administrator pages are expos
 
 ## 9. Next Implementation Target
 
-Proceed with Release C and Release D in this order:
-
-1. Add the authentication-provider page over the existing secret-safe API.
-2. Correct existing-user OIDC group enforcement and add provider diagnostics.
-3. Add the Eddy provider-policy page using the existing Zephyrus policy service.
-4. Audit all provider and policy lifecycle changes.
-5. Then implement system health before expanding role management.
-
-This order makes identity and AI governance visible before adding broader platform controls, while preserving the user audit trail as the accountability foundation for every later release.
+Do not execute the historical Release C-H order from this document. Authentication Providers, Eddy provider governance, System Health, roles/capability views, user lifecycle controls, enterprise/source governance, and the integration control-plane foundation have advanced beyond this snapshot. Use the checked implementation state, open gates, and current dependency order in `docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md`.

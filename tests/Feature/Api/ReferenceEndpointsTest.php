@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,16 +19,16 @@ class ReferenceEndpointsTest extends TestCase
 
     public function test_services_endpoint_uses_active_status_column(): void
     {
-        $this->getJson('/api/services')->assertOk();
+        $this->actingAs(User::factory()->create(['must_change_password' => false]))->getJson('/api/services')->assertOk();
     }
 
     public function test_rooms_endpoint_uses_active_status_column(): void
     {
-        $this->getJson('/api/rooms')->assertOk();
+        $this->actingAs(User::factory()->create(['must_change_password' => false]))->getJson('/api/rooms')->assertOk();
     }
 
     public function test_providers_endpoint_uses_active_status_column(): void
     {
-        $this->getJson('/api/providers')->assertOk();
+        $this->actingAs(User::factory()->create(['must_change_password' => false]))->getJson('/api/providers')->assertOk();
     }
 }

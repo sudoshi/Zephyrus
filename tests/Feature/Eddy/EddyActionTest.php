@@ -7,7 +7,6 @@ use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class EddyActionTest extends TestCase
@@ -101,10 +100,11 @@ class EddyActionTest extends TestCase
     public function test_scoped_token_can_draft_but_can_never_auto_approve(): void
     {
         $user = $this->operator();
-        Sanctum::actingAs($user, ['ops:read', 'ops:draft']);  // Eddy's agent token
+        $token = $user->createToken('eddy-agent', ['ops:read', 'ops:draft'])->plainTextToken;
 
         // Even with approve=true, the token cannot approve — it stays a draft for a human.
-        $response = $this->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal(['approve' => true]));
+        $response = $this->withToken($token)
+            ->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal(['approve' => true]));
 
         $response->assertCreated()
             ->assertJsonPath('data.status', 'draft')
@@ -116,9 +116,10 @@ class EddyActionTest extends TestCase
     public function test_scoped_token_with_misissued_ops_approve_still_cannot_auto_approve(): void
     {
         $user = $this->operator();
-        Sanctum::actingAs($user, ['ops:read', 'ops:draft', 'ops:approve']);
+        $token = $user->createToken('misissued-eddy-agent', ['ops:read', 'ops:draft', 'ops:approve'])->plainTextToken;
 
-        $response = $this->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal(['approve' => true]));
+        $response = $this->withToken($token)
+            ->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal(['approve' => true]));
 
         $response->assertCreated()
             ->assertJsonPath('data.status', 'draft')
@@ -131,10 +132,12 @@ class EddyActionTest extends TestCase
     public function test_scoped_token_without_ops_draft_is_forbidden(): void
     {
         $user = $this->operator();
-        Sanctum::actingAs($user, ['ops:read']);  // read-only token
+        $token = $user->createToken('eddy-reader', ['ops:read'])->plainTextToken;
 
-        $this->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal())
-            ->assertForbidden();
+        $this->withToken($token)
+            ->postJson('/api/eddy/agent/actions/propose', $this->barrierProposal())
+            ->assertForbidden()
+            ->assertJsonPath('error.code', 'machine_ability_required');
 
         $this->assertSame(0, OperationalAction::count());
     }

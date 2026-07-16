@@ -2,23 +2,27 @@
 
 namespace App\Integrations\Healthcare\Services;
 
-use App\Jobs\PollEpicFhirResource;
+use App\Jobs\PollFhirResource;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Jobs\RunIntegrationProtocolHealthCheck;
 use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
+use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use App\Support\Api\JsonMap;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class EnterpriseConnectorControlService
 {
     public function __construct(
         private readonly IntegrationConfigurationAuditService $audit,
+        private readonly ClinicalPayloadStore $payloads,
+        private readonly SourceRuntimeExecutionService $runtimeExecution,
+        private readonly FhirResourceProfileService $fhirProfiles,
         private readonly ProjectionDispatcher $projections,
-        private readonly FhirResourcePolicy $fhirResources,
     ) {}
 
     /** @return array<string,mixed> */
@@ -58,86 +62,124 @@ class EnterpriseConnectorControlService
         $resourceType = (string) $payload['resource_type'];
         $targetSystem = (string) ($payload['target_system'] ?? 'fhir');
         $draftType = (string) ($payload['draft_type'] ?? 'fhir_writeback');
+        $sourceId = (int) $payload['source_id'];
+        $resourcePayload = is_array($payload['resource_payload'] ?? null) ? $payload['resource_payload'] : [];
+        $stored = $this->payloads->storeJson(
+            $sourceId,
+            'writeback_draft',
+            $resourcePayload,
+            contentType: 'application/fhir+json',
+            actorUserId: $userId,
+        );
 
-        $recommendation = Recommendation::create([
-            'recommendation_uuid' => (string) Str::uuid(),
-            'recommendation_type' => 'writeback_draft',
-            'scope_type' => 'integration',
-            'scope_key' => $targetSystem,
-            'title' => "Approve {$resourceType} writeback draft",
-            'rationale' => 'External-system writeback must be reviewed before transmission.',
-            'confidence' => 0.8000,
-            'risk_level' => 'medium',
-            'status' => 'draft',
-            'expected_impact' => [
-                'resource_type' => $resourceType,
-                'target_system' => $targetSystem,
-            ],
-            'evidence' => [
-                'source_tables' => ['ops.writeback_drafts', 'ops.actions', 'ops.approvals'],
-                'approval_required' => true,
-            ],
-            'created_by_source' => 'enterprise_connector_control',
-        ]);
+        try {
+            return DB::transaction(function () use (
+                $resourceType,
+                $targetSystem,
+                $draftType,
+                $sourceId,
+                $stored,
+                $userId,
+            ): array {
+                $recommendation = Recommendation::create([
+                    'recommendation_uuid' => (string) Str::uuid(),
+                    'recommendation_type' => 'writeback_draft',
+                    'scope_type' => 'integration',
+                    'scope_key' => $targetSystem,
+                    'title' => "Approve {$resourceType} writeback draft",
+                    'rationale' => 'External-system writeback must be reviewed before transmission.',
+                    'confidence' => 0.8000,
+                    'risk_level' => 'medium',
+                    'status' => 'draft',
+                    'expected_impact' => [
+                        'resource_type' => $resourceType,
+                        'target_system' => $targetSystem,
+                    ],
+                    'evidence' => [
+                        'source_tables' => ['ops.writeback_drafts', 'ops.actions', 'ops.approvals'],
+                        'approval_required' => true,
+                    ],
+                    'created_by_source' => 'enterprise_connector_control',
+                ]);
 
-        $action = OperationalAction::create([
-            'action_uuid' => (string) Str::uuid(),
-            'recommendation_id' => $recommendation->recommendation_id,
-            'action_type' => 'approve_writeback_draft',
-            'status' => 'draft',
-            'owner_name' => 'Integration governance',
-            'payload' => [
-                'owner' => 'Integration governance',
-                'route' => '/integrations',
-                'instruction' => "Review {$resourceType} {$targetSystem} writeback draft before sending.",
-                'resourceType' => $resourceType,
-                'targetSystem' => $targetSystem,
-            ],
-            'expires_at' => now()->addHours(12),
-        ]);
+                $action = OperationalAction::create([
+                    'action_uuid' => (string) Str::uuid(),
+                    'recommendation_id' => $recommendation->recommendation_id,
+                    'action_type' => 'approve_writeback_draft',
+                    'status' => 'draft',
+                    'owner_name' => 'Integration governance',
+                    'payload' => [
+                        'owner' => 'Integration governance',
+                        'route' => '/integrations',
+                        'instruction' => "Review {$resourceType} {$targetSystem} writeback draft before sending.",
+                        'resourceType' => $resourceType,
+                        'targetSystem' => $targetSystem,
+                    ],
+                    'expires_at' => now()->addHours(12),
+                ]);
 
-        $approval = Approval::create([
-            'approval_uuid' => (string) Str::uuid(),
-            'action_id' => $action->action_id,
-            'status' => 'pending',
-            'requested_by_user_id' => $userId,
-            'reason' => 'External-system writeback requires explicit human approval.',
-            'requested_at' => now(),
-        ]);
+                $approval = Approval::create([
+                    'approval_uuid' => (string) Str::uuid(),
+                    'action_id' => $action->action_id,
+                    'status' => 'pending',
+                    'requested_by_user_id' => $userId,
+                    'reason' => 'External-system writeback requires explicit human approval.',
+                    'requested_at' => now(),
+                ]);
 
-        $sourceId = null;
-        if (! empty($payload['source_key'])) {
-            $sourceId = $this->sourceFor((string) $payload['source_key'], (string) ($payload['vendor'] ?? $targetSystem))->source_id;
+                $draftId = DB::table('ops.writeback_drafts')->insertGetId([
+                    'writeback_draft_uuid' => (string) Str::uuid(),
+                    'source_id' => $sourceId,
+                    'action_id' => $action->action_id,
+                    'approval_id' => $approval->approval_id,
+                    'target_system' => $targetSystem,
+                    'resource_type' => $resourceType,
+                    'draft_type' => $draftType,
+                    'status' => 'pending_approval',
+                    'resource_payload' => json_encode((object) [], JSON_THROW_ON_ERROR),
+                    'payload_object_id' => $stored->payloadObjectId,
+                    'routing_payload' => json_encode([
+                        'delivery_mode' => 'draft_only',
+                        'approval_required' => true,
+                    ]),
+                    'created_by_user_id' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], 'writeback_draft_id');
+
+                return [
+                    'writebackDraftId' => $draftId,
+                    'resourceType' => $resourceType,
+                    'targetSystem' => $targetSystem,
+                    'status' => 'pending_approval',
+                    'actionId' => $action->action_id,
+                    'approvalId' => $approval->approval_id,
+                    'approvalStatus' => $approval->status,
+                ];
+            });
+        } catch (Throwable $exception) {
+            $this->payloads->discard(
+                $stored->payloadObjectId,
+                $sourceId,
+                'writeback_draft_insert_failed',
+                'Encrypted writeback payload was discarded because its approval-gated draft did not become authoritative.',
+                $userId,
+            );
+
+            throw $exception;
         }
+    }
 
-        $draftId = DB::table('ops.writeback_drafts')->insertGetId([
-            'writeback_draft_uuid' => (string) Str::uuid(),
-            'source_id' => $sourceId,
-            'action_id' => $action->action_id,
-            'approval_id' => $approval->approval_id,
-            'target_system' => $targetSystem,
-            'resource_type' => $resourceType,
-            'draft_type' => $draftType,
-            'status' => 'pending_approval',
-            'resource_payload' => json_encode($payload['resource_payload'] ?? []),
-            'routing_payload' => json_encode([
-                'delivery_mode' => 'draft_only',
-                'approval_required' => true,
-            ]),
-            'created_by_user_id' => $userId,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], 'writeback_draft_id');
+    /** @return array<string, mixed>|list<mixed> */
+    public function writebackPayload(int $writebackDraftId, int $sourceId): array
+    {
+        $draft = DB::table('ops.writeback_drafts')
+            ->where('writeback_draft_id', $writebackDraftId)
+            ->where('source_id', $sourceId)
+            ->first();
+        abort_unless($draft && $draft->payload_object_id !== null, 404);
 
-        return [
-            'writebackDraftId' => $draftId,
-            'resourceType' => $resourceType,
-            'targetSystem' => $targetSystem,
-            'status' => 'pending_approval',
-            'actionId' => $action->action_id,
-            'approvalId' => $approval->approval_id,
-            'approvalStatus' => $approval->status,
-        ];
+        return $this->payloads->readJson((int) $draft->payload_object_id, $sourceId, 'writeback_draft');
     }
 
     /** @return array<string, mixed> */
@@ -179,6 +221,16 @@ class EnterpriseConnectorControlService
                 'updated_at' => now(),
             ], 'ingest_run_id');
 
+            $this->runtimeExecution->recordIngestRun(
+                (int) $runId,
+                'protocol_health',
+                'queued',
+                0,
+                RunIntegrationProtocolHealthCheck::MAX_ATTEMPTS,
+                'protocol_health_queued',
+                $correlationId,
+            );
+
             $this->audit->record($userId, 'queued', 'protocol_health_check', (int) $runId, $source->source_key, [], [
                 'runUuid' => $runUuid,
                 'sourceId' => $sourceId,
@@ -193,10 +245,6 @@ class EnterpriseConnectorControlService
     /** @return array<string, mixed> */
     public function queueFhirPoll(int $sourceId, string $resourceType, ?int $userId, string $correlationId): array
     {
-        if (! $this->fhirResources->allows($resourceType)) {
-            abort(422, 'The FHIR resource type is not enabled for this operational slice.');
-        }
-
         return DB::transaction(function () use ($sourceId, $resourceType, $userId, $correlationId): array {
             $source = DB::table('integration.sources')->where('source_id', $sourceId)->lockForUpdate()->first();
             abort_unless($source, 404);
@@ -210,8 +258,13 @@ class EnterpriseConnectorControlService
             if (! $connectionReady || ! $credentialReady) {
                 abort(422, 'Live discovery and resolved SMART credentials are required before polling.');
             }
+            try {
+                $this->fhirProfiles->requirePollable($sourceId, $resourceType);
+            } catch (\InvalidArgumentException|\App\Integrations\Healthcare\Exceptions\IntegrationProtocolException) {
+                abort(422, 'The FHIR resource profile is not enabled and capability-confirmed.');
+            }
 
-            $connectorKey = 'epic.fhir-r4.'.strtolower($resourceType);
+            $connectorKey = 'fhir.r4.'.strtolower($resourceType);
             $existing = DB::table('raw.ingest_runs')
                 ->where('source_id', $sourceId)
                 ->where('connector_key', $connectorKey)
@@ -239,13 +292,23 @@ class EnterpriseConnectorControlService
                 'created_at' => now(),
                 'updated_at' => now(),
             ], 'ingest_run_id');
+            $this->runtimeExecution->recordIngestRun(
+                (int) $runId,
+                'fhir_poll',
+                'queued',
+                0,
+                PollFhirResource::MAX_ATTEMPTS,
+                'fhir_poll_queued',
+                $correlationId,
+                metadata: ['resource_type' => $resourceType],
+            );
             $this->audit->record($userId, 'queued', 'fhir_poll', (int) $runId, $source->source_key, [], [
                 'runUuid' => $runUuid,
                 'sourceId' => $sourceId,
                 'resourceType' => $resourceType,
                 'status' => 'queued',
             ], $correlationId);
-            PollEpicFhirResource::dispatch((int) $runId, $resourceType, $userId, $correlationId)->afterCommit();
+            PollFhirResource::dispatch((int) $runId, $resourceType, $userId, $correlationId)->afterCommit();
 
             return $this->fhirRunPayload(DB::table('raw.ingest_runs')->where('ingest_run_id', $runId)->first(), $resourceType, true);
         });
@@ -305,6 +368,14 @@ class EnterpriseConnectorControlService
                 'created_at' => now(),
                 'updated_at' => now(),
             ], 'event_replay_job_id');
+            $this->runtimeExecution->recordReplayJob(
+                (int) $replayId,
+                'queued',
+                0,
+                ReplayPendingIntegrationEvents::MAX_ATTEMPTS,
+                'canonical_replay_queued',
+                $correlationId,
+            );
             $this->audit->record($userId, 'queued', 'canonical_event_replay', (int) $replayId, $replayUuid, [], [
                 'replayUuid' => $replayUuid,
                 'scope' => $normalized,
@@ -314,38 +385,6 @@ class EnterpriseConnectorControlService
 
             return $this->replayRunPayload(DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $replayId)->first(), true);
         });
-    }
-
-    private function sourceFor(string $sourceKey, string $vendor): object
-    {
-        DB::table('integration.sources')->updateOrInsert(
-            ['source_key' => $sourceKey],
-            [
-                'source_uuid' => (string) Str::uuid(),
-                'tenant_key' => 'default',
-                'facility_key' => 'main',
-                'source_name' => "{$vendor} FHIR Sandbox",
-                'vendor' => $vendor,
-                'system_class' => 'ehr',
-                'environment' => 'sandbox',
-                'base_url' => "https://example.invalid/{$sourceKey}",
-                'interface_type' => 'fhir_r4',
-                'active_status' => 'planned',
-                'fhir_version' => '4.0.1',
-                'smart_supported' => true,
-                'bulk_supported' => true,
-                'subscriptions_supported' => true,
-                'contract_status' => 'planning',
-                'baa_status' => 'planning',
-                'phi_allowed' => false,
-                'go_live_status' => 'not_started',
-                'metadata' => json_encode(['managed_by' => 'enterprise_connector_control']),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        return DB::table('integration.sources')->where('source_key', $sourceKey)->first();
     }
 
     private function templateSafeStatus(string $status): string

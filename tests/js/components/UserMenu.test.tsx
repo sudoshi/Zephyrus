@@ -13,6 +13,7 @@ describe('getUserMenuItems', () => {
       'Profile',
       'Administration Overview',
       'User Audit',
+      'Access Reviews',
       'User Management',
       'Cockpit Thresholds',
       'Logout',
@@ -22,10 +23,10 @@ describe('getUserMenuItems', () => {
   it('supports delegated administration and audit capabilities', () => {
     const labels = getUserMenuItems({
       isAdmin: false,
-      can: { view_administration: true, view_user_audit: true },
+      can: { view_administration: true, view_user_audit: true, view_access_reviews: true },
     }).map((i) => i.label);
 
-    expect(labels).toEqual(['Profile', 'Administration Overview', 'User Audit', 'Logout']);
+    expect(labels).toEqual(['Profile', 'Administration Overview', 'User Audit', 'Access Reviews', 'Logout']);
   });
 
   it('shows Enterprise Setup only from its server capability', () => {

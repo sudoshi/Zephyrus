@@ -36,4 +36,36 @@ describe('Login Authentik SSO button', () => {
     render(<Login status={null} canResetPassword={false} oidcEnabled={false} />);
     expect(screen.queryByRole('link', { name: /authentik/i })).toBeNull();
   });
+
+  it('supports an SSO-only production login without local credentials or registration', () => {
+    render(
+      <Login
+        status={null}
+        canResetPassword={false}
+        localAuthEnabled={false}
+        registrationEnabled={false}
+        oidcEnabled={true}
+        oidcLabel="Institutional SSO"
+      />,
+    );
+
+    expect(screen.queryByLabelText(/username/i)).toBeNull();
+    expect(screen.queryByLabelText(/^password$/i)).toBeNull();
+    expect(screen.queryByText(/create an account/i)).toBeNull();
+    expect(screen.queryByText(/demo credentials/i)).toBeNull();
+    expect(screen.getByRole('link', { name: /institutional sso/i })).toHaveAttribute('href', '/auth/oidc/redirect');
+  });
+
+  it('shows the unavailable-provider state when every login method is disabled', () => {
+    render(
+      <Login
+        status={null}
+        canResetPassword={false}
+        localAuthEnabled={false}
+        oidcEnabled={false}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no sign-in provider is currently available/i);
+  });
 });

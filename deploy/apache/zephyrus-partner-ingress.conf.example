@@ -1,0 +1,11 @@
+# Example compensating edge control for a partner that cannot present a client
+# certificate. Copy to a root-owned, deployment-specific file, replace every
+# documentation-only CIDR, and include it from the TLS VirtualHost. The live
+# verifier rejects the example ranges and placeholders.
+<Location "/api/integrations/v1/patient-flow/hl7v2">
+    <RequireAll>
+        Require all granted
+        Require ip 192.0.2.0/24
+    </RequireAll>
+</Location>
+

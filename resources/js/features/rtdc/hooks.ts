@@ -72,6 +72,9 @@ export function useLiveCensus() {
   const qc = useQueryClient();
 
   useEffect(() => {
+    const client = echo;
+    if (client === null) return;
+
     const refetchCensus = () => qc.invalidateQueries({ queryKey: ['rtdc', 'units'] });
     const refetchBedMeeting = () => qc.invalidateQueries({ queryKey: ['rtdc', 'bed-meeting'] });
 
@@ -79,7 +82,7 @@ export function useLiveCensus() {
     const unitChannels = units.map((u) => `unit.${u.unit_id}`);
 
     units.forEach((u) => {
-      echo.channel(`unit.${u.unit_id}`)
+      client.channel(`unit.${u.unit_id}`)
         .listen('.census.updated', (raw: unknown) => {
           censusUpdatedEventSchema.parse(raw); // validate the wire payload
           refetchCensus();
@@ -89,19 +92,19 @@ export function useLiveCensus() {
         });
     });
 
-    echo.channel('hospital.beds').listen('.bedmeeting.updated', refetchBedMeeting);
+    client.channel('hospital.beds').listen('.bedmeeting.updated', refetchBedMeeting);
 
     // Snapshot-on-(re)connect: refresh everything we track.
     const onConnect = () => {
       refetchCensus();
       refetchBedMeeting();
     };
-    echo.connector.pusher.connection.bind('connected', onConnect);
+    client.connector.pusher.connection.bind('connected', onConnect);
 
     return () => {
-      unitChannels.forEach((name) => echo.leaveChannel(name));
-      echo.leaveChannel('hospital.beds');
-      echo.connector.pusher.connection.unbind('connected', onConnect);
+      unitChannels.forEach((name) => client.leaveChannel(name));
+      client.leaveChannel('hospital.beds');
+      client.connector.pusher.connection.unbind('connected', onConnect);
     };
   }, [qc]);
 }

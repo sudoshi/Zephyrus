@@ -1,6 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\AccessReviewController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminScopeController;
+use App\Http\Controllers\Admin\AuthorizationCatalogController;
+use App\Http\Controllers\Admin\AuthProviderController;
+use App\Http\Controllers\Admin\ExternalIdentityController;
+use App\Http\Controllers\Admin\IdentityPurgeController;
+use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\Analytics\LabTatController;
@@ -233,6 +240,13 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             ->middleware('can:viewIntegrations')
             ->name('integrations');
 
+        Route::put('/admin/active-scope', [AdminScopeController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('admin.active-scope.update');
+        Route::delete('/admin/active-scope', [AdminScopeController::class, 'destroy'])
+            ->middleware('throttle:30,1')
+            ->name('admin.active-scope.destroy');
+
         // Authorized legacy bookmarks preserve their original functional target.
         Route::get('/deployment', fn () => redirect()->route('admin.enterprise-setup'))
             ->middleware('can:viewDeploymentConsole')
@@ -283,18 +297,169 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // remain on their existing, separately gated surfaces.
         Route::middleware('can:viewAdministration')->group(function () {
             Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
+            Route::get('/admin/auth-providers', [AuthProviderController::class, 'index'])
+                ->middleware('can:viewIdentity')
+                ->name('admin.auth-providers.index');
+            Route::get('/admin/roles-capabilities', AuthorizationCatalogController::class)
+                ->middleware('can:viewAuthorization')
+                ->name('admin.roles-capabilities.index');
+            Route::get('/admin/system-health', [SystemHealthController::class, 'index'])
+                ->middleware('can:viewSystemHealth')
+                ->name('admin.system-health.index');
+            Route::get('/admin/data-protection', \App\Http\Controllers\Admin\DataProtectionController::class)
+                ->middleware('can:viewIntegrations')
+                ->name('admin.data-protection.index');
+            Route::post('/admin/system-health/diagnostics', [SystemHealthController::class, 'diagnostics'])
+                ->middleware(['can:runDiagnostics', 'throttle:6,1'])
+                ->name('admin.system-health.diagnostics');
+            Route::post('/admin/system-health/{component}/acknowledge', [SystemHealthController::class, 'acknowledge'])
+                ->middleware(['can:runDiagnostics', 'throttle:30,1'])
+                ->where('component', '[a-z][a-z0-9_]{0,79}')
+                ->name('admin.system-health.acknowledge');
+            Route::get('/admin/system-health/{component}', [SystemHealthController::class, 'show'])
+                ->middleware('can:viewSystemHealth')
+                ->where('component', '[a-z][a-z0-9_]{0,79}')
+                ->name('admin.system-health.show');
             Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+            // ADM-IAM: bulk deactivation is previewed, then executed as one
+            // rollback-safe transaction; per-member audit inside the commit.
+            Route::post('/users/bulk-deactivation/preview', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'preview'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.bulk-deactivation.preview');
+            Route::post('/users/bulk-deactivation', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'execute'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.bulk-deactivation.execute');
+            Route::post('/users/{user}/revoke-access', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'revokeAccess'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.revoke-access');
+            // ADM-IAM: effective-dated org/facility scopes (manageIdentity) and
+            // direct capability grants (managePrivileges); step-up enforced in
+            // the controllers, audits appended inside the mutations.
+            Route::post('/users/{user}/access-scopes', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeScope'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.access-scopes.store');
+            Route::post('/users/{user}/access-scopes/{scope}/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeScope'])
+                ->middleware(['can:manageIdentity', 'throttle:12,1'])
+                ->name('users.access-scopes.revoke');
+            Route::post('/users/{user}/capabilities', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeCapability'])
+                ->middleware(['can:managePrivileges', 'throttle:12,1'])
+                ->name('users.capabilities.store');
+            Route::post('/users/{user}/capabilities/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeCapability'])
+                ->middleware(['can:managePrivileges', 'throttle:12,1'])
+                ->name('users.capabilities.revoke');
+            Route::post('/users/{user}/external-identities/{identity}/unlink', [ExternalIdentityController::class, 'unlink'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.external-identities.unlink');
+            Route::post('/users/{user}/external-identities/{identity}/relink', [ExternalIdentityController::class, 'relink'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.external-identities.relink');
+            Route::post('/users/{user}/identity-purge-requests', [IdentityPurgeController::class, 'store'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.identity-purge-requests.store');
+            Route::post('/admin/identity-purge-requests/{changeRequestUuid}/decision', [IdentityPurgeController::class, 'decide'])
+                ->middleware(['can:managePrivileges', 'throttle:6,1'])
+                ->name('admin.identity-purge-requests.decision');
+            Route::post('/users/{user}/identity-purge-requests/{changeRequestUuid}/execute', [IdentityPurgeController::class, 'execute'])
+                ->middleware(['can:manageIdentity', 'throttle:6,1'])
+                ->name('users.identity-purge-requests.execute');
 
             Route::get('/admin/user-audit', [UserAuditController::class, 'index'])
                 ->middleware('can:viewUserAudit')
                 ->name('admin.user-audit.index');
 
-            // P8 WS-6b — the cockpit threshold editor (band-edge tuning without a
-            // deploy). The page self-fetches GET/PUT /api/cockpit/kpi-definitions,
-            // both AdminMiddleware-gated + audited.
-            Route::get('/admin/cockpit/thresholds', fn () => Inertia::render('Admin/CockpitThresholds'))
-                ->name('admin.cockpit.thresholds');
+            Route::controller(AccessReviewController::class)
+                ->prefix('/admin/access-reviews')
+                ->name('admin.access-reviews.')
+                ->middleware('can:viewAccessReviews')
+                ->group(function (): void {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->middleware('can:manageAccessReviews')->name('store');
+                    Route::post('/{campaign}/items/{item}/decision', 'decide')
+                        ->middleware('can:manageAccessReviews')->name('decide');
+                    Route::post('/{campaign}/complete', 'complete')
+                        ->middleware('can:manageAccessReviews')->name('complete');
+                    Route::post('/{campaign}/cancel', 'cancel')
+                        ->middleware('can:manageAccessReviews')->name('cancel');
+                    Route::get('/{campaign}/evidence.json', 'evidenceJson')->name('evidence.json');
+                    Route::get('/{campaign}/evidence.csv', 'evidenceCsv')->name('evidence.csv');
+                });
+
         });
+
+        // ADM-POLICY — versioned, dual-controlled Cockpit threshold policy.
+        // Reads require viewCockpitPolicy; every mutation is a governed change
+        // (request → independent decision → execution) with step-up enforced
+        // inside GovernedChangeService, throttled here.
+        Route::get('/admin/cockpit/thresholds', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'index'])
+            ->middleware('can:viewCockpitPolicy')
+            ->name('admin.cockpit.thresholds');
+        Route::post('/admin/cockpit/thresholds/{metricKey}/preview', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'preview'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:30,1'])
+            ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
+            ->name('admin.cockpit.thresholds.preview');
+        Route::post('/admin/cockpit/thresholds/{metricKey}/changes', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'store'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
+            ->name('admin.cockpit.thresholds.changes.store');
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'decide'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.cockpit.thresholds.changes.decide');
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'apply'])
+            ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.cockpit.thresholds.changes.apply');
+
+        // ADM-POLICY — Zephyrus/Eddy AI provider governance. Same governed
+        // contract as thresholds; the dry-run simulator is read-capability
+        // gated, throttled, and never accepts prompt or patient content.
+        Route::get('/admin/ai-providers', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'index'])
+            ->middleware('can:viewAiGovernance')
+            ->name('admin.ai-providers.index');
+        Route::post('/admin/ai-providers/simulate', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'simulate'])
+            ->middleware(['can:viewAiGovernance', 'throttle:30,1'])
+            ->name('admin.ai-providers.simulate');
+        Route::post('/admin/ai-providers/preview', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'preview'])
+            ->middleware(['can:manageAiGovernance', 'throttle:30,1'])
+            ->name('admin.ai-providers.preview');
+        Route::post('/admin/ai-providers/changes', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'store'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->name('admin.ai-providers.changes.store');
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'decide'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.ai-providers.changes.decide');
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'apply'])
+            ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.ai-providers.changes.apply');
+
+        // ENT-REG — governed enterprise registry import. Preview is read-gated
+        // (viewEnterpriseSetup); commit request/decision/apply are governed changes
+        // (request → independent decision → exact-hash execution) with step-up
+        // enforced inside GovernedChangeService, throttled here. The per-source
+        // required-topology declaration feeds the source-activation readiness gate.
+        // These are NOT under api/admin/integrations, so the admin-scope boundary
+        // inventory is unchanged: enterprise topology is cross-tenant, gated by
+        // capability rather than per-source admin scope.
+        Route::post('/admin/enterprise/import/preview', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'preview'])
+            ->middleware(['can:viewDeploymentConsole', 'throttle:30,1'])
+            ->name('admin.enterprise.import.preview');
+        Route::post('/admin/enterprise/import/changes', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'store'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->name('admin.enterprise.import.changes.store');
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'decide'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.enterprise.import.changes.decide');
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'apply'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
+            ->name('admin.enterprise.import.changes.apply');
+        Route::put('/admin/enterprise/sources/{source}/required-topology', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'declareSourceTopology'])
+            ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
+            ->whereNumber('source')
+            ->name('admin.enterprise.sources.required-topology');
 
         // User Preferences Route - Using GET with URL parameters
         Route::get('/set-preference/{workflow}', [DashboardController::class, 'setPreference'])

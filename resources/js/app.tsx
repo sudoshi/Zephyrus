@@ -4,7 +4,11 @@ import '../css/app.css';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { Providers } from './Providers/HeroUIProvider';
+import { NavigationProgress } from './Components/NavigationProgress';
+import { registerLocalIconifyCollections } from './iconify-bundle';
 import type { ReactNode } from 'react';
+
+registerLocalIconifyCollections();
 
 interface InertiaAppProps {
     Component: React.ComponentType<Record<string, unknown>>;
@@ -30,13 +34,15 @@ createInertiaApp({
             <App {...props}>
                 {({ Component, props }: InertiaAppProps): ReactNode => (
                     <Providers>
+                        <NavigationProgress />
                         <Component {...props} />
                     </Providers>
                 )}
             </App>
         );
     },
-    progress: {
-        color: '#4B5563',
-    },
+    // Inertia's bundled NProgress indicator emits invalid ARIA roles
+    // (role="bar"/role="spinner") that fail WCAG 2.2 AA. It is disabled here in
+    // favor of the accessible <NavigationProgress /> bar mounted above.
+    progress: false,
 });

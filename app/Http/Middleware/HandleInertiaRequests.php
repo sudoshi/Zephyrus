@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Authorization\Capability;
+use App\Services\Authorization\AdminScopeService;
+use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -30,6 +32,14 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $authorization = app(RoleCapabilityService::class);
+        $allows = fn (Capability $capability): bool => $user !== null
+            && $authorization->allows($user, $capability);
+        $usesAdminScope = $allows(Capability::ViewAdministration)
+            || $allows(Capability::ViewIntegrations)
+            || $allows(Capability::ViewEnterpriseSetup);
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -37,29 +47,39 @@ class HandleInertiaRequests extends Middleware
                     $request->user()->toArray(),
                     ['must_change_password' => (bool) $request->user()->must_change_password]
                 ) : null,
-                'roles' => $request->user() ? $request->user()->getRoleNames()->toArray() : [],
-                'is_admin' => $request->user()?->isAdministrator() ?? false,
+                // Keep the Spatie-only field for compatibility while exposing
+                // the reconciled roles/capabilities as the new contract.
+                'roles' => $user ? $user->getRoleNames()->toArray() : [],
+                'effective_roles' => $user ? $authorization->effectiveRoleIds($user) : [],
+                'capabilities' => $user
+                    ? array_map(fn (Capability $capability): string => $capability->value, $authorization->effectiveCapabilities($user))
+                    : [],
+                'is_admin' => $allows(Capability::ViewAdministration),
                 'can' => [
-                    'view_administration' => $request->user()
-                        ? Gate::forUser($request->user())->allows('viewAdministration')
-                        : false,
-                    'view_user_audit' => $request->user()
-                        ? Gate::forUser($request->user())->allows('viewUserAudit')
-                        : false,
-                    'view_enterprise_setup' => $request->user()
-                        ? Gate::forUser($request->user())->allows('viewDeploymentConsole')
-                        : false,
-                    'manage_staffing_alignment' => $request->user()
-                        ? Gate::forUser($request->user())->allows('manageDeploymentConfig')
-                        : false,
-                    'view_integrations' => $request->user()
-                        ? Gate::forUser($request->user())->allows('viewIntegrations')
-                        : false,
-                    'manage_integrations' => $request->user()
-                        ? Gate::forUser($request->user())->allows('manageIntegrations')
-                        : false,
+                    'view_administration' => $allows(Capability::ViewAdministration),
+                    'view_identity' => $allows(Capability::ViewIdentity),
+                    'manage_identity' => $allows(Capability::ManageIdentity),
+                    'manage_privileges' => $allows(Capability::ManagePrivileges),
+                    'view_user_audit' => $allows(Capability::ViewAudit),
+                    'view_access_reviews' => $allows(Capability::ViewAccessReviews),
+                    'manage_access_reviews' => $allows(Capability::ManageAccessReviews),
+                    'view_authorization' => $allows(Capability::ViewAuthorization),
+                    'view_system_health' => $allows(Capability::ViewSystemHealth),
+                    'run_diagnostics' => $allows(Capability::RunDiagnostics),
+                    'view_enterprise_setup' => $allows(Capability::ViewEnterpriseSetup),
+                    'manage_enterprise_setup' => $allows(Capability::ManageEnterpriseSetup),
+                    'manage_facility_administration' => $allows(Capability::ManageFacilityAdministration),
+                    'manage_staffing_alignment' => $allows(Capability::ManageEnterpriseSetup),
+                    'view_integrations' => $allows(Capability::ViewIntegrations),
+                    'manage_integrations' => $allows(Capability::ManageIntegrationConfiguration),
+                    'operate_integrations' => $allows(Capability::OperateIntegrations),
+                    'approve_integration_changes' => $allows(Capability::ApproveIntegrationChanges),
+                    'manage_data_stewardship' => $allows(Capability::ManageDataStewardship),
                 ],
             ],
+            'adminScope' => $usesAdminScope
+                ? app(AdminScopeService::class)->clientContract($request)
+                : null,
             // Eddy ships disabled — the dock only mounts when this is true.
             'eddy' => [
                 'enabled' => (bool) config('services.eddy.enabled'),

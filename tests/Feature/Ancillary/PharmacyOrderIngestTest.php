@@ -396,6 +396,7 @@ class PharmacyOrderIngestTest extends TestCase
         array $departments = ['rx'],
     ): Source {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key,
             'source_name' => $key,
             'system_class' => 'pharmacy',

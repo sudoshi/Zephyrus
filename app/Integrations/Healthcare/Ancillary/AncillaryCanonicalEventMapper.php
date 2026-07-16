@@ -57,6 +57,12 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'medication_label', 'quantity', 'is_controlled', 'discrepancy_key', 'stockout_state',
             'linked_order_key', 'demo_owner', 'source_timestamp_valid',
         ]);
+        $occurredAt = CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt);
+        $idempotencyKey = $this->revisionedAdcKey(
+            "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$transactionType}:{$transactionKey}",
+            $safe,
+            $occurredAt->toIso8601String(),
+        );
 
         return new CanonicalOperationalEvent(
             eventId: (string) Str::uuid(),
@@ -64,8 +70,8 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             entityType: 'adc_station',
             entityRef: $stationKey,
             payload: $safe,
-            occurredAt: CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt),
-            idempotencyKey: "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$transactionType}:{$transactionKey}",
+            occurredAt: $occurredAt,
+            idempotencyKey: $idempotencyKey,
             correlationId: $payload->externalId,
             sequenceKey: $stationKey,
             metadata: [
@@ -169,6 +175,15 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             'administration_local_code', 'administration_ndc_code', 'administration_rxnorm_cui',
             'administration_medication_label',
         ]);
+        $occurredAt = CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt);
+        $idempotencyKey = "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$milestoneCode}:{$sourceOrderKey}";
+        if (filled($data['source_transaction_key'] ?? null)) {
+            $idempotencyKey = $this->revisionedAdcKey(
+                $idempotencyKey,
+                $safe,
+                $occurredAt->toIso8601String(),
+            );
+        }
 
         return new CanonicalOperationalEvent(
             eventId: (string) Str::uuid(),
@@ -176,8 +191,8 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
             entityType: 'ancillary_order',
             entityRef: $sourceOrderKey,
             payload: $safe,
-            occurredAt: CanonicalOperationalEvent::occurredAt($data['occurred_at'] ?? $payload->occurredAt),
-            idempotencyKey: "{$payload->idempotencyKey}:group:{$index}:{$eventType}:{$milestoneCode}:{$sourceOrderKey}",
+            occurredAt: $occurredAt,
+            idempotencyKey: $idempotencyKey,
             correlationId: $payload->externalId,
             sequenceKey: $sourceOrderKey,
             metadata: [
@@ -196,5 +211,16 @@ final class AncillaryCanonicalEventMapper implements CanonicalEventMapper
         }
 
         return trim((string) $value);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function revisionedAdcKey(string $baseKey, array $payload, string $occurredAt): string
+    {
+        $revision = hash('sha256', json_encode([
+            'payload' => $payload,
+            'occurred_at' => $occurredAt,
+        ], JSON_THROW_ON_ERROR));
+
+        return $baseKey.':rev:'.substr($revision, 0, 32);
     }
 }

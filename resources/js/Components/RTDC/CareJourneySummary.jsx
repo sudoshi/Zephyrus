@@ -13,10 +13,10 @@ const CareJourneySummary = ({ patient, onClick }) => {
     const progress = (currentDay / totalDays) * 100;
 
     // Return appropriate milestone based on progress
-    if (progress < 25) return { phase: 'Initial Assessment', icon: 'clipboard-document-check', color: 'text-healthcare-info' };
-    if (progress < 50) return { phase: 'Treatment', icon: 'heart', color: 'text-healthcare-warning' };
-    if (progress < 75) return { phase: 'Recovery', icon: 'arrow-trending-up', color: 'text-healthcare-success' };
-    return { phase: 'Discharge Planning', icon: 'arrow-right-on-rectangle', color: 'text-healthcare-success' };
+    if (progress < 25) return { phase: 'Initial Assessment', icon: 'heroicons:clipboard-document-check', color: 'text-healthcare-info' };
+    if (progress < 50) return { phase: 'Treatment', icon: 'heroicons:heart', color: 'text-healthcare-warning' };
+    if (progress < 75) return { phase: 'Recovery', icon: 'heroicons:arrow-trending-up', color: 'text-healthcare-success' };
+    return { phase: 'Discharge Planning', icon: 'heroicons:arrow-right-on-rectangle', color: 'text-healthcare-success' };
   };
 
   const currentMilestone = getCurrentMilestone();
@@ -38,7 +38,7 @@ const CareJourneySummary = ({ patient, onClick }) => {
       {/* Current Phase */}
       <div className="flex items-center gap-2">
         <Icon 
-          icon={`heroicons:${currentMilestone.icon}`}
+          icon={currentMilestone.icon}
           className={`w-5 h-5 ${currentMilestone.color} dark:${currentMilestone.color}-dark`}
           aria-hidden="true"
         />

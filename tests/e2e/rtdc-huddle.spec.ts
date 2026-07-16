@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { loginAsTestUser } from './support/auth';
 
 // Assumes the app + Reverb are running and TEST_USERNAME/TEST_PASSWORD seed a user.
 // Run `php artisan rtdc:demo-reset` before this suite (see CI step).
 
 test.describe('RTDC Unit Huddle (live)', () => {
   test.beforeEach(async ({ page }) => {
-    // Zephyrus demo web routes use SessionAuthMiddleware and auto-authenticate as admin.
     await page.route('**/api/cockpit/stream', async (route) => {
       await route.fulfill({ status: 204, body: '' });
     });
 
+    await loginAsTestUser(page);
     await page.goto('/rtdc/unit-huddle', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/rtdc\/unit-huddle/);
   });

@@ -210,6 +210,7 @@ class RadiologyReadsTest extends TestCase
     private function reportingSource(string $key): Source
     {
         return app(SourceRegistryService::class)->ensureSource([
+            ...$this->canonicalIntegrationSourceScope(),
             'source_key' => $key, 'source_name' => $key, 'system_class' => 'radiology_reporting',
             'interface_type' => 'hl7v2', 'active_status' => 'active', 'phi_allowed' => false,
             'metadata' => ['ancillary_ingest' => ['enabled' => true, 'message_families' => ['ORU'], 'departments' => ['rad']]],

@@ -134,10 +134,16 @@ class CockpitController extends Controller
     /**
      * Audited band-edge edit (admin-gated in routes). Additive fields only —
      * identity/direction/domain are immutable here; clinicians tune bands,
-     * they do not redefine metrics.
+     * they do not redefine metrics. ADM-POLICY: the effective policy is never
+     * mutated without a version row — the post-change policy is appended to
+     * the append-only threshold ledger as a direct_update version in the same
+     * transaction.
      */
-    public function updateKpiDefinition(Request $request, string $metricKey): JsonResponse
-    {
+    public function updateKpiDefinition(
+        Request $request,
+        string $metricKey,
+        \App\Services\Governance\CockpitThresholdPolicyService $thresholdPolicy,
+    ): JsonResponse {
         $validated = $request->validate([
             'ok_edge' => ['nullable', 'numeric'],
             'warn_edge' => ['nullable', 'numeric'],
@@ -147,10 +153,11 @@ class CockpitController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $definition = DB::transaction(function () use ($request, $metricKey, $validated): MetricDefinition {
+        $definition = DB::transaction(function () use ($request, $metricKey, $validated, $thresholdPolicy): MetricDefinition {
             $definition = MetricDefinition::query()->where('metric_key', $metricKey)->firstOrFail();
             $before = $definition->only(array_keys($validated));
             $definition->fill($validated)->save();
+            $thresholdPolicy->recordDirectUpdate($definition, $request->user()?->getKey());
 
             $changes = [];
             foreach (['ok_edge', 'warn_edge', 'crit_edge', 'refresh_secs', 'is_active'] as $field) {

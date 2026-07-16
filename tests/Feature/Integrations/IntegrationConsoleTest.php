@@ -3,11 +3,14 @@
 namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\Services\SourceRegistryService;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\IntegrationConnectorTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -23,7 +26,7 @@ class IntegrationConsoleTest extends TestCase
 
     public function test_only_explicit_superuser_roles_can_open_integrations(): void
     {
-        $this->get('/integrations')->assertForbidden();
+        $this->get('/integrations')->assertRedirect('/login');
 
         foreach (['user', 'admin', 'ops-leader', 'executive'] as $role) {
             $user = $this->user($role);
@@ -76,12 +79,30 @@ class IntegrationConsoleTest extends TestCase
     public function test_control_plane_reports_observed_staleness_and_masks_sensitive_references(): void
     {
         CarbonImmutable::setTestNow('2026-07-09 12:00:00');
+        $this->artisan('deployment:seed-registry')->assertExitCode(0);
+        $organization = Organization::create([
+            'organization_key' => 'CONSOLE_TEST_IDN',
+            'name' => 'Console Test IDN',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::create([
+            'organization_id' => $organization->organization_id,
+            'facility_key' => 'CONSOLE_TEST_FACILITY',
+            'facility_name' => 'Console Test Facility',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
         $source = app(SourceRegistryService::class)->ensureSource([
             'source_key' => 'epic.adt.production',
             'source_name' => 'Epic ADT Production',
+            'organization_id' => $organization->organization_id,
+            'facility_id' => $facility->facility_id,
+            'tenant_key' => $organization->organization_key,
+            'facility_key' => $facility->facility_key,
             'vendor' => 'Epic',
             'system_class' => 'ehr',
-            'environment' => 'production',
+            'environment' => 'staging',
             'interface_type' => 'hl7v2',
             'active_status' => 'active',
             'baa_status' => 'executed',
@@ -146,6 +167,44 @@ class IntegrationConsoleTest extends TestCase
         $this->assertSame($before['playbooks'], DB::table('integration.connector_playbooks')->count());
         $this->assertSame($before['adapters'], DB::table('integration.coexistence_adapters')->count());
         $this->assertSame($before['engines'], DB::table('integration.interface_engines')->count());
+    }
+
+    public function test_control_plane_exposes_sanitized_integration_governance_status_but_not_identity_requests(): void
+    {
+        $author = $this->user('superuser');
+        $integrationUuid = (string) Str::uuid();
+        $identityUuid = (string) Str::uuid();
+
+        foreach ([
+            [$integrationUuid, 'activate_production_source', 'integration_source', 'epic-prod'],
+            [$identityUuid, 'purge_user_identity', 'user', '42'],
+        ] as [$uuid, $action, $subjectType, $subjectId]) {
+            DB::table('governance.change_requests')->insert([
+                'change_request_uuid' => $uuid,
+                'action_type' => $action,
+                'subject_type' => $subjectType,
+                'subject_id' => $subjectId,
+                'author_user_id' => $author->id,
+                'reason' => 'Sensitive operational rationale must remain outside the summary payload.',
+                'payload_sha256' => hash('sha256', $uuid),
+                'requested_at' => now(),
+                'expires_at' => now()->addDay(),
+                'metadata' => json_encode(['private_context' => 'must-not-leak']),
+            ]);
+        }
+
+        $response = $this->actingAs($author)
+            ->getJson('/api/admin/integrations/control-plane')
+            ->assertOk()
+            ->assertJsonPath('data.counts.pendingGovernedChanges', 1)
+            ->assertJsonPath('data.governedChanges.0.changeRequestUuid', $integrationUuid)
+            ->assertJsonPath('data.governedChanges.0.status', 'pending')
+            ->assertJsonCount(1, 'data.governedChanges');
+
+        $json = $response->getContent();
+        $this->assertStringNotContainsString($identityUuid, $json);
+        $this->assertStringNotContainsString('Sensitive operational rationale', $json);
+        $this->assertStringNotContainsString('must-not-leak', $json);
     }
 
     public function test_explicit_connector_template_seeder_is_idempotent_and_truthful(): void

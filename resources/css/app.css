@@ -148,9 +148,14 @@
     }
   }
 
-  /* Links */
+  /* Links.
+     The dark link color is the lighter blue accent (#60A5FA), not
+     primary-dark (#3B82F6): #3B82F6 only reaches 3.98:1 on the standard dark
+     surface (#1E293B) and fails WCAG 2.2 AA (1.4.3), whereas #60A5FA clears
+     5.75:1 there and 7:1+ on the page background. Light primary (#2563EB) on
+     white is 5.17:1 and already compliant. */
   a:not(.guest-page a) {
-    @apply text-healthcare-primary hover:text-healthcare-primary-hover dark:text-healthcare-primary-dark;
+    @apply text-healthcare-primary hover:text-healthcare-primary-hover dark:text-healthcare-accent-dark;
   }
 
   /* Form elements */

@@ -2,6 +2,7 @@ import DashboardLayout from '@/Components/Dashboard/DashboardLayout';
 import PageContentLayout from '@/Components/Common/PageContentLayout';
 import { EmptyState, KpiTile, Section, metric } from '@/Components/system';
 import { CapabilityMatrix } from '@/Components/Deployment/CapabilityMatrix';
+import { EnterpriseImport, type EnterpriseGovernance } from '@/Components/Deployment/EnterpriseImport';
 import { FacilitySpaces } from '@/Components/Deployment/FacilitySpaces';
 import { ReadinessScorecard } from '@/Components/Deployment/ReadinessScorecard';
 import { ServiceLineRegistry } from '@/Components/Deployment/ServiceLineRegistry';
@@ -28,12 +29,13 @@ import {
   LayoutGrid,
   MapPin,
   ShieldCheck,
+  Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 
 const PREFERRED_FACILITY = 'SUMMIT_REGIONAL';
 
-type TabId = 'readiness' | 'matrix' | 'network' | 'spaces' | 'registry';
+type TabId = 'readiness' | 'matrix' | 'network' | 'spaces' | 'registry' | 'import';
 
 const TABS: { id: TabId; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { id: 'readiness', label: 'Readiness', icon: ClipboardCheck },
@@ -41,6 +43,7 @@ const TABS: { id: TabId; label: string; icon: ComponentType<{ className?: string
   { id: 'network', label: 'Transfer network', icon: ArrowRightLeft },
   { id: 'spaces', label: 'Facility spaces', icon: Building2 },
   { id: 'registry', label: 'Registry', icon: BookOpen },
+  { id: 'import', label: 'Import', icon: Upload },
 ];
 
 // Focus is handled by the global :focus-visible rule (ring-2 ring-healthcare-primary
@@ -126,7 +129,7 @@ function LoadingPanel({ label }: { label: string }) {
   );
 }
 
-export default function DeploymentConsole() {
+export default function DeploymentConsole({ enterpriseGovernance }: { enterpriseGovernance: EnterpriseGovernance }) {
   const [org, setOrg] = useState<string | null>(null);
   const [facility, setFacility] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>('readiness');
@@ -280,6 +283,8 @@ export default function DeploymentConsole() {
                 {catalog.isLoading || !catalog.data ? <LoadingPanel label="Loading registry..." /> : <ServiceLineRegistry catalog={catalog.data} />}
               </Section>
             )}
+
+            {tab === 'import' && <EnterpriseImport governance={enterpriseGovernance} />}
 
             <StatusPillLegend />
           </div>
