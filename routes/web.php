@@ -10,17 +10,23 @@ use App\Http\Controllers\Admin\IdentityPurgeController;
 use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\UserAuditController;
 use App\Http\Controllers\Analytics;
+use App\Http\Controllers\Analytics\LabTatController;
+use App\Http\Controllers\Analytics\PharmacyTatController;
+use App\Http\Controllers\Analytics\RadiologyTatController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
 use App\Http\Controllers\Integrations\IntegrationConsoleController;
+use App\Http\Controllers\LabController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Ops\OpsConsoleController;
+use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RadiologyController;
 use App\Http\Controllers\RTDCController;
 use App\Http\Controllers\RTDCDashboardController;
 use App\Http\Controllers\Staffing\StaffingDashboardController;
@@ -79,6 +85,31 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             }
         }
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
+
+        // Radiology Workspace — keep this group ahead of RTDC so existing RTDC
+        // bookmark ordering and the standalone /radiology URLs remain stable.
+        Route::prefix('radiology')->name('radiology.')->group(function () {
+            Route::get('/', [RadiologyController::class, 'index'])->name('flow-board');
+            Route::get('/worklist', [RadiologyController::class, 'worklist'])->name('worklist');
+            Route::get('/modality', [RadiologyController::class, 'modality'])->name('modality');
+            Route::get('/reads', [RadiologyController::class, 'reads'])->name('reads');
+        });
+
+        Route::prefix('lab')->name('lab.')->group(function () {
+            Route::get('/', [LabController::class, 'index'])->name('flow-board');
+            Route::get('/specimens', [LabController::class, 'specimens'])->name('specimens');
+            Route::get('/pending-decisions', [LabController::class, 'pendingDecisions'])->name('pending-decisions');
+            Route::get('/blood-bank', [LabController::class, 'bloodBank'])->name('blood-bank');
+            Route::get('/anatomic-path', [LabController::class, 'anatomicPathology'])->name('anatomic-path');
+        });
+
+        Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+            Route::get('/', [PharmacyController::class, 'index'])->name('flow-board');
+            Route::get('/discharge-meds', [PharmacyController::class, 'dischargeMeds'])->name('discharge-meds');
+            Route::get('/iv-room', [PharmacyController::class, 'ivRoom'])->name('iv-room');
+            Route::get('/dispense', [PharmacyController::class, 'dispense'])->name('dispense');
+            Route::get('/controlled', [PharmacyController::class, 'controlled'])->name('controlled');
+        });
 
         // Improvement Routes
         Route::prefix('improvement')->name('improvement.')->group(function () {
@@ -153,6 +184,10 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::get('/analytics/primetime-utilization', [Analytics\PrimetimeUtilizationController::class, 'index'])->name('analytics.primetime-utilization');
         Route::get('/analytics/room-running', [Analytics\RoomRunningController::class, 'index'])->name('analytics.room-running');
         Route::get('/analytics/turnover-times', [Analytics\TurnoverTimesController::class, 'index'])->name('analytics.turnover-times');
+        Route::get('/analytics/radiology-tat', RadiologyTatController::class)->name('analytics.radiology-tat');
+        Route::get('/analytics/lab-tat', LabTatController::class)->name('analytics.lab-tat');
+        Route::get('/analytics/pharmacy-tat', PharmacyTatController::class)->name('analytics.pharmacy-tat');
+        Route::get('/analytics/ir-utilization', Analytics\IrSuiteController::class)->name('analytics.ir-utilization');
 
         // Operations Routes
         Route::get('/operations/room-status', [Operations\RoomStatusController::class, 'index'])->name('operations.room-status');

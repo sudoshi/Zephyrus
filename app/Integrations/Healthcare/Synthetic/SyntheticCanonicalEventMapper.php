@@ -2,6 +2,7 @@
 
 namespace App\Integrations\Healthcare\Synthetic;
 
+use App\Integrations\Healthcare\Ancillary\AncillaryEventVocabulary;
 use App\Integrations\Healthcare\Contracts\CanonicalEventMapper;
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\DTO\NormalizedPayload;
@@ -100,8 +101,48 @@ class SyntheticCanonicalEventMapper implements CanonicalEventMapper
                     metadata: ['source_message_type' => $payload->messageType],
                 ),
             ],
-            default => throw new InvalidArgumentException("Unsupported synthetic event type [{$eventType}]."),
+            default => str_starts_with($eventType, 'ancillary.')
+                ? $this->mapAncillary($payload, $eventId, $occurredAt)
+                : throw new InvalidArgumentException("Unsupported synthetic event type [{$eventType}]."),
         };
+    }
+
+    /** @return list<CanonicalOperationalEvent> */
+    private function mapAncillary(NormalizedPayload $payload, string $eventId, \Carbon\CarbonInterface $occurredAt): array
+    {
+        $data = $payload->payload;
+        $milestoneCode = $this->requiredString($data, 'milestone_code');
+        $department = $this->requiredString($data, 'department');
+        if (AncillaryEventVocabulary::eventTypeFor($milestoneCode) !== $payload->eventType
+            || AncillaryEventVocabulary::departmentFor($milestoneCode) !== $department) {
+            throw new InvalidArgumentException('Ancillary event type, milestone code, and department do not agree.');
+        }
+
+        $safePayload = Arr::only($data, [
+            'department', 'milestone_code', 'work_item_type', 'source_order_key',
+            'reconciliation_key',
+            'encounter_id', 'encounter_ref', 'patient_ref', 'patient_class', 'priority',
+            'ordered_at', 'unit_id', 'demo_owner', 'modality', 'test_code',
+            'test_family',
+            'decision_class', 'route', 'preparation_branch', 'discharge_blocking',
+            'correction', 'supersedes_assertion_key', 'source_timestamp_valid',
+        ]);
+        $safePayload['source_order_key'] = $this->requiredString($data, 'source_order_key');
+
+        return [
+            new CanonicalOperationalEvent(
+                eventId: $eventId,
+                eventType: $payload->eventType,
+                entityType: 'ancillary_order',
+                entityRef: $safePayload['source_order_key'],
+                payload: $safePayload,
+                occurredAt: $occurredAt,
+                idempotencyKey: "{$payload->idempotencyKey}:{$payload->eventType}:{$milestoneCode}",
+                correlationId: $data['correlation_id'] ?? null,
+                sequenceKey: $safePayload['source_order_key'],
+                metadata: ['source_message_type' => $payload->messageType],
+            ),
+        ];
     }
 
     private function requiredString(array $payload, string $key): string

@@ -56,6 +56,7 @@ export const cellTextSchema = z.object({
   strong: z.boolean().optional(),
   dim: z.boolean().optional(),
   status: z.enum(statusLevels).optional(),
+  href: z.string().startsWith('/').optional(),
 });
 // P8 WS-4 — the row-drill cell: a bed/board/patient row that descends to the
 // A2P patient lens (kills the old onDrill → no-op). `patientRef` is an opaque

@@ -63,12 +63,11 @@ export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMe
       items: group.items.filter((item) => isLeafVisible(item, access)),
     }))
     .filter((group) => group.items.length > 0);
-  // Study landing pages already have descriptive homes in the task groups.
-  const dashboardDuplicatesStudyLeaf =
-    section.key === 'study' &&
-    visibleGroups.some((group) =>
-      group.items.some((item) => item.href === selected.dashboardHref),
-    );
+  // A domain landing page can also be its first task leaf. Render that
+  // destination once with the descriptive leaf label on every projection.
+  const dashboardDuplicatesLeaf = visibleGroups.some((group) =>
+    group.items.some((item) => item.href === selected.dashboardHref),
+  );
 
   return (
     <div className="flex max-h-[min(70vh,42rem)] w-[min(58rem,calc(100vw-2rem))] overflow-hidden rounded-md border border-healthcare-border bg-healthcare-surface shadow-xl dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -115,7 +114,7 @@ export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMe
           <h2 className="text-base font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
             {selected.label}
           </h2>
-          {selected.dashboardHref && !dashboardDuplicatesStudyLeaf && (
+          {selected.dashboardHref && !dashboardDuplicatesLeaf && (
             <Link
               href={selected.dashboardHref}
               onClick={onNavigate}

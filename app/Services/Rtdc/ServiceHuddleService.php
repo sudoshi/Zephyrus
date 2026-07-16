@@ -2,6 +2,7 @@
 
 namespace App\Services\Rtdc;
 
+use App\Services\Lab\AmReadiness\LabMorningReadinessService;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -78,8 +79,10 @@ class ServiceHuddleService
      */
     private array $nurses;
 
-    public function __construct(HospitalManifest $manifest)
-    {
+    public function __construct(
+        HospitalManifest $manifest,
+        private readonly LabMorningReadinessService $amReadiness,
+    ) {
         $teams = array_values($manifest->careTeamNames());
         $nurses = array_values($manifest->nurseNames());
 
@@ -94,7 +97,8 @@ class ServiceHuddleService
      *
      * @return array{
      *     patients: list<array<string,mixed>>,
-     *     metrics: array<string,array<string,int>>
+     *     metrics: array<string,array<string,int>>,
+     *     amReadinessForecast: array<string,mixed>
      * }
      */
     public function build(): array
@@ -148,6 +152,11 @@ class ServiceHuddleService
                     'total' => $total,
                 ],
             ],
+            // A distinct, opt-in-labeled PLANNING FORECAST for morning rounds
+            // (P4-2). It is a house-wide aggregate the page renders separately
+            // from the observed roster; it never mutates a patient's observed
+            // status, readiness, or discharge plan.
+            'amReadinessForecast' => $this->amReadiness->huddleSummary(),
         ];
     }
 

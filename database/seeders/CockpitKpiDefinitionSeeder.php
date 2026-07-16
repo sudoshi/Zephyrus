@@ -39,8 +39,21 @@ class CockpitKpiDefinitionSeeder extends Seeder
                     'metric_definition_uuid' => (string) Str::uuid(),
                 ]);
             } else {
+                if (str_starts_with($key, 'flow.ancillary_')) {
+                    // Ancillary edges are governed local policy after initial
+                    // installation. Re-seeding may refresh descriptive catalog
+                    // metadata, but must not erase an administrator's tuning.
+                    unset(
+                        $attributes['target_value'],
+                        $attributes['ok_edge'],
+                        $attributes['warn_edge'],
+                        $attributes['crit_edge'],
+                    );
+                }
+
                 // Re-seeding reasserts the catalog defaults (including over
-                // admin-tuned edges) but never churns the row identity.
+                // admin-tuned edges for the legacy catalog) but never churns
+                // row identity. Ancillary governed edges are the exception.
                 $existing->fill($attributes)->save();
             }
         }
@@ -132,6 +145,19 @@ class CockpitKpiDefinitionSeeder extends Seeder
             // the OCEL log and cached in arena.performance_signals. Absent (tile
             // hidden) when the Arena is off, so no regression to the prod cockpit.
             'flow.worst_handoff_wait' => $this->kpi('Worst hand-off wait', 'The longest object-side wait at a shared hand-off — which resource is the flow constraint, discovered object-centrically from the OCEL log (Part X §X.6, OPerA).', 'min', 'down', 30, 90, 240, 900),
+            // Ancillary expansion: aggregate-only operational health. The
+            // department workspaces own per-item status; Cockpit carries only
+            // counts, oldest ages, compliance, and resource availability.
+            'flow.ancillary_rad_open_breaches' => $this->kpi('Imaging open breaches', 'Open imaging work items beyond their governed SLA definition.', 'orders', 'down', 0, 1, 5, 60),
+            'flow.ancillary_rad_oldest_unread' => $this->kpi('Oldest unread study', 'Age of the oldest acquired imaging study awaiting a final report.', 'min', 'down', 30, 30, 60, 60),
+            'flow.ancillary_rad_scanners_down' => $this->kpi('Scanners down', 'Imaging scanners currently unavailable for operational use.', 'scanners', 'down', 0, 1, 2, 60),
+            'flow.ancillary_lab_stat_compliance' => $this->kpi('Lab STAT compliance', 'Percent of STAT laboratory orders completed within the active governed SLA.', '%', 'up', 90, 89, 79, 60, null, null, 90),
+            'flow.ancillary_lab_oldest_decision_pending' => $this->kpi('Oldest decision-pending result', 'Age of the oldest laboratory order explicitly blocking an ED, discharge, or OR decision.', 'min', 'down', 45, 45, 60, 60),
+            'flow.ancillary_lab_critical_callbacks' => $this->kpi('Critical callbacks open', 'Critical laboratory results awaiting documented communication acknowledgment.', 'callbacks', 'down', 0, 1, 3, 60),
+            'flow.ancillary_rx_verification_queue' => $this->kpi('Pharmacy verification queue', 'Medication orders currently awaiting pharmacist verification.', 'orders', 'down', null, 10, 20, 60),
+            'flow.ancillary_rx_oldest_stat' => $this->kpi('Oldest STAT medication', 'Age of the oldest unverified or undispensed STAT medication order.', 'min', 'down', 10, 10, 15, 60),
+            'flow.ancillary_rx_sepsis_at_risk' => $this->kpi('Sepsis antibiotics at risk', 'Aggregate count of sepsis antibiotic orders approaching their governed operational clock.', 'orders', 'down', 0, 1, 3, 60),
+            'flow.ancillary_rx_shortage_stockouts' => $this->kpi('Medication stockouts', 'Active unit, station, or central-pharmacy stockouts affecting fulfillment.', 'items', 'down', 0, 1, 5, 300),
 
             // ---------------- Quality & safety (spec §2.7) — refresh 1800s --
             'quality.sepsis_3hr' => $this->kpi('Sepsis 3-hr bundle', 'SEP-1 3-hour bundle compliance.', '%', 'up', 90, 90, 80, 1800, null, null, 90),

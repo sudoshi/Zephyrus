@@ -249,7 +249,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson('/api/admin/integrations/enterprise')
             ->assertOk()
-            ->assertJsonPath('data.counts.connectorPlaybooks', 3)
+            ->assertJsonPath('data.counts.connectorPlaybooks', 16)
             ->assertJsonPath('data.counts.coexistenceAdapters', 3)
             ->assertJsonPath('data.counts.interfaceEngines', 1)
             ->assertJsonPath('data.playbooks.0.status', 'template');

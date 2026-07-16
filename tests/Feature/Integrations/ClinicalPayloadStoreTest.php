@@ -76,6 +76,40 @@ final class ClinicalPayloadStoreTest extends TestCase
         $this->assertTrue($events->contains('reason_code', 'clinical_payload_ciphertext_hash_mismatch'));
     }
 
+    public function test_unlinked_internal_payload_discard_uses_audited_two_step_lifecycle(): void
+    {
+        $sourceId = $this->source();
+        $stored = app(ClinicalPayloadStore::class)->storeJson($sourceId, 'raw_message', [
+            'message' => 'UNLINKED-ENCRYPTED-PAYLOAD',
+        ]);
+        $authority = DB::table('raw.payload_objects')->where('payload_object_id', $stored->payloadObjectId)->firstOrFail();
+
+        app(ClinicalPayloadStore::class)->discard(
+            $stored->payloadObjectId,
+            $sourceId,
+            'raw_message_insert_aborted',
+            'Encrypted raw message was never linked to an authoritative inbound record.',
+        );
+
+        $this->assertDatabaseHas('raw.payload_object_events', [
+            'payload_object_id' => $stored->payloadObjectId,
+            'event_type' => 'retention_marked',
+            'from_status' => 'ready',
+            'to_status' => 'retention_pending',
+        ]);
+        $this->assertDatabaseHas('raw.payload_object_events', [
+            'payload_object_id' => $stored->payloadObjectId,
+            'event_type' => 'deleted',
+            'from_status' => 'retention_pending',
+            'to_status' => 'deleted',
+        ]);
+        $this->assertDatabaseHas('raw.payload_objects', [
+            'payload_object_id' => $stored->payloadObjectId,
+            'status' => 'deleted',
+        ]);
+        $this->assertFalse(Storage::disk('clinical-payloads')->exists((string) $authority->object_key));
+    }
+
     public function test_authority_scope_and_append_only_database_guards_fail_closed(): void
     {
         $sourceId = $this->source();

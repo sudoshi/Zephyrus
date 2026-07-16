@@ -22,6 +22,7 @@ class EnterpriseConnectorControlService
         private readonly ClinicalPayloadStore $payloads,
         private readonly SourceRuntimeExecutionService $runtimeExecution,
         private readonly FhirResourceProfileService $fhirProfiles,
+        private readonly ProjectionDispatcher $projections,
     ) {}
 
     /** @return array<string,mixed> */
@@ -416,7 +417,7 @@ class EnterpriseConnectorControlService
         if ($to->lessThan($from) || $from->diffInDays($to) > 7) {
             abort(422, 'Replay windows must be ordered and no longer than seven days.');
         }
-        $supported = ['EncounterStarted', 'EncounterTransferred', 'EncounterDischarged', 'BedStatusChanged', 'AcuityChanged'];
+        $supported = $this->projections->eventTypes();
         $requested = array_values(array_unique(array_map('strval', $scope['event_types'] ?? $supported)));
         if (array_diff($requested, $supported) !== []) {
             abort(422, 'The replay includes an unsupported canonical event type.');

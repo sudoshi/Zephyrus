@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -98,6 +99,23 @@ class DashboardController extends Controller
     {
         return Inertia::render('Improvement/Active', [
             'cycles' => $this->dashboardService->getActiveCycles(),
+            'reportedBarriers' => DB::table('prod.barriers as b')
+                ->leftJoin('prod.units as u', 'u.unit_id', '=', 'b.unit_id')
+                ->leftJoin('hosp_ref.ancillary_barrier_reasons as r', 'r.reason_code', '=', 'b.reason_code')
+                ->where('b.status', 'open')->where('b.is_deleted', false)
+                ->orderByDesc('b.opened_at')->limit(20)
+                ->get(['b.barrier_id', 'b.category', 'b.reason_code', 'b.description', 'b.owner', 'b.opened_at', 'u.name as unit_name', 'r.department', 'r.label as reason_label'])
+                ->map(fn (object $barrier): array => [
+                    'barrierId' => (int) $barrier->barrier_id,
+                    'category' => $barrier->category,
+                    'reasonCode' => $barrier->reason_code,
+                    'label' => $barrier->reason_label ?? 'Operational barrier',
+                    'description' => $barrier->description,
+                    'owner' => $barrier->owner,
+                    'unitLabel' => $barrier->unit_name,
+                    'department' => $barrier->department,
+                    'openedAt' => Carbon::parse($barrier->opened_at)->toAtomString(),
+                ])->all(),
         ]);
     }
 

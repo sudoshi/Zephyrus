@@ -18,6 +18,7 @@ const ANCILLARY_SERVICES = [
 const ServiceHuddle = ({
     patients: initialPatients = serviceHuddleData.patients,
     metrics = serviceHuddleData.metrics,
+    amReadinessForecast = null,
 }) => {
     // State management
     const [patients, setPatients] = useState(initialPatients);
@@ -439,6 +440,51 @@ const ServiceHuddle = ({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* AM-readiness planning forecast (P4-2) — a distinct, clearly
+                    labeled synthetic forecast. Deliberately separate from the
+                    observed roster/acuity above; it never changes any patient's
+                    observed status, readiness, or discharge plan. */}
+                {amReadinessForecast && amReadinessForecast.available ? (
+                    <Card className="border-healthcare-info/40">
+                        <CardHeader>
+                            <CardTitle>
+                                <div className="flex items-center space-x-2">
+                                    <Icon icon="heroicons:sparkles" className="w-5 h-5 text-healthcare-info dark:text-healthcare-info-dark" />
+                                    <span>Lab readiness forecast — planning aid (synthetic)</span>
+                                </div>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                Forecast of decision-class lab work reaching verification before {amReadinessForecast.roundsCutoffLabel}. This is a planning forecast, not the observed readiness state, an alarm, or a clinical recommendation.
+                            </p>
+                            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                <div className="rounded-md border border-healthcare-info/30 bg-healthcare-info/10 p-3">
+                                    <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">On track</p>
+                                    <p className="text-lg font-semibold tabular-nums text-healthcare-info dark:text-healthcare-info-dark">{amReadinessForecast.bands.on_track}</p>
+                                </div>
+                                <div className="rounded-md border border-healthcare-warning/30 bg-healthcare-warning/10 p-3">
+                                    <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">At risk</p>
+                                    <p className="text-lg font-semibold tabular-nums text-healthcare-warning dark:text-healthcare-warning-dark">{amReadinessForecast.bands.at_risk}</p>
+                                </div>
+                                <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+                                    <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Unlikely by cutoff</p>
+                                    <p className="text-lg font-semibold tabular-nums">{amReadinessForecast.bands.unlikely}</p>
+                                </div>
+                                <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+                                    <p className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Mean readiness</p>
+                                    <p className="text-lg font-semibold tabular-nums">{amReadinessForecast.meanProbability === null ? '—' : `${Math.round(amReadinessForecast.meanProbability * 100)}%`}</p>
+                                </div>
+                            </div>
+                            {amReadinessForecast.model ? (
+                                <p className="mt-3 text-xs text-healthcare-text-secondary tabular-nums dark:text-healthcare-text-secondary-dark">
+                                    Model {amReadinessForecast.model.modelVersion} · calibrated {amReadinessForecast.model.calibratedAt ? new Date(amReadinessForecast.model.calibratedAt).toLocaleDateString() : 'unknown'} · AUC {amReadinessForecast.model.evaluation.discriminationAuc ?? '—'} · {amReadinessForecast.scored} scored, {amReadinessForecast.unavailable} unavailable · {amReadinessForecast.model.syntheticLabel}
+                                </p>
+                            ) : null}
+                        </CardContent>
+                    </Card>
+                ) : null}
             </div>
 
             {/* Status Update Modal */}

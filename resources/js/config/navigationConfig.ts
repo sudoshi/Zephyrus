@@ -22,7 +22,10 @@ import {
   ClipboardCheck,
   Clock,
   DoorOpen,
+  Droplets,
+  Microscope,
   FileText,
+  FlaskConical,
   Gauge,
   GitBranch,
   HeartPulse,
@@ -32,16 +35,19 @@ import {
   LayoutGrid,
   KeyRound,
   ListChecks,
+  Pill,
   PieChart,
   RefreshCcw,
   Repeat,
   Route,
+  ScanLine,
   Search,
   ScrollText,
   Shield,
   ShieldCheck,
   Siren,
   Stethoscope,
+  Syringe,
   Timer,
   TrendingUp,
   Truck,
@@ -226,6 +232,72 @@ const PERIOPERATIVE: NavDomain = {
   ],
 };
 
+const RADIOLOGY: NavDomain = {
+  key: 'radiology',
+  label: 'Radiology',
+  icon: ScanLine,
+  dashboardHref: '/radiology',
+  dashboardLabel: 'Imaging Flow Board',
+  matchPrefixes: ['/radiology'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Imaging Flow Board', href: '/radiology', icon: Activity },
+        { label: 'Order Worklist', href: '/radiology/worklist', icon: ClipboardList },
+        { label: 'Modality Utilization', href: '/radiology/modality', icon: ScanLine },
+        { label: 'Reads & Results', href: '/radiology/reads', icon: FileText },
+      ],
+    },
+  ],
+};
+
+const LAB: NavDomain = {
+  key: 'lab',
+  label: 'Laboratory',
+  icon: FlaskConical,
+  dashboardHref: '/lab',
+  dashboardLabel: 'Laboratory Flow Board',
+  matchPrefixes: ['/lab'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Laboratory Flow Board', href: '/lab', icon: Activity },
+        { label: 'Specimen Tracker', href: '/lab/specimens', icon: FlaskConical },
+        { label: 'Decision-Pending Results', href: '/lab/pending-decisions', icon: GitBranch },
+        { label: 'Blood Bank Readiness', href: '/lab/blood-bank', icon: Droplets },
+        { label: 'AP Case Aging', href: '/lab/anatomic-path', icon: Microscope },
+      ],
+    },
+  ],
+};
+
+const PHARMACY: NavDomain = {
+  key: 'pharmacy',
+  label: 'Pharmacy',
+  icon: Pill,
+  dashboardHref: '/pharmacy',
+  dashboardLabel: 'Medication Flow Board',
+  matchPrefixes: ['/pharmacy'],
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Medication Flow Board', href: '/pharmacy', icon: Activity },
+        { label: 'Discharge Med Readiness', href: '/pharmacy/discharge-meds', icon: ArrowRightCircle },
+        { label: 'IV Room & Batches', href: '/pharmacy/iv-room', icon: Syringe },
+        { label: 'Dispense & Delivery', href: '/pharmacy/dispense', icon: Truck },
+        // Controlled-substance operational view: server-gated by the dedicated
+        // viewControlledSubstanceOperations capability. The route 403s for an
+        // unauthorized user regardless of the nav link; the leaf is always
+        // listed so the ownership projection stays complete and deterministic.
+        { label: 'Controlled Substances', href: '/pharmacy/controlled', icon: Shield },
+      ],
+    },
+  ],
+};
+
 const TRANSPORT: NavDomain = {
   key: 'transport',
   label: 'Transport',
@@ -331,6 +403,15 @@ const ANALYTICS: NavDomain = {
         { label: 'Primetime Utilization', href: '/analytics/primetime-utilization', icon: Clock },
         { label: 'Room Running', href: '/analytics/room-running', icon: Activity },
         { label: 'Turnover Times', href: '/analytics/turnover-times', icon: Timer },
+      ],
+    },
+    {
+      title: 'Ancillary Performance',
+      items: [
+        { label: 'Radiology TAT', href: '/analytics/radiology-tat', icon: Timer },
+        { label: 'Laboratory TAT', href: '/analytics/lab-tat', icon: Timer },
+        { label: 'Pharmacy TAT', href: '/analytics/pharmacy-tat', icon: Timer },
+        { label: 'IR Suite Utilization', href: '/analytics/ir-utilization', icon: Activity },
       ],
     },
     // P5: per-domain retrospective pages, re-homed from their workspaces —
@@ -465,7 +546,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, TRANSPORT, STAFFING],
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

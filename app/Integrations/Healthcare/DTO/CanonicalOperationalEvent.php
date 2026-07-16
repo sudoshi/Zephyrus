@@ -40,6 +40,6 @@ final readonly class CanonicalOperationalEvent
 
     public static function occurredAt(?string $value): CarbonInterface
     {
-        return $value ? CarbonImmutable::parse($value) : CarbonImmutable::now();
+        return $value ? CarbonImmutable::parse($value)->utc() : CarbonImmutable::now('UTC');
     }
 }

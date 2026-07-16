@@ -138,6 +138,10 @@ return $builder
         // /api/cockpit/snapshot becomes a pure cache lookup. Requires a
         // running queue worker + schedule runner in prod.
         $schedule->job(new \App\Jobs\RefreshCockpitSnapshot)->everyMinute()->withoutOverlapping();
+        // Ancillary operational clocks are evaluated on projection and caught
+        // up every minute. The command locks one order at a time, so an isolated
+        // malformed order cannot abort the remaining queue.
+        $schedule->command('ancillary:evaluate-slas --json')->everyMinute()->withoutOverlapping();
         // Zephyrus 2.0 P7 (WS-5): the heavy MTD Quality/Service/Financial
         // materialized views refresh CONCURRENTLY hourly — off the per-minute
         // snapshot path so the wall never waits on a full aggregate.

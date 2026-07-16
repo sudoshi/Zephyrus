@@ -104,18 +104,29 @@ function CellContent({ cell, onRowDrill }: { cell: Cell; onRowDrill?: (patientRe
   }
   const s = cell.status ? statusStyle(cell.status) : null;
   const colored = s !== null && !s.valuePrimary;
+  const className = [
+    cell.strong ? 'font-semibold' : '',
+    cell.dim
+      ? 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
+      : colored
+        ? ''
+        : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  if (cell.href) {
+    return (
+      <a
+        href={cell.href}
+        className={`${className} rounded text-healthcare-primary underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-healthcare-info dark:text-healthcare-primary-dark`}
+      >
+        {cell.v}
+      </a>
+    );
+  }
   return (
     <span
-      className={[
-        cell.strong ? 'font-semibold' : '',
-        cell.dim
-          ? 'text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark'
-          : colored
-            ? ''
-            : 'text-healthcare-text-primary dark:text-healthcare-text-primary-dark',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={className}
       style={colored ? { color: s.color } : undefined}
     >
       {cell.v}

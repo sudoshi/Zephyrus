@@ -45,19 +45,21 @@ use Illuminate\Support\Facades\DB;
 class OrUtilizationService
 {
     /** Staffed prime-time minutes available per room per OR day (12h). */
-    private const STAFFED_PRIME_MIN = 720;
+    private const STAFFED_PRIME_MIN = SuiteMetricCalculator::PERIOP_STAFFED_PRIME_MINUTES;
 
     /** Prime-time-only available minutes per room-day (10h) for primeTimeUtil. */
-    private const STAFFED_CORE_MIN = 600;
+    private const STAFFED_CORE_MIN = SuiteMetricCalculator::PERIOP_STAFFED_CORE_MINUTES;
 
     /** Extended (incl. non-prime) available minutes per room-day (15h). */
-    private const STAFFED_EXT_MIN = 900;
+    private const STAFFED_EXT_MIN = SuiteMetricCalculator::PERIOP_STAFFED_EXTENDED_MINUTES;
 
     /** Utilization target used by the opportunity model (%). */
     private const TARGET_UTILIZATION = 80.0;
 
     /** Estimated revenue per incremental case (USD) for opportunity sizing. */
     private const REVENUE_PER_CASE = 5000;
+
+    public function __construct(private readonly SuiteMetricCalculator $suiteMetrics) {}
 
     /** @return array<string,mixed> */
     public function build(): array
@@ -183,22 +185,24 @@ class OrUtilizationService
      */
     private function primeUtilization(int $locationId, int $denominatorMin): float
     {
-        $row = DB::selectOne(
-            'SELECT AVG(LEAST(100.0, 100.0 * d.pt / ?::numeric)) AS util
-             FROM (
-                 SELECT oc.room_id, oc.surgery_date,
-                        SUM(COALESCE(cm.prime_time_minutes, 0)) AS pt
-                 FROM prod.or_cases oc
-                 JOIN prod.case_metrics cm ON cm.case_id = oc.case_id
-                 WHERE oc.is_deleted = false
-                   AND cm.is_deleted = false
-                   AND oc.location_id = ?
-                 GROUP BY oc.room_id, oc.surgery_date
-             ) d',
-            [$denominatorMin, $locationId]
+        $roomDays = DB::select(
+            'SELECT oc.room_id, oc.surgery_date,
+                    SUM(COALESCE(cm.prime_time_minutes, 0)) AS occupied_minutes
+             FROM prod.or_cases oc
+             JOIN prod.case_metrics cm ON cm.case_id = oc.case_id
+             WHERE oc.is_deleted = false
+               AND cm.is_deleted = false
+               AND oc.location_id = ?
+             GROUP BY oc.room_id, oc.surgery_date',
+            [$locationId]
         );
+        $values = collect($roomDays)->map(fn (object $roomDay): int|float|null => $this->suiteMetrics->utilizationPercent(
+            (float) $roomDay->occupied_minutes,
+            $denominatorMin,
+            100,
+        ))->filter(fn (int|float|null $value): bool => $value !== null);
 
-        return round((float) ($row->util ?? 0), 1);
+        return $values->isEmpty() ? 0.0 : round((float) $values->avg(), 1);
     }
 
     private function avgCaseDuration(int $locationId): int

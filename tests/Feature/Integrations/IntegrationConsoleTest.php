@@ -155,13 +155,18 @@ class IntegrationConsoleTest extends TestCase
     public function test_control_plane_reads_do_not_seed_or_promote_templates(): void
     {
         $superuser = $this->user('superuser');
+        $before = [
+            'playbooks' => DB::table('integration.connector_playbooks')->count(),
+            'adapters' => DB::table('integration.coexistence_adapters')->count(),
+            'engines' => DB::table('integration.interface_engines')->count(),
+        ];
 
         $this->actingAs($superuser)->getJson('/api/admin/integrations/control-plane')->assertOk();
         $this->actingAs($superuser)->getJson('/api/admin/integrations/enterprise')->assertOk();
 
-        $this->assertSame(0, DB::table('integration.connector_playbooks')->count());
-        $this->assertSame(0, DB::table('integration.coexistence_adapters')->count());
-        $this->assertSame(0, DB::table('integration.interface_engines')->count());
+        $this->assertSame($before['playbooks'], DB::table('integration.connector_playbooks')->count());
+        $this->assertSame($before['adapters'], DB::table('integration.coexistence_adapters')->count());
+        $this->assertSame($before['engines'], DB::table('integration.interface_engines')->count());
     }
 
     public function test_control_plane_exposes_sanitized_integration_governance_status_but_not_identity_requests(): void
@@ -208,7 +213,7 @@ class IntegrationConsoleTest extends TestCase
         $epicUuid = DB::table('integration.connector_playbooks')->where('vendor_key', 'epic')->value('playbook_uuid');
         $this->seed(IntegrationConnectorTemplateSeeder::class);
 
-        $this->assertSame(3, DB::table('integration.connector_playbooks')->count());
+        $this->assertSame(16, DB::table('integration.connector_playbooks')->count());
         $this->assertSame(3, DB::table('integration.coexistence_adapters')->count());
         $this->assertSame(1, DB::table('integration.interface_engines')->count());
         $this->assertSame(0, DB::table('integration.connector_playbooks')->whereNot('status', 'template')->count());

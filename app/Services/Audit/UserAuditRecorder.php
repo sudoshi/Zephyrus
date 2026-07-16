@@ -40,6 +40,7 @@ class UserAuditRecorder
         'system_health_component',
         'admin_scope',
         'ai_provider_policy',
+        'ancillary_barrier',
     ];
 
     private const CHANGE_KEYS = [
@@ -48,6 +49,7 @@ class UserAuditRecorder
         'display_name_changed', 'settings_changed', 'alert_template_changed',
         'auth_session_version', 'remember_token_invalidated', 'api_tokens_revoked',
         'database_sessions_revoked',
+        'barrier_status',
     ];
 
     private const METADATA_KEYS = [

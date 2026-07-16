@@ -18,15 +18,25 @@ class RtdcProjectionHandler implements ProjectionHandler
         private readonly MetricRecorder $metrics,
     ) {}
 
-    public function supports(CanonicalOperationalEvent $event): bool
+    public function key(): string
     {
-        return in_array($event->eventType, [
+        return 'rtdc.census';
+    }
+
+    public function eventTypes(): array
+    {
+        return [
             RtdcCanonicalEvent::ENCOUNTER_STARTED,
             RtdcCanonicalEvent::ENCOUNTER_TRANSFERRED,
             RtdcCanonicalEvent::ENCOUNTER_DISCHARGED,
             RtdcCanonicalEvent::BED_STATUS_CHANGED,
             RtdcCanonicalEvent::ACUITY_CHANGED,
-        ], true);
+        ];
+    }
+
+    public function supports(CanonicalOperationalEvent $event): bool
+    {
+        return in_array($event->eventType, $this->eventTypes(), true);
     }
 
     public function project(CanonicalOperationalEvent $event): void

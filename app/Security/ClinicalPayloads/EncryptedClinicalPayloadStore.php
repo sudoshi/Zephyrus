@@ -278,6 +278,27 @@ final class EncryptedClinicalPayloadStore implements ClinicalPayloadStore
         if ((string) $row->status === 'deleted') {
             return;
         }
+        if ((string) $row->status === 'ready') {
+            if ($governedChangeUuid !== null || $this->hasAuthoritativeReference($payloadObjectId)) {
+                throw new ClinicalPayloadException('clinical_payload_deletion_blocked');
+            }
+            $this->event(
+                $payloadObjectId,
+                $sourceId,
+                'retention_marked',
+                'ready',
+                'retention_pending',
+                false,
+                $reasonCode.'_pending',
+                'Unlinked encrypted clinical payload was marked for immediate dependency-safe disposal.',
+                (string) $row->ciphertext_sha256,
+                $actorUserId,
+            );
+            $row = DB::table('raw.payload_objects')->where('payload_object_id', $payloadObjectId)->firstOrFail();
+        }
+        if (! in_array((string) $row->status, ['retention_pending', 'deletion_pending'], true)) {
+            throw new ClinicalPayloadException('clinical_payload_deletion_state_invalid');
+        }
         try {
             $disk = $this->disk((string) $row->storage_disk);
             if (! $disk->delete((string) $row->object_key) && $disk->exists((string) $row->object_key)) {
@@ -316,6 +337,19 @@ final class EncryptedClinicalPayloadStore implements ClinicalPayloadStore
             $actorUserId,
             governedChangeUuid: $governedChangeUuid,
         );
+    }
+
+    private function hasAuthoritativeReference(int $payloadObjectId): bool
+    {
+        return DB::table('raw.inbound_messages')
+            ->where('payload_object_id', $payloadObjectId)
+            ->orWhere('normalized_payload_object_id', $payloadObjectId)
+            ->exists()
+            || DB::table('fhir.resource_versions')->where('payload_object_id', $payloadObjectId)->exists()
+            || DB::table('integration.canonical_events')->where('payload_object_id', $payloadObjectId)->exists()
+            || DB::table('ops.writeback_drafts')->where('payload_object_id', $payloadObjectId)->exists()
+            || DB::table('raw.payload_quarantines')->where('payload_object_id', $payloadObjectId)->exists()
+            || DB::table('raw.payload_backfill_items')->where('payload_object_id', $payloadObjectId)->exists();
     }
 
     public function markRetentionPending(int $payloadObjectId, int $sourceId, ?int $actorUserId = null): void

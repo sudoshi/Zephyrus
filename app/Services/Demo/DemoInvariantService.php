@@ -2,6 +2,7 @@
 
 namespace App\Services\Demo;
 
+use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,6 +36,7 @@ final class DemoInvariantService
             ...$this->temporal($clock),
             ...$this->capacity($clock),
             ...$this->freshness($clock),
+            ...$this->ancillary($clock),
             ...$this->plausibility($clock),
         ];
     }
@@ -81,7 +83,7 @@ final class DemoInvariantService
         $dcBeforeAdmit = $this->scalar(
             'SELECT count(*) FROM prod.encounters
              WHERE is_deleted = false AND expected_discharge_date IS NOT NULL
-               AND expected_discharge_date < admitted_at', []
+               AND expected_discharge_date < admitted_at::date', []
         );
         $out[] = $this->finding('temporal.discharge_after_admit', 'temporal', 'critical',
             $dcBeforeAdmit === 0, "{$dcBeforeAdmit} encounters discharge-before-admit", '0',
@@ -193,7 +195,7 @@ final class DemoInvariantService
     private function freshness(DemoClock $clock): array
     {
         $out = [];
-        $decisionCritical = ['ed_flow', 'encounters', 'capacity_census', 'bed_placement', 'rtdc_predictions'];
+        $decisionCritical = ['ed_flow', 'encounters', 'capacity_census', 'bed_placement', 'rtdc_predictions', 'ancillary_orders', 'ancillary_milestones'];
 
         $rows = DB::select('SELECT source_key, source_label, status, latest_observed_at FROM ops.source_freshness');
         $critical = [];
@@ -210,6 +212,452 @@ final class DemoInvariantService
             $decisionStale === [] ? 'all decision sources current' : implode(', ', $decisionStale).' = critical',
             'no decision-critical source stale',
             'ops.source_freshness marks these as stale against wall-clock now(); a green cockpit tile must not be built from them');
+
+        return $out;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function ancillary(DemoClock $clock): array
+    {
+        $owner = AncillaryDemoScenarioService::OWNER;
+        $anchor = $clock->anchor()->toDateTimeString();
+        $out = [];
+
+        $orphaned = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_milestones m
+             LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             LEFT JOIN hosp_ref.ancillary_milestone_types t ON t.code = m.milestone_code
+             WHERE o.ancillary_order_id IS NULL OR t.code IS NULL OR t.department <> o.department',
+            [],
+        );
+        $out[] = $this->finding('ancillary.no_orphan_or_mismatched_milestones', 'ancillary', 'critical',
+            $orphaned === 0, "{$orphaned} invalid milestones", '0',
+            'every milestone must resolve to an order and same-department governed code');
+
+        $terminalBeforeOrder = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             JOIN hosp_ref.ancillary_milestone_types t ON t.code = m.milestone_code
+             WHERE t.is_terminal = true AND m.occurred_at < o.ordered_at
+               AND COALESCE((m.metadata->>'correction')::boolean, false) = false",
+            [],
+        );
+        $out[] = $this->finding('ancillary.terminal_not_before_order', 'ancillary', 'critical',
+            $terminalBeforeOrder === 0, "{$terminalBeforeOrder} invalid terminal assertions", '0',
+            'terminal milestones cannot precede order time unless explicitly corrected');
+
+        $invalidOpen = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_breaches b
+             JOIN prod.ancillary_sla_definitions d ON d.ancillary_sla_definition_id = b.ancillary_sla_definition_id
+             LEFT JOIN prod.ancillary_milestones s ON s.ancillary_milestone_id = b.start_assertion_id
+             WHERE b.status = \'open\' AND (s.ancillary_milestone_id IS NULL OR d.breach_minutes IS NULL
+               OR EXTRACT(EPOCH FROM (?::timestamp - s.occurred_at)) / 60 < d.breach_minutes)',
+            [$anchor],
+        );
+        $out[] = $this->finding('ancillary.open_breaches_mathematically_valid', 'ancillary', 'critical',
+            $invalidOpen === 0, "{$invalidOpen} invalid open breaches", '0',
+            'every open breach must have a valid start and be beyond its governed threshold at the frozen anchor');
+
+        $invalidCleared = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_breaches b
+             LEFT JOIN prod.ancillary_milestones s ON s.ancillary_milestone_id = b.start_assertion_id
+             LEFT JOIN prod.ancillary_milestones e ON e.ancillary_milestone_id = b.stop_assertion_id
+             WHERE b.status = 'cleared' AND (s.ancillary_milestone_id IS NULL OR e.ancillary_milestone_id IS NULL
+               OR e.occurred_at < s.occurred_at OR b.elapsed_minutes_at_clear < 0)",
+            [],
+        );
+        $out[] = $this->finding('ancillary.cleared_breaches_have_valid_stop', 'ancillary', 'critical',
+            $invalidCleared === 0, "{$invalidCleared} invalid cleared breaches", '0',
+            'cleared breaches retain a nonnegative exact selected stop interval');
+
+        $ownershipViolations = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             JOIN integration.sources s ON s.source_id = o.source_id
+             WHERE s.source_key LIKE 'demo.ancillary.%'
+               AND o.demo_owner IS DISTINCT FROM ?",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.demo_ownership_exact', 'ancillary', 'critical',
+            $ownershipViolations === 0, "{$ownershipViolations} ownership violations", '0',
+            'demo-source rows must carry the exact ancillary owner and refresh cannot select non-owned facts');
+
+        $invalidDischarge = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders
+             WHERE demo_owner = ? AND COALESCE((metadata->>'discharge_blocking')::boolean, false) = true
+               AND terminal_at IS NOT NULL",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.discharge_blockers_are_live', 'ancillary', 'critical',
+            $invalidDischarge === 0, "{$invalidDischarge} terminal discharge blockers", '0',
+            'a discharge-blocking demo order must still be live');
+
+        $missingWarehouseCutoff = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             JOIN integration.sources s ON s.source_id = m.source_id
+             WHERE o.demo_owner = ? AND m.milestone_code = 'RX_ADMINISTERED'
+               AND (s.system_class = 'clinical_warehouse' AND o.source_cutoff_at IS NULL)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.warehouse_administration_cutoff_present', 'ancillary', 'critical',
+            $missingWarehouseCutoff === 0, "{$missingWarehouseCutoff} administered rows without cutoff", '0',
+            'warehouse-derived administration evidence must remain cutoff-qualified');
+
+        $conflicts = $this->scalar(
+            'SELECT count(*) FROM prod.ancillary_current_assertions v
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = v.ancillary_order_id
+             WHERE o.demo_owner = ? AND v.assertion_count > 1',
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.source_conflict_represented', 'ancillary', 'warning',
+            $conflicts > 0, "{$conflicts} selected-source conflicts", '>= 1',
+            'the deterministic demo should retain at least one competing source assertion');
+
+        $invalidRadiologySatellites = $this->scalar(
+            'SELECT
+                (SELECT count(*) FROM prod.rad_exams e LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = e.ancillary_order_id
+                 WHERE e.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rad_reads r LEFT JOIN prod.rad_exams e ON e.rad_exam_id = r.rad_exam_id
+                 WHERE r.demo_owner = ? AND (e.rad_exam_id IS NULL OR e.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rad_critical_results c LEFT JOIN prod.rad_exams e ON e.rad_exam_id = c.rad_exam_id
+                 WHERE c.demo_owner = ? AND (e.rad_exam_id IS NULL OR e.demo_owner IS DISTINCT FROM ?))',
+            [$owner, $owner, $owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_satellites_owned_and_linked', 'ancillary', 'critical',
+            $invalidRadiologySatellites === 0, "{$invalidRadiologySatellites} invalid Radiology satellites", '0',
+            'demo exams, reads, and critical loops must resolve to exact-owner parent records');
+
+        $invalidRadiologyEd = $this->scalar(
+            "SELECT count(*) FROM prod.rad_exams x
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+             LEFT JOIN prod.ed_visits v ON v.ed_visit_id = NULLIF(x.metadata->>'ed_visit_id', '')::bigint
+             WHERE x.demo_owner = ? AND x.metadata->>'demo_context' = 'ed'
+               AND (v.ed_visit_id IS NULL OR v.is_deleted = true OR v.patient_ref IS DISTINCT FROM o.patient_ref)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_ed_context_valid', 'ancillary', 'critical',
+            $invalidRadiologyEd === 0, "{$invalidRadiologyEd} invalid Radiology ED contexts", '0',
+            'every Radiology ED scenario must reference a real non-deleted ED visit for the same patient');
+
+        $invalidRadiologyDischarge = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             LEFT JOIN prod.encounters e ON e.encounter_id = o.encounter_id
+             WHERE o.demo_owner = ? AND o.department = 'rad'
+               AND COALESCE((o.metadata->>'discharge_blocking')::boolean, false) = true
+               AND (e.encounter_id IS NULL OR e.expected_discharge_date IS NULL OR o.terminal_at IS NOT NULL)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_discharge_context_valid', 'ancillary', 'critical',
+            $invalidRadiologyDischarge === 0, "{$invalidRadiologyDischarge} invalid Radiology discharge contexts", '0',
+            'every Radiology discharge blocker must reference a current discharge candidate and live order');
+
+        $invalidIr = $this->scalar(
+            "SELECT count(*) FROM prod.rad_exams e
+             LEFT JOIN prod.or_cases c ON c.case_id = NULLIF(e.metadata->>'or_case_id', '')::bigint
+             WHERE e.demo_owner = ? AND e.is_ir = true AND jsonb_exists(e.metadata, 'or_case_id') AND c.case_id IS NULL",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.radiology_ir_context_valid', 'ancillary', 'critical',
+            $invalidIr === 0, "{$invalidIr} IR exams without OR/procedural context", '0',
+            'every linked demo IR exam must resolve to a real demo OR case');
+
+        $distribution = DB::selectOne(
+            "SELECT count(*) AS n,
+                    percentile_cont(0.25) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS q1,
+                    percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS median,
+                    percentile_cont(0.75) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (v.occurred_at - o.ordered_at)) / 60) AS q3
+             FROM prod.rad_exams e
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = e.ancillary_order_id
+             JOIN prod.ancillary_current_assertions v ON v.ancillary_order_id = o.ancillary_order_id AND v.milestone_code = 'RAD_EXAM_END'
+             WHERE e.demo_owner = ? AND e.modality_code = 'CT' AND o.patient_class = 'emergency'",
+            [$owner],
+        );
+        $distributionValid = (int) ($distribution->n ?? 0) >= 9
+            && abs((float) ($distribution->median ?? 0) - 108) <= 1
+            && abs((float) ($distribution->q1 ?? 0) - 57) <= 1
+            && abs((float) ($distribution->q3 ?? 0) - 182) <= 1;
+        $out[] = $this->finding('ancillary.radiology_distribution_plausible', 'ancillary', 'warning',
+            $distributionValid,
+            sprintf('%d ED CT intervals; median %.1f, IQR %.1f-%.1f', (int) ($distribution->n ?? 0), (float) ($distribution->median ?? 0), (float) ($distribution->q1 ?? 0), (float) ($distribution->q3 ?? 0)),
+            'n >= 9, median 108, IQR 57-182',
+            'fixed-seed Radiology acquisition distribution should remain anchored to the reference without overfitting every record');
+
+        $invalidLabSatellites = $this->scalar(
+            'SELECT
+                (SELECT count(*) FROM prod.lab_specimens s LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = s.ancillary_order_id
+                 WHERE s.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ? OR o.department <> \'lab\'))
+              + (SELECT count(*) FROM prod.lab_results r LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = r.ancillary_order_id
+                 WHERE r.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ? OR o.department <> \'lab\'))
+              + (SELECT count(*) FROM prod.lab_critical_values c LEFT JOIN prod.lab_results r ON r.lab_result_id = c.lab_result_id
+                 WHERE c.demo_owner = ? AND (r.lab_result_id IS NULL OR r.demo_owner IS DISTINCT FROM ?))',
+            [$owner, $owner, $owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.lab_satellites_owned_and_linked', 'ancillary', 'critical',
+            $invalidLabSatellites === 0, "{$invalidLabSatellites} invalid Laboratory satellites", '0',
+            'owned specimens, results, and critical callbacks must resolve to exact-owner Laboratory parents');
+
+        $invalidRecollects = $this->scalar(
+            "SELECT
+                (SELECT count(*) FROM prod.lab_specimens child
+                 LEFT JOIN prod.lab_specimens parent ON parent.lab_specimen_id = child.parent_specimen_id
+                 WHERE child.demo_owner = ? AND child.parent_specimen_id IS NOT NULL
+                   AND (parent.lab_specimen_id IS NULL OR parent.ancillary_order_id <> child.ancillary_order_id
+                        OR parent.status <> 'recollect_requested' OR parent.rejected_at IS NULL OR parent.recollect_ordered_at IS NULL))
+              + (SELECT count(*) FROM prod.lab_specimens parent
+                 WHERE parent.demo_owner = ? AND parent.status = 'recollect_requested'
+                   AND NOT EXISTS (SELECT 1 FROM prod.lab_specimens child WHERE child.parent_specimen_id = parent.lab_specimen_id))",
+            [$owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.lab_recollect_lineage_valid', 'ancillary', 'critical',
+            $invalidRecollects === 0, "{$invalidRecollects} invalid recollect chains", '0',
+            'each recollect child must follow a rejected same-order parent and each recollect request must retain its child');
+
+        $invalidCallbacks = $this->scalar(
+            "SELECT count(*) FROM prod.lab_critical_values c
+             LEFT JOIN prod.lab_results r ON r.lab_result_id = c.lab_result_id
+             WHERE c.demo_owner = ? AND (r.lab_result_id IS NULL OR r.is_critical = false
+               OR c.identified_at < r.resulted_at
+               OR (c.callback_state IN ('notified', 'acknowledged') AND c.notified_at IS NULL)
+               OR (c.callback_state = 'acknowledged' AND (c.acknowledged_at IS NULL OR c.acknowledged_at < c.notified_at)))",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.lab_critical_callbacks_valid', 'ancillary', 'critical',
+            $invalidCallbacks === 0, "{$invalidCallbacks} invalid critical callback loops", '0',
+            'critical callback state must resolve to a critical result and retain monotonic notification and acknowledgement evidence');
+
+        $pendingDecision = DB::selectOne(
+            "SELECT count(*) AS n,
+                    count(*) FILTER (WHERE r.metadata->'decision_context' IS NULL
+                      OR COALESCE(r.metadata->'decision_context'->>'explanation', '') = ''
+                      OR CASE c.decision_class
+                           WHEN 'ed_disposition' THEN ev.ed_visit_id IS NULL OR ev.is_deleted = true
+                           WHEN 'discharge_gate' THEN e.encounter_id IS NULL OR e.expected_discharge_date IS NULL
+                           WHEN 'or_gate' THEN oc.case_id IS NULL OR oc.is_deleted = true
+                           ELSE true
+                         END) AS invalid
+             FROM prod.lab_results r
+             JOIN hosp_ref.lab_test_catalog c ON c.lab_test_catalog_id = r.lab_test_catalog_id
+             LEFT JOIN prod.ed_visits ev ON c.decision_class = 'ed_disposition'
+               AND ev.ed_visit_id = NULLIF(r.metadata->'decision_context'->>'blocked_object_id', '')::bigint
+             LEFT JOIN prod.encounters e ON c.decision_class = 'discharge_gate'
+               AND e.encounter_id = NULLIF(r.metadata->'decision_context'->>'blocked_object_id', '')::bigint
+             LEFT JOIN prod.or_cases oc ON c.decision_class = 'or_gate'
+               AND oc.case_id = NULLIF(r.metadata->'decision_context'->>'blocked_object_id', '')::bigint
+             WHERE r.demo_owner = ? AND c.decision_class <> 'none' AND r.verified_at IS NULL",
+            [$owner],
+        );
+        $decisionValid = (int) ($pendingDecision->n ?? 0) === 3 && (int) ($pendingDecision->invalid ?? 0) === 0;
+        $out[] = $this->finding('ancillary.lab_pending_decisions_explain_block', 'ancillary', 'critical',
+            $decisionValid,
+            sprintf('%d pending decisions; %d invalid downstream links', (int) ($pendingDecision->n ?? 0), (int) ($pendingDecision->invalid ?? 0)),
+            '3 pending decisions, 0 invalid links',
+            'each current decision-class result must name the exact ED visit, discharge encounter, or OR case it blocks and explain why');
+
+        $invalidApBb = $this->scalar(
+            "SELECT
+                (SELECT count(*) FROM prod.ap_cases a
+                 LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = a.ancillary_order_id
+                 LEFT JOIN prod.or_cases c ON c.case_id = a.case_id
+                 WHERE a.demo_owner = ? AND (o.demo_owner IS DISTINCT FROM ? OR o.department <> 'pathology' OR c.case_id IS NULL OR c.is_deleted = true
+                   OR (a.frozen_status = 'in_progress' AND COALESCE(a.metadata->'decision_context'->>'explanation', '') = '')))
+              + (SELECT count(*) FROM prod.bb_readiness b
+                 LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = b.ancillary_order_id
+                 LEFT JOIN prod.or_cases c ON c.case_id = b.case_id
+                 WHERE b.demo_owner = ? AND (o.demo_owner IS DISTINCT FROM ? OR o.department <> 'blood_bank' OR c.case_id IS NULL OR c.is_deleted = true
+                   OR (b.readiness_state NOT IN ('crossmatch_ready', 'allocated', 'issued', 'complete', 'cancelled')
+                       AND COALESCE(b.metadata->'decision_context'->>'explanation', '') = '')))",
+            [$owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.pathology_blood_bank_or_links_valid', 'ancillary', 'critical',
+            $invalidApBb === 0, "{$invalidApBb} invalid Pathology/Blood Bank OR links", '0',
+            'every frozen section and blood-bank request must resolve to a live OR case, and each pending gate must explain its block');
+
+        $micro = DB::selectOne(
+            "SELECT count(DISTINCT r.result_stage) AS stages,
+                    count(*) FILTER (WHERE r.resulted_at >= ?::timestamp
+                      OR r.metadata->>'operational_window' <> 'historical_study_only') AS current_leaks
+             FROM prod.lab_results r
+             JOIN hosp_ref.lab_test_catalog c ON c.lab_test_catalog_id = r.lab_test_catalog_id
+             WHERE r.demo_owner = ? AND c.department = 'microbiology'",
+            [$clock->windowStart()->toDateTimeString(), $owner],
+        );
+        $microValid = (int) ($micro->stages ?? 0) === 4 && (int) ($micro->current_leaks ?? 0) === 0;
+        $out[] = $this->finding('ancillary.microbiology_study_window_honest', 'ancillary', 'critical',
+            $microValid,
+            sprintf('%d stages; %d current-window leaks', (int) ($micro->stages ?? 0), (int) ($micro->current_leaks ?? 0)),
+            '4 stages, 0 current-window leaks',
+            'multi-day microbiology progression belongs to Study and must not masquerade as live operational work');
+
+        $labDistribution = DB::selectOne(
+            "SELECT count(*) AS n,
+                    percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (r.resulted_at - s.received_at)) / 60) AS median,
+                    count(*) FILTER (WHERE r.metadata->>'analyzer_operational_state' = 'rerouted_during_downtime'
+                      AND r.metadata->>'analyzer_downtime_started_at' IS NOT NULL
+                      AND r.metadata->>'analyzer_expected_restore_at' IS NOT NULL) AS downtime_rows
+             FROM prod.lab_results r
+             JOIN prod.lab_specimens s ON s.lab_specimen_id = r.lab_specimen_id
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = r.ancillary_order_id
+             WHERE r.demo_owner = ? AND o.metadata->>'demo_shift' = 'am_draw' AND r.result_status = 'final'",
+            [$owner],
+        );
+        $labDistributionValid = (int) ($labDistribution->n ?? 0) === 5
+            && (float) ($labDistribution->median ?? 0) >= 35
+            && (float) ($labDistribution->median ?? 0) <= 50
+            && (int) ($labDistribution->downtime_rows ?? 0) === 1;
+        $out[] = $this->finding('ancillary.lab_distribution_plausible', 'ancillary', 'warning',
+            $labDistributionValid,
+            sprintf('%d AM results; median receipt-to-result %.1f min; %d downtime reroutes', (int) ($labDistribution->n ?? 0), (float) ($labDistribution->median ?? 0), (int) ($labDistribution->downtime_rows ?? 0)),
+            '5 AM results, median 35-50 min, 1 downtime reroute',
+            'fixed-anchor Laboratory flow should retain a plausible AM wave and one explicit analyzer degradation branch');
+
+        $invalidPharmacySatellites = $this->scalar(
+            "SELECT
+                (SELECT count(*) FROM prod.rx_orders x LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+                 WHERE x.demo_owner = ? AND (o.ancillary_order_id IS NULL OR o.demo_owner IS DISTINCT FROM ? OR o.department <> 'rx'))
+              + (SELECT count(*) FROM prod.rx_verifications v LEFT JOIN prod.rx_orders x ON x.rx_order_id = v.rx_order_id
+                 WHERE v.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_preps p LEFT JOIN prod.rx_orders x ON x.rx_order_id = p.rx_order_id
+                 WHERE p.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_dispenses d LEFT JOIN prod.rx_orders x ON x.rx_order_id = d.rx_order_id
+                 WHERE d.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_administrations a LEFT JOIN prod.rx_orders x ON x.rx_order_id = a.rx_order_id
+                 WHERE a.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))
+              + (SELECT count(*) FROM prod.rx_discharge_queue q LEFT JOIN prod.rx_orders x ON x.rx_order_id = q.rx_order_id
+                 WHERE q.demo_owner = ? AND (x.rx_order_id IS NULL OR x.demo_owner IS DISTINCT FROM ?))",
+            [$owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_satellites_owned_and_linked', 'ancillary', 'critical',
+            $invalidPharmacySatellites === 0, "{$invalidPharmacySatellites} invalid Pharmacy satellites", '0',
+            'owned medication orders, verifications, preps, dispenses, administrations, and discharge rows must resolve to exact-owner rx parents');
+
+        $invalidPharmacyMilestones = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_milestones m
+             JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+             WHERE o.demo_owner = ? AND o.department = 'rx'
+               AND m.milestone_code NOT IN (
+                 'RX_ORDERED', 'RX_QUEUE_IN', 'RX_VERIFIED', 'RX_PREP_STARTED', 'RX_PREP_COMPLETE',
+                 'RX_CHECKED', 'RX_DISPENSED', 'RX_DELIVERED', 'RX_ADMINISTERED', 'RX_MISSING_DOSE',
+                 'RX_RETURNED', 'RX_WASTED', 'RX_DISCONTINUED')",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_milestones_are_order_path_codes', 'ancillary', 'critical',
+            $invalidPharmacyMilestones === 0, "{$invalidPharmacyMilestones} station-analytics codes on the order ledger", '0',
+            'overrides and controlled discrepancies are station/unit analytics only and never appear as demo order milestones');
+
+        $invalidAdcRows = $this->scalar(
+            'SELECT
+                (SELECT count(*) FROM prod.adc_transactions t
+                 LEFT JOIN prod.adc_stations s ON s.adc_station_id = t.adc_station_id
+                 LEFT JOIN prod.units u ON u.unit_id = t.unit_id
+                 WHERE t.demo_owner = ? AND (s.adc_station_id IS NULL OR s.demo_owner IS DISTINCT FROM ?
+                   OR u.unit_id IS NULL OR u.is_deleted = true))
+              + (SELECT count(*) FROM prod.adc_stations s LEFT JOIN prod.units u ON u.unit_id = s.unit_id
+                 WHERE s.demo_owner = ? AND (u.unit_id IS NULL OR u.is_deleted = true))',
+            [$owner, $owner, $owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_adc_rows_owned_and_scoped', 'ancillary', 'critical',
+            $invalidAdcRows === 0, "{$invalidAdcRows} invalid ADC rows", '0',
+            'owned ADC transactions must resolve to exact-owner stations and every owned station/transaction must map to a live hospital unit');
+
+        $duplicateOpenBreaches = $this->scalar(
+            "SELECT count(*) FROM (
+                SELECT 1 FROM prod.ancillary_breaches
+                WHERE status = 'open'
+                GROUP BY ancillary_order_id, ancillary_sla_definition_id
+                HAVING count(*) > 1
+             ) duplicates",
+            [],
+        );
+        $out[] = $this->finding('ancillary.single_open_breach_per_clock', 'ancillary', 'critical',
+            $duplicateOpenBreaches === 0, "{$duplicateOpenBreaches} duplicated open clocks", '0',
+            'at most one open breach may exist per order and SLA definition');
+
+        $invalidDischargeMeds = $this->scalar(
+            "SELECT count(*) FROM prod.rx_discharge_queue q
+             JOIN prod.rx_orders x ON x.rx_order_id = q.rx_order_id
+             LEFT JOIN prod.ancillary_orders o ON o.ancillary_order_id = x.ancillary_order_id
+             LEFT JOIN prod.encounters e ON e.encounter_id = q.encounter_id
+             WHERE q.demo_owner = ?
+               AND (o.ancillary_order_id IS NULL OR o.terminal_at IS NOT NULL OR x.clock_class <> 'discharge'
+                 OR e.encounter_id IS NULL OR e.status <> 'active' OR e.discharged_at IS NOT NULL
+                 OR e.expected_discharge_date IS NULL OR e.is_deleted = true)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_discharge_meds_reference_live_candidates', 'ancillary', 'critical',
+            $invalidDischargeMeds === 0, "{$invalidDischargeMeds} invalid discharge medication rows", '0',
+            'every discharge medication row must reference a current discharge candidate and a live discharge-clock order');
+
+        $invalidAdministrations = $this->scalar(
+            "SELECT count(*) FROM prod.rx_administrations a
+             JOIN integration.sources s ON s.source_id = a.source_id
+             WHERE a.demo_owner = ?
+               AND (a.source_cutoff_at IS NULL OR length(btrim(a.import_batch_key)) = 0
+                 OR a.administered_at > a.source_cutoff_at
+                 OR a.source_cutoff_at >= ?::timestamp
+                 OR (a.administration_source_class = 'bcma_warehouse' AND s.system_class <> 'clinical_warehouse'))",
+            [$owner, $anchor],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_administrations_cutoff_qualified', 'ancillary', 'critical',
+            $invalidAdministrations === 0, "{$invalidAdministrations} administrations without an honest cutoff", '0',
+            'every administration fact must carry a warehouse batch identity and a source cutoff strictly earlier than the anchor');
+
+        $invalidSepsisContexts = $this->scalar(
+            "SELECT count(*) FROM prod.ancillary_orders o
+             LEFT JOIN prod.ed_visits v ON v.ed_visit_id = NULLIF(o.metadata->>'ed_visit_id', '')::bigint
+             WHERE o.demo_owner = ? AND o.department = 'rx' AND o.priority = 'sepsis'
+               AND (v.ed_visit_id IS NULL OR v.is_deleted = true OR v.patient_ref IS DISTINCT FROM o.patient_ref)",
+            [$owner],
+        );
+        $out[] = $this->finding('ancillary.pharmacy_sepsis_ed_context_valid', 'ancillary', 'critical',
+            $invalidSepsisContexts === 0, "{$invalidSepsisContexts} invalid sepsis ED contexts", '0',
+            'every sepsis medication clock must reference a real non-deleted ED visit for the same patient');
+
+        $pharmacyDistribution = DB::selectOne(
+            "SELECT
+                (SELECT count(*) FROM prod.ancillary_milestones m
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND m.milestone_code = 'RX_QUEUE_IN'
+                   AND o.metadata->>'demo_shift' = 'verify_surge'
+                   AND EXTRACT(HOUR FROM m.occurred_at AT TIME ZONE ?) BETWEEN 9 AND 10) AS surge,
+                (SELECT count(*) FROM prod.ancillary_milestones m
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = m.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND m.milestone_code = 'RX_QUEUE_IN'
+                   AND o.metadata->>'demo_shift' = 'shift_boundary_dip') AS dip,
+                (SELECT count(*) FROM prod.adc_stations
+                 WHERE demo_owner = ?
+                   AND coalesce(metadata->'open_stockouts', '{}'::jsonb) NOT IN ('{}'::jsonb, '[]'::jsonb)) AS stockouts,
+                (SELECT count(*) FROM prod.rx_orders WHERE demo_owner = ? AND on_shortage = true) AS shortages,
+                (SELECT count(*) FROM prod.ancillary_orders o
+                 WHERE o.demo_owner = ? AND o.department = 'rx'
+                   AND EXISTS (SELECT 1 FROM prod.rx_orders x WHERE x.ancillary_order_id = o.ancillary_order_id AND x.preparation_branch = 'iv_room')
+                   AND EXISTS (SELECT 1 FROM prod.ancillary_milestones d WHERE d.ancillary_order_id = o.ancillary_order_id AND d.milestone_code = 'RX_DISPENSED')
+                   AND NOT EXISTS (SELECT 1 FROM prod.ancillary_milestones p WHERE p.ancillary_order_id = o.ancillary_order_id
+                     AND p.milestone_code IN ('RX_PREP_STARTED', 'RX_PREP_COMPLETE', 'RX_CHECKED'))) AS degraded,
+                (SELECT count(*) FROM prod.ancillary_current_assertions v
+                 JOIN prod.ancillary_orders o ON o.ancillary_order_id = v.ancillary_order_id
+                 WHERE o.demo_owner = ? AND o.department = 'rx' AND v.assertion_count > 1) AS conflicts",
+            [$owner, (string) config('app.timezone', 'UTC'), $owner, $owner, $owner, $owner, $owner],
+        );
+        $pharmacyDistributionValid = (int) ($pharmacyDistribution->surge ?? 0) >= 5
+            && (int) ($pharmacyDistribution->dip ?? 0) >= 1
+            && (int) ($pharmacyDistribution->dip ?? 0) < (int) ($pharmacyDistribution->surge ?? 0)
+            && (int) ($pharmacyDistribution->stockouts ?? 0) === 1
+            && (int) ($pharmacyDistribution->shortages ?? 0) >= 1
+            && (int) ($pharmacyDistribution->degraded ?? 0) >= 1
+            && (int) ($pharmacyDistribution->conflicts ?? 0) >= 1;
+        $out[] = $this->finding('ancillary.pharmacy_distribution_plausible', 'ancillary', 'warning',
+            $pharmacyDistributionValid,
+            sprintf(
+                '%d surge queue-ins (09:00-11:00); %d dip; %d stockout stations; %d shortages; %d degraded IVWMS branches; %d source conflicts',
+                (int) ($pharmacyDistribution->surge ?? 0),
+                (int) ($pharmacyDistribution->dip ?? 0),
+                (int) ($pharmacyDistribution->stockouts ?? 0),
+                (int) ($pharmacyDistribution->shortages ?? 0),
+                (int) ($pharmacyDistribution->degraded ?? 0),
+                (int) ($pharmacyDistribution->conflicts ?? 0),
+            ),
+            'surge >= 5, 1 <= dip < surge, exactly 1 stockout station, >= 1 shortage, >= 1 degraded branch, >= 1 conflict',
+            'fixed-anchor Pharmacy flow should retain the 09:00-11:00 verification surge shape, a sparse shift-boundary dip, and one deterministic stockout/shortage/degraded/conflict scenario each');
 
         return $out;
     }

@@ -15,6 +15,7 @@ class OperationalIntegrationConfigurator
         private readonly SourceRegistryService $registry,
         private readonly CredentialAuthorityService $credentialAuthority,
         private readonly FhirResourceProfileService $fhirProfiles,
+        private readonly FhirResourcePolicy $fhirResources,
     ) {}
 
     /** @return array<string, mixed> */
@@ -121,7 +122,7 @@ class OperationalIntegrationConfigurator
                     'base_url' => $settings['base_url'],
                     'fhir_version' => '4.0.1',
                     'polling_payload' => json_encode([
-                        'resource_types' => ['Encounter', 'Location'],
+                        'resource_types' => $this->fhirResources->enabledResourceTypes(),
                         'cadence_minutes' => 15,
                         'credential_activation_required' => ! $credentialsReady,
                     ], JSON_THROW_ON_ERROR),
@@ -129,11 +130,13 @@ class OperationalIntegrationConfigurator
                     'updated_at' => now(),
                 ],
             );
-            foreach (['Encounter', 'Location'] as $resourceType) {
+            // The static catalog is bootstrap input only. The per-source,
+            // capability-confirmed profile registry remains runtime authority.
+            foreach ($this->fhirResources->enabledResourceTypes() as $resourceType) {
                 $this->fhirProfiles->ensureConfigured(
                     (int) $source->source_id,
                     $resourceType,
-                    reasonCode: 'epic_sandbox_baseline_profile',
+                    reasonCode: 'epic_sandbox_bootstrap_profile',
                     correlationUuid: $correlationId,
                 );
             }

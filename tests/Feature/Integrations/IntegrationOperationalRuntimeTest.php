@@ -557,7 +557,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $job = new ReplayPendingIntegrationEvents($replayId, $user->id, (string) Str::uuid());
         $this->assertSame('database', $job->connection);
         $this->assertSame('integrations', $job->queue);
-        $job->handle(app(\App\Integrations\Healthcare\Services\RtdcProjectionHandler::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
+        $job->handle(app(\App\Integrations\Healthcare\Services\ProjectionDispatcher::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
 
         $this->assertDatabaseHas('integration.event_replay_jobs', [
             'event_replay_job_id' => $replayId,

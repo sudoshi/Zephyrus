@@ -29,12 +29,13 @@ class CanonicalEventWriter
         ?Source $source = null,
         ?IngestRun $run = null,
         ?InboundMessage $message = null,
+        bool $replaceOwnedSynthetic = false,
     ): CanonicalEventRecord {
         $startedAt = hrtime(true);
         $attributes = $this->traceAttributes($event, $source, $run, $message);
 
         try {
-            $record = $this->persist($event, $source, $run, $message);
+            $record = $this->persist($event, $source, $run, $message, $replaceOwnedSynthetic);
             $this->metrics->span(
                 'zephyrus.integration.canonical.write',
                 'ok',
@@ -63,15 +64,20 @@ class CanonicalEventWriter
         ?Source $source,
         ?IngestRun $run,
         ?InboundMessage $message,
+        bool $replaceOwnedSynthetic,
     ): CanonicalEventRecord {
         $payloadHash = hash('sha256', json_encode($event->payload, JSON_THROW_ON_ERROR));
         if ($source === null) {
             throw new ClinicalPayloadException('canonical_event_source_required');
         }
 
-        $existing = $this->existing($event->idempotencyKey, (int) $source->source_id, $payloadHash);
+        $existing = CanonicalEventRecord::query()->where('idempotency_key', $event->idempotencyKey)->first();
         if ($existing !== null) {
-            return $existing;
+            if ($replaceOwnedSynthetic) {
+                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash);
+            }
+
+            return $this->assertExistingMatches($existing, (int) $source->source_id, $payloadHash);
         }
 
         $stored = $this->payloads->storeJson(
@@ -103,7 +109,7 @@ class CanonicalEventWriter
             ]));
         } catch (QueryException $exception) {
             try {
-                $existing = $this->existing($event->idempotencyKey, (int) $source->source_id, $payloadHash);
+                $existing = CanonicalEventRecord::query()->where('idempotency_key', $event->idempotencyKey)->first();
             } catch (Throwable $conflict) {
                 $this->discard($stored->payloadObjectId, (int) $source->source_id);
 
@@ -116,7 +122,11 @@ class CanonicalEventWriter
             }
             $this->discard($stored->payloadObjectId, (int) $source->source_id);
 
-            return $existing;
+            if ($replaceOwnedSynthetic) {
+                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash);
+            }
+
+            return $this->assertExistingMatches($existing, (int) $source->source_id, $payloadHash);
         } catch (Throwable $exception) {
             $this->discard($stored->payloadObjectId, (int) $source->source_id);
 
@@ -124,18 +134,151 @@ class CanonicalEventWriter
         }
     }
 
-    private function existing(string $idempotencyKey, int $sourceId, string $payloadHash): ?CanonicalEventRecord
-    {
-        $existing = CanonicalEventRecord::query()->where('idempotency_key', $idempotencyKey)->first();
-        if ($existing === null) {
-            return null;
-        }
+    private function assertExistingMatches(
+        CanonicalEventRecord $existing,
+        int $sourceId,
+        string $payloadHash,
+    ): CanonicalEventRecord {
         if ((int) $existing->source_id !== $sourceId
             || ! hash_equals((string) $existing->payload_hash, $payloadHash)) {
             throw new ClinicalPayloadException('canonical_event_idempotency_conflict');
         }
 
         return $existing;
+    }
+
+    private function replaceOwnedSynthetic(
+        CanonicalEventRecord $existing,
+        CanonicalOperationalEvent $event,
+        Source $source,
+        ?IngestRun $run,
+        ?InboundMessage $message,
+        string $payloadHash,
+    ): CanonicalEventRecord {
+        $sourceId = (int) $source->source_id;
+        $owner = is_string($event->metadata['demo_owner'] ?? null)
+            ? trim($event->metadata['demo_owner'])
+            : '';
+        if ((int) $existing->source_id !== $sourceId
+            || $owner === ''
+            || ($existing->metadata['demo_owner'] ?? null) !== $owner) {
+            throw new ClinicalPayloadException('canonical_event_synthetic_owner_mismatch');
+        }
+        if ($existing->payload_object_id !== null
+            && hash_equals((string) $existing->payload_hash, $payloadHash)) {
+            return $this->refreshOwnedSyntheticEnvelope($existing, $event, $sourceId, $run, $message, $owner);
+        }
+
+        $stored = $this->payloads->storeJson($sourceId, 'canonical_event', $event->payload);
+        $oldPayloadObjectId = $existing->payload_object_id === null
+            ? null
+            : (int) $existing->payload_object_id;
+
+        try {
+            $record = DB::transaction(function () use (
+                $existing,
+                $event,
+                $sourceId,
+                $run,
+                $message,
+                $payloadHash,
+                $stored,
+                $owner,
+            ): CanonicalEventRecord {
+                $locked = CanonicalEventRecord::query()
+                    ->whereKey($existing->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                if ((int) $locked->source_id !== $sourceId
+                    || ($locked->metadata['demo_owner'] ?? null) !== $owner) {
+                    throw new ClinicalPayloadException('canonical_event_synthetic_owner_mismatch');
+                }
+
+                $locked->forceFill([
+                    'event_id' => $event->eventId,
+                    'source_id' => $sourceId,
+                    'ingest_run_id' => $run?->ingest_run_id,
+                    'inbound_message_id' => $message?->inbound_message_id,
+                    'event_type' => $event->eventType,
+                    'entity_type' => $event->entityType,
+                    'entity_ref' => $event->entityRef,
+                    'occurred_at' => $event->occurredAt,
+                    'received_at' => now(),
+                    'payload' => json_encode((object) [], JSON_THROW_ON_ERROR),
+                    'payload_object_id' => $stored->payloadObjectId,
+                    'payload_hash' => $payloadHash,
+                    'correlation_id' => $event->correlationId,
+                    'causation_id' => $event->causationId,
+                    'sequence_key' => $event->sequenceKey,
+                    'projection_status' => 'pending',
+                    'projected_at' => null,
+                    'metadata' => $event->metadata,
+                ])->save();
+
+                return $locked->refresh();
+            });
+        } catch (Throwable $exception) {
+            $this->discard($stored->payloadObjectId, $sourceId);
+
+            throw $exception;
+        }
+
+        if ($oldPayloadObjectId !== null && $oldPayloadObjectId !== $stored->payloadObjectId) {
+            DB::afterCommit(function () use ($oldPayloadObjectId, $sourceId): void {
+                try {
+                    $this->payloads->discard(
+                        $oldPayloadObjectId,
+                        $sourceId,
+                        'canonical_event_synthetic_replaced',
+                        'Encrypted synthetic canonical payload was replaced by its exact governed demo owner.',
+                    );
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
+        }
+
+        return $record;
+    }
+
+    private function refreshOwnedSyntheticEnvelope(
+        CanonicalEventRecord $existing,
+        CanonicalOperationalEvent $event,
+        int $sourceId,
+        ?IngestRun $run,
+        ?InboundMessage $message,
+        string $owner,
+    ): CanonicalEventRecord {
+        return DB::transaction(function () use ($existing, $event, $sourceId, $run, $message, $owner): CanonicalEventRecord {
+            $locked = CanonicalEventRecord::query()
+                ->whereKey($existing->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            if ((int) $locked->source_id !== $sourceId
+                || ($locked->metadata['demo_owner'] ?? null) !== $owner) {
+                throw new ClinicalPayloadException('canonical_event_synthetic_owner_mismatch');
+            }
+
+            $locked->forceFill([
+                'event_id' => $event->eventId,
+                'source_id' => $sourceId,
+                'ingest_run_id' => $run?->ingest_run_id,
+                'inbound_message_id' => $message?->inbound_message_id,
+                'event_type' => $event->eventType,
+                'entity_type' => $event->entityType,
+                'entity_ref' => $event->entityRef,
+                'occurred_at' => $event->occurredAt,
+                'received_at' => now(),
+                'correlation_id' => $event->correlationId,
+                'causation_id' => $event->causationId,
+                'sequence_key' => $event->sequenceKey,
+                'projection_status' => 'pending',
+                'projected_at' => null,
+                'metadata' => $event->metadata,
+            ])->save();
+
+            return $locked->refresh();
+        });
     }
 
     private function discard(int $payloadObjectId, int $sourceId): void

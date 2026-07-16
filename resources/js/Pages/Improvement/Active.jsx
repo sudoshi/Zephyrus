@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { formatProcessDuration } from '@/Components/Process/formatDuration';
 
-const Active = ({ cycles }) => {
+const Active = ({ cycles, reportedBarriers = [] }) => {
   // Helper function for status icons
   const getStatusIcon = (status) => {
     switch (status) {
@@ -199,6 +199,26 @@ const Active = ({ cycles }) => {
           
           {/* Sample Opportunities */}
           <div className="grid grid-cols-1 gap-4 mb-4">
+            {reportedBarriers.map((barrier) => (
+              <div key={barrier.barrierId} className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-healthcare-warning/10 text-healthcare-warning dark:bg-healthcare-warning-dark/20 dark:text-healthcare-warning-dark mb-2">
+                      {barrier.department === 'rad' ? 'Radiology' : barrier.category}
+                    </span>
+                    <h3 className="text-base font-medium mb-1">{barrier.label}</h3>
+                    <p className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark mb-2">{barrier.description || 'No operational detail documented.'}</p>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                      <span>Unit: {barrier.unitLabel || 'Unassigned'}</span>
+                      <span>Owner: {barrier.owner || 'Unassigned'}</span>
+                      <span>Opened: {new Date(barrier.openedAt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <Link href="/improvement/pdsa/create" className="whitespace-nowrap text-healthcare-primary dark:text-healthcare-primary-dark hover:text-healthcare-primary/80 text-sm">Start PDSA Cycle</Link>
+                </div>
+              </div>
+            ))}
+            {reportedBarriers.length === 0 && <>
             <div className="border border-healthcare-border dark:border-healthcare-border-dark rounded-lg p-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -242,6 +262,7 @@ const Active = ({ cycles }) => {
                 </button>
               </div>
             </div>
+            </>}
           </div>
         </div>
 

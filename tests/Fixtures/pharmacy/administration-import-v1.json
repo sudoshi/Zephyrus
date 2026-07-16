@@ -1,0 +1,26 @@
+{
+    "envelope_version": 1,
+    "extract_id": "BCMA-EXTRACT-20260714-0500",
+    "source_cutoff_at": "2026-07-14T05:00:00-04:00",
+    "source_class": "bcma_warehouse",
+    "administrations": [
+        {
+            "administration_id": "MAR-1001",
+            "row_version": "1",
+            "order": {
+                "source_order_key": "ACC-RX-CEF",
+                "placer_order_key": "PLACER-RX-CEF"
+            },
+            "administered_at": "2026-07-13T09:15:00-04:00",
+            "status": "given",
+            "medication": {
+                "local_code": "CEFTRIAXONE_1G_IV",
+                "label": "Ceftriaxone 1 g intravenous"
+            },
+            "route": "IV",
+            "dosage_form": "INJ",
+            "patient_id": "PATIENT-RX-SEPSIS",
+            "encounter_id": "ENC-RX-SEPSIS"
+        }
+    ]
+}

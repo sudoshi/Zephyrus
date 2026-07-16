@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
-use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Integrations\Healthcare\Services\ProjectionDispatcher;
 use App\Integrations\Healthcare\Services\SourceRuntimeExecutionService;
 use App\Jobs\Middleware\FailClinicalJobSafely;
 use App\Security\ClinicalPayloads\ClinicalPayloadHydrator;
@@ -38,7 +38,7 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
     }
 
     public function handle(
-        RtdcProjectionHandler $projector,
+        ProjectionDispatcher $projector,
         IntegrationConfigurationAuditService $audit,
         ?SourceRuntimeExecutionService $runtimeExecution = null,
         ?ClinicalPayloadHydrator $payloads = null,
@@ -74,6 +74,7 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
         $replayed = 0;
         $failed = 0;
         foreach ($events as $row) {
+            $projectorKey = 'unsupported';
             try {
                 $event = new CanonicalOperationalEvent(
                     eventId: (string) $row->event_id,
@@ -96,6 +97,7 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
                 if (! $projector->supports($event)) {
                     throw new \InvalidArgumentException('Unsupported replay event.');
                 }
+                $projectorKey = $projector->projectorKeyFor($event) ?? 'unsupported';
                 $projector->project($event);
                 DB::table('integration.canonical_events')->where('canonical_event_id', $row->canonical_event_id)->update([
                     'projection_status' => 'projected', 'projected_at' => now(), 'updated_at' => now(),
@@ -111,9 +113,9 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
                 ]);
                 DB::table('integration.event_projection_errors')->insert([
                     'canonical_event_id' => $row->canonical_event_id,
-                    'projector_key' => 'rtdc.census',
+                    'projector_key' => $projectorKey,
                     'error_code' => 'replay_projection_failed',
-                    'message' => 'The canonical event could not be replayed into the RTDC projection.',
+                    'message' => 'The canonical event could not be replayed into its registered projection.',
                     'exception_class' => $exception::class,
                     'context' => json_encode(['replay_job_id' => $this->replayJobId], JSON_THROW_ON_ERROR),
                     'status' => 'open',
