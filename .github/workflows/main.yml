@@ -15,12 +15,12 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Backend — Pint, PHPUnit, migrations
+  # Backend — core quality and migration gate
   # ---------------------------------------------------------------------------
   backend:
-    name: Backend (Laravel)
+    name: Backend (Laravel / quality)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -32,7 +32,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U zephyrus"
+          --health-cmd="pg_isready -U zephyrus -d zephyrus_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -77,19 +77,6 @@ jobs:
           DB_PASSWORD: test_pass
           CACHE_STORE: array
           SESSION_DRIVER: array
-
-      - name: Run PHPUnit tests
-        run: php artisan test
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          DB_DATABASE: zephyrus_test
-          DB_USERNAME: zephyrus
-          DB_PASSWORD: test_pass
-          CACHE_STORE: array
-          SESSION_DRIVER: array
-          QUEUE_CONNECTION: sync
 
   # ---------------------------------------------------------------------------
   # Frontend — Node/Vite build

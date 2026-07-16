@@ -15,12 +15,12 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Backend — Pint, PHPUnit, migrations
+  # Backend — quality/migrations plus deterministic PHPUnit shards
   # ---------------------------------------------------------------------------
-  backend:
-    name: Backend (Laravel / PHPUnit)
+  backend-quality:
+    name: Backend (Laravel / quality)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -32,7 +32,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U zephyrus"
+          --health-cmd="pg_isready -U zephyrus -d zephyrus_test"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -45,7 +45,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
-          coverage: xdebug
+          coverage: none
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -78,9 +78,65 @@ jobs:
           CACHE_STORE: array
           SESSION_DRIVER: array
 
-      - name: Run PHPUnit tests
-        run: php artisan test
+  backend-tests:
+    name: Backend tests (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - unit
+          - feature-0
+          - feature-1
+          - feature-2
+          - feature-3
+          - feature-4
+          - feature-5
+          - feature-6
+          - feature-7
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
         env:
+          POSTGRES_DB: zephyrus_test
+          POSTGRES_USER: zephyrus
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U zephyrus -d zephyrus_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Copy .env and generate key
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Run migrations
+        run: php artisan migrate --force
+        env: &test-env
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
           DB_PORT: 5432
@@ -90,6 +146,10 @@ jobs:
           CACHE_STORE: array
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync
+
+      - name: Run PHPUnit shard
+        run: scripts/ci/run-backend-test-shard.sh "${{ matrix.shard }}"
+        env: *test-env
 
   # ---------------------------------------------------------------------------
   # Frontend — TypeScript, Vitest, Vite build
