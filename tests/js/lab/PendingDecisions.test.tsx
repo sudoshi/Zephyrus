@@ -43,7 +43,7 @@ function payload(overrides: Partial<LabDecisionPending> = {}): LabDecisionPendin
   const base = {
     generatedAt: '2026-07-11T14:00:00+00:00', state: 'normal', stateMessage: 'Decision-pending Laboratory facts and downstream links are current.',
     freshness: { status: 'fresh', asOf: '2026-07-11T14:00:00+00:00', sourceCutoffAt: '2026-07-11T13:58:00+00:00', lagMinutes: 2, sourceLabel: 'Laboratory operational feeds', explanation: null },
-    filters: { decisionClass: 'all', priority: null, unitId: null, urgency: 'all', orderUuid: null, source: null, limit: 50 },
+    filters: { decisionClass: 'all', priority: null, unitId: null, urgency: 'all', orderUuid: null, source: null, forecast: false, limit: 50 },
     filterOptions: { decisionClasses: ['all', 'or_gate', 'discharge_gate', 'ed_disposition'], priorities: ['stat', 'urgent', 'routine'], units: [{ unitId: 2, label: 'OR Holding' }], urgencies: ['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale'] },
     rankingRule: 'Live OR gate, discharge bed impact, ED disposition, then descending age, governed priority, and stable order identity.',
     amReadinessForecast: { available: false, enabled: false, requested: false, roundsCutoffAt: '2026-07-11T08:00:00+00:00', roundsCutoffLabel: 'Morning rounds (08:00 local)', model: null, explanation: 'AM-readiness forecasting is available but off.' },

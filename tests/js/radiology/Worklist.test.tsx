@@ -21,7 +21,14 @@ function payload(overrides: Partial<RadiologyWorklist> = {}): RadiologyWorklist 
     generatedAt: '2026-07-11T14:00:00+00:00', freshness,
     filters: { lens: 'discharge', priority: null, modality: null, unitId: null, state: null, sort: 'oldest', search: null, source: 'rtdc', risk: false, perPage: 1, cursor: null },
     filterOptions: { lenses: ['all', 'ed', 'inpatient', 'discharge', 'degraded'], priorities: ['routine'], modalities: [{ code: 'CT', label: 'Computed tomography' }], units: [], sorts: ['oldest', 'newest', 'priority', 'breach_risk'], deepLinkSources: ['flow_board', 'rtdc'] },
-    predictiveSort: { available: true, enabled: false, requested: false, explanation: 'Predictive scoring is available as an opt-in planning aid.', model: null },
+    predictiveSort: {
+      available: true, enabled: true, requested: true, explanation: 'Predictive scoring is available as an opt-in planning aid.',
+      model: {
+        modelVersion: 'radiology-breach-risk-2026.07.13-synthetic-v1', modelFamily: 'calibrated_logistic', calibratedAt: '2026-07-13T12:00:00+00:00',
+        synthetic: true, syntheticLabel: 'Synthetic demo calibration - planning aid only.', trainingWindow: { cohortSize: 900 }, featureSchema: ['age_minutes'],
+        evaluation: { calibrationError: 0.04, discriminationAuc: 0.89, brierScore: 0.16, coverage: { fraction: 1 }, naiveBaseline: { brierScore: 0.23 }, beatsBaseline: true },
+      },
+    },
     data: [{
       orderId: 1, orderUuid: '11111111-1111-4111-8111-111111111111', label: 'Discharge-pending chest CT', patientRef: 'demo-patient', patientClass: 'inpatient', priority: 'routine', modality: 'CT', locationLabel: '5 East', ageMinutes: 120, status: 'breach', currentState: 'final',
       downstreamImpact: { edDecision: false, dischargeBlocking: true, orCaseId: null },

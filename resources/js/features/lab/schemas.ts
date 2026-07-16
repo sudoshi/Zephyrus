@@ -164,6 +164,7 @@ export const labDecisionPendingSchema = z.object({
     urgency: z.enum(['all', 'breach', 'warning', 'normal', 'unconfigured', 'degraded', 'stale']),
     orderUuid: z.string().uuid().nullable(),
     source: z.enum(['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit']).nullable(),
+    forecast: z.boolean(),
     limit: z.number().int().positive().max(100),
   }).strict(),
   filterOptions: z.object({
