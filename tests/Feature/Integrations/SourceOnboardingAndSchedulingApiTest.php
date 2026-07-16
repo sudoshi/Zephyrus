@@ -470,6 +470,21 @@ final class SourceOnboardingAndSchedulingApiTest extends TestCase
             "/api/admin/integrations/sources/{$this->sourceId}/credentials/{$credentialId}",
             ['reason' => 'Attempt to revoke a protected credential outside governance.'],
         )->assertUnprocessable()->assertJsonValidationErrors(['configuration']);
+        $this->selectScope($actor)->putJson(
+            "/api/admin/integrations/sources/{$this->sourceId}/fhir/resource-profiles/Observation",
+            [
+                'poll_enabled' => true,
+                'cadence_minutes' => 15,
+                'page_size' => 100,
+                'page_limit' => 10,
+                'resource_limit' => 1000,
+                'reason' => 'Attempt to add a profile while the source is protected.',
+            ],
+        )->assertUnprocessable()->assertJsonValidationErrors(['configuration']);
+        $this->selectScope($actor)->deleteJson(
+            "/api/admin/integrations/sources/{$this->sourceId}/fhir/resource-profiles/999999",
+            ['reason' => 'Attempt to retire a profile while the source is protected.'],
+        )->assertUnprocessable()->assertJsonValidationErrors(['configuration']);
 
         $rotation = [
             'secret_ref' => 'vault://zephyrus/integration/governed-replacement',

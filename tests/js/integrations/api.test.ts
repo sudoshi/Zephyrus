@@ -2,9 +2,11 @@ import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createIntegrationCredential,
+  configureFhirResourceProfile,
   createNetworkRoute,
   executeCredentialRotation,
   fetchCredentialVersions,
+  fetchFhirConformance,
   fetchNetworkRoutes,
   createSourceEvidence,
   fetchSourceOnboarding,
@@ -12,11 +14,12 @@ import {
   collectSourceObservation,
   fetchIntegrationControlPlane,
   previewIntegrationReplay,
-  queueEpicFhirPoll,
+  queueFhirPoll,
   queueIntegrationHealthCheck,
   queueIntegrationReplay,
   requestScheduledSourceActivation,
   requestCredentialRotation,
+  retireFhirResourceProfile,
   updateIntegrationCredential,
   validateCredential,
   validateNetworkRoute,
@@ -106,6 +109,137 @@ describe('integration control-plane API', () => {
     expect(snapshot.status).toBe('not_configured');
     expect(snapshot.counts.sources).toBe(0);
     expect(mocked.get).toHaveBeenCalledWith('/api/admin/integrations/control-plane');
+  });
+
+  it('accepts governed dynamic FHIR resource profiles in the control-plane contract', async () => {
+    mocked.get.mockResolvedValue({ data: { data: {
+      ...emptySnapshot,
+      fhirConnections: [{
+        connectionId: 4,
+        sourceId: 3,
+        sourceName: 'Enterprise FHIR R4',
+        connectionKey: 'fhir-r4-primary',
+        status: 'ready',
+        fhirVersion: '4.0.1',
+        capabilityCheckedAtIso: '2026-07-15T12:00:00Z',
+        healthStatus: 'healthy',
+        healthCheckedAtIso: '2026-07-15T12:00:00Z',
+        healthErrorCode: null,
+        baseUrlConfigured: true,
+        supportedResourceCount: 3,
+        resourceProfiles: [{
+          profileId: 14,
+          resourceType: 'Observation',
+          canonicalProfileUrl: 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result',
+          canonicalProfileVersion: '7.0.0',
+          status: 'enabled',
+          pollEnabled: true,
+          cadenceMinutes: 5,
+          pageSize: 100,
+          pageLimit: 10,
+          resourceLimit: 1000,
+          versionNumber: 2,
+          changeReason: 'Enable the approved Observation polling profile.',
+        }],
+      }],
+    } } });
+
+    const snapshot = await fetchIntegrationControlPlane();
+
+    expect(snapshot.fhirConnections[0].resourceProfiles).toEqual([{
+      profileId: 14,
+      resourceType: 'Observation',
+      canonicalProfileUrl: 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result',
+      canonicalProfileVersion: '7.0.0',
+      status: 'enabled',
+      pollEnabled: true,
+      cadenceMinutes: 5,
+      pageSize: 100,
+      pageLimit: 10,
+      resourceLimit: 1000,
+      versionNumber: 2,
+      changeReason: 'Enable the approved Observation polling profile.',
+    }]);
+  });
+
+  it('validates the source-scoped, PHI-safe FHIR conformance projection', async () => {
+    mocked.get.mockResolvedValue({ data: { data: {
+      status: 'passed', sourceId: 3, connectionId: 4, observationId: 22,
+      observedAtIso: '2026-07-15T12:00:00Z', fhirVersion: '4.0.1',
+      capabilityKind: 'instance', capabilityStatus: 'active', capabilityDateIso: '2026-07-15T12:00:00Z',
+      softwareName: 'Enterprise FHIR', softwareVersion: '2026.1', implementationOrigin: 'https://fhir.example.test',
+      formats: ['json'], patchFormats: [], implementationGuides: [], systemInteractions: ['batch'],
+      systemOperations: [], compartments: [], securityServices: [],
+      supportsBatch: true, supportsTransaction: false, supportsSystemHistory: false, supportsSystemSearch: false,
+      supportsBulkData: false, supportsSubscriptions: false,
+      resourceCount: 1, searchableResourceCount: 1, searchParameterCount: 1, operationCount: 0, warnings: [],
+      documentHashes: { capabilityStatement: 'a'.repeat(64), smartConfiguration: 'b'.repeat(64) },
+      smart: {
+        issuerOrigin: null, jwksOrigin: null, authorizationOrigin: null,
+        tokenOrigin: 'https://auth.example.test', registrationOrigin: null, managementOrigin: null,
+        introspectionOrigin: null, grantTypes: ['client_credentials'], tokenAuthMethods: ['private_key_jwt'],
+        tokenSigningAlgorithms: ['RS384'], scopes: ['system/Observation.rs'],
+        capabilities: ['client-confidential-asymmetric'], pkceMethods: [], associatedEndpoints: [],
+      },
+      resources: [{
+        resourceType: 'Observation', baseProfileUrl: 'http://hl7.org/fhir/StructureDefinition/Observation',
+        supportedProfiles: [], interactions: ['read', 'search-type'], versioning: 'versioned',
+        readHistory: true, updateCreate: false, conditionalCreate: null, conditionalRead: null,
+        conditionalUpdate: null, conditionalDelete: null, searchIncludes: [], searchRevIncludes: [],
+        searchParameters: [{ name: '_id', definition: 'http://hl7.org/fhir/SearchParameter/Resource-id', type: 'token' }],
+        operations: [],
+      }],
+    } } });
+
+    const conformance = await fetchFhirConformance(3);
+
+    expect(conformance.status).toBe('passed');
+    if (conformance.status === 'unobserved') throw new Error('Expected observed conformance evidence.');
+    expect(conformance.resources[0].interactions).toContain('search-type');
+    expect(conformance.smart.tokenOrigin).toBe('https://auth.example.test');
+    expect(mocked.get).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/conformance');
+  });
+
+  it('configures and retires a governed dynamic FHIR resource profile', async () => {
+    const profile = {
+      profileId: 14,
+      sourceId: 3,
+      resourceType: 'Observation',
+      canonicalProfileUrl: null,
+      canonicalProfileVersion: null,
+      status: 'configured',
+      pollEnabled: true,
+      cadenceMinutes: 5,
+      pageSize: 100,
+      pageLimit: 10,
+      resourceLimit: 1000,
+      versionNumber: 1,
+      changeReason: 'Configure approved Observation polling.',
+    };
+    mocked.put.mockResolvedValueOnce({ data: { data: profile } });
+    mocked.delete.mockResolvedValueOnce({ data: { data: {
+      ...profile,
+      status: 'retired',
+      pollEnabled: false,
+      versionNumber: 2,
+      changeReason: 'Retire the superseded Observation profile.',
+    } } });
+
+    await configureFhirResourceProfile(3, 'Observation', {
+      canonical_profile_url: null,
+      canonical_profile_version: null,
+      poll_enabled: true,
+      cadence_minutes: 5,
+      page_size: 100,
+      page_limit: 10,
+      resource_limit: 1000,
+      reason: 'Configure approved Observation polling.',
+    });
+    const retired = await retireFhirResourceProfile(3, 14, 'Retire the superseded Observation profile.');
+
+    expect(retired.status).toBe('retired');
+    expect(mocked.put).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/resource-profiles/Observation', expect.objectContaining({ cadence_minutes: 5 }));
+    expect(mocked.delete).toHaveBeenCalledWith('/api/admin/integrations/sources/3/fhir/resource-profiles/14', { data: { reason: 'Retire the superseded Observation profile.' } });
   });
 
   it('rejects a drifted security-sensitive contract', async () => {
@@ -290,7 +424,7 @@ describe('integration control-plane API', () => {
       .mockResolvedValueOnce({ data: { data: { replayJobId: 12, replayUuid: 'replay-uuid', status: 'queued', created: true } } });
 
     await queueIntegrationHealthCheck(3);
-    await queueEpicFhirPoll(3, 'Encounter');
+    await queueFhirPoll(3, 'Encounter');
     const input = { source_id: 3, from: '2026-07-10T09:00:00Z', to: '2026-07-10T12:00:00Z', limit: 50 };
     const preview = await previewIntegrationReplay(input);
     await queueIntegrationReplay(input, '019f0000-0000-7000-8000-000000000001', 'replay-key-1');

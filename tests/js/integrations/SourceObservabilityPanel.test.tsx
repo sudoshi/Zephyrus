@@ -9,7 +9,7 @@ vi.mock('@/features/integrations/hooks', () => ({
   useIntegrationControlPlane: vi.fn(),
   usePreviewIntegrationReplay: vi.fn(),
   useRequestIntegrationReplay: vi.fn(),
-  useQueueEpicFhirPoll: vi.fn(),
+  useQueueFhirPoll: vi.fn(),
   useQueueIntegrationHealthCheck: vi.fn(),
   useQueueIntegrationReplay: vi.fn(),
   useSourceObservability: vi.fn(),

@@ -6,12 +6,16 @@ use App\Authorization\GovernedAction;
 use App\Http\Controllers\Api\Admin\Concerns\ResolvesIntegrationCorrelation;
 use App\Http\Controllers\Controller;
 use App\Integrations\Healthcare\Services\EnterpriseConnectorControlService;
+use App\Integrations\Healthcare\Services\FhirConformanceObservationService;
+use App\Integrations\Healthcare\Services\FhirResourceProfileService;
 use App\Services\Authorization\AdminScopeService;
 use App\Services\Governance\GovernedChangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class EnterpriseConnectorController extends Controller
 {
@@ -21,6 +25,8 @@ class EnterpriseConnectorController extends Controller
         private readonly EnterpriseConnectorControlService $connectors,
         private readonly GovernedChangeService $governance,
         private readonly AdminScopeService $scopes,
+        private readonly FhirResourceProfileService $fhirProfiles,
+        private readonly FhirConformanceObservationService $fhirConformance,
     ) {}
 
     public function summary(): JsonResponse
@@ -48,10 +54,15 @@ class EnterpriseConnectorController extends Controller
         )], 202);
     }
 
+    public function fhirConformance(int $source): JsonResponse
+    {
+        return response()->json(['data' => $this->fhirConformance->latestForSource($source)]);
+    }
+
     public function pollFhir(Request $request, int $source): JsonResponse
     {
         $validated = $request->validate([
-            'resource_type' => ['required', Rule::in(['Encounter', 'Location'])],
+            'resource_type' => ['required', 'string', 'max:80', 'regex:/^[A-Z][A-Za-z]{1,79}$/'],
         ]);
 
         return response()->json(['data' => $this->connectors->queueFhirPoll(
@@ -60,6 +71,59 @@ class EnterpriseConnectorController extends Controller
             $request->user()?->getAuthIdentifier(),
             $this->correlationId($request),
         )], 202);
+    }
+
+    public function configureFhirResourceProfile(Request $request, int $source, string $resourceType): JsonResponse
+    {
+        if (preg_match('/^[A-Z][A-Za-z]{1,79}$/', $resourceType) !== 1) {
+            throw ValidationException::withMessages(['resource_type' => 'A valid case-sensitive FHIR resource type is required.']);
+        }
+        $validated = $request->validate([
+            'canonical_profile_url' => ['nullable', 'string', 'max:500', 'url:http,https'],
+            'canonical_profile_version' => ['nullable', 'string', 'max:80'],
+            'poll_enabled' => ['required', 'boolean'],
+            'cadence_minutes' => ['required', 'integer', 'between:1,10080'],
+            'page_size' => ['required', 'integer', 'between:1,1000'],
+            'page_limit' => ['required', 'integer', 'between:1,100'],
+            'resource_limit' => ['required', 'integer', 'between:1,100000'],
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+
+        try {
+            $profile = $this->fhirProfiles->configure(
+                $source,
+                $resourceType,
+                $validated,
+                $request->user()?->getAuthIdentifier(),
+                (string) $validated['reason'],
+                $this->correlationId($request),
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages(['resource_profile' => $exception->getMessage()]);
+        }
+
+        return response()->json(['data' => $this->fhirProfilePayload($profile)]);
+    }
+
+    public function retireFhirResourceProfile(Request $request, int $source, int $profile): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+
+        try {
+            $profile = $this->fhirProfiles->retire(
+                $source,
+                $profile,
+                $request->user()?->getAuthIdentifier(),
+                (string) $validated['reason'],
+                $this->correlationId($request),
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages(['resource_profile' => $exception->getMessage()]);
+        }
+
+        return response()->json(['data' => $this->fhirProfilePayload($profile)]);
     }
 
     public function previewReplay(Request $request): JsonResponse
@@ -128,6 +192,26 @@ class EnterpriseConnectorController extends Controller
             'expiresAt' => $change->expires_at?->toIso8601String(),
             'preview' => $preview,
         ]], 201);
+    }
+
+    /** @return array<string, mixed> */
+    private function fhirProfilePayload(object $profile): array
+    {
+        return [
+            'profileId' => (int) $profile->fhir_resource_profile_id,
+            'sourceId' => (int) $profile->source_id,
+            'resourceType' => (string) $profile->resource_type,
+            'canonicalProfileUrl' => $profile->canonical_profile_url,
+            'canonicalProfileVersion' => $profile->canonical_profile_version,
+            'status' => (string) $profile->profile_status,
+            'pollEnabled' => (bool) $profile->poll_enabled,
+            'cadenceMinutes' => (int) $profile->cadence_minutes,
+            'pageSize' => (int) $profile->page_size,
+            'pageLimit' => (int) $profile->page_limit,
+            'resourceLimit' => (int) $profile->resource_limit,
+            'versionNumber' => (int) $profile->version_number,
+            'changeReason' => (string) $profile->change_reason,
+        ];
     }
 
     public function createWritebackDraft(Request $request): JsonResponse

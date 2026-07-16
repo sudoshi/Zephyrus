@@ -130,6 +130,115 @@ const networkRouteSchema = z.object({
   lastErrorCode: nullableString, lastObservedAtIso: nullableString, policySha256: nullableString,
 });
 
+const fhirResourceProfileSchema = z.object({
+  profileId: z.number(),
+  sourceId: z.number().optional(),
+  resourceType: z.string(),
+  canonicalProfileUrl: nullableString,
+  canonicalProfileVersion: nullableString,
+  status: z.string(),
+  pollEnabled: z.boolean(),
+  cadenceMinutes: z.number(),
+  pageSize: z.number(),
+  pageLimit: z.number(),
+  resourceLimit: z.number(),
+  versionNumber: z.number(),
+  changeReason: z.string(),
+});
+
+const fhirOperationSchema = z.object({
+  name: z.string(),
+  definition: z.string(),
+}).strict();
+
+const fhirConformanceResourceSchema = z.object({
+  resourceType: z.string(),
+  baseProfileUrl: nullableString,
+  supportedProfiles: z.array(z.string()),
+  interactions: z.array(z.string()),
+  versioning: nullableString,
+  readHistory: z.boolean(),
+  updateCreate: z.boolean(),
+  conditionalCreate: z.boolean().nullable(),
+  conditionalRead: nullableString,
+  conditionalUpdate: z.boolean().nullable(),
+  conditionalDelete: nullableString,
+  searchIncludes: z.array(z.string()),
+  searchRevIncludes: z.array(z.string()),
+  searchParameters: z.array(z.object({
+    name: z.string(), definition: nullableString, type: z.string(),
+  }).strict()),
+  operations: z.array(fhirOperationSchema),
+}).strict();
+
+const unobservedFhirConformanceSchema = z.object({
+  status: z.literal('unobserved'),
+  sourceId: z.number(),
+  resources: z.array(z.never()),
+}).strict();
+
+const observedFhirConformanceSchema = z.object({
+  status: z.enum(['passed', 'passed_with_warnings', 'legacy_reduced']),
+  sourceId: z.number(),
+  connectionId: z.number(),
+  observationId: z.number(),
+  observedAtIso: z.string(),
+  fhirVersion: z.string(),
+  capabilityKind: nullableString,
+  capabilityStatus: nullableString,
+  capabilityDateIso: nullableString,
+  softwareName: nullableString,
+  softwareVersion: nullableString,
+  implementationOrigin: nullableString,
+  formats: z.array(z.string()),
+  patchFormats: z.array(z.string()),
+  implementationGuides: z.array(z.string()),
+  systemInteractions: z.array(z.string()),
+  systemOperations: z.array(fhirOperationSchema),
+  compartments: z.array(z.string()),
+  securityServices: z.array(z.object({ system: nullableString, code: z.string() }).strict()),
+  supportsBatch: z.boolean(),
+  supportsTransaction: z.boolean(),
+  supportsSystemHistory: z.boolean(),
+  supportsSystemSearch: z.boolean(),
+  supportsBulkData: z.boolean(),
+  supportsSubscriptions: z.boolean(),
+  resourceCount: z.number(),
+  searchableResourceCount: z.number(),
+  searchParameterCount: z.number(),
+  operationCount: z.number(),
+  warnings: z.array(z.string()),
+  documentHashes: z.object({
+    capabilityStatement: nullableString,
+    smartConfiguration: nullableString,
+  }).strict(),
+  smart: z.object({
+    issuerOrigin: nullableString,
+    jwksOrigin: nullableString,
+    authorizationOrigin: nullableString,
+    tokenOrigin: nullableString,
+    registrationOrigin: nullableString,
+    managementOrigin: nullableString,
+    introspectionOrigin: nullableString,
+    grantTypes: z.array(z.string()),
+    tokenAuthMethods: z.array(z.string()),
+    tokenSigningAlgorithms: z.array(z.string()),
+    scopes: z.array(z.string()),
+    capabilities: z.array(z.string()),
+    pkceMethods: z.array(z.string()),
+    associatedEndpoints: z.array(z.object({
+      origin: nullableString,
+      capabilities: z.array(z.string()),
+    }).strict()),
+  }).strict(),
+  resources: z.array(fhirConformanceResourceSchema),
+}).strict();
+
+const fhirConformanceSchema = z.union([
+  unobservedFhirConformanceSchema,
+  observedFhirConformanceSchema,
+]);
+
 const integrationControlPlaneSchema = z.object({
   generatedAtIso: z.string(),
   status: z.string(),
@@ -204,6 +313,7 @@ const integrationControlPlaneSchema = z.object({
     healthErrorCode: nullableString,
     baseUrlConfigured: z.boolean(),
     supportedResourceCount: z.number(),
+    resourceProfiles: z.array(fhirResourceProfileSchema),
   })),
   hl7Interfaces: z.array(z.object({
     interfaceEngineId: z.number(),
@@ -377,6 +487,18 @@ const integrationControlPlaneSchema = z.object({
 });
 
 export type IntegrationControlPlane = z.infer<typeof integrationControlPlaneSchema>;
+export type FhirResourceProfile = z.infer<typeof fhirResourceProfileSchema>;
+export type FhirConformance = z.infer<typeof fhirConformanceSchema>;
+export type FhirResourceProfileInput = {
+  canonical_profile_url?: string | null;
+  canonical_profile_version?: string | null;
+  poll_enabled: boolean;
+  cadence_minutes: number;
+  page_size: number;
+  page_limit: number;
+  resource_limit: number;
+  reason: string;
+};
 export type IntegrationSource = z.infer<typeof sourceSchema>;
 export type SecretProviderCapability = z.infer<typeof secretProviderSchema>;
 export type CredentialVersion = z.infer<typeof credentialVersionSchema>;
@@ -761,6 +883,11 @@ export async function fetchSourceStatusFacets(sourceId: number): Promise<SourceS
   return parseEnvelope(sourceStatusFacetsSchema, response.data);
 }
 
+export async function fetchFhirConformance(sourceId: number): Promise<FhirConformance> {
+  const response = await axios.get(`/api/admin/integrations/sources/${sourceId}/fhir/conformance`);
+  return parseEnvelope(fhirConformanceSchema, response.data);
+}
+
 export async function recordConformanceFacet(sourceId: number, input: ConformanceFacetInput): Promise<unknown> {
   const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/status-facets/conformance`, input);
   return parseEnvelope(z.object({ facet: z.string(), status: z.string() }).passthrough(), response.data);
@@ -986,9 +1113,19 @@ export async function queueIntegrationHealthCheck(sourceId: number) {
   return parseEnvelope(queuedRunSchema, response.data);
 }
 
-export async function queueEpicFhirPoll(sourceId: number, resourceType: 'Encounter' | 'Location') {
+export async function queueFhirPoll(sourceId: number, resourceType: string) {
   const response = await axios.post(`/api/admin/integrations/sources/${sourceId}/fhir/poll`, { resource_type: resourceType });
   return parseEnvelope(queuedRunSchema, response.data);
+}
+
+export async function configureFhirResourceProfile(sourceId: number, resourceType: string, input: FhirResourceProfileInput): Promise<FhirResourceProfile> {
+  const response = await axios.put(`/api/admin/integrations/sources/${sourceId}/fhir/resource-profiles/${encodeURIComponent(resourceType)}`, input);
+  return parseEnvelope(fhirResourceProfileSchema, response.data);
+}
+
+export async function retireFhirResourceProfile(sourceId: number, profileId: number, reason: string): Promise<FhirResourceProfile> {
+  const response = await axios.delete(`/api/admin/integrations/sources/${sourceId}/fhir/resource-profiles/${profileId}`, { data: { reason } });
+  return parseEnvelope(fhirResourceProfileSchema, response.data);
 }
 
 export async function previewIntegrationReplay(input: IntegrationReplayInput) {

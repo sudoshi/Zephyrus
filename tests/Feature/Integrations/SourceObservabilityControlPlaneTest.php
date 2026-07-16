@@ -9,6 +9,7 @@ use App\Integrations\Healthcare\Services\SourceLifecycleService;
 use App\Integrations\Healthcare\Services\SourceMaintenanceWindowService;
 use App\Integrations\Healthcare\Services\SourceObservabilityService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
+use App\Integrations\Healthcare\Services\SourceRuntimeExecutionService;
 use App\Integrations\Healthcare\Services\SourceRuntimePressureService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
@@ -355,7 +356,7 @@ final class SourceObservabilityControlPlaneTest extends TestCase
         ]);
     }
 
-    public function test_runtime_pressure_state_is_derived_from_recorded_evidence_and_ingest_runs(): void
+    public function test_runtime_pressure_and_retry_budget_are_derived_from_append_only_execution_evidence(): void
     {
         $this->completeOnboarding();
         $observedAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
@@ -380,9 +381,12 @@ final class SourceObservabilityControlPlaneTest extends TestCase
             null,
             $observedAt->subMinute(),
         );
-        // Two failed runs in-window consume retry budget.
-        $this->ingestRun($observedAt->subMinutes(10), 'failed', 5, 0, 5, 0);
-        $this->ingestRun($observedAt->subMinutes(8), 'failed', 5, 0, 5, 0);
+        // Two failed runs with three immutable attempt starts each exhaust the
+        // measured window budget. Terminal status alone is not attempt proof.
+        $firstRun = $this->ingestRun($observedAt->subMinutes(10), 'failed', 5, 0, 5, 0);
+        $secondRun = $this->ingestRun($observedAt->subMinutes(8), 'failed', 5, 0, 5, 0);
+        $this->runtimeAttemptEvidence($firstRun, $observedAt->subMinutes(10));
+        $this->runtimeAttemptEvidence($secondRun, $observedAt->subMinutes(8));
 
         $observation = app(SourceObservabilityService::class)->observe($this->sourceId, $observedAt);
         $runtime = $observation['runtimeState'];
@@ -391,10 +395,10 @@ final class SourceObservabilityControlPlaneTest extends TestCase
         $this->assertSame(300, $runtime['rateLimit']['retryAfterSeconds']);
         $this->assertSame('open', $runtime['circuitBreaker']['state']);
         $this->assertSame(6, $runtime['circuitBreaker']['consecutiveFailures']);
-        $this->assertSame('derived_from_ingest_runs', $runtime['retryBudget']['evidenceCode']);
-        $this->assertNotNull($runtime['retryBudget']['consumedAttempts']);
-        $this->assertGreaterThan(0, $runtime['retryBudget']['consumedAttempts']);
-        $this->assertContains($runtime['retryBudget']['state'], ['strained', 'exhausted']);
+        $this->assertSame('execution_attempt_ledger', $runtime['retryBudget']['evidenceCode']);
+        $this->assertSame(6, $runtime['retryBudget']['consumedAttempts']);
+        $this->assertSame(0, $runtime['retryBudget']['remainingAttempts']);
+        $this->assertSame('exhausted', $runtime['retryBudget']['state']);
 
         // The pressure ledger is append-only.
         $row = DB::table('integration.source_runtime_pressure_events')->first();
@@ -405,6 +409,39 @@ final class SourceObservabilityControlPlaneTest extends TestCase
             $this->fail('Runtime pressure evidence must be append-only.');
         } catch (QueryException $exception) {
             $this->assertStringContainsString('append-only', $exception->getMessage());
+        }
+
+        $execution = DB::table('integration.source_runtime_execution_events')->first();
+        try {
+            DB::transaction(fn () => DB::table('integration.source_runtime_execution_events')
+                ->where('source_runtime_execution_event_id', $execution->source_runtime_execution_event_id)
+                ->delete());
+            $this->fail('Runtime execution evidence must be append-only.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('append-only', $exception->getMessage());
+        }
+
+        $executionRow = (array) $execution;
+        unset($executionRow['source_runtime_execution_event_id']);
+        $executionRow['event_uuid'] = (string) Str::uuid7();
+        $executionRow['event_key'] = hash('sha256', 'mismatched-runtime-authority');
+        $executionRow['source_id'] = null;
+        try {
+            DB::transaction(fn () => DB::table('integration.source_runtime_execution_events')->insert($executionRow));
+            $this->fail('Runtime execution evidence accepted a source outside the ingest-run authority.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('does not match its ingest run authority', $exception->getMessage());
+        }
+
+        $executionRow['event_uuid'] = (string) Str::uuid7();
+        $executionRow['event_key'] = hash('sha256', 'tainted-runtime-evidence');
+        $executionRow['source_id'] = $this->sourceId;
+        $executionRow['metadata'] = json_encode(['diagnostic' => 'ZPHI-RUNTIME-CANARY'], JSON_THROW_ON_ERROR);
+        try {
+            DB::transaction(fn () => DB::table('integration.source_runtime_execution_events')->insert($executionRow));
+            $this->fail('Runtime execution evidence accepted clinical content.');
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('clinical content is prohibited', $exception->getMessage());
         }
     }
 
@@ -685,6 +722,45 @@ final class SourceObservabilityControlPlaneTest extends TestCase
             'created_at' => $startedAt,
             'updated_at' => $startedAt,
         ], 'ingest_run_id');
+    }
+
+    private function runtimeAttemptEvidence(int $runId, CarbonImmutable $startedAt): void
+    {
+        $runtime = app(SourceRuntimeExecutionService::class);
+        $runtime->recordIngestRun($runId, 'fhir_poll', 'queued', 0, 3, 'fhir_poll_queued', observedAt: $startedAt);
+        foreach ([1, 2, 3] as $attempt) {
+            $at = $startedAt->addSeconds($attempt);
+            $runtime->recordIngestRun(
+                $runId,
+                'fhir_poll',
+                'attempt_started',
+                $attempt,
+                3,
+                'fhir_poll_attempt_started',
+                observedAt: $at,
+            );
+            if ($attempt < 3) {
+                $runtime->recordIngestRun(
+                    $runId,
+                    'fhir_poll',
+                    'retry_scheduled',
+                    $attempt,
+                    3,
+                    'fhir_http_503',
+                    retryAfterSeconds: 10,
+                    observedAt: $at,
+                );
+            }
+        }
+        $runtime->recordIngestRun(
+            $runId,
+            'fhir_poll',
+            'terminal_failed',
+            3,
+            3,
+            'fhir_http_503',
+            observedAt: $startedAt->addSeconds(4),
+        );
     }
 
     private function watermark(CarbonImmutable $lastSuccessAt): void

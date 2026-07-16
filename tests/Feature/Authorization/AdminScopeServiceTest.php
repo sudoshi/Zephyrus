@@ -182,6 +182,7 @@ final class AdminScopeServiceTest extends TestCase
             'DELETE api/admin/integrations/sources/{source}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/credentials/{credential}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/endpoints/{endpoint}' => ['source'],
+            'DELETE api/admin/integrations/sources/{source}/fhir/resource-profiles/{profile}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/network-routes/{route}' => ['source'],
             'DELETE api/admin/integrations/sources/{source}/peer-pin-policies/{policy}' => ['source'],
             'PATCH api/admin/integrations/sources/{source}' => ['source'],
@@ -235,6 +236,7 @@ final class AdminScopeServiceTest extends TestCase
             'POST api/admin/integrations/sources/{source}/status-facets/conformance' => ['source'],
             'POST api/admin/integrations/sources/{source}/status-facets/contract' => ['source'],
             'POST api/admin/integrations/sources/{source}/status-facets/incident' => ['source'],
+            'PUT api/admin/integrations/sources/{source}/fhir/resource-profiles/{resourceType}' => ['source'],
         ];
 
         $actual = collect(Route::getRoutes()->getRoutes())

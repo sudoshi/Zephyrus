@@ -6,9 +6,9 @@ namespace App\Observability;
  * INT-OBS 4 — one PHI-safe span handed to a TraceExporter.
  *
  * Correlation from receipt through projection/outbound ACK rides on the
- * attributes: the AssignRequestIdentity request ID ('request.id') and the
- * canonical event UUID ('zephyrus.event.uuid'). This repository records the
- * span shape only; the wire export is deployment-owned.
+ * attributes: the AssignRequestIdentity UUID ('zephyrus.correlation.uuid') and
+ * canonical event UUID ('zephyrus.event.uuid'). The selected exporter retains
+ * the guarded shape in memory or serializes it through the official OTLP SDK.
  */
 final class SpanRecord
 {

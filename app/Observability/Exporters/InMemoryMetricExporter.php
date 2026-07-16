@@ -12,8 +12,7 @@ use App\Observability\SpanRecord;
  *
  * Keeps a bounded ring buffer of the most recent PHI-safe samples/spans so the
  * seam is observable in tests and (optionally) a diagnostics surface without a
- * wire dependency. It is NOT an OTLP exporter and never leaves the process. A
- * deployment binds its own exporter to MetricExporter/TraceExporter instead.
+ * wire dependency. It is NOT an OTLP exporter and never leaves the process.
  */
 final class InMemoryMetricExporter implements MetricExporter, TraceExporter
 {

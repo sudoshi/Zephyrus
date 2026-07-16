@@ -108,25 +108,37 @@ class AppServiceProvider extends ServiceProvider
             $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
         ], $app->make(ClinicalContentGuard::class)));
 
-        // INT-OBS 4: the PHI-safe OpenTelemetry-compatible metrics/trace seam.
-        // Config-gated (observability.enabled, default OFF) with NO new composer
-        // dependency. The default in-process exporter keeps a bounded ring
-        // buffer; a deployment binds its own OTLP exporter to the
-        // MetricExporter/TraceExporter contracts. Both contracts resolve to ONE
-        // singleton so an in-memory exporter's samples and spans co-locate.
+        // INT-OBS 4: the guarded application recorder can stay in-memory, discard,
+        // or send OTLP/HTTP protobuf through the official OpenTelemetry SDK. Both
+        // contracts resolve to one singleton so metrics and spans share config.
         $this->app->singleton(\App\Observability\Exporters\InMemoryMetricExporter::class, fn ($app) => new \App\Observability\Exporters\InMemoryMetricExporter(
             (int) config('observability.memory_buffer', 512),
         ));
+        $this->app->singleton(\App\Observability\Exporters\OtlpExporter::class, fn ($app) => $app
+            ->make(\App\Observability\Exporters\OtlpExporterFactory::class)
+            ->make());
         $this->app->singleton(\App\Observability\Contracts\MetricExporter::class, function ($app) {
+            if (! (bool) config('observability.enabled', false)) {
+                return $app->make(\App\Observability\Exporters\NullMetricExporter::class);
+            }
+
             return match ((string) config('observability.exporter', 'memory')) {
                 'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
-                default => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+                'memory' => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+                'otlp' => $app->make(\App\Observability\Exporters\OtlpExporter::class),
+                default => throw new \InvalidArgumentException('observability_exporter_invalid'),
             };
         });
         $this->app->singleton(\App\Observability\Contracts\TraceExporter::class, function ($app) {
+            if (! (bool) config('observability.enabled', false)) {
+                return $app->make(\App\Observability\Exporters\NullMetricExporter::class);
+            }
+
             return match ((string) config('observability.exporter', 'memory')) {
                 'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
-                default => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+                'memory' => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
+                'otlp' => $app->make(\App\Observability\Exporters\OtlpExporter::class),
+                default => throw new \InvalidArgumentException('observability_exporter_invalid'),
             };
         });
         $this->app->singleton(\App\Observability\MetricRecorder::class, fn ($app) => new \App\Observability\MetricRecorder(

@@ -8,6 +8,9 @@ return [
         'observation_fresh_for_seconds' => max(60, (int) env('INTEGRATION_OBSERVATION_FRESH_SECONDS', 180)),
         'retry_budget_per_run' => max(1, min(20, (int) env('INTEGRATION_RETRY_BUDGET_PER_RUN', 3))),
         'circuit_breaker_trip_failures' => max(2, (int) env('INTEGRATION_CIRCUIT_BREAKER_TRIP_FAILURES', 5)),
+        'circuit_breaker_open_seconds' => max(5, min(3600, (int) env('INTEGRATION_CIRCUIT_BREAKER_OPEN_SECONDS', 60))),
+        'circuit_breaker_half_open_lease_seconds' => max(5, min(300, (int) env('INTEGRATION_CIRCUIT_BREAKER_HALF_OPEN_LEASE_SECONDS', 30))),
+        'rate_limit_default_retry_seconds' => max(1, min(3600, (int) env('INTEGRATION_RATE_LIMIT_DEFAULT_RETRY_SECONDS', 60))),
         'queue' => [
             'warning_depth' => max(1, (int) env('INTEGRATION_QUEUE_WARNING_DEPTH', 25)),
             'critical_depth' => max(1, (int) env('INTEGRATION_QUEUE_CRITICAL_DEPTH', 100)),
@@ -15,8 +18,15 @@ return [
             'critical_age_seconds' => max(30, (int) env('INTEGRATION_QUEUE_CRITICAL_AGE_SECONDS', 600)),
         ],
     ],
-    'fhir_page_limit' => max(1, (int) env('INTEGRATION_FHIR_PAGE_LIMIT', 10)),
-    'fhir_resource_limit' => max(1, (int) env('INTEGRATION_FHIR_RESOURCE_LIMIT', 1000)),
+    'fhir_poll_cadence_minutes' => max(1, min(10080, (int) env('INTEGRATION_FHIR_POLL_CADENCE_MINUTES', 15))),
+    'fhir_page_size' => max(1, min(1000, (int) env('INTEGRATION_FHIR_PAGE_SIZE', 100))),
+    'fhir_page_limit' => max(1, min(100, (int) env('INTEGRATION_FHIR_PAGE_LIMIT', 10))),
+    'fhir_resource_limit' => max(1, min(100000, (int) env('INTEGRATION_FHIR_RESOURCE_LIMIT', 1000))),
+    'fhir_vendor_conformance' => [
+        'epic' => [
+            'software_name_contains_any' => ['epic'],
+        ],
+    ],
     'secret_file_root' => env('INTEGRATION_SECRET_FILE_ROOT', '/etc/zephyrus/secrets'),
     'secret_max_bytes' => max(1024, (int) env('INTEGRATION_SECRET_MAX_BYTES', 65_536)),
     'credential_rotation_threshold_days' => [90, 60, 30, 14, 7],

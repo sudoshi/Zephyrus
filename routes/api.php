@@ -441,6 +441,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:viewIntegrations'])->pre
         ->middleware('admin.scope:source')->whereNumber('source');
     Route::get('/sources/{source}/status-facets', [SourceStatusFacetController::class, 'show'])
         ->middleware('admin.scope:source')->whereNumber('source');
+    Route::get('/sources/{source}/fhir/conformance', [EnterpriseConnectorController::class, 'fhirConformance'])
+        ->middleware('admin.scope:source')->whereNumber('source');
     Route::get('/sources/{source}/endpoints', [IntegrationEndpointController::class, 'index'])->whereNumber('source');
     Route::get('/sources/{source}/credentials', [IntegrationCredentialController::class, 'index'])->whereNumber('source');
     Route::get('/secret-providers', [CredentialNetworkGovernanceController::class, 'providers']);
@@ -490,6 +492,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1', 'can:manageIntegrations'])->p
         ->middleware('admin.scope:source')->whereNumber(['source', 'route']);
     Route::delete('/sources/{source}/peer-pin-policies/{policy}', [CredentialNetworkGovernanceController::class, 'retirePeerPinPolicy'])
         ->middleware('admin.scope:source')->whereNumber(['source', 'policy']);
+    Route::put('/sources/{source}/fhir/resource-profiles/{resourceType}', [EnterpriseConnectorController::class, 'configureFhirResourceProfile'])
+        ->middleware('admin.scope:source')->whereNumber('source')->where('resourceType', '[A-Z][A-Za-z]{1,79}');
+    Route::delete('/sources/{source}/fhir/resource-profiles/{profile}', [EnterpriseConnectorController::class, 'retireFhirResourceProfile'])
+        ->middleware('admin.scope:source')->whereNumber(['source', 'profile']);
     Route::post('/sources/{source}/activation-requests', [GovernedIntegrationChangeController::class, 'requestSourceActivation'])
         ->middleware('admin.scope:source')->whereNumber('source');
     Route::post('/sources/{source}/activation-window-requests', [GovernedIntegrationChangeController::class, 'requestScheduledSourceActivation'])

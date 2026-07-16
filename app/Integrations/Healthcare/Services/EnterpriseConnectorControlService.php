@@ -2,7 +2,7 @@
 
 namespace App\Integrations\Healthcare\Services;
 
-use App\Jobs\PollEpicFhirResource;
+use App\Jobs\PollFhirResource;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Jobs\RunIntegrationProtocolHealthCheck;
 use App\Models\Ops\Approval;
@@ -20,6 +20,8 @@ class EnterpriseConnectorControlService
     public function __construct(
         private readonly IntegrationConfigurationAuditService $audit,
         private readonly ClinicalPayloadStore $payloads,
+        private readonly SourceRuntimeExecutionService $runtimeExecution,
+        private readonly FhirResourceProfileService $fhirProfiles,
     ) {}
 
     /** @return array<string,mixed> */
@@ -218,6 +220,16 @@ class EnterpriseConnectorControlService
                 'updated_at' => now(),
             ], 'ingest_run_id');
 
+            $this->runtimeExecution->recordIngestRun(
+                (int) $runId,
+                'protocol_health',
+                'queued',
+                0,
+                RunIntegrationProtocolHealthCheck::MAX_ATTEMPTS,
+                'protocol_health_queued',
+                $correlationId,
+            );
+
             $this->audit->record($userId, 'queued', 'protocol_health_check', (int) $runId, $source->source_key, [], [
                 'runUuid' => $runUuid,
                 'sourceId' => $sourceId,
@@ -232,10 +244,6 @@ class EnterpriseConnectorControlService
     /** @return array<string, mixed> */
     public function queueFhirPoll(int $sourceId, string $resourceType, ?int $userId, string $correlationId): array
     {
-        if (! in_array($resourceType, ['Encounter', 'Location'], true)) {
-            abort(422, 'The FHIR resource type is not enabled for this operational slice.');
-        }
-
         return DB::transaction(function () use ($sourceId, $resourceType, $userId, $correlationId): array {
             $source = DB::table('integration.sources')->where('source_id', $sourceId)->lockForUpdate()->first();
             abort_unless($source, 404);
@@ -249,8 +257,13 @@ class EnterpriseConnectorControlService
             if (! $connectionReady || ! $credentialReady) {
                 abort(422, 'Live discovery and resolved SMART credentials are required before polling.');
             }
+            try {
+                $this->fhirProfiles->requirePollable($sourceId, $resourceType);
+            } catch (\InvalidArgumentException|\App\Integrations\Healthcare\Exceptions\IntegrationProtocolException) {
+                abort(422, 'The FHIR resource profile is not enabled and capability-confirmed.');
+            }
 
-            $connectorKey = 'epic.fhir-r4.'.strtolower($resourceType);
+            $connectorKey = 'fhir.r4.'.strtolower($resourceType);
             $existing = DB::table('raw.ingest_runs')
                 ->where('source_id', $sourceId)
                 ->where('connector_key', $connectorKey)
@@ -278,13 +291,23 @@ class EnterpriseConnectorControlService
                 'created_at' => now(),
                 'updated_at' => now(),
             ], 'ingest_run_id');
+            $this->runtimeExecution->recordIngestRun(
+                (int) $runId,
+                'fhir_poll',
+                'queued',
+                0,
+                PollFhirResource::MAX_ATTEMPTS,
+                'fhir_poll_queued',
+                $correlationId,
+                metadata: ['resource_type' => $resourceType],
+            );
             $this->audit->record($userId, 'queued', 'fhir_poll', (int) $runId, $source->source_key, [], [
                 'runUuid' => $runUuid,
                 'sourceId' => $sourceId,
                 'resourceType' => $resourceType,
                 'status' => 'queued',
             ], $correlationId);
-            PollEpicFhirResource::dispatch((int) $runId, $resourceType, $userId, $correlationId)->afterCommit();
+            PollFhirResource::dispatch((int) $runId, $resourceType, $userId, $correlationId)->afterCommit();
 
             return $this->fhirRunPayload(DB::table('raw.ingest_runs')->where('ingest_run_id', $runId)->first(), $resourceType, true);
         });
@@ -344,6 +367,14 @@ class EnterpriseConnectorControlService
                 'created_at' => now(),
                 'updated_at' => now(),
             ], 'event_replay_job_id');
+            $this->runtimeExecution->recordReplayJob(
+                (int) $replayId,
+                'queued',
+                0,
+                ReplayPendingIntegrationEvents::MAX_ATTEMPTS,
+                'canonical_replay_queued',
+                $correlationId,
+            );
             $this->audit->record($userId, 'queued', 'canonical_event_replay', (int) $replayId, $replayUuid, [], [
                 'replayUuid' => $replayUuid,
                 'scope' => $normalized,

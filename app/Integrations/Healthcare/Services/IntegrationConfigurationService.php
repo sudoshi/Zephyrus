@@ -418,7 +418,7 @@ class IntegrationConfigurationService
         return $this->sourceQuery()->where('source.source_id', $sourceId)->firstOrFail();
     }
 
-    private function assertChildConfigurationMutable(int $sourceId, string $entity): void
+    public function assertChildConfigurationMutable(int $sourceId, string $entity): void
     {
         $source = $this->sourceRow($sourceId);
         if (in_array((string) $source->lifecycle_state, [

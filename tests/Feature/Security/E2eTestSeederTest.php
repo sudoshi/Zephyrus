@@ -39,6 +39,16 @@ class E2eTestSeederTest extends TestCase
         $this->assertTrue(Hash::check('BrowserOnlyPassword!123', $actor->password));
         $this->assertFalse(Hash::check('password', $actor->password));
 
+        $controlPlane = $this->actingAs($actor)
+            ->getJson('/api/admin/integrations/control-plane');
+        $controlPlane
+            ->assertOk()
+            ->assertJsonPath('data.counts.sources', 1)
+            ->assertJsonPath('data.counts.fhirConnections', 0);
+        $controlPlaneDocument = json_decode($controlPlane->getContent(), false, 512, JSON_THROW_ON_ERROR);
+        $this->assertInstanceOf(\stdClass::class, $controlPlaneDocument->data->sources[0]->queueState);
+        $this->assertInstanceOf(\stdClass::class, $controlPlaneDocument->data->sources[0]->runtimeState);
+
         $target = User::query()->where('username', 'e2e_lifecycle_target')->firstOrFail();
         $this->assertSame('Browser Lifecycle Target', $target->name);
         $this->assertSame('user', $target->role);

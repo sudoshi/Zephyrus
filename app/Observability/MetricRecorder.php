@@ -12,16 +12,13 @@ use Throwable;
 /**
  * INT-OBS 4 — the PHI-safe, OpenTelemetry-compatible metric/trace recorder.
  *
- * This is the application-facing seam. It is config-gated (observability.enabled,
- * default OFF) and adds no composer dependency: when disabled it is a guarded
- * no-op. When enabled it validates every attribute through the safe-attribute
- * contract (SpanAttributes -> ClinicalContentGuard) and forwards a PHI-safe
- * MetricSample / SpanRecord to the bound in-process exporter. A deployment binds
- * a real OTLP exporter to MetricExporter/TraceExporter to ship over the wire.
+ * This is the application-facing seam. It is config-gated (default OFF). When
+ * enabled it validates every attribute through the safe-attribute contract and
+ * forwards a PHI-safe record to memory/null or the official OTLP SDK adapter.
  *
  * Correlation from receipt through projection/outbound ACK is carried on the
- * attributes: 'request.id' (AssignRequestIdentity) and 'zephyrus.event.uuid'
- * (canonical event UUID). Recording is best-effort: an exporter error is logged
+ * attributes: 'zephyrus.correlation.uuid' (AssignRequestIdentity) and
+ * 'zephyrus.event.uuid' (canonical event UUID). Recording is best-effort: an exporter error is logged
  * (redacted) and never propagates to the caller.
  */
 final class MetricRecorder
@@ -64,8 +61,8 @@ final class MetricRecorder
         try {
             $span = new SpanRecord(
                 name: $this->name($name),
-                status: $status,
-                durationMs: max(0, $durationMs),
+                status: in_array($status, ['ok', 'error', 'unset'], true) ? $status : 'unset',
+                durationMs: max(0, min(86_400_000, $durationMs)),
                 attributes: $this->attributes($attributes),
                 startedAtIso: CarbonImmutable::now()->subMilliseconds(max(0, $durationMs))->toIso8601String(),
             );
@@ -102,7 +99,7 @@ final class MetricRecorder
         return SpanAttributes::make([
             'service.name' => (string) config('observability.service.name', 'zephyrus'),
             'service.namespace' => (string) config('observability.service.namespace', 'zephyrus'),
-            'deployment.environment' => (string) config('observability.service.environment', 'production'),
+            'deployment.environment.name' => (string) config('observability.service.environment', 'production'),
             ...$attributes,
         ], $this->guard);
     }

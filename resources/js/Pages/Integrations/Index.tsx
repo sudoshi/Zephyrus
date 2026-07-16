@@ -5,9 +5,12 @@ import { CredentialConfiguration, EndpointConfiguration, SourceConfiguration } f
 import { CredentialAuthorityConsole, NetworkRouteConfiguration } from '@/Components/Integrations/CredentialNetworkGovernance';
 import {
   useIntegrationControlPlane,
+  useFhirConformance,
   usePreviewIntegrationReplay,
   useRequestIntegrationReplay,
-  useQueueEpicFhirPoll,
+  useQueueFhirPoll,
+  useConfigureFhirResourceProfile,
+  useRetireFhirResourceProfile,
   useQueueIntegrationHealthCheck,
   useQueueIntegrationReplay,
   useSourceObservability,
@@ -566,10 +569,43 @@ function SourcesPanel({ data, selectedSourceId, hasFacilityScope, canOperateInte
   );
 }
 
-function FhirPanel({ data, selectedSourceId }: { data: IntegrationControlPlane; selectedSourceId: number | null }) {
+export function FhirPanel({ data, selectedSourceId, canManageIntegrations }: { data: IntegrationControlPlane; selectedSourceId: number | null; canManageIntegrations: boolean }) {
   const smartCredentials = data.credentials.filter((credential) => credential.credentialType === 'smart_backend_services');
+  const selectedConnection = data.fhirConnections.find((connection) => connection.sourceId === selectedSourceId);
+  const selectedSource = data.sources?.find((source) => source.sourceId === selectedSourceId);
+  const selectedFhirSourceId = selectedSource?.interfaceType.toLowerCase().includes('fhir')
+    ? selectedSource.sourceId
+    : (selectedConnection?.sourceId ?? null);
+  const conformanceQuery = useFhirConformance(selectedFhirSourceId);
+  const conformance = conformanceQuery.data?.status === 'unobserved' ? null : conformanceQuery.data;
   const healthCheck = useQueueIntegrationHealthCheck();
-  const poll = useQueueEpicFhirPoll();
+  const poll = useQueueFhirPoll();
+  const configureProfile = useConfigureFhirResourceProfile();
+  const retireProfile = useRetireFhirResourceProfile();
+  const [resourceType, setResourceType] = useState('');
+  const [canonicalProfileUrl, setCanonicalProfileUrl] = useState('');
+  const [canonicalProfileVersion, setCanonicalProfileVersion] = useState('');
+  const [pollEnabled, setPollEnabled] = useState(true);
+  const [cadenceMinutes, setCadenceMinutes] = useState('15');
+  const [pageSize, setPageSize] = useState('100');
+  const [pageLimit, setPageLimit] = useState('10');
+  const [resourceLimit, setResourceLimit] = useState('1000');
+  const [profileReason, setProfileReason] = useState('');
+  const inputClass = 'min-h-8 rounded-md border border-healthcare-border bg-healthcare-surface px-2 py-1 text-xs/[16px] text-healthcare-text-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark';
+  const editProfile = (profile: NonNullable<typeof selectedConnection>['resourceProfiles'][number]) => {
+    setResourceType(profile.resourceType);
+    setCanonicalProfileUrl(profile.canonicalProfileUrl ?? '');
+    setCanonicalProfileVersion(profile.canonicalProfileVersion ?? '');
+    setPollEnabled(profile.pollEnabled);
+    setCadenceMinutes(String(profile.cadenceMinutes));
+    setPageSize(String(profile.pageSize));
+    setPageLimit(String(profile.pageLimit));
+    setResourceLimit(String(profile.resourceLimit));
+  };
+  const validProfile = selectedSourceId !== null
+    && /^[A-Z][A-Za-z]{1,79}$/.test(resourceType)
+    && profileReason.trim().length >= 10
+    && [cadenceMinutes, pageSize, pageLimit, resourceLimit].every((value) => /^\d+$/.test(value));
   return (
     <div className="space-y-5">
       <Panel title="FHIR R4 Connections">
@@ -590,8 +626,15 @@ function FhirPanel({ data, selectedSourceId }: { data: IntegrationControlPlane; 
                 <td className={cellClass}>
                   <div className="flex min-w-max flex-wrap gap-1.5">
                     <ActionButton disabled={healthCheck.isPending || selectedSourceId !== connection.sourceId} onClick={() => healthCheck.mutate(connection.sourceId)}>Check</ActionButton>
-                    <ActionButton disabled={poll.isPending || selectedSourceId !== connection.sourceId || !['ready', 'active'].includes(connection.status)} onClick={() => poll.mutate({ sourceId: connection.sourceId, resourceType: 'Encounter' })}>Poll Encounter</ActionButton>
-                    <ActionButton disabled={poll.isPending || selectedSourceId !== connection.sourceId || !['ready', 'active'].includes(connection.status)} onClick={() => poll.mutate({ sourceId: connection.sourceId, resourceType: 'Location' })}>Poll Location</ActionButton>
+                    {connection.resourceProfiles.filter((profile) => profile.pollEnabled).map((profile) => (
+                      <ActionButton
+                        key={profile.resourceType}
+                        disabled={poll.isPending || selectedSourceId !== connection.sourceId || !['ready', 'active'].includes(connection.status) || profile.status !== 'enabled'}
+                        onClick={() => poll.mutate({ sourceId: connection.sourceId, resourceType: profile.resourceType })}
+                      >
+                        Poll {profile.resourceType}
+                      </ActionButton>
+                    ))}
                   </div>
                 </td>
               </tr>
@@ -600,6 +643,111 @@ function FhirPanel({ data, selectedSourceId }: { data: IntegrationControlPlane; 
         )}
         {(healthCheck.isSuccess || poll.isSuccess) && <p role="status" className="mt-2 text-xs/[16px] text-healthcare-success dark:text-healthcare-success-dark">The integration run was queued on the supervised worker.</p>}
         {(healthCheck.isError || poll.isError) && <p role="alert" className="mt-2 text-xs/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">The run could not be queued. Verify activation and protocol health.</p>}
+      </Panel>
+      <Panel title="Discovered FHIR + SMART Conformance">
+        {selectedFhirSourceId === null ? <EmptyRows label="Select a FHIR source to inspect its latest immutable discovery evidence." /> : null}
+        {selectedFhirSourceId !== null && conformanceQuery.isLoading ? <p role="status" className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading conformance evidence…</p> : null}
+        {selectedFhirSourceId !== null && conformanceQuery.isError ? <p role="alert" className="text-sm text-healthcare-critical dark:text-healthcare-critical-dark">Conformance evidence could not be loaded for the active source scope.</p> : null}
+        {selectedFhirSourceId !== null && conformanceQuery.data?.status === 'unobserved' ? <EmptyRows label="No successful CapabilityStatement and SMART discovery has been observed for this source." /> : null}
+        {conformance ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark"><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Evidence</div><div className="mt-1 flex items-center gap-2"><StatusBadge value={conformance.status} /><span className="text-xs/[16px]">#{conformance.observationId}</span></div><div className="mt-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">{formatTime(conformance.observedAtIso)}</div></div>
+              <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark"><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">FHIR server</div><div className="mt-1 font-semibold">{conformance.softwareName ?? 'Unknown software'} {conformance.softwareVersion ?? ''}</div><div className="mt-1 text-xs/[16px]">R{conformance.fhirVersion} · {conformance.formats.join(', ')}</div></div>
+              <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark"><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Resources</div><div className="mt-1 text-lg font-semibold tabular-nums">{conformance.searchableResourceCount} / {conformance.resourceCount}</div><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">searchable / declared</div></div>
+              <div className="rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark"><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Declared detail</div><div className="mt-1 text-lg font-semibold tabular-nums">{conformance.searchParameterCount}</div><div className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">search params · {conformance.operationCount} operations</div></div>
+            </div>
+            <div className="flex flex-wrap gap-2" aria-label="FHIR feature support">
+              {[
+                ['Batch', conformance.supportsBatch],
+                ['Transaction', conformance.supportsTransaction],
+                ['System history', conformance.supportsSystemHistory],
+                ['System search', conformance.supportsSystemSearch],
+                ['Bulk Data', conformance.supportsBulkData],
+                ['Subscriptions', conformance.supportsSubscriptions],
+              ].map(([label, supported]) => <span key={String(label)} className={`rounded-full px-2 py-1 text-xs/[16px] ${supported ? 'bg-healthcare-success/15 text-healthcare-success dark:text-healthcare-success-dark' : 'bg-healthcare-surface-secondary text-healthcare-text-secondary dark:bg-healthcare-surface-dark dark:text-healthcare-text-secondary-dark'}`}>{label}: {supported ? 'declared' : 'not declared'}</span>)}
+            </div>
+            <div className="grid gap-3 rounded-md border border-healthcare-border p-3 text-xs/[16px] dark:border-healthcare-border-dark sm:grid-cols-2 lg:grid-cols-4">
+              <div><div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">SMART token origin</div><div className="mt-1 break-all font-medium">{conformance.smart.tokenOrigin ?? 'Not declared'}</div></div>
+              <div><div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Grant / client auth</div><div className="mt-1 font-medium">{conformance.smart.grantTypes.join(', ') || 'Undisclosed'} · {conformance.smart.tokenAuthMethods.join(', ') || 'Undisclosed'}</div></div>
+              <div><div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">SMART / scopes</div><div className="mt-1 font-medium tabular-nums">{conformance.smart.capabilities.length} capabilities · {conformance.smart.scopes.length} scopes</div></div>
+              <div><div className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Evidence hashes</div><div className="mt-1 font-mono" title={conformance.documentHashes.capabilityStatement ?? undefined}>Capability {conformance.documentHashes.capabilityStatement?.slice(0, 12) ?? 'legacy'}</div><div className="font-mono" title={conformance.documentHashes.smartConfiguration ?? undefined}>SMART {conformance.documentHashes.smartConfiguration?.slice(0, 12) ?? 'legacy'}</div></div>
+            </div>
+            {conformance.warnings.length > 0 ? <p role="status" className="text-xs/[16px] text-healthcare-warning dark:text-healthcare-warning-dark">Discovery warnings: {conformance.warnings.map(humanize).join(', ')}</p> : null}
+            <Table headings={['Resource', 'Interactions', 'Profiles', 'Search Params', 'Includes', 'Operations']}>
+              {conformance.resources.slice(0, 100).map((resource) => (
+                <tr key={resource.resourceType}>
+                  <td className={primaryCellClass}>{resource.resourceType}</td>
+                  <td className={cellClass}>{resource.interactions.join(', ') || 'None declared'}</td>
+                  <td className={`${cellClass} tabular-nums`}>{resource.supportedProfiles.length + (resource.baseProfileUrl ? 1 : 0)}</td>
+                  <td className={`${cellClass} tabular-nums`}>{resource.searchParameters.length}</td>
+                  <td className={`${cellClass} tabular-nums`}>{resource.searchIncludes.length} / {resource.searchRevIncludes.length}</td>
+                  <td className={`${cellClass} tabular-nums`}>{resource.operations.length}</td>
+                </tr>
+              ))}
+            </Table>
+            {conformance.resources.length > 100 ? <p className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Showing the first 100 of {conformance.resources.length} declared resources.</p> : null}
+          </div>
+        ) : null}
+      </Panel>
+      <Panel title="Governed Resource Profiles">
+        {selectedConnection?.resourceProfiles.length ? (
+          <Table headings={['Resource', 'Canonical Profile', 'Status', 'Cadence', 'Limits', 'Version', 'Controls']}>
+            {selectedConnection.resourceProfiles.map((profile) => (
+              <tr key={profile.profileId}>
+                <td className={primaryCellClass}>{profile.resourceType}</td>
+                <td className={cellClass}>{profile.canonicalProfileUrl ?? 'Base R4 resource'}{profile.canonicalProfileVersion ? ` | ${profile.canonicalProfileVersion}` : ''}</td>
+                <td className={cellClass}><StatusBadge value={profile.status} /></td>
+                <td className={cellClass}>{profile.pollEnabled ? `${profile.cadenceMinutes} min` : 'Polling disabled'}</td>
+                <td className={cellClass}>{profile.pageSize}/page · {profile.pageLimit} pages · {profile.resourceLimit} resources</td>
+                <td className={`${cellClass} tabular-nums`}>v{profile.versionNumber}</td>
+                <td className={cellClass}>
+                  <div className="flex min-w-max gap-1.5">
+                    <ActionButton disabled={!canManageIntegrations} onClick={() => editProfile(profile)}>Edit</ActionButton>
+                    <ActionButton
+                      disabled={!canManageIntegrations || retireProfile.isPending || profile.status === 'retired' || profileReason.trim().length < 10}
+                      onClick={() => retireProfile.mutate({ sourceId: selectedConnection.sourceId, profileId: profile.profileId, reason: profileReason.trim() })}
+                    >Retire</ActionButton>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        ) : <EmptyRows label="Select a FHIR source to configure its governed resource profiles." />}
+        {canManageIntegrations && selectedSourceId !== null ? (
+          <div className="mt-3 space-y-3 rounded-md border border-healthcare-border p-3 dark:border-healthcare-border-dark">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Resource type<input className={inputClass} value={resourceType} onChange={(event) => setResourceType(event.target.value)} placeholder="Observation" /></label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Canonical profile URL<input className={inputClass} value={canonicalProfileUrl} onChange={(event) => setCanonicalProfileUrl(event.target.value)} placeholder="https://hl7.org/fhir/us/core/..." /></label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Profile version<input className={inputClass} value={canonicalProfileVersion} onChange={(event) => setCanonicalProfileVersion(event.target.value)} placeholder="7.0.0" /></label>
+              <label className="flex items-end gap-2 pb-1 text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"><input type="checkbox" checked={pollEnabled} onChange={(event) => setPollEnabled(event.target.checked)} />Polling enabled</label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Cadence minutes<input className={inputClass} type="number" min="1" max="10080" value={cadenceMinutes} onChange={(event) => setCadenceMinutes(event.target.value)} /></label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Page size<input className={inputClass} type="number" min="1" max="1000" value={pageSize} onChange={(event) => setPageSize(event.target.value)} /></label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Page limit<input className={inputClass} type="number" min="1" max="100" value={pageLimit} onChange={(event) => setPageLimit(event.target.value)} /></label>
+              <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Resource limit<input className={inputClass} type="number" min="1" max="100000" value={resourceLimit} onChange={(event) => setResourceLimit(event.target.value)} /></label>
+            </div>
+            <label className="flex flex-col text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Change reason<input className={inputClass} value={profileReason} onChange={(event) => setProfileReason(event.target.value)} placeholder="Explain the approved resource polling change." /></label>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActionButton disabled={!validProfile || configureProfile.isPending} onClick={() => configureProfile.mutate({
+                sourceId: selectedSourceId,
+                resourceType,
+                input: {
+                  canonical_profile_url: canonicalProfileUrl || null,
+                  canonical_profile_version: canonicalProfileVersion || null,
+                  poll_enabled: pollEnabled,
+                  cadence_minutes: Number(cadenceMinutes),
+                  page_size: Number(pageSize),
+                  page_limit: Number(pageLimit),
+                  resource_limit: Number(resourceLimit),
+                  reason: profileReason.trim(),
+                },
+              }, { onSuccess: () => setProfileReason('') })}>Save profile</ActionButton>
+              <span className="text-xs/[16px] text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">A profile becomes enabled only after live capability discovery and SMART scope confirmation.</span>
+            </div>
+          </div>
+        ) : null}
+        {(configureProfile.isSuccess || retireProfile.isSuccess) && <p role="status" className="mt-2 text-xs/[16px] text-healthcare-success dark:text-healthcare-success-dark">The governed resource profile was recorded.</p>}
+        {(configureProfile.isError || retireProfile.isError) && <p role="alert" className="mt-2 text-xs/[16px] text-healthcare-critical dark:text-healthcare-critical-dark">The profile change was rejected. Verify source scope, resource syntax, limits, capability, and reason.</p>}
       </Panel>
       <Panel title="SMART Backend Services">
         {smartCredentials.length === 0 ? <EmptyRows label="No SMART Backend Services credentials configured." /> : (
@@ -1206,11 +1354,11 @@ function AuditPanel({
   );
 }
 
-function ActivePanel({ tab, data, canApprove, canOperateIntegrations, currentUserId, selectedOrganizationId, selectedFacilityId, selectedSourceId, hasFacilityScope, onRefresh }: { tab: TabId; data: IntegrationControlPlane; canApprove: boolean; canOperateIntegrations: boolean; currentUserId: number | null; selectedOrganizationId: number | null; selectedFacilityId: number | null; selectedSourceId: number | null; hasFacilityScope: boolean; onRefresh: () => Promise<void> }) {
+function ActivePanel({ tab, data, canApprove, canManageIntegrations, canOperateIntegrations, currentUserId, selectedOrganizationId, selectedFacilityId, selectedSourceId, hasFacilityScope, onRefresh }: { tab: TabId; data: IntegrationControlPlane; canApprove: boolean; canManageIntegrations: boolean; canOperateIntegrations: boolean; currentUserId: number | null; selectedOrganizationId: number | null; selectedFacilityId: number | null; selectedSourceId: number | null; hasFacilityScope: boolean; onRefresh: () => Promise<void> }) {
   switch (tab) {
     case 'observability': return <ObservabilityPanel selectedSourceId={selectedSourceId} canOperateIntegrations={canOperateIntegrations} />;
     case 'sources': return <SourcesPanel data={data} selectedSourceId={selectedSourceId} hasFacilityScope={hasFacilityScope} canOperateIntegrations={canOperateIntegrations} />;
-    case 'fhir': return <FhirPanel data={data} selectedSourceId={selectedSourceId} />;
+    case 'fhir': return <FhirPanel data={data} selectedSourceId={selectedSourceId} canManageIntegrations={canManageIntegrations} />;
     case 'hl7': return <Hl7Panel data={data} selectedSourceId={selectedSourceId} />;
     case 'applications': return <ApplicationsPanel data={data} />;
     case 'mappings': return <MappingsPanel data={data} />;
@@ -1228,6 +1376,7 @@ export default function IntegrationsIndex() {
   const controlPlane = useIntegrationControlPlane();
   const page = usePage<PageProps>();
   const canApprove = page.props.auth.can?.approve_integration_changes === true;
+  const canManageIntegrations = page.props.auth.can?.manage_integrations === true;
   const canOperateIntegrations = page.props.auth.can?.operate_integrations === true;
   const currentUserId = page.props.auth.user?.id ?? null;
   const selectedOrganizationId = page.props.adminScope?.current?.organization.id ?? null;
@@ -1239,7 +1388,11 @@ export default function IntegrationsIndex() {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', tab);
-      window.history.replaceState({}, '', url);
+      router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        preserveScroll: true,
+        preserveState: true,
+      });
     }
   };
 
@@ -1315,7 +1468,7 @@ export default function IntegrationsIndex() {
               ))}
             </div>
 
-            <div role="tabpanel"><ActivePanel tab={activeTab} data={controlPlane.data} canApprove={canApprove} canOperateIntegrations={canOperateIntegrations} currentUserId={currentUserId} selectedOrganizationId={selectedOrganizationId} selectedFacilityId={selectedFacilityId} selectedSourceId={selectedSourceId} hasFacilityScope={selectedFacilityId !== null} onRefresh={async () => { await controlPlane.refetch(); }} /></div>
+            <div role="tabpanel"><ActivePanel tab={activeTab} data={controlPlane.data} canApprove={canApprove} canManageIntegrations={canManageIntegrations} canOperateIntegrations={canOperateIntegrations} currentUserId={currentUserId} selectedOrganizationId={selectedOrganizationId} selectedFacilityId={selectedFacilityId} selectedSourceId={selectedSourceId} hasFacilityScope={selectedFacilityId !== null} onRefresh={async () => { await controlPlane.refetch(); }} /></div>
           </div>
         )}
       </PageContentLayout>

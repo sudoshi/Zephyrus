@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
 use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Integrations\Healthcare\Services\SourceRuntimeExecutionService;
 use App\Jobs\Middleware\FailClinicalJobSafely;
 use App\Security\ClinicalPayloads\ClinicalPayloadHydrator;
 use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
@@ -22,7 +23,9 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 1;
+    public const MAX_ATTEMPTS = 1;
+
+    public int $tries = self::MAX_ATTEMPTS;
 
     public int $timeout = 300;
 
@@ -37,13 +40,24 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
     public function handle(
         RtdcProjectionHandler $projector,
         IntegrationConfigurationAuditService $audit,
+        ?SourceRuntimeExecutionService $runtimeExecution = null,
         ?ClinicalPayloadHydrator $payloads = null,
     ): void {
+        $runtimeExecution ??= app(SourceRuntimeExecutionService::class);
         $payloads ??= app(ClinicalPayloadHydrator::class);
         $replay = DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $this->replayJobId)->first();
         if (! $replay || in_array($replay->status, ['completed', 'completed_with_errors'], true)) {
             return;
         }
+        $startedAt = hrtime(true);
+        $runtimeExecution->recordReplayJob(
+            $this->replayJobId,
+            'attempt_started',
+            1,
+            self::MAX_ATTEMPTS,
+            'canonical_replay_attempt_started',
+            $this->correlationId,
+        );
         $scope = $this->map($replay->scope);
         DB::table('integration.event_replay_jobs')->where('event_replay_job_id', $this->replayJobId)->update([
             'status' => 'running', 'started_at' => now(), 'completed_at' => null, 'error_summary' => null, 'updated_at' => now(),
@@ -121,6 +135,16 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
         $audit->record($this->actorUserId, $status, 'canonical_event_replay', $this->replayJobId, (string) $replay->replay_uuid, [], [
             'status' => $status, 'eventsReplayed' => $replayed, 'eventsFailed' => $failed,
         ], $this->correlationId);
+        $runtimeExecution->recordReplayJob(
+            $this->replayJobId,
+            'succeeded',
+            1,
+            self::MAX_ATTEMPTS,
+            $status === 'completed_with_errors' ? 'canonical_replay_completed_with_errors' : 'canonical_replay_completed',
+            $this->correlationId,
+            durationMs: $this->durationMs($startedAt),
+            metadata: ['events_replayed' => $replayed, 'events_failed' => $failed],
+        );
     }
 
     public function failed(?Throwable $exception): void
@@ -136,6 +160,14 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
             'error_summary' => 'replay_job_failed',
             'updated_at' => now(),
         ]);
+        app(SourceRuntimeExecutionService::class)->recordReplayJob(
+            $this->replayJobId,
+            'terminal_failed',
+            1,
+            self::MAX_ATTEMPTS,
+            'replay_job_failed',
+            $this->correlationId,
+        );
         app(IntegrationConfigurationAuditService::class)->record(
             $this->actorUserId,
             'failed',
@@ -167,5 +199,10 @@ class ReplayPendingIntegrationEvents implements ClinicalPayloadSafeQueueJob, Sho
     private function map(mixed $value): array
     {
         return is_string($value) ? (json_decode($value, true) ?: []) : (is_array($value) ? $value : []);
+    }
+
+    private function durationMs(int $startedAt): int
+    {
+        return max(0, min(86400000, (int) ((hrtime(true) - $startedAt) / 1_000_000)));
     }
 }

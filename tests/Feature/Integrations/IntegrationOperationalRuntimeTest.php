@@ -3,22 +3,33 @@
 namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
+use App\Integrations\Healthcare\Exceptions\IntegrationThrottledException;
 use App\Integrations\Healthcare\Services\EpicSmartFhirClient;
+use App\Integrations\Healthcare\Services\FhirConformanceObservationService;
+use App\Integrations\Healthcare\Services\FhirResourceProfileService;
 use App\Integrations\Healthcare\Services\IntegrationProtocolHealthService;
 use App\Integrations\Healthcare\Services\NetworkRouteService;
 use App\Integrations\Healthcare\Services\OperationalIntegrationConfigurator;
+use App\Integrations\Healthcare\Services\SmartBackendFhirClient;
+use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
+use App\Jobs\DispatchScheduledFhirPolls;
 use App\Jobs\PollEpicFhirResource;
+use App\Jobs\PollFhirResource;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Jobs\RunIntegrationProtocolHealthCheck;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
+use App\Observability\Exporters\InMemoryMetricExporter;
 use App\Security\Network\DnsResolver;
 use App\Security\Network\IntegrationUrlPolicy;
 use App\Services\Auth\StepUpAuthenticationService;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -66,6 +77,8 @@ class IntegrationOperationalRuntimeTest extends TestCase
 
     protected function tearDown(): void
     {
+        CarbonImmutable::setTestNow();
+
         if ($this->secretDirectory) {
             foreach (glob($this->secretDirectory.'/*') ?: [] as $path) {
                 @unlink($path);
@@ -90,6 +103,15 @@ class IntegrationOperationalRuntimeTest extends TestCase
         ]);
         $this->assertSame(3, DB::table('integration.source_endpoints')->count());
         $this->assertSame(1, DB::table('integration.fhir_client_connections')->count());
+        $this->assertSame(['Encounter', 'Location'], DB::table('integration.fhir_resource_profiles')
+            ->orderBy('resource_type')
+            ->pluck('resource_type')
+            ->all());
+        $this->assertSame(['configured'], DB::table('integration.fhir_resource_profiles')
+            ->distinct()
+            ->pluck('profile_status')
+            ->all());
+        $this->assertSame(2, DB::table('integration.fhir_resource_profile_events')->count());
         $this->assertDatabaseHas('integration.smart_backend_credentials', [
             'credential_key' => 'epic-smart-backend',
             'status' => 'activation_required',
@@ -139,11 +161,23 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'resource_type' => 'Encounter',
             'capability_type' => 'fhir_resource',
         ]);
+        $this->assertSame(['enabled'], DB::table('integration.fhir_resource_profiles')
+            ->where('source_id', $sourceId)
+            ->distinct()
+            ->pluck('profile_status')
+            ->all());
+        $this->assertSame(4, DB::table('integration.fhir_resource_profile_events')
+            ->where('source_id', $sourceId)
+            ->count());
         $this->assertSame(0, DB::table('integration.connector_watermarks')->count(), 'Protocol reachability must not advance a data watermark.');
     }
 
     public function test_epic_smart_backend_poll_signs_a_jwt_and_persists_versioned_fhir_lineage(): void
     {
+        config()->set('observability.enabled', true);
+        config()->set('observability.exporter', 'memory');
+        $telemetry = app(InMemoryMetricExporter::class);
+        $telemetry->flush();
         config([
             'integrations.network.allowed_hosts' => [$this->epicHost()],
             'integrations.network.require_dns_resolution' => false,
@@ -185,7 +219,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $runId = DB::table('raw.ingest_runs')->insertGetId([
             'run_uuid' => (string) Str::uuid(),
             'source_id' => $sourceId,
-            'connector_key' => 'epic.fhir-r4.encounter',
+            'connector_key' => 'fhir.r4.encounter',
             'run_type' => 'fhir_poll',
             'status' => 'running',
             'started_at' => now(),
@@ -212,7 +246,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $this->assertDatabaseHas('integration.provenance_records', ['target_schema' => 'fhir', 'target_table' => 'resource_versions']);
         $this->assertDatabaseHas('integration.connector_watermarks', [
             'source_id' => $sourceId,
-            'connector_key' => 'epic.fhir-r4',
+            'connector_key' => 'fhir.r4',
             'scope_key' => 'Encounter',
         ]);
         $rawPayload = DB::table('raw.inbound_messages')->where('source_id', $sourceId)->where('message_type', 'FHIR_R4_Encounter')->firstOrFail();
@@ -244,10 +278,229 @@ class IntegrationOperationalRuntimeTest extends TestCase
         ]);
         $this->assertStringNotContainsString('ephemeral-test-token', (string) $databaseDump);
         $this->assertStringNotContainsString('BEGIN PRIVATE KEY', (string) $databaseDump);
+        $span = collect($telemetry->spans())
+            ->first(fn ($record) => $record->name === 'zephyrus.integration.fhir.poll');
+        $this->assertNotNull($span);
+        $this->assertSame('ok', $span->status);
+        $this->assertSame($sourceId, $span->attributes->toArray()['zephyrus.source.id']);
+        $this->assertSame(1, $span->attributes->toArray()['fhir.resources.persisted']);
+        $this->assertStringNotContainsString('RECOGNIZABLE-FHIR-BODY-9911', json_encode($span->toArray(), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_generic_smart_fhir_core_governs_dynamic_resource_profiles_and_vendor_policy(): void
+    {
+        $sourceId = $this->readyEpicSource();
+        $profiles = app(FhirResourceProfileService::class);
+        $user = $this->superuser();
+        $this->selectScope($user, $sourceId)
+            ->putJson('/api/admin/integrations/sources/'.$sourceId.'/fhir/resource-profiles/Observation', [
+                'canonical_profile_url' => 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-clinical-result',
+                'canonical_profile_version' => '7.0.0',
+                'poll_enabled' => true,
+                'cadence_minutes' => 5,
+                'page_size' => 100,
+                'page_limit' => 10,
+                'resource_limit' => 1000,
+                'reason' => 'Configure the approved Observation polling profile.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.resourceType', 'Observation')
+            ->assertJsonPath('data.status', 'configured')
+            ->assertJsonPath('data.versionNumber', 1);
+        $observation = DB::table('integration.fhir_resource_profiles')
+            ->where('source_id', $sourceId)
+            ->where('resource_type', 'Observation')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('integration.fhir_resource_profiles', [
+            'source_id' => $sourceId,
+            'resource_type' => 'Observation',
+            'profile_status' => 'configured',
+            'version_number' => 1,
+        ]);
+        $this->assertQueryRejected(function () use ($observation): void {
+            DB::table('integration.fhir_resource_profiles')
+                ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+                ->update([
+                    'profile_status' => 'enabled',
+                    'version_number' => 2,
+                    'reason_code' => 'unsafe_direct_enable',
+                    'updated_at' => now(),
+                ]);
+        }, 'without discovered capability');
+
+        DB::table('integration.source_capabilities')->insert([
+            'source_id' => $sourceId,
+            'resource_type' => 'Observation',
+            'capability_type' => 'fhir_resource',
+            'operation' => 'read_search',
+            'supported' => true,
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertQueryRejected(function () use ($observation): void {
+            DB::table('integration.fhir_resource_profiles')
+                ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+                ->update([
+                    'profile_status' => 'enabled',
+                    'version_number' => 2,
+                    'reason_code' => 'unsafe_direct_enable',
+                    'updated_at' => now(),
+                ]);
+        }, 'without SMART system read scope');
+        try {
+            $profiles->requirePollable($sourceId, 'Observation');
+            $this->fail('A configured resource without an authorized SMART scope must not be pollable.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('smart_scope_not_authorized_for_resource', $exception->errorCode);
+        }
+
+        DB::table('integration.smart_backend_credentials')
+            ->where('source_id', $sourceId)
+            ->update([
+                'scope_payload' => json_encode([
+                    'system/Encounter.rs',
+                    'system/Location.rs',
+                    'system/Observation.rs',
+                ], JSON_THROW_ON_ERROR),
+                'updated_at' => now(),
+            ]);
+        $currentVersionId = (int) DB::table('integration.sources')
+            ->where('source_id', $sourceId)
+            ->value('current_configuration_version_id');
+        app(SourceConfigurationVersionService::class)->reviseAndApply(
+            $sourceId,
+            ['vendor' => 'Oracle Health'],
+            $currentVersionId,
+            null,
+            'Verify the generic SMART/FHIR core against a non-Epic vendor policy.',
+            (string) Str::uuid(),
+        );
+        Http::swap(new HttpFactory);
+        Http::fake($this->epicDiscoveryResponses('Oracle Health', ['Encounter', 'Location', 'Observation']));
+        $health = app(IntegrationProtocolHealthService::class)->check($sourceId);
+
+        $this->assertSame('Oracle Health', $health['vendor']);
+        $this->assertDatabaseHas('integration.fhir_resource_profiles', [
+            'source_id' => $sourceId,
+            'resource_type' => 'Observation',
+            'profile_status' => 'enabled',
+            'version_number' => 2,
+        ]);
+        $this->assertContains('Observation', $profiles->pollableResourceTypes($sourceId));
+
+        $this->selectScope($user, $sourceId)
+            ->getJson('/api/admin/integrations/control-plane')
+            ->assertOk()
+            ->assertJsonPath('data.fhirConnections.0.resourceProfiles.2.resourceType', 'Observation')
+            ->assertJsonPath('data.fhirConnections.0.resourceProfiles.2.status', 'enabled');
+        Queue::fake();
+        $queued = $this->selectScope($user, $sourceId)
+            ->postJson('/api/admin/integrations/sources/'.$sourceId.'/fhir/poll', [
+                'resource_type' => 'Observation',
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('data.resourceType', 'Observation');
+        $runId = (int) $queued->json('data.runId');
+        Queue::assertPushed(PollFhirResource::class, fn (PollFhirResource $job): bool => $job->runId === $runId
+            && $job->resourceType === 'Observation');
+
+        Http::fake(function (Request $request) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => 'generic-smart-token', 'expires_in' => 300]);
+            }
+
+            return Http::response(
+                ['resourceType' => 'Bundle', 'type' => 'searchset', 'entry' => []],
+                200,
+                ['Content-Type' => 'application/fhir+json'],
+            );
+        });
+        $result = app(SmartBackendFhirClient::class)->poll($sourceId, 'Observation', $runId);
+        $this->assertSame('Observation', $result['resourceType']);
+        $this->assertSame(0, $result['resourcesReceived']);
+        DB::table('raw.ingest_runs')->where('ingest_run_id', $runId)->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Queue::fake();
+        (new DispatchScheduledFhirPolls)->handle(app(\App\Integrations\Healthcare\Services\EnterpriseConnectorControlService::class));
+        Queue::assertPushed(PollFhirResource::class, 3);
+        foreach (['Encounter', 'Location', 'Observation'] as $scheduledResourceType) {
+            Queue::assertPushed(
+                PollFhirResource::class,
+                fn (PollFhirResource $job): bool => $job->resourceType === $scheduledResourceType,
+            );
+        }
+
+        DB::table('integration.source_capabilities')
+            ->where('source_id', $sourceId)
+            ->where('resource_type', 'Observation')
+            ->delete();
+        $profiles->reconcileCapabilities($sourceId, ['Encounter', 'Location']);
+        $this->assertDatabaseHas('integration.fhir_resource_profiles', [
+            'source_id' => $sourceId,
+            'resource_type' => 'Observation',
+            'profile_status' => 'suspended',
+            'version_number' => 3,
+        ]);
+        $this->assertSame(3, DB::table('integration.fhir_resource_profile_events')
+            ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+            ->count());
+
+        $eventId = DB::table('integration.fhir_resource_profile_events')
+            ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+            ->value('fhir_resource_profile_event_id');
+        $this->assertQueryRejected(
+            fn () => DB::table('integration.fhir_resource_profile_events')
+                ->where('fhir_resource_profile_event_id', $eventId)
+                ->update(['reason_code' => 'tampered']),
+            'append-only',
+        );
+        $this->assertQueryRejected(
+            fn () => DB::table('integration.fhir_resource_profiles')
+                ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+                ->delete(),
+            'must be retired',
+        );
+        $this->assertQueryRejected(
+            fn () => DB::table('integration.fhir_resource_profiles')
+                ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+                ->update([
+                    'canonical_profile_url' => 'https://profiles.example/ZPHI-FHIR-PROFILE-9911',
+                    'version_number' => 4,
+                    'reason_code' => 'profile_metadata_changed',
+                    'updated_at' => now(),
+                ]),
+            'clinical content',
+        );
+        $this->selectScope($user, $sourceId)
+            ->deleteJson('/api/admin/integrations/sources/'.$sourceId.'/fhir/resource-profiles/'.$observation->fhir_resource_profile_id, [
+                'reason' => 'Retire the superseded Observation polling profile after capability withdrawal.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'retired')
+            ->assertJsonPath('data.pollEnabled', false)
+            ->assertJsonPath('data.versionNumber', 4);
+        $this->assertDatabaseHas('integration.fhir_resource_profiles', [
+            'fhir_resource_profile_id' => $observation->fhir_resource_profile_id,
+            'profile_status' => 'retired',
+            'poll_enabled' => false,
+            'change_reason' => 'Retire the superseded Observation polling profile after capability withdrawal.',
+        ]);
+        $this->assertSame(4, DB::table('integration.fhir_resource_profile_events')
+            ->where('fhir_resource_profile_id', $observation->fhir_resource_profile_id)
+            ->count());
     }
 
     public function test_replay_preview_is_read_only_and_execution_is_bounded_idempotent_and_audited(): void
     {
+        config()->set('observability.enabled', true);
+        config()->set('observability.exporter', 'memory');
+        $telemetry = app(InMemoryMetricExporter::class);
+        $telemetry->flush();
         $source = app(SourceRegistryService::class)->ensureSource([
             'source_key' => 'replay.test',
             'source_name' => 'Replay Test',
@@ -321,6 +574,14 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'entity_type' => 'canonical_event_replay',
             'action' => 'completed',
         ]);
+        $projectedEventUuid = (string) DB::table('integration.canonical_events')
+            ->where('canonical_event_id', $pendingId)
+            ->value('event_id');
+        $span = collect($telemetry->spans())
+            ->first(fn ($record) => $record->name === 'zephyrus.integration.rtdc.project');
+        $this->assertNotNull($span);
+        $this->assertSame('ok', $span->status);
+        $this->assertSame($projectedEventUuid, $span->attributes->toArray()['zephyrus.event.uuid']);
     }
 
     public function test_failed_fhir_poll_dead_letters_and_a_successful_retry_resolves_it(): void
@@ -341,7 +602,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $runId = DB::table('raw.ingest_runs')->insertGetId([
             'run_uuid' => (string) Str::uuid(),
             'source_id' => $sourceId,
-            'connector_key' => 'epic.fhir-r4.encounter',
+            'connector_key' => 'fhir.r4.encounter',
             'run_type' => 'fhir_poll',
             'status' => 'queued',
             'started_at' => now(),
@@ -389,6 +650,152 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'ingest_run_id' => $runId,
             'status' => 'resolved',
         ]);
+    }
+
+    public function test_fhir_429_honors_retry_after_blocks_early_reentry_and_records_attempt_evidence(): void
+    {
+        $now = CarbonImmutable::parse('2026-07-15T14:00:00Z');
+        CarbonImmutable::setTestNow($now);
+        $sourceId = $this->readyEpicSource();
+        $runId = $this->fhirRun($sourceId, (string) Str::uuid());
+        $job = new PollEpicFhirResource($runId, 'Encounter', null, (string) Str::uuid());
+        $recovered = false;
+
+        Http::fake(function (Request $request) use (&$recovered) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return Http::response(['access_token' => $recovered ? 'recovery-token' : 'throttle-test-token', 'expires_in' => 300]);
+            }
+
+            return $recovered
+                ? Http::response(
+                    ['resourceType' => 'Bundle', 'type' => 'searchset', 'entry' => []],
+                    200,
+                    ['Content-Type' => 'application/fhir+json'],
+                )
+                : Http::response(
+                    ['resourceType' => 'OperationOutcome'],
+                    429,
+                    ['Retry-After' => '120', 'Content-Type' => 'application/fhir+json'],
+                );
+        });
+
+        try {
+            $job->handle(
+                app(EpicSmartFhirClient::class),
+                app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class),
+            );
+            $this->fail('A throttled FHIR search must not be reported as completed.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('fhir_http_429', $exception->errorCode);
+        }
+
+        $this->assertDatabaseHas('integration.source_runtime_pressure_events', [
+            'source_id' => $sourceId,
+            'connector_key' => 'fhir.r4.encounter',
+            'pressure_kind' => 'rate_limit',
+            'pressure_state' => 'throttled',
+            'http_status' => 429,
+            'retry_after_seconds' => 120,
+        ]);
+        $this->assertDatabaseHas('integration.source_runtime_execution_events', [
+            'ingest_run_id' => $runId,
+            'event_type' => 'throttled',
+            'attempt_number' => 1,
+            'retry_after_seconds' => 120,
+        ]);
+        $this->assertDatabaseHas('integration.source_runtime_execution_events', [
+            'ingest_run_id' => $runId,
+            'event_type' => 'retry_scheduled',
+            'attempt_number' => 1,
+            'retry_after_seconds' => 120,
+        ]);
+        $requestsAfterThrottle = count(Http::recorded());
+
+        try {
+            app(EpicSmartFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+            $this->fail('The active Retry-After window must block an early partner call.');
+        } catch (IntegrationThrottledException $exception) {
+            $this->assertSame('partner_rate_limit_active', $exception->errorCode);
+            $this->assertSame(120, $exception->retryAfterSeconds);
+        }
+        $this->assertCount($requestsAfterThrottle, Http::recorded());
+
+        CarbonImmutable::setTestNow($now->addSeconds(121));
+        $recovered = true;
+        $result = app(EpicSmartFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+        $this->assertSame(0, $result['resourcesReceived']);
+        $this->assertDatabaseHas('integration.source_runtime_pressure_events', [
+            'source_id' => $sourceId,
+            'connector_key' => 'fhir.r4.encounter',
+            'pressure_kind' => 'rate_limit',
+            'pressure_state' => 'normal',
+            'reason_code' => 'partner_call_succeeded_rate_limit_cleared',
+        ]);
+    }
+
+    public function test_fhir_circuit_opens_without_a_third_partner_call_then_half_open_probe_closes_it(): void
+    {
+        config([
+            'integrations.observability.circuit_breaker_trip_failures' => 2,
+            'integrations.observability.circuit_breaker_open_seconds' => 120,
+        ]);
+        $now = CarbonImmutable::parse('2026-07-15T15:00:00Z');
+        CarbonImmutable::setTestNow($now);
+        $sourceId = $this->readyEpicSource();
+        $runId = $this->fhirRun($sourceId, (string) Str::uuid());
+        $recovered = false;
+        Http::fake(function (Request $request) use (&$recovered) {
+            if ($request->url() === config('integrations.epic_sandbox.token_url')) {
+                return $recovered
+                    ? Http::response(['access_token' => 'half-open-recovery-token', 'expires_in' => 300])
+                    : Http::response([], 503);
+            }
+
+            return Http::response(
+                ['resourceType' => 'Bundle', 'type' => 'searchset', 'entry' => []],
+                200,
+                ['Content-Type' => 'application/fhir+json'],
+            );
+        });
+
+        foreach ([1, 2] as $failure) {
+            try {
+                app(EpicSmartFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+                $this->fail("Transient partner failure {$failure} should fail the poll.");
+            } catch (IntegrationProtocolException $exception) {
+                $this->assertSame('smart_token_http_503', $exception->errorCode);
+            }
+        }
+        $this->assertDatabaseHas('integration.source_runtime_pressure_events', [
+            'source_id' => $sourceId,
+            'connector_key' => 'fhir.r4.encounter',
+            'pressure_kind' => 'circuit_breaker',
+            'pressure_state' => 'open',
+            'consecutive_failures' => 2,
+            'retry_after_seconds' => 120,
+        ]);
+        $requestsAtOpen = count(Http::recorded());
+
+        try {
+            app(EpicSmartFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+            $this->fail('An open circuit must reject before a partner call.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('source_circuit_open', $exception->errorCode);
+        }
+        $this->assertCount($requestsAtOpen, Http::recorded());
+
+        CarbonImmutable::setTestNow($now->addSeconds(121));
+        $recovered = true;
+        app(EpicSmartFhirClient::class)->poll($sourceId, 'Encounter', $runId);
+
+        $transitions = DB::table('integration.source_runtime_pressure_events')
+            ->where('source_id', $sourceId)
+            ->where('connector_key', 'fhir.r4.encounter')
+            ->where('pressure_kind', 'circuit_breaker')
+            ->orderBy('source_runtime_pressure_event_id')
+            ->pluck('pressure_state')
+            ->all();
+        $this->assertSame(['normal', 'open', 'half_open', 'normal'], $transitions);
     }
 
     public function test_hl7_source_activation_requires_governance_and_issues_only_a_bounded_machine_token(): void
@@ -468,26 +875,278 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $source = app(SourceRegistryService::class)->ensureSource(['source_key' => 'auth.test']);
         $user = User::factory()->create(['role' => 'admin', 'must_change_password' => false]);
 
+        $this->actingAs($user)->getJson('/api/admin/integrations/sources/'.$source->source_id.'/fhir/conformance')->assertForbidden();
         $this->actingAs($user)->postJson('/api/admin/integrations/sources/'.$source->source_id.'/health-check')->assertForbidden();
         $this->actingAs($user)->postJson('/api/admin/integrations/sources/'.$source->source_id.'/fhir/poll', ['resource_type' => 'Encounter'])->assertForbidden();
+        $this->actingAs($user)->putJson('/api/admin/integrations/sources/'.$source->source_id.'/fhir/resource-profiles/Observation', [])->assertForbidden();
+        $this->actingAs($user)->deleteJson('/api/admin/integrations/sources/'.$source->source_id.'/fhir/resource-profiles/1', [])->assertForbidden();
         $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays/preview', [])->assertForbidden();
         $this->actingAs($user)->postJson('/api/admin/integrations/enterprise/replays', [])->assertForbidden();
     }
 
-    /** @return array<string, \Illuminate\Http\Client\Response> */
-    private function epicDiscoveryResponses(): array
+    public function test_fhir_discovery_is_full_append_only_evidence_with_a_source_scoped_projection(): void
     {
+        config([
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
+            'integrations.network.require_dns_resolution' => false,
+        ]);
+        $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(facilityKey: $this->facilityKey);
+        $sourceId = (int) $source['sourceId'];
+        Http::fake($this->epicDiscoveryResponses());
+
+        $firstHealth = app(IntegrationProtocolHealthService::class)->check($sourceId);
+        $connection = DB::table('integration.fhir_client_connections')->where('source_id', $sourceId)->first();
+        $firstObservationId = (int) $connection->current_conformance_observation_id;
+        $firstObservation = DB::table('integration.fhir_conformance_observations')
+            ->where('fhir_conformance_observation_id', $firstObservationId)
+            ->first();
+
+        $this->assertSame($firstObservationId, $firstHealth['conformanceObservationId']);
+        $this->assertSame('passed', $firstObservation->observation_status);
+        $this->assertSame(2, (int) $firstObservation->resource_count);
+        $this->assertSame(2, (int) $firstObservation->searchable_resource_count);
+        $this->assertTrue((bool) $firstObservation->supports_batch);
+        $this->assertTrue((bool) $firstObservation->supports_transaction);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', (string) $firstObservation->capability_document_sha256);
+        $this->assertSame(['client_credentials'], json_decode($firstObservation->smart_grant_type_payload, true, flags: JSON_THROW_ON_ERROR));
+
+        $encounter = DB::table('integration.fhir_conformance_resource_observations')
+            ->where('fhir_conformance_observation_id', $firstObservationId)
+            ->where('resource_type', 'Encounter')
+            ->first();
+        $this->assertSame('http://hl7.org/fhir/StructureDefinition/Encounter', $encounter->base_profile_url);
+        $this->assertSame(1, (int) $encounter->search_parameter_count);
+        $this->assertSame(1, (int) $encounter->operation_count);
+
+        $response = $this->selectScope($this->superuser(), $sourceId)
+            ->getJson('/api/admin/integrations/sources/'.$sourceId.'/fhir/conformance')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'passed')
+            ->assertJsonPath('data.observationId', $firstObservationId)
+            ->assertJsonPath('data.fhirVersion', '4.0.1')
+            ->assertJsonPath('data.smart.tokenOrigin', 'https://'.strtolower($this->epicHost()))
+            ->assertJsonPath('data.resources.0.resourceType', 'Encounter')
+            ->assertJsonPath('data.resources.0.searchParameters.0.name', '_id');
+        $this->assertStringNotContainsString((string) config('integrations.epic_sandbox.token_url'), $response->getContent());
+        $otherSource = app(SourceRegistryService::class)->ensureSource([
+            'source_key' => 'fhir.conformance.other-source',
+            'source_name' => 'Other FHIR Source',
+            'tenant_key' => 'RUNTIME_TEST_IDN',
+            'organization_id' => $this->organizationId,
+            'facility_id' => $this->facilityId,
+            'system_class' => 'ehr',
+            'interface_type' => 'fhir_r4',
+        ]);
+        $this->getJson('/api/admin/integrations/sources/'.$otherSource->source_id.'/fhir/conformance')
+            ->assertConflict();
+
+        Http::swap(new HttpFactory);
+        Http::fake($this->epicDiscoveryResponses(
+            resourceTypes: ['Encounter', 'Location', 'Subscription'],
+            searchableResourceTypes: ['Encounter', 'Location'],
+        ));
+        $secondHealth = app(IntegrationProtocolHealthService::class)->check($sourceId);
+        $secondObservationId = (int) $secondHealth['conformanceObservationId'];
+        $this->assertNotSame($firstObservationId, $secondObservationId);
+        $this->assertDatabaseHas('integration.fhir_conformance_observations', [
+            'fhir_conformance_observation_id' => $secondObservationId,
+            'previous_observation_id' => $firstObservationId,
+            'supports_subscriptions' => true,
+            'resource_count' => 3,
+            'searchable_resource_count' => 2,
+        ]);
+        $this->assertDatabaseMissing('integration.source_capabilities', [
+            'source_id' => $sourceId,
+            'resource_type' => 'Subscription',
+            'capability_type' => 'fhir_resource',
+        ]);
+        $this->assertSame($secondObservationId, (int) DB::table('integration.fhir_client_connections')
+            ->where('fhir_client_connection_id', $connection->fhir_client_connection_id)
+            ->value('current_conformance_observation_id'));
+
+        $this->assertQueryRejected(function () use ($firstObservationId): void {
+            DB::table('integration.fhir_conformance_observations')
+                ->where('fhir_conformance_observation_id', $firstObservationId)
+                ->update(['observation_status' => 'passed_with_warnings']);
+        }, 'append-only');
+        $this->assertQueryRejected(function () use ($firstObservationId): void {
+            DB::table('integration.fhir_conformance_resource_observations')
+                ->where('fhir_conformance_observation_id', $firstObservationId)
+                ->delete();
+        }, 'append-only');
+        $this->assertQueryRejected(function () use ($connection, $firstObservationId): void {
+            DB::table('integration.fhir_client_connections')
+                ->where('fhir_client_connection_id', $connection->fhir_client_connection_id)
+                ->update(['current_conformance_observation_id' => $firstObservationId]);
+        }, 'must advance one observation');
+        $this->assertQueryRejected(function () use ($connection): void {
+            DB::table('integration.fhir_client_connections')
+                ->where('fhir_client_connection_id', $connection->fhir_client_connection_id)
+                ->update(['current_conformance_observation_id' => null]);
+        }, 'cannot be cleared');
+        $this->assertQueryRejected(function () use ($sourceId, $secondObservationId): void {
+            DB::table('integration.fhir_conformance_resource_observations')->insert([
+                'fhir_conformance_observation_id' => $secondObservationId,
+                'source_id' => $sourceId,
+                'resource_type' => 'DiagnosticReport',
+                'base_profile_url' => 'https://profiles.test/ZPHI-PATIENT-CONFORMANCE-9911',
+                'created_at' => now(),
+            ]);
+        }, 'clinical content is prohibited');
+    }
+
+    public function test_fhir_discovery_rejects_token_endpoint_drift_without_advancing_evidence(): void
+    {
+        config([
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
+            'integrations.network.require_dns_resolution' => false,
+        ]);
+        $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(facilityKey: $this->facilityKey);
+        $sourceId = (int) $source['sourceId'];
+        Http::fake($this->epicDiscoveryResponses(tokenUrl: rtrim((string) config('integrations.epic_sandbox.token_url'), '/').'/drifted'));
+
+        try {
+            app(IntegrationProtocolHealthService::class)->check($sourceId);
+            $this->fail('Discovery must reject a token endpoint that differs from configured authority.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('smart_token_endpoint_drift', $exception->errorCode);
+        }
+
+        $this->assertSame(0, DB::table('integration.fhir_conformance_observations')->count());
+        $this->assertNull(DB::table('integration.fhir_client_connections')
+            ->where('source_id', $sourceId)
+            ->value('current_conformance_observation_id'));
+        $this->assertDatabaseHas('integration.sources', [
+            'source_id' => $sourceId,
+            'protocol_health_status' => 'failed',
+            'protocol_health_error' => 'smart_token_endpoint_drift',
+        ]);
+    }
+
+    public function test_fhir_conformance_capture_is_bounded_and_enforces_interactive_smart_pkce(): void
+    {
+        $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(facilityKey: $this->facilityKey);
+        $sourceId = (int) $source['sourceId'];
+        $connectionId = (int) DB::table('integration.fhir_client_connections')
+            ->where('source_id', $sourceId)
+            ->value('fhir_client_connection_id');
+        $service = app(FhirConformanceObservationService::class);
+        $smart = [
+            'token_endpoint' => config('integrations.epic_sandbox.token_url'),
+            'grant_types_supported' => ['client_credentials'],
+            'token_endpoint_auth_methods_supported' => ['private_key_jwt'],
+            'capabilities' => ['client-confidential-asymmetric'],
+        ];
+        $statement = [
+            'resourceType' => 'CapabilityStatement',
+            'status' => 'active',
+            'date' => '2026-07-15T12:00:00Z',
+            'kind' => 'instance',
+            'fhirVersion' => '4.0.1',
+            'format' => ['json'],
+            'rest' => [[
+                'mode' => 'server',
+                'resource' => array_fill(0, 501, ['type' => 'Patient']),
+            ]],
+        ];
+
+        try {
+            $service->capture($sourceId, $connectionId, $statement, $smart);
+            $this->fail('A CapabilityStatement above the resource bound must be rejected.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('fhir_capability_limit_exceeded', $exception->errorCode);
+        }
+
+        $statement['rest'][0]['resource'] = [];
+        $interactiveSmart = [
+            ...$smart,
+            'authorization_endpoint' => 'https://'.$this->epicHost().'/oauth2/authorize',
+            'grant_types_supported' => ['authorization_code', 'client_credentials'],
+            'capabilities' => ['client-confidential-asymmetric', 'launch-standalone'],
+            'code_challenge_methods_supported' => ['plain'],
+        ];
+        try {
+            $service->capture($sourceId, $connectionId, $statement, $interactiveSmart);
+            $this->fail('Interactive SMART discovery without exclusive S256 PKCE must be rejected.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('smart_pkce_s256_required', $exception->errorCode);
+        }
+
+        unset($statement['status']);
+        try {
+            $service->capture($sourceId, $connectionId, $statement, $smart);
+            $this->fail('Required CapabilityStatement metadata must not be silently defaulted.');
+        } catch (IntegrationProtocolException $exception) {
+            $this->assertSame('fhir_capability_status_missing', $exception->errorCode);
+        }
+
+        $this->assertSame(0, DB::table('integration.fhir_conformance_observations')->count());
+    }
+
+    /** @return array<string, \Illuminate\Http\Client\Response> */
+    private function epicDiscoveryResponses(
+        string $softwareName = 'Epic',
+        array $resourceTypes = ['Encounter', 'Location'],
+        ?string $tokenUrl = null,
+        ?array $searchableResourceTypes = null,
+    ): array {
+        $searchableResourceTypes ??= $resourceTypes;
+
         return [
             config('integrations.epic_sandbox.smart_configuration_url') => Http::response([
-                'token_endpoint' => config('integrations.epic_sandbox.token_url'),
+                'token_endpoint' => $tokenUrl ?? config('integrations.epic_sandbox.token_url'),
+                'grant_types_supported' => ['client_credentials'],
+                'token_endpoint_auth_methods_supported' => ['private_key_jwt'],
+                'token_endpoint_auth_signing_alg_values_supported' => ['RS384'],
+                'scopes_supported' => array_map(
+                    fn (string $resourceType): string => 'system/'.$resourceType.'.rs',
+                    $resourceTypes,
+                ),
                 'capabilities' => ['client-confidential-asymmetric'],
             ]),
             config('integrations.epic_sandbox.base_url').'/metadata' => Http::response([
                 'resourceType' => 'CapabilityStatement',
+                'status' => 'active',
+                'date' => '2026-07-15T12:00:00Z',
+                'kind' => 'instance',
                 'fhirVersion' => '4.0.1',
-                'software' => ['name' => 'Epic', 'version' => 'sandbox'],
+                'software' => ['name' => $softwareName, 'version' => 'sandbox'],
+                'implementation' => ['url' => config('integrations.epic_sandbox.base_url')],
                 'format' => ['json'],
-                'rest' => [['resource' => [['type' => 'Encounter'], ['type' => 'Location']]]],
+                'implementationGuide' => ['http://hl7.org/fhir/us/core/ImplementationGuide/hl7.fhir.us.core'],
+                'rest' => [[
+                    'mode' => 'server',
+                    'security' => ['service' => [['coding' => [[
+                        'system' => 'http://terminology.hl7.org/CodeSystem/restful-security-service',
+                        'code' => 'SMART-on-FHIR',
+                    ]]]]],
+                    'interaction' => [['code' => 'batch'], ['code' => 'transaction']],
+                    'resource' => array_map(
+                        fn (string $resourceType): array => [
+                            'type' => $resourceType,
+                            'profile' => 'http://hl7.org/fhir/StructureDefinition/'.$resourceType,
+                            'interaction' => array_values(array_filter([
+                                ['code' => 'read'],
+                                in_array($resourceType, $searchableResourceTypes, true)
+                                    ? ['code' => 'search-type']
+                                    : null,
+                            ])),
+                            'versioning' => 'versioned',
+                            'readHistory' => true,
+                            'searchInclude' => [$resourceType.':subject'],
+                            'searchParam' => [[
+                                'name' => '_id',
+                                'definition' => 'http://hl7.org/fhir/SearchParameter/Resource-id',
+                                'type' => 'token',
+                            ]],
+                            'operation' => [[
+                                'name' => 'meta',
+                                'definition' => 'http://hl7.org/fhir/OperationDefinition/Resource-meta',
+                            ]],
+                        ],
+                        $resourceTypes,
+                    ),
+                ]],
             ], 200, ['Content-Type' => 'application/fhir+json']),
         ];
     }
@@ -510,6 +1169,50 @@ class IntegrationOperationalRuntimeTest extends TestCase
     private function epicHost(): string
     {
         return (string) parse_url((string) config('integrations.epic_sandbox.base_url'), PHP_URL_HOST);
+    }
+
+    private function readyEpicSource(): int
+    {
+        config([
+            'integrations.network.allowed_hosts' => [$this->epicHost()],
+            'integrations.network.require_dns_resolution' => false,
+        ]);
+        $source = app(OperationalIntegrationConfigurator::class)->configureEpicSandbox(
+            clientId: 'registered-runtime-pressure-client',
+            privateKeyRef: $this->privateKeyReference(),
+            activate: true,
+            facilityKey: $this->facilityKey,
+        );
+        $sourceId = (int) $source['sourceId'];
+        Http::fake($this->epicDiscoveryResponses());
+        app(IntegrationProtocolHealthService::class)->check($sourceId);
+
+        return $sourceId;
+    }
+
+    private function fhirRun(int $sourceId, string $correlationId, string $resourceType = 'Encounter'): int
+    {
+        return (int) DB::table('raw.ingest_runs')->insertGetId([
+            'run_uuid' => (string) Str::uuid(),
+            'source_id' => $sourceId,
+            'connector_key' => 'fhir.r4.'.strtolower($resourceType),
+            'run_type' => 'fhir_poll',
+            'status' => 'queued',
+            'started_at' => now(),
+            'metadata' => json_encode(['correlation_id' => $correlationId], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], 'ingest_run_id');
+    }
+
+    private function assertQueryRejected(callable $mutation, string $messageFragment): void
+    {
+        try {
+            DB::transaction($mutation);
+            $this->fail("Expected database mutation to be rejected with {$messageFragment}.");
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString($messageFragment, $exception->getMessage());
+        }
     }
 
     private function canonicalEvent(int $sourceId, string $projectionStatus): int

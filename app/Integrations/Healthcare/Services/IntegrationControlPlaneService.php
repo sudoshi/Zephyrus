@@ -189,8 +189,8 @@ class IntegrationControlPlaneService
                 'unknown' => (int) ($sloSummary['unknown'] ?? 0),
                 'notApplicable' => (int) ($sloSummary['not_applicable'] ?? 0),
             ],
-            'queueState' => $this->decodeMap($currentHealth?->queue_state),
-            'runtimeState' => $this->decodeMap($currentHealth?->runtime_state),
+            'queueState' => JsonMap::from($this->decodeMap($currentHealth?->queue_state)),
+            'runtimeState' => JsonMap::from($this->decodeMap($currentHealth?->runtime_state)),
             'openSloBreaches' => (int) $metrics['openSloBreaches']->get($sourceId, 0),
             'protocolHealthStatus' => $source->protocol_health_status,
             'protocolHealthCheckedAtIso' => $this->iso($source->protocol_health_checked_at),
@@ -348,6 +348,24 @@ class IntegrationControlPlaneService
             ->where('supported', true)
             ->groupBy('source_id')
             ->pluck('aggregate', 'source_id');
+        $resourceProfiles = DB::table('integration.fhir_resource_profiles')
+            ->orderBy('resource_type')
+            ->get([
+                'fhir_resource_profile_id',
+                'source_id',
+                'resource_type',
+                'canonical_profile_url',
+                'canonical_profile_version',
+                'profile_status',
+                'poll_enabled',
+                'cadence_minutes',
+                'page_size',
+                'page_limit',
+                'resource_limit',
+                'version_number',
+                'change_reason',
+            ])
+            ->groupBy('source_id');
 
         return DB::table('integration.fhir_client_connections as connection')
             ->join('integration.sources as source', 'source.source_id', '=', 'connection.source_id')
@@ -365,20 +383,39 @@ class IntegrationControlPlaneService
                 'connection.base_url',
                 'source.source_name',
             ])
-            ->map(fn (object $row): array => [
-                'connectionId' => (int) $row->fhir_client_connection_id,
-                'sourceId' => (int) $row->source_id,
-                'sourceName' => $row->source_name,
-                'connectionKey' => $row->connection_key,
-                'status' => $row->status,
-                'fhirVersion' => $row->fhir_version,
-                'capabilityCheckedAtIso' => $this->iso($row->capability_checked_at),
-                'healthStatus' => $row->health_status,
-                'healthCheckedAtIso' => $this->iso($row->health_checked_at),
-                'healthErrorCode' => $row->last_health_error,
-                'baseUrlConfigured' => filled($row->base_url),
-                'supportedResourceCount' => (int) $resourceCounts->get($row->source_id, 0),
-            ])->all();
+            ->map(function (object $row) use ($resourceCounts, $resourceProfiles): array {
+                $profiles = collect($resourceProfiles->get($row->source_id, []))
+                    ->map(fn (object $profile): array => [
+                        'profileId' => (int) $profile->fhir_resource_profile_id,
+                        'resourceType' => (string) $profile->resource_type,
+                        'canonicalProfileUrl' => $profile->canonical_profile_url,
+                        'canonicalProfileVersion' => $profile->canonical_profile_version,
+                        'status' => (string) $profile->profile_status,
+                        'pollEnabled' => (bool) $profile->poll_enabled,
+                        'cadenceMinutes' => (int) $profile->cadence_minutes,
+                        'pageSize' => (int) $profile->page_size,
+                        'pageLimit' => (int) $profile->page_limit,
+                        'resourceLimit' => (int) $profile->resource_limit,
+                        'versionNumber' => (int) $profile->version_number,
+                        'changeReason' => (string) $profile->change_reason,
+                    ])->values()->all();
+
+                return [
+                    'connectionId' => (int) $row->fhir_client_connection_id,
+                    'sourceId' => (int) $row->source_id,
+                    'sourceName' => $row->source_name,
+                    'connectionKey' => $row->connection_key,
+                    'status' => $row->status,
+                    'fhirVersion' => $row->fhir_version,
+                    'capabilityCheckedAtIso' => $this->iso($row->capability_checked_at),
+                    'healthStatus' => $row->health_status,
+                    'healthCheckedAtIso' => $this->iso($row->health_checked_at),
+                    'healthErrorCode' => $row->last_health_error,
+                    'baseUrlConfigured' => filled($row->base_url),
+                    'supportedResourceCount' => (int) $resourceCounts->get($row->source_id, 0),
+                    'resourceProfiles' => $profiles,
+                ];
+            })->all();
     }
 
     /** @return list<array<string, mixed>> */

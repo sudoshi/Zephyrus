@@ -10,6 +10,7 @@ import {
   deleteIntegrationCredential,
   deleteIntegrationEndpoint,
   fetchIntegrationControlPlane,
+  fetchFhirConformance,
   fetchCredentialVersions,
   fetchNetworkRoutes,
   fetchSourceConfigurationVersions,
@@ -24,6 +25,7 @@ import {
   type IncidentFacetInput,
   fetchSourceObservability,
   collectSourceObservation,
+  configureFhirResourceProfile,
   acknowledgeSloBreach,
   escalateSloBreach,
   linkSloBreachIncident,
@@ -38,10 +40,11 @@ import {
   requestScheduledSourceActivation,
   assessSourceReadiness,
   transitionSourceLifecycle,
-  queueEpicFhirPoll,
+  queueFhirPoll,
   queueIntegrationHealthCheck,
   queueIntegrationReplay,
   retireIntegrationSource,
+  retireFhirResourceProfile,
   retireNetworkRoute,
   updateIntegrationEndpoint,
   updateIntegrationCredential,
@@ -55,6 +58,7 @@ import {
   type IntegrationReplayInput,
   type NetworkRouteInput,
   type CredentialRotationInput,
+  type FhirResourceProfileInput,
   validateCredential,
   validateNetworkRoute,
 } from './api';
@@ -98,6 +102,15 @@ export function useSourceStatusFacets(sourceId: number | null) {
     queryKey: [...controlPlaneKey, 'source', sourceId, 'status-facets'],
     queryFn: () => fetchSourceStatusFacets(sourceId as number),
     enabled: sourceId !== null,
+  });
+}
+
+export function useFhirConformance(sourceId: number | null) {
+  return useQuery({
+    queryKey: [...controlPlaneKey, 'source', sourceId, 'fhir-conformance'],
+    queryFn: () => fetchFhirConformance(sourceId as number),
+    enabled: sourceId !== null,
+    refetchInterval: 60_000,
   });
 }
 
@@ -275,8 +288,32 @@ export function useQueueIntegrationHealthCheck() {
   return useRefreshingMutation((sourceId: number) => queueIntegrationHealthCheck(sourceId));
 }
 
-export function useQueueEpicFhirPoll() {
-  return useRefreshingMutation(({ sourceId, resourceType }: { sourceId: number; resourceType: 'Encounter' | 'Location' }) => queueEpicFhirPoll(sourceId, resourceType));
+export function useQueueFhirPoll() {
+  return useRefreshingMutation(({ sourceId, resourceType }: { sourceId: number; resourceType: string }) => queueFhirPoll(sourceId, resourceType));
+}
+
+export function useConfigureFhirResourceProfile() {
+  return useRefreshingMutation(({
+    sourceId,
+    resourceType,
+    input,
+  }: {
+    sourceId: number;
+    resourceType: string;
+    input: FhirResourceProfileInput;
+  }) => configureFhirResourceProfile(sourceId, resourceType, input));
+}
+
+export function useRetireFhirResourceProfile() {
+  return useRefreshingMutation(({
+    sourceId,
+    profileId,
+    reason,
+  }: {
+    sourceId: number;
+    profileId: number;
+    reason: string;
+  }) => retireFhirResourceProfile(sourceId, profileId, reason));
 }
 
 export function usePreviewIntegrationReplay() {

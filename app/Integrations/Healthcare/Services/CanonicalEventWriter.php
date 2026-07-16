@@ -7,16 +7,21 @@ use App\Models\Integration\CanonicalEventRecord;
 use App\Models\Integration\Source;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use App\Observability\MetricRecorder;
 use App\Security\ClinicalPayloads\ClinicalPayloadException;
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use JsonException;
 use Throwable;
 
 class CanonicalEventWriter
 {
-    public function __construct(private readonly ClinicalPayloadStore $payloads) {}
+    public function __construct(
+        private readonly ClinicalPayloadStore $payloads,
+        private readonly MetricRecorder $metrics,
+    ) {}
 
     /** @throws JsonException */
     public function write(
@@ -24,6 +29,40 @@ class CanonicalEventWriter
         ?Source $source = null,
         ?IngestRun $run = null,
         ?InboundMessage $message = null,
+    ): CanonicalEventRecord {
+        $startedAt = hrtime(true);
+        $attributes = $this->traceAttributes($event, $source, $run, $message);
+
+        try {
+            $record = $this->persist($event, $source, $run, $message);
+            $this->metrics->span(
+                'zephyrus.integration.canonical.write',
+                'ok',
+                $this->durationMs($startedAt),
+                [...$attributes, 'zephyrus.outcome' => 'persisted'],
+            );
+
+            return $record;
+        } catch (Throwable $exception) {
+            $this->metrics->span(
+                'zephyrus.integration.canonical.write',
+                'error',
+                $this->durationMs($startedAt),
+                [...$attributes, 'error.type' => $exception instanceof ClinicalPayloadException
+                    ? 'canonical_event_rejected'
+                    : 'canonical_event_write_failed'],
+            );
+
+            throw $exception;
+        }
+    }
+
+    /** @throws JsonException */
+    private function persist(
+        CanonicalOperationalEvent $event,
+        ?Source $source,
+        ?IngestRun $run,
+        ?InboundMessage $message,
     ): CanonicalEventRecord {
         $payloadHash = hash('sha256', json_encode($event->payload, JSON_THROW_ON_ERROR));
         if ($source === null) {
@@ -107,5 +146,38 @@ class CanonicalEventWriter
             'canonical_event_insert_aborted',
             'Encrypted canonical payload was discarded because its database insert did not become authoritative.',
         );
+    }
+
+    /** @return array<string, int|string> */
+    private function traceAttributes(
+        CanonicalOperationalEvent $event,
+        ?Source $source,
+        ?IngestRun $run,
+        ?InboundMessage $message,
+    ): array {
+        $attributes = [];
+        if ($source !== null) {
+            $attributes['zephyrus.source.id'] = (int) $source->source_id;
+        }
+        if (Str::isUuid($event->eventId)) {
+            $attributes['zephyrus.event.uuid'] = $event->eventId;
+        }
+        if ($run !== null && Str::isUuid((string) $run->run_uuid)) {
+            $attributes['zephyrus.run.uuid'] = (string) $run->run_uuid;
+        }
+        if ($message !== null && Str::isUuid((string) $message->message_uuid)) {
+            $attributes['zephyrus.message.uuid'] = (string) $message->message_uuid;
+        }
+        $requestId = is_array($run?->metadata) ? ($run->metadata['request_id'] ?? null) : null;
+        if (is_string($requestId) && Str::isUuid($requestId)) {
+            $attributes['zephyrus.correlation.uuid'] = $requestId;
+        }
+
+        return $attributes;
+    }
+
+    private function durationMs(int $startedAt): int
+    {
+        return max(0, min(86_400_000, (int) ((hrtime(true) - $startedAt) / 1_000_000)));
     }
 }

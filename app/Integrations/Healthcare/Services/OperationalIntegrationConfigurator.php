@@ -14,6 +14,7 @@ class OperationalIntegrationConfigurator
         private readonly IntegrationConfigurationAuditService $audit,
         private readonly SourceRegistryService $registry,
         private readonly CredentialAuthorityService $credentialAuthority,
+        private readonly FhirResourceProfileService $fhirProfiles,
     ) {}
 
     /** @return array<string, mixed> */
@@ -128,6 +129,14 @@ class OperationalIntegrationConfigurator
                     'updated_at' => now(),
                 ],
             );
+            foreach (['Encounter', 'Location'] as $resourceType) {
+                $this->fhirProfiles->ensureConfigured(
+                    (int) $source->source_id,
+                    $resourceType,
+                    reasonCode: 'epic_sandbox_baseline_profile',
+                    correlationUuid: $correlationId,
+                );
+            }
 
             $sourceCredentialId = $this->ensureSmartCredentialAuthority(
                 (int) $source->source_id,

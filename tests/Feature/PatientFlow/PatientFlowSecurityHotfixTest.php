@@ -9,6 +9,7 @@ use App\Models\Org\Organization;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
+use App\Observability\Exporters\InMemoryMetricExporter;
 use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -201,6 +202,10 @@ class PatientFlowSecurityHotfixTest extends TestCase
 
     public function test_machine_ingress_writes_canonical_lineage_and_is_idempotent(): void
     {
+        config()->set('observability.enabled', true);
+        config()->set('observability.exporter', 'memory');
+        $telemetry = app(InMemoryMetricExporter::class);
+        $telemetry->flush();
         $this->createTwoUnits();
         $source = $this->integrationSource();
         $user = User::factory()->create(['role' => 'integration']);
@@ -264,6 +269,24 @@ class PatientFlowSecurityHotfixTest extends TestCase
         $this->assertSame(1, DB::table('flow_core.flow_events')->where('source_id', $source->source_id)->count());
         $this->assertSame(1, DB::table('integration.provenance_records')->where('source_id', $source->source_id)->count());
         $this->assertSame(2, DB::table('raw.ingest_runs')->where('source_id', $source->source_id)->count());
+
+        $rootSpans = collect($telemetry->spans())
+            ->filter(fn ($span) => $span->name === 'zephyrus.integration.hl7.receipt_to_projection');
+        $canonicalSpans = collect($telemetry->spans())
+            ->filter(fn ($span) => $span->name === 'zephyrus.integration.canonical.write');
+        $this->assertCount(2, $rootSpans);
+        $this->assertCount(1, $canonicalSpans);
+        $projectedSpan = $rootSpans->first(fn ($span) => $span->attributes->toArray()['zephyrus.outcome'] === 'projected');
+        $canonicalSpan = $canonicalSpans->first();
+        $this->assertSame($first['canonical_event_id'], $projectedSpan->attributes->toArray()['zephyrus.event.uuid']);
+        $this->assertSame(
+            $projectedSpan->attributes->toArray()['zephyrus.correlation.uuid'],
+            $canonicalSpan->attributes->toArray()['zephyrus.correlation.uuid'],
+        );
+        $this->assertStringNotContainsString('MACHINE-PATIENT', json_encode(
+            array_map(fn ($span) => $span->toArray(), $telemetry->spans()),
+            JSON_THROW_ON_ERROR,
+        ));
 
         $this->withToken($token)
             ->postJson('/api/integrations/v1/patient-flow/hl7v2', [

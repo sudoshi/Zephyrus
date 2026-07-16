@@ -9,8 +9,9 @@ use App\Observability\SpanRecord;
  *
  * The MetricRecorder hands already-PHI-safe SpanRecord values here. Correlation
  * from receipt through projection is carried on the span's attributes
- * (request.id + canonical event UUID). A deployment binds its own OTLP span
- * exporter to this contract; this repository ships only the seam.
+ * (request/correlation UUID + canonical event UUID). A deployment binds an OTLP span
+ * exporter to this contract; this repository ships an official guarded OTLP
+ * adapter and keeps it disabled unless deployment config selects it.
  */
 interface TraceExporter
 {

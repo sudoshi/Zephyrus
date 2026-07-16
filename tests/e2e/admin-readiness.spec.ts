@@ -12,7 +12,7 @@ test.describe('Admin readiness and policy surfaces', () => {
     await expect(page.getByText('System Health', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Roles / Capabilities', { exact: true })).toBeVisible();
     await expect(page.getByText('ready', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('blocked', { exact: true })).toBeVisible();
+    await expect(page.getByText('degraded', { exact: true })).toBeVisible();
 
     await page.goto('/admin/system-health?status=attention', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1, name: 'System Health' })).toBeVisible();
@@ -74,10 +74,21 @@ test.describe('Admin readiness and policy surfaces', () => {
     await page.getByText('4. Future-dated governed activation', { exact: true }).click();
     await expect(page.getByRole('button', { name: 'Request independently approved activation window' })).toBeDisabled();
 
+    await page.getByRole('tab', { name: 'FHIR R4 / SMART' }).click();
+    await expect(page).toHaveURL(/tab=fhir/);
+    await expect(page.getByRole('heading', { name: 'FHIR R4 Connections' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Discovered FHIR + SMART Conformance' })).toBeVisible();
+    await expect(page.getByText(/No successful CapabilityStatement and SMART discovery has been observed/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Governed Resource Profiles' })).toBeVisible();
+    await expect(page.getByLabel('Resource type')).toBeVisible();
+    await expect(page.getByLabel('Change reason')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled();
+    await expect(page.getByText(/enabled only after live capability discovery and SMART scope confirmation/i)).toBeVisible();
+
     await page.getByRole('button', { name: 'Clear' }).click();
-    await expect(page).toHaveURL(/\/integrations\?tab=sources$/);
+    await expect(page).toHaveURL(/\/integrations\?tab=fhir$/);
     const clearedUrl = new URL(page.url());
-    expect(clearedUrl.searchParams.get('tab')).toBe('sources');
+    expect(clearedUrl.searchParams.get('tab')).toBe('fhir');
     expect(clearedUrl.searchParams.get('organization_id')).toBeNull();
     expect(clearedUrl.searchParams.get('facility_id')).toBeNull();
     expect(clearedUrl.searchParams.get('source_id')).toBeNull();

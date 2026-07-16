@@ -11,6 +11,7 @@ use App\Models\Integration\Source;
 use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
+use App\Observability\MetricRecorder;
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -28,6 +29,7 @@ class PatientFlowHl7IngestPipeline
         private readonly FlowEventRepository $events,
         private readonly CanonicalEventWriter $canonicalEvents,
         private readonly ClinicalPayloadStore $payloads,
+        private readonly MetricRecorder $metrics,
     ) {}
 
     /**
@@ -38,6 +40,57 @@ class PatientFlowHl7IngestPipeline
         string $rawHl7,
         ?string $requestedIdempotencyKey = null,
         array $requestMetadata = [],
+    ): array {
+        $startedAt = hrtime(true);
+        $attributes = ['zephyrus.connector.key' => self::CONNECTOR_KEY];
+        $requestId = $requestMetadata['request_id'] ?? null;
+        if (is_string($requestId) && Str::isUuid($requestId)) {
+            $attributes['zephyrus.correlation.uuid'] = $requestId;
+        }
+
+        try {
+            $result = $this->performIngest($sourceKey, $rawHl7, $requestedIdempotencyKey, $requestMetadata);
+            $receipt = $result['receipt'];
+            $this->metrics->span(
+                'zephyrus.integration.hl7.receipt_to_projection',
+                'ok',
+                $this->durationMs($startedAt),
+                [
+                    ...$attributes,
+                    'zephyrus.source.id' => $result['sourceId'],
+                    'zephyrus.run.uuid' => $receipt['run_id'],
+                    'zephyrus.message.uuid' => $receipt['message_id'],
+                    'zephyrus.event.uuid' => $receipt['canonical_event_id'],
+                    'zephyrus.outcome' => $receipt['duplicate'] ? 'duplicate' : 'projected',
+                ],
+            );
+
+            return $receipt;
+        } catch (Throwable $exception) {
+            $this->metrics->span(
+                'zephyrus.integration.hl7.receipt_to_projection',
+                'error',
+                $this->durationMs($startedAt),
+                [
+                    ...$attributes,
+                    'error.type' => $exception instanceof PatientFlowIngestException
+                        ? $exception->errorCode
+                        : 'hl7_ingest_failed',
+                ],
+            );
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @return array{receipt: array{accepted: true, duplicate: bool, status: string, run_id: string, message_id: string, canonical_event_id: string}, sourceId: int}
+     */
+    private function performIngest(
+        string $sourceKey,
+        string $rawHl7,
+        ?string $requestedIdempotencyKey,
+        array $requestMetadata,
     ): array {
         $source = $this->authorizedSource($sourceKey);
         $payloadHash = hash('sha256', $rawHl7);
@@ -120,7 +173,10 @@ class PatientFlowHl7IngestPipeline
             if (! $messageCreated && $existingCanonical?->projection_status === 'projected') {
                 $this->completeRun($run, skipped: true);
 
-                return $this->receipt($run, $message, $existingCanonical, true);
+                return [
+                    'receipt' => $this->receipt($run, $message, $existingCanonical, true),
+                    'sourceId' => (int) $source->source_id,
+                ];
             }
 
             $parsed = Hl7V2Message::parse($rawHl7);
@@ -231,7 +287,10 @@ class PatientFlowHl7IngestPipeline
 
             $this->completeRun($run);
 
-            return $this->receipt($run, $message, $record, ! $messageCreated);
+            return [
+                'receipt' => $this->receipt($run, $message, $record, ! $messageCreated),
+                'sourceId' => (int) $source->source_id,
+            ];
         } catch (PatientFlowIngestException $exception) {
             $this->fail($run, $message, $messageCreated, $exception);
 
@@ -357,6 +416,11 @@ class PatientFlowHl7IngestPipeline
             $reasonCode,
             'Encrypted clinical payload was discarded because the intended database link did not become authoritative.',
         );
+    }
+
+    private function durationMs(int $startedAt): int
+    {
+        return max(0, min(86_400_000, (int) ((hrtime(true) - $startedAt) / 1_000_000)));
     }
 
     /**

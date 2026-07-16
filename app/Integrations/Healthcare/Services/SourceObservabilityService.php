@@ -538,7 +538,7 @@ final class SourceObservabilityService
      */
     private function circuitBreakerState(int $sourceId, CarbonImmutable $observedAt): array
     {
-        $latest = $this->latestPressure($sourceId, 'circuit_breaker');
+        $latest = $this->latestPressure($sourceId, 'circuit_breaker', $observedAt);
         if ($latest !== null) {
             $state = match ((string) $latest->pressure_state) {
                 'open' => 'open',
@@ -549,7 +549,12 @@ final class SourceObservabilityService
             return [
                 'state' => $state,
                 'consecutiveFailures' => $latest->consecutive_failures !== null ? (int) $latest->consecutive_failures : null,
+                'connectorKey' => $latest->connector_key,
                 'lastTransitionAtIso' => CarbonImmutable::parse($latest->observed_at)->toIso8601String(),
+                'retryAfterSeconds' => $latest->retry_after_seconds !== null ? (int) $latest->retry_after_seconds : null,
+                'availableAtIso' => $latest->retry_after_seconds !== null
+                    ? CarbonImmutable::parse($latest->observed_at)->addSeconds((int) $latest->retry_after_seconds)->toIso8601String()
+                    : null,
                 'evidenceCode' => 'recorded_circuit_transition',
             ];
         }
@@ -589,7 +594,7 @@ final class SourceObservabilityService
      */
     private function rateLimitState(int $sourceId, CarbonImmutable $observedAt): array
     {
-        $latest = $this->latestPressure($sourceId, 'rate_limit');
+        $latest = $this->latestPressure($sourceId, 'rate_limit', $observedAt);
         if ($latest === null) {
             return ['state' => 'normal', 'retryAfterSeconds' => null, 'lastThrottledAtIso' => null, 'evidenceCode' => 'no_rate_limit_evidence'];
         }
@@ -601,49 +606,71 @@ final class SourceObservabilityService
         $retryAfter = $latest->retry_after_seconds !== null ? (int) $latest->retry_after_seconds : null;
         $windowElapsed = $retryAfter !== null
             && $throttledAt->addSeconds($retryAfter)->lessThanOrEqualTo($observedAt);
+        $availableAt = $retryAfter !== null ? $throttledAt->addSeconds($retryAfter) : null;
+        $remaining = $availableAt !== null && $availableAt->greaterThan($observedAt)
+            ? (int) ceil($observedAt->diffInSeconds($availableAt))
+            : 0;
 
         return [
             'state' => $windowElapsed ? 'recovering' : 'throttled',
             'retryAfterSeconds' => $retryAfter,
+            'remainingRetryAfterSeconds' => $remaining,
+            'availableAtIso' => $availableAt?->toIso8601String(),
+            'connectorKey' => $latest->connector_key,
             'lastThrottledAtIso' => $throttledAt->toIso8601String(),
             'evidenceCode' => 'recorded_rate_limit',
         ];
     }
 
     /**
-     * Retry-budget consumption derived from failed/retrying ingest runs in the
-     * evaluation window against the configured per-run attempt budget.
+     * Retry-budget consumption comes from immutable attempt_started events.
+     * A mutable run status cannot prove whether one or three attempts occurred,
+     * so legacy runs without execution evidence remain unknown.
      *
      * @return array<string, mixed>
      */
     private function retryBudgetState(int $sourceId, CarbonImmutable $windowStartedAt, CarbonImmutable $observedAt): array
     {
         $configuredPerRun = max(1, (int) config('integrations.observability.retry_budget_per_run', 3));
-        $runs = DB::table('raw.ingest_runs')
-            ->where('source_id', $sourceId)
-            ->where('run_type', '<>', 'protocol_health')
-            ->whereBetween('started_at', [$windowStartedAt, $observedAt])
-            ->selectRaw('count(*) AS total_runs')
-            ->selectRaw("count(*) FILTER (WHERE status = 'failed') AS failed_runs")
-            ->selectRaw("count(*) FILTER (WHERE status = 'retrying') AS retrying_runs")
-            ->first();
-        $totalRuns = (int) ($runs->total_runs ?? 0);
-        if ($totalRuns === 0) {
+        if (! Schema::hasTable('integration.source_runtime_execution_events')) {
             return [
                 'configuredAttemptsPerRun' => $configuredPerRun,
                 'windowBudget' => null,
                 'consumedAttempts' => null,
                 'remainingAttempts' => null,
                 'state' => 'unknown',
-                'evidenceCode' => 'no_run_evidence',
+                'evidenceCode' => 'execution_attempt_ledger_unavailable',
             ];
         }
-        $failedRuns = (int) ($runs->failed_runs ?? 0);
-        $retryingRuns = (int) ($runs->retrying_runs ?? 0);
-        $windowBudget = $totalRuns * $configuredPerRun;
-        // A failed run consumed its full attempt budget; a retrying run has
-        // consumed at least one retry beyond its first attempt.
-        $consumed = min($windowBudget, ($failedRuns * $configuredPerRun) + $retryingRuns);
+
+        $runs = DB::table('integration.source_runtime_execution_events as event')
+            ->join('raw.ingest_runs as run', 'run.ingest_run_id', '=', 'event.ingest_run_id')
+            ->where('event.source_id', $sourceId)
+            ->where('run.run_type', '<>', 'protocol_health')
+            ->whereBetween('event.observed_at', [$windowStartedAt, $observedAt])
+            ->groupBy('event.ingest_run_id')
+            ->selectRaw('event.ingest_run_id')
+            ->selectRaw('max(event.max_attempts) AS max_attempts')
+            ->selectRaw("count(DISTINCT event.attempt_number) FILTER (WHERE event.event_type = 'attempt_started') AS consumed_attempts")
+            ->selectRaw("count(*) FILTER (WHERE event.event_type = 'retry_scheduled') AS retries_scheduled")
+            ->selectRaw("count(*) FILTER (WHERE event.event_type = 'terminal_failed') AS terminal_failures")
+            ->get();
+        if ($runs->isEmpty()) {
+            return [
+                'configuredAttemptsPerRun' => $configuredPerRun,
+                'windowBudget' => null,
+                'consumedAttempts' => null,
+                'remainingAttempts' => null,
+                'state' => 'unknown',
+                'evidenceCode' => 'no_execution_attempt_evidence',
+            ];
+        }
+
+        $windowBudget = $runs->sum(fn (object $run): int => max(1, (int) $run->max_attempts));
+        $consumed = min(
+            $windowBudget,
+            $runs->sum(fn (object $run): int => max(0, (int) $run->consumed_attempts)),
+        );
         $remaining = max(0, $windowBudget - $consumed);
         $ratio = $windowBudget > 0 ? $consumed / $windowBudget : 0.0;
         $state = match (true) {
@@ -657,12 +684,14 @@ final class SourceObservabilityService
             'windowBudget' => $windowBudget,
             'consumedAttempts' => $consumed,
             'remainingAttempts' => $remaining,
+            'retryEvents' => $runs->sum(fn (object $run): int => (int) $run->retries_scheduled),
+            'terminalFailures' => $runs->sum(fn (object $run): int => (int) $run->terminal_failures),
             'state' => $state,
-            'evidenceCode' => 'derived_from_ingest_runs',
+            'evidenceCode' => 'execution_attempt_ledger',
         ];
     }
 
-    private function latestPressure(int $sourceId, string $kind): ?object
+    private function latestPressure(int $sourceId, string $kind, CarbonImmutable $observedAt): ?object
     {
         if (! Schema::hasTable('integration.source_runtime_pressure_events')) {
             return null;
@@ -671,6 +700,7 @@ final class SourceObservabilityService
         return DB::table('integration.source_runtime_pressure_events')
             ->where('source_id', $sourceId)
             ->where('pressure_kind', $kind)
+            ->where('observed_at', '<=', $observedAt)
             ->orderByDesc('source_runtime_pressure_event_id')
             ->first();
     }
