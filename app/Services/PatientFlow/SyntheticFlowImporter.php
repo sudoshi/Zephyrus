@@ -144,6 +144,11 @@ class SyntheticFlowImporter
 
     private function upsertSource(string $sourceKey, string $facilityCode): Source
     {
+        $existingMetadata = Source::query()
+            ->where('source_key', $sourceKey)
+            ->first(['metadata'])
+            ?->metadata ?? [];
+
         return $this->sources->ensureSource([
             'source_key' => $sourceKey,
             'tenant_key' => 'default',
@@ -153,12 +158,15 @@ class SyntheticFlowImporter
             'system_class' => 'ehr',
             'environment' => 'sandbox',
             'interface_type' => 'hl7v2_file',
-            'active_status' => 'active',
+            'active_status' => 'testing',
             'contract_status' => 'not_required',
             'baa_status' => 'not_required',
             'phi_allowed' => false,
-            'go_live_status' => 'demo',
-            'metadata' => ['purpose' => 'patient-flow-4d-navigator-demo'],
+            'go_live_status' => 'testing',
+            'metadata' => [
+                ...$existingMetadata,
+                'purpose' => 'patient-flow-4d-navigator-demo',
+            ],
         ]);
     }
 
