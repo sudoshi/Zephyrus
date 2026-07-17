@@ -262,6 +262,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHo
         Route::get('/alerts', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'index']);
         Route::post('/alerts/{alertUuid}/acknowledge', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'acknowledge']);
         Route::post('/alerts/{alertUuid}/resolve', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'resolve']);
+        // Escalation workflow — full response timing chain vs the 30-min floor.
+        Route::get('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'index']);
+        Route::post('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'store']);
+        Route::post('/escalations/{escalationUuid}/dispatch', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'dispatchResponse']);
+        Route::post('/escalations/{escalationUuid}/arrive', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'arrive']);
+        Route::post('/escalations/{escalationUuid}/resolve', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'resolve']);
     });
 
 // Machine-to-machine ingress only. This route intentionally lives outside the

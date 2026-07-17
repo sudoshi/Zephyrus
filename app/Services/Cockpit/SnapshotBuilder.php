@@ -206,6 +206,15 @@ class SnapshotBuilder
                 continue;
             }
 
+            // A flag-gated module that is OFF emits zero values and must be
+            // ABSENT from the snapshot (not an empty panel) — deployments
+            // without Home Hospital stay byte-identical. Distinct from a
+            // failing provider: safeMetrics logs those, and always-on domains
+            // always emit at least one tile.
+            if ($values === [] && $provider->domain() === 'home') {
+                continue;
+            }
+
             $domains[$provider->domain()] = $this->domainSection($provider->domain(), $values);
         }
 

@@ -38,7 +38,7 @@ class HewsService
 
     /**
      * @return array{score:int,band:string,components:array<string,int>,vitals:array<string,float|null>,computed_at:string}|null
-     *         null when no scoreable observations exist in the lookback window.
+     *                                                                                                                           null when no scoreable observations exist in the lookback window.
      */
     public function computeForEpisode(HomeEpisode $episode): ?array
     {

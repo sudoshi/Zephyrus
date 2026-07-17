@@ -70,6 +70,155 @@ class HomeHospitalDemoSeeder extends Seeder
         $this->seedKits();
         $this->seedEpisodes($unit, $programs['ahcah_acute']);
         $this->seedReferrals($programs['ahcah_acute']);
+        $this->seedObservations();
+        $this->seedEscalationHistory();
+    }
+
+    /**
+     * Trailing-12h vitals per active enrollment so HEWS, sparklines, and
+     * adherence read real rows: SpO2/HR/RR hourly, BP + temp q4h. Values are
+     * deterministic per patient (no Math.random demo drift); HOME-DEMO-001
+     * deliberately declines to a critical SpO2 (87%) so exactly one open
+     * critical patient alert exists — the Phase 1 DoD breach path. Rolling
+     * refresh prunes demo observations older than 48h (seeder-owned rows
+     * only, marked source_key = demo-seed).
+     */
+    private function seedObservations(): void
+    {
+        \App\Models\Home\RpmObservation::query()
+            ->where('source_key', 'demo-seed')
+            ->where('observed_at', '<', now()->subHours(48))
+            ->delete();
+
+        $enrollments = RpmEnrollment::query()
+            ->with('kit')
+            ->where('status', 'active')
+            ->where('is_deleted', false)
+            ->orderBy('rpm_enrollment_id')
+            ->get();
+
+        $evaluator = app(\App\Services\Home\RpmAlertEvaluator::class);
+
+        foreach ($enrollments->values() as $index => $enrollment) {
+            $ref = $enrollment->patient_ref;
+            $declining = $ref === 'HOME-DEMO-001';
+
+            // Per-patient baselines: stable, patient-shaped numbers.
+            $base = [
+                '59408-5' => 96.0 - ($index % 3),          // SpO2 94–96
+                '8867-4' => 72.0 + (($index * 7) % 20),    // HR 72–92
+                '9279-1' => 16.0 + ($index % 4),           // RR 16–19
+                '8480-6' => 118.0 + (($index * 5) % 18),   // SBP
+                '8462-4' => 74.0 + (($index * 3) % 10),    // DBP
+                '8310-5' => 36.8,                          // Temp °C
+            ];
+
+            $enrollment->update(['baseline' => ['means' => $base, 'window_hours' => 24]]);
+
+            $displays = [
+                '59408-5' => ['Oxygen saturation', '%'],
+                '8867-4' => ['Heart rate', 'bpm'],
+                '9279-1' => ['Respiratory rate', '/min'],
+                '8480-6' => ['Systolic blood pressure', 'mmHg'],
+                '8462-4' => ['Diastolic blood pressure', 'mmHg'],
+                '8310-5' => ['Body temperature', 'Cel'],
+            ];
+
+            $latestByVital = [];
+
+            for ($hoursAgo = 11; $hoursAgo >= 0; $hoursAgo--) {
+                $observedAt = now()->subHours($hoursAgo)->startOfHour()->addMinutes(($index * 7) % 50);
+
+                foreach ($base as $loinc => $mean) {
+                    $hourly = in_array($loinc, ['59408-5', '8867-4', '9279-1'], true);
+                    if (! $hourly && $hoursAgo % 4 !== 0) {
+                        continue;
+                    }
+
+                    // Deterministic wiggle; the declining patient walks SpO2
+                    // down from baseline to 87% (critical) and HR up.
+                    $wiggle = (($hoursAgo * 3 + $index * 5) % 7 - 3) * 0.4;
+                    $value = $mean + $wiggle;
+                    if ($declining && $loinc === '59408-5') {
+                        $value = max(87.0, $mean - (11 - $hoursAgo) * 0.8);
+                    }
+                    if ($declining && $loinc === '8867-4') {
+                        $value = $mean + (11 - $hoursAgo) * 1.6;
+                    }
+
+                    $observation = \App\Models\Home\RpmObservation::updateOrCreate(
+                        ['observation_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS,
+                            "zephyrus.home.obs.{$ref}.{$loinc}.".$observedAt->format('YmdH'))->toString()],
+                        [
+                            'rpm_enrollment_id' => $enrollment->rpm_enrollment_id,
+                            'rpm_device_id' => null,
+                            'patient_ref' => $ref,
+                            'loinc_code' => $loinc,
+                            'display' => $displays[$loinc][0],
+                            'value' => round($value, 1),
+                            'unit' => $displays[$loinc][1],
+                            'observed_at' => $observedAt,
+                            'received_at' => $observedAt->copy()->addMinutes(1),
+                            'source_key' => 'demo-seed',
+                            'quality_flag' => 'ok',
+                            'metadata' => ['provenance' => 'demo'],
+                        ]
+                    );
+                    $latestByVital[$loinc] = $observation;
+                }
+            }
+
+            // Alert state from the latest readings via the REAL evaluator (the
+            // same path live ingestion takes; dedupes to one open alert/rule).
+            foreach ($latestByVital as $observation) {
+                $evaluator->evaluate($observation, $enrollment);
+            }
+
+            $enrollment->kit?->update([
+                'last_seen_at' => now()->subMinutes(($index * 3) % 12),
+                'battery_pct' => 68 + (($index * 9) % 30),
+            ]);
+        }
+    }
+
+    /**
+     * Response-time history for the escalation p90 tile: two resolved
+     * escalations inside the trailing 7d, both under the 30-minute waiver
+     * floor, outcome managed-at-home.
+     */
+    private function seedEscalationHistory(): void
+    {
+        $specs = [
+            ['ref' => 'HOME-DEMO-002', 'daysAgo' => 1, 'response' => 22],
+            ['ref' => 'HOME-DEMO-005', 'daysAgo' => 3, 'response' => 28],
+        ];
+
+        foreach ($specs as $spec) {
+            $episode = HomeEpisode::query()->where('patient_ref', $spec['ref'])->where('is_deleted', false)->first();
+            if ($episode === null) {
+                continue;
+            }
+
+            $initiated = now()->subDays($spec['daysAgo'])->setTime(14, 10);
+
+            \App\Models\Home\HomeEscalation::updateOrCreate(
+                ['escalation_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.escalation.'.$spec['ref'].'.'.$spec['daysAgo'])->toString()],
+                [
+                    'home_episode_id' => $episode->home_episode_id,
+                    'patient_ref' => $spec['ref'],
+                    'trigger_type' => 'clinical_deterioration',
+                    'response_mode' => 'field_dispatch',
+                    'status' => 'resolved',
+                    'initiated_at' => $initiated,
+                    'dispatched_at' => $initiated->copy()->addMinutes(6),
+                    'arrived_at' => $initiated->copy()->addMinutes($spec['response']),
+                    'resolved_at' => $initiated->copy()->addMinutes($spec['response'] + 35),
+                    'response_minutes' => $spec['response'],
+                    'outcome' => 'managed_at_home',
+                    'metadata' => ['provenance' => 'demo'],
+                ]
+            );
+        }
     }
 
     private function seedVirtualUnit(): Unit
@@ -248,17 +397,20 @@ class HomeHospitalDemoSeeder extends Seeder
 
     private function seedVisits(HomeEpisode $episode, string $ref): void
     {
-        // Waiver operating floor: two in-person visits today (§3). One completed
-        // this morning, one upcoming — feeds the compliance rail and the
-        // next-visit countdown without hand-tuned clock states.
+        // Waiver operating floor: two in-person visits per day (§3) + a daily
+        // MD tele-eval. Completion is time-aware — a visit whose slot is >45
+        // minutes past reads completed, so the compliance rail stays honest at
+        // any refresh hour. Tomorrow's RN visit keeps a live countdown on the
+        // command grid even late in the day.
         $visits = [
-            ['type' => 'rn', 'start' => now()->startOfDay()->addHours(9), 'status' => 'completed', 'waiver' => true],
-            ['type' => 'community_paramedic', 'start' => now()->startOfDay()->addHours(18), 'status' => 'scheduled', 'waiver' => true],
-            ['type' => 'md_np_tele', 'start' => now()->startOfDay()->addHours(11), 'status' => 'completed', 'waiver' => false],
+            ['type' => 'rn', 'start' => now()->startOfDay()->addHours(9), 'waiver' => true],
+            ['type' => 'community_paramedic', 'start' => now()->startOfDay()->addHours(18), 'waiver' => true],
+            ['type' => 'md_np_tele', 'start' => now()->startOfDay()->addHours(11), 'waiver' => false],
+            ['type' => 'rn', 'start' => now()->startOfDay()->addDay()->addHours(9), 'waiver' => true],
         ];
 
         foreach ($visits as $j => $v) {
-            $completed = $v['status'] === 'completed';
+            $completed = $v['start']->lt(now()->subMinutes(45));
             HomeVisit::updateOrCreate(
                 [
                     'home_episode_id' => $episode->home_episode_id,
@@ -269,7 +421,7 @@ class HomeHospitalDemoSeeder extends Seeder
                     'visit_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.visit.'.$ref.'.'.$j.'.'.$v['start']->toDateString()),
                     'patient_ref' => $ref,
                     'is_waiver_required' => $v['waiver'],
-                    'status' => $v['status'],
+                    'status' => $completed ? 'completed' : 'scheduled',
                     'started_at' => $completed ? $v['start'] : null,
                     'completed_at' => $completed ? $v['start']->copy()->addMinutes(40) : null,
                     'on_time' => $completed ? true : null,

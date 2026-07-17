@@ -101,7 +101,7 @@ describe('navigationConfig', () => {
       pharmacy: '/pharmacy',
       transport: '/transport/dispatch',
       staffing: '/staffing',
-      home: '/home/census',
+      home: '/home/command',
     });
   });
 

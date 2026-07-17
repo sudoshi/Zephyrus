@@ -80,12 +80,12 @@ class HomeMetrics extends BaseMetrics
 
     private function escalationResponseP90(): ?float
     {
-        $row = DB::selectOne("
+        $row = DB::selectOne('
             SELECT percentile_cont(0.9) WITHIN GROUP (ORDER BY response_minutes) AS p90
             FROM prod.home_escalations
             WHERE response_minutes IS NOT NULL AND is_deleted = false
               AND initiated_at >= ?::timestamptz
-        ", [now()->subDays(7)->toIso8601String()]);
+        ', [now()->subDays(7)->toIso8601String()]);
 
         return $row->p90 !== null ? round((float) $row->p90, 1) : null;
     }

@@ -210,7 +210,7 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'home.escalation_response_p90' => $this->kpi('Escalation response p90', 'p90 escalation response time vs the 30-minute waiver floor (trailing 7d).', 'min', 'down', 30, 25, 31, 120,
                 'Home escalation response p90 {display} — 30-min waiver floor at risk'),
             'home.visit_compliance_today' => $this->kpi('Waiver visit compliance', 'Percent of due waiver-required visits completed today (≥2/day floor).', '%', 'up', 100, 95, 80, 120,
-                'Waiver visit compliance {display} — below the AHCAH floor'),
+                'Waiver visit compliance {display} — below the AHCAH floor', null, 98),
             'home.device_offline_pct' => $this->kpi('Kits offline', 'Assigned RPM kits with a transmission gap over 60 minutes.', '%', 'down', 0, 10, null, 120,
                 'Home RPM kits offline — {display} of assigned kits dark'),
             'home.rpm_adherence' => $this->kpi('Monitoring adherence', 'Received vs expected readings across active enrollments (6h window).', '%', 'up', 80, 70, null, 120),

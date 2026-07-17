@@ -47,7 +47,7 @@ class SyntheticRpmConnectorTest extends TestCase
         $this->assertSame(2, $run->messages_received);
         $this->assertSame(2, $run->messages_succeeded);
 
-        $observation = RpmObservation::sole();
+        $observation = RpmObservation::where('transmission_id', 'TX-TEST-0001')->sole();
         $this->assertSame('HOME-DEMO-001', $observation->patient_ref);
         $this->assertSame('59408-5', $observation->loinc_code);
         $this->assertSame(93.0, $observation->value);
@@ -67,7 +67,7 @@ class SyntheticRpmConnectorTest extends TestCase
         $second = $connector->handleWebhook($this->envelope());
 
         $this->assertSame(2, $second->messages_skipped);
-        $this->assertSame(1, RpmObservation::count());
+        $this->assertSame(1, RpmObservation::where('transmission_id', 'TX-TEST-0001')->count());
     }
 
     public function test_observation_for_unknown_patient_dead_letters(): void
@@ -84,7 +84,7 @@ class SyntheticRpmConnectorTest extends TestCase
 
         $this->assertSame('failed', $run->status);
         $this->assertSame(1, $run->messages_failed);
-        $this->assertSame(0, RpmObservation::count());
+        $this->assertSame(0, RpmObservation::where('transmission_id', 'TX-UNKNOWN-0001')->count());
         $this->assertSame(1, DeadLetter::where('failure_stage', 'mapping')->count());
     }
 

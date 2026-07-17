@@ -23,6 +23,7 @@ class RpmProjectionHandler implements ProjectionHandler
 {
     public function __construct(
         private readonly \App\Services\Home\RpmAlertEvaluator $alerts,
+        private readonly \App\Services\Home\RpmFhirObservationRecorder $fhir,
     ) {}
 
     public function key(): string
@@ -91,10 +92,12 @@ class RpmProjectionHandler implements ProjectionHandler
             $device->kit?->update(['last_seen_at' => $event->occurredAt]);
         }
 
-        // Breach evaluation only on first projection — a replay of the same
-        // transmission must not inflate breach counts (idempotent pipeline).
+        // Breach evaluation + FHIR persistence only on first projection — a
+        // replay of the same transmission must not inflate breach counts or
+        // mint duplicate resource versions (idempotent pipeline).
         if ($observation->wasRecentlyCreated) {
             $this->alerts->evaluate($observation, $enrollment);
+            $this->fhir->recordForSourceKey($observation, (string) $observation->source_key);
         }
     }
 
