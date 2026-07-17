@@ -77,6 +77,7 @@ export interface NavigationCapabilities {
  *  disabled feature is hidden — never rendered as a dead link that 404s. */
 export interface NavigationFeatures {
   readonly virtual_rounds?: boolean;
+  readonly home_hospital?: boolean;
 }
 
 export interface NavigationAccess {
@@ -117,6 +118,9 @@ export interface NavDomain {
   readonly groups: readonly NavGroup[];
   readonly adminOnly?: boolean;
   readonly requiredCapability?: keyof NavigationCapabilities;
+  /** Entire domain hidden unless this server-shared feature flag is on
+   *  (mirrors NavLeaf.requiredFeature — never a dead link that 404s). */
+  readonly requiredFeature?: keyof NavigationFeatures;
 }
 
 /** One of the section-level controls rendered in the top bar. */
@@ -533,6 +537,29 @@ const INTEGRATIONS: NavDomain = {
   groups: [],
 };
 
+/** Home Hospital — acute Hospital-at-Home virtual ward (ACUM-PRD-HAH-001;
+ *  docs/home-hospital/). Hidden entirely unless HOME_HOSPITAL_ENABLED is on,
+ *  matching the server route gate (EnsureHomeHospitalEnabled) so nav and
+ *  route never disagree. Phase 0 ships the Virtual Bed Board; the remaining
+ *  five surfaces land in later phases. */
+const HOME: NavDomain = {
+  key: 'home',
+  label: 'Home Hospital',
+  icon: HeartPulse,
+  dashboardHref: '/home/census',
+  dashboardLabel: 'Virtual Bed Board',
+  matchPrefixes: ['/home'],
+  requiredFeature: 'home_hospital',
+  groups: [
+    {
+      title: 'Operations',
+      items: [
+        { label: 'Virtual Bed Board', href: '/home/census', icon: BedDouble },
+      ],
+    },
+  ],
+};
+
 /** Primary sections in top-bar order. Admin pages live in the user menu. */
 export const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -546,7 +573,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING],
+    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING, HOME],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {
@@ -572,6 +599,7 @@ export function isDomainActive(domain: NavDomain, url: string): boolean {
 }
 
 export function isDomainVisible(domain: NavDomain, access: NavigationAccess): boolean {
+  if (domain.requiredFeature && access.features?.[domain.requiredFeature] !== true) return false;
   if (domain.adminOnly) return access.isAdmin;
   if (domain.requiredCapability) return access.can?.[domain.requiredCapability] === true;
   if (domain.key === 'admin') {
