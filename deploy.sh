@@ -129,6 +129,16 @@ sudo rsync -av --exclude 'node_modules' \
             --exclude '.pytest_cache' \
             "$RELEASE_ROOT/" /var/www/Zephyrus/
 
+# Vite's ignored hot marker is intentionally absent from immutable release
+# snapshots, but rsync does not delete destination-only runtime files. Remove
+# any marker left by an older development-era deployment so production pages
+# resolve assets from the generated manifest instead of localhost:5176.
+sudo rm -f /var/www/Zephyrus/public/hot
+if sudo test -e /var/www/Zephyrus/public/hot; then
+    echo "❌ Error: Production Vite hot marker could not be removed"
+    exit 1
+fi
+
 echo "Setting permissions..."
 # rsync -a preserves dev (smudoshi) ownership, but Apache/PHP-FPM runs as www-data.
 # The ENTIRE tree must be www-data-owned or vendor/autoload reads fail with a
@@ -261,6 +271,19 @@ fi
 if ! curl -s -o /dev/null -w "%{http_code}" -H "Host: zephyrus.acumenus.net" http://localhost | grep -q "^[23]"; then
     echo "❌ Error: Site is not responding correctly"
     echo "💡 Check the Laravel logs: tail -f /var/www/Zephyrus/storage/logs/laravel.log"
+    exit 1
+fi
+
+# A 200 response can still be a blank application shell when a stale Vite hot
+# marker sends the browser to a development server. Prove that the live login
+# document references production assets before declaring the release healthy.
+LOGIN_HTML="$(curl --fail --silent --show-error https://zephyrus.acumenus.net/login)"
+if grep -Eq 'https?://(localhost|127\.0\.0\.1):[0-9]+/(@vite|@react-refresh|resources/)' <<< "$LOGIN_HTML"; then
+    echo "❌ Error: Live production HTML references a development Vite server"
+    exit 1
+fi
+if ! grep -Eq '/build/assets/' <<< "$LOGIN_HTML"; then
+    echo "❌ Error: Live production HTML does not reference built assets"
     exit 1
 fi
 
