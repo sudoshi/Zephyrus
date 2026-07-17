@@ -257,6 +257,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
 Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHomeHospitalEnabled::class])
     ->prefix('home')->group(function () {
         Route::get('/census', [\App\Http\Controllers\Api\Home\HomeCensusController::class, 'index']);
+        Route::get('/command', [\App\Http\Controllers\Api\Home\HomeCommandController::class, 'index']);
+        // Patient-alert acknowledgement workflow — human actions, recorded.
+        Route::get('/alerts', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'index']);
+        Route::post('/alerts/{alertUuid}/acknowledge', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'acknowledge']);
+        Route::post('/alerts/{alertUuid}/resolve', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'resolve']);
     });
 
 // Machine-to-machine ingress only. This route intentionally lives outside the

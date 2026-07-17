@@ -546,14 +546,15 @@ const HOME: NavDomain = {
   key: 'home',
   label: 'Home Hospital',
   icon: HeartPulse,
-  dashboardHref: '/home/census',
-  dashboardLabel: 'Virtual Bed Board',
+  dashboardHref: '/home/command',
+  dashboardLabel: 'Virtual Ward Command',
   matchPrefixes: ['/home'],
   requiredFeature: 'home_hospital',
   groups: [
     {
       title: 'Operations',
       items: [
+        { label: 'Virtual Ward Command', href: '/home/command', icon: HeartPulse },
         { label: 'Virtual Bed Board', href: '/home/census', icon: BedDouble },
       ],
     },

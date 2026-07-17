@@ -16,4 +16,9 @@ class HomeDashboardController extends Controller
     {
         return Inertia::render('Home/Census', $census->build());
     }
+
+    public function command(\App\Services\Home\HomeCommandService $command): InertiaResponse
+    {
+        return Inertia::render('Home/Command', $command->build());
+    }
 }

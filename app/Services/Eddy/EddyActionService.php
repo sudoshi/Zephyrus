@@ -47,6 +47,11 @@ class EddyActionService
         // invoked only) — X3's alert→action routing is unchanged, purely additive.
         'propose_pdsa_cycle' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Draft a PDSA improvement cycle', 'recommendation_type' => 'eddy_pdsa_cycle', 'alert_key' => null],
         'propose_pathway_correction' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Draft a care-pathway correction', 'recommendation_type' => 'eddy_pathway_correction', 'alert_key' => null],
+        // Home Hospital (ACUM-PRD-HAH-001 §6.3, Phase 1): a crit home.* cockpit
+        // alert (unacked critical vitals, blown response p90, waiver-visit
+        // breach) pre-seeds a draft escalation-response proposal. Draft-only,
+        // human-approved — escalation authority stays with the clinical team.
+        'propose_escalation_response' => ['tier' => 'T3', 'risk' => 'high', 'label' => 'Propose a home-episode escalation response', 'recommendation_type' => 'eddy_home_escalation', 'alert_key' => 'home.'],
     ];
 
     /**

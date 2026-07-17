@@ -6,6 +6,7 @@ use App\Domain\Cockpit\Metrics\BaseMetrics;
 use App\Domain\Cockpit\Metrics\EdMetrics;
 use App\Domain\Cockpit\Metrics\FinancialMetrics;
 use App\Domain\Cockpit\Metrics\FlowMetrics;
+use App\Domain\Cockpit\Metrics\HomeMetrics;
 use App\Domain\Cockpit\Metrics\OkrMetrics;
 use App\Domain\Cockpit\Metrics\PeriopMetrics;
 use App\Domain\Cockpit\Metrics\QualityMetrics;
@@ -68,6 +69,7 @@ class SnapshotBuilder
         'rtdc' => 'rtdc.occupancy',
         'ed' => 'ed.nedocs',
         'periop' => 'periop.prime_util',
+        'home' => 'home.census_occupancy',
     ];
 
     public function __construct(
@@ -268,6 +270,9 @@ class SnapshotBuilder
             app(QualityMetrics::class),
             app(ServiceLineMetrics::class),
             app(FinancialMetrics::class),
+            // Home Hospital (ACUM-PRD-HAH-001): emits nothing while
+            // HOME_HOSPITAL_ENABLED is off — cockpit unchanged without it.
+            app(HomeMetrics::class),
             app(OkrMetrics::class),
         ];
     }

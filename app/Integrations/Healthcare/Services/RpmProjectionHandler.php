@@ -21,6 +21,10 @@ use Ramsey\Uuid\Uuid;
  */
 class RpmProjectionHandler implements ProjectionHandler
 {
+    public function __construct(
+        private readonly \App\Services\Home\RpmAlertEvaluator $alerts,
+    ) {}
+
     public function key(): string
     {
         return 'home.rpm';
@@ -63,7 +67,7 @@ class RpmProjectionHandler implements ProjectionHandler
 
         $device = $this->deviceBySerial($payload['device_serial'] ?? null);
 
-        RpmObservation::updateOrCreate(
+        $observation = RpmObservation::updateOrCreate(
             ['observation_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.rpm.observation.'.$event->idempotencyKey)->toString()],
             [
                 'rpm_enrollment_id' => $enrollment->rpm_enrollment_id,
@@ -85,6 +89,12 @@ class RpmProjectionHandler implements ProjectionHandler
         if ($device !== null) {
             $device->update(['last_transmission_at' => $event->occurredAt]);
             $device->kit?->update(['last_seen_at' => $event->occurredAt]);
+        }
+
+        // Breach evaluation only on first projection — a replay of the same
+        // transmission must not inflate breach counts (idempotent pipeline).
+        if ($observation->wasRecentlyCreated) {
+            $this->alerts->evaluate($observation, $enrollment);
         }
     }
 

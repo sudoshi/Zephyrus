@@ -282,6 +282,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::prefix('home')->name('home.')
             ->middleware(\App\Http\Middleware\EnsureHomeHospitalEnabled::class)
             ->group(function () {
+                Route::get('/command', [HomeDashboardController::class, 'command'])->name('command');
                 Route::get('/census', [HomeDashboardController::class, 'census'])->name('census');
             });
 

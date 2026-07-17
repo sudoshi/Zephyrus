@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Log;
  */
 class DrillBuilder
 {
-    public const DOMAINS = ['rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial', 'okr'];
+    public const DOMAINS = ['rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial', 'home', 'okr'];
 
     private const TITLES = [
         'rtdc' => 'Real-Time Demand & Capacity — Unit Capacity Board',
@@ -39,6 +39,7 @@ class DrillBuilder
         'quality' => 'Quality & Safety — HAI / Safety Ledger',
         'service' => 'Service Lines — Throughput',
         'financial' => 'Financial Stewardship',
+        'home' => 'Home Hospital — Virtual Ward',
         'okr' => 'Executive OKR Scorecard',
     ];
 
@@ -113,6 +114,7 @@ class DrillBuilder
                 'periop' => array_values(array_filter([$this->orRoomBoard(), $this->pacuBayBoard()])),
                 'staffing' => [$this->unitCoverage()],
                 'flow' => $this->flowTables($tiles),
+                'home' => $this->homeTables(),
                 'okr' => [$this->okrTable($tiles)],
                 default => [$this->measureLedger($domain, $tiles)],
             };
@@ -631,6 +633,102 @@ class DrillBuilder
             'h', 'hr', 'hrs', 'hour', 'hours' => DurationFormatter::minutes((float) $value * 60),
             default => null,
         };
+    }
+
+    /**
+     * Home Hospital drill (ACUM-PRD-HAH-001 §9): the ward board (episode,
+     * condition, day-of-stay, HEWS band, open alerts, next waiver visit) plus
+     * a referral-funnel snapshot. Pseudonymous refs only — never MRN/address.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function homeTables(): array
+    {
+        $episodes = \App\Models\Home\HomeEpisode::query()
+            ->with(['encounter.bed:bed_id,label'])
+            ->active()
+            ->orderBy('home_episode_id')
+            ->limit(16)
+            ->get();
+
+        $hews = app(\App\Services\Home\HewsService::class);
+        $rows = [];
+
+        foreach ($episodes as $episode) {
+            $score = $hews->computeForEpisode($episode);
+            $openAlerts = $episode->alerts()->whereIn('status', ['open', 'acknowledged'])->where('is_deleted', false)->get();
+            $critOpen = $openAlerts->contains(fn ($a) => $a->severity === 'critical' && $a->status === 'open');
+            $nextVisit = $episode->visits()
+                ->where('status', 'scheduled')
+                ->where('is_deleted', false)
+                ->orderBy('scheduled_start')
+                ->first();
+
+            $day = $episode->started_at !== null ? max(1, (int) $episode->started_at->diffInDays(now()) + 1) : null;
+
+            $rows[] = [
+                'slot' => ['v' => (string) ($episode->encounter?->bed?->label ?? '—'), 'strong' => true],
+                'patient' => ['v' => (string) $episode->patient_ref],
+                'condition' => ['v' => (string) ($episode->condition_label ?? $episode->condition_code), 'dim' => true],
+                'day' => ['v' => $day !== null ? "D{$day}".($episode->target_los_days !== null ? ' of '.rtrim(rtrim(number_format($episode->target_los_days, 1), '0'), '.') : '') : '—'],
+                'hews' => $score === null
+                    ? ['v' => '—', 'dim' => true]
+                    : ['tag' => [
+                        'text' => 'HEWS '.$score['score'],
+                        'status' => match ($score['band']) {
+                            'high' => 'critical',
+                            'medium' => 'warning',
+                            default => 'neutral',
+                        },
+                    ]],
+                'alerts' => $openAlerts->isEmpty()
+                    ? ['v' => '0', 'dim' => true]
+                    : ['tag' => [
+                        'text' => (string) $openAlerts->count(),
+                        // Earned urgency: coral only for an unacked critical.
+                        'status' => $critOpen ? 'critical' : 'warning',
+                    ]],
+                'next_visit' => ['v' => $nextVisit !== null
+                    ? $nextVisit->scheduled_start->diffForHumans(now(), ['short' => true, 'parts' => 1, 'syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW])
+                    : '—', 'dim' => $nextVisit === null],
+            ];
+        }
+
+        $funnel = \App\Models\Home\HomeReferral::query()
+            ->where('is_deleted', false)
+            ->selectRaw('status, count(*) AS n')
+            ->groupBy('status')
+            ->orderByRaw("array_position(ARRAY['referred','screened','eligible','consented','activated','declined','cancelled'], status)")
+            ->get();
+
+        $funnelRows = $funnel->map(fn ($row): array => [
+            'stage' => ['v' => ucfirst((string) $row->status), 'strong' => true],
+            'count' => (int) $row->n,
+        ])->all();
+
+        return array_values(array_filter([
+            $rows === [] ? null : [
+                'caption' => 'Virtual ward board',
+                'columns' => [
+                    ['key' => 'slot', 'header' => 'Slot', 'align' => 'left'],
+                    ['key' => 'patient', 'header' => 'Patient', 'align' => 'left'],
+                    ['key' => 'condition', 'header' => 'Condition', 'align' => 'left'],
+                    ['key' => 'day', 'header' => 'Day', 'align' => 'left'],
+                    ['key' => 'hews', 'header' => 'HEWS', 'align' => 'left'],
+                    ['key' => 'alerts', 'header' => 'Alerts', 'align' => 'right'],
+                    ['key' => 'next_visit', 'header' => 'Next visit', 'align' => 'right'],
+                ],
+                'rows' => $rows,
+            ],
+            $funnelRows === [] ? null : [
+                'caption' => 'Referral funnel',
+                'columns' => [
+                    ['key' => 'stage', 'header' => 'Stage', 'align' => 'left'],
+                    ['key' => 'count', 'header' => 'Referrals', 'align' => 'right'],
+                ],
+                'rows' => $funnelRows,
+            ],
+        ]));
     }
 
     /** @param list<array<string, mixed>> $tiles
