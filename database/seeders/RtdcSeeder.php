@@ -68,8 +68,13 @@ class RtdcSeeder extends Seeder
         // Soft-delete any pre-existing units that are NOT in the manifest roster
         // (legacy 'SD', the old single 'ICU', etc.) so the live app shows only the
         // Summit 25. Additive/non-destructive: flips is_deleted, never DROPs rows.
+        // virtual_home units are exempt: the Home Hospital virtual ward is
+        // deliberately NOT in the manifest (its slots must never inflate
+        // manifest-derived physical denominators) and is owned by
+        // HomeHospitalDemoSeeder — see docs/home-hospital/HOME-HOSPITAL-BUILD-PROMPT.md.
         $manifestAbbrs = $manifest->unitAbbrs();
         Unit::whereNotIn('abbreviation', $manifestAbbrs)
+            ->where('type', '!=', 'virtual_home')
             ->where('is_deleted', false)
             ->update(['is_deleted' => true]);
 

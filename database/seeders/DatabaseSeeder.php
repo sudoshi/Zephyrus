@@ -57,6 +57,11 @@ class DatabaseSeeder extends Seeder
             // Virtual Rounds pilot templates (rounds.templates). Idempotent by
             // (name, version); template UUIDs are minted once and preserved.
             RoundTemplateSeeder::class,
+            // Home Hospital virtual ward + demo cohort. Gated on
+            // HOME_HOSPITAL_ENABLED (no-op otherwise); runs BEFORE
+            // DemoTuningSeeder so tuning sees final unit/bed state. The
+            // virtual_home unit is exempt from RtdcSeeder's manifest soft-trim.
+            HomeHospitalDemoSeeder::class,
             // DemoTuningSeeder runs LAST: it tunes whatever the base seeders produced into the
             // compelling live demo state (85% occupancy, today's staffing gaps, near-now SLAs,
             // clean ED bed inventory, varied OR surgeons). Idempotent; Postgres-only.

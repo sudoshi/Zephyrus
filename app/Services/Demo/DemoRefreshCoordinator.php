@@ -82,6 +82,13 @@ final class DemoRefreshCoordinator
                     '--refresh' => true,
                 ]));
             }
+            // Re-anchor the Home Hospital virtual ward (episodes, visits,
+            // referral funnel) onto the fresh census. Gated on the feature
+            // flag; absent entirely when Home Hospital is off. Idempotent —
+            // the seeder keys every row on natural keys.
+            if (config('home_hospital.enabled')) {
+                $domains[] = $this->step('home_hospital', fn () => Artisan::call('db:seed', ['--class' => 'HomeHospitalDemoSeeder', '--force' => true]));
+            }
             $domains[] = $this->step('ancillary', fn () => $this->ancillary->refresh($clock));
             $domains[] = $this->step('ancillary_ocel', fn () => Artisan::call('ocel:project-ancillary', [
                 '--since' => $clock->windowStart()->toIso8601String(),

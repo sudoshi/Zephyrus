@@ -250,6 +250,15 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
         Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
     });
 
+// Home Hospital — virtual-ward live data (ACUM-PRD-HAH-001; docs/home-hospital/).
+// Gated by HOME_HOSPITAL_ENABLED (404 when off). Patient-level payloads travel
+// only on this authenticated API — public Reverb channels carry aggregate
+// pings, never vitals (PHI-free-wire rule).
+Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHomeHospitalEnabled::class])
+    ->prefix('home')->group(function () {
+        Route::get('/census', [\App\Http\Controllers\Api\Home\HomeCensusController::class, 'index']);
+    });
+
 // Machine-to-machine ingress only. This route intentionally lives outside the
 // browser-session Patient Flow group and writes through raw -> canonical ->
 // projection/provenance before acknowledging an ADT message.
