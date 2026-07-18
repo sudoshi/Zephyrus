@@ -17,6 +17,7 @@ import { Surface } from '@/Components/ui/Surface';
 import { cockpitStatusStyle } from './statusStyle';
 import { ProvenanceBadge } from './ProvenanceBadge';
 import { formatCoarseDurationSeconds } from '@/lib/duration';
+import { acknowledgeCockpitAlert } from '@/features/cockpit/api';
 
 // Coarse relative age (P6): the ticker shows how long an alert has been OPEN
 // (the AlertEngine's damped opened_at), not this snapshot's time. Coarse
@@ -31,22 +32,29 @@ function ageLabel(openedAt: string | null | undefined): string | null {
 function AlertItem({
   alert,
   onEngage,
+  onAcknowledge,
+  ackedBy = null,
   interactive = true,
 }: {
   alert: CockpitAlert;
   onEngage?: (alert: CockpitAlert) => void;
+  /** HFE Phase 1: acknowledge = take ownership. Absent id → no affordance. */
+  onAcknowledge?: (alert: CockpitAlert) => void;
+  /** Who owns this alert (server truth or optimistic local ack). */
+  ackedBy?: string | null;
   /** false inside the aria-hidden marquee duplicate — never focusable there. */
   interactive?: boolean;
 }) {
   const s = cockpitStatusStyle(alert.status);
   const age = ageLabel(alert.openedAt);
+  const acked = ackedBy !== null;
 
   const body = (
     <>
       <span
         role="img"
         aria-label={s.label}
-        className={`text-xs leading-none ${alert.status === 'crit' ? 'motion-safe:animate-pulse' : ''}`}
+        className={`text-xs leading-none ${alert.status === 'crit' && !acked ? 'motion-safe:animate-pulse' : ''}`}
         style={{ color: s.color }}
       >
         {s.glyph}
@@ -59,33 +67,58 @@ function AlertItem({
           {age}
         </span>
       )}
+      {acked && (
+        <span className="whitespace-nowrap rounded-md bg-healthcare-background px-1.5 py-0.5 text-xs font-medium text-healthcare-text-secondary dark:bg-white/5 dark:text-healthcare-text-secondary-dark">
+          ack · {ackedBy}
+        </span>
+      )}
       {alert.provenance === 'demo' && <ProvenanceBadge />}
     </>
   );
+
+  // HFE Phase 1: a sibling control, never nested inside the engage button —
+  // two actions, two accessible names.
+  const ackButton = interactive && onAcknowledge && alert.id !== undefined && !acked ? (
+    <button
+      type="button"
+      onClick={() => onAcknowledge(alert)}
+      aria-label={`Acknowledge: ${alert.text}`}
+      title="Acknowledge — take ownership; the alert stays visible"
+      className="rounded-md px-1 py-0.5 text-xs font-medium text-healthcare-text-secondary transition-colors duration-200
+                 hover:bg-healthcare-surface-hover hover:text-healthcare-text-primary
+                 dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-surface-hover-dark dark:hover:text-healthcare-text-primary-dark"
+    >
+      ✓ ack
+    </button>
+  ) : null;
 
   // P6 WS-4: with a hand-off wired, each entry opens the EddyDock pre-seeded
   // with this alert's matching catalog action. Plain span otherwise.
   if (onEngage && interactive) {
     return (
-      <button
-        type="button"
-        onClick={() => onEngage(alert)}
-        data-testid={`cockpit-alert-${alert.key}`}
-        title={alert.actionLabel ? `Ask Eddy — ${alert.actionLabel}` : 'Ask Eddy'}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors duration-200
-                   hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark"
-      >
-        {body}
-      </button>
+      <span className={`inline-flex shrink-0 items-center ${acked ? 'opacity-60' : ''}`}>
+        <button
+          type="button"
+          onClick={() => onEngage(alert)}
+          data-testid={`cockpit-alert-${alert.key}`}
+          title={alert.actionLabel ? `Ask Eddy — ${alert.actionLabel}` : 'Ask Eddy'}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors duration-200
+                     hover:bg-healthcare-surface-hover dark:hover:bg-healthcare-surface-hover-dark"
+        >
+          {body}
+        </button>
+        {ackButton}
+      </span>
     );
   }
 
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1.5 px-1 py-0.5"
+      className={`inline-flex shrink-0 items-center gap-1.5 px-1 py-0.5 ${acked ? 'opacity-60' : ''}`}
       data-testid={interactive ? `cockpit-alert-${alert.key}` : undefined}
     >
       {body}
+      {ackButton}
     </span>
   );
 }
@@ -100,6 +133,29 @@ export function AlertTicker({
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
+  // Optimistic ack overlay until the next snapshot carries the server truth.
+  // Failed posts roll the entry back — a dimmed alert must mean an owned alert.
+  const [localAcks, setLocalAcks] = useState<Record<number, string>>({});
+
+  const ackedByFor = (alert: CockpitAlert): string | null =>
+    alert.acknowledgedBy ?? (alert.id !== undefined ? localAcks[alert.id] ?? null : null);
+
+  const acknowledge = (alert: CockpitAlert) => {
+    if (alert.id === undefined) return;
+    const id = alert.id;
+    setLocalAcks((prev) => ({ ...prev, [id]: 'you' }));
+    acknowledgeCockpitAlert(id)
+      .then((res) => {
+        setLocalAcks((prev) => ({ ...prev, [id]: res.acknowledgedBy ?? 'you' }));
+      })
+      .catch(() => {
+        setLocalAcks((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      });
+  };
 
   // Re-measure when the alert set changes or the window resizes; marquee only
   // when the strip genuinely cannot fit (scrolling content that fits is worse
@@ -129,14 +185,16 @@ export function AlertTicker({
 
   const strip = (
     <span className="inline-flex items-center gap-6 pr-6">
-      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} onEngage={onEngage} />)}
+      {alerts.map((alert) => (
+        <AlertItem key={alert.key} alert={alert} onEngage={onEngage} onAcknowledge={acknowledge} ackedBy={ackedByFor(alert)} />
+      ))}
     </span>
   );
 
   // The aria-hidden marquee duplicate must never contain focusable buttons.
   const stripInert = (
     <span className="inline-flex items-center gap-6 pr-6">
-      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} interactive={false} />)}
+      {alerts.map((alert) => <AlertItem key={alert.key} alert={alert} ackedBy={ackedByFor(alert)} interactive={false} />)}
     </span>
   );
 

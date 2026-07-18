@@ -29,6 +29,13 @@ export async function fetchCockpitFace(scope: string): Promise<unknown> {
   return res.data;
 }
 
+// HFE Phase 1 — acknowledge an open alert. Returns the persisted ack state so
+// the ticker can reconcile its optimistic dim with the server truth.
+export async function acknowledgeCockpitAlert(alertId: number): Promise<{ id: number; acknowledgedAt: string | null; acknowledgedBy: string | null }> {
+  const res = await axios.post(`/api/cockpit/alerts/${alertId}/acknowledge`);
+  return res.data as { id: number; acknowledgedAt: string | null; acknowledgedBy: string | null };
+}
+
 // P8 WS-3 — the A2P patient lens for a context ref (ptok_…). Persona-gated
 // server-side (EnforceFlowLens:patients + service authorization); a 403 rejects
 // here and PatientLens renders the "access limited" state rather than crashing.

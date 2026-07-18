@@ -127,6 +127,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(fu
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')
         ->where('contextRef', 'ptok_[A-Za-z0-9]+');
     Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
+    // HFE Phase 1 — alert acknowledgement (any authenticated operator; the
+    // engine clears the ack on warn->crit escalation so worsening re-alarms).
+    Route::post('/alerts/{alertId}/acknowledge', [\App\Http\Controllers\Api\CockpitController::class, 'acknowledgeAlert'])
+        ->whereNumber('alertId');
     // P8 WS-6b — the admin threshold editor's endpoints. Both admin-gated: the
     // read backs the editor page, the write is the audited band-edge tune.
     Route::get('/kpi-definitions', [\App\Http\Controllers\Api\CockpitController::class, 'kpiDefinitions'])

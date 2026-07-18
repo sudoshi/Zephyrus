@@ -21,6 +21,7 @@ class CockpitAlert extends Model
     protected $casts = [
         'opened_at' => 'datetime',
         'cleared_at' => 'datetime',
+        'acknowledged_at' => 'datetime',
         'hold_count' => 'integer',
     ];
 

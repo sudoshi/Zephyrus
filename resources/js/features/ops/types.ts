@@ -114,16 +114,35 @@ export interface AgentInboxSummary {
   overdueActions: number;
 }
 
+/**
+ * HFE Phase 1 — the review-before-approve evidence carried on every inbox
+ * recommendation: scope, rationale, confidence, expected effect, provenance.
+ * All optional: older payload shapes must keep parsing.
+ */
+export interface InboxRecommendationBrief {
+  title: string | null;
+  riskLevel: string | null;
+  scopeType?: string | null;
+  scopeKey?: string | null;
+  rationale?: string | null;
+  confidence?: number | null;
+  expectedImpact?: Record<string, unknown>;
+  source?: string | null;
+}
+
 export interface AgentInboxApprovalItem {
   approvalId: number;
   status: string;
   reason: string | null;
+  requestedAtIso?: string | null;
   action: {
     actionId: number;
     type: string;
     status: string;
     ownerName: string | null;
-    recommendation: { title: string | null; riskLevel: string | null } | null;
+    dueAtIso?: string | null;
+    expiresAtIso?: string | null;
+    recommendation: InboxRecommendationBrief | null;
   } | null;
 }
 
@@ -133,7 +152,7 @@ export interface AgentInboxActionItem {
   status: string;
   ownerName: string | null;
   isOverdue: boolean;
-  recommendation: { title: string | null; riskLevel: string | null } | null;
+  recommendation: InboxRecommendationBrief | null;
 }
 
 export interface AgentInbox {

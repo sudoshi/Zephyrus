@@ -26,6 +26,7 @@ import {
   type DrillPayload,
 } from '@/types/cockpit';
 import { useCockpitDrill } from '@/features/cockpit/hooks';
+import { formatCoarseDurationSeconds } from '@/lib/duration';
 import { COCKPIT_STATE_TO_LEVEL, statusStyle } from './statusStyle';
 import { Tile } from './Tile';
 import { DataTable } from './DataTable';
@@ -81,6 +82,24 @@ export function DrillModal({ domain, onClose, onPatientDrill }: DrillModalProps)
       : COCKPIT_STATE_TO_LEVEL.normal;
   const accentStyle = statusStyle(accent);
 
+  // HFE Phase 1 — the snapshot's asOf is rebuilt every minute even when a
+  // domain's UNDERLYING data is demo or hours behind; the header must not let
+  // the drill borrow freshness it doesn't have (audit: Staffing drill read as
+  // live while the workspace was stale synthetic).
+  const freshness = useMemo(() => {
+    if (parsed.state !== 'ready' || parsed.payload.kpis.length === 0) return null;
+    const kpis = parsed.payload.kpis;
+    const demoCount = kpis.filter((kpi) => kpi.metadata?.provenance === 'demo').length;
+    const asOfMs = Date.parse(parsed.payload.asOf);
+    const oldestMs = Math.min(...kpis.map((kpi) => Date.parse(kpi.updatedAt)).filter((ms) => !Number.isNaN(ms)));
+    const lagSeconds = Number.isFinite(oldestMs) && !Number.isNaN(asOfMs) ? Math.round((asOfMs - oldestMs) / 1_000) : 0;
+    return {
+      demoCount,
+      total: kpis.length,
+      lagLabel: lagSeconds > 15 * 60 ? formatCoarseDurationSeconds(lagSeconds) : null,
+    };
+  }, [parsed]);
+
   return (
     <Dialog open={domain !== null} onOpenChange={(open: boolean) => { if (!open) onClose(); }}>
       <DialogContent
@@ -108,9 +127,19 @@ export function DrillModal({ domain, onClose, onPatientDrill }: DrillModalProps)
             </DialogDescription>
           </div>
           {parsed.state === 'ready' && (
-            <span className="shrink-0 text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-              As of {new Date(parsed.payload.asOf).toLocaleTimeString([], { hour12: false })}
-            </span>
+            <div className="shrink-0 text-right text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+              <div className="tabular-nums">
+                As of {new Date(parsed.payload.asOf).toLocaleTimeString([], { hour12: false })}
+              </div>
+              {freshness !== null && freshness.demoCount > 0 && (
+                <div className="tabular-nums">
+                  demo data · {freshness.demoCount}/{freshness.total} measures
+                </div>
+              )}
+              {freshness?.lagLabel != null && (
+                <div className="tabular-nums">oldest measure {freshness.lagLabel} behind</div>
+              )}
+            </div>
           )}
         </header>
 

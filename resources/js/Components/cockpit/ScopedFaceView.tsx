@@ -160,7 +160,15 @@ function DetailFace({
 
   return (
     <>
-      <header className="flex items-start gap-3" data-accent={accent}>
+      {/* HFE Phase 1 — the scope header is PERSISTENT: it stays pinned under
+          the topbar while the face scrolls, so "which unit am I looking at"
+          never leaves the screen on a scoped mount (audit §4.3 wrong-context
+          prevention). Opaque background so rows never bleed through. */}
+      <header
+        className="sticky top-[var(--topbar-height)] z-40 flex items-start gap-3 bg-healthcare-background py-1.5 dark:bg-healthcare-background-dark"
+        data-accent={accent}
+        data-testid="cockpit-scope-banner"
+      >
         <span
           aria-hidden="true"
           className="mt-0.5 h-[34px] w-[9px] shrink-0 rounded-sm"

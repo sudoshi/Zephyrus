@@ -115,11 +115,21 @@ class AlertEngine
 
                 // Held: severity and text track the live value; the entry never
                 // closes/reopens on a warn↔crit move.
-                $row->update([
+                $held = [
                     'status' => $candidate['status'],
                     'text' => $candidate['text'],
                     'hold_count' => 0,
-                ]);
+                ];
+
+                // Escalation re-alarms: a warn the operator acknowledged is NOT
+                // an acknowledged crit — worsening clears the ack.
+                if ($row->status === 'warn' && $candidate['status'] === 'crit' && $row->acknowledged_at !== null) {
+                    $held['acknowledged_at'] = null;
+                    $held['acknowledged_by'] = null;
+                    $held['acknowledged_by_name'] = null;
+                }
+
+                $row->update($held);
             } elseif ($row->hold_count + 1 >= $clearHolds) {
                 $row->update(['cleared_at' => now(), 'hold_count' => 0]);
             } else {
@@ -179,10 +189,13 @@ class AlertEngine
             ->get()
             ->map(function (CockpitAlert $row) use ($byKey): array {
                 $alert = [
+                    'id' => (int) $row->cockpit_alert_id,
                     'key' => $row->key,
                     'status' => $row->status,
                     'text' => $row->text,
                     'openedAt' => $row->opened_at?->toIso8601String(),
+                    'acknowledgedAt' => $row->acknowledged_at?->toIso8601String(),
+                    'acknowledgedBy' => $row->acknowledged_by_name,
                 ];
 
                 if (($byKey[$row->key]['provenance'] ?? null) === 'demo') {

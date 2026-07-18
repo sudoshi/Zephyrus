@@ -109,6 +109,42 @@ class CockpitController extends Controller
             ->withHeaders(['Cache-Control' => 'private, no-cache']);
     }
 
+    /**
+     * HFE audit Phase 1 — acknowledge an open alert: records who saw it and
+     * when. The alert stays in the ticker (suppression would lie); the ack is
+     * cleared server-side if the condition escalates warn→crit.
+     */
+    public function acknowledgeAlert(Request $request, int $alertId): JsonResponse
+    {
+        $row = \App\Models\Cockpit\CockpitAlert::query()
+            ->whereKey($alertId)
+            ->where('facility_key', $this->manifest->facilityCode())
+            ->whereNull('cleared_at')
+            ->where('status', '!=', \App\Services\Cockpit\AlertEngine::STATUS_PENDING)
+            ->first();
+
+        if ($row === null) {
+            return response()->json(['message' => 'Alert is not open.'], 404);
+        }
+
+        // Idempotent: a second ack keeps the FIRST owner — the point is
+        // accountability, not last-writer-wins.
+        if ($row->acknowledged_at === null) {
+            $user = $request->user();
+            $row->update([
+                'acknowledged_at' => now(),
+                'acknowledged_by' => $user?->getAuthIdentifier(),
+                'acknowledged_by_name' => (string) ($user?->name ?? 'unknown'),
+            ]);
+        }
+
+        return response()->json([
+            'id' => (int) $row->cockpit_alert_id,
+            'acknowledgedAt' => $row->acknowledged_at?->toIso8601String(),
+            'acknowledgedBy' => $row->acknowledged_by_name,
+        ]);
+    }
+
     public function kpiDefinitions(): JsonResponse
     {
         $definitions = MetricDefinition::query()

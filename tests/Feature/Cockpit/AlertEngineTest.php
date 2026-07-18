@@ -146,6 +146,41 @@ class AlertEngineTest extends TestCase
         $this->assertTrue(now()->parse($reraised[0]['openedAt'])->gt(now()->subMinutes(5)));
     }
 
+    public function test_escalation_clears_acknowledgement_so_worsening_realarm(): void
+    {
+        $this->reconcile([$this->nedocs('warn', 'ED crowded — NEDOCS 112')]);
+        $this->reconcile([$this->nedocs('warn', 'ED crowded — NEDOCS 112')]);
+        CockpitAlert::query()->where('key', 'ed.nedocs')->update([
+            'acknowledged_at' => now(),
+            'acknowledged_by' => 1,
+            'acknowledged_by_name' => 'Charge RN',
+        ]);
+
+        $escalated = $this->reconcile([$this->nedocs('crit', 'ED OVERCROWDED — NEDOCS 145')]);
+
+        $this->assertSame('crit', $escalated[0]['status']);
+        // An acknowledged warn is NOT an acknowledged crit.
+        $this->assertNull($escalated[0]['acknowledgedAt']);
+        $this->assertNull($escalated[0]['acknowledgedBy']);
+    }
+
+    public function test_open_payload_carries_id_and_acknowledgement(): void
+    {
+        $this->reconcile([$this->nedocs()]);
+        $this->reconcile([$this->nedocs()]);
+        CockpitAlert::query()->where('key', 'ed.nedocs')->update([
+            'acknowledged_at' => now(),
+            'acknowledged_by' => 7,
+            'acknowledged_by_name' => 'House Supervisor',
+        ]);
+
+        $open = $this->reconcile([$this->nedocs()]);
+
+        $this->assertIsInt($open[0]['id']);
+        $this->assertNotNull($open[0]['acknowledgedAt']);
+        $this->assertSame('House Supervisor', $open[0]['acknowledgedBy']);
+    }
+
     public function test_ttl_zero_disables_expiry(): void
     {
         config(['cockpit.alerts.ttl_hours' => 0]);
