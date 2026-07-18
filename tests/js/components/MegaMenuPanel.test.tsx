@@ -25,7 +25,8 @@ describe('MegaMenuPanel', () => {
     render(<MegaMenuPanel domain={rtdc} access={{ isAdmin: false }} />);
     const bedTracking = screen.getByText('Bed Tracking').closest('a');
     expect(bedTracking).toHaveAttribute('href', '/rtdc/bed-tracking');
-    expect(screen.getByText('Discharge').closest('a')).toHaveAttribute('href', '/rtdc/predictions/discharge');
+    // HFE audit §4.1: prediction labels carry decision intent, not bare nouns.
+    expect(screen.getByText('Discharge Priorities').closest('a')).toHaveAttribute('href', '/rtdc/predictions/discharge');
   });
 
   it('hides admin-only items when not an admin', () => {

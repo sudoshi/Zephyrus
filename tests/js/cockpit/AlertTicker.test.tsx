@@ -60,6 +60,7 @@ describe('AlertTicker', () => {
       openedAt: new Date(Date.now() - 25 * 60_000).toISOString(),
     }];
     render(<AlertTicker alerts={opened} />);
-    expect(screen.getByText('25 min 0 sec')).toBeInTheDocument();
+    // Coarse operational age (HFE audit TIME-01): never seconds past a minute.
+    expect(screen.getByText('25 min')).toBeInTheDocument();
   });
 });

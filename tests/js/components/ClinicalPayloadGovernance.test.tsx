@@ -89,7 +89,8 @@ describe('clinical payload governance controls', () => {
     fireEvent.change(screen.getByLabelText('Independent rationale'), {
       target: { value: 'Dependency, retention, and exact-object evidence supports this decision.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    // Accessible name now carries the governed action subject (HFE A11Y-01).
+    fireEvent.click(screen.getByRole('button', { name: /^Approve / }));
     await waitFor(() => expect(axios.post).toHaveBeenCalledWith(
       `/api/admin/integrations/governed-changes/${pending.uuid}/decision`,
       {
