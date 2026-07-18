@@ -883,6 +883,171 @@
   font-size: 11px;
 }
 
+/* --- Floor stepper rail (N-4) — right edge, top = highest floor ---------- */
+
+.patient-flow-floor-rail {
+  position: absolute;
+  z-index: 3;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 7px;
+  background: rgba(27, 31, 29, 0.92);
+  padding: 4px;
+}
+
+.patient-flow-floor-rail button {
+  min-width: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #b9b2a6;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+
+.patient-flow-floor-rail button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f3efe5;
+}
+
+.patient-flow-floor-rail button.active {
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+.patient-flow-floor-rail button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
+.patient-flow-floor-all {
+  margin-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 5px 5px;
+}
+
+/* --- Search match count (N-5) -------------------------------------------- */
+
+.patient-flow-search-count {
+  grid-column: 2;
+  color: #b9b2a6;
+  font-size: 11px;
+}
+
+/* --- Saved views (N-7) ---------------------------------------------------- */
+
+.patient-flow-views {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.patient-flow-view-chip {
+  display: flex;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #202522;
+}
+
+.patient-flow-view-chip button {
+  border: 0;
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+
+.patient-flow-view-chip button:first-child {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.patient-flow-view-chip button:first-child:disabled {
+  color: rgba(185, 178, 166, 0.45);
+  cursor: default;
+}
+
+.patient-flow-view-chip button:last-child {
+  border-left: 1px solid rgba(239, 234, 220, 0.14);
+  color: #b9b2a6;
+}
+
+.patient-flow-view-chip button:last-child:hover {
+  color: #ffd795;
+}
+
+.patient-flow-view-chip button svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.patient-flow-view-chip button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
+/* --- Shortcut sheet (N-6) — legend chrome, centered ---------------------- */
+
+.patient-flow-shortcut-sheet {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(330px, calc(100vw - 32px));
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  background: rgba(27, 31, 29, 0.96);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  padding: 14px;
+}
+
+.patient-flow-shortcut-sheet strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #f3efe5;
+  font-size: 13px;
+}
+
+.patient-flow-shortcut-sheet dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.patient-flow-shortcut-sheet dl div {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.patient-flow-shortcut-sheet dt {
+  color: #ffd795;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-shortcut-sheet dd {
+  margin: 0;
+  color: #b9b2a6;
+}
+
 /* --- Hover chip (E-4) — scene-owned element, textContent only ------------ */
 
 .patient-flow-hover-chip {
@@ -978,6 +1143,14 @@
   }
 
   .patient-flow-camera {
+    display: none;
+  }
+
+  /* Mobile is triage-level (plan S-3): the desktop-only navigation chrome
+     yields the viewport back to the scene. */
+  .patient-flow-floor-rail,
+  .patient-flow-legend,
+  .patient-flow-views {
     display: none;
   }
 }

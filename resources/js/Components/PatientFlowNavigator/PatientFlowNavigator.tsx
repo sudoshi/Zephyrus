@@ -56,10 +56,18 @@ import type {
 } from '@/features/patientFlowNavigator/types';
 import { occupancyInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { elementLabelFor } from '@/features/patientFlowNavigator/sceneVocabulary';
+import {
+  mergeLayers,
+  parseSavedViews,
+  savedViewsKey,
+  serializeSavedViews,
+} from '@/features/patientFlowNavigator/savedViews';
+import type { SavedView } from '@/features/patientFlowNavigator/savedViews';
 import type { PageProps } from '@/types';
 import type { CameraView, NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
+import NavigatorFloorRail from './NavigatorFloorRail';
 import NavigatorInspector from './NavigatorInspector';
 import NavigatorLegend from './NavigatorLegend';
 import NavigatorToolbar from './NavigatorToolbar';
@@ -322,6 +330,12 @@ export default function PatientFlowNavigator({
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
   const [feed, setFeed] = useState<PatientFlowEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [searchMatches, setSearchMatches] = useState<number | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const viewsStorageKey = savedViewsKey(lens?.role_id);
+  const [views, setViews] = useState<Array<SavedView | null>>(() =>
+    parseSavedViews(typeof window === 'undefined' ? null : window.localStorage.getItem(viewsStorageKey)),
+  );
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
 
@@ -534,6 +548,8 @@ export default function PatientFlowNavigator({
       occupiedLocations: occupied
         || new Set((barrierFinderRef.current || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
     });
+    // N-5: the Find field shows how many tokens the search matched.
+    setSearchMatches(filtersRef.current.search.trim() ? states.length : null);
   }, [dotsPolicy, lens, patientDotsVisible]);
 
   // Keep refs in sync with state, then repaint.
@@ -962,10 +978,12 @@ export default function PatientFlowNavigator({
     sceneRef.current?.setHoverEnabled(!(playing && speed > 60));
   }, [playing, speed]);
 
-  // E-5: Escape clears the in-scene selection highlight and the panel with it.
+  // E-5: Escape clears the in-scene selection highlight and the panel with it
+  // (and closes the shortcut sheet, N-6).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
+      setShortcutsOpen(false);
       sceneRef.current?.clearSelection();
       setInspectorTitle('Select a patient or location');
       setInspectorRows([]);
@@ -982,6 +1000,84 @@ export default function PatientFlowNavigator({
       .map((item) => item.position);
     sceneRef.current?.focusOn(points);
   }, []);
+
+  // N-4: fit-to-floor — frame the selected floor's locations; All = home.
+  const fitToFloor = useCallback((floor: string): void => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (floor === 'all') {
+      scene.resetCamera();
+      return;
+    }
+    const points = Object.values(locationsRef.current)
+      .filter((loc) => loc.position_m && String(loc.floor) === floor)
+      .map((loc) => ({ x: loc.position_m!.x, y: loc.position_m!.y ?? 0, z: loc.position_m!.z }));
+    scene.focusOn(points);
+  }, []);
+
+  // Explicit floor choices (rail or dropdown) filter AND frame; handoff-driven
+  // filter writes deliberately do not move the camera.
+  const handleFloorSelect = useCallback((floor: string): void => {
+    setFilters((prev) => ({ ...prev, floor }));
+    fitToFloor(floor);
+  }, [fitToFloor]);
+
+  // N-5: Enter in Find flies to the bbox of the matched tokens.
+  const focusSearchMatches = useCallback((): void => {
+    const points = lastVisibleStatesRef.current.map((state) => state.position);
+    if (points.length) sceneRef.current?.focusOn(points);
+  }, []);
+
+  // N-7: three persona-keyed camera/floor/layers bookmarks.
+  const saveView = useCallback((slot: number): void => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    setViews((prev) => {
+      const next = [...prev];
+      next[slot] = {
+        camera: scene.getCameraView(),
+        floor: filtersRef.current.floor,
+        layers: { ...layersRef.current },
+      };
+      try {
+        window.localStorage.setItem(viewsStorageKey, serializeSavedViews(next));
+      } catch {
+        // Storage unavailable: the view still works for this session.
+      }
+      return next;
+    });
+  }, [viewsStorageKey]);
+
+  const applyView = useCallback((slot: number): void => {
+    const view = views[slot];
+    if (!view) return;
+    setFilters((prev) => ({ ...prev, floor: view.floor }));
+    setLayers((prev) => mergeLayers(prev, view.layers));
+    sceneRef.current?.setCameraView(view.camera);
+  }, [views]);
+
+  // N-6: keyboard map — H home, F focus selection (else active patients),
+  // N now, ? shortcut sheet. Typing contexts are left alone.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === 'h') {
+        sceneRef.current?.resetCamera();
+      } else if (key === 'f') {
+        if (!sceneRef.current?.focusSelection()) focusActivePatients();
+      } else if (key === 'n') {
+        if (!historical) handleScrub(nowMsRef.current);
+      } else if (event.key === '?') {
+        setShortcutsOpen((value) => !value);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [focusActivePatients, handleScrub, historical]);
 
   const askEddy = useCallback((): void => {
     const serviceLines = occupancy.serviceLines.length > 0
@@ -1077,9 +1173,15 @@ export default function PatientFlowNavigator({
         onFocusDelayed={focusDelayed}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+        onFloorSelect={handleFloorSelect}
         onLayerChange={(key, value) => setLayers((prev) => ({ ...prev, [key]: value }))}
         onBarrierFinderChange={setBarrierFinder}
         onAskEddy={askEddy}
+        searchMatches={searchMatches}
+        onSearchSubmit={focusSearchMatches}
+        savedViews={views.map((view) => view !== null)}
+        onSaveView={saveView}
+        onApplyView={applyView}
       />
 
       <NavigatorFeed feed={feed} redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'} />
@@ -1087,6 +1189,24 @@ export default function PatientFlowNavigator({
       <NavigatorInspector title={inspectorTitle} rows={inspectorRows} />
 
       <NavigatorLegend layers={layers} />
+
+      <NavigatorFloorRail floors={floors} current={filters.floor} onSelect={handleFloorSelect} />
+
+      {shortcutsOpen && (
+        <div className="patient-flow-shortcut-sheet" role="dialog" aria-label="Keyboard shortcuts">
+          <strong>Keyboard shortcuts</strong>
+          <dl>
+            <div><dt>H</dt><dd>Home view</dd></div>
+            <div><dt>F</dt><dd>Focus selection (or active patients)</dd></div>
+            <div><dt>N</dt><dd>Jump to now</dd></div>
+            <div><dt>↑ ↓</dt><dd>Step floors (floor rail focused)</dd></div>
+            <div><dt>← → ↑ ↓</dt><dd>Pan the camera (click the scene first)</dd></div>
+            <div><dt>Enter</dt><dd>In Find: fly to matches</dd></div>
+            <div><dt>Esc</dt><dd>Clear selection · close panels</dd></div>
+            <div><dt>?</dt><dd>Toggle this sheet</dd></div>
+          </dl>
+        </div>
+      )}
 
       <div className="patient-flow-statusbar">
         <span>{status}</span>

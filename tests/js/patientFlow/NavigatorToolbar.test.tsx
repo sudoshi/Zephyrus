@@ -46,8 +46,12 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onAskEddy: vi.fn(),
     onSpeedChange: vi.fn(),
     onFiltersChange: vi.fn(),
+    onFloorSelect: vi.fn(),
     onLayerChange: vi.fn(),
     onBarrierFinderChange: vi.fn(),
+    onSearchSubmit: vi.fn(),
+    onSaveView: vi.fn(),
+    onApplyView: vi.fn(),
   };
 
   render(
@@ -69,6 +73,8 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       metrics={{ active: 12, events: 40, occupiedLocations: 9 }}
       occupancy={occupancy}
       eddyEnabled={false}
+      searchMatches={null}
+      savedViews={[false, false, false]}
       {...handlers}
       {...overrides}
     />,
@@ -133,6 +139,54 @@ describe('NavigatorToolbar delayed-only state (B-3/B-4)', () => {
 
     expect(screen.queryByText(/Filtered: delayed locations only/)).not.toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+});
+
+describe('NavigatorToolbar search (N-5)', () => {
+  it('shows the match count and flies to matches on Enter', () => {
+    const handlers = renderToolbar({
+      filters: { floor: 'all', serviceLine: 'all', category: 'all', search: 'PT-4' },
+      searchMatches: 3,
+    });
+
+    expect(screen.getByText('3 matches · Enter flies to them')).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Enter' });
+    expect(handlers.onSearchSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a spelling/floor hint on zero matches and clears on Escape', () => {
+    const handlers = renderToolbar({
+      filters: { floor: 'all', serviceLine: 'all', category: 'all', search: 'zzz' },
+      searchMatches: 0,
+    });
+
+    expect(screen.getByText('0 matches — check spelling or floor filter')).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' });
+    expect(handlers.onFiltersChange).toHaveBeenCalledWith({ search: '' });
+  });
+});
+
+describe('NavigatorToolbar saved views (N-7)', () => {
+  it('restores only filled slots and saves to any slot', () => {
+    const handlers = renderToolbar({ savedViews: [true, false, false] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'View 1' }));
+    expect(handlers.onApplyView).toHaveBeenCalledWith(0);
+
+    expect(screen.getByRole('button', { name: 'View 2' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save current view to slot 3' }));
+    expect(handlers.onSaveView).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('NavigatorToolbar floor select (N-4)', () => {
+  it('routes the dropdown through the frame-the-floor path', () => {
+    const handlers = renderToolbar({ floors: ['1', '2'] });
+
+    fireEvent.change(screen.getByLabelText('Floor'), { target: { value: '2' } });
+    expect(handlers.onFloorSelect).toHaveBeenCalledWith('2');
+    expect(handlers.onFiltersChange).not.toHaveBeenCalled();
   });
 });
 

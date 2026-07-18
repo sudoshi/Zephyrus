@@ -286,6 +286,10 @@ export class NavigatorScene {
     this.orbit.maxPolarAngle = Math.PI * 0.49;
     this.orbit.minDistance = 18;
     this.orbit.maxDistance = 380;
+    // N-6: arrow keys pan while the canvas has focus (click the scene first)
+    // — scoped to the canvas so the floor rail's ↑/↓ stepping never collides.
+    this.renderer.domElement.tabIndex = 0;
+    this.orbit.listenToKeyEvents(this.renderer.domElement);
 
     this.scene.add(new THREE.HemisphereLight(0xf6f0e4, 0x343a36, 2.2));
     const sun = new THREE.DirectionalLight(0xfff5df, 2);
@@ -838,6 +842,29 @@ export class NavigatorScene {
     const radius = Math.max(size.x, size.y, size.z, 24);
     this.orbit.target.copy(center);
     this.camera.position.set(center.x + radius * 1.35, center.y + radius * 1.05, center.z + radius * 1.35);
+    this.orbit.update();
+  }
+
+  /** Fly to the current selection; false when nothing is selected (N-6 `F`). */
+  focusSelection(): boolean {
+    if (!this.selectedMesh) return false;
+    const { x, y, z } = this.selectedMesh.position;
+    this.focusOn([{ x, y, z }]);
+    return true;
+  }
+
+  /** Camera pose snapshot for saved views (N-7). */
+  getCameraView(): CameraView {
+    return {
+      position: { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z },
+      target: { x: this.orbit.target.x, y: this.orbit.target.y, z: this.orbit.target.z },
+    };
+  }
+
+  /** Restore a saved camera pose (N-7). */
+  setCameraView(view: CameraView): void {
+    this.camera.position.set(view.position.x, view.position.y, view.position.z);
+    this.orbit.target.set(view.target.x, view.target.y, view.target.z);
     this.orbit.update();
   }
 

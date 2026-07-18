@@ -237,12 +237,12 @@ Each phase is independently shippable and PR-sized. Frontend checks per project 
 
 **Acceptance:** with no training, a user can point at any object, hover it, and read what it is; beds/hallways/rooms/ED are visually distinct; no patient token renders in amber/coral hues.
 
-### Phase 2 — Navigability (≈2 days) `feature/flow4d-navigability`
-- [ ] N-4: floor stepper rail with fit-to-floor, keyboard stepping, synced to filter
-- [ ] N-5: search Enter → fly-to matches; match count; empty-state copy
-- [ ] N-6: keyboard shortcuts (H/F/N/?) + shortcut sheet
-- [ ] N-7: 3 persona-keyed saved views (localStorage), chips under transport buttons
-- [ ] Tests: floor-stepper filter sync, search match-count, saved-view round-trip
+### Phase 2 — Navigability (≈2 days) `feature/flow4d-navigability` — **BUILT 2026-07-18**
+- [x] N-4: floor stepper rail with fit-to-floor, keyboard stepping (↑/↓), synced to filter; dropdown also frames via the same path
+- [x] N-5: search Enter → fly-to matches; match count under the field; empty-state copy; Escape clears
+- [x] N-6: keyboard shortcuts (H/F/N/?) + shortcut sheet; OrbitControls arrow-panning enabled on the focused canvas
+- [x] N-7: 3 persona-keyed saved views (localStorage `flow4d.views.{role}`, Zod-validated), chips under transport buttons (restore + save per slot)
+- [x] Tests: floor-rail select/step/All + top-down order, search match-count + Enter/Escape, saved-view round-trip + garbage tolerance, dropdown frame-path
 
 **Acceptance:** floor changes are one click/keystroke and frame the floor; search lands the camera on results; power users never touch the mouse for time/floor/focus.
 

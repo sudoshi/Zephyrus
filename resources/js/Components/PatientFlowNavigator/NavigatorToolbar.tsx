@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bookmark, Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
   OccupancySummary,
   PatientFlowAmbient,
@@ -49,8 +49,18 @@ interface NavigatorToolbarProps {
   onAskEddy: () => void;
   onSpeedChange: (speed: number) => void;
   onFiltersChange: (patch: Partial<PatientFlowFilters>) => void;
+  /** Explicit floor choice: filters AND frames the floor (N-4). */
+  onFloorSelect: (floor: string) => void;
   onLayerChange: (key: keyof PatientLayerState, value: boolean) => void;
   onBarrierFinderChange: (value: boolean) => void;
+  /** Token count for the active search, null when the field is empty (N-5). */
+  searchMatches: number | null;
+  /** Enter in Find — fly to the matched tokens (N-5). */
+  onSearchSubmit: () => void;
+  /** Which saved-view slots hold a view (N-7). */
+  savedViews: boolean[];
+  onSaveView: (slot: number) => void;
+  onApplyView: (slot: number) => void;
 }
 
 export default function NavigatorToolbar({
@@ -79,8 +89,14 @@ export default function NavigatorToolbar({
   onAskEddy,
   onSpeedChange,
   onFiltersChange,
+  onFloorSelect,
   onLayerChange,
   onBarrierFinderChange,
+  searchMatches,
+  onSearchSubmit,
+  savedViews,
+  onSaveView,
+  onApplyView,
 }: NavigatorToolbarProps) {
   return (
     <aside className="patient-flow-toolbar" aria-label="Navigator controls">
@@ -148,12 +164,37 @@ export default function NavigatorToolbar({
         )}
       </div>
 
+      {/* N-7: three persona-keyed camera bookmarks — restore on the left,
+          save-current on the right of each chip. */}
+      <div className="patient-flow-views" aria-label="Saved views">
+        {savedViews.map((hasView, slot) => (
+          <div className="patient-flow-view-chip" key={`view-slot-${slot}`}>
+            <button
+              type="button"
+              disabled={!hasView}
+              title={hasView ? `Restore view ${slot + 1} (camera, floor, layers)` : `View ${slot + 1} is empty — save one first`}
+              onClick={() => onApplyView(slot)}
+            >
+              View {slot + 1}
+            </button>
+            <button
+              type="button"
+              aria-label={`Save current view to slot ${slot + 1}`}
+              title={hasView ? `Overwrite view ${slot + 1} with the current view` : `Save the current view as view ${slot + 1}`}
+              onClick={() => onSaveView(slot)}
+            >
+              <Bookmark aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div className="patient-flow-control-grid">
         <label htmlFor="flow-floor">Floor</label>
         <select
           id="flow-floor"
           value={filters.floor}
-          onChange={(event) => onFiltersChange({ floor: event.target.value })}
+          onChange={(event) => onFloorSelect(event.target.value)}
         >
           <option value="all">All</option>
           {floors.map((floor) => (
@@ -199,8 +240,25 @@ export default function NavigatorToolbar({
           type="search"
           placeholder="PT, bed, service"
           value={filters.search}
+          aria-describedby={searchMatches !== null ? 'flow-search-count' : undefined}
           onChange={(event) => onFiltersChange({ search: event.target.value })}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onSearchSubmit();
+            } else if (event.key === 'Escape') {
+              onFiltersChange({ search: '' });
+            }
+          }}
         />
+
+        {searchMatches !== null && (
+          <small id="flow-search-count" className="patient-flow-search-count" role="status">
+            {searchMatches === 0
+              ? '0 matches — check spelling or floor filter'
+              : `${searchMatches} ${searchMatches === 1 ? 'match' : 'matches'} · Enter flies to them`}
+          </small>
+        )}
 
         {/* Census scope, not a layer (B-2): "Delayed" filters the occupancy
             disks by elapsed-timer signal — distinct from the "Barriers"
