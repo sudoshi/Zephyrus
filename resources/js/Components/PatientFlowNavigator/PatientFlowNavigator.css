@@ -774,6 +774,134 @@
   padding: 6px 10px;
 }
 
+/* --- Scene key (E-1) — rendered from sceneVocabulary ---------------------- */
+
+.patient-flow-legend {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 48px;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.patient-flow-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 999px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 12px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+
+.patient-flow-legend-toggle svg {
+  width: 13px;
+  height: 13px;
+}
+
+.patient-flow-legend-toggle[aria-expanded='true'] {
+  border-color: #e0a33f;
+  color: #ffd795;
+}
+
+.patient-flow-legend-toggle:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-legend-panel {
+  width: min(270px, calc(100vw - 32px));
+  max-height: min(430px, calc(100vh - 220px));
+  overflow: auto;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px;
+}
+
+.patient-flow-legend-panel section + section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 7px;
+}
+
+.patient-flow-legend-panel h3 {
+  margin: 0 0 5px;
+  color: #b9b2a6;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.patient-flow-legend-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.patient-flow-legend-panel li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.patient-flow-legend-panel li.legend-hidden {
+  opacity: 0.45;
+}
+
+.patient-flow-legend-glyph svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  margin-top: 1px;
+}
+
+.patient-flow-legend-text {
+  min-width: 0;
+  display: block;
+}
+
+.patient-flow-legend-text strong {
+  display: block;
+  color: #f3efe5;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.patient-flow-legend-text small {
+  color: #b9b2a6;
+  font-size: 11px;
+}
+
+/* --- Hover chip (E-4) — scene-owned element, textContent only ------------ */
+
+.patient-flow-hover-chip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  max-width: 260px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #f3efe5;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 3px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .patient-flow-error {
   position: absolute;
   z-index: 4;

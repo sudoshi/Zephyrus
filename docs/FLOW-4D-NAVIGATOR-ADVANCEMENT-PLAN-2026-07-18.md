@@ -226,14 +226,14 @@ Each phase is independently shippable and PR-sized. Frontend checks per project 
 
 **Acceptance:** an operator can always return to now in one click; the two barrier controls are visually and verbally distinct concepts; a 6-hour-old wall session shows correct now/severity.
 
-### Phase 1 — Element Identity System (≈2–3 days) `feature/flow4d-element-identity`
-- [ ] E-2: `sceneVocabulary.ts` (labels, shapes, hexes, descriptions) consumed by NavigatorScene materials
-- [ ] E-2: category material map in `loadModel()` per §5.2 (corridor/patient_room/bed/ED/imaging/elevator/care_unit tints)
-- [ ] E-3: clamp `hashColor` hue to 160–280°
-- [ ] E-1: `NavigatorLegend.tsx` collapsible key rendered from `sceneVocabulary` (sections, worded status meanings, hidden-layer dimming); styles in existing CSS file (no new backdrop-blur file)
-- [ ] E-4: throttled hover raycast + cursor + emissive hover clone + element chip (lens-redacted)
-- [ ] E-5: persistent selection highlight + element-type prefix in inspector title; Escape clears
-- [ ] Tests: sceneVocabulary completeness (every scene layer has a legend entry — assert key parity), hue-clamp property test, legend render & collapse
+### Phase 1 — Element Identity System (≈2–3 days) `feature/flow4d-element-identity` — **BUILT 2026-07-18**
+- [x] E-2: `sceneVocabulary.ts` (labels, shapes, hexes, descriptions) consumed by NavigatorScene materials
+- [x] E-2: category material map in `loadModel()` per §5.2 (corridor/patient_room/bed/ED/imaging/elevator/care_unit tints; floor + unknown keep the model material)
+- [x] E-3: clamp `hashColor` hue to 160–280° (`patientHue` in sceneVocabulary; scene builds the color)
+- [x] E-1: `NavigatorLegend.tsx` collapsible key rendered from `sceneVocabulary` (sections, worded status meanings, hidden-layer dimming); styles in existing CSS file (no new backdrop-blur file)
+- [x] E-4: throttled hover raycast + cursor + emissive hover clone + element chip (identity fields never in the chip; scene-owned div, textContent only; disabled during >60× playback)
+- [x] E-5: persistent selection highlight + element-type prefix in inspector title; Escape clears
+- [x] Tests: sceneVocabulary completeness (layer parity, category coverage, worded statuses), hue-clamp property test, legend render & collapse, elementLabelFor mapping
 
 **Acceptance:** with no training, a user can point at any object, hover it, and read what it is; beds/hallways/rooms/ED are visually distinct; no patient token renders in amber/coral hues.
 

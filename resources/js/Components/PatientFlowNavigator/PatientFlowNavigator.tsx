@@ -55,11 +55,13 @@ import type {
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
 import { occupancyInspectorData } from '@/features/patientFlowNavigator/inspector';
+import { elementLabelFor } from '@/features/patientFlowNavigator/sceneVocabulary';
 import type { PageProps } from '@/types';
 import type { CameraView, NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
 import NavigatorInspector from './NavigatorInspector';
+import NavigatorLegend from './NavigatorLegend';
 import NavigatorToolbar from './NavigatorToolbar';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
@@ -845,10 +847,24 @@ export default function PatientFlowNavigator({
       scene = new SceneClass(canvas, container, {
         onSelect: (data) => {
           const redacted = redactSelection(data, dotsPolicy);
-          setInspectorTitle(String(
-            redacted.patient_display_id ?? redacted.label ?? redacted.name ?? redacted.code ?? redacted.kind ?? 'Selected',
-          ));
+          // E-5: panel and scene agree — the title carries the element type
+          // the selection highlight is pointing at.
+          const element = elementLabelFor(data);
+          const name = String(
+            redacted.patient_display_id ?? redacted.label ?? redacted.name ?? redacted.code
+              ?? redacted.location_name ?? redacted.location ?? redacted.kind ?? 'Selected',
+          );
+          setInspectorTitle(element && element !== name ? `${element} · ${name}` : name);
           setInspectorRows(flattenInspector(redacted));
+        },
+        // E-4 hover chip: element type + a non-identity name. Identity fields
+        // NEVER appear here regardless of lens (stricter than the inspector).
+        hoverLabel: (data) => {
+          const element = elementLabelFor(data);
+          if (!element) return null;
+          const name = data.label ?? data.bed ?? data.bed_code ?? data.location_name
+            ?? data.location ?? data.name ?? data.unit ?? data.status ?? null;
+          return name !== null && String(name) !== element ? `${element} · ${String(name)}` : element;
         },
         onCameraMove: handleCameraMove,
         onFrame: (delta) => {
@@ -867,6 +883,7 @@ export default function PatientFlowNavigator({
         },
       });
       sceneRef.current = scene;
+      scene.setHoverEnabled(!(playingRef.current && speedRef.current > 60));
       lastBucketKeyRef.current = '';
       scene.loadModel(
         summary.model_url,
@@ -938,6 +955,23 @@ export default function PatientFlowNavigator({
     const scene = sceneRef.current;
     if (!scene) return;
     scene.focusOn(lastVisibleStatesRef.current.map((state) => state.position));
+  }, []);
+
+  // E-4 perf guard: hover raycasts pause during fast playback.
+  useEffect(() => {
+    sceneRef.current?.setHoverEnabled(!(playing && speed > 60));
+  }, [playing, speed]);
+
+  // E-5: Escape clears the in-scene selection highlight and the panel with it.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      sceneRef.current?.clearSelection();
+      setInspectorTitle('Select a patient or location');
+      setInspectorRows([]);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   // B-4: the explicit camera action for the Delayed-only census scope — the
@@ -1051,6 +1085,8 @@ export default function PatientFlowNavigator({
       <NavigatorFeed feed={feed} redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'} />
 
       <NavigatorInspector title={inspectorTitle} rows={inspectorRows} />
+
+      <NavigatorLegend layers={layers} />
 
       <div className="patient-flow-statusbar">
         <span>{status}</span>

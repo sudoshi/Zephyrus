@@ -4,7 +4,17 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
 import type { BarrierCell, BarrierSeverity, ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
-import { ROUND_STOP_COLORS } from '@/features/virtualRounds/roundsScene';
+import {
+  BARRIER_COLORS,
+  BASE_CATEGORY_STYLES,
+  FORECAST_COLOR,
+  GHOST_COLORS,
+  OCCUPANCY_STATUS_COLORS,
+  ROUND_PINNED_COLOR,
+  ROUND_STOP_COLORS,
+  TIMER_PIP_COLORS,
+  patientHue,
+} from '@/features/patientFlowNavigator/sceneVocabulary';
 import type { RoundStopCell } from '@/features/virtualRounds/roundsScene';
 import type {
   OccupancyInsight,
@@ -37,6 +47,12 @@ export interface NavigatorSceneCallbacks {
   onSelect: (data: Record<string, unknown>) => void;
   onCameraMove: (view: CameraView) => void;
   onFrame: (deltaSeconds: number) => void;
+  /**
+   * Operator-readable hover chip text for a hit's userData, or null to hide
+   * the chip. The orchestrator owns this so lens redaction happens outside
+   * the scene; the scene writes it via textContent (never HTML).
+   */
+  hoverLabel?: (data: Record<string, unknown>) => string | null;
 }
 
 export interface GhostRenderItem {
@@ -50,24 +66,8 @@ export interface ForecastHeatCell {
   opacity: number;
 }
 
-/** Future-half palette — cool operational tones only, never coral (§5). */
-const GHOST_COLORS: Record<string, number> = {
-  expected_discharge: 0x2dd4bf, // teal
-  transport_due: 0x38bdf8, // sky
-  evs_due: 0x7dd3fc, // light sky
-  scheduled_or_case: 0x60a5fa, // blue
-};
-
-/**
- * Open-barrier marker palette — the earned-urgency ration (watch sky / warning
- * amber / critical coral), the same status language the 48h Review map paints.
- * Coral is reserved for a barrier standing open past 48h — a real breach.
- */
-const BARRIER_COLORS: Record<BarrierSeverity, { color: number; emissive: number }> = {
-  critical: { color: 0xf06755, emissive: 0x5a140d }, // coral
-  warning: { color: 0xeaa640, emissive: 0x4a2e08 }, // amber
-  watch: { color: 0x38bdf8, emissive: 0x0c3a4d }, // sky
-};
+// Shape/color constants live in features/patientFlowNavigator/sceneVocabulary
+// (§5.1 SSOT) — the legend renders from the same module, so it can never lie.
 
 const BARRIER_SCALE: Record<BarrierSeverity, number> = { critical: 1.3, warning: 1.1, watch: 1 };
 
@@ -115,6 +115,8 @@ export class NavigatorScene {
 
   private roundStopMeshByUuid = new Map<string, THREE.Mesh>();
 
+  private baseCategoryMaterials = new Map<string, THREE.MeshStandardMaterial>();
+
   private focusedRoundStopUuid: string | null = null;
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
@@ -153,6 +155,24 @@ export class NavigatorScene {
 
   private lastCameraEmit = 0;
 
+  private lastHoverCast = 0;
+
+  private hoverEnabled = true;
+
+  private hoveredMesh: THREE.Mesh | null = null;
+
+  private hoveredOriginalMaterial: THREE.Material | THREE.Material[] | null = null;
+
+  private hoverMaterial: THREE.MeshStandardMaterial | null = null;
+
+  private hoverChip: HTMLDivElement;
+
+  private selectedMesh: THREE.Mesh | null = null;
+
+  private selectedOriginalMaterial: THREE.Material | THREE.Material[] | null = null;
+
+  private selectionMaterial: THREE.MeshStandardMaterial | null = null;
+
   private disposed = false;
 
   private readonly container: HTMLElement;
@@ -167,8 +187,8 @@ export class NavigatorScene {
     this.renderer.setSize(width, height);
   };
 
-  private readonly onPointerDown = (event: PointerEvent): void => {
-    if (event.target !== this.renderer.domElement) return;
+  /** The one interactive set — pointerdown select and pointermove hover agree. */
+  private raycastHit(event: PointerEvent): THREE.Mesh | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const pointer = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -186,8 +206,60 @@ export class NavigatorScene {
       ].filter((object) => object.visible),
       false,
     );
-    if (!hits.length) return;
-    this.callbacks.onSelect({ ...(hits[0].object.userData ?? {}) });
+    return hits.length ? (hits[0].object as THREE.Mesh) : null;
+  }
+
+  private hitData(mesh: THREE.Mesh): Record<string, unknown> {
+    return {
+      ...(mesh.userData ?? {}),
+      ...(mesh.name && !mesh.userData?.kind ? { name: mesh.name } : {}),
+    };
+  }
+
+  private readonly onPointerDown = (event: PointerEvent): void => {
+    if (event.target !== this.renderer.domElement) return;
+    const mesh = this.raycastHit(event);
+    if (!mesh) return;
+    // E-5: hover clone must never be captured as a selection "original".
+    this.clearHover();
+    this.applySelection(mesh);
+    this.callbacks.onSelect(this.hitData(mesh));
+  };
+
+  /**
+   * E-4: throttled hover — cursor affordance, emissive lift via a non-shared
+   * clone (the focused-round pattern), and a redacted HTML chip at the cursor.
+   */
+  private readonly onPointerMove = (event: PointerEvent): void => {
+    if (!this.hoverEnabled) return;
+    if (event.target !== this.renderer.domElement) {
+      this.clearHover();
+      return;
+    }
+    const now = performance.now();
+    if (now - this.lastHoverCast < 50) return;
+    this.lastHoverCast = now;
+
+    const mesh = this.raycastHit(event);
+    if (!mesh) {
+      this.clearHover();
+      return;
+    }
+    if (mesh !== this.hoveredMesh) {
+      this.clearHover();
+      this.applyHover(mesh);
+    }
+
+    const label = this.callbacks.hoverLabel?.(this.hitData(mesh)) ?? null;
+    if (label) {
+      const containerRect = this.container.getBoundingClientRect();
+      this.hoverChip.textContent = label;
+      this.hoverChip.style.left = `${event.clientX - containerRect.left + 14}px`;
+      this.hoverChip.style.top = `${event.clientY - containerRect.top + 12}px`;
+      this.hoverChip.hidden = false;
+    } else {
+      this.hoverChip.hidden = true;
+    }
   };
 
   constructor(canvas: HTMLCanvasElement, container: HTMLElement, callbacks: NavigatorSceneCallbacks) {
@@ -238,9 +310,89 @@ export class NavigatorScene {
       opacity: 0.62,
     });
 
+    // Hover chip: scene-owned so the 50 ms hover path never touches React.
+    // Text is always set via textContent with orchestrator-redacted labels.
+    this.hoverChip = document.createElement('div');
+    this.hoverChip.className = 'patient-flow-hover-chip';
+    this.hoverChip.hidden = true;
+    container.appendChild(this.hoverChip);
+
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
+    this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
+    this.renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
     this.animationId = requestAnimationFrame(this.animate);
+  }
+
+  private readonly onPointerLeave = (): void => {
+    this.clearHover();
+  };
+
+  /** Orchestrator gates hover off during fast playback (perf guard §5.5). */
+  setHoverEnabled(enabled: boolean): void {
+    this.hoverEnabled = enabled;
+    if (!enabled) this.clearHover();
+  }
+
+  private applyHover(mesh: THREE.Mesh): void {
+    this.hoveredMesh = mesh;
+    this.renderer.domElement.style.cursor = 'pointer';
+    // Selected/focused meshes already carry their own highlight clone —
+    // hovering them must not capture that clone as an "original".
+    if (mesh === this.selectedMesh || mesh === this.focusedRoundMesh) return;
+    const material = mesh.material;
+    if (Array.isArray(material) || !(material instanceof THREE.MeshStandardMaterial)) return;
+    this.hoveredOriginalMaterial = material;
+    const clone = material.clone();
+    if (clone.emissive.getHex() === 0) {
+      clone.emissive = clone.color.clone().multiplyScalar(0.35);
+    }
+    clone.emissiveIntensity = Math.max(clone.emissiveIntensity * 1.6, 1.1);
+    mesh.material = clone;
+    this.hoverMaterial = clone;
+  }
+
+  private clearHover(): void {
+    if (this.hoveredMesh && this.hoveredOriginalMaterial) {
+      this.hoveredMesh.material = this.hoveredOriginalMaterial;
+    }
+    this.hoverMaterial?.dispose();
+    this.hoverMaterial = null;
+    this.hoveredOriginalMaterial = null;
+    this.hoveredMesh = null;
+    this.renderer.domElement.style.cursor = '';
+    this.hoverChip.hidden = true;
+  }
+
+  /**
+   * E-5: persistent selection highlight — survives until the next selection,
+   * Escape (orchestrator calls clearSelection), or a rebuild that removes the
+   * mesh. Round stops keep their dedicated focus path.
+   */
+  private applySelection(mesh: THREE.Mesh): void {
+    this.clearSelection();
+    if (mesh === this.focusedRoundMesh) return;
+    const material = mesh.material;
+    if (Array.isArray(material) || !(material instanceof THREE.MeshStandardMaterial)) return;
+    this.selectedMesh = mesh;
+    this.selectedOriginalMaterial = material;
+    const clone = material.clone();
+    if (clone.emissive.getHex() === 0) {
+      clone.emissive = clone.color.clone().multiplyScalar(0.4);
+    }
+    clone.emissiveIntensity = Math.max(clone.emissiveIntensity * 2, 1.8);
+    mesh.material = clone;
+    this.selectionMaterial = clone;
+  }
+
+  clearSelection(): void {
+    if (this.selectedMesh && this.selectedOriginalMaterial) {
+      this.selectedMesh.material = this.selectedOriginalMaterial;
+    }
+    this.selectionMaterial?.dispose();
+    this.selectionMaterial = null;
+    this.selectedOriginalMaterial = null;
+    this.selectedMesh = null;
   }
 
   loadModel(url: string, onLoaded: () => void, onError: () => void): void {
@@ -253,6 +405,16 @@ export class NavigatorScene {
           const mesh = object as THREE.Mesh;
           if (!mesh.isMesh) return;
           this.baseObjects.push(mesh);
+
+          // E-2: glTF extras carry category — beds/corridors/rooms/ED render
+          // as distinct materials (sceneVocabulary §5.2). `floor` and unknown
+          // categories keep the model's own material as the datum plane.
+          const categoryMaterial = this.baseCategoryMaterialFor(String(mesh.userData?.category ?? ''));
+          if (categoryMaterial) {
+            mesh.material = categoryMaterial;
+            return;
+          }
+
           const material = mesh.material;
           if (Array.isArray(material)) {
             mesh.material = material.map((item) => item.clone());
@@ -274,6 +436,28 @@ export class NavigatorScene {
         onError();
       },
     );
+  }
+
+  /** Cached per-category base material, built from the vocabulary SSOT. */
+  private baseCategoryMaterialFor(category: string): THREE.MeshStandardMaterial | null {
+    const style = BASE_CATEGORY_STYLES[category];
+    if (!style) return null;
+    let material = this.baseCategoryMaterials.get(category);
+    if (!material) {
+      const color = new THREE.Color(style.color);
+      material = new THREE.MeshStandardMaterial({
+        color,
+        emissive: style.emissiveScale > 0
+          ? color.clone().multiplyScalar(style.emissiveScale)
+          : new THREE.Color(0x000000),
+        transparent: true,
+        opacity: style.opacity,
+        roughness: 0.78,
+        metalness: 0,
+      });
+      this.baseCategoryMaterials.set(category, material);
+    }
+    return material;
   }
 
   setBaseVisibility(floor: string, layerVisible: boolean): void {
@@ -629,7 +813,7 @@ export class NavigatorScene {
   }
 
   private roundMaterialFor(status: string, pinned: boolean): THREE.MeshStandardMaterial {
-    const colorHex = pinned ? 0xeaa640 : (ROUND_STOP_COLORS[status as keyof typeof ROUND_STOP_COLORS] ?? 0x94a3b8);
+    const colorHex = pinned ? ROUND_PINNED_COLOR : (ROUND_STOP_COLORS[status as keyof typeof ROUND_STOP_COLORS] ?? 0x94a3b8);
     const key = `${colorHex}`;
     let material = this.roundMaterials.get(key);
     if (!material) {
@@ -668,6 +852,12 @@ export class NavigatorScene {
     cancelAnimationFrame(this.animationId);
     window.removeEventListener('resize', this.onResize);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
+    this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
+    this.renderer.domElement.removeEventListener('pointerleave', this.onPointerLeave);
+    this.clearHover();
+    this.clearSelection();
+    this.hoverChip.remove();
+    this.baseCategoryMaterials.forEach((material) => material.dispose());
     this.baseObjects.forEach((object) => this.disposeObject(object));
     this.clearGroup(this.patientLayer);
     this.clearGroup(this.trailLayer);
@@ -774,7 +964,7 @@ export class NavigatorScene {
     let material = this.forecastMaterials.get(key);
     if (!material) {
       material = new THREE.MeshStandardMaterial({
-        color: 0x64bfd0,
+        color: FORECAST_COLOR,
         emissive: 0x0f2f36,
         transparent: true,
         opacity,
@@ -788,10 +978,10 @@ export class NavigatorScene {
   private occupancyMaterialFor(status: OccupancyTimerStatus): THREE.MeshStandardMaterial {
     let material = this.occupancyMaterials.get(status);
     if (!material) {
-      const color = status === 'delayed' ? 0xf06755 : status === 'watch' ? 0xe0a33f : 0x77c06f;
+      const { color, emissive } = OCCUPANCY_STATUS_COLORS[status];
       material = new THREE.MeshStandardMaterial({
         color,
-        emissive: status === 'delayed' ? 0x5a140d : status === 'watch' ? 0x4a3210 : 0x143d17,
+        emissive,
         transparent: true,
         opacity: status === 'ok' ? 0.58 : 0.74,
         roughness: 0.52,
@@ -806,7 +996,7 @@ export class NavigatorScene {
   private timerPipMaterialFor(status: OccupancyTimerStatus): THREE.MeshStandardMaterial {
     let material = this.timerPipMaterials.get(status);
     if (!material) {
-      const color = status === 'delayed' ? 0xff8a75 : status === 'watch' ? 0xffd166 : 0x93e088;
+      const color = TIMER_PIP_COLORS[status];
       material = new THREE.MeshStandardMaterial({
         color,
         emissive: color,
@@ -843,6 +1033,11 @@ export class NavigatorScene {
    * rebuilds — they are disposed once, in dispose().
    */
   private clearGroup(group: THREE.Group): void {
+    // A rebuild that removes the hovered/selected mesh must also release its
+    // highlight clone — otherwise the clone dangles and the restore targets a
+    // detached mesh.
+    if (this.hoveredMesh && this.hoveredMesh.parent === group) this.clearHover();
+    if (this.selectedMesh && this.selectedMesh.parent === group) this.clearSelection();
     while (group.children.length) {
       const child = group.children.pop() as THREE.Mesh | undefined;
       if (!child) continue;
@@ -871,10 +1066,11 @@ export class NavigatorScene {
   }
 }
 
+/**
+ * Identity color for a patient token/trail. Hue is clamped to 160°–280° (E-3)
+ * so a token can never impersonate amber/coral status colors — the clamp
+ * itself lives in sceneVocabulary.patientHue with the rest of the grammar.
+ */
 function hashColor(value: string): THREE.Color {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = ((hash << 5) - hash) + value.charCodeAt(index);
-  }
-  return new THREE.Color(`hsl(${Math.abs(hash) % 360}, 70%, 58%)`);
+  return new THREE.Color(`hsl(${patientHue(value)}, 70%, 58%)`);
 }
