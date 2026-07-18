@@ -15,3 +15,13 @@ paths = [
   '''(^|/)artifacts/''',
 ]
 
+[[allowlists]]
+# Public diversion-model scenario identifier ('critical-care-surge-v1') used as
+# both modelVersionKey and version_key in the seeded regional network — a
+# display label, not a credential. Pre-dates this policy on main; AND-scoped to
+# the one file + exact string so nothing else in the file is exempted.
+description = "RegionalTransferService seeded model-version identifiers (public labels)"
+condition = "AND"
+paths = ['''^app/Services/Transport/RegionalTransferService\.php$''']
+regexes = ['''critical-care-surge-v1''']
+
