@@ -61,7 +61,7 @@
 - [x] Alert ownership + acknowledgement — `acknowledged_at/by/by_name` on `cockpit_alerts`, POST acknowledge endpoint, ticker ack affordance with optimistic rollback; warn→crit escalation clears the ack. *Remaining: duplicate-alert grouping.*
 - [x] Review-step for approvals — Approve/Reject only inside the expanded evidence sheet (scope, rationale, confidence, expected effect, source, owner, timing).
 - [ ] Mobile task flows (per audit): alert review, rounds contribution, governed-action review — task-first layouts, not compressed boards.
-- [ ] Turnover/TAT pages: standardized metric-metadata header (denominator, window, exclusions, coverage).
+- [x] TAT pages metric metadata — **verified already implemented**: Lab/Pharmacy/Radiology TAT each carry a coverage tile, exclusion alert, coverage-and-exclusion ledger, and source-freshness badges (the audit rated these the strongest pages). No change needed; Turnover Times inherits the standard once its data path matures (Phase 2).
 
 > Deploy note: Phase 1 adds a migration (`2026_07_17_100000_add_acknowledgement_to_cockpit_alerts`). `./deploy.sh` skips migrations — run `./deploy.sh --db` (or the full flow that includes it) when this merges.
 
