@@ -16,15 +16,16 @@ import type { CockpitAlert } from '@/types/cockpit';
 import { Surface } from '@/Components/ui/Surface';
 import { cockpitStatusStyle } from './statusStyle';
 import { ProvenanceBadge } from './ProvenanceBadge';
-import { formatDurationSeconds } from '@/lib/duration';
+import { formatCoarseDurationSeconds } from '@/lib/duration';
 
 // Coarse relative age (P6): the ticker shows how long an alert has been OPEN
-// (the AlertEngine's damped opened_at), not this snapshot's time.
+// (the AlertEngine's damped opened_at), not this snapshot's time. Coarse
+// units only — a per-second clock on every alert is churn, not information.
 function ageLabel(openedAt: string | null | undefined): string | null {
   if (!openedAt) return null;
   const seconds = Math.max(0, Math.round((Date.now() - Date.parse(openedAt)) / 1_000));
   if (Number.isNaN(seconds) || seconds < 1) return null;
-  return formatDurationSeconds(seconds);
+  return formatCoarseDurationSeconds(seconds);
 }
 
 function AlertItem({

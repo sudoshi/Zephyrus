@@ -139,10 +139,12 @@ const Active = ({ cycles, reportedBarriers = [] }) => {
 
   return (
     <DashboardLayout>
-      <Head title="PDSA Cycles & Opportunities - ZephyrusOR" />
+      {/* Title matches the "Active Cycles" navigation label — landing on a page
+          whose H1 differs from the link you clicked breaks orientation. */}
+      <Head title="Active Cycles - Improvement" />
       <PageContentLayout
-        title="PDSA Cycles & Opportunities"
-        subtitle="Track active initiatives and explore improvement opportunities from reported barriers"
+        title="Active Cycles"
+        subtitle="Active PDSA initiatives and improvement opportunities from reported barriers"
       >
         {/* PDSA Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

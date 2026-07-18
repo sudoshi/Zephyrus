@@ -125,6 +125,41 @@ class AlertEngineTest extends TestCase
         $this->assertSame(1, CockpitAlert::query()->where('key', 'ed.nedocs')->whereNotNull('cleared_at')->count());
     }
 
+    public function test_open_alert_past_ttl_closes_to_history_and_rederives_fresh(): void
+    {
+        config(['cockpit.alerts.ttl_hours' => 72]);
+
+        $this->reconcile([$this->nedocs()]);
+        $this->reconcile([$this->nedocs()]);
+        CockpitAlert::query()->where('key', 'ed.nedocs')->update(['opened_at' => now()->subHours(80)]);
+
+        // Still a live candidate — but the ticker must never carry an 80-hour
+        // "active" clock: the stale row closes to history this cycle...
+        $this->assertSame([], $this->reconcile([$this->nedocs()]));
+        $this->assertSame(1, CockpitAlert::query()->where('key', 'ed.nedocs')->whereNotNull('cleared_at')->count());
+
+        // ...and the persisting condition re-raises as a fresh alert.
+        $this->reconcile([$this->nedocs()]);
+        $reraised = $this->reconcile([$this->nedocs()]);
+
+        $this->assertCount(1, $reraised);
+        $this->assertTrue(now()->parse($reraised[0]['openedAt'])->gt(now()->subMinutes(5)));
+    }
+
+    public function test_ttl_zero_disables_expiry(): void
+    {
+        config(['cockpit.alerts.ttl_hours' => 0]);
+
+        $this->reconcile([$this->nedocs()]);
+        $this->reconcile([$this->nedocs()]);
+        CockpitAlert::query()->where('key', 'ed.nedocs')->update(['opened_at' => now()->subHours(500)]);
+
+        $open = $this->reconcile([$this->nedocs()]);
+
+        $this->assertCount(1, $open);
+        $this->assertSame(0, CockpitAlert::query()->where('key', 'ed.nedocs')->whereNotNull('cleared_at')->count());
+    }
+
     public function test_open_set_is_crit_first_and_carries_candidate_provenance(): void
     {
         $warn = ['key' => 'staffing.overtime', 'status' => 'warn', 'text' => 'OT trending high', 'provenance' => 'demo'];

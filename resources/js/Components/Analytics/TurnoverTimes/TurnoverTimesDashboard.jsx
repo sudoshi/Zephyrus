@@ -11,6 +11,7 @@ import LocationComparisonView from './Views/LocationComparisonView';
 import ServiceAnalysisView from './Views/ServiceAnalysisView';
 import { AnimatePresence, motion } from 'framer-motion';
 import ErrorBoundary from '@/Components/ErrorBoundary';
+import { resolveSiteData } from './resolveSiteData';
 
 export default function TurnoverTimesDashboard({ activeView = 'overview', data = null }) {
   // P5: live payload only (TurnoverService via the controller) — the bundled
@@ -63,7 +64,7 @@ export default function TurnoverTimesDashboard({ activeView = 'overview', data =
   // In a real application, this would be an API call
   const fetchTurnoverData = async () => {
     return {
-      locationData: mockTurnoverTimes.sites[filters.selectedLocation] || mockTurnoverTimes.sites['MARH OR'],
+      locationData: resolveSiteData(mockTurnoverTimes.sites, { selectedLocation: filters.selectedLocation }),
       serviceData: filters.selectedSpecialty ? mockTurnoverTimes.services[filters.selectedSpecialty] : null
     };
   };

@@ -5,28 +5,19 @@ import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 import { formatDurationMinutes } from '@/lib/duration';
+import { resolveSiteData } from '../resolveSiteData';
 
 const HourlyAnalysisView = ({ filters, data = null }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   const [isDarkMode] = useDarkMode();
   const mockTurnoverTimes = data;
-  
+
   // Get location data based on filters
-  const locationData = useMemo(() => {
-    if (selectedLocation && mockTurnoverTimes.sites[selectedLocation]) {
-      return mockTurnoverTimes.sites[selectedLocation];
-    } else if (selectedHospital) {
-      // Get first location for the selected hospital
-      const locationKey = Object.keys(mockTurnoverTimes.sites).find(
-        site => site.startsWith(selectedHospital)
-      );
-      return locationKey ? mockTurnoverTimes.sites[locationKey] : mockTurnoverTimes.sites['MARH OR'];
-    } else {
-      // Default to first location
-      return mockTurnoverTimes.sites['MARH OR'];
-    }
-  }, [selectedHospital, selectedLocation]);
+  const locationData = useMemo(
+    () => resolveSiteData(mockTurnoverTimes?.sites, { selectedLocation, selectedHospital }),
+    [mockTurnoverTimes, selectedHospital, selectedLocation]
+  );
   
   // Generate hourly data (mock data for this example)
   const hourlyData = useMemo(() => {

@@ -36,6 +36,7 @@ function AgentCard({ definition }: { definition: AgentDefinition }) {
             type="button"
             onClick={() => run.mutate(definition.key)}
             disabled={run.isPending}
+            aria-label={`${run.isPending ? 'Running' : 'Run'} ${definition.label} agent`}
             className="inline-flex items-center gap-1 rounded-md bg-healthcare-primary px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             <Play className="size-3.5" /> {run.isPending ? 'Running' : 'Run'}
@@ -80,6 +81,10 @@ export default function AgentInbox() {
   const definitions = useAgentDefinitions();
 
   const summary = inbox.data?.summary;
+  // Unknown must never render as zero: while the queue is loading or failed,
+  // tiles show an explicit non-number so "0 pending" always means a verified 0.
+  const summaryUnknown = inbox.isPending || inbox.isError;
+  const summaryValue = (value: number | undefined) => (summaryUnknown ? '—' : value ?? 0);
 
   return (
     <DashboardLayout>
@@ -94,11 +99,23 @@ export default function AgentInbox() {
         }
       >
         <div className="space-y-4">
+          {inbox.isError && (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-healthcare-warning/40 bg-healthcare-warning/10 px-3 py-2 text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+              <span>The approval queue could not be loaded — counts below are unavailable, not zero.</span>
+              <button
+                type="button"
+                onClick={() => inbox.refetch()}
+                className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-semibold text-healthcare-text-primary hover:bg-healthcare-background dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-white/5"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <MetricTile label="Pending approvals" value={summary?.pendingApprovals ?? 0} tone={(summary?.pendingApprovals ?? 0) > 0 ? 'warning' : 'neutral'} />
-            <MetricTile label="Active actions" value={summary?.activeActions ?? 0} />
-            <MetricTile label="Assigned" value={summary?.assignedActions ?? 0} />
-            <MetricTile label="Overdue" value={summary?.overdueActions ?? 0} tone={(summary?.overdueActions ?? 0) > 0 ? 'critical' : 'neutral'} />
+            <MetricTile label="Pending approvals" value={summaryValue(summary?.pendingApprovals)} tone={(summary?.pendingApprovals ?? 0) > 0 ? 'warning' : 'neutral'} />
+            <MetricTile label="Active actions" value={summaryValue(summary?.activeActions)} />
+            <MetricTile label="Assigned" value={summaryValue(summary?.assignedActions)} />
+            <MetricTile label="Overdue" value={summaryValue(summary?.overdueActions)} tone={(summary?.overdueActions ?? 0) > 0 ? 'critical' : 'neutral'} />
           </div>
 
           <Panel title="Governed agents" icon={<Bot className="size-5 text-healthcare-primary" />}>
@@ -114,7 +131,11 @@ export default function AgentInbox() {
           </Panel>
 
           <Panel title="Pending approvals" icon={<ShieldCheck className="size-5 text-healthcare-primary" />}>
-            {(inbox.data?.approvals.length ?? 0) === 0 ? (
+            {summaryUnknown ? (
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                {inbox.isPending ? 'Loading approvals...' : 'Approvals unavailable — retry above.'}
+              </div>
+            ) : (inbox.data?.approvals.length ?? 0) === 0 ? (
               <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                 No pending approvals. Review and approve in the{' '}
                 <Link href="/analytics/opportunities" className="font-medium text-healthcare-primary">Opportunity Portfolio</Link>.
@@ -141,7 +162,11 @@ export default function AgentInbox() {
           </Panel>
 
           <Panel title="Active actions" icon={<Inbox className="size-5 text-healthcare-primary" />}>
-            {(inbox.data?.actions.length ?? 0) === 0 ? (
+            {summaryUnknown ? (
+              <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                {inbox.isPending ? 'Loading actions...' : 'Actions unavailable — retry above.'}
+              </div>
+            ) : (inbox.data?.actions.length ?? 0) === 0 ? (
               <div className="text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">No active actions.</div>
             ) : (
               <ul className="space-y-2">

@@ -53,19 +53,34 @@ export function EddySlideOver() {
     pushAssistant({ id: assistantId, role: 'assistant', content: '' });
     setSending(true);
 
-    await streamEddyChat(
-      { message, surface: ctx.surface, page_context: ctx.pageContext, conversation_id: conversationId },
-      {
-        onConversationId: (id) => setConversationId(id),
-        onToken: (token) => appendAssistant(assistantId, token),
-        onComplete: ({ cleanReply, proposedAction, provider }) =>
-          finalizeAssistant(assistantId, { content: cleanReply, provider, proposedAction }),
-        onError: (msg) =>
-          finalizeAssistant(assistantId, { content: msg || 'Eddy is unavailable right now.', status: 'error' }),
-      },
-    );
+    let failed = false;
+    try {
+      await streamEddyChat(
+        { message, surface: ctx.surface, page_context: ctx.pageContext, conversation_id: conversationId },
+        {
+          onConversationId: (id) => setConversationId(id),
+          onToken: (token) => appendAssistant(assistantId, token),
+          onComplete: ({ cleanReply, proposedAction, provider }) =>
+            finalizeAssistant(assistantId, { content: cleanReply, provider, proposedAction }),
+          onError: (msg) => {
+            failed = true;
+            finalizeAssistant(assistantId, { content: msg || 'Eddy is unavailable right now.', status: 'error' });
+          },
+        },
+      );
+    } catch {
+      failed = true;
+      finalizeAssistant(assistantId, { content: 'Eddy is unavailable right now.', status: 'error' });
+    } finally {
+      // The composer must never wedge: whatever the stream did, release Send.
+      setSending(false);
+    }
 
-    setSending(false);
+    if (failed) {
+      // Preserve the failed message as the draft so retry is one click — but
+      // never clobber text the operator typed while the error surfaced.
+      setText((current) => (current.length > 0 ? current : message));
+    }
   };
 
   const onSubmit = (event: React.FormEvent) => {

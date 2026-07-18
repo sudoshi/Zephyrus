@@ -120,20 +120,28 @@ const ServiceHuddle = ({
     return (
         <RTDCPageLayout
             title="Service Huddle"
-            subtitle="Unit and departments patient management"
+            subtitle="Units and departments patient management"
         >
             <div className="space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>
-                            <div className="flex justify-between items-center">
+                        {/* Filters live BESIDE the heading, never inside it — a heading's
+                            accessible name must not include every filter option (HFE audit
+                            SCOPE-01). */}
+                        <div className="flex flex-wrap justify-between items-center gap-3">
+                            <CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <Icon icon="heroicons:users" className="w-5 h-5" />
-                                    <span>Unit and Departments Dashboard</span>
+                                    <span>Units and Departments</span>
                                 </div>
-                                <div className="flex gap-4">
-                                    {/* Unit Selector */}
+                            </CardTitle>
+                            <div className="flex flex-wrap gap-4">
+                                <div>
+                                    <label htmlFor="service-huddle-unit-filter" className="sr-only">
+                                        Filter by unit
+                                    </label>
                                     <select
+                                        id="service-huddle-unit-filter"
                                         className="w-48 border rounded-md px-3 py-2 focus:ring-2 focus:ring-healthcare-primary"
                                         value={selectedUnit}
                                         onChange={(e) => setSelectedUnit(e.target.value)}
@@ -145,9 +153,13 @@ const ServiceHuddle = ({
                                             </option>
                                         ))}
                                     </select>
-
-                                    {/* Service Selector */}
+                                </div>
+                                <div>
+                                    <label htmlFor="service-huddle-service-filter" className="sr-only">
+                                        Filter by service
+                                    </label>
                                     <select
+                                        id="service-huddle-service-filter"
                                         className="w-48 border rounded-md px-3 py-2 focus:ring-2 focus:ring-healthcare-primary"
                                         value={selectedService}
                                         onChange={(e) => setSelectedService(e.target.value)}
@@ -161,7 +173,7 @@ const ServiceHuddle = ({
                                     </select>
                                 </div>
                             </div>
-                        </CardTitle>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">

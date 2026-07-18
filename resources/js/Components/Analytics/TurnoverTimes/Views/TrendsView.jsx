@@ -4,79 +4,70 @@ import { ResponsiveLine } from '@nivo/line';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 import { formatDurationMinutes } from '@/lib/duration';
+import { resolveSiteData } from '../resolveSiteData';
 
 const TrendsView = ({ filters, data = null }) => {
   // Extract filter values
   const { selectedHospital, selectedLocation, selectedSpecialty, dateRange } = filters;
   const [isDarkMode] = useDarkMode();
   const mockTurnoverTimes = data;
-  
+
   // Get location data based on filters
-  const locationData = useMemo(() => {
-    if (selectedLocation && mockTurnoverTimes.sites[selectedLocation]) {
-      return mockTurnoverTimes.sites[selectedLocation];
-    } else if (selectedHospital) {
-      // Get first location for the selected hospital
-      const locationKey = Object.keys(mockTurnoverTimes.sites).find(
-        site => site.startsWith(selectedHospital)
-      );
-      return locationKey ? mockTurnoverTimes.sites[locationKey] : mockTurnoverTimes.sites['MARH OR'];
-    } else {
-      // Default to first location
-      return mockTurnoverTimes.sites['MARH OR'];
-    }
-  }, [selectedHospital, selectedLocation]);
-  
+  const locationData = useMemo(
+    () => resolveSiteData(mockTurnoverTimes?.sites, { selectedLocation, selectedHospital }),
+    [mockTurnoverTimes, selectedHospital, selectedLocation]
+  );
+
   // Format monthly trend data for line chart
   const monthlyTrendData = useMemo(() => {
     return [
       {
         id: 'Median Turnover Time',
-        data: locationData.trends.medianTurnoverTime.map(item => ({
+        data: (locationData?.trends?.medianTurnoverTime ?? []).map(item => ({
           x: item.month,
           y: item.value
         }))
       },
       {
         id: 'Average Turnover Time',
-        data: locationData.trends.averageTurnoverTime.map(item => ({
+        data: (locationData?.trends?.averageTurnoverTime ?? []).map(item => ({
           x: item.month,
           y: item.value
         }))
       }
     ];
   }, [locationData]);
-  
+
   // Format day of week data
   const dayOfWeekData = useMemo(() => {
     return [
       {
         id: 'Median Turnover Time',
-        data: (locationData.dayOfWeek || []).map(item => ({
+        data: (locationData?.dayOfWeek ?? []).map(item => ({
           x: item.day,
           y: item.medianTurnoverTime
         }))
       },
       {
         id: 'Average Turnover Time',
-        data: (locationData.dayOfWeek || []).map(item => ({
+        data: (locationData?.dayOfWeek ?? []).map(item => ({
           x: item.day,
           y: item.averageTurnoverTime
         }))
       }
     ];
   }, [locationData]);
-  
+
   // Format year-over-year comparison data
   const yearOverYearData = useMemo(() => {
     // This would typically come from the API with real data
     // For mock purposes, we'll create a synthetic dataset
-    const currentYearData = locationData.trends.medianTurnoverTime.map(item => ({
+    const currentYearData = (locationData?.trends?.medianTurnoverTime ?? []).map(item => ({
       x: item.month,
       y: item.value
     }));
-    
-    const previousYearData = locationData.trends.medianTurnoverTime.map(item => ({
+
+    const previousYearData = (locationData?.trends?.medianTurnoverTime ?? []).map(item => ({
       x: item.month,
       y: item.value * (1 + (Math.random() * 0.2 - 0.1)) // +/- 10% variation
     }));
@@ -92,7 +83,15 @@ const TrendsView = ({ filters, data = null }) => {
       }
     ];
   }, [locationData]);
-  
+
+  if (!locationData) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No turnover trend data is available for the selected location and period.
+      </div>
+    );
+  }
+
   // Chart theme based on dark mode
   const theme = {
     axis: {

@@ -33,6 +33,32 @@ export function formatDurationSeconds(
   return `${negative ? '-' : ''}${parts.join(' ')}`;
 }
 
+/**
+ * Coarse operational age for alert/handoff surfaces: at most two units, never
+ * seconds past a minute, never minutes past a day — "12 days 8 hr" reads at a
+ * glance where "308 hr 22 min 15 sec" does not.
+ */
+export function formatCoarseDurationSeconds(
+  value: number | null | undefined,
+  unavailable = 'N/A',
+): string {
+  const numeric = finiteNumber(value);
+  if (numeric === null) return unavailable;
+
+  const totalSeconds = Math.round(Math.abs(numeric));
+  const sign = numeric < 0 && totalSeconds > 0 ? '-' : '';
+
+  if (totalSeconds < 60) return `${sign}${totalSeconds} sec`;
+
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+
+  if (days > 0) return `${sign}${days} ${days === 1 ? 'day' : 'days'}${hours > 0 ? ` ${hours} hr` : ''}`;
+  if (hours > 0) return `${sign}${hours} hr${minutes > 0 ? ` ${minutes} min` : ''}`;
+  return `${sign}${minutes} min`;
+}
+
 export function formatDurationMinutes(
   value: number | null | undefined,
   unavailable = 'N/A',

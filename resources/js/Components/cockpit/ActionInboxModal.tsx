@@ -72,43 +72,57 @@ export function ActionInboxModal({ open, onClose }: { open: boolean; onClose: ()
         </h3>
         {inbox.isLoading ? (
           <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">Loading…</p>
+        ) : inbox.isError ? (
+          // Unknown is not zero — a failed fetch must never read as an empty queue.
+          <p role="alert" className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+            Approvals unavailable.{' '}
+            <button type="button" onClick={() => inbox.refetch()} className="font-medium text-healthcare-primary dark:text-healthcare-primary-dark">
+              Retry
+            </button>
+          </p>
         ) : approvals.length === 0 ? (
           <p className="mt-2 text-sm text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
             No pending approvals.
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
-            {approvals.map((approval) => (
-              <li
-                key={approval.approvalId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-healthcare-border p-2.5 dark:border-healthcare-border-dark"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                    {approval.action?.recommendation?.title ?? approval.action?.type ?? 'Action'}
-                  </p>
-                  <RiskGlyph risk={approval.action?.recommendation?.riskLevel} />
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={decide.isPending}
-                    onClick={() => decide.mutate({ approvalId: approval.approvalId, decision: 'approved' })}
-                    className="rounded-md bg-healthcare-primary px-2.5 py-1 text-xs font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover disabled:opacity-50 dark:bg-healthcare-primary-dark"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    disabled={decide.isPending}
-                    onClick={() => decide.mutate({ approvalId: approval.approvalId, decision: 'rejected' })}
-                    className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-surface-hover disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-surface-hover-dark"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </li>
-            ))}
+            {approvals.map((approval) => {
+              const approvalSubject = approval.action?.recommendation?.title ?? approval.action?.type ?? 'action';
+
+              return (
+                <li
+                  key={approval.approvalId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-healthcare-border p-2.5 dark:border-healthcare-border-dark"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                      {approval.action?.recommendation?.title ?? approval.action?.type ?? 'Action'}
+                    </p>
+                    <RiskGlyph risk={approval.action?.recommendation?.riskLevel} />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={decide.isPending}
+                      onClick={() => decide.mutate({ approvalId: approval.approvalId, decision: 'approved' })}
+                      aria-label={`Approve: ${approvalSubject}`}
+                      className="rounded-md bg-healthcare-primary px-2.5 py-1 text-xs font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover disabled:opacity-50 dark:bg-healthcare-primary-dark"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={decide.isPending}
+                      onClick={() => decide.mutate({ approvalId: approval.approvalId, decision: 'rejected' })}
+                      aria-label={`Reject: ${approvalSubject}`}
+                      className="rounded-md border border-healthcare-border px-2.5 py-1 text-xs font-medium text-healthcare-text-secondary transition-colors duration-200 hover:bg-healthcare-surface-hover disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-surface-hover-dark"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
 

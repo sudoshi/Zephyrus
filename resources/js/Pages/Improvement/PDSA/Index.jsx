@@ -64,7 +64,7 @@ const Index = ({ auth, cycles = [] }) => {
           <div className="healthcare-card">
             <div className="border-b p-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold">PDSA Cycles</h2>
+                <h1 className="text-2xl font-semibold">PDSA Cycles</h1>
                 <Link href="/improvement/pdsa/create">
                   <button className="inline-flex items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-healthcare-primary-hover">
                     <Plus className="h-4 w-4" />

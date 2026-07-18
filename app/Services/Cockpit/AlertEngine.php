@@ -68,6 +68,7 @@ class AlertEngine
     {
         $openHolds = max(1, (int) config('cockpit.alerts.open_holds'));
         $clearHolds = max(1, (int) config('cockpit.alerts.clear_holds'));
+        $ttlHours = max(0, (int) config('cockpit.alerts.ttl_hours'));
 
         $rows = CockpitAlert::query()
             ->where('facility_key', $facilityKey)
@@ -101,6 +102,17 @@ class AlertEngine
 
             // OPEN row.
             if ($candidate !== null) {
+                // TTL re-raise (HFE audit TIME-01): a condition open longer than
+                // the TTL closes to history and re-derives as a FRESH alert on
+                // the next snapshots — still visible if still real, but the
+                // ticker never carries a weeks-old "active" clock. Deliberately
+                // not a silent suppression: hiding a live breach would lie.
+                if ($ttlHours > 0 && $row->opened_at !== null && $row->opened_at->lte(now()->subHours($ttlHours))) {
+                    $row->update(['cleared_at' => now(), 'hold_count' => 0]);
+
+                    continue;
+                }
+
                 // Held: severity and text track the live value; the entry never
                 // closes/reopens on a warn↔crit move.
                 $row->update([

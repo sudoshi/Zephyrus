@@ -46,7 +46,9 @@ export function TopNavbar({ isDarkMode, setIsDarkMode }: TopNavbarProps) {
               aria-hidden="true"
               className="h-7 w-7 object-contain"
             />
-            <span className="text-lg font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+            {/* Wordmark yields below sm so the right-side utility cluster is
+                never clipped on narrow viewports (HFE audit RESP-01). */}
+            <span className="hidden text-lg font-semibold text-healthcare-text-primary sm:inline dark:text-healthcare-text-primary-dark">
               Zephyrus
             </span>
           </Link>

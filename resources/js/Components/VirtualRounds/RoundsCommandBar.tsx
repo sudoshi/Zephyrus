@@ -1,7 +1,7 @@
 // Scope + template + run selection and the run lifecycle controls.
 // Dense and quiet: selects and small buttons, no hero treatment.
 import { CalendarClock, CirclePause, CirclePlay, CircleStop, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { RoundScope, RoundTemplate, RunSummary } from '@/features/virtualRounds/types';
 import { formatClock, RUN_STATUS_LABEL } from './format';
 
@@ -49,7 +49,21 @@ export default function RoundsCommandBar({
   onLifecycle,
 }: Props) {
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const status = selectedRun?.status ?? null;
+
+  // Cancelled runs are archive, not workflow: demo/seed cycles accumulate dozens
+  // of near-identical cancelled runs that bury the live one (HFE audit VR-01).
+  // They stay reachable behind the toggle; the selected run always stays listed
+  // so the select never loses its value.
+  const cancelledCount = useMemo(() => runs.filter((run) => run.status === 'cancelled').length, [runs]);
+  const visibleRuns = useMemo(
+    () =>
+      showCancelled
+        ? runs
+        : runs.filter((run) => run.status !== 'cancelled' || run.run_uuid === selectedRun?.run_uuid),
+    [runs, showCancelled, selectedRun],
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-healthcare-border bg-healthcare-surface p-3 shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark">
@@ -113,9 +127,9 @@ export default function RoundsCommandBar({
           data-testid="rounds-run-select"
         >
           <option value="" disabled>
-            {runs.length === 0 ? 'No runs yet' : 'Select run'}
+            {visibleRuns.length === 0 ? 'No runs yet' : 'Select run'}
           </option>
-          {runs.map((run) => (
+          {visibleRuns.map((run) => (
             <option key={run.run_uuid} value={run.run_uuid}>
               {run.scope_label ?? run.scope_key} · {RUN_STATUS_LABEL[run.status]} ·{' '}
               {formatClock(run.planned_start_at)}
@@ -123,6 +137,18 @@ export default function RoundsCommandBar({
           ))}
         </select>
       </label>
+
+      {cancelledCount > 0 && (
+        <label className="flex items-center gap-1.5 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          <input
+            type="checkbox"
+            checked={showCancelled}
+            onChange={(e) => setShowCancelled(e.target.checked)}
+            data-testid="rounds-show-cancelled"
+          />
+          Show cancelled ({cancelledCount})
+        </label>
+      )}
 
       {selectedRun && (
         <>
