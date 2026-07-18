@@ -123,6 +123,9 @@ export const capacityStatusSchema = z.object({
 export type CapacityStatus = z.infer<typeof capacityStatusSchema>;
 
 export const cockpitAlertSchema = z.object({
+  // HFE Phase 1: lifecycle row id for the acknowledge endpoint. Optional so
+  // pre-migration snapshots still parse (additive contract change only).
+  id: z.number().optional(),
   key: z.string(),
   status: z.enum(['warn', 'crit']),
   text: z.string(),
@@ -130,6 +133,10 @@ export const cockpitAlertSchema = z.object({
   // P6: present once the AlertEngine persists the flap-damped lifecycle —
   // the ISO instant the alert actually OPENED (not this snapshot's time).
   openedAt: z.string().nullable().optional(),
+  // HFE Phase 1: acknowledgement = ownership, not suppression. Cleared
+  // server-side when the condition escalates warn→crit.
+  acknowledgedAt: z.string().nullable().optional(),
+  acknowledgedBy: z.string().nullable().optional(),
   // P6 WS-4: the server-resolved Eddy catalog action this alert pre-seeds
   // (EddyActionService::actionForAlert) + its human label for the hand-off.
   action: z.string().optional(),

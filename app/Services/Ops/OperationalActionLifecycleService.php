@@ -320,6 +320,14 @@ class OperationalActionLifecycleService
             'title' => $recommendation->title,
             'riskLevel' => $recommendation->risk_level,
             'status' => $recommendation->status,
+            // HFE Phase 1 — the review-before-approve evidence: scope, rationale,
+            // confidence, expected effect, and provenance of the draft. Additive.
+            'scopeType' => $recommendation->scope_type,
+            'scopeKey' => $recommendation->scope_key,
+            'rationale' => $recommendation->rationale,
+            'confidence' => $recommendation->confidence !== null ? (float) $recommendation->confidence : null,
+            'expectedImpact' => $recommendation->expected_impact ?? [],
+            'source' => $recommendation->created_by_source,
         ];
     }
 }

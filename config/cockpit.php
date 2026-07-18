@@ -52,6 +52,10 @@ return [
         'open_holds' => (int) env('COCKPIT_ALERT_OPEN_HOLDS', 2),
         'clear_holds' => (int) env('COCKPIT_ALERT_CLEAR_HOLDS', 3),
         'min_reconcile_interval' => (int) env('COCKPIT_ALERT_RECONCILE_INTERVAL', 30),
+        // TTL re-raise (2026-07 HFE audit): an alert OPEN longer than this is
+        // closed to history and re-derived fresh, so the ticker never carries a
+        // weeks-old "active" clock. 0 disables.
+        'ttl_hours' => (int) env('COCKPIT_ALERT_TTL_HOURS', 72),
     ],
 
     /*

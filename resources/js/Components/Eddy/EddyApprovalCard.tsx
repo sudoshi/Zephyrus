@@ -93,6 +93,7 @@ export function EddyApprovalCard({ message, surface }: EddyApprovalCardProps) {
               type="button"
               onClick={approve}
               disabled={busy}
+              aria-label={`${busy ? 'Approving' : 'Approve'}: ${action.title}`}
               className="rounded-md bg-healthcare-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-healthcare-primary-hover disabled:opacity-50 dark:bg-healthcare-primary-dark"
             >
               {busy ? 'Approving…' : 'Approve'}
@@ -101,6 +102,7 @@ export function EddyApprovalCard({ message, surface }: EddyApprovalCardProps) {
               type="button"
               onClick={() => setProposalState(message.id, 'denied')}
               disabled={busy}
+              aria-label={`Dismiss: ${action.title}`}
               className="rounded-md border border-healthcare-border px-3 py-1.5 text-xs font-medium text-healthcare-text-secondary hover:bg-healthcare-surface-hover disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-surface-hover-dark"
             >
               Dismiss

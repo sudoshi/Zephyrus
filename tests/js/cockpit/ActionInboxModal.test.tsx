@@ -46,10 +46,20 @@ describe('ActionInboxModal', () => {
     // critical risk → crit ◆ via the one riskStatus mapping.
     expect(screen.getByRole('img', { name: 'Critical' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    // HFE Phase 1: no one-click inline decision — Approve/Reject only exist
+    // inside the expanded review evidence sheet.
+    expect(screen.queryByRole('button', { name: /^Approve/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Review: Open the surge unit' }));
+
+    // The evidence sheet is visible before any decision control.
+    expect(screen.getByText('Rationale')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve: Open the surge unit' }));
     expect(mockMutate).toHaveBeenCalledWith({ approvalId: 42, decision: 'approved' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+    // Deciding collapses the review; re-open it to reject.
+    fireEvent.click(screen.getByRole('button', { name: 'Review: Open the surge unit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reject: Open the surge unit' }));
     expect(mockMutate).toHaveBeenCalledWith({ approvalId: 42, decision: 'rejected' });
   });
 

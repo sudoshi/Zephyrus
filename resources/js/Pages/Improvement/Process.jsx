@@ -449,7 +449,17 @@ const Process = ({ auth, savedLayout }) => {
   return (
     <DashboardLayout>
       <Head title="Process Analysis - Improvement" />
-      
+
+      {/* Visible page H1 — the sidebar h2 is a section label, not page identity. */}
+      <div className="px-4 pt-4">
+        <h1 className="text-2xl font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+          Process Analysis
+        </h1>
+        <p className="text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+          Discover, map, and analyze operational processes to find improvement targets
+        </p>
+      </div>
+
       <div className="flex h-full gap-4 p-4">
         {/* Side Navigation */}
         <div className="w-64 flex flex-col gap-4">

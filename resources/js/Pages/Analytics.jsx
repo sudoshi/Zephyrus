@@ -1184,10 +1184,17 @@ export default function Analytics({ section = 'hub' }) {
 
     return (
         <DashboardLayout>
-            <Head title="Operations Intelligence" />
+            {/* Destination-specific identity: every section is its own page in the
+                navigation, so H1 and document title must confirm the destination —
+                a shared generic heading breaks orientation (HFE audit §4.1). */}
+            <Head title={activeKey === 'hub' ? 'Operations Intelligence' : `${activeSection.label} · Operations Intelligence`} />
             <PageContentLayout
-                title="Operations Intelligence"
-                subtitle="Real-time, retrospective, predictive, and improvement analytics for hospital operations"
+                title={activeKey === 'hub' ? 'Operations Intelligence' : activeSection.label}
+                subtitle={
+                    activeKey === 'hub'
+                        ? 'Real-time, retrospective, predictive, and improvement analytics for hospital operations'
+                        : activeSection.summary
+                }
                 headerContent={
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <Link

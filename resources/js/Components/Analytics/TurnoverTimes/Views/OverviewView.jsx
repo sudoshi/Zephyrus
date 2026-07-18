@@ -5,6 +5,7 @@ import { ResponsiveBar } from '@nivo/bar';
 import Panel from '@/Components/ui/Panel';
 import  { useDarkMode } from '@/hooks/useDarkMode';
 import { formatDurationMinutes } from '@/lib/duration';
+import { resolveSiteData } from '../resolveSiteData';
 
 const formatDistributionRange = (range) => {
   const bounded = range.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?) min$/i);
@@ -23,38 +24,36 @@ const OverviewView = ({ filters, data = null }) => {
   const mockTurnoverTimes = data;
   
   // Get location data based on filters
-  const locationData = useMemo(() => {
-    if (selectedLocation && mockTurnoverTimes.sites[selectedLocation]) {
-      return mockTurnoverTimes.sites[selectedLocation];
-    } else if (selectedHospital) {
-      // Get first location for the selected hospital
-      const locationKey = Object.keys(mockTurnoverTimes.sites).find(
-        site => site.startsWith(selectedHospital)
-      );
-      return locationKey ? mockTurnoverTimes.sites[locationKey] : mockTurnoverTimes.sites['MARH OR'];
-    } else {
-      // Default to first location
-      return mockTurnoverTimes.sites['MARH OR'];
-    }
-  }, [selectedHospital, selectedLocation]);
-  
+  const locationData = useMemo(
+    () => resolveSiteData(mockTurnoverTimes?.sites, { selectedLocation, selectedHospital }),
+    [mockTurnoverTimes, selectedHospital, selectedLocation]
+  );
+
   // Format turnover distribution data for pie chart
   const distributionData = useMemo(() => {
-    return Object.entries(locationData.turnoverDistribution).map(([range, count]) => ({
+    return Object.entries(locationData?.turnoverDistribution ?? {}).map(([range, count]) => ({
       id: range,
       label: formatDistributionRange(range),
       value: count
     }));
   }, [locationData]);
-  
+
   // Format room comparison data for bar chart
   const roomComparisonData = useMemo(() => {
-    return locationData.rooms.map(room => ({
+    return (locationData?.rooms ?? []).map(room => ({
       room: room.room,
       'Median Turnover': room.medianTurnoverTime,
       'Average Turnover': room.averageTurnoverTime
     }));
   }, [locationData]);
+
+  if (!locationData) {
+    return (
+      <div className="p-8 text-center text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+        No turnover data is available for the selected location and period.
+      </div>
+    );
+  }
   
   // Chart theme based on dark mode
   const theme = {

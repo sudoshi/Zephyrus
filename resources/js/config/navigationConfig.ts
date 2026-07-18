@@ -165,10 +165,13 @@ const RTDC: NavDomain = {
     },
     {
       title: 'Predictions',
+      // Labels match each page's H1 and carry the decision intent — bare
+      // "Resources"/"Demand" is indistinguishable across workspaces in the
+      // command palette (HFE audit §4.1 naming defects).
       items: [
-        { label: 'Demand', href: '/rtdc/predictions/demand', icon: PieChart },
-        { label: 'Resources', href: '/rtdc/predictions/resources', icon: Boxes },
-        { label: 'Discharge', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
+        { label: 'Demand Forecast', href: '/rtdc/predictions/demand', icon: PieChart },
+        { label: 'Resource Planning', href: '/rtdc/predictions/resources', icon: Boxes },
+        { label: 'Discharge Priorities', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
         { label: 'Risk Assessment', href: '/rtdc/predictions/risk', icon: AlertCircle },
       ],
     },
@@ -191,7 +194,7 @@ const EMERGENCY: NavDomain = {
       items: [
         { label: 'Triage', href: '/ed/operations/triage', icon: ListChecks },
         { label: 'Treatment', href: '/ed/operations/treatment', icon: HeartPulse },
-        { label: 'Resources', href: '/ed/operations/resources', icon: Boxes },
+        { label: 'Resource Management', href: '/ed/operations/resources', icon: Boxes },
         { label: 'Patient Flow', href: '/ed/analytics/flow', icon: Workflow },
       ],
     },
@@ -200,7 +203,7 @@ const EMERGENCY: NavDomain = {
       items: [
         { label: 'Arrival', href: '/ed/predictions/arrival', icon: Ambulance },
         { label: 'Acuity', href: '/ed/predictions/acuity', icon: Activity },
-        { label: 'Resources', href: '/ed/predictions/resources', icon: Boxes },
+        { label: 'Resource Optimization', href: '/ed/predictions/resources', icon: Boxes },
       ],
     },
   ],
@@ -328,7 +331,7 @@ const TRANSPORT: NavDomain = {
     {
       title: 'Control',
       items: [
-        { label: 'Resources', href: '/transport/resources', icon: MapPinned },
+        { label: 'Transport Resources', href: '/transport/resources', icon: MapPinned },
       ],
     },
   ],
@@ -425,7 +428,7 @@ const ANALYTICS: NavDomain = {
       items: [
         { label: 'RTDC Utilization', href: '/rtdc/analytics/utilization', icon: Gauge },
         { label: 'RTDC Performance', href: '/rtdc/analytics/performance', icon: LineChart },
-        { label: 'RTDC Resources', href: '/rtdc/analytics/resources', icon: Boxes },
+        { label: 'RTDC Resource Analytics', href: '/rtdc/analytics/resources', icon: Boxes },
         { label: 'RTDC Trends', href: '/rtdc/analytics/trends', icon: TrendingUp },
       ],
     },
@@ -433,7 +436,7 @@ const ANALYTICS: NavDomain = {
       title: 'ED & Transport Trends',
       items: [
         { label: 'ED Wait Time', href: '/ed/analytics/wait-time', icon: Clock },
-        { label: 'ED Resources', href: '/ed/analytics/resources', icon: Boxes },
+        { label: 'ED Resource Analytics', href: '/ed/analytics/resources', icon: Boxes },
         { label: 'Transport Analytics', href: '/transport/analytics', icon: BarChart3 },
       ],
     },

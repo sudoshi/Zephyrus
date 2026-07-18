@@ -43,7 +43,6 @@ import type {
   FlowPatientDots,
   FlowUnitSummary,
   NavigatorBarrier,
-  OccupancyEddyContext,
   OccupancyInsight,
   OccupancySummary,
   PatientFlowAmbient,
@@ -176,14 +175,45 @@ function redactSelection(
   return clone;
 }
 
+/**
+ * One timer, one readable evidence line — status, target, reason, owner.
+ * Implementation provenance (source tables, record ids) deliberately stays out
+ * of the operator panel (HFE audit EDDY-02: no raw JSON for decisions).
+ */
+function summarizeEvidenceRecord(record: Record<string, unknown>): string {
+  const parts = [
+    typeof record.status === 'string' ? record.status : null,
+    typeof record.time_to_target === 'string' ? record.time_to_target : null,
+    typeof record.reason === 'string' ? record.reason : null,
+    typeof record.owner_role === 'string' ? `owner: ${record.owner_role}` : null,
+    record.verified === true ? 'verified' : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 function flattenInspector(data: Record<string, unknown>): Array<[string, string]> {
-  return Object.entries(data)
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .slice(0, 32)
-    .map(([key, value]) => [
+  const rows: Array<[string, string]> = [];
+
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined || value === null || value === '') continue;
+
+    if (Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === 'object' && item !== null)) {
+      // Arrays of records (timers) expand to one humanized row each — never
+      // a serialized JSON blob.
+      for (const item of value as Array<Record<string, unknown>>) {
+        const label = typeof item.label === 'string' ? item.label : key.replaceAll('_', ' ');
+        rows.push([label, summarizeEvidenceRecord(item)]);
+      }
+      continue;
+    }
+
+    rows.push([
       key.replaceAll('_', ' '),
       typeof value === 'object' ? JSON.stringify(value) : String(value),
     ]);
+  }
+
+  return rows.slice(0, 32);
 }
 
 function occupancyFilterKey(filters: PatientFlowFilters): string {
@@ -279,7 +309,6 @@ export default function PatientFlowNavigator({
   const [cameraText, setCameraText] = useState('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
-  const [eddyContext, setEddyContext] = useState<OccupancyEddyContext | null>(null);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
@@ -528,7 +557,6 @@ export default function PatientFlowNavigator({
           };
           lastBucketKeyRef.current = '';
           setOccupancy(payload.summary);
-          setEddyContext(payload.eddyContext ?? null);
           if (!inspectorInitializedRef.current) {
             const priority = payload.occupancy.find(isBarrierOrDelay);
             if (priority) {
@@ -543,7 +571,6 @@ export default function PatientFlowNavigator({
         .catch(() => {
           if (requestId !== occupancyRequestRef.current) return;
           serverOccupancyRef.current = null;
-          setEddyContext(null);
         });
     }, playing ? 900 : 220);
 
@@ -816,16 +843,10 @@ export default function PatientFlowNavigator({
         return `${item.locationName ?? item.location}: ${item.serviceLine ?? 'unassigned'}; ${formatDurationMinutes(item.stayMinutes)} stay;${codes} ${reasons}`;
       })
       .join('; ') || 'No delayed disk details selected.';
-    const structuredContext = eddyContext
-      ? JSON.stringify(eddyContext, null, 2)
-      : JSON.stringify({
-          surface: 'patient_flow_4d',
-          role: lens?.role_id ?? 'house',
-          redaction: { patient_dots: lens?.patient_dots ?? 'unknown' },
-          current_metrics: occupancy,
-          note: 'Server structured context was unavailable; use the visible summary only.',
-        }, null, 2);
-
+    // The composer prefill is OPERATOR-readable evidence only (HFE audit
+    // EDDY-02): no serialized context dumps, no prompt-engineering
+    // instructions. The governed structured context still reaches Eddy
+    // server-side through the chat request's page_context.
     openEddyWithPrefill(
       [
         'Review this Patient Flow 4D timer picture for RTDC demand-capacity risk.',
@@ -835,13 +856,11 @@ export default function PatientFlowNavigator({
         `Service-line compounding: ${serviceLines}`,
         `Barrier reasons: ${topBarriers}`,
         `Disk examples: ${sampleDiskDetails}`,
-        'Structured governed context for facts, redaction, owners, metrics, and allowed actions:',
-        structuredContext,
-        'Prioritize what the current persona can influence, call out cross-service-line compounding, and draft only governed recommendations for human review.',
+        'What should this persona act on first, and where is cross-service-line compounding building?',
       ].join('\n'),
       'patient-flow-4d-timers',
     );
-  }, [eddyContext, lens, occupancy, openEddyWithPrefill]);
+  }, [lens, occupancy, openEddyWithPrefill]);
 
   return (
     <section ref={containerRef} className="patient-flow-shell" aria-label="Patient Flow 4D Navigator">

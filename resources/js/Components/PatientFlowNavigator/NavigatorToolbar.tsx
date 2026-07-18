@@ -219,7 +219,9 @@ export default function NavigatorToolbar({
             checked={barrierFinder}
             onChange={(event) => onBarrierFinderChange(event.target.checked)}
           />
-          <label htmlFor="flow-barrier-finder" title="Find all barriers and delays">Barriers</label>
+          {/* Distinct from the "Barriers" layer toggle above — two controls must
+              never share one accessible name (HFE audit: wrong-toggle risk). */}
+          <label htmlFor="flow-barrier-finder" title="Highlight every barrier and delay in the scene">Find barriers</label>
         </div>
       </fieldset>
 

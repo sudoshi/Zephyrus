@@ -100,6 +100,11 @@ final class DemoRefreshCoordinator
             // duplicate checkpoints (the rebase nudges prior rows off their hour-aligned upsert
             // key). Ongoing current-hour capture is the separate hourly flow:snapshot schedule.
             $domains[] = $this->step('source_freshness', fn () => $this->refreshSourceFreshness());
+            // The rebase replaced the operational world, so alert lifecycle rows
+            // describe conditions that no longer exist — clear them to history and
+            // let the post-refresh snapshots re-derive fresh, honestly-aged alerts
+            // (HFE audit TIME-01: no 300-hour-old "active" clocks on a 6h demo).
+            $domains[] = $this->step('alerts', fn () => $this->resetAlertLifecycle());
 
             $failedDomains = array_values(array_filter($domains, fn (array $domain): bool => ! $domain['ok']));
             if ($failedDomains !== []) {
@@ -144,6 +149,24 @@ final class DemoRefreshCoordinator
             'published' => $published,
             'error' => $error,
         ];
+    }
+
+    /**
+     * Reset the cockpit alert lifecycle after a world rebase: un-fired pending
+     * accumulator rows vanish (they never happened), open alerts close to
+     * history with an honest cleared_at. Fresh candidates re-open within the
+     * normal damping window on the post-refresh snapshots.
+     */
+    public function resetAlertLifecycle(): void
+    {
+        DB::table('prod.cockpit_alerts')
+            ->whereNull('cleared_at')
+            ->where('status', 'pending')
+            ->delete();
+
+        DB::table('prod.cockpit_alerts')
+            ->whereNull('cleared_at')
+            ->update(['cleared_at' => now(), 'hold_count' => 0]);
     }
 
     /** Recompute ops.source_freshness from each source's own registered column (plan §10.2). */
