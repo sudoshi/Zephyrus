@@ -56,7 +56,7 @@ import type {
 } from '@/features/patientFlowNavigator/types';
 import { occupancyInspectorData } from '@/features/patientFlowNavigator/inspector';
 import type { PageProps } from '@/types';
-import type { NavigatorScene } from './NavigatorScene';
+import type { CameraView, NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
 import NavigatorInspector from './NavigatorInspector';
@@ -240,11 +240,16 @@ export default function PatientFlowNavigator({
 }: PatientFlowNavigatorProps) {
   // Fresh sources use the wall-clock 48h window. Stale sources move to an
   // explicit historical window after bootstrap so their replay stays usable.
-  const nowMs = useMemo(() => Date.now(), []);
+  // The mount instant anchors bootstrap; `nowMs` then advances in state every
+  // 60s so now-marker, ghost gating, and barrier open-age severity stay honest
+  // on long-lived wall sessions (S-1).
+  const mountedAtMs = useMemo(() => Date.now(), []);
+  const [nowMs, setNowMs] = useState(mountedAtMs);
+  const nowMsRef = useRef(mountedAtMs);
   const handoff = useMemo(() => parseHandoff(), []);
   const [timeWindow, setTimeWindow] = useState({
-    start: nowMs - LIVE_WINDOW_HALF_MS,
-    end: nowMs + LIVE_WINDOW_HALF_MS,
+    start: mountedAtMs - LIVE_WINDOW_HALF_MS,
+    end: mountedAtMs + LIVE_WINDOW_HALF_MS,
   });
   const windowStart = timeWindow.start;
   const windowEnd = timeWindow.end;
@@ -306,7 +311,8 @@ export default function PatientFlowNavigator({
   const [playing, setPlaying] = useState(false);
   const [live, setLive] = useState(false);
   const [status, setStatus] = useState('Loading');
-  const [cameraText, setCameraText] = useState('');
+  const [cameraPlace, setCameraPlace] = useState('');
+  const [cameraDebug, setCameraDebug] = useState('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
@@ -317,12 +323,32 @@ export default function PatientFlowNavigator({
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
 
+  // S-1: advance wall-clock now every 60s. The ref updates in the same tick so
+  // any repaint that fires before the effects run already sees the fresh value.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      nowMsRef.current = Date.now();
+      setNowMs(nowMsRef.current);
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const dataStart = useMemo(() => (events.length ? parseTime(events[0].occurred_at) : null), [events]);
   const dataEnd = useMemo(
     () => (events.length ? parseTime(events[events.length - 1].occurred_at) : null),
     [events],
   );
   const historical = summary?.source.freshness === 'stale' && dataEnd !== null;
+
+  // Mirrored into refs for the scene's onFrame closure, so the three.js scene
+  // is NOT torn down and rebuilt when the live window slides (S-1) or the
+  // source flips historical after bootstrap.
+  const historicalRef = useRef(false);
+  const windowRef = useRef(timeWindow);
+  useEffect(() => {
+    historicalRef.current = historical;
+    windowRef.current = timeWindow;
+  }, [historical, timeWindow]);
 
   // When each open barrier began, for chronobar ticks (past half only).
   const barrierTicks = useMemo(
@@ -361,7 +387,14 @@ export default function PatientFlowNavigator({
       );
     }
     controls.push({ key: 'heat', label: 'Census', id: 'flow-layer-census' });
-    controls.push({ key: 'barriers', label: 'Barriers', id: 'flow-layer-barriers' });
+    // "Barriers" here = the diamond markers for logged prod.barriers rows —
+    // a different concept from the "Delayed only" census scope (B-1).
+    controls.push({
+      key: 'barriers',
+      label: 'Barriers',
+      id: 'flow-layer-barriers',
+      title: 'Logged operational barriers (diamond markers)',
+    });
     if (!lens || (lens.layers.includes('projections') && lens.projection_kinds.length > 0)) {
       controls.push({ key: 'ghosts', label: 'Forecast', id: 'flow-layer-forecast' });
     }
@@ -374,10 +407,13 @@ export default function PatientFlowNavigator({
   }, [lens, patientDotsVisible, roundStops.length]);
 
   // ---- scene refresh: cheap per-frame tokens, bucketed heavy layers -------
+  // Reads wall-clock now from the ref so the callback identity stays stable
+  // across S-1 ticks (the scene effect must not rebuild three.js every 60s).
   const refreshScene = useCallback(() => {
     const scene = sceneRef.current;
     if (!scene) return;
 
+    const wallNowMs = nowMsRef.current;
     const timeMs = currentTimeRef.current;
     const states = patientStatesAt(tracksRef.current, locationsRef.current, timeMs, filtersRef.current);
     const localOccupancy = buildOccupancyInsights(
@@ -411,6 +447,7 @@ export default function PatientFlowNavigator({
     // layers, or datasets change — not every animation frame.
     const bucketKey = [
       Math.floor(timeMs / 60_000),
+      Math.floor(wallNowMs / 60_000),
       JSON.stringify(filtersRef.current),
       JSON.stringify(layersRef.current),
       barrierFinderRef.current ? 'barriers' : 'all',
@@ -437,7 +474,7 @@ export default function PatientFlowNavigator({
     const index = placementIndexRef.current;
     const floorFilter = filtersRef.current.floor;
     const ghostItems = layersRef.current.ghosts
-      ? ghostsAt(projectionsRef.current, nowMs, timeMs).filter((item) => {
+      ? ghostsAt(projectionsRef.current, wallNowMs, timeMs).filter((item) => {
           if (floorFilter === 'all') return true;
           const floor = floorForProjection(item, index);
           return floor !== null && String(floor) === floorFilter;
@@ -454,7 +491,7 @@ export default function PatientFlowNavigator({
     scene.rebuildGhosts(ghostTokens, layersRef.current.ghosts);
 
     const aggregates = layersRef.current.ghosts
-      ? aggregatesAt(projectionsRef.current, nowMs, timeMs)
+      ? aggregatesAt(projectionsRef.current, wallNowMs, timeMs)
       : null;
     const heatCells = aggregates
       ? [...aggregates.censusByUnit.entries()]
@@ -471,14 +508,14 @@ export default function PatientFlowNavigator({
           })
           .filter((cell): cell is NonNullable<typeof cell> => cell !== null)
       : [];
-    scene.rebuildForecastHeat(heatCells, layersRef.current.ghosts && timeMs > nowMs);
-    setForecast(aggregates && timeMs > nowMs ? aggregates : null);
+    scene.rebuildForecastHeat(heatCells, layersRef.current.ghosts && timeMs > wallNowMs);
+    setForecast(aggregates && timeMs > wallNowMs ? aggregates : null);
     setOccupancy(occupancySummary);
 
     // Open-barrier markers — present-state, so shown at every scrub position
     // (not gated on past/future), just placed on their unit + floor-filtered.
     const barrierCells = layersRef.current.barriers
-      ? buildBarrierCells(barriersRef.current, index, floorFilter, nowMs)
+      ? buildBarrierCells(barriersRef.current, index, floorFilter, wallNowMs)
       : [];
     scene.rebuildBarriers(barrierCells, layersRef.current.barriers);
 
@@ -495,7 +532,7 @@ export default function PatientFlowNavigator({
       occupiedLocations: occupied
         || new Set((barrierFinderRef.current || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
     });
-  }, [dotsPolicy, lens, nowMs, patientDotsVisible]);
+  }, [dotsPolicy, lens, patientDotsVisible]);
 
   // Keep refs in sync with state, then repaint.
   useEffect(() => {
@@ -515,17 +552,31 @@ export default function PatientFlowNavigator({
     refreshScene();
   }, [events, locations, filters, layers, barrierFinder, projections, barriers, roundStops, speed, playing, live, tracks, placementIndex, refreshScene]);
 
+  // B-4: no camera side effect here — flying to the delayed set is an explicit
+  // "Focus" action on the filter chip, never a consequence of toggling scope.
   useEffect(() => {
     barrierFinderRef.current = barrierFinder;
     lastBucketKeyRef.current = '';
     refreshScene();
-    if (barrierFinder) {
-      const points = lastOccupancyInsightsRef.current
-        .filter(isBarrierOrDelay)
-        .map((item) => item.position);
-      sceneRef.current?.focusOn(points);
-    }
   }, [barrierFinder, refreshScene]);
+
+  // S-1: repaint when wall-clock now advances (the now-minute is part of the
+  // heavy-layer bucket key, so severity and gating rebuild with the fresh now).
+  useEffect(() => {
+    nowMsRef.current = nowMs;
+    refreshScene();
+  }, [nowMs, refreshScene]);
+
+  // Live-follow: slide the 48h window with wall-clock now, but only when the
+  // operator is parked at now — a deliberate scrub position is never yanked,
+  // and a playback sweep passing near now is not "parked".
+  useEffect(() => {
+    if (historical || playingRef.current) return;
+    if (Math.abs(currentTimeRef.current - nowMs) >= 90_000) return;
+    setTimeWindow({ start: nowMs - LIVE_WINDOW_HALF_MS, end: nowMs + LIVE_WINDOW_HALF_MS });
+    currentTimeRef.current = nowMs;
+    setCurrentTime(nowMs);
+  }, [historical, nowMs]);
 
   // Repaint when the displayed time changes. The ref is the source of truth
   // (playback advances it per frame); scrub/live paths write it via applyTime.
@@ -582,6 +633,54 @@ export default function PatientFlowNavigator({
     setCurrentTime(timeMs);
   }, []);
 
+  // N-3: the camera readout speaks place, not xyz — the nearest unit centroid
+  // to the orbit target names what the operator is looking at. Raw coordinates
+  // survive in the status-bar title attribute for debugging.
+  const handleCameraMove = useCallback((view: CameraView): void => {
+    setCameraDebug(
+      `camera x ${Math.round(view.position.x)} y ${Math.round(view.position.y)} z ${Math.round(view.position.z)}`
+      + ` · target x ${Math.round(view.target.x)} z ${Math.round(view.target.z)}`,
+    );
+
+    // Wide framing (home / fit-to-floor distance) is an overview, and naming
+    // the incidentally-nearest unit there would mislead.
+    const range = Math.hypot(
+      view.position.x - view.target.x,
+      view.position.y - view.target.y,
+      view.position.z - view.target.z,
+    );
+    if (range > 150) {
+      const floorFilter = filtersRef.current.floor;
+      setCameraPlace(floorFilter === 'all' ? 'House view' : `Floor ${floorFilter} · overview`);
+      return;
+    }
+
+    const index = placementIndexRef.current;
+    let bestUnitId: number | null = null;
+    let bestDistSq = Number.POSITIVE_INFINITY;
+    for (const [unitId, anchor] of index.unitAnchors) {
+      const dx = anchor.x - view.target.x;
+      const dz = anchor.z - view.target.z;
+      const distSq = dx * dx + dz * dz;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        bestUnitId = unitId;
+      }
+    }
+    if (bestUnitId === null) {
+      setCameraPlace('');
+      return;
+    }
+
+    const unit = units.find((candidate) => candidate.unit_id === bestUnitId);
+    const unitLabel = unit?.name
+      ?? unit?.unit_code?.toUpperCase()
+      ?? index.unitCodeById.get(bestUnitId)?.toUpperCase()
+      ?? `Unit ${bestUnitId}`;
+    const floor = index.unitFloors.get(bestUnitId);
+    setCameraPlace(floor !== undefined ? `Floor ${floor} · ${unitLabel}` : unitLabel);
+  }, [units]);
+
   // ---- data bootstrap ------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
@@ -597,7 +696,7 @@ export default function PatientFlowNavigator({
         ]);
         if (cancelled) return;
 
-        const prepared = prepareReplay(summaryData, eventData, nowMs, handoff.t);
+        const prepared = prepareReplay(summaryData, eventData, mountedAtMs, handoff.t);
         const { events: sortedEvents, timeline } = prepared;
         setSummary(summaryData);
         setAmbient(ambientData);
@@ -623,39 +722,62 @@ export default function PatientFlowNavigator({
     return () => {
       cancelled = true;
     };
-  }, [applyTime, handoff.t, nowMs, patientDotsVisible]);
+  }, [applyTime, handoff.t, mountedAtMs, patientDotsVisible]);
 
   // Projection stream (future half) — lens-clamped server-side; a failure
-  // only disables ghosts, never the navigator.
+  // only disables ghosts, never the navigator. Re-polled every 5 min (S-2);
+  // hidden tabs skip the poll and catch up on the visibilitychange that
+  // brings them back.
   useEffect(() => {
     let cancelled = false;
-    fetchPatientFlowProjections(lens ? { persona: lens.role_id } : {})
-      .then((payload) => {
-        if (cancelled) return;
-        const allowed = lens ? new Set(lens.projection_kinds) : null;
-        setProjections(payload.projections.filter((item) => !allowed || allowed.has(item.kind)));
-      })
-      .catch(() => {
-        if (!cancelled) setProjections([]);
-      });
+
+    const load = (): void => {
+      if (document.visibilityState === 'hidden') return;
+      fetchPatientFlowProjections(lens ? { persona: lens.role_id } : {})
+        .then((payload) => {
+          if (cancelled) return;
+          const allowed = lens ? new Set(lens.projection_kinds) : null;
+          setProjections(payload.projections.filter((item) => !allowed || allowed.has(item.kind)));
+        })
+        .catch(() => {
+          if (!cancelled) setProjections([]);
+        });
+    };
+
+    load();
+    const timer = window.setInterval(load, 300_000);
+    document.addEventListener('visibilitychange', load);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', load);
     };
   }, [lens]);
 
   // Open barriers overlay — aggregate + patient-free (no lens needed); a failure
-  // only hides the overlay, never the navigator.
+  // only hides the overlay, never the navigator. Re-polled every 120 s (S-2)
+  // with the same visibility gating so wall displays see new/closed barriers.
   useEffect(() => {
     let cancelled = false;
-    fetchPatientFlowBarriers()
-      .then((payload) => {
-        if (!cancelled) setBarriers(payload.open_barriers);
-      })
-      .catch(() => {
-        if (!cancelled) setBarriers([]);
-      });
+
+    const load = (): void => {
+      if (document.visibilityState === 'hidden') return;
+      fetchPatientFlowBarriers()
+        .then((payload) => {
+          if (!cancelled) setBarriers(payload.open_barriers);
+        })
+        .catch(() => {
+          if (!cancelled) setBarriers([]);
+        });
+    };
+
+    load();
+    const timer = window.setInterval(load, 120_000);
+    document.addEventListener('visibilitychange', load);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', load);
     };
   }, []);
 
@@ -728,12 +850,13 @@ export default function PatientFlowNavigator({
           ));
           setInspectorRows(flattenInspector(redacted));
         },
-        onCameraMove: setCameraText,
+        onCameraMove: handleCameraMove,
         onFrame: (delta) => {
           if (!playingRef.current || liveRef.current) return;
           const next = currentTimeRef.current + delta * speedRef.current * 60 * 1000;
-          const replayEnd = historical ? windowEnd : Math.min(nowMs, windowEnd);
-          const bounded = next > replayEnd ? windowStart : next;
+          const { start, end } = windowRef.current;
+          const replayEnd = historicalRef.current ? end : Math.min(nowMsRef.current, end);
+          const bounded = next > replayEnd ? start : next;
           currentTimeRef.current = bounded;
           const wallNow = performance.now();
           if (wallNow - lastTimeEmitRef.current > 150) {
@@ -765,7 +888,7 @@ export default function PatientFlowNavigator({
       sceneRef.current = null;
       scene?.dispose();
     };
-  }, [summary?.model_url, dotsPolicy, historical, nowMs, windowEnd, windowStart, refreshScene]);
+  }, [summary?.model_url, dotsPolicy, handleCameraMove, refreshScene]);
 
   // ---- playback / live -----------------------------------------------------
   const disconnectLive = useCallback((): void => {
@@ -815,6 +938,15 @@ export default function PatientFlowNavigator({
     const scene = sceneRef.current;
     if (!scene) return;
     scene.focusOn(lastVisibleStatesRef.current.map((state) => state.position));
+  }, []);
+
+  // B-4: the explicit camera action for the Delayed-only census scope — the
+  // operator asks for the flight; the checkbox never causes it.
+  const focusDelayed = useCallback((): void => {
+    const points = lastOccupancyInsightsRef.current
+      .filter(isBarrierOrDelay)
+      .map((item) => item.position);
+    sceneRef.current?.focusOn(points);
   }, []);
 
   const askEddy = useCallback((): void => {
@@ -884,6 +1016,7 @@ export default function PatientFlowNavigator({
             freshness={summary?.source.freshness ?? 'missing'}
             forecast={forecast}
             barrierTicks={barrierTicks}
+            replaying={live}
             onScrub={handleScrub}
           />
         )}
@@ -907,6 +1040,7 @@ export default function PatientFlowNavigator({
         onToggleLive={() => (live ? disconnectLive() : connectLive())}
         onResetCamera={resetCamera}
         onFocusPatients={focusActivePatients}
+        onFocusDelayed={focusDelayed}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
         onLayerChange={(key, value) => setLayers((prev) => ({ ...prev, [key]: value }))}
@@ -921,7 +1055,7 @@ export default function PatientFlowNavigator({
       <div className="patient-flow-statusbar">
         <span>{status}</span>
         <span>{ambient ? `Ambient ${Math.round(ambient.summary.averageConfidence * 100)}% ${ambient.summary.confidenceLevel}` : 'Ambient pending'}</span>
-        <span className="patient-flow-camera">{cameraText}</span>
+        <span className="patient-flow-camera" title={cameraDebug}>{cameraPlace}</span>
       </div>
     </section>
   );
