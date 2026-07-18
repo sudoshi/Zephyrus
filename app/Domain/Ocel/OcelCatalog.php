@@ -62,6 +62,11 @@ final class OcelCatalog
             'Pharmacy Work' => ['lens' => 'medication', 'source_system' => 'prod.ancillary_milestones', 'emitted' => true],
             'Medication Dose' => ['lens' => 'medication', 'source_system' => 'prod.ancillary_milestones', 'emitted' => true],
             'Medication Resource' => ['lens' => 'resource', 'source_system' => 'prod.ancillary_milestones', 'emitted' => true],
+            // Home Hospital (ACUM-PRD-HAH-001 §6.3) — the virtual-ward pathway.
+            'Home Episode' => ['lens' => 'clinical', 'source_system' => 'prod.home_episodes', 'emitted' => true],
+            'RPM Kit' => ['lens' => 'resource', 'source_system' => 'prod.rpm_kits', 'emitted' => true],
+            'Home Visit' => ['lens' => 'logistics', 'source_system' => 'prod.home_visits', 'emitted' => true],
+            'Escalation' => ['lens' => 'clinical', 'source_system' => 'prod.home_escalations', 'emitted' => true],
             // Declared for the catalog; emitted by later Arena phases.
             'Order' => ['lens' => 'clinical', 'source_system' => 'flow_core.flow_events', 'emitted' => false],
             'EVS Task' => ['lens' => 'logistics', 'source_system' => 'prod.evs_tasks', 'emitted' => false],
@@ -140,6 +145,14 @@ final class OcelCatalog
             // Barriers (RTDC operational impediments → the flow-reconciliation loop)
             'barrier_opened' => 'flow',
             'barrier_resolved' => 'flow',
+            // Home Hospital (ACUM-PRD-HAH-001 §6.3) — the virtual-ward pathway:
+            // activation cadence, waiver visits, escalation protocol, discharge.
+            'home-refer' => 'home',
+            'home-activate' => 'home',
+            'home-visit-complete' => 'home',
+            'home-escalation-open' => 'home',
+            'home-escalation-resolve' => 'home',
+            'home-discharge' => 'home',
         ];
     }
 }

@@ -19,6 +19,14 @@ import pandas as pd
 # sepsis recognition (SSC bundle).
 SEPSIS_ABX_TARGET_MIN = 180
 
+# Home Hospital (ACUM-PRD-HAH-001 §6.3) — the designed pathway's operating
+# numbers: referral→activation within 24h, the CMS AHCAH waiver floor of two
+# in-person visits per full ward day, and the 30-minute emergency-response
+# requirement (MedPAC 2024).
+HOME_ACTIVATION_SLA_MIN = 24 * 60
+HOME_WAIVER_VISITS_PER_DAY = 2
+HOME_RESPONSE_FLOOR_MIN = 30
+
 
 def _minutes_between(a: Any, b: Any) -> float | None:
     if a is None or b is None or pd.isna(a) or pd.isna(b):
@@ -71,6 +79,51 @@ def evaluate_surgical_safety(timeline: dict[str, Any], counts: dict[str, int], g
     return deviations
 
 
+def evaluate_home_hospital(timeline: dict[str, Any], counts: dict[str, int], group: pd.DataFrame) -> list[str]:
+    """Home Hospital virtual-ward pathway: referral→activation SLA, the
+    two-visits-per-full-day waiver cadence, and the escalation protocol
+    (every open resolved; response inside the 30-minute floor)."""
+    deviations: list[str] = []
+
+    referral = timeline.get("home-refer")
+    activation = timeline.get("home-activate")
+    if referral is not None and activation is not None:
+        minutes = _minutes_between(referral, activation)
+        if minutes is not None and minutes > HOME_ACTIVATION_SLA_MIN:
+            deviations.append("activation_beyond_sla")
+
+    # Waiver cadence over FULL elapsed ward days (partial admission/discharge
+    # days are not judged). Waiver visits preferred when the attr is present;
+    # otherwise every completed visit counts toward the floor.
+    end = timeline.get("home-discharge") or group["ocel:timestamp"].max()
+    full_days = 0
+    if activation is not None:
+        minutes = _minutes_between(activation, end)
+        full_days = int(minutes // (24 * 60)) if minutes is not None else 0
+    if full_days >= 1:
+        visits = group[group["ocel:activity"] == "home-visit-complete"]
+        if "waiver_required" in group.columns:
+            flagged = visits["waiver_required"].astype(str).str.lower().isin({"true", "1", "yes"})
+            waiver_visits = int(flagged.sum()) if flagged.any() else len(visits)
+        else:
+            waiver_visits = len(visits)
+        if waiver_visits < HOME_WAIVER_VISITS_PER_DAY * full_days:
+            deviations.append("visit_cadence_below_floor")
+
+    if counts.get("home-escalation-open", 0) > counts.get("home-escalation-resolve", 0):
+        deviations.append("escalation_unresolved")
+
+    if "response_minutes" in group.columns:
+        response = pd.to_numeric(
+            group[group["ocel:activity"] == "home-escalation-resolve"]["response_minutes"],
+            errors="coerce",
+        ).dropna()
+        if len(response) > 0 and float(response.max()) > HOME_RESPONSE_FLOOR_MIN:
+            deviations.append("escalation_response_late")
+
+    return deviations
+
+
 # The versioned pathway registry. `case_type` is the OCEL object the pathway is
 # grouped by; `trigger` is the activity whose presence marks a case as being on
 # the pathway; `activities` bounds the sub-log the engine extracts.
@@ -113,6 +166,28 @@ PATHWAYS: dict[str, dict[str, Any]] = {
         "deviation_labels": {
             "safety_step_missing": "A checklist step (Sign-In / Time-Out / Sign-Out) is missing",
             "safety_check_flagged": "A checklist step was flagged incomplete",
+        },
+    },
+    "home_hospital": {
+        "label": "Home Hospital virtual-ward pathway (AHCAH)",
+        "version": 1,
+        "owner": "clinical:home-hospital",
+        "case_type": "Home Episode",
+        "trigger": "home-activate",
+        "activities": [
+            "home-refer",
+            "home-activate",
+            "home-visit-complete",
+            "home-escalation-open",
+            "home-escalation-resolve",
+            "home-discharge",
+        ],
+        "evaluate": evaluate_home_hospital,
+        "deviation_labels": {
+            "activation_beyond_sla": "Referral-to-activation beyond the 24-hour SLA",
+            "visit_cadence_below_floor": "In-person visits below the 2-per-day waiver floor",
+            "escalation_unresolved": "An escalation was opened but never resolved",
+            "escalation_response_late": "Escalation response beyond the 30-minute floor",
         },
     },
 }

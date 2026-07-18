@@ -312,7 +312,7 @@ class ArenaCopilotService
             ];
         }
 
-        $pathway = in_array($focus, ['sepsis', 'surgical_safety'], true) ? $focus : null;
+        $pathway = in_array($focus, ['sepsis', 'surgical_safety', 'home_hospital'], true) ? $focus : null;
         if ($pathway === null) {
             return null;
         }

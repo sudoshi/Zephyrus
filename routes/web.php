@@ -18,6 +18,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
+use App\Http\Controllers\HomeDashboardController;
 use App\Http\Controllers\Integrations\IntegrationConsoleController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\Operations;
@@ -274,6 +275,19 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
                 ->middleware('can:viewIntegrations')
                 ->name('settings.integrations');
         });
+
+        // Home Hospital — acute Hospital-at-Home virtual ward workspace
+        // (ACUM-PRD-HAH-001; docs/home-hospital/). Gated by
+        // HOME_HOSPITAL_ENABLED (404 when off, nav hidden via features prop).
+        Route::prefix('home')->name('home.')
+            ->middleware(\App\Http\Middleware\EnsureHomeHospitalEnabled::class)
+            ->group(function () {
+                Route::get('/command', [HomeDashboardController::class, 'command'])->name('command');
+                Route::get('/census', [HomeDashboardController::class, 'census'])->name('census');
+                Route::get('/referrals', [HomeDashboardController::class, 'referrals'])->name('referrals');
+                Route::get('/transitions', [HomeDashboardController::class, 'transitions'])->name('transitions');
+                Route::get('/logistics', [HomeDashboardController::class, 'logistics'])->name('logistics');
+            });
 
         // Design Routes
         Route::prefix('design')->name('design.')->group(function () {

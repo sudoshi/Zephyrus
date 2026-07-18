@@ -199,6 +199,24 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'financial.cost_per_case' => $this->kpi('Cost / OR case', 'Cost per OR case vs budget.', '$k', 'down', null, null, null, 3600),
             'financial.contract_labor' => $this->kpi('Contract labor', 'Contract labor dollars today.', '$k', 'down', null, null, null, 3600),
             'financial.overtime' => $this->kpi('Overtime', 'Overtime hours as a percent of worked hours.', '%', 'down', 4, 4, 6, 3600),
+
+            // ---------------- Home Hospital (ACUM-PRD-HAH-001 §9) — 120s ----
+            // Earned-Red ration: alert_template ONLY on the four alerting rows
+            // (unacked criticals, response p90, visit compliance, kits offline).
+            // Benchmarks are the national numbers (Levine 2024 / CMS waiver).
+            'home.census_occupancy' => $this->kpi('Virtual ward occupancy', 'Occupied program slots as a percent of the virtual ward.', '%', 'up', null, null, null, 120),
+            'home.unacked_critical_vitals' => $this->kpi('Unacked critical vitals', 'Open critical patient vitals awaiting clinician acknowledgement.', '', 'down', 0, null, 1, 120,
+                'HOME critical vitals unacknowledged — {display} open'),
+            'home.escalation_response_p90' => $this->kpi('Escalation response p90', 'p90 escalation response time vs the 30-minute waiver floor (trailing 7d).', 'min', 'down', 30, 25, 31, 120,
+                'Home escalation response p90 {display} — 30-min waiver floor at risk'),
+            'home.visit_compliance_today' => $this->kpi('Waiver visit compliance', 'Percent of due waiver-required visits completed today (≥2/day floor).', '%', 'up', 100, 95, 80, 120,
+                'Waiver visit compliance {display} — below the AHCAH floor', null, 98),
+            'home.device_offline_pct' => $this->kpi('Kits offline', 'Assigned RPM kits with a transmission gap over 60 minutes.', '%', 'down', 0, 10, null, 120,
+                'Home RPM kits offline — {display} of assigned kits dark'),
+            'home.rpm_adherence' => $this->kpi('Monitoring adherence', 'Received vs expected readings across active enrollments (6h window).', '%', 'up', 80, 70, null, 120),
+            'home.escalation_rate_7d' => $this->kpi('Escalations / 100 episode-days', 'Escalations per 100 home episode-days, trailing 7d (national ≈6.2%).', '', 'down', 6.2, 8, null, 120, null, ['benchmark' => 6.2, 'benchmark_source' => 'Levine 2024']),
+            'home.referral_conversion_7d' => $this->kpi('Referral conversion', 'Referrals activated as a percent of referrals received, trailing 7d (real programs ≈22%).', '%', 'up', 22, null, null, 120, null, ['benchmark' => 22, 'benchmark_source' => 'HaH Users Group']),
+            'home.avoided_bed_days_mtd' => $this->kpi('Avoided bed-days MTD', 'Active home episode-days this month — occupied bed-days the house did not spend.', 'days', 'up', null, null, null, 120),
         ];
     }
 

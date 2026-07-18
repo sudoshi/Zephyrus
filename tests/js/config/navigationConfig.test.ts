@@ -4,6 +4,7 @@ import {
   NAV_SECTIONS,
   TOP_LEVEL_DASHBOARD,
   isDomainActive,
+  isDomainVisible,
   visibleDomains,
   visibleSections,
   flattenNavigation,
@@ -51,6 +52,7 @@ describe('navigationConfig', () => {
       'pharmacy',
       'transport',
       'staffing',
+      'home',
       'analytics',
       'improvement',
       'integrations',
@@ -71,9 +73,9 @@ describe('navigationConfig', () => {
     }
   });
 
-  it('registers exactly eight workspace domains in the workspaces section', () => {
+  it('registers exactly nine workspace domains in the workspaces section', () => {
     const workspaces = NAV_SECTIONS.find((s) => s.key === 'workspaces')!;
-    expect(workspaces.domains).toHaveLength(8);
+    expect(workspaces.domains).toHaveLength(9);
     expect(workspaces.domains.map((d) => d.key)).toEqual([
       'rtdc',
       'emergency',
@@ -83,6 +85,7 @@ describe('navigationConfig', () => {
       'pharmacy',
       'transport',
       'staffing',
+      'home',
     ]);
   });
 
@@ -98,7 +101,17 @@ describe('navigationConfig', () => {
       pharmacy: '/pharmacy',
       transport: '/transport/dispatch',
       staffing: '/staffing',
+      home: '/home/command',
     });
+  });
+
+  it('hides the Home Hospital domain unless the home_hospital feature is on', () => {
+    const home = NAVIGATION.find((d) => d.key === 'home')!;
+    expect(isDomainVisible(home, { isAdmin: false })).toBe(false);
+    expect(isDomainVisible(home, { isAdmin: false, features: { home_hospital: false } })).toBe(false);
+    expect(isDomainVisible(home, { isAdmin: false, features: { home_hospital: true } })).toBe(true);
+    // Admin does not bypass the feature flag — nav and route gate must agree.
+    expect(isDomainVisible(home, { isAdmin: true })).toBe(false);
   });
 
   it('keeps administration out of the top-level section controls', () => {

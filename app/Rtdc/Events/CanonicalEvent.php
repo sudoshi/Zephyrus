@@ -21,6 +21,24 @@ final readonly class CanonicalEvent
 
     public const ACUITY_CHANGED = 'AcuityChanged';
 
+    // Home Hospital vocabulary (ACUM-PRD-HAH-001 §5.1). Additive; consumed by
+    // the OCEL emission map (Phase 3) and the home workflow services.
+    public const HOME_REFERRAL_CREATED = 'HomeReferralCreated';
+
+    public const HOME_EPISODE_ACTIVATED = 'HomeEpisodeActivated';
+
+    public const RPM_OBSERVATION_BREACHED = 'RpmObservationBreached';
+
+    public const HOME_ESCALATION_OPENED = 'HomeEscalationOpened';
+
+    public const HOME_ESCALATION_RESOLVED = 'HomeEscalationResolved';
+
+    public const HOME_VISIT_COMPLETED = 'HomeVisitCompleted';
+
+    public const HOME_EPISODE_DISCHARGED = 'HomeEpisodeDischarged';
+
+    public const TRANSITION_HANDOFF_COMPLETED = 'TransitionHandoffCompleted';
+
     public function __construct(
         public string $eventId,
         public string $type,

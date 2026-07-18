@@ -95,6 +95,10 @@ class HandleInertiaRequests extends Middleware
             // route gate (EnsureRoundsEnabled) so nav and route never disagree.
             'features' => [
                 'virtual_rounds' => (bool) config('rounds.enabled'),
+                // Home Hospital ships disabled; nav stays hidden (never a dead
+                // link) until HOME_HOSPITAL_ENABLED is on — matching the server
+                // route gate (EnsureHomeHospitalEnabled).
+                'home_hospital' => (bool) config('home_hospital.enabled'),
             ],
             'workflow' => $request->session()->get('workflow'),
             'flash' => [

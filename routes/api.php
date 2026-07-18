@@ -250,6 +250,40 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
         Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
     });
 
+// Home Hospital — virtual-ward live data (ACUM-PRD-HAH-001; docs/home-hospital/).
+// Gated by HOME_HOSPITAL_ENABLED (404 when off). Patient-level payloads travel
+// only on this authenticated API — public Reverb channels carry aggregate
+// pings, never vitals (PHI-free-wire rule).
+Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHomeHospitalEnabled::class])
+    ->prefix('home')->group(function () {
+        Route::get('/census', [\App\Http\Controllers\Api\Home\HomeCensusController::class, 'index']);
+        Route::get('/command', [\App\Http\Controllers\Api\Home\HomeCommandController::class, 'index']);
+        // Patient-alert acknowledgement workflow — human actions, recorded.
+        Route::get('/alerts', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'index']);
+        Route::post('/alerts/{alertUuid}/acknowledge', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'acknowledge']);
+        Route::post('/alerts/{alertUuid}/resolve', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'resolve']);
+        // Escalation workflow — full response timing chain vs the 30-min floor.
+        Route::get('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'index']);
+        Route::post('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'store']);
+        Route::post('/escalations/{escalationUuid}/dispatch', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'dispatchResponse']);
+        Route::post('/escalations/{escalationUuid}/arrive', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'arrive']);
+        Route::post('/escalations/{escalationUuid}/resolve', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'resolve']);
+        // Referral funnel + eligibility worklists (declines always coded).
+        Route::get('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'index']);
+        Route::post('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'store']);
+        Route::post('/referrals/{referralUuid}/advance', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'advance']);
+        Route::post('/referrals/{referralUuid}/decline', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'decline']);
+        // Transitions: inbound checklists, outbound governed handoffs, discharge.
+        Route::get('/transitions', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'index']);
+        Route::post('/transitions/{transitionUuid}/checklist', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'completeChecklistItem']);
+        Route::post('/episodes/{episodeUuid}/handoff', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'startOutbound']);
+        Route::post('/episodes/{episodeUuid}/discharge', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'discharge']);
+        // Logistics — the ONE address-permitted surface.
+        Route::get('/logistics', [\App\Http\Controllers\Api\Home\HomeLogisticsController::class, 'index']);
+        // The decant line: home-eligible counts + free-slot forecast (huddle).
+        Route::get('/decant', [\App\Http\Controllers\Api\Home\HomeDecantController::class, 'index']);
+    });
+
 // Machine-to-machine ingress only. This route intentionally lives outside the
 // browser-session Patient Flow group and writes through raw -> canonical ->
 // projection/provenance before acknowledging an ADT message.

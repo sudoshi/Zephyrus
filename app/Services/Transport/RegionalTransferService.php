@@ -58,8 +58,12 @@ class RegionalTransferService
     /** @param array<string,mixed> $payload */
     public function decide(TransportRequest $request, array $payload, ?int $userId): array
     {
-        if ($request->request_type !== 'transfer') {
-            abort(422, 'Regional transfer decisions only apply to transfer requests.');
+        // care_transition joined the decision surface with Home Hospital
+        // Phase 2 (ACUM-PRD-HAH-001 §7): an outbound SNF/home-health handoff
+        // reuses the same regional candidate scoring + opportunity-cost
+        // ledger as an acute transfer. Additive — transfer behavior unchanged.
+        if (! in_array($request->request_type, ['transfer', 'care_transition'], true)) {
+            abort(422, 'Regional transfer decisions only apply to transfer or care-transition requests.');
         }
 
         $this->seedNetwork();

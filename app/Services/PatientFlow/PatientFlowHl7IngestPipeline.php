@@ -16,6 +16,7 @@ use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -286,6 +287,22 @@ class PatientFlowHl7IngestPipeline
             });
 
             $this->completeRun($run);
+
+            // Home Hospital escalation close-loop (ACUM-PRD-HAH-001 §5.2): an
+            // escalated home patient arriving via ADT admit/register resolves
+            // their open escalation with an ed_return outcome. Non-critical:
+            // guarded so a home-module fault can never fail an ADT ingest.
+            if ((bool) config('home_hospital.enabled')
+                && in_array((string) ($normalized['event_type'] ?? ''), ['admit', 'register'], true)) {
+                try {
+                    app(\App\Services\Home\HomeEscalationService::class)
+                        ->closeForEdReturn((string) $normalized['patient_id']);
+                } catch (Throwable $exception) {
+                    Log::warning('home_hospital.escalation_close_failed', [
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
+            }
 
             return [
                 'receipt' => $this->receipt($run, $message, $record, ! $messageCreated),

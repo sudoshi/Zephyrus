@@ -98,6 +98,8 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Integrations\Healthcare\Services\AncillaryProjectionHandler::class),
                 $app->make(\App\Integrations\Healthcare\Services\AdcStationEventProjectionHandler::class),
                 $app->make(\App\Integrations\Healthcare\Services\RxAdministrationRecordProjectionHandler::class),
+                // Home Hospital RPM feed (ObservationRecorded / DeviceStatusChanged).
+                $app->make(\App\Integrations\Healthcare\Services\RpmProjectionHandler::class),
             ]),
         );
         $this->app->alias(

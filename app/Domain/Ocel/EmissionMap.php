@@ -336,6 +336,172 @@ final class EmissionMap
     }
 
     /**
+     * prod.home_episodes (joined with program + kit) → home-activate /
+     * home-discharge over a first-class Home Episode object, with the RPM Kit
+     * as a linked resource (ACUM-PRD-HAH-001 §6.3). PHI-safe: patient travels
+     * only as a hashed ref attr; program/condition/zone are operational.
+     *
+     * @return list<EmittedEvent>
+     */
+    public static function forHomeEpisode(object $row): array
+    {
+        if (empty($row->home_episode_id)) {
+            return [];
+        }
+
+        $epId = 'home-ep-'.$row->home_episode_id;
+        $objects = [['id' => $epId, 'type' => 'Home Episode', 'qualifier' => 'subject']];
+        $o2o = [];
+
+        if (! empty($row->kit_code)) {
+            $kitId = 'rpm-kit-'.self::slug((string) $row->kit_code);
+            $objects[] = ['id' => $kitId, 'type' => 'RPM Kit', 'qualifier' => 'device'];
+            $o2o[] = ['from' => $epId, 'to' => $kitId, 'qualifier' => 'monitored_by'];
+        }
+
+        $attrs = array_filter([
+            'program' => $row->program_type ?? null,
+            'condition' => $row->condition_code ?? null,
+            'admission_source' => $row->admission_source ?? null,
+            'service_zone' => $row->service_zone ?? null,
+            'disposition' => $row->disposition ?? null,
+            'patient_ref' => ! empty($row->patient_ref) ? self::hashRef((string) $row->patient_ref) : null,
+        ], fn ($v) => $v !== null);
+
+        $events = [];
+        if (! empty($row->referred_at)) {
+            // The referral moment anchors the time-to-activation SLA check.
+            $events[] = new EmittedEvent(
+                id: 'home-ep-'.$row->home_episode_id.'-refer',
+                activity: 'home-refer',
+                timestamp: Carbon::parse($row->referred_at),
+                sourceSystem: 'prod.home_episodes',
+                sourceRef: (string) $row->home_episode_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
+        if (! empty($row->started_at)) {
+            $events[] = new EmittedEvent(
+                id: 'home-ep-'.$row->home_episode_id.'-activate',
+                activity: 'home-activate',
+                timestamp: Carbon::parse($row->started_at),
+                sourceSystem: 'prod.home_episodes',
+                sourceRef: (string) $row->home_episode_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
+        if (! empty($row->ended_at)) {
+            $events[] = new EmittedEvent(
+                id: 'home-ep-'.$row->home_episode_id.'-discharge',
+                activity: 'home-discharge',
+                timestamp: Carbon::parse($row->ended_at),
+                sourceSystem: 'prod.home_episodes',
+                sourceRef: (string) $row->home_episode_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
+
+        return $events;
+    }
+
+    /**
+     * prod.home_visits (completed) → home-visit-complete over the Home Visit +
+     * its Home Episode; waiver flag + on-time telemetry ride as attrs — the
+     * raw material for the visit-cadence conformance check.
+     *
+     * @return list<EmittedEvent>
+     */
+    public static function forHomeVisit(object $row): array
+    {
+        if (empty($row->home_visit_id) || empty($row->completed_at)) {
+            return [];
+        }
+
+        $epId = 'home-ep-'.$row->home_episode_id;
+        $visitId = 'home-visit-'.$row->home_visit_id;
+
+        return [new EmittedEvent(
+            id: $visitId.'-complete',
+            activity: 'home-visit-complete',
+            timestamp: Carbon::parse($row->completed_at),
+            sourceSystem: 'prod.home_visits',
+            sourceRef: (string) $row->home_visit_id,
+            objects: [
+                ['id' => $visitId, 'type' => 'Home Visit', 'qualifier' => 'subject'],
+                ['id' => $epId, 'type' => 'Home Episode', 'qualifier' => 'episode'],
+            ],
+            o2o: [['from' => $visitId, 'to' => $epId, 'qualifier' => 'for']],
+            attrs: array_filter([
+                'visit_type' => $row->visit_type ?? null,
+                'waiver_required' => isset($row->is_waiver_required) ? (bool) $row->is_waiver_required : null,
+                'on_time' => $row->on_time ?? null,
+            ], fn ($v) => $v !== null),
+        )];
+    }
+
+    /**
+     * prod.home_escalations → home-escalation-open / home-escalation-resolve
+     * over a first-class Escalation object; the timing chain + outcome ride as
+     * attrs — the escalation-protocol conformance corpus.
+     *
+     * @return list<EmittedEvent>
+     */
+    public static function forHomeEscalation(object $row): array
+    {
+        if (empty($row->home_escalation_id)) {
+            return [];
+        }
+
+        $epId = 'home-ep-'.$row->home_episode_id;
+        $escId = 'home-esc-'.$row->home_escalation_id;
+        $objects = [
+            ['id' => $escId, 'type' => 'Escalation', 'qualifier' => 'subject'],
+            ['id' => $epId, 'type' => 'Home Episode', 'qualifier' => 'episode'],
+        ];
+        $o2o = [['from' => $escId, 'to' => $epId, 'qualifier' => 'for']];
+        $attrs = array_filter([
+            'trigger_type' => $row->trigger_type ?? null,
+            'response_mode' => $row->response_mode ?? null,
+            'response_minutes' => $row->response_minutes ?? null,
+            'outcome' => $row->outcome ?? null,
+        ], fn ($v) => $v !== null);
+
+        $events = [];
+        if (! empty($row->initiated_at)) {
+            $events[] = new EmittedEvent(
+                id: $escId.'-open',
+                activity: 'home-escalation-open',
+                timestamp: Carbon::parse($row->initiated_at),
+                sourceSystem: 'prod.home_escalations',
+                sourceRef: (string) $row->home_escalation_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
+        if (! empty($row->resolved_at)) {
+            $events[] = new EmittedEvent(
+                id: $escId.'-resolve',
+                activity: 'home-escalation-resolve',
+                timestamp: Carbon::parse($row->resolved_at),
+                sourceSystem: 'prod.home_escalations',
+                sourceRef: (string) $row->home_escalation_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
+
+        return $events;
+    }
+
+    /**
      * prod.barriers → up to two OCEL events (barrier_opened → barrier_resolved)
      * over one first-class Barrier object, carrying the barrier's status as a
      * time-varying object_change — the raw material for "how long do placement

@@ -55,6 +55,9 @@ final class FlowReviewComposer
     private const PATHWAY_FOCUS = [
         'sepsis' => ['nodes' => ['ed_arrival'], 'edges' => []],
         'surgical_safety' => ['nodes' => ['or_case_start', 'timeout'], 'edges' => []],
+        // Home Hospital (ACUM-PRD-HAH-001 §6.3) — lit only when the home
+        // activities appear in the window's discovered map (guard below).
+        'home_hospital' => ['nodes' => ['home-activate', 'home-escalation-open'], 'edges' => []],
     ];
 
     private const CATEGORY_FOCUS = [
