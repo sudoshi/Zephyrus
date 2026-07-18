@@ -556,6 +556,9 @@ const HOME: NavDomain = {
       items: [
         { label: 'Virtual Ward Command', href: '/home/command', icon: HeartPulse },
         { label: 'Virtual Bed Board', href: '/home/census', icon: BedDouble },
+        { label: 'Referrals & Eligibility', href: '/home/referrals', icon: ClipboardList },
+        { label: 'Transitions of Care', href: '/home/transitions', icon: ArrowRightCircle },
+        { label: 'Field Ops & Logistics', href: '/home/logistics', icon: Truck },
       ],
     },
   ],

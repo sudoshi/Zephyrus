@@ -268,6 +268,18 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHo
         Route::post('/escalations/{escalationUuid}/dispatch', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'dispatchResponse']);
         Route::post('/escalations/{escalationUuid}/arrive', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'arrive']);
         Route::post('/escalations/{escalationUuid}/resolve', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'resolve']);
+        // Referral funnel + eligibility worklists (declines always coded).
+        Route::get('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'index']);
+        Route::post('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'store']);
+        Route::post('/referrals/{referralUuid}/advance', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'advance']);
+        Route::post('/referrals/{referralUuid}/decline', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'decline']);
+        // Transitions: inbound checklists, outbound governed handoffs, discharge.
+        Route::get('/transitions', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'index']);
+        Route::post('/transitions/{transitionUuid}/checklist', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'completeChecklistItem']);
+        Route::post('/episodes/{episodeUuid}/handoff', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'startOutbound']);
+        Route::post('/episodes/{episodeUuid}/discharge', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'discharge']);
+        // Logistics — the ONE address-permitted surface.
+        Route::get('/logistics', [\App\Http\Controllers\Api\Home\HomeLogisticsController::class, 'index']);
     });
 
 // Machine-to-machine ingress only. This route intentionally lives outside the

@@ -21,4 +21,19 @@ class HomeDashboardController extends Controller
     {
         return Inertia::render('Home/Command', $command->build());
     }
+
+    public function referrals(\App\Services\Home\HomeReferralService $referrals): InertiaResponse
+    {
+        return Inertia::render('Home/Referrals', $referrals->build());
+    }
+
+    public function transitions(\App\Services\Home\HomeTransitionService $transitions): InertiaResponse
+    {
+        return Inertia::render('Home/Transitions', $transitions->build());
+    }
+
+    public function logistics(\App\Services\Home\HomeLogisticsService $logistics): InertiaResponse
+    {
+        return Inertia::render('Home/Logistics', $logistics->build());
+    }
 }

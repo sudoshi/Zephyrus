@@ -1,7 +1,60 @@
-# DEVLOG — Home Hospital Module · Phases 0–1 (2026-07-17)
+# DEVLOG — Home Hospital Module · Phases 0–2 (2026-07-17)
 
 **Branch:** `feature/home-hospital-phase-0`
 **Source of truth:** [ACUM-PRD-HAH-001](./home-hospital/Zephyrus_Hospital_at_Home_Strategy_and_Design.md) · [Build brief](./home-hospital/HOME-HOSPITAL-BUILD-PROMPT.md)
+
+---
+
+## Phase 2 · Transitions (same day, night)
+
+### What shipped (Phase 2)
+
+- **Referral funnel + eligibility worklists** (`HomeReferralService`,
+  `/home/referrals`): ED candidates off the LIVE ED census (stable ESI 3–5,
+  boarders first — the decant valve reading real boarding), step-down
+  candidates off encounters at/near expected LOS on physical wards; strictly
+  ordered funnel (referred → screened → eligible → consented → activated)
+  with coded declines at every stage. **activate()** claims a free slot
+  (locked), opens the census-spine encounter + episode, assigns an available
+  kit + enrollment, and opens the inbound checklist — fails loudly (422) when
+  the ward is full.
+- **Transitions board** (`HomeTransitionService`, `/home/transitions`):
+  inbound activation checklists (consent / home-safety / kit delivery / first
+  visit); outbound governed handoffs writing `prod.transport_requests`
+  (`request_type = care_transition`) — SNF destinations ride
+  `RegionalTransferService::decide()` verbatim (guard widened additively to
+  accept care_transition) producing a `regional.transfer_decisions` row with
+  candidate scoring + opportunity-cost payload; one open handoff per episode.
+  **discharge()** closes the loop: encounter discharged, slot freed, kit
+  returned, and routine discharges auto-enroll the **30-day post-discharge
+  cohort** (no slot — not an avoided bed-day; step-down cadence BP/SpO2 q12h
+  + daily weight, billable under the 2026 RPM codes).
+- **Field Ops & Logistics** (`HomeLogisticsService`, `/home/logistics`): the
+  2-visits/day waiver compliance rail, per-clinician route assignments, kit
+  inventory + low-battery count, deliveries. **The ONE address surface** —
+  street addresses live in episode `metadata.logistics_address` and are read
+  ONLY here; a test greps every other Home endpoint for leakage.
+- Three new pages on the token canon + nav leaves; API endpoints for the
+  full referral/transition/logistics workflows.
+
+### Phase 2 verification
+
+- 28 Home Feature tests green (196 assertions). Phase 2 DoD proven: referral
+  traverses referred → activated creating the episode on the virtual unit
+  (encounter + occupied slot + kit + inbound checklist); SNF handoff produces
+  a care_transition transport request + scored transfer decision with
+  non-empty opportunity-cost payload; routine discharge frees slot/kit and
+  enrolls the 30-day cohort at step-down cadence; **address confinement
+  grep-verified across all six non-logistics endpoints**; worklists surface
+  live-census candidates (ESI-2 excluded, boarders flagged).
+- Cockpit + Eddy regression: 165/166 in the background run; the single
+  failure was a worktree env artifact (missing `.env.testing` → flag-on
+  domain roster) — green after copying the testing env; the pinned 8-domain
+  test remains the flag-off contract.
+- `tsc` / `vite build` / `check-ui-canon.sh` / Pint / nav vitest (31) clean.
+- Dev smoke: 8-row compliance rail with confined addresses, 4 field
+  assignments, live worklists (20 ED + 20 step-down candidates off the real
+  dev census), 2 free slots.
 
 ---
 

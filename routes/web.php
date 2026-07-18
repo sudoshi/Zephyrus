@@ -284,6 +284,9 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             ->group(function () {
                 Route::get('/command', [HomeDashboardController::class, 'command'])->name('command');
                 Route::get('/census', [HomeDashboardController::class, 'census'])->name('census');
+                Route::get('/referrals', [HomeDashboardController::class, 'referrals'])->name('referrals');
+                Route::get('/transitions', [HomeDashboardController::class, 'transitions'])->name('transitions');
+                Route::get('/logistics', [HomeDashboardController::class, 'logistics'])->name('logistics');
             });
 
         // Design Routes

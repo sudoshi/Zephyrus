@@ -358,7 +358,18 @@ class HomeHospitalDemoSeeder extends Seeder
                     'target_los_days' => $spec['los'],
                     'expected_discharge_date' => $expected,
                     'started_at' => $admittedAt,
-                    'metadata' => ['provenance' => 'demo'],
+                    'metadata' => [
+                        'provenance' => 'demo',
+                        // Physical address is CONFINED to the logistics
+                        // context (build brief §8.4) — HomeLogisticsService is
+                        // the only reader; a test greps other payloads.
+                        'logistics_address' => sprintf(
+                            '%d %s Street, %s zone',
+                            120 + $i * 7,
+                            ['Maple', 'Cedar', 'Oak', 'Birch', 'Elm', 'Spruce', 'Willow', 'Aspen'][$i % 8],
+                            ucfirst($spec['zone'])
+                        ),
+                    ],
                 ]
             );
 
@@ -409,6 +420,12 @@ class HomeHospitalDemoSeeder extends Seeder
             ['type' => 'rn', 'start' => now()->startOfDay()->addDay()->addHours(9), 'waiver' => true],
         ];
 
+        $assignees = [
+            'rn' => crc32($ref) % 2 === 0 ? 'RN K. Alvarez' : 'RN T. Osei',
+            'community_paramedic' => 'Paramedic J. Kowalski',
+            'md_np_tele' => 'NP D. Ramirez',
+        ];
+
         foreach ($visits as $j => $v) {
             $completed = $v['start']->lt(now()->subMinutes(45));
             HomeVisit::updateOrCreate(
@@ -422,6 +439,7 @@ class HomeHospitalDemoSeeder extends Seeder
                     'patient_ref' => $ref,
                     'is_waiver_required' => $v['waiver'],
                     'status' => $completed ? 'completed' : 'scheduled',
+                    'assigned_to' => $assignees[$v['type']] ?? null,
                     'started_at' => $completed ? $v['start'] : null,
                     'completed_at' => $completed ? $v['start']->copy()->addMinutes(40) : null,
                     'on_time' => $completed ? true : null,
