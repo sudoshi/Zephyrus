@@ -52,6 +52,16 @@ class EddyActionService
         // breach) pre-seeds a draft escalation-response proposal. Draft-only,
         // human-approved — escalation authority stays with the clinical team.
         'propose_escalation_response' => ['tier' => 'T3', 'risk' => 'high', 'label' => 'Propose a home-episode escalation response', 'recommendation_type' => 'eddy_home_escalation', 'alert_key' => 'home.'],
+        // Home Hospital Phase 3 (§6.3): the remaining six draft-only actions —
+        // the Post-Acute and Care Transition Agent's catalog. alert_key null on
+        // all six so actionForAlert() keeps routing crit home.* alerts to
+        // propose_escalation_response; these are composer/copilot-invoked.
+        'propose_hah_enrollment' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose Hospital-at-Home enrollment for a home-eligible patient', 'recommendation_type' => 'eddy_hah_enrollment', 'alert_key' => null],
+        'propose_stepdown_cohort' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose a step-down decant cohort', 'recommendation_type' => 'eddy_stepdown_cohort', 'alert_key' => null],
+        'propose_visit_reschedule' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Propose a home-visit reschedule', 'recommendation_type' => 'eddy_visit_reschedule', 'alert_key' => null],
+        'flag_rpm_gap' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Flag an RPM monitoring gap', 'recommendation_type' => 'eddy_rpm_gap', 'alert_key' => null],
+        'propose_home_discharge' => ['tier' => 'T2', 'risk' => 'medium', 'label' => 'Propose a home-episode discharge', 'recommendation_type' => 'eddy_home_discharge', 'alert_key' => null],
+        'flag_transition_barrier' => ['tier' => 'T1', 'risk' => 'low', 'label' => 'Flag a transition-of-care barrier', 'recommendation_type' => 'eddy_transition_barrier', 'alert_key' => null],
     ];
 
     /**

@@ -1,7 +1,70 @@
-# DEVLOG — Home Hospital Module · Phases 0–2 (2026-07-17)
+# DEVLOG — Home Hospital Module · Phases 0–3 (2026-07-17)
 
 **Branch:** `feature/home-hospital-phase-0`
 **Source of truth:** [ACUM-PRD-HAH-001](./home-hospital/Zephyrus_Hospital_at_Home_Strategy_and_Design.md) · [Build brief](./home-hospital/HOME-HOSPITAL-BUILD-PROMPT.md)
+
+---
+
+## Phase 3 · Intelligence & compliance (same day, late night)
+
+### What shipped (Phase 3)
+
+- **The decant line, made literal** (`HomeCapacityService` + `/api/home/decant`
+  + the RTDC Global Huddle "Home decant" section): home-eligible counts (ED +
+  step-down off the live census) and the free-slot forecast (now / 24h / 48h)
+  rendered next to boarding metrics — mounted only when the flag is on, the
+  huddle is byte-identical without it. `writePredictions()` upserts the home
+  forecast into `prod.rtdc_predictions` (by_2pm / by_midnight) alongside
+  physical capacity, same upsert contract as RtdcService.
+- **Forward projection**: new `home_slot_free` stream in
+  `ForwardProjectionService` (one probable item per expected home discharge,
+  provenance `home_hospital.expected_discharge`; absent when the flag is off).
+- **Avoided bed-days to the executive brief**: no new code — the brief
+  composes from the shared cockpit snapshot (`capacity.snapshot` /
+  `executive_brief.compose` tools), so the home domain incl.
+  `home.avoided_bed_days_mtd` flows in automatically. Also on the huddle
+  decant line + cockpit tile + `?drill=home`.
+- **OCEL / Arena**: `EmissionMap::forHomeEpisode/forHomeVisit/forHomeEscalation`
+  + `OcelProjector::collectHomeEpisodes()` (flag-gated) + catalog object types
+  (Home Episode, RPM Kit, Home Visit, Escalation) and `home` activity verbs —
+  the corpus for time-to-activation / visit-cadence / escalation-protocol
+  conformance; the 48-Hour Flow Review folds home in via ocel.* as designed.
+  Dev smoke: 36 home events projected (activations, visits, escalation chains).
+- **Eddy catalog complete**: the remaining six draft-only actions
+  (propose_hah_enrollment, propose_stepdown_cohort, propose_visit_reschedule,
+  flag_rpm_gap, propose_home_discharge, flag_transition_barrier) — alert_key
+  null on all six so crit `home.*` alerts keep routing to
+  propose_escalation_response; every one requires human approval.
+- **CMS AHCAH waiver / 2028-study export** (`php artisan home:cms-export`):
+  episode volume + mean LOS + in-episode mortality + return-to-hospital,
+  escalation p90 + 30-minute-floor compliance, waiver-visit compliance,
+  monitoring/alert stats, and the equity block the study explicitly demands
+  (decline reasons, payer distribution, activation rate BY payer, zone
+  distribution) — all from prod.home_* tables, pseudonymous, with national
+  benchmarks attached. Refuses politely when the module is off.
+
+### Phase 3 verification
+
+- 34 Home Feature tests green (260 assertions): decant payload + predictions
+  rows, home_slot_free stream on/off, all seven Eddy actions draft-only +
+  routing invariant, OCEL home pathway on/off (events + object types), CMS
+  export variables + pseudonymity + disabled-refusal.
+- Fixed in passing: the demo seeder now seeds yesterday's completed waiver
+  visits too — the UTC-day-boundary trap (just past midnight UTC, "today's"
+  visits are all future) had zeroed OCEL visit events and CMS compliance.
+- Full vitest 531 green; Pint / tsc / vite build / check-ui-canon clean.
+- Dev smoke: decant 2 free slots / 20 ED + 20 step-down eligible; CMS export
+  8 episodes, p90 27.4 min, 100% within-floor, 100% visit compliance.
+
+### Remaining (deliberately out of Phase 3)
+
+- Home reference pathway rows in ClinicalPathwaySeeder + Arena sidecar
+  conformance checks (needs the pm4py sidecar running; the OCEL corpus they
+  read is now live) — small follow-up.
+- Browser walkthrough of all six surfaces + the huddle decant line (kernel-
+  level rendering and payloads are test-verified).
+- "Later" ring per the brief: chronic RPM lines, SNF-at-home, multi-facility,
+  payer-facing reporting.
 
 ---
 

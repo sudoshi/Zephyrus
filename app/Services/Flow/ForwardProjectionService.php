@@ -109,8 +109,50 @@ class ForwardProjectionService
             ->concat($this->evsDue($from, $to))
             ->concat($this->staffingShiftGaps($from, $to))
             ->concat($this->surgeProbability($from))
+            ->concat($this->homeFreeSlots($from, $to))
             ->values()
             ->all();
+    }
+
+    // -------------------------------------------------------------------
+    // home_slot_free — Home Hospital decant capacity (ACUM-PRD-HAH-001 §6.2).
+    // One item per expected home discharge inside the window: the virtual-
+    // ward slot that frees when the episode ends. probable (an EDD, not an
+    // order); absent entirely when the module flag is off.
+    // -------------------------------------------------------------------
+
+    /** @return Collection<int, array<string, mixed>> */
+    private function homeFreeSlots(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        if (! (bool) config('home_hospital.enabled')) {
+            return collect();
+        }
+
+        $rows = DB::select("
+            SELECT e.patient_ref, e.expected_discharge_date, enc.unit_id, enc.bed_id, b.label
+            FROM prod.home_episodes e
+            JOIN prod.home_programs p ON p.home_program_id = e.home_program_id
+            LEFT JOIN prod.encounters enc ON enc.encounter_id = e.encounter_id
+            LEFT JOIN prod.beds b ON b.bed_id = enc.bed_id
+            WHERE e.is_deleted = false AND e.status = 'active'
+              AND p.program_type = 'ahcah_acute'
+              AND e.expected_discharge_date IS NOT NULL
+              AND e.expected_discharge_date >= ?::date AND e.expected_discharge_date <= ?::date
+            ORDER BY e.expected_discharge_date
+        ", [$from->toDateString(), $to->toDateString()]);
+
+        return collect($rows)->map(fn (object $row, int $index): array => $this->item(
+            t: $this->dischargeBellTime((string) $row->expected_discharge_date, 'probable', $index),
+            kind: 'home_slot_free',
+            confidence: 'probable',
+            unitId: $row->unit_id !== null ? (int) $row->unit_id : null,
+            entity: ['type' => 'home_slot', 'label' => (string) ($row->label ?? 'HOME slot')],
+            patientRef: (string) $row->patient_ref,
+            bedId: $row->bed_id !== null ? (int) $row->bed_id : null,
+            label: 'Home slot frees — '.($row->label ?? 'virtual ward'),
+            service: 'home_hospital.expected_discharge',
+            reliability: null,
+        ));
     }
 
     // -------------------------------------------------------------------

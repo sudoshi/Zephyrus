@@ -280,6 +280,8 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHo
         Route::post('/episodes/{episodeUuid}/discharge', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'discharge']);
         // Logistics — the ONE address-permitted surface.
         Route::get('/logistics', [\App\Http\Controllers\Api\Home\HomeLogisticsController::class, 'index']);
+        // The decant line: home-eligible counts + free-slot forecast (huddle).
+        Route::get('/decant', [\App\Http\Controllers\Api\Home\HomeDecantController::class, 'index']);
     });
 
 // Machine-to-machine ingress only. This route intentionally lives outside the

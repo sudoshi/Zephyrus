@@ -411,9 +411,14 @@ class HomeHospitalDemoSeeder extends Seeder
         // Waiver operating floor: two in-person visits per day (§3) + a daily
         // MD tele-eval. Completion is time-aware — a visit whose slot is >45
         // minutes past reads completed, so the compliance rail stays honest at
-        // any refresh hour. Tomorrow's RN visit keeps a live countdown on the
-        // command grid even late in the day.
+        // any refresh hour. Yesterday's pair guarantees completed-visit history
+        // at ANY clock hour (the UTC-day-boundary trap: just past midnight UTC,
+        // all of "today's" slots are still in the future) — OCEL visit events
+        // and CMS compliance never read empty. Tomorrow's RN visit keeps a live
+        // countdown on the command grid even late in the day.
         $visits = [
+            ['type' => 'rn', 'start' => now()->startOfDay()->subDay()->addHours(9), 'waiver' => true],
+            ['type' => 'community_paramedic', 'start' => now()->startOfDay()->subDay()->addHours(18), 'waiver' => true],
             ['type' => 'rn', 'start' => now()->startOfDay()->addHours(9), 'waiver' => true],
             ['type' => 'community_paramedic', 'start' => now()->startOfDay()->addHours(18), 'waiver' => true],
             ['type' => 'md_np_tele', 'start' => now()->startOfDay()->addHours(11), 'waiver' => false],

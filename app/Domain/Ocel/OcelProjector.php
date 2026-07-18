@@ -58,6 +58,7 @@ class OcelProjector
             'prod.transport_requests' => $this->collectTransport($since, $until),
             'prod.barriers' => $this->collectBarriers($since, $until),
             'prod.ancillary_milestones' => $this->collectAncillaryMilestones($since, $until),
+            'prod.home_episodes' => $this->collectHomeEpisodes($since, $until),
         ];
 
         $this->flush();
@@ -209,6 +210,76 @@ class OcelProjector
             ->chunk(1000, function ($rows) use (&$n) {
                 foreach ($rows as $row) {
                     foreach (EmissionMap::forTransport($row) as $e) {
+                        $this->absorb($e);
+                        $n++;
+                    }
+                }
+            });
+
+        return $n;
+    }
+
+    /**
+     * Home Hospital pathway (ACUM-PRD-HAH-001 §6.3): episodes (activate →
+     * discharge, with the RPM kit as a linked resource), completed waiver
+     * visits, and the escalation open→resolve chains — the corpus the
+     * time-to-activation / visit-cadence / escalation-protocol conformance
+     * checks read. Gated on the module flag: zero rows when off.
+     */
+    private function collectHomeEpisodes(CarbonInterface $since, CarbonInterface $until): int
+    {
+        if (! (bool) config('home_hospital.enabled')) {
+            return 0;
+        }
+
+        $n = 0;
+
+        DB::table('prod.home_episodes as e')
+            ->join('prod.home_programs as p', 'p.home_program_id', '=', 'e.home_program_id')
+            ->leftJoin('prod.rpm_enrollments as en', function ($join): void {
+                $join->on('en.home_episode_id', '=', 'e.home_episode_id')
+                    ->where('en.is_deleted', '=', false);
+            })
+            ->leftJoin('prod.rpm_kits as k', 'k.rpm_kit_id', '=', 'en.rpm_kit_id')
+            ->where('e.is_deleted', false)
+            ->whereBetween('e.started_at', [$since, $until])
+            ->select([
+                'e.home_episode_id', 'e.patient_ref', 'e.condition_code', 'e.admission_source',
+                'e.service_zone', 'e.disposition', 'e.started_at', 'e.ended_at',
+                'p.program_type', 'k.kit_code',
+            ])
+            ->distinct()
+            ->orderBy('e.home_episode_id')
+            ->chunk(500, function ($rows) use (&$n): void {
+                foreach ($rows as $row) {
+                    foreach (EmissionMap::forHomeEpisode($row) as $e) {
+                        $this->absorb($e);
+                        $n++;
+                    }
+                }
+            });
+
+        DB::table('prod.home_visits')
+            ->where('is_deleted', false)
+            ->whereNotNull('completed_at')
+            ->whereBetween('completed_at', [$since, $until])
+            ->orderBy('home_visit_id')
+            ->chunk(1000, function ($rows) use (&$n): void {
+                foreach ($rows as $row) {
+                    foreach (EmissionMap::forHomeVisit($row) as $e) {
+                        $this->absorb($e);
+                        $n++;
+                    }
+                }
+            });
+
+        DB::table('prod.home_escalations')
+            ->where('is_deleted', false)
+            ->whereBetween('initiated_at', [$since, $until])
+            ->orderBy('home_escalation_id')
+            ->chunk(1000, function ($rows) use (&$n): void {
+                foreach ($rows as $row) {
+                    foreach (EmissionMap::forHomeEscalation($row) as $e) {
                         $this->absorb($e);
                         $n++;
                     }
