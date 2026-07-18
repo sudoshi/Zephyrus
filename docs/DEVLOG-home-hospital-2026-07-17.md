@@ -1,7 +1,91 @@
-# DEVLOG — Home Hospital Module · Phase 0 Foundation (2026-07-17)
+# DEVLOG — Home Hospital Module · Phases 0–1 (2026-07-17)
 
 **Branch:** `feature/home-hospital-phase-0`
 **Source of truth:** [ACUM-PRD-HAH-001](./home-hospital/Zephyrus_Hospital_at_Home_Strategy_and_Design.md) · [Build brief](./home-hospital/HOME-HOSPITAL-BUILD-PROMPT.md)
+
+---
+
+## Phase 1 · Observability MVP (same day, evening)
+
+User decisions taken before Phase 1: continue on ONE branch (single PR when
+demo-ready); HEWS as specified in the brief; §13 defaults confirmed as-is;
+prod demo enablement AFTER Phase 1 ships.
+
+### What shipped (Phase 1)
+
+- **HEWS** (`HewsService`): deterministic modified NEWS2 — absolute banding
+  over the RPM-observable set (RR, SpO2, SBP, HR, temp; consciousness and
+  supplemental-O2 deliberately omitted, documented), + baseline-deviation vs
+  the enrollment's first-24h calibration (>15% drift, cap +2), + short-window
+  trend (SpO2 falling ≥3 abs / HR rising ≥15%, cap +2), + adherence (+1 when
+  <half the expected cadence arrived). Bands in `config/home_hospital.php`.
+  Labeled operational triage, not diagnosis, everywhere it surfaces.
+- **Patient alerting** (`RpmAlertEvaluator` → `prod.rpm_alerts`): personalized
+  thresholds (`monitoring_plan.thresholds` over `vital_thresholds` defaults);
+  ONE open alert per (episode, rule) — repeat breaches refresh metadata and
+  may escalate warning→critical in place, never downgrade; evaluation runs
+  only on first projection (replays never inflate). Ack/resolve API records
+  the acting human.
+- **Escalation workflow** (`HomeEscalationService` + API): open → dispatch →
+  arrive → resolve timing chain; `response_minutes` stamped at arrival (the
+  p90 tile input); one open escalation per episode. **ADT close-loop** hooked
+  into `PatientFlowHl7IngestPipeline`: an admit/register for a patient with an
+  open escalation resolves it `ed_return` (flag-gated, guarded — can never
+  fail an ADT ingest).
+- **Cockpit**: `HomeMetrics` provider (9 `home.*` keys seeded; Earned-Red
+  ration = alert_template only on unacked-criticals / response-p90 /
+  visit-compliance / kits-offline). The home domain is ABSENT from the
+  snapshot when the flag is off (SnapshotBuilder skips the empty flag-gated
+  provider — deployments without the module stay byte-identical).
+  `?drill=home` (ward board + referral funnel tables); crit `home.*` alerts
+  route to the new draft-only Eddy `propose_escalation_response`.
+- **Virtual Ward Command** (`/home/command`): episode tiles sorted by
+  escalation risk (breach → HEWS → acuity); HEWS chip, SpO2/HR sparklines,
+  next-visit countdown, device status; coral ONLY for an unacked critical.
+- **FHIR**: each first-projection observation persists as a US Core
+  vital-signs Observation in `fhir.resource_versions` (fhir_id =
+  observation_uuid, version 1, encrypted out-of-row) + `resource_links` to
+  `prod.rpm_observations`. Skips gracefully where the payload store is off.
+- **Canonical vocabulary**: the 8 home event constants added to
+  `App\Rtdc\Events\CanonicalEvent` (consumed by Phase 3 OCEL).
+- **Demo seed**: trailing-12h deterministic vitals + baselines per enrollment;
+  HOME-DEMO-001 deliberately declines to SpO2 87% → exactly one open critical
+  alert (the DoD path); resolved escalation history (22/28 min); time-aware
+  waiver visits (past slots complete, tomorrow's RN visit keeps a countdown).
+
+### Phase 1 verification
+
+- 21 Home Feature tests green (134 assertions) incl.: one-critical-alert
+  invariant, HEWS determinism/transparency, breach dedupe via the real
+  connector, human-recorded ack/resolve, escalation chain + response_minutes,
+  ADT ed_return close (+ stranger no-op), snapshot home domain crit tile +
+  `actionForAlert('home.unacked_critical_vitals','crit') =
+  propose_escalation_response`, flag-off domain absence, drill tables,
+  command-page breach-first ordering, FHIR version+link rows.
+- Nav vitest 31 green; Pint / `tsc --noEmit` / `vite build` /
+  `check-ui-canon.sh` (ratchet unchanged) all clean.
+- Cockpit tiles verified live on `zephyrus_dev`: 9 tiles, honest values
+  (occupancy 66.7%, 1 crit unacked vital, p90 27min warn, compliance 100%,
+  kits online, adherence 100%).
+
+### Session/environment notes
+
+- **Concurrent-session clobber (evening):** another agent session switched the
+  main checkout to `feature/ux-hfe-remediation` mid-build; it checkpointed the
+  uncommitted Phase-1 work as `a514138 wip:` on this branch first (nothing
+  lost). Work continues in the dedicated worktree
+  `~/Github/Zephyrus-home-hospital` (hardlinked vendor/node_modules; isolated
+  test DB `zephyrus_test_home` — the tests/bootstrap guard requires the
+  `zephyrus_test*` name prefix).
+- **`php artisan serve` quirk:** the ServeCommand child intermittently boots
+  without APP_KEY on this host; raw `php -S 127.0.0.1:<port> -t public` from
+  the worktree serves correctly (root 200). AGENTS.md's "auto-auth on /" note
+  is stale — the login gate is real; browser walkthrough needs a login.
+- **Remaining manual step:** browser walkthrough of `/home/command`,
+  `/home/census`, and `?drill=home` (kernel-level rendering + payloads are
+  test-verified; the visual pass needs an authenticated browser session).
+
+---
 
 Phase 0 of the Home Hospital (HOME) workspace: schema, models, feature gating,
 virtual-ward seeding, the Virtual Bed Board, and a synthetic RPM ingestion
