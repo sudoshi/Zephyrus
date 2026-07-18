@@ -122,6 +122,41 @@
   gap: 6px;
 }
 
+.patient-flow-chronobar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.patient-flow-chronobar-head output {
+  flex: 1;
+  min-width: 0;
+}
+
+/* One-click return to the present (N-1) — gold, the now/focus accent. */
+.patient-flow-chronobar-now-button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(224, 163, 63, 0.55);
+  border-radius: 5px;
+  background: rgba(224, 163, 63, 0.12);
+  color: #ffd795;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+.patient-flow-chronobar-now-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.patient-flow-chronobar-now-button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
 .patient-flow-chronobar output {
   min-height: 20px;
   display: flex;
@@ -173,12 +208,40 @@
   background: rgba(224, 163, 63, 0.45);
 }
 
+/* Shift-change detent — a jump button (N-2): 9px hit area, 1px visual line. */
 .patient-flow-chronobar-detent {
   position: absolute;
   top: 0;
   bottom: 0;
+  width: 9px;
+  margin-left: -4.5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.patient-flow-chronobar-detent::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   width: 1px;
+  margin-left: -0.5px;
   background: rgba(239, 234, 220, 0.4);
+}
+
+.patient-flow-chronobar-detent:hover::after,
+.patient-flow-chronobar-detent:focus-visible::after {
+  width: 3px;
+  margin-left: -1.5px;
+  background: #e0a33f;
+}
+
+.patient-flow-chronobar-detent:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(224, 163, 63, 0.8);
 }
 
 .patient-flow-chronobar-now {
@@ -190,16 +253,41 @@
   background: #e0a33f;
 }
 
-/* Open-barrier opened-at marker: a short amber notch from the top edge. */
+/* Open-barrier opened-at marker — also a jump button (N-2): amber notch
+   visual, full-height amber on hover/focus. */
 .patient-flow-chronobar-barrier {
   position: absolute;
-  top: -2px;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  margin-left: -4.5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.patient-flow-chronobar-barrier::after {
+  content: '';
+  position: absolute;
+  top: 0;
   height: 5px;
+  left: 50%;
   width: 2px;
   margin-left: -1px;
   border-radius: 1px;
   background: #eaa640;
   box-shadow: 0 0 3px rgba(234, 166, 64, 0.7);
+}
+
+.patient-flow-chronobar-barrier:hover::after,
+.patient-flow-chronobar-barrier:focus-visible::after {
+  height: 100%;
+}
+
+.patient-flow-chronobar-barrier:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(234, 166, 64, 0.8);
 }
 
 .patient-flow-chronobar input[type='range'] {
@@ -298,6 +386,7 @@
 }
 
 .patient-flow-control-grid label,
+.patient-flow-control-caption,
 .patient-flow-layer-grid legend,
 .patient-flow-checkbox-row label,
 .patient-flow-feed,
@@ -324,6 +413,86 @@
 .patient-flow-icon-button:focus-visible {
   border-color: #64bfd0;
   box-shadow: 0 0 0 2px rgba(100, 191, 208, 0.25);
+}
+
+/* Census scope segmented control (B-2) — a filter, deliberately styled unlike
+   the layer switches so the two "barrier" concepts can't be confused. */
+.patient-flow-census-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 34px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #202522;
+}
+
+.patient-flow-census-toggle label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  color: #b9b2a6;
+}
+
+.patient-flow-census-toggle label.active {
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+.patient-flow-control-grid .patient-flow-census-toggle input[type='radio'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.patient-flow-census-toggle label:has(input:focus-visible) {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
+/* Active-filter chip (B-3): the scene is scoped; say so, offer the exits. */
+.patient-flow-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px solid rgba(224, 163, 63, 0.5);
+  border-radius: 6px;
+  background: rgba(224, 163, 63, 0.1);
+  color: #ffd795;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.patient-flow-filter-chip span {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-flow-filter-chip button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(224, 163, 63, 0.55);
+  border-radius: 5px;
+  background: transparent;
+  color: #ffd795;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+
+.patient-flow-filter-chip button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 1px;
 }
 
 .patient-flow-layer-grid {

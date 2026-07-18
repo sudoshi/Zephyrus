@@ -28,9 +28,14 @@ import { formatDurationMinutes, formatRelativeDurationMinutes } from '@/lib/dura
  * are cached and reused across rebuilds.
  */
 
+export interface CameraView {
+  position: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+}
+
 export interface NavigatorSceneCallbacks {
   onSelect: (data: Record<string, unknown>) => void;
-  onCameraMove: (text: string) => void;
+  onCameraMove: (view: CameraView) => void;
   onFrame: (deltaSeconds: number) => void;
 }
 
@@ -707,11 +712,18 @@ export class NavigatorScene {
   private emitCameraText(): void {
     const now = performance.now();
     if (now - this.lastCameraEmit < 150) return;
-    const text = `x ${this.camera.position.x.toFixed(0)} y ${this.camera.position.y.toFixed(0)} z ${this.camera.position.z.toFixed(0)}`;
-    if (text === this.lastCameraText) return;
-    this.lastCameraText = text;
+    const position = this.camera.position;
+    const target = this.orbit.target;
+    const key = [position.x, position.y, position.z, target.x, target.y, target.z]
+      .map((value) => value.toFixed(0))
+      .join('|');
+    if (key === this.lastCameraText) return;
+    this.lastCameraText = key;
     this.lastCameraEmit = now;
-    this.callbacks.onCameraMove(text);
+    this.callbacks.onCameraMove({
+      position: { x: position.x, y: position.y, z: position.z },
+      target: { x: target.x, y: target.y, z: target.z },
+    });
   }
 
   private materialForPatient(patientId: string): THREE.MeshStandardMaterial {

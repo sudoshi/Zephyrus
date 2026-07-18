@@ -60,6 +60,13 @@ describe('barrierSeverity', () => {
   it('treats a missing opened_at as freshly open (watch)', () => {
     expect(barrierSeverity(null, NOW)).toBe('watch');
   });
+
+  it('escalates the same barrier as wall-clock now advances (S-1 moving now)', () => {
+    const openedAt = NOW - 20 * HOUR;
+    expect(barrierSeverity(openedAt, NOW)).toBe('watch');
+    expect(barrierSeverity(openedAt, NOW + 5 * HOUR)).toBe('warning');
+    expect(barrierSeverity(openedAt, NOW + 29 * HOUR)).toBe('critical');
+  });
 });
 
 describe('buildBarrierCells', () => {

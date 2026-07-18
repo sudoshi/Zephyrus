@@ -19,6 +19,8 @@ export interface LayerControl {
   key: keyof PatientLayerState;
   label: string;
   id: string;
+  /** Optional tooltip disambiguating the layer (e.g. Barriers vs Delayed). */
+  title?: string;
 }
 
 interface NavigatorToolbarProps {
@@ -43,6 +45,7 @@ interface NavigatorToolbarProps {
   onToggleLive: () => void;
   onResetCamera: () => void;
   onFocusPatients: () => void;
+  onFocusDelayed: () => void;
   onAskEddy: () => void;
   onSpeedChange: (speed: number) => void;
   onFiltersChange: (patch: Partial<PatientFlowFilters>) => void;
@@ -72,6 +75,7 @@ export default function NavigatorToolbar({
   onToggleLive,
   onResetCamera,
   onFocusPatients,
+  onFocusDelayed,
   onAskEddy,
   onSpeedChange,
   onFiltersChange,
@@ -114,7 +118,9 @@ export default function NavigatorToolbar({
         <button
           className={`patient-flow-icon-button ${live ? 'active' : ''}`}
           type="button"
-          title="Stream latest stored events"
+          title="Stream stored replay (not a live feed)"
+          aria-label="Stream stored replay"
+          aria-pressed={live}
           onClick={onToggleLive}
         >
           <Radio />
@@ -195,11 +201,44 @@ export default function NavigatorToolbar({
           value={filters.search}
           onChange={(event) => onFiltersChange({ search: event.target.value })}
         />
+
+        {/* Census scope, not a layer (B-2): "Delayed" filters the occupancy
+            disks by elapsed-timer signal — distinct from the "Barriers"
+            layer's logged prod.barriers markers (B-1). A span, not a label:
+            the radios carry their own names (All / Delayed). */}
+        <span className="patient-flow-control-caption">Census</span>
+        <div
+          className="patient-flow-census-toggle"
+          role="radiogroup"
+          aria-label="Census scope"
+          title="Elapsed occupancy signal; not a verified operational barrier"
+        >
+          <label className={barrierFinder ? '' : 'active'}>
+            <input
+              id="flow-census-all"
+              type="radio"
+              name="flow-census"
+              checked={!barrierFinder}
+              onChange={() => onBarrierFinderChange(false)}
+            />
+            All
+          </label>
+          <label className={barrierFinder ? 'active' : ''}>
+            <input
+              id="flow-census-delayed"
+              type="radio"
+              name="flow-census"
+              checked={barrierFinder}
+              onChange={() => onBarrierFinderChange(true)}
+            />
+            Delayed
+          </label>
+        </div>
       </div>
 
       <fieldset className="patient-flow-layer-grid">
         <legend>Layers</legend>
-        {layerControls.map(({ key, label, id }) => (
+        {layerControls.map(({ key, label, id, title }) => (
           <div className="patient-flow-checkbox-row" key={key}>
             <input
               id={id}
@@ -208,25 +247,36 @@ export default function NavigatorToolbar({
               checked={layers[key]}
               onChange={(event) => onLayerChange(key, event.target.checked)}
             />
-            <label htmlFor={id}>{label}</label>
+            <label htmlFor={id} title={title}>{label}</label>
           </div>
         ))}
-        <div className="patient-flow-checkbox-row">
-          <input
-            id="flow-barrier-finder"
-            type="checkbox"
-            role="switch"
-            checked={barrierFinder}
-            onChange={(event) => onBarrierFinderChange(event.target.checked)}
-          />
-          {/* Distinct from the "Barriers" layer toggle above — two controls must
-              never share one accessible name (HFE audit: wrong-toggle risk). */}
-          <label htmlFor="flow-barrier-finder" title="Highlight every barrier and delay in the scene">Find barriers</label>
-        </div>
       </fieldset>
 
+      {/* B-3: the Delayed-only census scope announces itself and relabels the
+          metric — and the camera flight is an explicit action (B-4). */}
+      {barrierFinder && (
+        <div className="patient-flow-filter-chip" role="status">
+          <span>Filtered: delayed locations only ({metrics.active})</span>
+          <button
+            type="button"
+            title="Fly the camera to the delayed locations"
+            onClick={onFocusDelayed}
+          >
+            Focus
+          </button>
+          <button
+            type="button"
+            aria-label="Clear delayed-only filter"
+            title="Clear delayed-only filter"
+            onClick={() => onBarrierFinderChange(false)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="patient-flow-metrics">
-        <div><span>{metrics.active}</span><small>Active</small></div>
+        <div><span>{metrics.active}</span><small>{barrierFinder ? 'Delayed' : 'Active'}</small></div>
         <div><span>{metrics.events}</span><small>Events</small></div>
         <div><span>{metrics.occupiedLocations}</span><small>Locations</small></div>
         <div><span>{ambient?.summary.eventCount ?? summary?.ambient_signals ?? 0}</span><small>Ambient</small></div>

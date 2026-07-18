@@ -16,6 +16,8 @@ interface NavigatorChronobarProps {
   forecast: ForecastAggregates | null;
   /** When each open barrier began, for past-half ticks. */
   barrierTicks?: number[];
+  /** True while the stored-replay stream is connected (N-8: never "live"). */
+  replaying?: boolean;
   onScrub: (timeMs: number) => void;
 }
 
@@ -71,6 +73,7 @@ export default function NavigatorChronobar({
   freshness,
   forecast,
   barrierTicks = [],
+  replaying = false,
   onScrub,
 }: NavigatorChronobarProps) {
   const span = Math.max(1, windowEnd - windowStart);
@@ -90,47 +93,71 @@ export default function NavigatorChronobar({
 
   return (
     <div className="patient-flow-chronobar">
-      <output>
-        <span>{fmtTime(currentTime)}</span>
-        <span className={`patient-flow-chronobar-rel ${inFuture ? 'future' : ''}`}>
-          {historical
-            ? `Historical replay · ${relativeLabel(currentTime, nowMs)}`
-            : `${inFuture ? 'Projected · ' : ''}${relativeLabel(currentTime, nowMs)}`}
-        </span>
-      </output>
+      <div className="patient-flow-chronobar-head">
+        <output>
+          <span>{fmtTime(currentTime)}</span>
+          <span className={`patient-flow-chronobar-rel ${inFuture ? 'future' : ''}`}>
+            {historical
+              ? `Historical replay · ${relativeLabel(currentTime, nowMs)}`
+              : `${replaying ? 'Replay stream · ' : ''}${inFuture ? 'Projected · ' : ''}${relativeLabel(currentTime, nowMs)}`}
+          </span>
+        </output>
+        <button
+          type="button"
+          className="patient-flow-chronobar-now-button"
+          disabled={historical}
+          title={historical ? 'Unavailable in historical replay' : 'Jump to now'}
+          onClick={() => onScrub(nowMs)}
+        >
+          Now
+        </button>
+      </div>
 
-      <div className="patient-flow-chronobar-track" aria-hidden="true">
-        <div className="patient-flow-chronobar-past" style={{ width: historical ? '100%' : `${pct(nowMs)}%` }} />
+      {/* Detents and barrier ticks are jump buttons (N-2); the wash layers
+          underneath stay decorative. */}
+      <div className="patient-flow-chronobar-track">
+        <div aria-hidden="true" className="patient-flow-chronobar-past" style={{ width: historical ? '100%' : `${pct(nowMs)}%` }} />
         {!historical && (
           <div
+            aria-hidden="true"
             className="patient-flow-chronobar-future"
             style={{ left: `${pct(nowMs)}%`, width: `${100 - pct(nowMs)}%` }}
           />
         )}
         {coverage && (
           <div
+            aria-hidden="true"
             className="patient-flow-chronobar-coverage"
             style={{ left: `${pct(coverage.start)}%`, width: `${pct(coverage.end) - pct(coverage.start)}%` }}
           />
         )}
-        {detents.map((detent) => (
-          <span
-            key={detent}
-            className="patient-flow-chronobar-detent"
-            style={{ left: `${pct(detent)}%` }}
-            title={new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          />
-        ))}
+        {detents.map((detent) => {
+          const detentLabel = new Date(detent).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+          return (
+            <button
+              key={detent}
+              type="button"
+              className="patient-flow-chronobar-detent"
+              style={{ left: `${pct(detent)}%` }}
+              title={`Jump to ${detentLabel} shift change`}
+              aria-label={`Jump to ${detentLabel} shift change`}
+              onClick={() => onScrub(detent)}
+            />
+          );
+        })}
         {barrierTicks.map((tick, index) => (
-          <span
+          <button
             key={`barrier-${index}-${tick}`}
+            type="button"
             className="patient-flow-chronobar-barrier"
             style={{ left: `${pct(tick)}%` }}
-            title={`Barrier opened ${fmtTime(tick)}`}
+            title={`Jump to barrier opened ${fmtTime(tick)}`}
+            aria-label={`Jump to barrier opened ${fmtTime(tick)}`}
+            onClick={() => onScrub(tick)}
           />
         ))}
         {!historical && nowMs >= windowStart && nowMs <= windowEnd && (
-          <span className="patient-flow-chronobar-now" style={{ left: `${pct(nowMs)}%` }} title="Now" />
+          <span aria-hidden="true" className="patient-flow-chronobar-now" style={{ left: `${pct(nowMs)}%` }} title="Now" />
         )}
       </div>
 
