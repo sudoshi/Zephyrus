@@ -55,13 +55,15 @@
 - [x] Eddy evidence: timers rendered as readable rows, not serialized JSON; composer prefill states scope in prose instead of dumping context JSON.
 - [x] Mobile: TopNavbar controls collapse instead of clipping; Eddy launcher repositioned/shrunk on narrow viewports.
 
-### Phase 1 — next branch(es), 1–3 weeks
-- [ ] Persistent scope banner ("you are viewing: facility/unit/service · as-of · source") — extend `ScopePicker` into a `ScopeBanner`; mount on cockpit + huddles + boards.
-- [ ] Propagate `ProvenanceBadge`/freshness into all dashboard drill-downs (`DrillModal` KPI rows).
-- [ ] Alert ownership + acknowledgement: `acknowledged_by/at` on `cockpit_alerts`, ticker affordance, dedup grouping.
-- [ ] Review-step for approvals: evidence sheet (scope, expected effect, reversibility, freshness) before Approve is enabled.
+### Phase 1 — same branch, second commit (2026-07-17)
+- [x] Persistent scope banner — scoped-mount face header is sticky under the topbar (scope identity never scrolls away). *Remaining: extend the pattern to huddles + boards.*
+- [x] Drill-down freshness — `DrillModal` header states demo-measure count and oldest-measure lag vs the snapshot `asOf` (KPI tiles already badge demo via `Tile`).
+- [x] Alert ownership + acknowledgement — `acknowledged_at/by/by_name` on `cockpit_alerts`, POST acknowledge endpoint, ticker ack affordance with optimistic rollback; warn→crit escalation clears the ack. *Remaining: duplicate-alert grouping.*
+- [x] Review-step for approvals — Approve/Reject only inside the expanded evidence sheet (scope, rationale, confidence, expected effect, source, owner, timing).
 - [ ] Mobile task flows (per audit): alert review, rounds contribution, governed-action review — task-first layouts, not compressed boards.
 - [ ] Turnover/TAT pages: standardized metric-metadata header (denominator, window, exclusions, coverage).
+
+> Deploy note: Phase 1 adds a migration (`2026_07_17_100000_add_acknowledgement_to_cockpit_alerts`). `./deploy.sh` skips migrations — run `./deploy.sh --db` (or the full flow that includes it) when this merges.
 
 ### Phase 2 — consolidation (needs CMIO ruling per §2 above)
 - [ ] One Utilization workspace (Block/OR/Primetime/Room-Running/IR as tabs + saved measures).
