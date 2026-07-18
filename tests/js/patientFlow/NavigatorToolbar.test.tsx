@@ -52,6 +52,9 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onSearchSubmit: vi.fn(),
     onSaveView: vi.fn(),
     onApplyView: vi.fn(),
+    onTourPrev: vi.fn(),
+    onTourNext: vi.fn(),
+    onTourAutoToggle: vi.fn(),
   };
 
   render(
@@ -75,6 +78,8 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       eddyEnabled={false}
       searchMatches={null}
       savedViews={[false, false, false]}
+      roundsHud={null}
+      tourAuto={false}
       {...handlers}
       {...overrides}
     />,
@@ -187,6 +192,29 @@ describe('NavigatorToolbar floor select (N-4)', () => {
     fireEvent.change(screen.getByLabelText('Floor'), { target: { value: '2' } });
     expect(handlers.onFloorSelect).toHaveBeenCalledWith('2');
     expect(handlers.onFiltersChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('NavigatorToolbar rounds HUD (R-5/R-6a)', () => {
+  it('renders run status, progress, awaiting-input, and tour controls', () => {
+    const handlers = renderToolbar({
+      roundsHud: { status: 'active', scopeLabel: '5 East', total: 7, rounded: 3, awaitingInput: 2 },
+    });
+
+    expect(screen.getByText('Rounds · Active · 5 East')).toBeInTheDocument();
+    expect(screen.getByText('3/7 rounded · 2 awaiting input')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next round stop' }));
+    expect(handlers.onTourNext).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Previous round stop' }));
+    expect(handlers.onTourPrev).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Auto' }));
+    expect(handlers.onTourAutoToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no HUD without a loaded run', () => {
+    renderToolbar();
+    expect(screen.queryByText(/Rounds ·/)).not.toBeInTheDocument();
   });
 });
 

@@ -883,6 +883,119 @@
   font-size: 11px;
 }
 
+/* --- Rounds HUD + tour (R-5/R-6a) — run state, never coral ---------------- */
+
+.patient-flow-rounds-hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.08);
+  padding: 6px 9px;
+  font-size: 11px;
+  color: #ddd6c7;
+}
+
+.patient-flow-rounds-hud.run-active {
+  border-color: rgba(45, 212, 191, 0.45);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.patient-flow-rounds-hud.run-paused {
+  border-color: rgba(234, 166, 64, 0.45);
+  background: rgba(234, 166, 64, 0.08);
+}
+
+.patient-flow-rounds-hud.run-completed {
+  opacity: 0.75;
+}
+
+.patient-flow-rounds-hud-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.patient-flow-rounds-hud-text strong {
+  color: #f3efe5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-rounds-hud-text span {
+  color: #b9b2a6;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-tour-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.patient-flow-tour-controls button {
+  min-width: 26px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: #2a2f2c;
+  color: #ddd6c7;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.patient-flow-tour-controls button.active {
+  border-color: #e0a33f;
+  background: #3a2f1f;
+  color: #ffd795;
+}
+
+.patient-flow-tour-controls button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 1px;
+}
+
+/* --- Toast (R-1 fallback etc.) — transient, self-dismissing --------------- */
+
+.patient-flow-toast {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%);
+  max-width: min(420px, calc(100vw - 32px));
+  border: 1px solid rgba(234, 166, 64, 0.5);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.96);
+  color: #ffd795;
+  font-size: 12px;
+  padding: 7px 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Inspector deep-link action (R-2) ------------------------------------- */
+
+.patient-flow-inspector-action {
+  display: inline-block;
+  margin-top: 10px;
+  color: #7dd3fc;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.patient-flow-inspector-action:hover {
+  text-decoration: underline;
+}
+
+.patient-flow-inspector-action:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
 /* --- Floor stepper rail (N-4) — right edge, top = highest floor ---------- */
 
 .patient-flow-floor-rail {

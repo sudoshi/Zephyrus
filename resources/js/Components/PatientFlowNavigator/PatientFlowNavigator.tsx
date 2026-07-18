@@ -36,8 +36,9 @@ import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupanc
 import { useEddyStore } from '@/stores/eddyStore';
 import { fetchRoundRuns, fetchRoundScene } from '@/features/virtualRounds/api';
 import { runsResponseSchema, sceneResponseSchema } from '@/features/virtualRounds/schemas';
-import { buildRoundStopCells } from '@/features/virtualRounds/roundsScene';
+import { buildRoundRoute, buildRoundStopCells } from '@/features/virtualRounds/roundsScene';
 import type { RoundStop } from '@/features/virtualRounds/roundsScene';
+import type { RunSummary } from '@/features/virtualRounds/types';
 import type {
   FlowLens,
   FlowPatientDots,
@@ -114,15 +115,17 @@ const EMPTY_OCCUPANCY_SUMMARY: OccupancySummary = {
   topBarriers: [],
 };
 
-interface HandoffParams {
+export interface HandoffParams {
   floor: string | null;
   unitRef: string | null;
   t: number | null;
+  /** Rounds board → 4D deep link: fly to this round stop once placed (R-1). */
+  focusStop: string | null;
 }
 
-/** Mobile→web A3 handoff: ?persona=&scope=&t= (persona is resolved server-side). */
-function parseHandoff(): HandoffParams {
-  const empty: HandoffParams = { floor: null, unitRef: null, t: null };
+/** Mobile→web A3 handoff: ?persona=&scope=&t=&focus_stop= (persona is resolved server-side). Exported for tests. */
+export function parseHandoff(): HandoffParams {
+  const empty: HandoffParams = { floor: null, unitRef: null, t: null, focusStop: null };
   if (typeof window === 'undefined') return empty;
   const params = new URLSearchParams(window.location.search);
 
@@ -142,7 +145,7 @@ function parseHandoff(): HandoffParams {
     if (Number.isFinite(parsed)) t = parsed;
   }
 
-  return { floor, unitRef, t };
+  return { floor, unitRef, t, focusStop: params.get('focus_stop') };
 }
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
@@ -332,6 +335,19 @@ export default function PatientFlowNavigator({
   const [error, setError] = useState<string | null>(null);
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
+  const [tourAuto, setTourAuto] = useState(false);
+  const [focusTick, setFocusTick] = useState(0);
+  const roundsVersionRef = useRef(0);
+  const roundsSceneHashRef = useRef('');
+  const roundsRunUuidRef = useRef<string | null>(null);
+  const roundsCompleteAnnouncedRef = useRef(false);
+  const pendingFocusStopRef = useRef<string | null>(handoff.focusStop);
+  const focusFloorClearedRef = useRef(false);
+  const focusAttemptsRef = useRef(0);
+  const tourIndexRef = useRef<number | null>(null);
   const viewsStorageKey = savedViewsKey(lens?.role_id);
   const [views, setViews] = useState<Array<SavedView | null>>(() =>
     parseSavedViews(typeof window === 'undefined' ? null : window.localStorage.getItem(viewsStorageKey)),
@@ -470,7 +486,9 @@ export default function PatientFlowNavigator({
       eventsRef.current.length,
       projectionsRef.current.length,
       barriersRef.current.length,
-      roundStopsRef.current.length,
+      // Content version, not length: a status flip with the same stop count
+      // must still rebuild the rings (R-3).
+      roundsVersionRef.current,
       Object.keys(locationsRef.current).length,
     ].join('|');
     if (bucketKey === lastBucketKeyRef.current) return;
@@ -536,11 +554,12 @@ export default function PatientFlowNavigator({
     scene.rebuildBarriers(barrierCells, layersRef.current.barriers);
 
     // Round-stop rings — present-state like barriers: shown at every scrub
-    // position, floor-filtered, opaque tokens only (plan §8.1).
+    // position, floor-filtered, opaque tokens only (plan §8.1). The route
+    // polyline and queue numbers ride the same rebuild (R-4).
     const roundCells = layersRef.current.rounds
       ? buildRoundStopCells(roundStopsRef.current, index, floorFilter)
       : [];
-    scene.rebuildRounds(roundCells, layersRef.current.rounds);
+    scene.rebuildRounds(roundCells, buildRoundRoute(roundCells), layersRef.current.rounds);
 
     setMetrics({
       active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
@@ -802,10 +821,15 @@ export default function PatientFlowNavigator({
   // Virtual Rounds overlay (plan §8.1) — the most recent open run's scene
   // stops, opaque tokens only. Feature flag off (404), no run, or any failure
   // simply leaves the overlay empty; the navigator never degrades.
+  // R-3: polled every 30 s (mirroring the board's cadence) with a content-hash
+  // gate so unchanged payloads never trigger a layer rebuild; when the run
+  // closes, the HUD announces completion and polling stops.
   useEffect(() => {
     let cancelled = false;
+    let timer: number | null = null;
 
     async function loadRoundsOverlay(): Promise<void> {
+      if (document.visibilityState === 'hidden') return;
       try {
         const runsPayload = runsResponseSchema.safeParse(await fetchRoundRuns());
         if (!runsPayload.success || cancelled) return;
@@ -813,23 +837,52 @@ export default function PatientFlowNavigator({
         const openRun = runsPayload.data.data.find((run) =>
           ['active', 'paused', 'draft', 'scheduled'].includes(run.status),
         );
-        if (!openRun) return;
+        if (!openRun) {
+          if (roundsRunUuidRef.current && !roundsCompleteAnnouncedRef.current) {
+            roundsCompleteAnnouncedRef.current = true;
+            setRoundsRun((prev) => (prev ? { ...prev, status: 'completed' } : prev));
+            setToastMessage('Rounds run complete');
+            if (timer !== null) window.clearInterval(timer);
+          }
+          return;
+        }
+        roundsRunUuidRef.current = openRun.run_uuid;
 
         const scenePayload = sceneResponseSchema.safeParse(await fetchRoundScene(openRun.run_uuid));
         if (!scenePayload.success || cancelled) return;
 
-        setRoundStops(scenePayload.data.data.stops);
+        setRoundsRun(scenePayload.data.data.run);
+        const stops = scenePayload.data.data.stops;
+        const hash = JSON.stringify(stops);
+        if (hash !== roundsSceneHashRef.current) {
+          roundsSceneHashRef.current = hash;
+          roundsVersionRef.current += 1;
+          setRoundStops(stops);
+        }
       } catch {
-        if (!cancelled) setRoundStops([]);
+        // Transient poll failure: keep the last overlay rather than blanking
+        // an active itinerary; the initial state is already empty.
       }
     }
 
     void loadRoundsOverlay();
+    timer = window.setInterval(() => void loadRoundsOverlay(), 30_000);
+    const onVisibility = (): void => void loadRoundsOverlay();
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       cancelled = true;
+      if (timer !== null) window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
+
+  // Toasts self-dismiss; anything durable belongs in the HUD or status bar.
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = window.setTimeout(() => setToastMessage(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [toastMessage]);
 
   // Handoff scope=unit:{id|abbr} → that unit's floor, once derivable.
   useEffect(() => {
@@ -872,7 +925,14 @@ export default function PatientFlowNavigator({
           );
           setInspectorTitle(element && element !== name ? `${element} · ${name}` : name);
           setInspectorRows(flattenInspector(redacted));
+          // R-2: a round-stop selection links straight back to the board.
+          setInspectorAction(
+            data.kind === 'round-stop' && typeof data.round_patient_uuid === 'string'
+              ? { label: 'Open in Rounds board', href: `/rtdc/virtual-rounds?patient=${data.round_patient_uuid}` }
+              : null,
+          );
         },
+        onUserCameraStart: () => setTourAuto(false),
         // E-4 hover chip: element type + a non-identity name. Identity fields
         // NEVER appear here regardless of lens (stricter than the inspector).
         hoverLabel: (data) => {
@@ -987,6 +1047,7 @@ export default function PatientFlowNavigator({
       sceneRef.current?.clearSelection();
       setInspectorTitle('Select a patient or location');
       setInspectorRows([]);
+      setInspectorAction(null);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -1078,6 +1139,120 @@ export default function PatientFlowNavigator({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [focusActivePatients, handleScrub, historical]);
+
+  // ---- Virtual Rounds integration (Phase 3) --------------------------------
+
+  // R-1: focus a round stop once its ring is actually placed. The scene and
+  // the stops load independently, so retry on a short interval; if the stop
+  // is unplaceable, clear the floor filter once and retry, then fall back to
+  // a toast pointing at the board.
+  const requestStopFocus = useCallback((uuid: string): void => {
+    pendingFocusStopRef.current = uuid;
+    focusFloorClearedRef.current = false;
+    setFocusTick((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    const uuid = pendingFocusStopRef.current;
+    if (!uuid || roundStops.length === 0) return;
+    focusAttemptsRef.current = 0;
+    const timer = window.setInterval(() => {
+      const scene = sceneRef.current;
+      focusAttemptsRef.current += 1;
+      if (scene && scene.focusRoundStop(uuid)) {
+        pendingFocusStopRef.current = null;
+        window.clearInterval(timer);
+        return;
+      }
+      if (scene && !focusFloorClearedRef.current) {
+        focusFloorClearedRef.current = true;
+        setFilters((prev) => (prev.floor === 'all' ? prev : { ...prev, floor: 'all' }));
+        return;
+      }
+      if (focusAttemptsRef.current >= 15) {
+        pendingFocusStopRef.current = null;
+        window.clearInterval(timer);
+        sceneRef.current?.focusRoundStop(null);
+        setToastMessage('Stop not placeable — open the Rounds board');
+      }
+    }, 600);
+    return () => window.clearInterval(timer);
+  }, [roundStops, focusTick]);
+
+  // R-6a: manual tour — queue order among placeable, walkable stops.
+  const tourStops = useMemo(
+    () => buildRoundStopCells(roundStops, placementIndex, 'all')
+      .filter((cell) => !['skipped', 'deferred'].includes(cell.stop.status))
+      .sort((a, b) => a.stop.queue_position - b.stop.queue_position),
+    [placementIndex, roundStops],
+  );
+
+  const showStopInspector = useCallback((stop: RoundStop): void => {
+    const data: Record<string, unknown> = {
+      kind: 'round-stop',
+      round_patient_uuid: stop.round_patient_uuid,
+      status: stop.status,
+      queue_position: stop.queue_position,
+      priority_band: stop.priority_band,
+      ...(stop.bed ? { bed: stop.bed } : {}),
+      ...(stop.pinned ? { pinned: true } : {}),
+      ...(stop.discharge_ready ? { discharge_ready: true } : {}),
+      ...(stop.missing_input ? { missing_input: true } : {}),
+    };
+    setInspectorTitle(`Round stop · #${stop.queue_position}`);
+    setInspectorRows(flattenInspector(redactSelection(data, dotsPolicy)));
+    setInspectorAction({
+      label: 'Open in Rounds board',
+      href: `/rtdc/virtual-rounds?patient=${stop.round_patient_uuid}`,
+    });
+  }, [dotsPolicy]);
+
+  const tourStep = useCallback((direction: 1 | -1): void => {
+    if (tourStops.length === 0) return;
+    const previous = tourIndexRef.current;
+    const next = previous === null
+      ? (direction === 1 ? 0 : tourStops.length - 1)
+      : Math.min(tourStops.length - 1, Math.max(0, previous + direction));
+    tourIndexRef.current = next;
+    const cell = tourStops[next];
+    requestStopFocus(cell.stop.round_patient_uuid);
+    showStopInspector(cell.stop);
+  }, [requestStopFocus, showStopInspector, tourStops]);
+
+  const toggleTourAuto = useCallback((): void => {
+    setTourAuto((value) => {
+      const next = !value;
+      if (next && tourIndexRef.current === null) tourStep(1);
+      return next;
+    });
+  }, [tourStep]);
+
+  // Auto mode: 10 s dwell, stops at the end of the itinerary; any operator
+  // camera input pauses it (wired via the scene's onUserCameraStart).
+  useEffect(() => {
+    if (!tourAuto) return;
+    const timer = window.setInterval(() => {
+      if (tourIndexRef.current !== null && tourIndexRef.current >= tourStops.length - 1) {
+        setTourAuto(false);
+        return;
+      }
+      tourStep(1);
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [tourAuto, tourStep, tourStops.length]);
+
+  // R-5: run HUD — status, progress, and awaiting-input, straight from the
+  // opaque stops (never coral; a round state is work, not a breach).
+  const roundsHud = useMemo(() => {
+    if (!roundsRun || roundStops.length === 0) return null;
+    return {
+      status: roundsRun.status,
+      scopeLabel: roundsRun.scope_label,
+      total: roundStops.length,
+      rounded: roundStops.filter((stop) => stop.status === 'rounded').length,
+      awaitingInput: roundStops.filter((stop) => stop.status === 'awaiting_input').length,
+    };
+  }, [roundsRun, roundStops]);
 
   const askEddy = useCallback((): void => {
     const serviceLines = occupancy.serviceLines.length > 0
@@ -1182,13 +1357,22 @@ export default function PatientFlowNavigator({
         savedViews={views.map((view) => view !== null)}
         onSaveView={saveView}
         onApplyView={applyView}
+        roundsHud={roundsHud}
+        tourAuto={tourAuto}
+        onTourPrev={() => tourStep(-1)}
+        onTourNext={() => tourStep(1)}
+        onTourAutoToggle={toggleTourAuto}
       />
 
       <NavigatorFeed feed={feed} redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'} />
 
-      <NavigatorInspector title={inspectorTitle} rows={inspectorRows} />
+      <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
 
       <NavigatorLegend layers={layers} />
+
+      {toastMessage && (
+        <div className="patient-flow-toast" role="status">{toastMessage}</div>
+      )}
 
       <NavigatorFloorRail floors={floors} current={filters.floor} onSelect={handleFloorSelect} />
 

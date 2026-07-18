@@ -7,7 +7,26 @@ import type {
   PatientFlowSummary,
   PatientLayerState,
 } from '@/features/patientFlowNavigator/types';
+import type { RunStatus } from '@/features/virtualRounds/types';
 import { formatDurationMinutes } from '@/lib/duration';
+
+export interface RoundsHudModel {
+  status: RunStatus;
+  scopeLabel: string | null;
+  total: number;
+  rounded: number;
+  awaitingInput: number;
+}
+
+const RUN_STATUS_LABEL: Record<RunStatus, string> = {
+  draft: 'Draft',
+  scheduled: 'Scheduled',
+  active: 'Active',
+  paused: 'Paused',
+  closing: 'Closing',
+  completed: 'Complete',
+  cancelled: 'Cancelled',
+};
 
 export interface NavigatorMetrics {
   active: number;
@@ -61,6 +80,12 @@ interface NavigatorToolbarProps {
   savedViews: boolean[];
   onSaveView: (slot: number) => void;
   onApplyView: (slot: number) => void;
+  /** Virtual Rounds run HUD + tour controls (R-5/R-6a); null → no run. */
+  roundsHud: RoundsHudModel | null;
+  tourAuto: boolean;
+  onTourPrev: () => void;
+  onTourNext: () => void;
+  onTourAutoToggle: () => void;
 }
 
 export default function NavigatorToolbar({
@@ -97,6 +122,11 @@ export default function NavigatorToolbar({
   savedViews,
   onSaveView,
   onApplyView,
+  roundsHud,
+  tourAuto,
+  onTourPrev,
+  onTourNext,
+  onTourAutoToggle,
 }: NavigatorToolbarProps) {
   return (
     <aside className="patient-flow-toolbar" aria-label="Navigator controls">
@@ -117,6 +147,36 @@ export default function NavigatorToolbar({
               ? `${new Date(summary.data_extent.first_event_at).toLocaleString()} to ${new Date(summary.data_extent.last_event_at).toLocaleString()}`
               : 'No event extent available'}
           </small>
+        </div>
+      )}
+
+      {/* R-5: run HUD — colored by run state, never coral. Tour controls
+          (R-6a) walk the itinerary; Auto pauses on any camera input. */}
+      {roundsHud && (
+        <div className={`patient-flow-rounds-hud run-${roundsHud.status}`} role="status">
+          <div className="patient-flow-rounds-hud-text">
+            <strong>
+              Rounds · {RUN_STATUS_LABEL[roundsHud.status]}
+              {roundsHud.scopeLabel ? ` · ${roundsHud.scopeLabel}` : ''}
+            </strong>
+            <span>
+              {roundsHud.rounded}/{roundsHud.total} rounded
+              {roundsHud.awaitingInput > 0 ? ` · ${roundsHud.awaitingInput} awaiting input` : ''}
+            </span>
+          </div>
+          <div className="patient-flow-tour-controls">
+            <button type="button" aria-label="Previous round stop" title="Previous round stop" onClick={onTourPrev}>◀</button>
+            <button type="button" aria-label="Next round stop" title="Next round stop" onClick={onTourNext}>▶</button>
+            <button
+              type="button"
+              aria-pressed={tourAuto}
+              className={tourAuto ? 'active' : ''}
+              title="Auto-step the tour every 10 seconds; moving the camera pauses it"
+              onClick={onTourAutoToggle}
+            >
+              Auto
+            </button>
+          </div>
         </div>
       )}
 

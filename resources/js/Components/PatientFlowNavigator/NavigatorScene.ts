@@ -15,7 +15,7 @@ import {
   TIMER_PIP_COLORS,
   patientHue,
 } from '@/features/patientFlowNavigator/sceneVocabulary';
-import type { RoundStopCell } from '@/features/virtualRounds/roundsScene';
+import type { RoundRouteSegment, RoundStopCell } from '@/features/virtualRounds/roundsScene';
 import type {
   OccupancyInsight,
   OccupancyTimerStatus,
@@ -53,6 +53,12 @@ export interface NavigatorSceneCallbacks {
    * the scene; the scene writes it via textContent (never HTML).
    */
   hoverLabel?: (data: Record<string, unknown>) => string | null;
+  /**
+   * Fired when the OPERATOR starts moving the camera (OrbitControls 'start' —
+   * never programmatic flights). The tour's Auto mode pauses on this (R-6a:
+   * respect the operator's hand).
+   */
+  onUserCameraStart?: () => void;
 }
 
 export interface GhostRenderItem {
@@ -96,6 +102,16 @@ export class NavigatorScene {
   private barrierLayer = new THREE.Group();
 
   private roundsLayer = new THREE.Group();
+
+  // Route + queue-number annotations live outside the raycast set — they are
+  // wayfinding, not clickable objects.
+  private roundsRouteLayer = new THREE.Group();
+
+  private queueSpriteMaterials = new Map<number, THREE.SpriteMaterial>();
+
+  private routeSolidMaterial: THREE.LineBasicMaterial | null = null;
+
+  private routeDashedMaterial: THREE.LineDashedMaterial | null = null;
 
   private baseObjects: THREE.Object3D[] = [];
 
@@ -299,7 +315,11 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer);
+
+    // Tour Auto pauses when the OPERATOR grabs the camera; OrbitControls only
+    // dispatches 'start' for real input, never for programmatic flights.
+    this.orbit.addEventListener('start', () => this.callbacks.onUserCameraStart?.());
 
     this.heatSingleMaterial = new THREE.MeshStandardMaterial({
       color: 0x77c06f,
@@ -728,8 +748,9 @@ export class NavigatorScene {
    * scale up; the opaque stop payload rides in userData for the inspector.
    * No patient identifier ever enters this layer (plan §8.1).
    */
-  rebuildRounds(cells: RoundStopCell[], layerVisible: boolean): void {
+  rebuildRounds(cells: RoundStopCell[], route: RoundRouteSegment[], layerVisible: boolean): void {
     this.clearGroup(this.roundsLayer);
+    this.clearGroup(this.roundsRouteLayer);
     this.roundStopMeshByUuid.clear();
     // The focused mesh (if any) was just removed with the group; drop the
     // clone so it never dangles. Focus re-applies below without re-flying.
@@ -762,11 +783,89 @@ export class NavigatorScene {
       };
       this.roundsLayer.add(mesh);
       this.roundStopMeshByUuid.set(stop.round_patient_uuid, mesh);
+
+      // R-4: queue-number billboard above the ring; skipped/deferred stay
+      // dimmed and unnumbered (they are not part of the walk).
+      if (!['skipped', 'deferred'].includes(stop.status)) {
+        const sprite = new THREE.Sprite(this.queueSpriteMaterialFor(stop.queue_position));
+        sprite.position.set(anchor.x, mesh.position.y + 3.1, anchor.z);
+        sprite.scale.set(2.6, 2.6, 1);
+        sprite.userData = { ...mesh.userData };
+        this.roundsLayer.add(sprite);
+      }
+    }
+
+    // R-4: itinerary polyline — solid per-floor runs, dashed cross-floor legs.
+    for (const segment of route) {
+      const points = segment.points.map(
+        (point) => new THREE.Vector3(point.x, point.y + 3.4, point.z),
+      );
+      if (points.length < 2) continue;
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(
+        geometry,
+        segment.dashed ? this.routeDashedMaterialFor() : this.routeSolidMaterialFor(),
+      );
+      if (segment.dashed) line.computeLineDistances();
+      this.roundsRouteLayer.add(line);
     }
 
     if (this.focusedRoundStopUuid) {
       this.applyRoundFocus(this.focusedRoundStopUuid, false);
     }
+  }
+
+  /** Cached canvas-texture sprite material for a queue number. */
+  private queueSpriteMaterialFor(queuePosition: number): THREE.SpriteMaterial {
+    let material = this.queueSpriteMaterials.get(queuePosition);
+    if (!material) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.beginPath();
+        context.arc(32, 32, 26, 0, Math.PI * 2);
+        context.fillStyle = 'rgba(27, 31, 29, 0.85)';
+        context.fill();
+        context.lineWidth = 3;
+        context.strokeStyle = '#94a3b8';
+        context.stroke();
+        context.font = '600 30px sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillStyle = '#f3efe5';
+        context.fillText(String(queuePosition), 32, 34);
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+      this.queueSpriteMaterials.set(queuePosition, material);
+    }
+    return material;
+  }
+
+  private routeSolidMaterialFor(): THREE.LineBasicMaterial {
+    if (!this.routeSolidMaterial) {
+      this.routeSolidMaterial = new THREE.LineBasicMaterial({
+        color: 0x94a3b8,
+        transparent: true,
+        opacity: 0.28,
+      });
+    }
+    return this.routeSolidMaterial;
+  }
+
+  private routeDashedMaterialFor(): THREE.LineDashedMaterial {
+    if (!this.routeDashedMaterial) {
+      this.routeDashedMaterial = new THREE.LineDashedMaterial({
+        color: 0x94a3b8,
+        transparent: true,
+        opacity: 0.28,
+        dashSize: 2.2,
+        gapSize: 2.2,
+      });
+    }
+    return this.routeDashedMaterial;
   }
 
   /**
@@ -893,7 +992,14 @@ export class NavigatorScene {
     this.clearGroup(this.forecastLayer);
     this.clearGroup(this.barrierLayer);
     this.clearGroup(this.roundsLayer);
+    this.clearGroup(this.roundsRouteLayer);
     this.roundStopMeshByUuid.clear();
+    this.queueSpriteMaterials.forEach((material) => {
+      material.map?.dispose();
+      material.dispose();
+    });
+    this.routeSolidMaterial?.dispose();
+    this.routeDashedMaterial?.dispose();
     this.patientMaterials.forEach((material) => material.dispose());
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());

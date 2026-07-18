@@ -48,6 +48,12 @@ class RoundProjectionTest extends TestCase
             $this->assertArrayHasKey('round_patient_uuid', $stop);
             $this->assertArrayHasKey('status', $stop);
             $this->assertArrayHasKey('priority_band', $stop);
+            // The 4D navigator's queue sprites, route polyline, and tour
+            // (flow4d Phase 3) place stops by these fields — contract guard.
+            $this->assertArrayHasKey('queue_position', $stop);
+            $this->assertArrayHasKey('unit_id', $stop);
+            $this->assertArrayHasKey('bed', $stop);
+            $this->assertArrayHasKey('pinned', $stop);
             $this->assertArrayNotHasKey('patient_ref', $stop);
             $this->assertArrayNotHasKey('patient_label', $stop);
         }

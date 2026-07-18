@@ -46,7 +46,12 @@ export default function VirtualRounds() {
   const [scopeKey, setScopeKey] = useState<string | null>(null);
   const [templateUuid, setTemplateUuid] = useState<string | null>(null);
   const [runUuid, setRunUuid] = useState<string | null>(null);
-  const [selectedPatientUuid, setSelectedPatientUuid] = useState<string | null>(null);
+  // R-2: 4D ring → board deep link (?patient={round_patient_uuid}); the
+  // workspace fetches by uuid directly, so this works regardless of scope.
+  const [selectedPatientUuid, setSelectedPatientUuid] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('patient');
+  });
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 
   const templatesQuery = useRoundTemplates();

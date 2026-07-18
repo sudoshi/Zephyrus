@@ -2,7 +2,7 @@
 // quiet, optimized for repeated scanning). Each row explains its own priority
 // and shows exactly which requirement is missing; a progress percentage never
 // hides that.
-import { AlertTriangle, CheckCircle2, HelpCircle, ListTodo, Pin } from 'lucide-react';
+import { AlertTriangle, Box, CheckCircle2, HelpCircle, ListTodo, Pin } from 'lucide-react';
 import type { BoardPatient } from '@/features/virtualRounds/types';
 import {
   formatWindow,
@@ -40,6 +40,9 @@ export default function RoundsBoard({ patients, selectedUuid, lens, onSelect }: 
             <th scope="col" className="px-3 py-2">Priority</th>
             <th scope="col" className="px-3 py-2">Window</th>
             <th scope="col" className="px-3 py-2">Needs</th>
+            <th scope="col" className="px-3 py-2">
+              <span className="sr-only">Locate in 4D</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -126,6 +129,18 @@ export default function RoundsBoard({ patients, selectedUuid, lens, onSelect }: 
                       patient.open_question_count === 0 &&
                       patient.open_task_count === 0 && <span>—</span>}
                   </span>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {/* R-2: jump to this stop's ring in the 4D navigator. */}
+                  <a
+                    href={`/rtdc/patient-flow-navigator?focus_stop=${patient.round_patient_uuid}`}
+                    className="inline-flex rounded-md p-1 text-healthcare-text-secondary hover:bg-healthcare-hover hover:text-healthcare-text-primary dark:text-healthcare-text-secondary-dark dark:hover:bg-healthcare-hover-dark dark:hover:text-healthcare-text-primary-dark"
+                    title="Locate in 4D navigator"
+                    aria-label={`Locate queue position ${patient.queue_position} in the 4D navigator`}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Box className="h-3.5 w-3.5" aria-hidden />
+                  </a>
                 </td>
               </tr>
             );

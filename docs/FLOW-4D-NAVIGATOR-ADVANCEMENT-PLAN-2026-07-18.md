@@ -246,15 +246,15 @@ Each phase is independently shippable and PR-sized. Frontend checks per project 
 
 **Acceptance:** floor changes are one click/keystroke and frame the floor; search lands the camera on results; power users never touch the mouse for time/floor/focus.
 
-### Phase 3 — Virtual Rounds (≈2–3 days) `feature/flow4d-rounds-integration`
-- [ ] R-1: `?focus_stop={uuid}` handoff wiring → `focusRoundStop` (+ floor-clear retry + fallback toast)
-- [ ] R-2: "Locate in 4D" in RoundsBoard/RoundPatientWorkspace; "Open in Rounds board" action in round-stop inspector
-- [ ] R-5: Rounds HUD chip (run status, progress, awaiting-input)
-- [ ] R-4: queue-number sprites + per-floor route polyline (dashed cross-floor legs)
-- [ ] R-6a: manual tour Prev/Next/Auto (10 s dwell, pause on camera input)
-- [ ] R-3: 30 s scene polling with content-hash rebuild gating + run-complete handling
-- [ ] Tests: `buildRoundStopCells` ordering, tour advance skips unplaceable/deferred stops, deep-link parsing; Pest: scene endpoint unchanged-contract guard
-- [ ] Verify prod flag posture: overlay must remain invisible when `VIRTUAL_ROUNDS_ENABLED` sub-features are off (existing 404 fail-soft)
+### Phase 3 — Virtual Rounds (≈2–3 days) `feature/flow4d-rounds-integration` — **BUILT 2026-07-18**
+- [x] R-1: `?focus_stop={uuid}` handoff wiring → `focusRoundStop` (retry loop while scene/stops load, floor-clear retry, fallback toast "Stop not placeable — open the Rounds board")
+- [x] R-2: "Locate in 4D" per row in RoundsBoard + workspace header; "Open in Rounds board" action in round-stop inspector; board accepts `?patient={uuid}`
+- [x] R-5: Rounds HUD chip (run status + scope, rounded/total, awaiting-input; teal active / amber paused, never coral)
+- [x] R-4: queue-number sprites (skipped/deferred unnumbered) + per-floor route polyline with dashed cross-floor legs (`buildRoundRoute`, non-raycastable layer)
+- [x] R-6a: manual tour Prev/Next/Auto (10 s dwell; OrbitControls 'start' — operator input only — pauses Auto; stops at itinerary end)
+- [x] R-3: 30 s scene polling, visibility-gated, content-hash gate so unchanged payloads never rebuild; run-complete → HUD Complete + toast + polling stops
+- [x] Tests: cells carry floor, route ordering/dashed legs/skip rule, deep-link parsing, HUD render + tour controls; PHPUnit scene contract guard extended (queue_position/unit_id/bed/pinned pinned)
+- [x] Prod flag posture unchanged: overlay stays empty on 404/no-run (fail-soft catch preserved in the polling loop)
 
 **Acceptance:** a rounder can start on the board, jump to the building, walk the itinerary Next-by-Next with live statuses, and jump back — without ever seeing patient identity in the scene layer.
 
