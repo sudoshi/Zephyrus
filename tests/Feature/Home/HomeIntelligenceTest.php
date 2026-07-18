@@ -101,12 +101,15 @@ class HomeIntelligenceTest extends TestCase
         $this->assertGreaterThan(0, $result['source_rows']['prod.home_episodes']);
 
         $activities = DB::table('ocel.events')
-            ->whereIn('activity', ['home-activate', 'home-visit-complete', 'home-escalation-open', 'home-escalation-resolve'])
+            ->whereIn('activity', ['home-refer', 'home-activate', 'home-visit-complete', 'home-escalation-open', 'home-escalation-resolve'])
             ->selectRaw('activity, count(*) AS n')
             ->groupBy('activity')
             ->pluck('n', 'activity');
 
         $this->assertGreaterThanOrEqual(8, (int) ($activities['home-activate'] ?? 0));
+        // The two linked demo referrals anchor the sidecar's
+        // time-to-activation SLA check.
+        $this->assertGreaterThanOrEqual(2, (int) ($activities['home-refer'] ?? 0));
         $this->assertGreaterThan(0, (int) ($activities['home-visit-complete'] ?? 0));
         $this->assertGreaterThan(0, (int) ($activities['home-escalation-resolve'] ?? 0));
 

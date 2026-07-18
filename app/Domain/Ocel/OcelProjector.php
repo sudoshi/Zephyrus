@@ -236,6 +236,7 @@ class OcelProjector
 
         DB::table('prod.home_episodes as e')
             ->join('prod.home_programs as p', 'p.home_program_id', '=', 'e.home_program_id')
+            ->leftJoin('prod.home_referrals as r', 'r.home_referral_id', '=', 'e.home_referral_id')
             ->leftJoin('prod.rpm_enrollments as en', function ($join): void {
                 $join->on('en.home_episode_id', '=', 'e.home_episode_id')
                     ->where('en.is_deleted', '=', false);
@@ -246,7 +247,7 @@ class OcelProjector
             ->select([
                 'e.home_episode_id', 'e.patient_ref', 'e.condition_code', 'e.admission_source',
                 'e.service_zone', 'e.disposition', 'e.started_at', 'e.ended_at',
-                'p.program_type', 'k.kit_code',
+                'p.program_type', 'k.kit_code', 'r.referred_at',
             ])
             ->distinct()
             ->orderBy('e.home_episode_id')

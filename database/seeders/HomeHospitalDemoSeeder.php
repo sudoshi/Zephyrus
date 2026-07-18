@@ -373,6 +373,30 @@ class HomeHospitalDemoSeeder extends Seeder
                 ]
             );
 
+            // The first two episodes carry a linked ACTIVATED referral
+            // (referred 5h before admission): the OCEL home-refer anchor for
+            // the sidecar's time-to-activation SLA check, and a non-zero
+            // referral-conversion tile. Idempotent on (patient_ref, program).
+            if ($i < 2 && $episode->home_referral_id === null) {
+                $referral = HomeReferral::updateOrCreate(
+                    ['patient_ref' => $spec['ref'], 'home_program_id' => $program->home_program_id],
+                    [
+                        'referral_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.referral.activated.'.$spec['ref'])->toString(),
+                        'source' => $i % 2 === 0 ? 'ed_diversion' : 'inpatient_stepdown',
+                        'status' => 'activated',
+                        'screening' => ['condition_code' => $spec['condition'], 'home_safety' => 'passed', 'connectivity' => 'cellular_ok'],
+                        'payer_class' => 'medicare_ffs',
+                        'service_zone' => $spec['zone'],
+                        'referred_by' => self::OWNER,
+                        'referred_at' => $admittedAt->copy()->subHours(5),
+                        'activated_at' => $admittedAt,
+                        'status_changed_at' => $admittedAt,
+                        'metadata' => ['provenance' => 'demo'],
+                    ]
+                );
+                $episode->update(['home_referral_id' => $referral->home_referral_id]);
+            }
+
             $kit = $kits[$i] ?? null;
             if ($kit !== null) {
                 RpmEnrollment::updateOrCreate(
@@ -431,7 +455,7 @@ class HomeHospitalDemoSeeder extends Seeder
             'md_np_tele' => 'NP D. Ramirez',
         ];
 
-        foreach ($visits as $j => $v) {
+        foreach ($visits as $v) {
             $completed = $v['start']->lt(now()->subMinutes(45));
             HomeVisit::updateOrCreate(
                 [
@@ -440,7 +464,12 @@ class HomeHospitalDemoSeeder extends Seeder
                     'scheduled_start' => $v['start'],
                 ],
                 [
-                    'visit_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.visit.'.$ref.'.'.$j.'.'.$v['start']->toDateString()),
+                    // Derived from the NATURAL KEY, never a positional index:
+                    // slot positions shift as the rolling window advances, and
+                    // an index-based uuid collides across UTC-midnight re-runs
+                    // (wedged the dev seeder once — same failure family as the
+                    // legacy 'demo-today' staffing marker).
+                    'visit_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.visit.'.$ref.'.'.$v['type'].'.'.$v['start']->toIso8601String()),
                     'patient_ref' => $ref,
                     'is_waiver_required' => $v['waiver'],
                     'status' => $completed ? 'completed' : 'scheduled',

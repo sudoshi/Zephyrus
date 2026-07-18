@@ -147,6 +147,7 @@ final class OcelCatalog
             'barrier_resolved' => 'flow',
             // Home Hospital (ACUM-PRD-HAH-001 §6.3) — the virtual-ward pathway:
             // activation cadence, waiver visits, escalation protocol, discharge.
+            'home-refer' => 'home',
             'home-activate' => 'home',
             'home-visit-complete' => 'home',
             'home-escalation-open' => 'home',

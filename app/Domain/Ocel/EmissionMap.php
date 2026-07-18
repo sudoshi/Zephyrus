@@ -369,6 +369,19 @@ final class EmissionMap
         ], fn ($v) => $v !== null);
 
         $events = [];
+        if (! empty($row->referred_at)) {
+            // The referral moment anchors the time-to-activation SLA check.
+            $events[] = new EmittedEvent(
+                id: 'home-ep-'.$row->home_episode_id.'-refer',
+                activity: 'home-refer',
+                timestamp: Carbon::parse($row->referred_at),
+                sourceSystem: 'prod.home_episodes',
+                sourceRef: (string) $row->home_episode_id,
+                objects: $objects,
+                o2o: $o2o,
+                attrs: $attrs,
+            );
+        }
         if (! empty($row->started_at)) {
             $events[] = new EmittedEvent(
                 id: 'home-ep-'.$row->home_episode_id.'-activate',

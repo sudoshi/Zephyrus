@@ -111,6 +111,6 @@ class HomeHospitalGatingTest extends TestCase
         ];
 
         $this->assertSame($first, $second);
-        $this->assertSame([1, 8, 6, 10], $second);
+        $this->assertSame([1, 8, 8, 10], $second);
     }
 }
