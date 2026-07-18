@@ -178,7 +178,7 @@ export const LEGEND_SECTIONS: LegendSection[] = [
         key: 'patient-token',
         label: 'Patient',
         shape: 'sphere',
-        colorHex: 0x2d9db4, // representative mid-range identity hue
+        colorHex: 0x49c6df, // a true renderable token tone: hsl(190, 70%, 58%)
         description: 'One patient. Color is identity (teal→violet only), never status.',
         layer: 'tokens',
       },
@@ -186,7 +186,7 @@ export const LEGEND_SECTIONS: LegendSection[] = [
         key: 'patient-trail',
         label: 'Movement trail',
         shape: 'line',
-        colorHex: 0x2d9db4,
+        colorHex: 0x49c6df,
         description: 'Where that patient has been up to the scrubbed time.',
         layer: 'trails',
       },

@@ -203,25 +203,33 @@ export class NavigatorScene {
     this.renderer.setSize(width, height);
   };
 
+  // Reused per-cast buffers — the 20 Hz hover path must not allocate.
+  private raycastScratch: THREE.Object3D[] = [];
+
+  private pointerScratch = new THREE.Vector2();
+
   /** The one interactive set — pointerdown select and pointermove hover agree. */
-  private raycastHit(event: PointerEvent): THREE.Mesh | null {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const pointer = new THREE.Vector2(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+  private raycastHit(event: PointerEvent, rect?: DOMRect): THREE.Mesh | null {
+    const bounds = rect ?? this.renderer.domElement.getBoundingClientRect();
+    this.pointerScratch.set(
+      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+      -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
     );
-    this.raycaster.setFromCamera(pointer, this.camera);
-    const hits = this.raycaster.intersectObjects(
-      [
-        ...this.roundsLayer.children,
-        ...this.barrierLayer.children,
-        ...this.patientLayer.children,
-        ...this.ghostLayer.children,
-        ...this.heatLayer.children,
-        ...this.baseObjects,
-      ].filter((object) => object.visible),
-      false,
-    );
+    this.raycaster.setFromCamera(this.pointerScratch, this.camera);
+    const candidates = this.raycastScratch;
+    candidates.length = 0;
+    const collect = (objects: THREE.Object3D[]): void => {
+      for (const object of objects) {
+        if (object.visible) candidates.push(object);
+      }
+    };
+    collect(this.roundsLayer.children);
+    collect(this.barrierLayer.children);
+    collect(this.patientLayer.children);
+    collect(this.ghostLayer.children);
+    collect(this.heatLayer.children);
+    collect(this.baseObjects);
+    const hits = this.raycaster.intersectObjects(candidates, false);
     return hits.length ? (hits[0].object as THREE.Mesh) : null;
   }
 
@@ -256,7 +264,10 @@ export class NavigatorScene {
     if (now - this.lastHoverCast < 50) return;
     this.lastHoverCast = now;
 
-    const mesh = this.raycastHit(event);
+    // One rect read per cast — the canvas fills the container, so the same
+    // rect anchors both the raycast and the chip position.
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const mesh = this.raycastHit(event, rect);
     if (!mesh) {
       this.clearHover();
       return;
@@ -268,10 +279,9 @@ export class NavigatorScene {
 
     const label = this.callbacks.hoverLabel?.(this.hitData(mesh)) ?? null;
     if (label) {
-      const containerRect = this.container.getBoundingClientRect();
       this.hoverChip.textContent = label;
-      this.hoverChip.style.left = `${event.clientX - containerRect.left + 14}px`;
-      this.hoverChip.style.top = `${event.clientY - containerRect.top + 12}px`;
+      // transform keeps chip moves compositor-only (no layout per move).
+      this.hoverChip.style.transform = `translate(${event.clientX - rect.left + 14}px, ${event.clientY - rect.top + 12}px)`;
       this.hoverChip.hidden = false;
     } else {
       this.hoverChip.hidden = true;
@@ -901,6 +911,12 @@ export class NavigatorScene {
     const mesh = this.roundStopMeshByUuid.get(roundPatientUuid);
     if (!mesh) return false;
 
+    // A hover/selection clone on this mesh must be released first — otherwise
+    // it would be captured as the "base" and a later clearHover/clearSelection
+    // restore would stomp the focus material.
+    if (this.hoveredMesh === mesh) this.clearHover();
+    if (this.selectedMesh === mesh) this.clearSelection();
+
     // Focused ring gets its own (non-shared) brighter material so the pulse
     // never leaks onto same-status siblings; the clone is disposed on unfocus.
     const base = mesh.material as THREE.MeshStandardMaterial;
@@ -1035,14 +1051,14 @@ export class NavigatorScene {
   private emitCameraText(): void {
     const now = performance.now();
     if (now - this.lastCameraEmit < 150) return;
+    // Re-arm BEFORE the change check so an idle camera costs one comparison
+    // per 150 ms, not string-building work on every animation frame.
+    this.lastCameraEmit = now;
     const position = this.camera.position;
     const target = this.orbit.target;
-    const key = [position.x, position.y, position.z, target.x, target.y, target.z]
-      .map((value) => value.toFixed(0))
-      .join('|');
+    const key = `${position.x.toFixed(0)}|${position.y.toFixed(0)}|${position.z.toFixed(0)}|${target.x.toFixed(0)}|${target.y.toFixed(0)}|${target.z.toFixed(0)}`;
     if (key === this.lastCameraText) return;
     this.lastCameraText = key;
-    this.lastCameraEmit = now;
     this.callbacks.onCameraMove({
       position: { x: position.x, y: position.y, z: position.z },
       target: { x: target.x, y: target.y, z: target.z },
@@ -1174,6 +1190,9 @@ export class NavigatorScene {
     while (group.children.length) {
       const child = group.children.pop() as THREE.Mesh | undefined;
       if (!child) continue;
+      // Sprites share three's module-singleton quad geometry — disposing it
+      // would deallocate a live GPU resource for every sprite in the app.
+      if ((child as unknown as THREE.Sprite).isSprite) continue;
       if (child.geometry && child.geometry !== this.tokenGeometry
         && child.geometry !== this.ghostGeometry
         && child.geometry !== this.heatGeometry

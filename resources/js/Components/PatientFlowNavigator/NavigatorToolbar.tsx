@@ -8,6 +8,9 @@ import type {
   PatientLayerState,
 } from '@/features/patientFlowNavigator/types';
 import type { RunStatus } from '@/features/virtualRounds/types';
+// One label map for run states — the 4D HUD and the Rounds board must never
+// word the same status differently.
+import { RUN_STATUS_LABEL } from '@/Components/VirtualRounds/format';
 import { formatDurationMinutes } from '@/lib/duration';
 
 export interface RoundsHudModel {
@@ -17,16 +20,6 @@ export interface RoundsHudModel {
   rounded: number;
   awaitingInput: number;
 }
-
-const RUN_STATUS_LABEL: Record<RunStatus, string> = {
-  draft: 'Draft',
-  scheduled: 'Scheduled',
-  active: 'Active',
-  paused: 'Paused',
-  closing: 'Closing',
-  completed: 'Complete',
-  cancelled: 'Cancelled',
-};
 
 export interface NavigatorMetrics {
   active: number;

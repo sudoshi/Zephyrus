@@ -2,7 +2,7 @@
 // operational surface: dense, quiet, optimized for repeated scanning. All
 // server state flows through TanStack Query as `unknown` and is parsed with
 // Zod at this boundary; a malformed payload degrades to an inline card.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import RTDCPageLayout from '@/Components/RTDC/RTDCPageLayout';
@@ -88,6 +88,18 @@ export default function VirtualRounds() {
     const parsed = boardSchema.safeParse(boardQuery.data);
     return parsed.success ? parsed.data : null;
   }, [boardQuery.data]);
+
+  // A deep-linked uuid that is not on the displayed run's board (other
+  // scope, stale run) must not pin a foreign patient beside this board —
+  // pin/transition would submit THIS board's queue version for it. Fall back
+  // to the board's own first patient instead.
+  useEffect(() => {
+    if (!selectedPatientUuid || !board) return;
+    const onBoard = board.data.patients.some(
+      (patient) => patient.round_patient_uuid === selectedPatientUuid,
+    );
+    if (!onBoard) setSelectedPatientUuid(null);
+  }, [board, selectedPatientUuid]);
 
   const effectiveSelectedUuid =
     selectedPatientUuid ?? board?.data.patients[0]?.round_patient_uuid ?? null;

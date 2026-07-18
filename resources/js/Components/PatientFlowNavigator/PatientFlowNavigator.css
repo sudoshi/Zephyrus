@@ -175,11 +175,12 @@
   color: #7dd3fc;
 }
 
+/* No overflow clipping: the jump buttons extend past the 8px band to reach
+   a 24px hit target (WCAG 2.2 target size). Wash layers carry their own radii. */
 .patient-flow-chronobar-track {
   position: relative;
   height: 8px;
   border-radius: 4px;
-  overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -187,6 +188,7 @@
 .patient-flow-chronobar-past {
   position: absolute;
   inset: 0 auto 0 0;
+  border-radius: 4px 0 0 4px;
   background: rgba(221, 212, 197, 0.14);
 }
 
@@ -194,6 +196,7 @@
 .patient-flow-chronobar-future {
   position: absolute;
   inset: 0 auto 0 0;
+  border-radius: 0 4px 4px 0;
   background: repeating-linear-gradient(
     90deg,
     rgba(125, 211, 252, 0.28) 0 5px,
@@ -205,16 +208,18 @@
 .patient-flow-chronobar-coverage {
   position: absolute;
   inset: 0 auto 0 0;
+  border-radius: 4px;
   background: rgba(224, 163, 63, 0.45);
 }
 
-/* Shift-change detent — a jump button (N-2): 9px hit area, 1px visual line. */
+/* Shift-change detent — a jump button (N-2): 24×24 hit target extending
+   above/below the band, 1px visual line confined to the band. */
 .patient-flow-chronobar-detent {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 9px;
-  margin-left: -4.5px;
+  top: -8px;
+  bottom: -8px;
+  width: 24px;
+  margin-left: -12px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -224,8 +229,8 @@
 .patient-flow-chronobar-detent::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 8px;
+  bottom: 8px;
   left: 50%;
   width: 1px;
   margin-left: -0.5px;
@@ -253,14 +258,14 @@
   background: #e0a33f;
 }
 
-/* Open-barrier opened-at marker — also a jump button (N-2): amber notch
-   visual, full-height amber on hover/focus. */
+/* Open-barrier opened-at marker — also a jump button (N-2): 24×24 hit
+   target; amber notch visual, full-band amber on hover/focus. */
 .patient-flow-chronobar-barrier {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 9px;
-  margin-left: -4.5px;
+  top: -8px;
+  bottom: -8px;
+  width: 24px;
+  margin-left: -12px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -270,7 +275,7 @@
 .patient-flow-chronobar-barrier::after {
   content: '';
   position: absolute;
-  top: 0;
+  top: 6px;
   height: 5px;
   left: 50%;
   width: 2px;
@@ -282,7 +287,8 @@
 
 .patient-flow-chronobar-barrier:hover::after,
 .patient-flow-chronobar-barrier:focus-visible::after {
-  height: 100%;
+  top: 8px;
+  height: 8px;
 }
 
 .patient-flow-chronobar-barrier:focus-visible {
@@ -1001,7 +1007,9 @@
 .patient-flow-floor-rail {
   position: absolute;
   z-index: 3;
-  right: 16px;
+  /* Clear of the right-hand feed/inspector column (390px + margins) so a
+     tall inspector never sits under the rail's buttons. */
+  right: 422px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -1161,12 +1169,36 @@
   color: #b9b2a6;
 }
 
+.patient-flow-shortcut-sheet:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-shortcut-close {
+  margin-top: 12px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: #2a2f2c;
+  color: #ddd6c7;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.patient-flow-shortcut-close:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
 /* --- Hover chip (E-4) — scene-owned element, textContent only ------------ */
 
 .patient-flow-hover-chip {
   position: absolute;
+  left: 0;
+  top: 0;
   z-index: 4;
   pointer-events: none;
+  will-change: transform;
   max-width: 260px;
   border: 1px solid rgba(239, 234, 220, 0.22);
   border-radius: 5px;

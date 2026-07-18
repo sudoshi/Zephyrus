@@ -162,4 +162,14 @@ describe('buildRoundRoute (R-4)', () => {
     const cells = buildRoundStopCells([stop({})], index(), 'all');
     expect(buildRoundRoute(cells)).toEqual([]);
   });
+
+  it('adopts the first known floor after a floor-unknown start so later changes still dash', () => {
+    // Route built directly from cells: floor-null start, then floor 3, then floor 4.
+    const route = buildRoundRoute([
+      { anchor: { x: 0, y: 2, z: 0 }, floor: null, stop: stop({ round_patient_uuid: 'unknown', queue_position: 1 }) },
+      { anchor: { x: 10, y: 2, z: 20 }, floor: 3, stop: stop({ round_patient_uuid: 'f3', queue_position: 2 }) },
+      { anchor: { x: -5, y: 2, z: 8 }, floor: 4, stop: stop({ round_patient_uuid: 'f4', queue_position: 3 }) },
+    ]);
+    expect(route.map((segment) => segment.dashed)).toEqual([false, true]);
+  });
 });

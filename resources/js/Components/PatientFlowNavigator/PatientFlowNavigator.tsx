@@ -304,6 +304,7 @@ export default function PatientFlowNavigator({
   const lastVisibleStatesRef = useRef<PatientVisibleState[]>([]);
   const lastOccupancyInsightsRef = useRef<OccupancyInsight[]>([]);
   const lastBucketKeyRef = useRef('');
+  const lastRoundsKeyRef = useRef('');
   const lastTimeEmitRef = useRef(0);
   const scopeAppliedRef = useRef(false);
   const inspectorInitializedRef = useRef(false);
@@ -325,7 +326,9 @@ export default function PatientFlowNavigator({
   const [live, setLive] = useState(false);
   const [status, setStatus] = useState('Loading');
   const [cameraPlace, setCameraPlace] = useState('');
-  const [cameraDebug, setCameraDebug] = useState('');
+  // Raw xyz debug readout is title-attribute-only — written via ref so a
+  // camera emit never re-renders the tree when the place label is unchanged.
+  const cameraSpanRef = useRef<HTMLSpanElement | null>(null);
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
@@ -343,15 +346,41 @@ export default function PatientFlowNavigator({
   const roundsVersionRef = useRef(0);
   const roundsSceneHashRef = useRef('');
   const roundsRunUuidRef = useRef<string | null>(null);
-  const roundsCompleteAnnouncedRef = useRef(false);
+  const roundsFailCountRef = useRef(0);
   const pendingFocusStopRef = useRef<string | null>(handoff.focusStop);
   const focusFloorClearedRef = useRef(false);
   const focusAttemptsRef = useRef(0);
   const tourIndexRef = useRef<number | null>(null);
+  // Tour anchor is the stop UUID, not the array index — the stops list
+  // reorders and shrinks on every 30 s poll.
+  const tourUuidRef = useRef<string | null>(null);
+  const tourAutoRef = useRef(false);
+  const tourStepRef = useRef<(direction: 1 | -1) => void>(() => {});
+  // Live-follow is an explicit mode, not a proximity guess: entered at
+  // bootstrap (fresh source) or by scrubbing to now; any deliberate scrub
+  // elsewhere leaves it.
+  const followNowRef = useRef(handoff.t === null);
   const viewsStorageKey = savedViewsKey(lens?.role_id);
-  const [views, setViews] = useState<Array<SavedView | null>>(() =>
-    parseSavedViews(typeof window === 'undefined' ? null : window.localStorage.getItem(viewsStorageKey)),
-  );
+  const [views, setViews] = useState<Array<SavedView | null>>(() => {
+    // Blocked storage (kiosk privacy mode, sandboxed embed) must degrade to
+    // empty slots, never crash the navigator at mount.
+    try {
+      return parseSavedViews(typeof window === 'undefined' ? null : window.localStorage.getItem(viewsStorageKey));
+    } catch {
+      return parseSavedViews(null);
+    }
+  });
+
+  // If the persona lens changes without a remount, re-read that persona's
+  // slots — otherwise a save would clobber the new persona's bookmarks with
+  // the old persona's array.
+  useEffect(() => {
+    try {
+      setViews(parseSavedViews(window.localStorage.getItem(viewsStorageKey)));
+    } catch {
+      setViews(parseSavedViews(null));
+    }
+  }, [viewsStorageKey]);
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
 
@@ -555,11 +584,17 @@ export default function PatientFlowNavigator({
 
     // Round-stop rings — present-state like barriers: shown at every scrub
     // position, floor-filtered, opaque tokens only (plan §8.1). The route
-    // polyline and queue numbers ride the same rebuild (R-4).
-    const roundCells = layersRef.current.rounds
-      ? buildRoundStopCells(roundStopsRef.current, index, floorFilter)
-      : [];
-    scene.rebuildRounds(roundCells, buildRoundRoute(roundCells), layersRef.current.rounds);
+    // polyline and queue numbers ride the same rebuild (R-4). The layer is
+    // time-independent, so it rebuilds on its OWN key (content version /
+    // floor / visibility), not on every minute bucket.
+    const roundsKey = `${roundsVersionRef.current}|${floorFilter}|${layersRef.current.rounds ? 1 : 0}`;
+    if (roundsKey !== lastRoundsKeyRef.current) {
+      lastRoundsKeyRef.current = roundsKey;
+      const roundCells = layersRef.current.rounds
+        ? buildRoundStopCells(roundStopsRef.current, index, floorFilter)
+        : [];
+      scene.rebuildRounds(roundCells, buildRoundRoute(roundCells), layersRef.current.rounds);
+    }
 
     setMetrics({
       active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
@@ -604,11 +639,13 @@ export default function PatientFlowNavigator({
     refreshScene();
   }, [nowMs, refreshScene]);
 
-  // Live-follow: slide the 48h window with wall-clock now, but only when the
-  // operator is parked at now — a deliberate scrub position is never yanked,
-  // and a playback sweep passing near now is not "parked".
+  // Live-follow: slide the 48h window with wall-clock now, but only in
+  // explicit follow mode (entered at bootstrap or by scrubbing to now) — a
+  // deliberate scrub near now, a playback sweep, or a connected replay
+  // stream is never yanked.
   useEffect(() => {
-    if (historical || playingRef.current) return;
+    if (historical || playingRef.current || liveRef.current) return;
+    if (!followNowRef.current) return;
     if (Math.abs(currentTimeRef.current - nowMs) >= 90_000) return;
     setTimeWindow({ start: nowMs - LIVE_WINDOW_HALF_MS, end: nowMs + LIVE_WINDOW_HALF_MS });
     currentTimeRef.current = nowMs;
@@ -674,10 +711,11 @@ export default function PatientFlowNavigator({
   // to the orbit target names what the operator is looking at. Raw coordinates
   // survive in the status-bar title attribute for debugging.
   const handleCameraMove = useCallback((view: CameraView): void => {
-    setCameraDebug(
-      `camera x ${Math.round(view.position.x)} y ${Math.round(view.position.y)} z ${Math.round(view.position.z)}`
-      + ` · target x ${Math.round(view.target.x)} z ${Math.round(view.target.z)}`,
-    );
+    if (cameraSpanRef.current) {
+      cameraSpanRef.current.title =
+        `camera x ${Math.round(view.position.x)} y ${Math.round(view.position.y)} z ${Math.round(view.position.z)}`
+        + ` · target x ${Math.round(view.target.x)} z ${Math.round(view.target.z)}`;
+    }
 
     // Wide framing (home / fit-to-floor distance) is an overview, and naming
     // the incidentally-nearest unit there would mislead.
@@ -822,57 +860,73 @@ export default function PatientFlowNavigator({
   // stops, opaque tokens only. Feature flag off (404), no run, or any failure
   // simply leaves the overlay empty; the navigator never degrades.
   // R-3: polled every 30 s (mirroring the board's cadence) with a content-hash
-  // gate so unchanged payloads never trigger a layer rebuild; when the run
-  // closes, the HUD announces completion and polling stops.
+  // gate (run identity + status + stops) so unchanged payloads never touch
+  // React state or the scene. Polling NEVER stops — a wall display must pick
+  // up tomorrow's run after today's completes; the open→closed transition
+  // announces completion exactly once per run (uuid ref nulled on announce).
   useEffect(() => {
     let cancelled = false;
-    let timer: number | null = null;
 
     async function loadRoundsOverlay(): Promise<void> {
       if (document.visibilityState === 'hidden') return;
       try {
         const runsPayload = runsResponseSchema.safeParse(await fetchRoundRuns());
         if (!runsPayload.success || cancelled) return;
+        roundsFailCountRef.current = 0;
 
         const openRun = runsPayload.data.data.find((run) =>
-          ['active', 'paused', 'draft', 'scheduled'].includes(run.status),
+          ['active', 'paused', 'closing', 'draft', 'scheduled'].includes(run.status),
         );
         if (!openRun) {
-          if (roundsRunUuidRef.current && !roundsCompleteAnnouncedRef.current) {
-            roundsCompleteAnnouncedRef.current = true;
+          if (roundsRunUuidRef.current !== null) {
+            roundsRunUuidRef.current = null;
             setRoundsRun((prev) => (prev ? { ...prev, status: 'completed' } : prev));
             setToastMessage('Rounds run complete');
-            if (timer !== null) window.clearInterval(timer);
           }
           return;
+        }
+        if (roundsRunUuidRef.current !== openRun.run_uuid) {
+          // New run (or first run): drop the previous run's content hash so
+          // its scene payload always applies.
+          roundsSceneHashRef.current = '';
         }
         roundsRunUuidRef.current = openRun.run_uuid;
 
         const scenePayload = sceneResponseSchema.safeParse(await fetchRoundScene(openRun.run_uuid));
         if (!scenePayload.success || cancelled) return;
 
-        setRoundsRun(scenePayload.data.data.run);
-        const stops = scenePayload.data.data.stops;
-        const hash = JSON.stringify(stops);
+        const { run, stops } = scenePayload.data.data;
+        const hash = `${run.run_uuid}|${run.status}|${JSON.stringify(stops)}`;
         if (hash !== roundsSceneHashRef.current) {
           roundsSceneHashRef.current = hash;
           roundsVersionRef.current += 1;
+          setRoundsRun(run);
           setRoundStops(stops);
         }
       } catch {
-        // Transient poll failure: keep the last overlay rather than blanking
-        // an active itinerary; the initial state is already empty.
+        if (cancelled) return;
+        // Transient failure keeps the last overlay (never blank an active
+        // itinerary on one blip) — but a persistently failing source must not
+        // present hours-stale rings as truth.
+        roundsFailCountRef.current += 1;
+        if (roundsFailCountRef.current >= 5 && roundsRunUuidRef.current !== null) {
+          roundsRunUuidRef.current = null;
+          roundsSceneHashRef.current = '';
+          roundsVersionRef.current += 1;
+          setRoundsRun(null);
+          setRoundStops([]);
+        }
       }
     }
 
     void loadRoundsOverlay();
-    timer = window.setInterval(() => void loadRoundsOverlay(), 30_000);
+    const timer = window.setInterval(() => void loadRoundsOverlay(), 30_000);
     const onVisibility = (): void => void loadRoundsOverlay();
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       cancelled = true;
-      if (timer !== null) window.clearInterval(timer);
+      window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
@@ -961,10 +1015,12 @@ export default function PatientFlowNavigator({
       sceneRef.current = scene;
       scene.setHoverEnabled(!(playingRef.current && speedRef.current > 60));
       lastBucketKeyRef.current = '';
+      lastRoundsKeyRef.current = '';
       scene.loadModel(
         summary.model_url,
         () => {
           lastBucketKeyRef.current = '';
+          lastRoundsKeyRef.current = '';
           refreshScene();
         },
         () => {
@@ -1020,7 +1076,11 @@ export default function PatientFlowNavigator({
 
   const handleScrub = useCallback((timeMs: number): void => {
     disconnectLive();
-    applyTime(Math.min(windowEnd, Math.max(windowStart, timeMs)));
+    const bounded = Math.min(windowEnd, Math.max(windowStart, timeMs));
+    // Scrubbing to now (Now button, or landing on it) enters live-follow;
+    // scrubbing anywhere else is a deliberate position that must never slide.
+    followNowRef.current = Math.abs(bounded - nowMsRef.current) < 5_000;
+    applyTime(bounded);
   }, [applyTime, disconnectLive, windowEnd, windowStart]);
 
   const resetCamera = useCallback((): void => {
@@ -1038,20 +1098,9 @@ export default function PatientFlowNavigator({
     sceneRef.current?.setHoverEnabled(!(playing && speed > 60));
   }, [playing, speed]);
 
-  // E-5: Escape clears the in-scene selection highlight and the panel with it
-  // (and closes the shortcut sheet, N-6).
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      setShortcutsOpen(false);
-      sceneRef.current?.clearSelection();
-      setInspectorTitle('Select a patient or location');
-      setInspectorRows([]);
-      setInspectorAction(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  // Escape is handled with the other shortcuts below (N-6) so the same
+  // typing-context guard applies — Escape inside the Find field must clear
+  // only the field, never the operator's selection.
 
   // B-4: the explicit camera action for the Delayed-only census scope — the
   // operator asks for the flight; the checkbox never causes it.
@@ -1062,14 +1111,13 @@ export default function PatientFlowNavigator({
     sceneRef.current?.focusOn(points);
   }, []);
 
-  // N-4: fit-to-floor — frame the selected floor's locations; All = home.
+  // N-4: fit-to-floor — frame the selected floor's locations. Choosing All
+  // widens the FILTER only; it never discards the operator's framing (Home
+  // is the explicit reset).
   const fitToFloor = useCallback((floor: string): void => {
     const scene = sceneRef.current;
     if (!scene) return;
-    if (floor === 'all') {
-      scene.resetCamera();
-      return;
-    }
+    if (floor === 'all') return;
     const points = Object.values(locationsRef.current)
       .filter((loc) => loc.position_m && String(loc.floor) === floor)
       .map((loc) => ({ x: loc.position_m!.x, y: loc.position_m!.y ?? 0, z: loc.position_m!.z }));
@@ -1089,25 +1137,24 @@ export default function PatientFlowNavigator({
     if (points.length) sceneRef.current?.focusOn(points);
   }, []);
 
-  // N-7: three persona-keyed camera/floor/layers bookmarks.
+  // N-7: three persona-keyed camera/floor/layers bookmarks. The updater
+  // stays pure — persistence happens outside setState.
   const saveView = useCallback((slot: number): void => {
     const scene = sceneRef.current;
     if (!scene) return;
-    setViews((prev) => {
-      const next = [...prev];
-      next[slot] = {
-        camera: scene.getCameraView(),
-        floor: filtersRef.current.floor,
-        layers: { ...layersRef.current },
-      };
-      try {
-        window.localStorage.setItem(viewsStorageKey, serializeSavedViews(next));
-      } catch {
-        // Storage unavailable: the view still works for this session.
-      }
-      return next;
-    });
-  }, [viewsStorageKey]);
+    const next = [...views];
+    next[slot] = {
+      camera: scene.getCameraView(),
+      floor: filtersRef.current.floor,
+      layers: { ...layersRef.current },
+    };
+    setViews(next);
+    try {
+      window.localStorage.setItem(viewsStorageKey, serializeSavedViews(next));
+    } catch {
+      // Storage unavailable: the view still works for this session.
+    }
+  }, [views, viewsStorageKey]);
 
   const applyView = useCallback((slot: number): void => {
     const view = views[slot];
@@ -1117,14 +1164,24 @@ export default function PatientFlowNavigator({
     sceneRef.current?.setCameraView(view.camera);
   }, [views]);
 
-  // N-6: keyboard map — H home, F focus selection (else active patients),
-  // N now, ? shortcut sheet. Typing contexts are left alone.
+  // N-6/E-5: the ONE window keymap — H home, F focus selection (else active
+  // patients), N now, ? shortcut sheet, Escape clear selection + close
+  // panels. Typing contexts are left alone for every key, Escape included
+  // (inside Find, Escape clears only the field via the input's own handler).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === 'Escape') {
+        setShortcutsOpen(false);
+        sceneRef.current?.clearSelection();
+        setInspectorTitle('Select a patient or location');
+        setInspectorRows([]);
+        setInspectorAction(null);
+        return;
+      }
       const key = event.key.toLowerCase();
       if (key === 'h') {
         sceneRef.current?.resetCamera();
@@ -1155,16 +1212,23 @@ export default function PatientFlowNavigator({
   useEffect(() => {
     const uuid = pendingFocusStopRef.current;
     if (!uuid || roundStops.length === 0) return;
+    // Focusing a stop implies wanting to SEE the rounds layer.
+    if (!layersRef.current.rounds) {
+      setLayers((prev) => (prev.rounds ? prev : { ...prev, rounds: true }));
+    }
     focusAttemptsRef.current = 0;
     const timer = window.setInterval(() => {
       const scene = sceneRef.current;
-      focusAttemptsRef.current += 1;
-      if (scene && scene.focusRoundStop(uuid)) {
+      // Scene/model still loading: wait without burning the attempt budget —
+      // the budget measures real placement failures, not load time.
+      if (!scene) return;
+      if (scene.focusRoundStop(uuid)) {
         pendingFocusStopRef.current = null;
         window.clearInterval(timer);
         return;
       }
-      if (scene && !focusFloorClearedRef.current) {
+      focusAttemptsRef.current += 1;
+      if (!focusFloorClearedRef.current) {
         focusFloorClearedRef.current = true;
         setFilters((prev) => (prev.floor === 'all' ? prev : { ...prev, floor: 'all' }));
         return;
@@ -1172,7 +1236,7 @@ export default function PatientFlowNavigator({
       if (focusAttemptsRef.current >= 15) {
         pendingFocusStopRef.current = null;
         window.clearInterval(timer);
-        sceneRef.current?.focusRoundStop(null);
+        scene.focusRoundStop(null);
         setToastMessage('Stop not placeable — open the Rounds board');
       }
     }, 600);
@@ -1209,37 +1273,53 @@ export default function PatientFlowNavigator({
 
   const tourStep = useCallback((direction: 1 | -1): void => {
     if (tourStops.length === 0) return;
-    const previous = tourIndexRef.current;
-    const next = previous === null
-      ? (direction === 1 ? 0 : tourStops.length - 1)
-      : Math.min(tourStops.length - 1, Math.max(0, previous + direction));
+    // Anchor by uuid — the stops list reorders/shrinks on every poll, so a
+    // raw index would silently skip or repeat a bed after a queue change.
+    const anchored = tourUuidRef.current
+      ? tourStops.findIndex((cell) => cell.stop.round_patient_uuid === tourUuidRef.current)
+      : -1;
+    const base = anchored !== -1
+      ? anchored
+      : (tourIndexRef.current ?? (direction === 1 ? -1 : tourStops.length));
+    const next = Math.min(tourStops.length - 1, Math.max(0, base + direction));
     tourIndexRef.current = next;
+    tourUuidRef.current = tourStops[next].stop.round_patient_uuid;
     const cell = tourStops[next];
     requestStopFocus(cell.stop.round_patient_uuid);
     showStopInspector(cell.stop);
   }, [requestStopFocus, showStopInspector, tourStops]);
 
+  const tourStopsRef = useRef(tourStops);
+  useEffect(() => {
+    tourStopsRef.current = tourStops;
+    tourStepRef.current = tourStep;
+    tourAutoRef.current = tourAuto;
+  }, [tourAuto, tourStep, tourStops]);
+
+  // State updaters must stay pure — the first-step side effect runs outside.
   const toggleTourAuto = useCallback((): void => {
-    setTourAuto((value) => {
-      const next = !value;
-      if (next && tourIndexRef.current === null) tourStep(1);
-      return next;
-    });
-  }, [tourStep]);
+    const enabling = !tourAutoRef.current;
+    tourAutoRef.current = enabling;
+    setTourAuto(enabling);
+    if (enabling && tourUuidRef.current === null) tourStepRef.current(1);
+  }, []);
 
   // Auto mode: 10 s dwell, stops at the end of the itinerary; any operator
-  // camera input pauses it (wired via the scene's onUserCameraStart).
+  // camera input pauses it (wired via the scene's onUserCameraStart). The
+  // interval reads refs so a 30 s poll delta never resets the dwell.
   useEffect(() => {
     if (!tourAuto) return;
     const timer = window.setInterval(() => {
-      if (tourIndexRef.current !== null && tourIndexRef.current >= tourStops.length - 1) {
+      const stops = tourStopsRef.current;
+      const index = tourIndexRef.current;
+      if (index !== null && index >= stops.length - 1) {
         setTourAuto(false);
         return;
       }
-      tourStep(1);
+      tourStepRef.current(1);
     }, 10_000);
     return () => window.clearInterval(timer);
-  }, [tourAuto, tourStep, tourStops.length]);
+  }, [tourAuto]);
 
   // R-5: run HUD — status, progress, and awaiting-input, straight from the
   // opaque stops (never coral; a round state is work, not a breach).
@@ -1377,7 +1457,13 @@ export default function PatientFlowNavigator({
       <NavigatorFloorRail floors={floors} current={filters.floor} onSelect={handleFloorSelect} />
 
       {shortcutsOpen && (
-        <div className="patient-flow-shortcut-sheet" role="dialog" aria-label="Keyboard shortcuts">
+        <div
+          className="patient-flow-shortcut-sheet"
+          role="dialog"
+          aria-label="Keyboard shortcuts"
+          tabIndex={-1}
+          ref={(node) => node?.focus()}
+        >
           <strong>Keyboard shortcuts</strong>
           <dl>
             <div><dt>H</dt><dd>Home view</dd></div>
@@ -1389,13 +1475,20 @@ export default function PatientFlowNavigator({
             <div><dt>Esc</dt><dd>Clear selection · close panels</dd></div>
             <div><dt>?</dt><dd>Toggle this sheet</dd></div>
           </dl>
+          <button
+            type="button"
+            className="patient-flow-shortcut-close"
+            onClick={() => setShortcutsOpen(false)}
+          >
+            Close
+          </button>
         </div>
       )}
 
       <div className="patient-flow-statusbar">
         <span>{status}</span>
         <span>{ambient ? `Ambient ${Math.round(ambient.summary.averageConfidence * 100)}% ${ambient.summary.confidenceLevel}` : 'Ambient pending'}</span>
-        <span className="patient-flow-camera" title={cameraDebug}>{cameraPlace}</span>
+        <span ref={cameraSpanRef} className="patient-flow-camera">{cameraPlace}</span>
       </div>
     </section>
   );

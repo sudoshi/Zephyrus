@@ -107,6 +107,9 @@ export function buildRoundRoute(cells: RoundStopCell[]): RoundRouteSegment[] {
       runFloor = cell.floor;
     } else {
       run.push(cell.anchor);
+      // A known floor claims a run that started floor-unknown — otherwise a
+      // null-floored first stop would swallow every later floor change.
+      if (cell.floor !== null) runFloor = cell.floor;
     }
   }
   if (run.length > 1) segments.push({ points: run, dashed: false });
