@@ -65,12 +65,20 @@ import {
   serializeSavedViews,
 } from '@/features/patientFlowNavigator/savedViews';
 import type { SavedView } from '@/features/patientFlowNavigator/savedViews';
+import {
+  INTRO_SEEN,
+  introStops,
+  introTourKey,
+  persistIntroSeen,
+  shouldAutoStartIntro,
+} from '@/features/patientFlowNavigator/introTour';
 import type { PageProps } from '@/types';
 import type { CameraView, NavigatorScene } from './NavigatorScene';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
 import NavigatorFloorRail from './NavigatorFloorRail';
 import NavigatorInspector from './NavigatorInspector';
+import NavigatorIntro from './NavigatorIntro';
 import NavigatorLegend from './NavigatorLegend';
 import NavigatorToolbar from './NavigatorToolbar';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
@@ -384,6 +392,34 @@ export default function PatientFlowNavigator({
       setViews(parseSavedViews(null));
     }
   }, [viewsStorageKey]);
+
+  // H5.1 first-run intro: persona-keyed one-time dismissal under
+  // `flow4d.tour.{role}`. Blocked storage never auto-starts (introTour.ts) —
+  // a kiosk wall on the 6h demo refresh must not loop the welcome card.
+  const introStorageKey = introTourKey(lens?.role_id);
+  const [introOpen, setIntroOpen] = useState(() =>
+    shouldAutoStartIntro(() => window.localStorage.getItem(introTourKey(lens?.role_id))),
+  );
+  const [introIndex, setIntroIndex] = useState(0);
+  const introOpenRef = useRef(introOpen);
+  useEffect(() => {
+    introOpenRef.current = introOpen;
+  }, [introOpen]);
+
+  // A persona switch without a remount re-evaluates that persona's dismissal.
+  useEffect(() => {
+    setIntroIndex(0);
+    setIntroOpen(shouldAutoStartIntro(() => window.localStorage.getItem(introStorageKey)));
+  }, [introStorageKey]);
+
+  const dismissIntro = useCallback(() => {
+    if (!introOpenRef.current) return;
+    setIntroOpen(false);
+    persistIntroSeen(() => window.localStorage.setItem(introStorageKey, INTRO_SEEN));
+  }, [introStorageKey]);
+
+  const roundsActive = roundsRun !== null;
+  const introStopList = useMemo(() => introStops(roundsActive), [roundsActive]);
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
 
@@ -1215,6 +1251,7 @@ export default function PatientFlowNavigator({
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === 'Escape') {
         setShortcutsOpen(false);
+        dismissIntro();
         sceneRef.current?.clearSelection();
         setInspectorTitle('Select a patient or location');
         setInspectorRows([]);
@@ -1234,7 +1271,7 @@ export default function PatientFlowNavigator({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [focusActivePatients, handleScrub, historical]);
+  }, [dismissIntro, focusActivePatients, handleScrub, historical]);
 
   // ---- Virtual Rounds integration (Phase 3) --------------------------------
 
@@ -1523,14 +1560,36 @@ export default function PatientFlowNavigator({
             <div><dt>Esc</dt><dd>Clear selection · close panels</dd></div>
             <div><dt>?</dt><dd>Toggle this sheet</dd></div>
           </dl>
-          <button
-            type="button"
-            className="patient-flow-shortcut-close"
-            onClick={() => setShortcutsOpen(false)}
-          >
-            Close
-          </button>
+          <div className="patient-flow-shortcut-actions">
+            <button
+              type="button"
+              className="patient-flow-shortcut-close"
+              onClick={() => {
+                setShortcutsOpen(false);
+                setIntroIndex(0);
+                setIntroOpen(true);
+              }}
+            >
+              Replay intro
+            </button>
+            <button
+              type="button"
+              className="patient-flow-shortcut-close"
+              onClick={() => setShortcutsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
         </div>
+      )}
+
+      {introOpen && (
+        <NavigatorIntro
+          stops={introStopList}
+          index={introIndex}
+          onIndexChange={setIntroIndex}
+          onDismiss={dismissIntro}
+        />
       )}
 
       <div className="patient-flow-statusbar">
