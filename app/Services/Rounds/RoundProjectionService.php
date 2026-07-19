@@ -130,9 +130,14 @@ class RoundProjectionService
      * 4D overlay projection: opaque tokens + location + round state only.
      * No patient identifier ever appears here, for any lens (plan §8.1).
      *
+     * F-2 ruling (2026-07-19): under an aggregate flow lens (patient_dots =
+     * none) bed-level context is also stripped — bed + queue + status is
+     * re-identifiable at ward level on a shared wall. Aggregate stops anchor
+     * at unit centroids (the client falls back automatically when bed is null).
+     *
      * @return array{data: array<string, mixed>, meta: array<string, mixed>}
      */
-    public function scene(RoundRun $run, User $viewer): array
+    public function scene(RoundRun $run, User $viewer, bool $aggregate = false): array
     {
         $patients = $run->patients()->orderBy('queue_position')->get();
 
@@ -145,8 +150,8 @@ class RoundProjectionService
             'missing_input' => collect($patient->priority_reasons)->contains(fn ($r) => ($r['code'] ?? null) === 'missing_required_input'),
             'queue_position' => $patient->queue_position,
             'unit_id' => $patient->snapshot_unit_id,
-            'facility_space_id' => $patient->snapshot_facility_space_id,
-            'bed' => $patient->snapshot_bed,
+            'facility_space_id' => $aggregate ? null : $patient->snapshot_facility_space_id,
+            'bed' => $aggregate ? null : $patient->snapshot_bed,
         ])->values()->all();
 
         return $this->envelope($run, $viewer, [

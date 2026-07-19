@@ -730,6 +730,7 @@ export default function PatientFlowNavigator({
     const timer = window.setTimeout(() => {
       fetchPatientFlowOccupancy({
         asOf,
+        persona: lens.role_id,
         floor: filters.floor !== 'all' ? filters.floor : undefined,
         service_line: filters.serviceLine !== 'all' ? filters.serviceLine : undefined,
         category: filters.category !== 'all' ? filters.category : undefined,
@@ -827,11 +828,15 @@ export default function PatientFlowNavigator({
     async function bootstrap(): Promise<void> {
       try {
         setStatus('Loading data');
+        // F-1 ruling: every lensed request forwards the page persona so the
+        // resolved lens can never diverge from the rendered page.
         const [summaryData, locationData, eventData, ambientData] = await Promise.all([
-          fetchPatientFlowSummary(),
-          fetchPatientFlowLocations(),
-          patientDotsVisible ? fetchPatientFlowEvents({ limit: 20000 }) : Promise.resolve([]),
-          fetchPatientFlowAmbient(),
+          fetchPatientFlowSummary(lens?.role_id),
+          fetchPatientFlowLocations(lens?.role_id),
+          patientDotsVisible
+            ? fetchPatientFlowEvents({ limit: 20000, persona: lens?.role_id })
+            : Promise.resolve([]),
+          fetchPatientFlowAmbient(lens?.role_id),
         ]);
         if (cancelled) return;
 
@@ -956,7 +961,9 @@ export default function PatientFlowNavigator({
         }
         roundsRunUuidRef.current = openRun.run_uuid;
 
-        const scenePayload = sceneResponseSchema.safeParse(await fetchRoundScene(openRun.run_uuid));
+        const scenePayload = sceneResponseSchema.safeParse(
+          await fetchRoundScene(openRun.run_uuid, lens?.role_id),
+        );
         if (!scenePayload.success || cancelled) return;
 
         const { run, stops } = scenePayload.data.data;
@@ -1043,9 +1050,12 @@ export default function PatientFlowNavigator({
           );
           setInspectorTitle(element && element !== name ? `${element} · ${name}` : name);
           setInspectorRows(flattenInspector(redacted));
-          // R-2: a round-stop selection links straight back to the board.
+          // R-2: a round-stop selection links straight back to the board —
+          // except under an aggregate lens (F-2: no patient-specific deep
+          // link on a patient_dots=none wall).
           setInspectorAction(
             data.kind === 'round-stop' && typeof data.round_patient_uuid === 'string'
+              && dotsPolicy !== 'none'
               ? { label: 'Open in Rounds board', href: `/rtdc/virtual-rounds?patient=${data.round_patient_uuid}` }
               : null,
           );
@@ -1113,7 +1123,7 @@ export default function PatientFlowNavigator({
       return;
     }
     eventSourceRef.current?.close();
-    const source = createPatientFlowEventSource({ replay: 180, interval: 0.65 });
+    const source = createPatientFlowEventSource({ replay: 180, interval: 0.65, persona: lens?.role_id });
     eventSourceRef.current = source;
     source.addEventListener('patient-flow', (message) => {
       const event = JSON.parse((message as MessageEvent<string>).data) as PatientFlowEvent;
@@ -1341,10 +1351,10 @@ export default function PatientFlowNavigator({
     };
     setInspectorTitle(`Round stop · #${stop.queue_position}`);
     setInspectorRows(flattenInspector(redactSelection(data, dotsPolicy)));
-    setInspectorAction({
-      label: 'Open in Rounds board',
-      href: `/rtdc/virtual-rounds?patient=${stop.round_patient_uuid}`,
-    });
+    // F-2: no patient-specific deep link under an aggregate lens.
+    setInspectorAction(dotsPolicy !== 'none'
+      ? { label: 'Open in Rounds board', href: `/rtdc/virtual-rounds?patient=${stop.round_patient_uuid}` }
+      : null);
   }, [dotsPolicy]);
 
   const tourStep = useCallback((direction: 1 | -1): void => {

@@ -183,16 +183,19 @@ class PatientFlowOperationalBarrierProjectionTest extends TestCase
             ->getJson('/api/patient-flow/occupancy?asOf=2026-06-26T00:00:00Z')
             ->assertOk()
             ->assertJsonPath('summary.active', 1)
-            ->assertJsonPath('summary.delayed', 1)
+            // F-3 ruling: an inferred duration-only risk caps at watch — it
+            // never counts as delayed (coral) without verification.
+            ->assertJsonPath('summary.delayed', 0)
+            ->assertJsonPath('summary.watch', 1)
             ->assertJsonPath('summary.duration_risks', 1)
             ->assertJsonPath('summary.verified_barriers', 0)
             ->assertJsonPath('summary.top_barriers', [])
-            ->assertJsonPath('occupancy.0.primary_status', 'delayed')
+            ->assertJsonPath('occupancy.0.primary_status', 'watch')
             ->assertJsonPath('occupancy.0.blockers', [])
             ->assertJsonPath('occupancy.0.barrier_codes', [])
             ->assertJsonPath('occupancy.0.barrier_reasons', [])
             ->assertJsonPath('occupancy.0.verified_barriers', [])
-            ->assertJsonPath('occupancy.0.duration_risk.status', 'delayed')
+            ->assertJsonPath('occupancy.0.duration_risk.status', 'watch')
             ->assertJsonPath('occupancy.0.duration_risk.classification', 'duration_risk')
             ->assertJsonPath('occupancy.0.duration_risk.risk_code', 'long_stay_capacity_risk')
             ->assertJsonPath('occupancy.0.duration_risk.verified', false)
@@ -204,6 +207,8 @@ class PatientFlowOperationalBarrierProjectionTest extends TestCase
         $this->assertSame('long_stay_capacity_risk', $stayTimer['risk_code']);
         $this->assertSame('duration_risk', $stayTimer['classification']);
         $this->assertFalse($stayTimer['verified']);
+        // The amber cap itself (F-3): unverified stay pressure is watch, never delayed.
+        $this->assertSame('watch', $stayTimer['status']);
     }
 
     /** @return array{User, int, int, string, string} */

@@ -22,15 +22,22 @@ export interface PatientFlowEventQuery {
   service_line?: string;
   floor?: string;
   limit?: number;
+  /** F-1 ruling: forward the page persona so EnforceFlowLens resolves the
+   * SAME lens the page was rendered with, never the caller's default. */
+  persona?: string;
 }
 
-export async function fetchPatientFlowSummary(): Promise<PatientFlowSummary> {
-  const response = await axios.get<PatientFlowSummary>('/api/patient-flow/summary');
+export async function fetchPatientFlowSummary(persona?: string): Promise<PatientFlowSummary> {
+  const response = await axios.get<PatientFlowSummary>('/api/patient-flow/summary', {
+    params: persona ? { persona } : {},
+  });
   return response.data;
 }
 
-export async function fetchPatientFlowLocations(): Promise<PatientFlowLocations> {
-  const response = await axios.get<PatientFlowLocations>('/api/patient-flow/locations');
+export async function fetchPatientFlowLocations(persona?: string): Promise<PatientFlowLocations> {
+  const response = await axios.get<PatientFlowLocations>('/api/patient-flow/locations', {
+    params: persona ? { persona } : {},
+  });
   return response.data;
 }
 
@@ -60,8 +67,10 @@ export async function fetchPatientFlowState(asOf?: string): Promise<PatientFlowS
   return response.data;
 }
 
-export async function fetchPatientFlowAmbient(): Promise<PatientFlowAmbient> {
-  const response = await axios.get<PatientFlowAmbient>('/api/patient-flow/ambient');
+export async function fetchPatientFlowAmbient(persona?: string): Promise<PatientFlowAmbient> {
+  const response = await axios.get<PatientFlowAmbient>('/api/patient-flow/ambient', {
+    params: persona ? { persona } : {},
+  });
   return response.data;
 }
 
@@ -339,10 +348,13 @@ export async function fetchPatientFlowFhirBundle(eventId: string): Promise<Recor
   return response.data;
 }
 
-export function createPatientFlowEventSource(options: { replay?: number; interval?: number } = {}): EventSource {
+export function createPatientFlowEventSource(
+  options: { replay?: number; interval?: number; persona?: string } = {},
+): EventSource {
   const params = new URLSearchParams();
   if (options.replay) params.set('replay', String(options.replay));
   if (options.interval) params.set('interval', String(options.interval));
+  if (options.persona) params.set('persona', options.persona);
   const suffix = params.toString() ? `?${params.toString()}` : '';
 
   return new EventSource(`/api/patient-flow/stream/adt${suffix}`);

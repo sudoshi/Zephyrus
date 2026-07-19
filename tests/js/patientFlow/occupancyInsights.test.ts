@@ -49,3 +49,19 @@ describe('patient flow occupancy duration precision', () => {
       .toBeCloseTo(31 / 60, 8);
   });
 });
+
+describe('inferred long-stay urgency cap (F-3 ruling)', () => {
+  it('caps a 20h duration-only stay at watch — never delayed without verification', () => {
+    const result = buildOccupancyInsights(
+      [state('long', 20 * 3_600)],
+      {},
+      [],
+      NOW,
+      undefined,
+    );
+
+    const stay = result.insights[0].timers.find((timer) => timer.kind === 'stay');
+    expect(stay?.status).toBe('watch');
+    expect(result.insights[0].timers.some((timer) => timer.status === 'delayed')).toBe(false);
+  });
+});

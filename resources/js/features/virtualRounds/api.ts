@@ -37,8 +37,12 @@ export async function fetchRoundBoard(runUuid: string): Promise<unknown> {
   return res.data;
 }
 
-export async function fetchRoundScene(runUuid: string): Promise<unknown> {
-  const res = await axios.get(`/api/rounds/runs/${runUuid}/scene`);
+// F-2 ruling: persona forwards the page lens so aggregate personas
+// (patient_dots = none) receive the centroid-redacted projection.
+export async function fetchRoundScene(runUuid: string, persona?: string): Promise<unknown> {
+  const res = await axios.get(`/api/rounds/runs/${runUuid}/scene`, {
+    params: persona ? { persona } : {},
+  });
   return res.data;
 }
 
