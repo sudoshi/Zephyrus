@@ -41,15 +41,20 @@ The ok/delayed disk axis is green-vs-coral — a red-green discrimination. Legen
 
 ---
 
-## H2 — Independent expert audit (≈half day) [SU trigger, C triage]
+## H2 — Independent expert audit (≈half day) — **DONE 2026-07-19** (Codex CLI available locally, run [C])
 
 Self-review has a structural blind spot: it grades its own interpretation of the plan.
-- [ ] Run a Codex audit pass over `/rtdc/patient-flow-navigator` (workflow precedent: the 2026-07-17 UX/HFE audit)
-- [ ] Prime the auditor with: PRODUCT.md personas + anti-references, DESIGN.md Two-System/earned-urgency/never-color-alone doctrines, the advancement plan §10 guardrails, and explicit prompts for: wrong-toggle risk, alarm fatigue, mode confusion (live/replay/historical/tour), interruption recovery, and the mixed-persona wall-display context
-- [ ] [C] Triage findings into: fix-now (fold into H1 branch or a follow-up), test-in-H3 (ambiguous — let users decide), rejected-with-rationale (documented here)
-- [ ] Record the full audit output in `docs/audits/`
+- [x] Run a Codex audit pass over `/rtdc/patient-flow-navigator` (Codex CLI 0.144.6, read-only sandbox) — 12 findings: 6 High, 5 Medium, 1 Observation; wrong-toggle lens came back clean
+- [x] Prime the auditor with: PRODUCT.md personas + anti-references, DESIGN.md Two-System/earned-urgency/never-color-alone doctrines, the advancement plan §10 guardrails, and explicit prompts for: wrong-toggle risk, alarm fatigue, mode confusion (live/replay/historical/tour), interruption recovery, and the mixed-persona wall-display context
+- [x] [C] Triage findings — every file:line claim independently verified before disposition; categories used: fix-now / test-in-H3 / ruling-needed / follow-up (nothing rejected — all 12 verified factual)
+- [x] Record the full audit output in `docs/audits/` — [2026-07-19-flow4d-codex-hfe-audit.md](./audits/2026-07-19-flow4d-codex-hfe-audit.md) (dispositions table + verbatim output)
 
-**Acceptance:** every audit finding has a disposition in writing.
+**Acceptance met:** every audit finding has a disposition in writing.
+
+**Fix-now shipped:** F-4 copy (PR #42), F-3 census coral-counting + F-8 aria-labels + F-9 gold focus + F-10 24px/tabular-nums/faux-bold + F-11 soak listener + F-12 canon-in-CI (PR #43).
+**Fed into H3:** F-4 overlay labeling (SAGAT probe), F-5 present-view recovery (task T2), F-7 non-critical color states (element naming + CVD mix).
+**Pending [SU] rulings:** F-1 role-switcher ↔ lens unification; F-2 aggregate-lens rounds redaction (bed-level detail under `patient_dots = none`); F-3 inferred long-stay = delayed vs. watch; F-9 light-theme scope for the navigator.
+**Queued follow-up engineering:** F-6 demo-refresh epoch atomicity; F-8 selectable delayed/barrier/stop list; F-9 reduced-motion; F-11 app-level context-loss recovery; F-12 rendered-scene browser test.
 
 ---
 
