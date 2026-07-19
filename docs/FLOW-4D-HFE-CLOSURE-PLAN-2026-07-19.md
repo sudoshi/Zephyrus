@@ -89,8 +89,8 @@ Code-verified ≠ field-verified. Prod is a 6 h-refresh demo wall — test acros
 > **Scripts DRAFTED 2026-07-19** (`scripts/soak-flow4d.mjs`, `scripts/urgency-census-flow4d.mjs`,
 > shared `scripts/lib/flow4d-field.mjs`). Credentials via `FLOW4D_USERNAME`/`FLOW4D_PASSWORD`
 > env only. Both feature-detect the in-app `window.__FLOW4D_SOAK__` debug hook (rendererInfo /
-> nowDeltaMs / roundsRun) — hook BUILT 2026-07-19, rides PR #41. Runs remain pending wall
-> hardware + a provisioned soak account.
+> nowDeltaMs / roundsRun) — hook MERGED + DEPLOYED 2026-07-19 (PR #41, prod `056e568`,
+> live-chunk verified). Runs remain pending wall hardware + a provisioned soak account.
 
 ### H4.1 24-hour soak
 - [x] Script `scripts/soak-flow4d.mjs` (Playwright, headed Chromium on the wall box or equivalent): load navigator, authenticate, then every 30 min capture — JS heap size, `renderer.info.memory` (geometries/textures) + `renderer.info.render.calls` via an exposed debug hook, now-marker wall-clock delta, rounds HUD run uuid/status, screenshot
