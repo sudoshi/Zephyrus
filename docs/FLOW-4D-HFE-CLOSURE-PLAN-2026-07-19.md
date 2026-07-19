@@ -89,8 +89,8 @@ Code-verified ≠ field-verified. Prod is a 6 h-refresh demo wall — test acros
 > **Scripts DRAFTED 2026-07-19** (`scripts/soak-flow4d.mjs`, `scripts/urgency-census-flow4d.mjs`,
 > shared `scripts/lib/flow4d-field.mjs`). Credentials via `FLOW4D_USERNAME`/`FLOW4D_PASSWORD`
 > env only. Both feature-detect the in-app `window.__FLOW4D_SOAK__` debug hook (rendererInfo /
-> nowDeltaMs / roundsRun) and degrade to nulls until it lands — hook rides the H5 branch so it
-> doesn't restart PR #40's CI. Runs remain pending wall hardware + H1 deploy.
+> nowDeltaMs / roundsRun) — hook BUILT 2026-07-19, rides PR #41. Runs remain pending wall
+> hardware + a provisioned soak account.
 
 ### H4.1 24-hour soak
 - [x] Script `scripts/soak-flow4d.mjs` (Playwright, headed Chromium on the wall box or equivalent): load navigator, authenticate, then every 30 min capture — JS heap size, `renderer.info.memory` (geometries/textures) + `renderer.info.render.calls` via an exposed debug hook, now-marker wall-clock delta, rounds HUD run uuid/status, screenshot
@@ -116,8 +116,8 @@ The legend solves *reference* ("what is this?"); nothing yet solves *discovery* 
 - [ ] Tests: renders once, dismissal persists, re-launch works, storage-blocked degrades silently
 
 ### H5.2 HFE decisions register + guard map
-- [ ] Append an **HFE Decisions** section to the advancement plan doc: one row per doctrine — earned urgency, never-color-alone, wrong-toggle separation, explicit camera actions, identity-free scene payloads, follow-mode time slide, 24px targets — each with its rationale and its *named automated guard* (hue-clamp property test, vocabulary parity test, rounds coral-ban test, toolbar census-scope tests, hover-label identity exclusion, canon script)
-- [ ] Add the one missing guard: a unit test asserting the hover-label builder never emits `patient_display_id`/`patient_id`/`encounter_id` for any input (currently enforced by construction, not pinned)
+- [x] Append an **HFE Decisions** section to the advancement plan doc: one row per doctrine — earned urgency, never-color-alone, wrong-toggle separation, explicit camera actions, identity-free scene payloads, follow-mode time slide, 24px targets — each with its rationale and its *named automated guard* (hue-clamp property test, vocabulary parity test, rounds coral-ban test, toolbar census-scope tests, hover-label identity exclusion, canon script) — **§12 of the advancement plan, 2026-07-19** (+ selection-entity row; follow-mode's guard is honestly the H4 soak drift assertion, not a unit test)
+- [x] Add the one missing guard: a unit test asserting the hover-label builder never emits `patient_display_id`/`patient_id`/`encounter_id` for any input (currently enforced by construction, not pinned) — `tests/js/patientFlow/hoverLabel.test.ts` (hoverLabelFor extracted to sceneVocabulary; rides PR #41 with the `__FLOW4D_SOAK__` hook)
 - [ ] DEVLOG entry closing the HFE program; update project memory
 
 **Acceptance:** a new contributor can read one section and know both *why* each invariant exists and *what breaks in CI* if they violate it.
