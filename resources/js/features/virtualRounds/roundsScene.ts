@@ -13,6 +13,8 @@ export type RoundStop = z.infer<typeof roundStopSchema>;
 export interface RoundStopCell {
   anchor: ProjectionAnchor;
   stop: RoundStop;
+  /** Resolved floor for the anchor (route grouping); null when unknown. */
+  floor: number | null;
 }
 
 /**
@@ -64,8 +66,53 @@ export function buildRoundStopCells(
       continue;
     }
 
-    cells.push({ anchor, stop });
+    cells.push({ anchor, stop, floor });
   }
 
   return cells;
+}
+
+// ---------------------------------------------------------------------------
+// Route polyline (R-4): stable-ordering visualization of the itinerary —
+// NOT path-finding (routing graphs are explicitly deferred). Solid runs
+// connect consecutive same-floor stops; a floor change emits a dashed leg.
+// Skipped/deferred stops are not part of the walk.
+// ---------------------------------------------------------------------------
+
+export interface RoundRouteSegment {
+  points: ProjectionAnchor[];
+  dashed: boolean;
+}
+
+export function buildRoundRoute(cells: RoundStopCell[]): RoundRouteSegment[] {
+  const ordered = cells
+    .filter((cell) => !['skipped', 'deferred'].includes(cell.stop.status))
+    .sort((a, b) => a.stop.queue_position - b.stop.queue_position);
+
+  const segments: RoundRouteSegment[] = [];
+  let run: ProjectionAnchor[] = [];
+  let runFloor: number | null = null;
+
+  for (const cell of ordered) {
+    if (run.length === 0) {
+      run = [cell.anchor];
+      runFloor = cell.floor;
+      continue;
+    }
+    const floorChanged = cell.floor !== null && runFloor !== null && cell.floor !== runFloor;
+    if (floorChanged) {
+      if (run.length > 1) segments.push({ points: run, dashed: false });
+      segments.push({ points: [run[run.length - 1], cell.anchor], dashed: true });
+      run = [cell.anchor];
+      runFloor = cell.floor;
+    } else {
+      run.push(cell.anchor);
+      // A known floor claims a run that started floor-unknown — otherwise a
+      // null-floored first stop would swallow every later floor change.
+      if (cell.floor !== null) runFloor = cell.floor;
+    }
+  }
+  if (run.length > 1) segments.push({ points: run, dashed: false });
+
+  return segments;
 }

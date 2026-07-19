@@ -226,35 +226,35 @@ Each phase is independently shippable and PR-sized. Frontend checks per project 
 
 **Acceptance:** an operator can always return to now in one click; the two barrier controls are visually and verbally distinct concepts; a 6-hour-old wall session shows correct now/severity.
 
-### Phase 1 — Element Identity System (≈2–3 days) `feature/flow4d-element-identity`
-- [ ] E-2: `sceneVocabulary.ts` (labels, shapes, hexes, descriptions) consumed by NavigatorScene materials
-- [ ] E-2: category material map in `loadModel()` per §5.2 (corridor/patient_room/bed/ED/imaging/elevator/care_unit tints)
-- [ ] E-3: clamp `hashColor` hue to 160–280°
-- [ ] E-1: `NavigatorLegend.tsx` collapsible key rendered from `sceneVocabulary` (sections, worded status meanings, hidden-layer dimming); styles in existing CSS file (no new backdrop-blur file)
-- [ ] E-4: throttled hover raycast + cursor + emissive hover clone + element chip (lens-redacted)
-- [ ] E-5: persistent selection highlight + element-type prefix in inspector title; Escape clears
-- [ ] Tests: sceneVocabulary completeness (every scene layer has a legend entry — assert key parity), hue-clamp property test, legend render & collapse
+### Phase 1 — Element Identity System (≈2–3 days) `feature/flow4d-element-identity` — **BUILT 2026-07-18**
+- [x] E-2: `sceneVocabulary.ts` (labels, shapes, hexes, descriptions) consumed by NavigatorScene materials
+- [x] E-2: category material map in `loadModel()` per §5.2 (corridor/patient_room/bed/ED/imaging/elevator/care_unit tints; floor + unknown keep the model material)
+- [x] E-3: clamp `hashColor` hue to 160–280° (`patientHue` in sceneVocabulary; scene builds the color)
+- [x] E-1: `NavigatorLegend.tsx` collapsible key rendered from `sceneVocabulary` (sections, worded status meanings, hidden-layer dimming); styles in existing CSS file (no new backdrop-blur file)
+- [x] E-4: throttled hover raycast + cursor + emissive hover clone + element chip (identity fields never in the chip; scene-owned div, textContent only; disabled during >60× playback)
+- [x] E-5: persistent selection highlight + element-type prefix in inspector title; Escape clears
+- [x] Tests: sceneVocabulary completeness (layer parity, category coverage, worded statuses), hue-clamp property test, legend render & collapse, elementLabelFor mapping
 
 **Acceptance:** with no training, a user can point at any object, hover it, and read what it is; beds/hallways/rooms/ED are visually distinct; no patient token renders in amber/coral hues.
 
-### Phase 2 — Navigability (≈2 days) `feature/flow4d-navigability`
-- [ ] N-4: floor stepper rail with fit-to-floor, keyboard stepping, synced to filter
-- [ ] N-5: search Enter → fly-to matches; match count; empty-state copy
-- [ ] N-6: keyboard shortcuts (H/F/N/?) + shortcut sheet
-- [ ] N-7: 3 persona-keyed saved views (localStorage), chips under transport buttons
-- [ ] Tests: floor-stepper filter sync, search match-count, saved-view round-trip
+### Phase 2 — Navigability (≈2 days) `feature/flow4d-navigability` — **BUILT 2026-07-18**
+- [x] N-4: floor stepper rail with fit-to-floor, keyboard stepping (↑/↓), synced to filter; dropdown also frames via the same path
+- [x] N-5: search Enter → fly-to matches; match count under the field; empty-state copy; Escape clears
+- [x] N-6: keyboard shortcuts (H/F/N/?) + shortcut sheet; OrbitControls arrow-panning enabled on the focused canvas
+- [x] N-7: 3 persona-keyed saved views (localStorage `flow4d.views.{role}`, Zod-validated), chips under transport buttons (restore + save per slot)
+- [x] Tests: floor-rail select/step/All + top-down order, search match-count + Enter/Escape, saved-view round-trip + garbage tolerance, dropdown frame-path
 
 **Acceptance:** floor changes are one click/keystroke and frame the floor; search lands the camera on results; power users never touch the mouse for time/floor/focus.
 
-### Phase 3 — Virtual Rounds (≈2–3 days) `feature/flow4d-rounds-integration`
-- [ ] R-1: `?focus_stop={uuid}` handoff wiring → `focusRoundStop` (+ floor-clear retry + fallback toast)
-- [ ] R-2: "Locate in 4D" in RoundsBoard/RoundPatientWorkspace; "Open in Rounds board" action in round-stop inspector
-- [ ] R-5: Rounds HUD chip (run status, progress, awaiting-input)
-- [ ] R-4: queue-number sprites + per-floor route polyline (dashed cross-floor legs)
-- [ ] R-6a: manual tour Prev/Next/Auto (10 s dwell, pause on camera input)
-- [ ] R-3: 30 s scene polling with content-hash rebuild gating + run-complete handling
-- [ ] Tests: `buildRoundStopCells` ordering, tour advance skips unplaceable/deferred stops, deep-link parsing; Pest: scene endpoint unchanged-contract guard
-- [ ] Verify prod flag posture: overlay must remain invisible when `VIRTUAL_ROUNDS_ENABLED` sub-features are off (existing 404 fail-soft)
+### Phase 3 — Virtual Rounds (≈2–3 days) `feature/flow4d-rounds-integration` — **BUILT 2026-07-18**
+- [x] R-1: `?focus_stop={uuid}` handoff wiring → `focusRoundStop` (retry loop while scene/stops load, floor-clear retry, fallback toast "Stop not placeable — open the Rounds board")
+- [x] R-2: "Locate in 4D" per row in RoundsBoard + workspace header; "Open in Rounds board" action in round-stop inspector; board accepts `?patient={uuid}`
+- [x] R-5: Rounds HUD chip (run status + scope, rounded/total, awaiting-input; teal active / amber paused, never coral)
+- [x] R-4: queue-number sprites (skipped/deferred unnumbered) + per-floor route polyline with dashed cross-floor legs (`buildRoundRoute`, non-raycastable layer)
+- [x] R-6a: manual tour Prev/Next/Auto (10 s dwell; OrbitControls 'start' — operator input only — pauses Auto; stops at itinerary end)
+- [x] R-3: 30 s scene polling, visibility-gated, content-hash gate so unchanged payloads never rebuild; run-complete → HUD Complete + toast + polling stops
+- [x] Tests: cells carry floor, route ordering/dashed legs/skip rule, deep-link parsing, HUD render + tour controls; PHPUnit scene contract guard extended (queue_position/unit_id/bed/pinned pinned)
+- [x] Prod flag posture unchanged: overlay stays empty on 404/no-run (fail-soft catch preserved in the polling loop)
 
 **Acceptance:** a rounder can start on the board, jump to the building, walk the itinerary Next-by-Next with live statuses, and jump back — without ever seeing patient identity in the scene layer.
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bookmark, Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
   OccupancySummary,
   PatientFlowAmbient,
@@ -7,7 +7,19 @@ import type {
   PatientFlowSummary,
   PatientLayerState,
 } from '@/features/patientFlowNavigator/types';
+import type { RunStatus } from '@/features/virtualRounds/types';
+// One label map for run states — the 4D HUD and the Rounds board must never
+// word the same status differently.
+import { RUN_STATUS_LABEL } from '@/Components/VirtualRounds/format';
 import { formatDurationMinutes } from '@/lib/duration';
+
+export interface RoundsHudModel {
+  status: RunStatus;
+  scopeLabel: string | null;
+  total: number;
+  rounded: number;
+  awaitingInput: number;
+}
 
 export interface NavigatorMetrics {
   active: number;
@@ -49,8 +61,24 @@ interface NavigatorToolbarProps {
   onAskEddy: () => void;
   onSpeedChange: (speed: number) => void;
   onFiltersChange: (patch: Partial<PatientFlowFilters>) => void;
+  /** Explicit floor choice: filters AND frames the floor (N-4). */
+  onFloorSelect: (floor: string) => void;
   onLayerChange: (key: keyof PatientLayerState, value: boolean) => void;
   onBarrierFinderChange: (value: boolean) => void;
+  /** Token count for the active search, null when the field is empty (N-5). */
+  searchMatches: number | null;
+  /** Enter in Find — fly to the matched tokens (N-5). */
+  onSearchSubmit: () => void;
+  /** Which saved-view slots hold a view (N-7). */
+  savedViews: boolean[];
+  onSaveView: (slot: number) => void;
+  onApplyView: (slot: number) => void;
+  /** Virtual Rounds run HUD + tour controls (R-5/R-6a); null → no run. */
+  roundsHud: RoundsHudModel | null;
+  tourAuto: boolean;
+  onTourPrev: () => void;
+  onTourNext: () => void;
+  onTourAutoToggle: () => void;
 }
 
 export default function NavigatorToolbar({
@@ -79,8 +107,19 @@ export default function NavigatorToolbar({
   onAskEddy,
   onSpeedChange,
   onFiltersChange,
+  onFloorSelect,
   onLayerChange,
   onBarrierFinderChange,
+  searchMatches,
+  onSearchSubmit,
+  savedViews,
+  onSaveView,
+  onApplyView,
+  roundsHud,
+  tourAuto,
+  onTourPrev,
+  onTourNext,
+  onTourAutoToggle,
 }: NavigatorToolbarProps) {
   return (
     <aside className="patient-flow-toolbar" aria-label="Navigator controls">
@@ -101,6 +140,36 @@ export default function NavigatorToolbar({
               ? `${new Date(summary.data_extent.first_event_at).toLocaleString()} to ${new Date(summary.data_extent.last_event_at).toLocaleString()}`
               : 'No event extent available'}
           </small>
+        </div>
+      )}
+
+      {/* R-5: run HUD — colored by run state, never coral. Tour controls
+          (R-6a) walk the itinerary; Auto pauses on any camera input. */}
+      {roundsHud && (
+        <div className={`patient-flow-rounds-hud run-${roundsHud.status}`} role="status">
+          <div className="patient-flow-rounds-hud-text">
+            <strong>
+              Rounds · {RUN_STATUS_LABEL[roundsHud.status]}
+              {roundsHud.scopeLabel ? ` · ${roundsHud.scopeLabel}` : ''}
+            </strong>
+            <span>
+              {roundsHud.rounded}/{roundsHud.total} rounded
+              {roundsHud.awaitingInput > 0 ? ` · ${roundsHud.awaitingInput} awaiting input` : ''}
+            </span>
+          </div>
+          <div className="patient-flow-tour-controls">
+            <button type="button" aria-label="Previous round stop" title="Previous round stop" onClick={onTourPrev}>◀</button>
+            <button type="button" aria-label="Next round stop" title="Next round stop" onClick={onTourNext}>▶</button>
+            <button
+              type="button"
+              aria-pressed={tourAuto}
+              className={tourAuto ? 'active' : ''}
+              title="Auto-step the tour every 10 seconds; moving the camera pauses it"
+              onClick={onTourAutoToggle}
+            >
+              Auto
+            </button>
+          </div>
         </div>
       )}
 
@@ -148,12 +217,37 @@ export default function NavigatorToolbar({
         )}
       </div>
 
+      {/* N-7: three persona-keyed camera bookmarks — restore on the left,
+          save-current on the right of each chip. */}
+      <div className="patient-flow-views" aria-label="Saved views">
+        {savedViews.map((hasView, slot) => (
+          <div className="patient-flow-view-chip" key={`view-slot-${slot}`}>
+            <button
+              type="button"
+              disabled={!hasView}
+              title={hasView ? `Restore view ${slot + 1} (camera, floor, layers)` : `View ${slot + 1} is empty — save one first`}
+              onClick={() => onApplyView(slot)}
+            >
+              View {slot + 1}
+            </button>
+            <button
+              type="button"
+              aria-label={`Save current view to slot ${slot + 1}`}
+              title={hasView ? `Overwrite view ${slot + 1} with the current view` : `Save the current view as view ${slot + 1}`}
+              onClick={() => onSaveView(slot)}
+            >
+              <Bookmark aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div className="patient-flow-control-grid">
         <label htmlFor="flow-floor">Floor</label>
         <select
           id="flow-floor"
           value={filters.floor}
-          onChange={(event) => onFiltersChange({ floor: event.target.value })}
+          onChange={(event) => onFloorSelect(event.target.value)}
         >
           <option value="all">All</option>
           {floors.map((floor) => (
@@ -199,8 +293,25 @@ export default function NavigatorToolbar({
           type="search"
           placeholder="PT, bed, service"
           value={filters.search}
+          aria-describedby={searchMatches !== null ? 'flow-search-count' : undefined}
           onChange={(event) => onFiltersChange({ search: event.target.value })}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onSearchSubmit();
+            } else if (event.key === 'Escape') {
+              onFiltersChange({ search: '' });
+            }
+          }}
         />
+
+        {searchMatches !== null && (
+          <small id="flow-search-count" className="patient-flow-search-count" role="status">
+            {searchMatches === 0
+              ? '0 matches — check spelling or floor filter'
+              : `${searchMatches} ${searchMatches === 1 ? 'match' : 'matches'} · Enter flies to them`}
+          </small>
+        )}
 
         {/* Census scope, not a layer (B-2): "Delayed" filters the occupancy
             disks by elapsed-timer signal — distinct from the "Barriers"

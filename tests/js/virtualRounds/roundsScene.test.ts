@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ProjectionPlacementIndex } from '@/features/patientFlowNavigator/projections';
 import {
+  buildRoundRoute,
   buildRoundStopCells,
   ROUND_STOP_COLORS,
   type RoundStop,
@@ -94,5 +95,81 @@ describe('buildRoundStopCells', () => {
       expect(ROUND_STOP_COLORS[status]).toBeDefined();
       expect(ROUND_STOP_COLORS[status]).not.toBe(CORAL);
     }
+  });
+
+  it('carries the resolved floor on each cell for route grouping (R-4)', () => {
+    const cells = buildRoundStopCells([stop({ bed: '5E-01' }), stop({ round_patient_uuid: 'u7', unit_id: 7, bed: null })], index(), 'all');
+    expect(cells.map((cell) => cell.floor)).toEqual([3, 4]);
+  });
+});
+
+describe('buildRoundRoute (R-4)', () => {
+  it('connects same-floor stops in queue order as one solid run', () => {
+    const cells = buildRoundStopCells(
+      [
+        stop({ round_patient_uuid: 'second', unit_id: 5, queue_position: 2, bed: '5E-01' }),
+        stop({ round_patient_uuid: 'first', unit_id: 5, queue_position: 1 }),
+      ],
+      index(),
+      'all',
+    );
+    const route = buildRoundRoute(cells);
+    expect(route).toHaveLength(1);
+    expect(route[0].dashed).toBe(false);
+    // Queue order, not input order: unit centroid (pos 1) then bed (pos 2).
+    expect(route[0].points).toEqual([
+      { x: 10, y: 2, z: 20 },
+      { x: 12, y: 2, z: 22 },
+    ]);
+  });
+
+  it('emits a dashed leg for a floor change — stable ordering, not path-finding', () => {
+    const cells = buildRoundStopCells(
+      [
+        stop({ round_patient_uuid: 'f3a', unit_id: 5, queue_position: 1 }),
+        stop({ round_patient_uuid: 'f3b', unit_id: 5, queue_position: 2, bed: '5E-01' }),
+        stop({ round_patient_uuid: 'f4', unit_id: 7, queue_position: 3 }),
+      ],
+      index(),
+      'all',
+    );
+    const route = buildRoundRoute(cells);
+    expect(route.map((segment) => segment.dashed)).toEqual([false, true]);
+    expect(route[1].points).toEqual([
+      { x: 12, y: 2, z: 22 },
+      { x: -5, y: 2, z: 8 },
+    ]);
+  });
+
+  it('excludes skipped and deferred stops from the walk (R-6a skip rule)', () => {
+    const cells = buildRoundStopCells(
+      [
+        stop({ round_patient_uuid: 'a', unit_id: 5, queue_position: 1 }),
+        stop({ round_patient_uuid: 'skip', unit_id: 5, queue_position: 2, bed: '5E-01', status: 'skipped' }),
+        stop({ round_patient_uuid: 'defer', unit_id: 7, queue_position: 3, status: 'deferred' }),
+        stop({ round_patient_uuid: 'b', unit_id: 5, queue_position: 4, bed: '5E-01' }),
+      ],
+      index(),
+      'all',
+    );
+    const route = buildRoundRoute(cells);
+    expect(route).toHaveLength(1);
+    expect(route[0].points).toHaveLength(2);
+    expect(route[0].dashed).toBe(false);
+  });
+
+  it('yields no segments for a single placeable stop', () => {
+    const cells = buildRoundStopCells([stop({})], index(), 'all');
+    expect(buildRoundRoute(cells)).toEqual([]);
+  });
+
+  it('adopts the first known floor after a floor-unknown start so later changes still dash', () => {
+    // Route built directly from cells: floor-null start, then floor 3, then floor 4.
+    const route = buildRoundRoute([
+      { anchor: { x: 0, y: 2, z: 0 }, floor: null, stop: stop({ round_patient_uuid: 'unknown', queue_position: 1 }) },
+      { anchor: { x: 10, y: 2, z: 20 }, floor: 3, stop: stop({ round_patient_uuid: 'f3', queue_position: 2 }) },
+      { anchor: { x: -5, y: 2, z: 8 }, floor: 4, stop: stop({ round_patient_uuid: 'f4', queue_position: 3 }) },
+    ]);
+    expect(route.map((segment) => segment.dashed)).toEqual([false, true]);
   });
 });

@@ -106,10 +106,20 @@ export default function RoundPatientWorkspace({
               <span className="tabular-nums">{formatWindow(patient.eta_window_start, patient.eta_window_end)}</span>
             </p>
           </div>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${PATIENT_STATUS_CLASS[patient.status]}`}
-          >
-            {PATIENT_STATUS_LABEL[patient.status]}
+          <span className="inline-flex items-center gap-2">
+            {/* R-2: jump to this stop's ring in the 4D navigator. */}
+            <a
+              href={`/rtdc/patient-flow-navigator?focus_stop=${patient.round_patient_uuid}`}
+              className="text-xs font-medium text-healthcare-primary hover:underline dark:text-healthcare-primary-dark"
+              title="Locate this stop in the 4D navigator"
+            >
+              Locate in 4D
+            </a>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${PATIENT_STATUS_CLASS[patient.status]}`}
+            >
+              {PATIENT_STATUS_LABEL[patient.status]}
+            </span>
           </span>
         </div>
 
