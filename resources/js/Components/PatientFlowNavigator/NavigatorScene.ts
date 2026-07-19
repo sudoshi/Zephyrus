@@ -1132,6 +1132,17 @@ export class NavigatorScene {
     this.orbit.update();
   }
 
+  /** Renderer memory/draw counters for the H4 soak hook (soakHook.ts). */
+  debugInfo(): { geometries: number; textures: number; calls: number; triangles: number } {
+    const { memory, render } = this.renderer.info;
+    return {
+      geometries: memory.geometries,
+      textures: memory.textures,
+      calls: render.calls,
+      triangles: render.triangles,
+    };
+  }
+
   dispose(): void {
     this.disposed = true;
     cancelAnimationFrame(this.animationId);
