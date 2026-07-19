@@ -86,13 +86,19 @@ The actual HFE conclusion. The advancement plan's acceptance criteria are alread
 
 Code-verified ≠ field-verified. Prod is a 6 h-refresh demo wall — test across that boundary.
 
+> **Scripts DRAFTED 2026-07-19** (`scripts/soak-flow4d.mjs`, `scripts/urgency-census-flow4d.mjs`,
+> shared `scripts/lib/flow4d-field.mjs`). Credentials via `FLOW4D_USERNAME`/`FLOW4D_PASSWORD`
+> env only. Both feature-detect the in-app `window.__FLOW4D_SOAK__` debug hook (rendererInfo /
+> nowDeltaMs / roundsRun) and degrade to nulls until it lands — hook rides the H5 branch so it
+> doesn't restart PR #40's CI. Runs remain pending wall hardware + H1 deploy.
+
 ### H4.1 24-hour soak
-- [ ] Script `scripts/soak-flow4d.mjs` (Playwright, headed Chromium on the wall box or equivalent): load navigator, authenticate, then every 30 min capture — JS heap size, `renderer.info.memory` (geometries/textures) + `renderer.info.render.calls` via an exposed debug hook, now-marker wall-clock delta, rounds HUD run uuid/status, screenshot
+- [x] Script `scripts/soak-flow4d.mjs` (Playwright, headed Chromium on the wall box or equivalent): load navigator, authenticate, then every 30 min capture — JS heap size, `renderer.info.memory` (geometries/textures) + `renderer.info.render.calls` via an exposed debug hook, now-marker wall-clock delta, rounds HUD run uuid/status, screenshot
 - [ ] Assertions: heap growth <15% between hour 2 and hour 24 (post-warmup); geometry/texture counts flat (±rounds content); now-marker drift <90 s always; rounds run turns over across the demo-refresh boundary without a reload; zero uncaught exceptions in console log
 - [ ] Run once across a demo-refresh cycle; file any failure as a bug with the captured evidence
 
 ### H4.2 Urgency census (earned-urgency verification on real data)
-- [ ] Script: poll `/api/patient-flow/occupancy` + `/barriers` every 30 min for 24 h; record distribution of ok/watch/delayed disks and barrier severities
+- [x] Script: poll `/api/patient-flow/occupancy` + `/barriers` every 30 min for 24 h; record distribution of ok/watch/delayed disks and barrier severities (`scripts/urgency-census-flow4d.mjs`; barriers carry category not severity — categories recorded)
 - [ ] Compute time-weighted share of coral and amber elements on screen. Guideline thresholds (tune after baseline): coral <10% of visible status elements in steady state, amber <25%. Exceedance ⇒ either seed-data tuning (`zephyrus:demo-seed` pressure knobs) or threshold review — coral must stay *earned*
 - [ ] Record baseline + verdict in this doc
 

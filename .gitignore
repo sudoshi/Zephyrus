@@ -46,6 +46,7 @@ config.local.php
 /artifacts/
 /playwright-report/
 /test-results/
+/soak-output/
 
 # Firecrawl research captures (untrusted, per-session web artifacts)
 /.firecrawl/
