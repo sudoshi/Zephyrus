@@ -1,7 +1,7 @@
 # Patient Flow 4D Navigator — HFE Closure Plan
 
 **Date:** 2026-07-19
-**Status:** TODO — none started
+**Status:** H1 + H3.1 protocol + H4 tooling/hook + H5.2 register all DONE and deployed (prod `056e568`); H2 audit, H3 sessions, H4 runs, and H5.1 tour remain user-gated. Interim devlog: [DEVLOG-flow4d-hfe-closure-2026-07-19.md](./DEVLOG-flow4d-hfe-closure-2026-07-19.md)
 **Predecessor:** [FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md](./FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md) (Phases 0–3 merged + deployed at `2066e5c`, incl. 20-finding deep-review remediation `a90abff`).
 **Purpose:** everything shipped so far is validated by *heuristic* evaluation (plan audit, multi-angle self-review, design hook, canon tests). This plan closes the gap to a defensible human-factors conclusion: fix the known perceptual/access defects, obtain an independent audit, validate empirically with representative users, prove the long-session claims in the field, and institutionalize the invariants.
 
@@ -118,7 +118,7 @@ The legend solves *reference* ("what is this?"); nothing yet solves *discovery* 
 ### H5.2 HFE decisions register + guard map
 - [x] Append an **HFE Decisions** section to the advancement plan doc: one row per doctrine — earned urgency, never-color-alone, wrong-toggle separation, explicit camera actions, identity-free scene payloads, follow-mode time slide, 24px targets — each with its rationale and its *named automated guard* (hue-clamp property test, vocabulary parity test, rounds coral-ban test, toolbar census-scope tests, hover-label identity exclusion, canon script) — **§12 of the advancement plan, 2026-07-19** (+ selection-entity row; follow-mode's guard is honestly the H4 soak drift assertion, not a unit test)
 - [x] Add the one missing guard: a unit test asserting the hover-label builder never emits `patient_display_id`/`patient_id`/`encounter_id` for any input (currently enforced by construction, not pinned) — `tests/js/patientFlow/hoverLabel.test.ts` (hoverLabelFor extracted to sceneVocabulary; rides PR #41 with the `__FLOW4D_SOAK__` hook)
-- [ ] DEVLOG entry closing the HFE program; update project memory
+- [ ] DEVLOG entry closing the HFE program; update project memory — *interim devlog covering all [C]-owned closure work shipped 2026-07-19 ([DEVLOG-flow4d-hfe-closure-2026-07-19.md](./DEVLOG-flow4d-hfe-closure-2026-07-19.md)); the closing entry lands once H2/H3/H4 runs/H5.1 complete*
 
 **Acceptance:** a new contributor can read one section and know both *why* each invariant exists and *what breaks in CI* if they violate it.
 
