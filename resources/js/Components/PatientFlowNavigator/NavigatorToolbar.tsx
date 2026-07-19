@@ -185,6 +185,8 @@ export default function NavigatorToolbar({
           className={`patient-flow-icon-button ${playing ? 'active' : ''}`}
           type="button"
           title={playing ? 'Pause replay' : 'Play replay in the displayed window'}
+          aria-label={playing ? 'Pause replay' : 'Play replay'}
+          aria-pressed={playing}
           onClick={onTogglePlay}
         >
           {playing ? <Pause /> : <Play />}
@@ -199,13 +201,20 @@ export default function NavigatorToolbar({
         >
           <Radio />
         </button>
-        <button className="patient-flow-icon-button" type="button" title="Reset view" onClick={onResetCamera}>
+        <button
+          className="patient-flow-icon-button"
+          type="button"
+          title="Reset view"
+          aria-label="Reset view"
+          onClick={onResetCamera}
+        >
           <Home />
         </button>
         <button
           className="patient-flow-icon-button"
           type="button"
           title="Focus active patients"
+          aria-label="Focus active patients"
           onClick={onFocusPatients}
         >
           <ScanSearch />
@@ -215,6 +224,7 @@ export default function NavigatorToolbar({
             className="patient-flow-icon-button"
             type="button"
             title="Ask Eddy about timer and service-line pressure"
+            aria-label="Ask Eddy about timer and service-line pressure"
             onClick={onAskEddy}
           >
             <Bot />

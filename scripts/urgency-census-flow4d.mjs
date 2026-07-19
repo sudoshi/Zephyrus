@@ -51,6 +51,14 @@ async function captureSample(page, config, index) {
 
   const insights = occupancy.json.occupancy ?? [];
   const timers = insights.flatMap((insight) => insight.timers ?? []);
+  // Rendered urgency OBJECTS, not just disks (audit F-3): a delayed location
+  // draws a coral disk AND a coral triangle sprite, and every delayed/watch
+  // timer draws its own pip. Disk-only shares materially understate what an
+  // operator actually sees on the wall.
+  const delayedDisks = insights.filter((i) => i?.primary_status === 'delayed').length;
+  const watchDisks = insights.filter((i) => i?.primary_status === 'watch').length;
+  const delayedTimers = timers.filter((t) => t?.status === 'delayed').length;
+  const watchTimers = timers.filter((t) => t?.status === 'watch').length;
   return {
     sample: {
       index,
@@ -61,6 +69,11 @@ async function captureSample(page, config, index) {
       timer_status: tally(timers, 'status'),
       open_barriers: barriers.json.count ?? 0,
       barrier_categories: tally(barriers.json.open_barriers ?? [], 'category'),
+      rendered: {
+        coral_objects: delayedDisks * 2 + delayedTimers,
+        amber_objects: watchDisks + watchTimers,
+        status_objects: insights.length + delayedDisks + timers.length,
+      },
     },
   };
 }
@@ -70,6 +83,14 @@ function share(samples, status) {
   const shares = samples
     .filter((s) => s.disks > 0)
     .map((s) => (s.disk_status[status] ?? 0) / s.disks);
+  return shares.length ? shares.reduce((a, b) => a + b, 0) / shares.length : 0;
+}
+
+function objectShare(samples, key) {
+  // The verdict input (audit F-3): share of RENDERED status objects.
+  const shares = samples
+    .filter((s) => (s.rendered?.status_objects ?? 0) > 0)
+    .map((s) => s.rendered[key] / s.rendered.status_objects);
   return shares.length ? shares.reduce((a, b) => a + b, 0) / shares.length : 0;
 }
 
@@ -107,19 +128,21 @@ async function main() {
     if (i < totalSamples - 1) await sleep(sampleMinutes * 60_000);
   }
 
-  const coralShare = share(samples, 'delayed');
-  const amberShare = share(samples, 'watch');
+  const coralObjectShare = objectShare(samples, 'coral_objects');
+  const amberObjectShare = objectShare(samples, 'amber_objects');
   const exceeded = [];
-  if (coralShare > coralMax) exceeded.push(`coral ${(coralShare * 100).toFixed(1)}% > ${coralMax * 100}%`);
-  if (amberShare > amberMax) exceeded.push(`amber ${(amberShare * 100).toFixed(1)}% > ${amberMax * 100}%`);
+  if (coralObjectShare > coralMax) exceeded.push(`coral ${(coralObjectShare * 100).toFixed(1)}% > ${coralMax * 100}%`);
+  if (amberObjectShare > amberMax) exceeded.push(`amber ${(amberObjectShare * 100).toFixed(1)}% > ${amberMax * 100}%`);
 
   const summary = {
     started: samples[0]?.at,
     finished: new Date().toISOString(),
     samples: samples.length,
     relogins,
-    time_weighted_coral_share: Number(coralShare.toFixed(4)),
-    time_weighted_amber_share: Number(amberShare.toFixed(4)),
+    time_weighted_coral_object_share: Number(coralObjectShare.toFixed(4)),
+    time_weighted_amber_object_share: Number(amberObjectShare.toFixed(4)),
+    disk_only_coral_share: Number(share(samples, 'delayed').toFixed(4)),
+    disk_only_amber_share: Number(share(samples, 'watch').toFixed(4)),
     thresholds: { coral_max: coralMax, amber_max: amberMax },
     verdict: exceeded.length ? `EXCEEDED: ${exceeded.join('; ')}` : 'WITHIN GUIDELINES',
   };
