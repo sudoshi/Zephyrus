@@ -138,6 +138,20 @@ export function elementLabelFor(data: Record<string, unknown>): string | null {
   return null;
 }
 
+/**
+ * Hover-chip text (finding E-4): element type + a non-identity name. Identity
+ * fields (patient_display_id / patient_id / encounter_id) NEVER appear here
+ * regardless of lens — stricter than the inspector, which redacts by policy.
+ * Pinned by tests/js/patientFlow/hoverLabel.test.ts (HFE closure H5.2).
+ */
+export function hoverLabelFor(data: Record<string, unknown>): string | null {
+  const element = elementLabelFor(data);
+  if (!element) return null;
+  const name = data.label ?? data.bed ?? data.bed_code ?? data.location_name
+    ?? data.location ?? data.name ?? data.unit ?? data.status ?? null;
+  return name !== null && String(name) !== element ? `${element} · ${String(name)}` : element;
+}
+
 // ---------------------------------------------------------------------------
 // Legend (finding E-1) — rendered verbatim by NavigatorLegend. Every entry
 // carries the layer it belongs to so hidden layers can dim their rows, and

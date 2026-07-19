@@ -56,7 +56,8 @@ import type {
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
 import { occupancyInspectorData, patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
-import { elementLabelFor } from '@/features/patientFlowNavigator/sceneVocabulary';
+import { elementLabelFor, hoverLabelFor } from '@/features/patientFlowNavigator/sceneVocabulary';
+import { installSoakHook } from '@/features/patientFlowNavigator/soakHook';
 import {
   mergeLayers,
   parseSavedViews,
@@ -344,6 +345,7 @@ export default function PatientFlowNavigator({
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
   const [tourAuto, setTourAuto] = useState(false);
   const [focusTick, setFocusTick] = useState(0);
+  const roundsRunRef = useRef<RunSummary | null>(null);
   const roundsVersionRef = useRef(0);
   const roundsSceneHashRef = useRef('');
   const roundsRunUuidRef = useRef<string | null>(null);
@@ -650,6 +652,20 @@ export default function PatientFlowNavigator({
     nowMsRef.current = nowMs;
     refreshScene();
   }, [nowMs, refreshScene]);
+
+  // H4 soak hook: pull-based diagnostics for scripts/soak-flow4d.mjs. Getters
+  // read refs so one install on mount stays current; nowDeltaMs is only
+  // meaningful in follow mode (a deliberate scrub is not clock drift).
+  useEffect(() => {
+    roundsRunRef.current = roundsRun;
+  }, [roundsRun]);
+  useEffect(() => installSoakHook({
+    rendererInfo: () => sceneRef.current?.debugInfo() ?? null,
+    nowDeltaMs: () => (followNowRef.current ? Date.now() - nowMsRef.current : null),
+    roundsRun: () => (roundsRunRef.current
+      ? { uuid: roundsRunRef.current.run_uuid, status: roundsRunRef.current.status }
+      : null),
+  }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
   // explicit follow mode (entered at bootstrap or by scrubbing to now) — a
@@ -999,15 +1015,9 @@ export default function PatientFlowNavigator({
           );
         },
         onUserCameraStart: () => setTourAuto(false),
-        // E-4 hover chip: element type + a non-identity name. Identity fields
-        // NEVER appear here regardless of lens (stricter than the inspector).
-        hoverLabel: (data) => {
-          const element = elementLabelFor(data);
-          if (!element) return null;
-          const name = data.label ?? data.bed ?? data.bed_code ?? data.location_name
-            ?? data.location ?? data.name ?? data.unit ?? data.status ?? null;
-          return name !== null && String(name) !== element ? `${element} · ${String(name)}` : element;
-        },
+        // E-4 hover chip: identity-free by construction AND by guard test —
+        // hoverLabelFor lives in sceneVocabulary, pinned by hoverLabel.test.ts.
+        hoverLabel: hoverLabelFor,
         onCameraMove: handleCameraMove,
         onFrame: (delta) => {
           if (!playingRef.current || liveRef.current) return;
