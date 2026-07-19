@@ -53,8 +53,11 @@ Self-review has a structural blind spot: it grades its own interpretation of the
 
 **Fix-now shipped:** F-4 copy (PR #42), F-3 census coral-counting + F-8 aria-labels + F-9 gold focus + F-10 24px/tabular-nums/faux-bold + F-11 soak listener + F-12 canon-in-CI (PR #43).
 **Fed into H3:** F-4 overlay labeling (SAGAT probe), F-5 present-view recovery (task T2), F-7 non-critical color states (element naming + CVD mix).
-**Pending [SU] rulings:** F-1 role-switcher ↔ lens unification; F-2 aggregate-lens rounds redaction (bed-level detail under `patient_dots = none`); F-3 inferred long-stay = delayed vs. watch.
-**Ruled 2026-07-19 [SU]:** F-9 — the navigator is a **dark-only wall instrument by design** and keeps **full motion**; light theme and `prefers-reduced-motion` are rejected-with-rationale (wall-display surface, operator-driven camera), recorded as a sanctioned exception.
+**Ruled 2026-07-19 [SU] (all four):**
+- **F-1 → server persona transition.** The role switch on the navigator page performs a server/Inertia persona transition through `EnforceFlowLens`; persona propagates to every lensed request. One canonical persona state. → `feature/flow4d-hfe-rulings`
+- **F-2 → centroid + server redaction.** Under `patient_dots = none` the rounds projection anchors at unit centroids and strips bed/facility-space/board deep link server-side, with a sentinel test. → `feature/flow4d-hfe-rulings`
+- **F-3 → inferred capped at amber.** Unverified duration-only stay risk maxes at `watch`; coral requires verification. Per-service validated targets remain the phase-2 refinement. → `feature/flow4d-hfe-rulings`
+- **F-9 → dark-only, full motion.** The navigator is a **dark-only wall instrument by design** and keeps **full motion**; light theme and `prefers-reduced-motion` are rejected-with-rationale (wall-display surface, operator-driven camera), recorded as a sanctioned exception in CLAUDE.md.
 **Queued follow-up engineering:** F-6 demo-refresh epoch atomicity; F-8 selectable delayed/barrier/stop list; F-11 app-level context-loss recovery; F-12 rendered-scene browser test.
 
 ---
