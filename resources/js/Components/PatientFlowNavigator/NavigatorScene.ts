@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
+import { patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
 import type { BarrierCell, BarrierSeverity, ProjectionAnchor } from '@/features/patientFlowNavigator/projections';
 import {
@@ -43,8 +44,19 @@ export interface CameraView {
   target: { x: number; y: number; z: number };
 }
 
+/**
+ * The one answer to "what is selected" (H1.3). Kinds with stable ids can be
+ * selected from any surface (click, search list, feed, tour) and their
+ * highlight survives layer rebuilds; other kinds (ghosts, base meshes) are
+ * mesh-only selections that live until the next rebuild.
+ */
+export interface SelectionEntity {
+  kind: 'patient' | 'occupancy' | 'barrier' | 'round-stop';
+  id: string;
+}
+
 export interface NavigatorSceneCallbacks {
-  onSelect: (data: Record<string, unknown>) => void;
+  onSelect: (data: Record<string, unknown>, entity: SelectionEntity | null) => void;
   onCameraMove: (view: CameraView) => void;
   onFrame: (deltaSeconds: number) => void;
   /**
@@ -131,7 +143,18 @@ export class NavigatorScene {
 
   private roundStopMeshByUuid = new Map<string, THREE.Mesh>();
 
+  // Entity registries (H1.3) — resolve a SelectionEntity back to its current
+  // mesh after any rebuild. tokenByPatient/roundStopMeshByUuid double as the
+  // patient and round-stop registries.
+  private heatMeshByLocation = new Map<string, THREE.Mesh>();
+
+  private barrierMeshById = new Map<string, THREE.Mesh>();
+
+  private selectedEntity: SelectionEntity | null = null;
+
   private baseCategoryMaterials = new Map<string, THREE.MeshStandardMaterial>();
+
+  private delayedCueMaterial: THREE.SpriteMaterial | null = null;
 
   private focusedRoundStopUuid: string | null = null;
 
@@ -246,8 +269,9 @@ export class NavigatorScene {
     if (!mesh) return;
     // E-5: hover clone must never be captured as a selection "original".
     this.clearHover();
+    this.selectedEntity = this.entityForMesh(mesh);
     this.applySelection(mesh);
-    this.callbacks.onSelect(this.hitData(mesh));
+    this.callbacks.onSelect(this.hitData(mesh), this.selectedEntity);
   };
 
   /**
@@ -399,12 +423,13 @@ export class NavigatorScene {
   }
 
   /**
-   * E-5: persistent selection highlight — survives until the next selection,
-   * Escape (orchestrator calls clearSelection), or a rebuild that removes the
-   * mesh. Round stops keep their dedicated focus path.
+   * E-5/H1.3: persistent selection highlight — survives until the next
+   * selection or Escape; for registered entity kinds it also survives layer
+   * rebuilds (the entity re-resolves to the fresh mesh). Round stops keep
+   * their dedicated focus-pulse path.
    */
   private applySelection(mesh: THREE.Mesh): void {
-    this.clearSelection();
+    this.clearSelectionVisual();
     if (mesh === this.focusedRoundMesh) return;
     const material = mesh.material;
     if (Array.isArray(material) || !(material instanceof THREE.MeshStandardMaterial)) return;
@@ -419,7 +444,8 @@ export class NavigatorScene {
     this.selectionMaterial = clone;
   }
 
-  clearSelection(): void {
+  /** Release the highlight clone only — the selected ENTITY survives. */
+  private clearSelectionVisual(): void {
     if (this.selectedMesh && this.selectedOriginalMaterial) {
       this.selectedMesh.material = this.selectedOriginalMaterial;
     }
@@ -427,6 +453,75 @@ export class NavigatorScene {
     this.selectionMaterial = null;
     this.selectedOriginalMaterial = null;
     this.selectedMesh = null;
+  }
+
+  /** Full deselect: entity + visual. The single Escape path. */
+  clearSelection(): void {
+    this.selectedEntity = null;
+    this.clearSelectionVisual();
+  }
+
+  /** Stable entity for a hit, or null for mesh-only kinds (ghost/base). */
+  private entityForMesh(mesh: THREE.Mesh): SelectionEntity | null {
+    const data = mesh.userData ?? {};
+    switch (data.kind) {
+      case 'patient-token':
+        return typeof data.patient_id === 'string' ? { kind: 'patient', id: data.patient_id } : null;
+      case 'occupancy-marker':
+      case 'occupancy-timer':
+        return typeof data.location === 'string' ? { kind: 'occupancy', id: data.location } : null;
+      case 'barrier':
+        return data.barrier_id !== undefined && data.barrier_id !== null
+          ? { kind: 'barrier', id: String(data.barrier_id) }
+          : null;
+      case 'round-stop':
+        return typeof data.round_patient_uuid === 'string'
+          ? { kind: 'round-stop', id: data.round_patient_uuid }
+          : null;
+      default:
+        return null;
+    }
+  }
+
+  private resolveEntityMesh(entity: SelectionEntity): THREE.Mesh | null {
+    switch (entity.kind) {
+      case 'patient':
+        return this.tokenByPatient.get(entity.id) ?? null;
+      case 'occupancy':
+        return this.heatMeshByLocation.get(entity.id) ?? null;
+      case 'barrier':
+        return this.barrierMeshById.get(entity.id) ?? null;
+      case 'round-stop':
+        return this.roundStopMeshByUuid.get(entity.id) ?? null;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Select by entity from any non-pointer surface (search list, feed, tour).
+   * Returns false when the entity is not currently resolvable in the scene.
+   */
+  selectEntity(entity: SelectionEntity | null): boolean {
+    this.selectedEntity = entity;
+    if (!entity) {
+      this.clearSelectionVisual();
+      return true;
+    }
+    const mesh = this.resolveEntityMesh(entity);
+    if (!mesh) {
+      this.clearSelectionVisual();
+      return false;
+    }
+    this.applySelection(mesh);
+    return true;
+  }
+
+  /** Re-attach the highlight after a rebuild replaced the selected mesh. */
+  private reapplySelection(): void {
+    if (!this.selectedEntity || this.selectedMesh) return;
+    const mesh = this.resolveEntityMesh(this.selectedEntity);
+    if (mesh) this.applySelection(mesh);
   }
 
   loadModel(url: string, onLoaded: () => void, onError: () => void): void {
@@ -515,22 +610,9 @@ export class NavigatorScene {
       token.position.set(state.position.x, state.position.y, state.position.z);
       token.scale.setScalar(state.event.event_category === 'movement' ? 1 : 0.82);
       token.visible = layerVisible;
-      token.userData = {
-        kind: 'patient-token',
-        ...(redactIdentity
-          ? {}
-          : {
-              patient_id: state.patientId,
-              patient_display_id: state.event.patient_display_id,
-              encounter_id: state.event.encounter_id,
-            }),
-        current_location: state.event.to_location,
-        service_line: state.event.service_line,
-        event_type: state.event.event_type,
-        event_category: state.event.event_category,
-        last_event_at: state.event.occurred_at,
-        recent_event_count: state.recent.length,
-      };
+      // Shared builder (H1.2): mesh userData and the search/feed selection
+      // path must present identical inspector payloads.
+      token.userData = patientTokenInspectorData(state, redactIdentity);
       visible.add(state.patientId);
     }
 
@@ -572,6 +654,7 @@ export class NavigatorScene {
   /** Bucketed rebuild: overhead occupancy disks with stay/timer state. */
   rebuildHeat(insights: OccupancyInsight[], layerVisible: boolean): number {
     this.clearGroup(this.heatLayer);
+    this.heatMeshByLocation.clear();
     if (!layerVisible) return 0;
 
     const stackByLocation = new Map<string, number>();
@@ -624,6 +707,24 @@ export class NavigatorScene {
         ...(insight.patientContextRef ? { patient_context_ref: insight.patientContextRef } : {}),
       };
       this.heatLayer.add(marker);
+      if (!this.heatMeshByLocation.has(insight.location)) {
+        this.heatMeshByLocation.set(insight.location, marker);
+      }
+
+      // H1.1 CVD-safe cue: delayed earns a SHAPE, not just coral — the
+      // green/coral axis collapses under deuteranopia. Triangle echoes the
+      // board's AlertTriangle; skipped for ok/watch (urgency stays earned).
+      if (insight.primaryStatus === 'delayed') {
+        const cue = new THREE.Sprite(this.delayedCueMaterialFor());
+        cue.position.set(
+          insight.position.x,
+          marker.position.y + 1.9,
+          insight.position.z,
+        );
+        cue.scale.set(1.9, 1.9, 1);
+        cue.userData = { ...marker.userData };
+        this.heatLayer.add(cue);
+      }
 
       insight.timers.slice(0, 4).forEach((timer, index) => {
         const angle = (index / 4) * Math.PI * 2 + Math.PI / 4;
@@ -660,7 +761,43 @@ export class NavigatorScene {
       });
     }
 
+    this.reapplySelection();
     return stackByLocation.size;
+  }
+
+  /** Cached triangle-warning sprite material for delayed disks (H1.1). */
+  private delayedCueMaterialFor(): THREE.SpriteMaterial {
+    if (!this.delayedCueMaterial) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const context = canvas.getContext('2d');
+      if (context) {
+        // Rounded triangle, coral fill, dark exclamation — legible as SHAPE
+        // regardless of color perception.
+        context.beginPath();
+        context.moveTo(32, 6);
+        context.lineTo(60, 56);
+        context.lineTo(4, 56);
+        context.closePath();
+        context.fillStyle = '#f06755';
+        context.fill();
+        context.lineWidth = 3;
+        context.strokeStyle = 'rgba(27, 31, 29, 0.9)';
+        context.stroke();
+        context.fillStyle = 'rgba(27, 31, 29, 0.95)';
+        context.fillRect(29, 20, 6, 22);
+        context.beginPath();
+        context.arc(32, 49, 3.4, 0, Math.PI * 2);
+        context.fill();
+      }
+      this.delayedCueMaterial = new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(canvas),
+        transparent: true,
+        depthWrite: false,
+      });
+    }
+    return this.delayedCueMaterial;
   }
 
   /**
@@ -724,6 +861,7 @@ export class NavigatorScene {
    */
   rebuildBarriers(cells: BarrierCell[], layerVisible: boolean): void {
     this.clearGroup(this.barrierLayer);
+    this.barrierMeshById.clear();
     if (!layerVisible) return;
 
     const stackByAnchor = new Map<string, number>();
@@ -736,6 +874,7 @@ export class NavigatorScene {
       const mesh = new THREE.Mesh(this.barrierGeometry, this.barrierMaterialFor(severity));
       mesh.position.set(anchor.x, anchor.y + 9 + stack * 5.2, anchor.z);
       mesh.scale.setScalar(BARRIER_SCALE[severity]);
+      this.barrierMeshById.set(String(barrier.barrier_id), mesh);
       mesh.userData = {
         kind: 'barrier',
         severity,
@@ -750,6 +889,7 @@ export class NavigatorScene {
       };
       this.barrierLayer.add(mesh);
     }
+    this.reapplySelection();
   }
 
   /**
@@ -823,6 +963,7 @@ export class NavigatorScene {
     if (this.focusedRoundStopUuid) {
       this.applyRoundFocus(this.focusedRoundStopUuid, false);
     }
+    this.reapplySelection();
   }
 
   /** Cached canvas-texture sprite material for a queue number. */
@@ -962,8 +1103,10 @@ export class NavigatorScene {
 
   /** Fly to the current selection; false when nothing is selected (N-6 `F`). */
   focusSelection(): boolean {
-    if (!this.selectedMesh) return false;
-    const { x, y, z } = this.selectedMesh.position;
+    const mesh = this.selectedMesh
+      ?? (this.selectedEntity ? this.resolveEntityMesh(this.selectedEntity) : null);
+    if (!mesh) return false;
+    const { x, y, z } = mesh.position;
     this.focusOn([{ x, y, z }]);
     return true;
   }
@@ -1016,6 +1159,10 @@ export class NavigatorScene {
     });
     this.routeSolidMaterial?.dispose();
     this.routeDashedMaterial?.dispose();
+    this.delayedCueMaterial?.map?.dispose();
+    this.delayedCueMaterial?.dispose();
+    this.heatMeshByLocation.clear();
+    this.barrierMeshById.clear();
     this.patientMaterials.forEach((material) => material.dispose());
     this.trailMaterials.forEach((material) => material.dispose());
     this.ghostMaterials.forEach((material) => material.dispose());
@@ -1186,7 +1333,8 @@ export class NavigatorScene {
     // highlight clone — otherwise the clone dangles and the restore targets a
     // detached mesh.
     if (this.hoveredMesh && this.hoveredMesh.parent === group) this.clearHover();
-    if (this.selectedMesh && this.selectedMesh.parent === group) this.clearSelection();
+    // Visual only: the selected ENTITY survives the rebuild and re-resolves.
+    if (this.selectedMesh && this.selectedMesh.parent === group) this.clearSelectionVisual();
     while (group.children.length) {
       const child = group.children.pop() as THREE.Mesh | undefined;
       if (!child) continue;

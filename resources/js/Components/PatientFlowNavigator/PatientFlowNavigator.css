@@ -761,11 +761,36 @@
 }
 
 .patient-flow-feed li {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 5px;
+}
+
+.patient-flow-feed li,
+.patient-flow-feed-row {
   display: grid;
   grid-template-columns: 104px 1fr;
   gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  padding-top: 5px;
+}
+
+/* H1.2: feed rows double as a selection path — button chrome stays quiet. */
+.patient-flow-feed-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.patient-flow-feed-row:hover span {
+  color: #f3efe5;
+}
+
+.patient-flow-feed-row:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 1px;
 }
 
 .patient-flow-statusbar {
@@ -1063,6 +1088,42 @@
   grid-column: 2;
   color: #b9b2a6;
   font-size: 11px;
+}
+
+/* --- Search-match selection list (H1.2) ----------------------------------- */
+
+.patient-flow-search-results {
+  grid-column: 2;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.patient-flow-search-results button {
+  width: 100%;
+  border: 1px solid rgba(239, 234, 220, 0.14);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ddd6c7;
+  font-size: 11px;
+  text-align: left;
+  padding: 4px 8px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-search-results button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3efe5;
+}
+
+.patient-flow-search-results button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
 }
 
 /* --- Saved views (N-7) ---------------------------------------------------- */

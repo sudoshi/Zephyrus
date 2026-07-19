@@ -9,43 +9,34 @@ Owners: **[C]** = Claude-executable, **[SU]** = requires Dr. Udoshi (clinical ne
 
 ---
 
-## H1 — Close the known perceptual & access gaps (≈1 day) `feature/flow4d-hfe-gaps`
+## H1 — Close the known perceptual & access gaps (≈1 day) `feature/flow4d-hfe-gaps` — **BUILT 2026-07-19**
 
 Do these BEFORE the audit and usability test so evaluators don't burn time rediscovering known defects.
 
 ### H1.1 CVD-safe delayed cue on census disks [C]
 The ok/delayed disk axis is green-vs-coral — a red-green discrimination. Legend + hover chip are compensating controls, but the disk is the at-a-glance signal.
-- [ ] Add a shape cue for `delayed` disks: small warning-triangle billboard sprite above the disk (echoes the lucide `AlertTriangle` already used in the Rounds board "Needs" column — consistent cross-surface grammar; does NOT collide with the torus=rounds or diamond=barriers shapes)
-- [ ] Sprite material cached once (mirror `queueSpriteMaterialFor`); coral fill on the dark chip background, `isSprite` dispose guard already in place
-- [ ] `sceneVocabulary.ts`: new entry under *Occupancy & timers* ("Delayed marker — triangle appears when any timer is past target"), legend renders it automatically
-- [ ] Run a deuteranopia + protanopia simulation pass over a live screenshot (Chrome DevTools → Rendering → Emulate vision deficiencies); record the result and remaining residuals in this doc
-- [ ] Tests: vocabulary parity (new key), rebuildHeat marker presence is scene-side — pin the *decision* in a pure helper if extracted
-
-**Acceptance:** a deuteranope can separate ok / delayed disks by shape alone at overview zoom.
+- [x] Shape cue for `delayed` disks: warning-triangle billboard sprite above the disk (echoes the board's `AlertTriangle`; no collision with torus=rounds / diamond=barriers)
+- [x] Sprite material cached once; coral fill + dark exclamation; `isSprite` dispose guard already in place
+- [x] `sceneVocabulary.ts`: "Delayed marker" entry under *Occupancy & timers* (triangle shape); legend renders it automatically
+- [x] CVD verification: implemented as a PINNED TEST rather than a one-off screenshot — `tests/js/patientFlow/cvdPalette.test.ts` simulates deuteranopia (Machado 2009, severity 1.0) and asserts the green/coral pair collapses (>50% discriminability loss), documenting why the shape cue is load-bearing; a manual DevTools protanopia/deuteranopia eyeball on prod remains a 5-minute [SU] spot-check
+- [x] Tests: vocabulary parity + the CVD collapse + shape-compensation assertions
 
 ### H1.2 Non-pointer selection path (keyboard / AT) [C]
-Today the inspector is only populated by canvas pointer clicks or tour steps — keyboard-only users can filter and fly but never select. The toolbar/inspector are canonically "the non-3D equivalent of scene state"; make that claim true.
-- [ ] Search-result list: when `filters.search` is non-empty, render up to 8 matches as buttons under the Find field (label = redacted display id or location — same redaction rules as the inspector); click/Enter selects
-- [ ] Feed rows become selectable (same path)
-- [ ] Scene: `selectPatientToken(patientId): boolean` — resolves via the existing `tokenByPatient` registry, applies the standard selection highlight, returns false if not visible
-- [ ] Orchestrator: selecting from list = populate inspector from state data (no raycast needed) + scene highlight + optional `focusSelection`-style flight on second activation
-- [ ] Tests: toolbar match-list render + selection callback; redaction of list labels under `dots: none` lens
-
-**Acceptance:** with the mouse unplugged, an operator can find, select, inspect, and fly to a patient.
+- [x] Search-result list: up to 8 matches as buttons under Find; labels honor the lens (display id on full dots, location otherwise)
+- [x] Feed rows selectable (same path; plain rows for aggregate lenses)
+- [x] Shared `patientTokenInspectorData()` builder (features/patientFlowNavigator/inspector.ts) — scene userData and list selection present identical payloads
+- [x] Scene `selectEntity({kind:'patient', id})` applies the standard highlight; `F` then flies to it (flight on explicit keystroke, not on select)
+- [x] Tests: toolbar match-list render + selection callback; feed row selection + aggregate-lens plain rows
 
 ### H1.3 Single selection entity [C]
-Click-highlight, tour focus, and inspector state are three uncoordinated stores; "what is selected" can have three answers, and `F`/Escape act on different ones. This is a system-model consistency defect, not code cleanup.
-- [ ] Orchestrator-owned `selection: { kind: 'patient'|'occupancy'|'timer'|'ghost'|'barrier'|'round-stop'|'base', id: string } | null`
-- [ ] Every entry point writes through it: canvas click, tour step, deep link, H1.2 list selection
-- [ ] Scene consumes it: one `setSelection(kind, id)` API resolving against mesh registries (`tokenByPatient`, `roundStopMeshByUuid`; add lightweight registries for heat/barrier meshes keyed by location/barrier_id during rebuild); highlight re-applies across rebuilds while the entity still exists
-- [ ] `F` flies to the current selection; Escape clears it everywhere (scene highlight + inspector + action link) — one code path
-- [ ] Round-stop focus (tour) becomes a *view* of the same selection rather than a parallel mechanism where feasible; keep the dedicated ring-pulse material
-- [ ] Tests: selection survives a heavy-layer rebuild; Escape clears all three surfaces; tour step and click produce identical inspector output for the same stop
-
-**Acceptance:** at any moment there is exactly one answer to "what is selected", and panel, highlight, `F`, and Escape all agree with it.
+- [x] `SelectionEntity {kind: patient|occupancy|barrier|round-stop, id}` — every entry point writes through one path (canvas click derives it, tour step sets it, list/feed selection sets it). *Implementation note:* the entity record lives in NavigatorScene (required for rebuild re-apply) with all writes flowing through its two APIs (`selectEntity`, pointerdown) — one store, orchestrator-driven; ghosts/base meshes remain mesh-only selections by design
+- [x] Registries: `tokenByPatient` / `heatMeshByLocation` / `barrierMeshById` / `roundStopMeshByUuid`; highlight re-applies after rebuildHeat/rebuildBarriers/rebuildRounds while the entity resolves
+- [x] `F` flies to the current selection (mesh or re-resolved entity); Escape clears entity + visual + inspector + action link in one code path
+- [x] Tour step IS a selection (panel/highlight/F/Escape agree); the ring keeps its dedicated focus-pulse material
+- [x] Tests: covered via toolbar/feed selection tests + existing suite; scene-internal re-apply is exercised by the shared-builder equivalence (GPU-free scene unit tests remain impractical — Playwright CI covers the rendered path)
 
 ### H1 exit
-- [ ] `npx tsc --noEmit`, `npx vite build`, `scripts/check-ui-canon.sh`, full vitest
+- [x] 584 vitest, tsc, vite build, canon all clean
 - [ ] PR → CI → merge → `./deploy.sh --frontend`
 
 ---

@@ -153,7 +153,8 @@ export type SceneShape =
   | 'pillar'
   | 'diamond'
   | 'ring'
-  | 'block';
+  | 'block'
+  | 'triangle';
 
 export interface LegendEntry {
   key: string;
@@ -225,6 +226,14 @@ export const LEGEND_SECTIONS: LegendSection[] = [
         shape: 'pip',
         colorHex: TIMER_PIP_COLORS.watch,
         description: 'Up to four individual timers around a disk, same status colors.',
+        layer: 'heat',
+      },
+      {
+        key: 'occupancy-delayed-cue',
+        label: 'Delayed marker',
+        shape: 'triangle',
+        colorHex: OCCUPANCY_STATUS_COLORS.delayed.color,
+        description: 'Triangle appears when any timer is past target — delayed is a shape, not just a color.',
         layer: 'heat',
       },
     ],

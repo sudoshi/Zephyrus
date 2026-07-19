@@ -40,6 +40,8 @@ function LegendGlyph({ shape, colorHex }: { shape: SceneShape; colorHex: number 
       return <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke={color} strokeWidth="2.4" /></svg>;
     case 'block':
       return <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="11" height="8" rx="1.5" fill={color} opacity="0.85" /></svg>;
+    case 'triangle':
+      return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2 L15 14 L1 14 Z" fill={color} /></svg>;
     default:
       return null;
   }

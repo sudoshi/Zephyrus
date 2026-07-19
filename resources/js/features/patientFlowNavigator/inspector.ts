@@ -1,5 +1,32 @@
-import type { OccupancyInsight } from './types';
+import type { OccupancyInsight, PatientVisibleState } from './types';
 import { formatDurationMinutes, formatRelativeDurationMinutes } from '@/lib/duration';
+
+/**
+ * Patient-token payload — ONE builder for the scene's mesh userData and the
+ * non-pointer selection path (search list / feed), so the inspector shows the
+ * same fields regardless of how the patient was selected (H1.2/H1.3).
+ */
+export function patientTokenInspectorData(
+  state: PatientVisibleState,
+  redactIdentity: boolean,
+): Record<string, unknown> {
+  return {
+    kind: 'patient-token',
+    ...(redactIdentity
+      ? {}
+      : {
+          patient_id: state.patientId,
+          patient_display_id: state.event.patient_display_id,
+          encounter_id: state.event.encounter_id,
+        }),
+    current_location: state.event.to_location,
+    service_line: state.event.service_line,
+    event_type: state.event.event_type,
+    event_category: state.event.event_category,
+    last_event_at: state.event.occurred_at,
+    recent_event_count: state.recent.length,
+  };
+}
 
 export function occupancyInspectorData(insight: OccupancyInsight): Record<string, unknown> {
   return {
