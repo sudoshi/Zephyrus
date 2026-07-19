@@ -37,7 +37,7 @@ The ok/delayed disk axis is green-vs-coral — a red-green discrimination. Legen
 
 ### H1 exit
 - [x] 584 vitest, tsc, vite build, canon all clean
-- [ ] PR → CI → merge → `./deploy.sh --frontend`
+- [x] PR → CI → merge → `./deploy.sh --frontend` — PR #40 merged 2026-07-19 (15/15 green, merge `6410303`), deployed at `4ce1c7d`; live chunk verified over HTTPS ("Delayed marker" + "Search matches" present). Remaining manual: [SU] 5-minute DevTools vision-deficiency spot-check on prod
 
 ---
 
