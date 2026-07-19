@@ -122,6 +122,16 @@ class MobilePersonaCatalog
 
     private function defaultForUser(?User $user): string
     {
+        // A broad-access operator with no explicit persona gets the HOUSE
+        // lens, not the first unit persona: allowedForUser() lists every
+        // role, and defaulting to allowed[0] (charge_nurse, unit depth) made
+        // the 4D navigator silently collapse to one auto-selected unit for
+        // admins (2026-07-19). house_supervisor also matches the mobile
+        // catalog default pinned by MobileRoleCatalogParityTest.
+        if ($this->isBroadAccessUser($user)) {
+            return 'house_supervisor';
+        }
+
         $allowed = $this->allowedForUser($user);
 
         return $allowed[0] ?? 'house_supervisor';

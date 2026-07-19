@@ -7,6 +7,7 @@ use App\Models\PatientFlow\FlowEncounter;
 use App\Models\PatientFlow\FlowEvent;
 use App\Models\PatientFlow\PatientIdentity;
 use App\Models\Unit;
+use App\Support\Hospital\HospitalManifest;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -210,8 +211,25 @@ class FlowEventRepository
         }
 
         $spaceId = $event->to_facility_space_id !== null ? (int) $event->to_facility_space_id : null;
+        if ($spaceId !== null && isset($this->unitIdsBySpace[$spaceId])) {
+            return $this->unitIdsBySpace[$spaceId];
+        }
 
-        return $spaceId !== null ? ($this->unitIdsBySpace[$spaceId] ?? null) : null;
+        // Scene-code prefix fallback: ED bays and other spaces without a
+        // unit_code attribute lead with the unit's CAD prefix in their scene
+        // code ('ED-TRIAGE-002' → 'ED'). Without this, every ED event carried
+        // unit_id null and vanished under unit-depth lenses (2026-07-19).
+        $locationCode = isset($location['location_code']) && is_scalar($location['location_code'])
+            ? strtoupper(trim((string) $location['location_code']))
+            : null;
+        if ($locationCode !== null && $locationCode !== '') {
+            $prefix = explode('-', $locationCode, 2)[0];
+            if (isset($this->unitIdsByCode[$prefix])) {
+                return $this->unitIdsByCode[$prefix];
+            }
+        }
+
+        return null;
     }
 
     private function loadUnitMaps(): void
@@ -235,6 +253,21 @@ class FlowEventRepository
 
         foreach (Bed::query()->where('is_deleted', false)->whereNotNull('facility_space_id')->get(['facility_space_id', 'unit_id']) as $bed) {
             $this->unitIdsBySpace[(int) $bed->facility_space_id] = (int) $bed->unit_id;
+        }
+
+        // Manifest CAD bridge: facility spaces carry the CAD vocabulary in
+        // attributes.unit_code (MICU3, MS5B, TEL7A) while prod.units carries
+        // operational abbreviations (MICU, 5E, 7E). The two never string-match,
+        // which left ~78% of flow events with unit_id null — invisible under
+        // any unit-depth lens (2026-07-19). The hospital manifest is the
+        // authoritative abbr↔cad_code pairing.
+        foreach ((new HospitalManifest)->units() as $manifestUnit) {
+            $abbr = strtoupper(trim((string) ($manifestUnit['abbr'] ?? '')));
+            $cad = strtoupper(trim((string) ($manifestUnit['cad_code'] ?? '')));
+            if ($abbr === '' || $cad === '' || $cad === $abbr || ! isset($this->unitIdsByCode[$abbr])) {
+                continue;
+            }
+            $this->unitIdsByCode[$cad] = $this->unitIdsByCode[$abbr];
         }
     }
 
