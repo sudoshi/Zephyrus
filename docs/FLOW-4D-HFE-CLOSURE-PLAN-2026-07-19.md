@@ -1,7 +1,7 @@
 # Patient Flow 4D Navigator — HFE Closure Plan
 
 **Date:** 2026-07-19
-**Status:** H1 + H3.1 protocol + H4 tooling/hook + H5.2 register all DONE and deployed (prod `056e568`); H2 audit, H3 sessions, H4 runs, and H5.1 tour remain user-gated. Interim devlog: [DEVLOG-flow4d-hfe-closure-2026-07-19.md](./DEVLOG-flow4d-hfe-closure-2026-07-19.md)
+**Status:** H1, H2 (audit + all 12 dispositions + fix-now tranche + all 4 [SU] rulings), H3.1 protocol, H4 tooling/hook, H5.1 tour, and H5.2 register all DONE and deployed (prod `fd2d6e6`); the F-1/F-2/F-3 ruling implementations are PR #44 (in CI). Remaining user-gated: H3 sessions, H4 runs (wall box + soak account), the H1 vision-deficiency spot-check. Interim devlog: [DEVLOG-flow4d-hfe-closure-2026-07-19.md](./DEVLOG-flow4d-hfe-closure-2026-07-19.md)
 **Predecessor:** [FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md](./FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md) (Phases 0–3 merged + deployed at `2066e5c`, incl. 20-finding deep-review remediation `a90abff`).
 **Purpose:** everything shipped so far is validated by *heuristic* evaluation (plan audit, multi-angle self-review, design hook, canon tests). This plan closes the gap to a defensible human-factors conclusion: fix the known perceptual/access defects, obtain an independent audit, validate empirically with representative users, prove the long-session claims in the field, and institutionalize the invariants.
 
@@ -51,7 +51,7 @@ Self-review has a structural blind spot: it grades its own interpretation of the
 
 **Acceptance met:** every audit finding has a disposition in writing.
 
-**Fix-now shipped:** F-4 copy (PR #42), F-3 census coral-counting + F-8 aria-labels + F-9 gold focus + F-10 24px/tabular-nums/faux-bold + F-11 soak listener + F-12 canon-in-CI (PR #43).
+**Fix-now shipped:** F-4 copy (PR #42, merge `c8116d8`); F-3 census coral-counting + F-8 aria-labels + F-9 gold focus + F-10 24px/tabular-nums/faux-bold + F-11 soak listener + F-12 canon-in-CI (PR #43, merge `fd2d6e6`) — both **deployed `fd2d6e6` 2026-07-19, live-chunk verified** (intro markers, aria-labels, 24 px minimums confirmed in the served assets; the canon CI step proved itself green on both PRs' runs).
 **Fed into H3:** F-4 overlay labeling (SAGAT probe), F-5 present-view recovery (task T2), F-7 non-critical color states (element naming + CVD mix).
 **Ruled 2026-07-19 [SU] (all four):**
 - **F-1 → server persona transition.** The role switch on the navigator page performs a server/Inertia persona transition through `EnforceFlowLens`; persona propagates to every lensed request. One canonical persona state. → `feature/flow4d-hfe-rulings`
@@ -117,12 +117,12 @@ Code-verified ≠ field-verified. Prod is a 6 h-refresh demo wall — test acros
 
 ## H5 — Discoverability & institutionalization (≈1 day) `feature/flow4d-onboarding` [C]
 
-### H5.1 First-run guided tour
+### H5.1 First-run guided tour — **SHIPPED 2026-07-19** (PR #42, merge `c8116d8`, deployed `fd2d6e6`, live-chunk verified)
 The legend solves *reference* ("what is this?"); nothing yet solves *discovery* ("what can I do?").
-- [ ] 5-stop react-joyride tour (already a dependency; note `--legacy-peer-deps`): ① Census scope + chip, ② chronobar Now + jump ticks, ③ Key legend, ④ floor rail + `?` keymap, ⑤ Rounds HUD/tour (step renders only when a run is loaded)
-- [ ] Persona-keyed one-time dismissal: `flow4d.tour.{role}` in localStorage (same guarded-read pattern as saved views); re-launchable from the shortcut sheet ("Replay intro")
-- [ ] Tour styling within canon (surface tokens, gold focus); copy in operator language, no jargon
-- [ ] Tests: renders once, dismissal persists, re-launch works, storage-blocked degrades silently
+- [x] 5-stop tour: ① Census scope + chip, ② chronobar Now + jump ticks, ③ Key legend, ④ floor rail + `?` keymap, ⑤ Rounds HUD/tour (stop renders only when a run is loaded). *Plan correction: react-joyride was never actually a Zephyrus dependency — hand-rolled coach-mark (`NavigatorIntro.tsx` + `introTour.ts`) in the sanctioned overlay style instead; no new dependency.* Temporal copy fixed per audit F-4 ("past 24 h / projected next 24", "present" not "live")
+- [x] Persona-keyed one-time dismissal: `flow4d.tour.{role}` in localStorage (savedViews guarded pattern); re-launchable from the shortcut sheet ("Replay intro"); Escape dismisses through the same one-time path
+- [x] Styling within canon: overlay family, gold-tint notice ring (deliberately outside the status-color space), 24 px buttons, gold `:focus-visible`; copy in operator language
+- [x] Tests (+11): renders/advances/dismisses, rounds-stop gating, shrink-clamp, and storage-blocked degrades to **never auto-start** — a kiosk wall on the 6 h demo refresh must not loop the welcome card
 
 ### H5.2 HFE decisions register + guard map
 - [x] Append an **HFE Decisions** section to the advancement plan doc: one row per doctrine — earned urgency, never-color-alone, wrong-toggle separation, explicit camera actions, identity-free scene payloads, follow-mode time slide, 24px targets — each with its rationale and its *named automated guard* (hue-clamp property test, vocabulary parity test, rounds coral-ban test, toolbar census-scope tests, hover-label identity exclusion, canon script) — **§12 of the advancement plan, 2026-07-19** (+ selection-entity row; follow-mode's guard is honestly the H4 soak drift assertion, not a unit test)
