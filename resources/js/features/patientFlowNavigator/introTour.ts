@@ -47,7 +47,7 @@ const BASE_STOPS: IntroStop[] = [
   {
     id: 'chronobar',
     title: 'Time travel',
-    body: 'Drag anywhere on the bar to scrub the last 48 hours. Now snaps back to live, and the small ticks jump straight to shift changes and barrier events.',
+    body: 'Drag anywhere on the bar to review the past 24 hours or preview the projected next 24. Now returns to the present, and the small ticks jump straight to shift changes and barrier events.',
     anchor: '.patient-flow-chronobar',
   },
   {
