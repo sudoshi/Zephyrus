@@ -1360,3 +1360,93 @@
     display: none;
   }
 }
+
+/* --- First-run intro tour (HFE closure H5.1) ------------------------------ */
+
+.patient-flow-shortcut-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.patient-flow-intro {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  background: rgba(27, 31, 29, 0.96);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  padding: 14px;
+}
+
+.patient-flow-intro:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-intro strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #f3efe5;
+  font-size: 13px;
+}
+
+.patient-flow-intro p {
+  margin: 0 0 12px;
+  color: #b9b2a6;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.patient-flow-intro-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.patient-flow-intro-count {
+  color: #b9b2a6;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-intro-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.patient-flow-intro-buttons button {
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: #2a2f2c;
+  color: #ddd6c7;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.patient-flow-intro-buttons button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-intro-buttons .patient-flow-intro-primary {
+  border-color: rgba(224, 163, 63, 0.5);
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+/* Anchor outline: the filter-chip "notice" gold tint — deliberately NOT a
+   status color, so the intro can never counterfeit urgency. */
+.patient-flow-intro-ring {
+  position: fixed;
+  z-index: 6;
+  border: 2px solid rgba(224, 163, 63, 0.75);
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(224, 163, 63, 0.15);
+  pointer-events: none;
+}
