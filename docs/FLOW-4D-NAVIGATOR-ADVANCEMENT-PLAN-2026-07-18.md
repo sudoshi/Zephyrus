@@ -290,9 +290,13 @@ Each phase is independently shippable and PR-sized. Frontend checks per project 
 
 ## 12. HFE Decisions Register (closure plan H5.2)
 
-One row per doctrine: why the invariant exists, and the *named automated guard* that
-breaks in CI if a future change violates it. A new contributor should read this table
-before "simplifying" anything that looks redundant — most of the redundancy is the point.
+One row per doctrine: why the invariant exists, and the *named guard*. Guards come in
+two kinds (audit F-12): **CI guards** — the Vitest/PHPUnit suites and `check-ui-canon.sh`
+(wired into the frontend CI job 2026-07-19) break the build on violation — and
+**field guards** — the H4 soak / urgency-census scripts, which only observe the live
+wall and are labeled as such in their rows; they gate field acceptance, not merges.
+A new contributor should read this table before "simplifying" anything that looks
+redundant — most of the redundancy is the point.
 
 | Doctrine | Rationale | Automated guard |
 |---|---|---|

@@ -131,15 +131,21 @@ async function main() {
     }
   });
 
+  // Context-loss sentinel must be (re)installed after EVERY navigation — a
+  // re-login replaces the document and would silently drop it (audit F-11).
+  async function armContextLossSentinel() {
+    await page.evaluate(() => {
+      document.querySelector('canvas')?.addEventListener('webglcontextlost', () => {
+        window.__FLOW4D_CONTEXT_LOST__ = true;
+      });
+    });
+  }
+
   await login(page, config);
   const navigatorUrl = `${config.baseUrl}${NAVIGATOR_PATH}${config.persona ? `?persona=${config.persona}` : ''}`;
   await page.goto(navigatorUrl, { waitUntil: 'networkidle' });
   await page.waitForSelector('canvas', { timeout: 60_000 });
-  await page.evaluate(() => {
-    document.querySelector('canvas')?.addEventListener('webglcontextlost', () => {
-      window.__FLOW4D_CONTEXT_LOST__ = true;
-    });
-  });
+  await armContextLossSentinel();
 
   const totalSamples = Math.max(1, Math.round((durationHours * 60) / sampleMinutes));
   console.log(`Soaking ${navigatorUrl} for ${durationHours}h, sampling every ${sampleMinutes}min → ${outDir}`);
@@ -155,6 +161,7 @@ async function main() {
       await login(page, config);
       await page.goto(navigatorUrl, { waitUntil: 'networkidle' });
       await page.waitForSelector('canvas', { timeout: 60_000 });
+      await armContextLossSentinel();
     }
     const sample = await captureSample(page, i);
     samples.push(sample);

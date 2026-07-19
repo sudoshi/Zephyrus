@@ -248,6 +248,9 @@ jobs:
       - name: Vite production build
         run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
 
+      - name: UI canon check
+        run: bash scripts/capture-release-evidence.sh frontend-ui-canon bash scripts/check-ui-canon.sh
+
       - name: Upload frontend evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -252,3 +252,17 @@ describe('NavigatorToolbar replay labeling (N-8)', () => {
     expect(replayButton).toHaveAttribute('title', 'Stream stored replay (not a live feed)');
   });
 });
+
+describe('NavigatorToolbar icon-button accessible names (audit F-8)', () => {
+  it('exposes explicit accessible names on every icon action, not title-only', () => {
+    renderToolbar({ eddyEnabled: true });
+
+    const play = screen.getByRole('button', { name: 'Play replay' });
+    expect(play).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Reset view' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Focus active patients' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Ask Eddy about timer and service-line pressure' }),
+    ).toBeInTheDocument();
+  });
+});

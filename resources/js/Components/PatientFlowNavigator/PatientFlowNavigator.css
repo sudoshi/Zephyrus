@@ -137,6 +137,7 @@
 /* One-click return to the present (N-1) — gold, the now/focus accent. */
 .patient-flow-chronobar-now-button {
   flex: 0 0 auto;
+  min-height: 24px;
   border: 1px solid rgba(224, 163, 63, 0.55);
   border-radius: 5px;
   background: rgba(224, 163, 63, 0.12);
@@ -414,11 +415,12 @@
   outline: none;
 }
 
+/* Gold focus per canon (audit F-9) — focus is the one gold-only semantic. */
 .patient-flow-control-grid select:focus,
 .patient-flow-control-grid input:focus,
 .patient-flow-icon-button:focus-visible {
-  border-color: #64bfd0;
-  box-shadow: 0 0 0 2px rgba(100, 191, 208, 0.25);
+  border-color: #e0a33f;
+  box-shadow: 0 0 0 2px rgba(224, 163, 63, 0.25);
 }
 
 /* Census scope segmented control (B-2) — a filter, deliberately styled unlike
@@ -540,8 +542,8 @@
   box-sizing: border-box !important;
   position: relative;
   flex: 0 0 auto;
-  width: 34px !important;
-  height: 20px !important;
+  width: 40px !important;
+  height: 24px !important;
   min-height: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -557,9 +559,9 @@
   content: '';
   position: absolute;
   top: 50%;
-  left: 2px;
-  width: 14px;
-  height: 14px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #f4f5f7;
   transform: translateY(-50%);
@@ -573,7 +575,7 @@
 }
 
 .patient-flow-checkbox-row input[type='checkbox']:checked::after {
-  left: calc(100% - 16px);
+  left: calc(100% - 21px);
 }
 
 .patient-flow-checkbox-row input[type='checkbox']:focus-visible {
@@ -596,10 +598,13 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* 600 is the heaviest loaded Figtree weight (700 renders faux-bold);
+   tabular-nums stops live-update jitter (audit F-10). */
 .patient-flow-metrics span {
   display: block;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .patient-flow-metrics small {
@@ -1050,6 +1055,7 @@
 
 .patient-flow-floor-rail button {
   min-width: 30px;
+  min-height: 24px;
   border: 0;
   border-radius: 5px;
   background: transparent;

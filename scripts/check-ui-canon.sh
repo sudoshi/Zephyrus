@@ -2,7 +2,8 @@
 # check-ui-canon.sh — Zephyrus UI consistency guardrail.
 #
 # Fails (exit 1) on unambiguous token-canon violations in resources/js
-# (the Design swatch gallery is exempt). Wire into CI or a pre-commit hook.
+# (the Design swatch gallery is exempt). Runs in CI (frontend job "UI canon
+# check", wired 2026-07-19 per HFE audit F-12); also suitable as a pre-commit hook.
 # The interactive impeccable design hook remains the broad-judgment layer;
 # this script is the unambiguous floor that survives worktree/CI commits
 # where the interactive hook does not run.
