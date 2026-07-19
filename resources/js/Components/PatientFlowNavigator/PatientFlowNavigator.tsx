@@ -55,7 +55,7 @@ import type {
   PatientVisibleState,
   ProjectionItem,
 } from '@/features/patientFlowNavigator/types';
-import { occupancyInspectorData } from '@/features/patientFlowNavigator/inspector';
+import { occupancyInspectorData, patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { elementLabelFor } from '@/features/patientFlowNavigator/sceneVocabulary';
 import {
   mergeLayers,
@@ -337,6 +337,7 @@ export default function PatientFlowNavigator({
   const [feed, setFeed] = useState<PatientFlowEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
+  const [searchResults, setSearchResults] = useState<Array<{ patientId: string; label: string }>>([]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -603,7 +604,18 @@ export default function PatientFlowNavigator({
         || new Set((barrierFinderRef.current || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
     });
     // N-5: the Find field shows how many tokens the search matched.
-    setSearchMatches(filtersRef.current.search.trim() ? states.length : null);
+    // H1.2: the first matches render as a selectable list — the keyboard/AT
+    // path to selection. Labels honor the lens (identity only on full dots).
+    const searching = filtersRef.current.search.trim() !== '';
+    setSearchMatches(searching ? states.length : null);
+    setSearchResults(searching
+      ? states.slice(0, 8).map((state) => ({
+          patientId: state.patientId,
+          label: dotsPolicy === null || dotsPolicy === 'full'
+            ? (state.event.patient_display_id ?? state.patientId)
+            : (state.event.to_location ?? 'Unknown location'),
+        }))
+      : []);
   }, [dotsPolicy, lens, patientDotsVisible]);
 
   // Keep refs in sync with state, then repaint.
@@ -1137,6 +1149,23 @@ export default function PatientFlowNavigator({
     if (points.length) sceneRef.current?.focusOn(points);
   }, []);
 
+  // H1.2: the non-pointer selection path — search list and feed rows select
+  // exactly what a canvas click on that token would (same builder, same
+  // redaction, same scene highlight via the selection entity).
+  const selectPatientFromList = useCallback((patientId: string): void => {
+    const state = lastVisibleStatesRef.current.find((candidate) => candidate.patientId === patientId);
+    if (!state) return;
+    const redactIdentity = dotsPolicy !== null && dotsPolicy !== 'full';
+    const data = patientTokenInspectorData(state, redactIdentity);
+    const redacted = redactSelection(data, dotsPolicy);
+    const element = elementLabelFor(data);
+    const name = String(redacted.patient_display_id ?? redacted.current_location ?? 'Patient');
+    setInspectorTitle(element && element !== name ? `${element} · ${name}` : name);
+    setInspectorRows(flattenInspector(redacted));
+    setInspectorAction(null);
+    sceneRef.current?.selectEntity({ kind: 'patient', id: patientId });
+  }, [dotsPolicy]);
+
   // N-7: three persona-keyed camera/floor/layers bookmarks. The updater
   // stays pure — persistence happens outside setState.
   const saveView = useCallback((slot: number): void => {
@@ -1287,6 +1316,9 @@ export default function PatientFlowNavigator({
     const cell = tourStops[next];
     requestStopFocus(cell.stop.round_patient_uuid);
     showStopInspector(cell.stop);
+    // H1.3: a tour step IS a selection — panel, highlight, F, and Escape all
+    // point at the same stop.
+    sceneRef.current?.selectEntity({ kind: 'round-stop', id: cell.stop.round_patient_uuid });
   }, [requestStopFocus, showStopInspector, tourStops]);
 
   const tourStopsRef = useRef(tourStops);
@@ -1433,6 +1465,8 @@ export default function PatientFlowNavigator({
         onBarrierFinderChange={setBarrierFinder}
         onAskEddy={askEddy}
         searchMatches={searchMatches}
+        searchResults={searchResults}
+        onSelectSearchResult={selectPatientFromList}
         onSearchSubmit={focusSearchMatches}
         savedViews={views.map((view) => view !== null)}
         onSaveView={saveView}
@@ -1444,7 +1478,11 @@ export default function PatientFlowNavigator({
         onTourAutoToggle={toggleTourAuto}
       />
 
-      <NavigatorFeed feed={feed} redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'} />
+      <NavigatorFeed
+        feed={feed}
+        redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'}
+        onSelectPatient={patientDotsVisible ? selectPatientFromList : undefined}
+      />
 
       <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
 

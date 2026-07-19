@@ -67,6 +67,9 @@ interface NavigatorToolbarProps {
   onBarrierFinderChange: (value: boolean) => void;
   /** Token count for the active search, null when the field is empty (N-5). */
   searchMatches: number | null;
+  /** First matches as a selectable list — the non-pointer path (H1.2). */
+  searchResults: Array<{ patientId: string; label: string }>;
+  onSelectSearchResult: (patientId: string) => void;
   /** Enter in Find — fly to the matched tokens (N-5). */
   onSearchSubmit: () => void;
   /** Which saved-view slots hold a view (N-7). */
@@ -111,6 +114,8 @@ export default function NavigatorToolbar({
   onLayerChange,
   onBarrierFinderChange,
   searchMatches,
+  searchResults,
+  onSelectSearchResult,
   onSearchSubmit,
   savedViews,
   onSaveView,
@@ -311,6 +316,19 @@ export default function NavigatorToolbar({
               ? '0 matches — check spelling or floor filter'
               : `${searchMatches} ${searchMatches === 1 ? 'match' : 'matches'} · Enter flies to them`}
           </small>
+        )}
+
+        {/* H1.2: selectable matches — selection without a pointer or canvas. */}
+        {searchResults.length > 0 && (
+          <ul className="patient-flow-search-results" aria-label="Search matches">
+            {searchResults.map((result) => (
+              <li key={result.patientId}>
+                <button type="button" onClick={() => onSelectSearchResult(result.patientId)}>
+                  {result.label}
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
 
         {/* Census scope, not a layer (B-2): "Delayed" filters the occupancy

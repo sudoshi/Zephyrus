@@ -50,6 +50,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onLayerChange: vi.fn(),
     onBarrierFinderChange: vi.fn(),
     onSearchSubmit: vi.fn(),
+    onSelectSearchResult: vi.fn(),
     onSaveView: vi.fn(),
     onApplyView: vi.fn(),
     onTourPrev: vi.fn(),
@@ -77,6 +78,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       occupancy={occupancy}
       eddyEnabled={false}
       searchMatches={null}
+      searchResults={[]}
       savedViews={[false, false, false]}
       roundsHud={null}
       tourAuto={false}
@@ -168,6 +170,29 @@ describe('NavigatorToolbar search (N-5)', () => {
     expect(screen.getByText('0 matches — check spelling or floor filter')).toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' });
     expect(handlers.onFiltersChange).toHaveBeenCalledWith({ search: '' });
+  });
+});
+
+describe('NavigatorToolbar search-result selection (H1.2)', () => {
+  it('lists matches as buttons that select without a pointer on the canvas', () => {
+    const handlers = renderToolbar({
+      filters: { floor: 'all', serviceLine: 'all', category: 'all', search: 'PT' },
+      searchMatches: 2,
+      searchResults: [
+        { patientId: 'p-1', label: 'PT-0001' },
+        { patientId: 'p-2', label: 'PT-0002' },
+      ],
+    });
+
+    const list = screen.getByRole('list', { name: 'Search matches' });
+    expect(list).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'PT-0002' }));
+    expect(handlers.onSelectSearchResult).toHaveBeenCalledWith('p-2');
+  });
+
+  it('renders no list when the search is empty', () => {
+    renderToolbar();
+    expect(screen.queryByRole('list', { name: 'Search matches' })).not.toBeInTheDocument();
   });
 });
 
