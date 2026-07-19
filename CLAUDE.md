@@ -54,6 +54,10 @@ tokens. The **impeccable design hook** flags violations on every edit — keep i
   gallery); categorical chart palettes / Nivo schemes / reactflow handle ports /
   dynamic `bg-${…}` classes (data-driven, not status). The RTDC status CSS-vars
   (`var(--critical)` etc.) are fine — they resolve to the same tokens.
+  The **Patient Flow 4D Navigator** (`Components/PatientFlowNavigator/*` overlay CSS +
+  WebGL scene) is a **dark-only wall instrument by design with full motion** ([SU]
+  ruling 2026-07-19, HFE audit F-9) — don't theme it light, don't add reduced-motion
+  gating, don't migrate its scoped overlay palette to Tailwind tokens.
   **Zephyrus 2.0 wall mode:** `text-[11px]` micro-captions are sanctioned ONLY inside
   `Components/cockpit/` (dense wall-display captions — see docs/ZEPHYRUS-2.0-PLAN.md
   Part IV §2); everywhere else the `text-xs` floor holds.
