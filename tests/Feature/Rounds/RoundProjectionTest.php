@@ -66,6 +66,30 @@ class RoundProjectionTest extends TestCase
         $this->assertNotNull($flags);
     }
 
+    public function test_scene_projection_strips_bed_level_context_for_aggregate_lenses(): void
+    {
+        // F-2 ruling (2026-07-19): under patient_dots = none, bed + queue +
+        // status is re-identifiable at ward level on a shared wall — the
+        // projection anchors at unit centroids (bed/facility_space stripped).
+        $run = \App\Models\Rounds\RoundRun::query()->where('run_uuid', $this->runUuid)->firstOrFail();
+        $scene = app(\App\Services\Rounds\RoundProjectionService::class)
+            ->scene($run, $this->chargeNurse, aggregate: true);
+
+        $this->assertCount(3, $scene['data']['stops']);
+        foreach ($scene['data']['stops'] as $stop) {
+            $this->assertNull($stop['bed']);
+            $this->assertNull($stop['facility_space_id']);
+            // The overlay still works: opaque anchor identity + unit centroid.
+            $this->assertArrayHasKey('round_patient_uuid', $stop);
+            $this->assertNotNull($stop['unit_id']);
+        }
+
+        // The full-detail path is unchanged (contract test above still pins bed).
+        $full = app(\App\Services\Rounds\RoundProjectionService::class)
+            ->scene($run, $this->chargeNurse);
+        $this->assertNotNull(collect($full['data']['stops'])->firstWhere('bed'));
+    }
+
     public function test_broad_access_admin_sees_detail_without_unit_assignment(): void
     {
         $board = $this->actingAs($this->admin)

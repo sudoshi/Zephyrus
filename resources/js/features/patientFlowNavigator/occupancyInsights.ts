@@ -11,7 +11,6 @@ import type {
 } from './types';
 
 const LONG_STAY_WARN_MINUTES = 8 * 60;
-const LONG_STAY_DELAY_MINUTES = 18 * 60;
 const READY_MOVE_WINDOW_MINUTES = 30;
 const OVERDUE_TIMER_WINDOW_MINUTES = 4 * 60;
 
@@ -140,9 +139,10 @@ function projectionTimer(item: ProjectionItem, timeMs: number): OccupancyTimer {
 }
 
 function stayTimer(stayMinutes: number): OccupancyTimer {
-  const status: OccupancyTimerStatus = stayMinutes >= LONG_STAY_DELAY_MINUTES
-    ? 'delayed'
-    : stayMinutes >= LONG_STAY_WARN_MINUTES ? 'watch' : 'ok';
+  // F-3 ruling (2026-07-19): inferred duration-only risk caps at watch —
+  // coral requires a verified breach (earned-urgency doctrine). Mirrors the
+  // server cap in OccupancyInsightProjector::stayTimer().
+  const status: OccupancyTimerStatus = stayMinutes >= LONG_STAY_WARN_MINUTES ? 'watch' : 'ok';
 
   return {
     kind: 'stay',

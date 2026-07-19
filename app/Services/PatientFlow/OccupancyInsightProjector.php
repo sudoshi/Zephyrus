@@ -9,8 +9,6 @@ class OccupancyInsightProjector
 {
     private const LONG_STAY_WARN_MINUTES = 8 * 60;
 
-    private const LONG_STAY_DELAY_MINUTES = 18 * 60;
-
     private const READY_MOVE_WINDOW_MINUTES = 30;
 
     private const OVERDUE_TIMER_WINDOW_MINUTES = 4 * 60;
@@ -451,9 +449,10 @@ class OccupancyInsightProjector
 
     private function stayTimer(float $stayMinutes): array
     {
-        $status = $stayMinutes >= self::LONG_STAY_DELAY_MINUTES
-            ? 'delayed'
-            : ($stayMinutes >= self::LONG_STAY_WARN_MINUTES ? 'watch' : 'ok');
+        // F-3 ruling (2026-07-19): inferred, duration-only risk is capped at
+        // watch — coral requires a verified breach (earned-urgency doctrine).
+        // Per-service validated stay targets are the planned refinement.
+        $status = $stayMinutes >= self::LONG_STAY_WARN_MINUTES ? 'watch' : 'ok';
         $definition = $this->barriers->definition('long_stay_capacity_risk');
 
         return [

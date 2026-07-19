@@ -7,10 +7,13 @@ use App\Http\Requests\Rounds\CreateRunRequest;
 use App\Http\Requests\Rounds\ReconcileCohortRequest;
 use App\Http\Requests\Rounds\ReorderQueueRequest;
 use App\Models\Rounds\RoundRun;
+use App\Services\Flow\FlowLensService;
+use App\Services\Mobile\MobilePersonaCatalog;
 use App\Services\Rounds\RoundAuthorizationService;
 use App\Services\Rounds\RoundCohortBuilder;
 use App\Services\Rounds\RoundCommandService;
 use App\Services\Rounds\RoundProjectionService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,6 +24,8 @@ class RoundRunController extends RoundsController
         private readonly RoundCommandService $commands,
         private readonly RoundAuthorizationService $authorization,
         private readonly RoundCohortBuilder $cohortBuilder,
+        private readonly MobilePersonaCatalog $personas,
+        private readonly FlowLensService $flowLens,
     ) {
         parent::__construct($projection);
     }
@@ -84,7 +89,28 @@ class RoundRunController extends RoundsController
         $run = $this->resolveRun($runUuid);
         $this->authorization->assertCanViewRun($request->user(), $run);
 
-        return response()->json($this->projection->scene($run, $request->user()));
+        // F-2 ruling: resolve the caller's flow lens (same ?persona= /
+        // X-Hummingbird-Role / user-default chain as EnforceFlowLens);
+        // aggregate personas (patient_dots = none) get the centroid-redacted
+        // projection. Persona is a REDACTION refinement here, not an access
+        // gate — assertCanViewRun above already decided access. An explicitly
+        // requested but unauthorized persona is a 403 (mirroring the
+        // middleware); a rounds-native user with no persona at all keeps the
+        // full-detail contract.
+        $aggregate = false;
+        $explicit = $request->query('persona')
+            ?? $request->headers->get('X-Hummingbird-Role')
+            ?? $request->input('persona');
+        try {
+            $lens = $this->flowLens->lensFor($this->personas->fromRequest($request));
+            $aggregate = ($lens['patient_dots'] ?? 'full') === 'none';
+        } catch (AuthorizationException $exception) {
+            if ($explicit !== null) {
+                return response()->json(['message' => $exception->getMessage()], 403);
+            }
+        }
+
+        return response()->json($this->projection->scene($run, $request->user(), $aggregate));
     }
 
     public function start(Request $request, string $runUuid): JsonResponse
