@@ -222,7 +222,8 @@ export type CockpitSnapshotSections = z.infer<typeof cockpitSnapshotSectionsSche
 // outside this list are ignored on read, so a mangled deep link degrades to the
 // bare cockpit instead of holding junk state.
 export const cockpitDrillDomains = [
-  'rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial', 'home', 'okr',
+  'rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial',
+  'radiology', 'lab', 'pharmacy', 'home', 'okr',
 ] as const;
 export type CockpitDrillDomain = (typeof cockpitDrillDomains)[number];
 

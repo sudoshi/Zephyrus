@@ -79,7 +79,7 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertSame($flowHealth['criticalCallbacks']['open'], $laboratory['criticalCallbacks']['value']);
         $this->assertSame($laboratory['criticalCallbacks']['value'], $laboratory['criticalCallbacks']['atRiskCount']);
 
-        $tiles = collect(app(SnapshotBuilder::class)->build()['domains']['flow']['tiles'])->keyBy('key');
+        $tiles = collect(app(SnapshotBuilder::class)->build()['domains']['lab']['tiles'])->keyBy('key');
         $stat = $tiles->get(self::KEYS[0]);
         $pending = $tiles->get(self::KEYS[1]);
         $callbacks = $tiles->get(self::KEYS[2]);
@@ -121,7 +121,7 @@ final class LaboratoryCockpitMetricsTest extends TestCase
     public function test_refresh_persists_aggregate_history_without_alerts_or_individual_result_detail(): void
     {
         $payload = app(SnapshotBuilder::class)->refresh();
-        $tiles = collect($payload['domains']['flow']['tiles'])->whereIn('key', self::KEYS)->values();
+        $tiles = collect($payload['domains']['lab']['tiles'])->whereIn('key', self::KEYS)->values();
         $this->assertCount(3, $tiles);
         $this->assertSame([], collect($payload['alerts'])->whereIn('key', self::KEYS)->values()->all());
 
@@ -140,33 +140,30 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertStringContainsString('byState', $serialized);
     }
 
-    public function test_flow_drill_activates_the_reserved_laboratory_row_from_cached_server_metrics(): void
+    public function test_laboratory_sector_drill_renders_the_aggregate_measure_ledger(): void
     {
         $snapshot = app(SnapshotBuilder::class)->refresh();
-        $tiles = collect($snapshot['domains']['flow']['tiles'])->keyBy('key');
-        $table = collect($this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')->assertOk()->json('tables'))
-            ->firstWhere('caption', 'Ancillary operational health');
+        $tiles = collect($snapshot['domains']['lab']['tiles'])->keyBy('key');
+        $payload = $this->actingAs(User::factory()->create())
+            ->getJson('/api/cockpit/drill/lab')->assertOk()->json();
 
+        $this->assertSame('lab', $payload['domain']);
+        $this->assertSame('Laboratory — Result & Callback Health', $payload['title']);
+        $table = collect($payload['tables'])->firstWhere('caption', 'Laboratory — Result & Callback Health — measures');
         $this->assertNotNull($table);
-        $this->assertSame(['Radiology', 'Laboratory', 'Pharmacy'], collect($table['rows'])->pluck('service.v')->all());
-        $lab = collect($table['rows'])->firstWhere('service.v', 'Laboratory');
-        $this->assertSame($tiles->get(self::KEYS[0])['display'], $lab['measure1']['v']);
-        $this->assertSame($tiles->get(self::KEYS[1])['display'], $lab['measure2']['v']);
-        $this->assertSame($tiles->get(self::KEYS[2])['display'], $lab['measure3']['v']);
-        $this->assertSame('/lab?priority=stat&source=cockpit', $lab['measure1']['href']);
-        $this->assertSame('/lab/pending-decisions?source=cockpit', $lab['measure2']['href']);
-        $this->assertSame('/lab?lens=critical_callbacks&source=cockpit', $lab['measure3']['href']);
-        $this->assertSame('fresh', $lab['source']['tag']['text']);
-        $this->assertSame('critical', $lab['status']['chip']);
-        $this->assertNotSame('—', $lab['cutoff']['v']);
 
-        // The Pharmacy row is now activated by X-11 against the same demo cohort.
-        $pharmacy = collect($table['rows'])->firstWhere('service.v', 'Pharmacy');
-        $this->assertSame('fresh', $pharmacy['source']['tag']['text']);
-        $this->assertNotSame('—', $pharmacy['cutoff']['v']);
-        $this->assertStringNotContainsString('patient', strtolower(json_encode($lab, JSON_THROW_ON_ERROR)));
-        $this->assertStringNotContainsString('resultuuid', strtolower(json_encode($lab, JSON_THROW_ON_ERROR)));
+        foreach (self::KEYS as $key) {
+            $tile = $tiles->get($key);
+            $row = collect($table['rows'])->firstWhere('measure.v', $tile['label']);
+            $this->assertNotNull($row, $key);
+            $this->assertSame($tile['display'], $row['value']['v']);
+        }
+        $stat = collect($table['rows'])->firstWhere('measure.v', $tiles->get(self::KEYS[0])['label']);
+        $this->assertSame('critical', $stat['status']['chip']);
+        // Aggregate-only: no result identity leaks into the drill.
+        $json = strtolower(json_encode($table, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('patient', $json);
+        $this->assertStringNotContainsString('resultuuid', $json);
     }
 
     public function test_stale_laboratory_evidence_is_last_known_neutral_and_never_successful(): void
@@ -174,7 +171,7 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->update(['status' => 'stale']);
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $payload = app(SnapshotBuilder::class)->build();
-        $tiles = collect($payload['domains']['flow']['tiles'])->whereIn('key', self::KEYS)->values();
+        $tiles = collect($payload['domains']['lab']['tiles'])->whereIn('key', self::KEYS)->values();
 
         $this->assertCount(3, $tiles);
         $this->assertTrue($tiles->every(fn (array $tile): bool => $tile['status'] === 'normal'));
@@ -183,12 +180,13 @@ final class LaboratoryCockpitMetricsTest extends TestCase
         $this->assertTrue($tiles->every(fn (array $tile): bool => str_starts_with($tile['sub'], 'Last known')));
         $this->assertSame([], collect($payload['alerts'])->whereIn('key', self::KEYS)->values()->all());
 
+        // The sector drill still renders; the neutralized status rides on the tiles.
         app(SnapshotBuilder::class)->refresh();
         $table = collect($this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')->assertOk()->json('tables'))
-            ->firstWhere('caption', 'Ancillary operational health');
-        $lab = collect($table['rows'])->firstWhere('service.v', 'Laboratory');
-        $this->assertSame('stale', $lab['source']['tag']['text']);
-        $this->assertSame('neutral', $lab['status']['chip']);
+            ->getJson('/api/cockpit/drill/lab')->assertOk()->json('tables'))
+            ->firstWhere('caption', 'Laboratory — Result & Callback Health — measures');
+        $this->assertNotNull($table);
+        $stat = collect($table['rows'])->firstWhere('measure.v', $tiles->firstWhere('key', self::KEYS[0])['label']);
+        $this->assertSame('neutral', $stat['status']['chip']);
     }
 }

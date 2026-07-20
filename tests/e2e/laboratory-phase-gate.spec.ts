@@ -246,12 +246,13 @@ test('Perioperative, RTDC, and Cockpit compact joins reconcile to owned Laborato
   const rtdcDrill = page.getByRole('link', { name: /Open Lab Laboratory Flow Board for/i }).first();
   await expect(rtdcDrill).toHaveAttribute('href', /\/lab\?unitId=\d+&source=ancillary_services/);
 
-  await page.goto('/dashboard?drill=flow', { waitUntil: 'domcontentloaded' });
-  const table = page.getByRole('table', { name: 'Ancillary operational health' });
-  await expect(table.getByText('Laboratory', { exact: true })).toBeVisible();
-  await expect(table.locator('a[href="/lab?priority=stat&source=cockpit"]')).toBeVisible();
-  await expect(table.locator('a[href="/lab/pending-decisions?source=cockpit"]')).toBeVisible();
-  await expect(table.locator('a[href="/lab?lens=critical_callbacks&source=cockpit"]')).toBeVisible();
+  // Laboratory is now a first-class cockpit sector (2026-07-19): its panel
+  // drills to its own aggregate measure ledger.
+  await page.goto('/dashboard?drill=lab', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('cockpit-drill-modal')).toBeVisible({ timeout: 10_000 });
+  const table = page.getByRole('table', { name: 'Laboratory — Result & Callback Health — measures' });
+  await expect(table.getByText('Lab STAT compliance', { exact: true })).toBeVisible();
+  await expect(table.getByText('Critical callbacks open', { exact: true })).toBeVisible();
   await expectContainedAndPrivate(page, 'cockpit-compact-join');
 
   expect(errors.consoleErrors).toEqual([]);

@@ -151,8 +151,28 @@ class CockpitSnapshotSectionsTest extends TestCase
             array_keys($payload['domains']),
         );
 
-        $this->assertSame('rtdc.occupancy', $payload['domains']['rtdc']['gaugeKey']);
-        $this->assertSame('ed.nedocs', $payload['domains']['ed']['gaugeKey']);
+        // Sector expansion: EVERY always-on domain carries a circular indicator.
+        $expectedGauges = [
+            'rtdc' => 'rtdc.occupancy',
+            'ed' => 'ed.nedocs',
+            'periop' => 'periop.prime_util',
+            'staffing' => 'staffing.productivity',
+            'flow' => 'flow.transport_wait',
+            'quality' => 'quality.sepsis_3hr',
+            'service' => 'service.oe_los',
+            'financial' => 'financial.worked_per_uos',
+        ];
+        foreach ($expectedGauges as $domain => $gaugeKey) {
+            $this->assertSame($gaugeKey, $payload['domains'][$domain]['gaugeKey'], $domain);
+        }
+
+        // Definition metadata rides on the tile so the client gauge scales
+        // correctly (the pre-expansion bug rendered NEDOCS against /100).
+        $nedocs = collect($payload['domains']['ed']['tiles'])->firstWhere('key', 'ed.nedocs');
+        $this->assertSame(200, $nedocs['metadata']['scale'] ?? null);
+        $productivity = collect($payload['domains']['staffing']['tiles'])->firstWhere('key', 'staffing.productivity');
+        $this->assertNotNull($productivity, 'staffing gauge tile emits from seeded workforce_actuals');
+        $this->assertSame(120, $productivity['metadata']['scale'] ?? null);
     }
 
     public function test_okr_scorecard_has_nine_cards_with_objectives_and_owners(): void

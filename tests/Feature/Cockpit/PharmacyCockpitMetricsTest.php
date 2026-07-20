@@ -83,7 +83,7 @@ final class PharmacyCockpitMetricsTest extends TestCase
         $this->assertSame($flowHealth['shortageStockouts']['stations'], $pharmacy['shortageStockouts']['value']);
 
         $payload = app(SnapshotBuilder::class)->build();
-        $tiles = collect($payload['domains']['flow']['tiles'])->keyBy('key');
+        $tiles = collect($payload['domains']['pharmacy']['tiles'])->keyBy('key');
         $queue = $tiles->get(self::KEYS[0]);
         $stat = $tiles->get(self::KEYS[1]);
         $sepsis = $tiles->get(self::KEYS[2]);
@@ -117,7 +117,7 @@ final class PharmacyCockpitMetricsTest extends TestCase
     public function test_refresh_persists_aggregate_history_without_alerts_or_individual_detail(): void
     {
         $payload = app(SnapshotBuilder::class)->refresh();
-        $tiles = collect($payload['domains']['flow']['tiles'])->whereIn('key', self::KEYS)->values();
+        $tiles = collect($payload['domains']['pharmacy']['tiles'])->whereIn('key', self::KEYS)->values();
         $this->assertCount(4, $tiles);
         $this->assertSame([], collect($payload['alerts'])->whereIn('key', self::KEYS)->values()->all());
 
@@ -134,26 +134,28 @@ final class PharmacyCockpitMetricsTest extends TestCase
         }
     }
 
-    public function test_flow_drill_activates_the_reserved_pharmacy_row_from_cached_server_metrics(): void
+    public function test_pharmacy_sector_drill_renders_the_aggregate_measure_ledger(): void
     {
         $snapshot = app(SnapshotBuilder::class)->refresh();
-        $tiles = collect($snapshot['domains']['flow']['tiles'])->keyBy('key');
-        $table = collect($this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')->assertOk()->json('tables'))
-            ->firstWhere('caption', 'Ancillary operational health');
+        $tiles = collect($snapshot['domains']['pharmacy']['tiles'])->keyBy('key');
+        $payload = $this->actingAs(User::factory()->create())
+            ->getJson('/api/cockpit/drill/pharmacy')->assertOk()->json();
 
+        $this->assertSame('pharmacy', $payload['domain']);
+        $this->assertSame('Pharmacy — Medication Flow Health', $payload['title']);
+        $table = collect($payload['tables'])->firstWhere('caption', 'Pharmacy — Medication Flow Health — measures');
         $this->assertNotNull($table);
-        $this->assertSame(['Radiology', 'Laboratory', 'Pharmacy'], collect($table['rows'])->pluck('service.v')->all());
-        $pharmacy = collect($table['rows'])->firstWhere('service.v', 'Pharmacy');
-        $this->assertSame($tiles->get(self::DRILL_KEYS[0])['display'], $pharmacy['measure1']['v']);
-        $this->assertSame($tiles->get(self::DRILL_KEYS[1])['display'], $pharmacy['measure2']['v']);
-        $this->assertSame($tiles->get(self::DRILL_KEYS[2])['display'], $pharmacy['measure3']['v']);
-        $this->assertSame('/pharmacy?source=cockpit', $pharmacy['measure1']['href']);
-        $this->assertSame('/pharmacy?lens=stat&source=cockpit', $pharmacy['measure2']['href']);
-        $this->assertSame('/pharmacy?lens=shortage&source=cockpit', $pharmacy['measure3']['href']);
-        $this->assertSame('fresh', $pharmacy['source']['tag']['text']);
-        $this->assertNotSame('—', $pharmacy['cutoff']['v']);
-        $this->assertStringNotContainsString('patient', strtolower(json_encode($pharmacy, JSON_THROW_ON_ERROR)));
+
+        // Every emitted sector tile is a ledger row reconciled to the cached
+        // snapshot value — the drill never recomputes.
+        foreach (self::DRILL_KEYS as $key) {
+            $tile = $tiles->get($key);
+            $row = collect($table['rows'])->firstWhere('measure.v', $tile['label']);
+            $this->assertNotNull($row, $key);
+            $this->assertSame($tile['display'], $row['value']['v']);
+        }
+        // Aggregate-only: no patient/order identity leaks into the drill.
+        $this->assertStringNotContainsString('patient', strtolower(json_encode($table, JSON_THROW_ON_ERROR)));
     }
 
     public function test_stale_administration_cannot_create_a_false_sepsis_success_or_failure(): void
@@ -172,7 +174,7 @@ final class PharmacyCockpitMetricsTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $pharmacy['sepsisAtRisk']['openBreaches']);
 
         $payload = app(SnapshotBuilder::class)->build();
-        $tiles = collect($payload['domains']['flow']['tiles'])->keyBy('key');
+        $tiles = collect($payload['domains']['pharmacy']['tiles'])->keyBy('key');
         // A null sepsis value is skipped entirely — it can never render green or
         // fire an alert from stale administration evidence.
         $this->assertFalse($tiles->has(self::KEYS[2]));
@@ -189,7 +191,7 @@ final class PharmacyCockpitMetricsTest extends TestCase
         DB::table('ops.source_freshness')->where('source_key', 'ancillary_orders')->update(['status' => 'stale']);
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $payload = app(SnapshotBuilder::class)->build();
-        $tiles = collect($payload['domains']['flow']['tiles'])->whereIn('key', self::DRILL_KEYS)->values();
+        $tiles = collect($payload['domains']['pharmacy']['tiles'])->whereIn('key', self::DRILL_KEYS)->values();
 
         $this->assertCount(3, $tiles);
         $this->assertTrue($tiles->every(fn (array $tile): bool => $tile['status'] === 'normal'));
@@ -198,12 +200,14 @@ final class PharmacyCockpitMetricsTest extends TestCase
         $this->assertTrue($tiles->every(fn (array $tile): bool => str_starts_with($tile['sub'], 'Last known')));
         $this->assertSame([], collect($payload['alerts'])->whereIn('key', self::DRILL_KEYS)->values()->all());
 
+        // The sector drill still renders the last-known ledger; the neutralized
+        // status rides on the tiles themselves (asserted above).
         app(SnapshotBuilder::class)->refresh();
         $table = collect($this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')->assertOk()->json('tables'))
-            ->firstWhere('caption', 'Ancillary operational health');
-        $pharmacy = collect($table['rows'])->firstWhere('service.v', 'Pharmacy');
-        $this->assertSame('stale', $pharmacy['source']['tag']['text']);
-        $this->assertSame('neutral', $pharmacy['status']['chip']);
+            ->getJson('/api/cockpit/drill/pharmacy')->assertOk()->json('tables'))
+            ->firstWhere('caption', 'Pharmacy — Medication Flow Health — measures');
+        $this->assertNotNull($table);
+        $queue = collect($table['rows'])->firstWhere('measure.v', $tiles->firstWhere('key', self::DRILL_KEYS[0])['label']);
+        $this->assertSame('neutral', $queue['status']['chip']);
     }
 }

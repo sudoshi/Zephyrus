@@ -76,7 +76,7 @@ class RadiologyCockpitMetricsTest extends TestCase
         $this->assertSame(app(RadiologyReadsService::class)->cockpitHealth()['oldestUnreadAgeMinutes'], $workspace['oldestUnread']['value']);
 
         $payload = app(SnapshotBuilder::class)->build();
-        $tiles = collect($payload['domains']['flow']['tiles'])->keyBy('key');
+        $tiles = collect($payload['domains']['radiology']['tiles'])->keyBy('key');
         $breaches = $tiles->get('flow.ancillary_rad_open_breaches');
         $unread = $tiles->get('flow.ancillary_rad_oldest_unread');
         $scanners = $tiles->get('flow.ancillary_rad_scanners_down');
@@ -128,45 +128,31 @@ class RadiologyCockpitMetricsTest extends TestCase
         $this->assertSame('fresh', $metadata['sourceState']);
     }
 
-    public function test_flow_drill_adds_reconciled_ancillary_health_rows_and_reserves_future_services(): void
+    public function test_radiology_sector_drill_renders_the_aggregate_measure_ledger(): void
     {
         $response = $this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')
+            ->getJson('/api/cockpit/drill/radiology')
             ->assertOk();
-        $table = collect($response->json('tables'))->firstWhere('caption', 'Ancillary operational health');
+
+        $this->assertSame('radiology', $response->json('domain'));
+        $this->assertSame('Radiology — Imaging Operational Health', $response->json('title'));
+        $table = collect($response->json('tables'))->firstWhere('caption', 'Radiology — Imaging Operational Health — measures');
 
         $this->assertNotNull($table);
-        $this->assertSame(['Radiology', 'Laboratory', 'Pharmacy'], collect($table['rows'])->pluck('service.v')->all());
-        $radiology = collect($table['rows'])->firstWhere('service.v', 'Radiology');
-        $this->assertSame('1 order', $radiology['measure1']['v']);
-        $this->assertSame('1 hr 15 min 0 sec', $radiology['measure2']['v']);
-        $this->assertSame('2 scanners', $radiology['measure3']['v']);
-        $this->assertSame('fresh', $radiology['source']['tag']['text']);
-        $this->assertSame('critical', $radiology['status']['chip']);
-        $this->assertNotSame('—', $radiology['cutoff']['v']);
-
-        foreach (['Laboratory', 'Pharmacy'] as $future) {
-            $row = collect($table['rows'])->firstWhere('service.v', $future);
-            $this->assertSame('not available', $row['source']['tag']['text']);
-            $this->assertSame('neutral', $row['status']['chip']);
-        }
-
-        DB::table('ops.source_freshness')->where('source_key', 'ancillary_milestones')->update(['status' => 'stale']);
-        Cache::forget(SnapshotBuilder::CACHE_KEY);
-        $mixedSourceTable = collect($this->actingAs(User::factory()->create())
-            ->getJson('/api/cockpit/drill/flow')->assertOk()->json('tables'))
-            ->firstWhere('caption', 'Ancillary operational health');
-        $this->assertSame(
-            'stale',
-            collect($mixedSourceTable['rows'])->firstWhere('service.v', 'Radiology')['source']['tag']['text'],
-        );
+        $rowsByMeasure = collect($table['rows'])->keyBy('measure.v');
+        $this->assertSame('1 order', $rowsByMeasure->get('Imaging open breaches')['value']['v']);
+        $this->assertSame('1 hr 15 min 0 sec', $rowsByMeasure->get('Oldest unread study')['value']['v']);
+        $this->assertSame('2 scanners', $rowsByMeasure->get('Scanners down')['value']['v']);
+        $this->assertSame('critical', $rowsByMeasure->get('Oldest unread study')['value']['status']);
+        // Aggregate-only: no study/patient identity leaks into the drill.
+        $this->assertStringNotContainsString('patient', strtolower(json_encode($table, JSON_THROW_ON_ERROR)));
     }
 
     public function test_stale_sources_neutralize_last_known_metrics_and_missing_report_evidence_cannot_render_success(): void
     {
         DB::table('ops.source_freshness')->whereIn('source_key', ['ancillary_orders', 'ancillary_milestones'])->update(['status' => 'stale']);
         $stale = app(SnapshotBuilder::class)->build();
-        $tiles = collect($stale['domains']['flow']['tiles'])->whereIn('key', [
+        $tiles = collect($stale['domains']['radiology']['tiles'])->whereIn('key', [
             'flow.ancillary_rad_open_breaches',
             'flow.ancillary_rad_oldest_unread',
             'flow.ancillary_rad_scanners_down',
@@ -185,7 +171,7 @@ class RadiologyCockpitMetricsTest extends TestCase
         DB::statement('TRUNCATE TABLE prod.ancillary_breaches, prod.ancillary_milestones CASCADE');
         Cache::forget(SnapshotBuilder::CACHE_KEY);
         $missing = app(SnapshotBuilder::class)->build();
-        $missingTiles = collect($missing['domains']['flow']['tiles'])->keyBy('key');
+        $missingTiles = collect($missing['domains']['radiology']['tiles'])->keyBy('key');
         $this->assertFalse($missingTiles->has('flow.ancillary_rad_oldest_unread'));
         $this->assertNotSame('ok', $missingTiles->get('flow.ancillary_rad_open_breaches')['status']);
         $this->assertNotSame('ok', $missingTiles->get('flow.ancillary_rad_scanners_down')['status']);

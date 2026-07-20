@@ -14,9 +14,15 @@ import { MetricRow } from './Tile';
 import { ProvenanceBadge } from './ProvenanceBadge';
 import { formatMetricTarget } from './metricFormatting';
 
-// Fixed wall order — operational domains first, ledger domains last. Keys are
-// the server domain registry (SnapshotBuilder providers / DrillBuilder).
-const DOMAIN_ORDER = ['rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial'] as const;
+// Fixed wall order — operational domains first, ledger domains, then the
+// service sectors (2026-07-19 expansion: Radiology / Laboratory / Pharmacy
+// promoted out of Flow, plus Hospital@Home). Keys are the server domain
+// registry (SnapshotBuilder providers / DrillBuilder); a feed-dead sector is
+// ABSENT from the snapshot and simply doesn't render.
+const DOMAIN_ORDER = [
+  'rtdc', 'ed', 'periop', 'staffing', 'flow', 'quality', 'service', 'financial',
+  'radiology', 'lab', 'pharmacy', 'home',
+] as const;
 
 const DOMAIN_TITLES: Record<(typeof DOMAIN_ORDER)[number], string> = {
   rtdc: 'Demand & Capacity',
@@ -27,11 +33,18 @@ const DOMAIN_TITLES: Record<(typeof DOMAIN_ORDER)[number], string> = {
   quality: 'Quality & Safety',
   service: 'Service Lines',
   financial: 'Financial',
+  radiology: 'Radiology',
+  lab: 'Laboratory',
+  pharmacy: 'Pharmacy',
+  home: 'Hospital@Home',
 };
 
 // NEDOCS context arc. The reference's five bands included a green "not busy"
 // zone; canon rations green, so the calm end renders neutral and the arc keeps
 // four reconciled bands (≤60 calm, ≤100 watch, ≤140 overcrowded, ≤200 severe+).
+// The other arcs mirror each gauge's seeded StatusEngine edges — same number,
+// same color, just painted as ring context. 'up' metrics (productivity,
+// sepsis bundle) carry their danger zone at the LOW end of the scale.
 const GAUGE_BANDS: Record<string, RadialGaugeBand[]> = {
   'ed.nedocs': [
     { edge: 60, level: 'neutral' },
@@ -39,7 +52,58 @@ const GAUGE_BANDS: Record<string, RadialGaugeBand[]> = {
     { edge: 140, level: 'warning' },
     { edge: 200, level: 'critical' },
   ],
+  'staffing.productivity': [
+    { edge: 90, level: 'critical' },
+    { edge: 95, level: 'warning' },
+    { edge: 120, level: 'neutral' },
+  ],
+  'flow.transport_wait': [
+    { edge: 15, level: 'neutral' },
+    { edge: 25, level: 'warning' },
+    { edge: 60, level: 'critical' },
+  ],
+  'quality.sepsis_3hr': [
+    { edge: 80, level: 'critical' },
+    { edge: 90, level: 'warning' },
+    { edge: 100, level: 'neutral' },
+  ],
+  'service.oe_los': [
+    { edge: 1.0, level: 'neutral' },
+    { edge: 1.2, level: 'warning' },
+    { edge: 2, level: 'critical' },
+  ],
+  'financial.worked_per_uos': [
+    { edge: 1.0, level: 'neutral' },
+    { edge: 1.08, level: 'warning' },
+    { edge: 2, level: 'critical' },
+  ],
+  'flow.ancillary_rad_oldest_unread': [
+    { edge: 30, level: 'neutral' },
+    { edge: 60, level: 'warning' },
+    { edge: 90, level: 'critical' },
+  ],
+  'flow.ancillary_lab_stat_compliance': [
+    { edge: 79, level: 'critical' },
+    { edge: 89, level: 'warning' },
+    { edge: 100, level: 'neutral' },
+  ],
+  'flow.ancillary_rx_oldest_stat': [
+    { edge: 10, level: 'neutral' },
+    { edge: 15, level: 'warning' },
+    { edge: 30, level: 'critical' },
+  ],
 };
+
+// The ring center shows the tile's own display, EXCEPT for duration gauges:
+// a formatted duration ("1 hr 15 min 0 sec") overflows an 84px ring, so a
+// minute-unit gauge renders a compact "75m" center while the tile/drill keep
+// the full display. Everything else (%, counts, scores) uses display verbatim.
+function gaugeCenter(metric: CockpitMetricValue): string | undefined {
+  if (metric.unit && ['min', 'mins', 'minute', 'minutes'].includes(metric.unit)) {
+    return `${Math.round(metric.value)}m`;
+  }
+  return metric.display;
+}
 
 const SEVERITY: Record<CockpitMetricValue['status'], number> = {
   crit: 4, warn: 3, watch: 2, ok: 1, normal: 0,
@@ -74,7 +138,7 @@ function DomainGauge({ metric }: { metric: CockpitMetricValue }) {
         target={metric.target}
         size={84}
         strokeWidth={9}
-        big={metric.display}
+        big={gaugeCenter(metric)}
         bigClass="text-base"
       />
       <div className="flex min-w-0 flex-col gap-0.5">
