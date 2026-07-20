@@ -10,6 +10,19 @@ import { roundStopSchema } from './schemas';
 
 export type RoundStop = z.infer<typeof roundStopSchema>;
 
+/**
+ * Run statuses that keep a rounds overlay LIVE. Anything else — `completed`,
+ * `cancelled`, or the run vanishing entirely (retired by the 6h demo refresh,
+ * HFE audit F-6) — means the scene must drop the stale rings, not keep
+ * rendering a finished run's itinerary as if it were active work.
+ */
+export const OPEN_RUN_STATUSES = ['draft', 'scheduled', 'active', 'paused', 'closing'] as const;
+
+/** The most recent live run, or null when none is open. */
+export function findOpenRun<T extends { status: string }>(runs: readonly T[]): T | null {
+  return runs.find((run) => (OPEN_RUN_STATUSES as readonly string[]).includes(run.status)) ?? null;
+}
+
 export interface RoundStopCell {
   anchor: ProjectionAnchor;
   stop: RoundStop;
