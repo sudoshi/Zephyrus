@@ -202,16 +202,40 @@ class DemoTuningSeeder extends Seeder
         }
     }
 
-    /** 4. Refresh active EVS SLAs to a near-now spread (UTC-aligned wall clock). */
+    /** 4. Refresh active EVS + transport SLAs to a near-now spread (UTC-aligned wall clock). */
     private function refreshSlas(): void
     {
-        // OperationalDemoDataService exclusively owns its transport scenario,
-        // including the deterministic four-of-twenty overdue cohort. Rewriting
-        // those deadlines here made strict demo validation nondeterministic.
         DB::update("
             UPDATE prod.evs_requests
             SET needed_at = (now() AT TIME ZONE 'UTC') + ((floor(random()*110) - 30)||' minutes')::interval
             WHERE status NOT IN ('completed', 'canceled', 'failed')
+        ");
+
+        // Transport deadlines otherwise drift to 100%-overdue: the rolling
+        // refresh re-seeds via CommandCenterDemoSeeder — never
+        // OperationalDemoDataService::rollForward — so nothing resets these
+        // against the moving anchor and every active request eventually breaches
+        // SLA. Reset DETERMINISTICALLY (no random()) so strict demo validation
+        // stays reproducible: every fifth active request, ordered by id, is left
+        // overdue → ~20% breaching, matching the seed-time cohort and the
+        // plausibility_targets.transport_overdue_share_max ceiling. The request
+        // table carries no append-only trigger (only transport_events/commands/
+        // handoff_evidence do), so this UPDATE is sanctioned.
+        DB::update("
+            WITH ranked AS (
+                SELECT transport_request_id,
+                       row_number() OVER (ORDER BY transport_request_id) AS rn
+                FROM prod.transport_requests
+                WHERE completed_at IS NULL
+            )
+            UPDATE prod.transport_requests tr
+            SET needed_at = CASE
+                    WHEN ranked.rn % 5 = 0
+                        THEN (now() AT TIME ZONE 'UTC') - ((5 + (ranked.rn % 3) * 5)||' minutes')::interval
+                        ELSE (now() AT TIME ZONE 'UTC') + ((15 + (ranked.rn % 4) * 10)||' minutes')::interval
+                END
+            FROM ranked
+            WHERE tr.transport_request_id = ranked.transport_request_id
         ");
     }
 
