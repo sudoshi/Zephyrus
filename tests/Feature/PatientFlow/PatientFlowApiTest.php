@@ -407,11 +407,14 @@ class PatientFlowApiTest extends TestCase
             ->getJson('/api/patient-flow/events')
             ->assertOk();
 
+        // Broad-access default is the HOUSE lens (full dots), not the first
+        // unit persona — charge_nurse-by-default collapsed the 4D navigator
+        // to one auto-selected unit (2026-07-19 lens-collapse fix).
         $this->actingAs($superuser)
             ->getJson('/api/patient-flow/occupancy')
             ->assertOk()
-            ->assertJsonPath('lens.role_id', 'charge_nurse')
-            ->assertJsonPath('lens.patient_dots', 'unit');
+            ->assertJsonPath('lens.role_id', 'house_supervisor')
+            ->assertJsonPath('lens.patient_dots', 'full');
     }
 
     private function insertFlowEventAt(string $time, int $sequence): void
