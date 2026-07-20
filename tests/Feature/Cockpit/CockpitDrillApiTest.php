@@ -53,7 +53,8 @@ class CockpitDrillApiTest extends TestCase
         $response->assertOk();
 
         $rows = $response->json('tables.0.rows');
-        $this->assertCount(9, $rows);
+        // 9 core + 4 service-sector OKRs (2026-07-19).
+        $this->assertCount(13, $rows);
         $edLos = collect($rows)->firstWhere('keyResult', 'ED LOS (admitted)');
         $this->assertSame('5 hr 0 min 0 sec', $edLos['target']['v']);
 

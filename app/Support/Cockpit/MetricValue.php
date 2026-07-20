@@ -71,7 +71,9 @@ final readonly class MetricValue
             trend: $overrides['trend'] ?? [],
             trendLabel: $overrides['trendLabel'] ?? null,
             updatedAt: $overrides['updatedAt'] ?? now()->toIso8601String(),
-            metadata: $overrides['metadata'] ?? [],
+            // Definition metadata (gauge scale, benchmarks) rides on the tile;
+            // override keys win — the client gaugeScale() reads metadata.scale.
+            metadata: ($overrides['metadata'] ?? []) + ($definition->metadata ?? []),
         );
     }
 

@@ -77,6 +77,12 @@ class CockpitKpiDefinitionSeeder extends Seeder
             // Legacy dashboard bands readmission warn≥11/crit≥13 — kept so the
             // OKR card and the outcomes band never disagree on the same value.
             'okr.readmit_30d' => $this->okr('30-day readmission', '30-day all-cause readmission rate.', '%', 'down', 11, null, 11, 13, 'CMO', 'Care Reliability'),
+            // Service-sector OKRs (2026-07-19): each reuses its sector's live
+            // headline signal (OkrMetrics), falling back to the config demo value.
+            'okr.rad_sla_breaches' => $this->okr('Imaging SLA breaches', 'Open imaging work items beyond their governed SLA.', 'orders', 'down', 0, null, 3, 8, 'Radiology', 'Reliable Diagnostics'),
+            'okr.lab_stat_tat' => $this->okr('Lab STAT SLA compliance', 'STAT laboratory orders completed within the governed SLA.', '%', 'up', 90, 90, 89, 79, 'Laboratory', 'Timely Diagnostics'),
+            'okr.rx_stockouts' => $this->okr('Medication stockouts', 'Active unit, station, or central-pharmacy stockouts affecting fulfillment.', 'items', 'down', 0, null, 1, 5, 'Pharmacy', 'Medication Availability'),
+            'okr.hah_avoided_bed_days' => $this->okr('Avoided bed-days MTD', 'Home episode bed-days the house did not spend this month.', 'days', 'up', 90, null, null, null, 'Hospital@Home', 'Capacity Liberation'),
 
             // ---------------- RTDC (spec §2.2) — refresh 60s ----------------
             'rtdc.census' => $this->kpi('House census', 'Occupied staffed beds, house-wide.', 'pts', 'down', null, null, null, 60),
@@ -124,14 +130,14 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'staffing.agency' => $this->kpi('Agency RNs', 'Agency and contract RNs active.', '', 'down', null, null, null, 600),
             'staffing.callouts' => $this->kpi('Callouts', 'Callouts today, all roles.', '', 'down', null, 8, 12, 600),
             'staffing.sitters' => $this->kpi('Sitters / 1:1', 'Active sitter and 1:1 observation assignments.', '', 'down', null, null, null, 600),
-            'staffing.productivity' => $this->kpi('Productivity', 'Worked-hours productivity index.', '%', 'up', 100, 95, 90, 600, null, null, 100),
+            'staffing.productivity' => $this->kpi('Productivity', 'Worked-hours productivity index.', '%', 'up', 100, 95, 90, 600, null, ['scale' => 120], 100),
 
             // ---------------- Flow & transport (spec §2.6) — refresh 300s ---
             'flow.dc_before_noon' => $this->kpi('Discharge before noon', 'Percent of today\'s discharges completed before 12:00.', '%', 'up', 40, 40, 30, 300),
             'flow.discharge_lounge' => $this->kpi('Discharge lounge', 'Discharge lounge occupancy.', 'pts', 'up', null, null, null, 300),
             'flow.transport_queue' => $this->kpi('Transport queue', 'Transport requests pending or in progress.', '', 'down', null, 10, 18, 300),
             'flow.transport_wait' => $this->kpi('Transport wait', 'Average request-to-pickup wait.', 'min', 'down', 15, 15, 25, 300,
-                'Transport delays — average wait {display}'),
+                'Transport delays — average wait {display}', ['scale' => 60]),
             'flow.bed_turnaround' => $this->kpi('Bed turnaround', 'Average EVS dirty-to-ready turnaround.', 'min', 'down', 45, 45, 60, 300,
                 'EVS turnaround {display} — beds returning slowly'),
             'flow.dirty_beds' => $this->kpi('Dirty beds', 'Beds awaiting or in EVS cleaning.', 'beds', 'down', null, 12, 20, 300),
@@ -149,13 +155,13 @@ class CockpitKpiDefinitionSeeder extends Seeder
             // department workspaces own per-item status; Cockpit carries only
             // counts, oldest ages, compliance, and resource availability.
             'flow.ancillary_rad_open_breaches' => $this->kpi('Imaging open breaches', 'Open imaging work items beyond their governed SLA definition.', 'orders', 'down', 0, 1, 5, 60),
-            'flow.ancillary_rad_oldest_unread' => $this->kpi('Oldest unread study', 'Age of the oldest acquired imaging study awaiting a final report.', 'min', 'down', 30, 30, 60, 60),
+            'flow.ancillary_rad_oldest_unread' => $this->kpi('Oldest unread study', 'Age of the oldest acquired imaging study awaiting a final report.', 'min', 'down', 30, 30, 60, 60, null, ['scale' => 90]),
             'flow.ancillary_rad_scanners_down' => $this->kpi('Scanners down', 'Imaging scanners currently unavailable for operational use.', 'scanners', 'down', 0, 1, 2, 60),
             'flow.ancillary_lab_stat_compliance' => $this->kpi('Lab STAT compliance', 'Percent of STAT laboratory orders completed within the active governed SLA.', '%', 'up', 90, 89, 79, 60, null, null, 90),
             'flow.ancillary_lab_oldest_decision_pending' => $this->kpi('Oldest decision-pending result', 'Age of the oldest laboratory order explicitly blocking an ED, discharge, or OR decision.', 'min', 'down', 45, 45, 60, 60),
             'flow.ancillary_lab_critical_callbacks' => $this->kpi('Critical callbacks open', 'Critical laboratory results awaiting documented communication acknowledgment.', 'callbacks', 'down', 0, 1, 3, 60),
             'flow.ancillary_rx_verification_queue' => $this->kpi('Pharmacy verification queue', 'Medication orders currently awaiting pharmacist verification.', 'orders', 'down', null, 10, 20, 60),
-            'flow.ancillary_rx_oldest_stat' => $this->kpi('Oldest STAT medication', 'Age of the oldest unverified or undispensed STAT medication order.', 'min', 'down', 10, 10, 15, 60),
+            'flow.ancillary_rx_oldest_stat' => $this->kpi('Oldest STAT medication', 'Age of the oldest unverified or undispensed STAT medication order.', 'min', 'down', 10, 10, 15, 60, null, ['scale' => 30]),
             'flow.ancillary_rx_sepsis_at_risk' => $this->kpi('Sepsis antibiotics at risk', 'Aggregate count of sepsis antibiotic orders approaching their governed operational clock.', 'orders', 'down', 0, 1, 3, 60),
             'flow.ancillary_rx_shortage_stockouts' => $this->kpi('Medication stockouts', 'Active unit, station, or central-pharmacy stockouts affecting fulfillment.', 'items', 'down', 0, 1, 5, 300),
 
@@ -185,7 +191,7 @@ class CockpitKpiDefinitionSeeder extends Seeder
 
             // ---------------- Service lines (spec §2.8) — refresh 3600s -----
             // oe_los / readmit / avoidable_days match the legacy outcomes band.
-            'service.oe_los' => $this->kpi('O:E LOS', 'Observed over expected (GMLOS-based) length of stay.', 'x', 'down', 1.0, 1.0, 1.2, 3600),
+            'service.oe_los' => $this->kpi('O:E LOS', 'Observed over expected (GMLOS-based) length of stay.', 'x', 'down', 1.0, 1.0, 1.2, 3600, null, ['scale' => 2]),
             'service.readmit_30d' => $this->kpi('30-day readmission', '30-day all-cause readmission rate.', '%', 'down', 11, 11, 13, 3600),
             'service.avoidable_days' => $this->kpi('Avoidable days', 'Documented bed-days beyond clinical need, month to date.', 'bed-days', 'down', null, 101, 200, 3600),
             'service.cmi' => $this->kpi('Case mix index', 'Case mix index (acuity context).', 'x', 'up', null, null, null, 3600),
@@ -193,7 +199,7 @@ class CockpitKpiDefinitionSeeder extends Seeder
             'service.discharges_mtd' => $this->kpi('Discharges MTD', 'Discharges month to date vs plan.', '', 'up', null, null, null, 3600),
 
             // ---------------- Financial stewardship (spec §2.9) — 3600s -----
-            'financial.worked_per_uos' => $this->kpi('Worked hrs / UOS', 'Worked-hours-per-unit-of-service index vs target.', 'x', 'down', 1.00, 1.00, 1.08, 3600),
+            'financial.worked_per_uos' => $this->kpi('Worked hrs / UOS', 'Worked-hours-per-unit-of-service index vs target.', 'x', 'down', 1.00, 1.00, 1.08, 3600, null, ['scale' => 2]),
             'financial.premium_pay' => $this->kpi('Premium pay', 'Overtime + agency + incentive dollars today.', '$k', 'down', null, null, null, 3600),
             'financial.productivity' => $this->kpi('Labor productivity', 'Labor productivity index.', '%', 'up', 100, 100, 92, 3600, null, null, 100),
             'financial.cost_per_case' => $this->kpi('Cost / OR case', 'Cost per OR case vs budget.', '$k', 'down', null, null, null, 3600),

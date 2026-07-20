@@ -236,15 +236,14 @@ test('ED, RTDC full vector, and Cockpit compact joins reconcile to owned Pharmac
   await expect(page.getByRole('link', { name: /Pharmacy Medication Flow Board for/i }).first()).toBeVisible();
   await expectContainedAndPrivate(page, 'rtdc-full-vector');
 
-  // Cockpit Flow drill reconciles Pharmacy to its owned destinations.
-  await page.goto('/dashboard?drill=flow', { waitUntil: 'domcontentloaded' });
-  const table = page.getByRole('table', { name: 'Ancillary operational health' });
-  await expect(table.getByText('Pharmacy', { exact: true })).toBeVisible();
-  // The compact cockpit row is deliberately bounded to queue, STAT age, and
-  // shortage station measures; sepsis detail remains on the owned workspace.
-  await expect(table.locator('a[href="/pharmacy?source=cockpit"]')).toBeVisible();
-  await expect(table.locator('a[href="/pharmacy?lens=stat&source=cockpit"]')).toBeVisible();
-  await expect(table.locator('a[href="/pharmacy?lens=shortage&source=cockpit"]')).toBeVisible();
+  // Pharmacy is now a first-class cockpit sector (2026-07-19): its panel drills
+  // to its own aggregate measure ledger, bounded to queue, STAT age, sepsis,
+  // and shortage measures; per-order detail remains on the owned workspace.
+  await page.goto('/dashboard?drill=pharmacy', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('cockpit-drill-modal')).toBeVisible({ timeout: 10_000 });
+  const table = page.getByRole('table', { name: 'Pharmacy — Medication Flow Health — measures' });
+  await expect(table.getByText('Pharmacy verification queue', { exact: true })).toBeVisible();
+  await expect(table.getByText('Medication stockouts', { exact: true })).toBeVisible();
   await expectContainedAndPrivate(page, 'cockpit-compact-join');
 
   expect(errors.consoleErrors).toEqual([]);

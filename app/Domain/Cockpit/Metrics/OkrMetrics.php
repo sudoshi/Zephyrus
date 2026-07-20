@@ -8,11 +8,12 @@ use App\Services\Rtdc\DemandForecastService;
 use App\Support\Cockpit\MetricValue;
 
 /**
- * Executive OKR scorecard (spec §2.1) — the 9 registry cards. Runs LAST so
- * it reuses values other providers already computed this snapshot (open
- * shifts, hand hygiene, worked/UOS) instead of re-querying. Live where the
- * house has the source (ED LOS admitted, DBN, readmit, midnight occupancy
- * via the RTDC by_midnight horizon); demo elsewhere.
+ * Executive OKR scorecard (spec §2.1) — 13 registry cards (9 core + 4 service
+ * sectors added 2026-07-19). Runs LAST so it reuses values other providers
+ * already computed this snapshot (open shifts, hand hygiene, worked/UOS, and
+ * the radiology/lab/pharmacy/home headline signals) instead of re-querying.
+ * Live where the house has the source (ED LOS admitted, DBN, readmit, midnight
+ * occupancy via the RTDC by_midnight horizon); demo elsewhere.
  */
 class OkrMetrics extends BaseMetrics
 {
@@ -47,6 +48,13 @@ class OkrMetrics extends BaseMetrics
             $this->reuse($ctx, 'okr.worked_per_uos', 'financial.worked_per_uos') ?? $this->demo($ctx, 'okr.worked_per_uos'),
             $this->demo($ctx, 'okr.hcahps'),
             $this->fromLegacy($ctx, 'okr.readmit_30d', 'readmission'),
+            // Service-sector OKRs (2026-07-19): reuse each sector's live headline
+            // signal, falling back to the seeded constant so the scorecard shows
+            // the sector even in an environment without its ancillary/home feed.
+            $this->reuse($ctx, 'okr.rad_sla_breaches', 'flow.ancillary_rad_open_breaches') ?? $this->demo($ctx, 'okr.rad_sla_breaches'),
+            $this->reuse($ctx, 'okr.lab_stat_tat', 'flow.ancillary_lab_stat_compliance') ?? $this->demo($ctx, 'okr.lab_stat_tat'),
+            $this->reuse($ctx, 'okr.rx_stockouts', 'flow.ancillary_rx_shortage_stockouts') ?? $this->demo($ctx, 'okr.rx_stockouts'),
+            $this->reuse($ctx, 'okr.hah_avoided_bed_days', 'home.avoided_bed_days_mtd') ?? $this->demo($ctx, 'okr.hah_avoided_bed_days'),
         ]);
     }
 

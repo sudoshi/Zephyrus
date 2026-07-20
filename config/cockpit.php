@@ -77,5 +77,12 @@ return [
         'okr.sepsis_3hr' => 87.0,
         'okr.hand_hygiene' => 91.0,
         'okr.worked_per_uos' => 1.04,
+        // Service-sector OKRs (2026-07-19): reuse each sector's live headline
+        // signal, falling back to these seeds when the ancillary/home feed is
+        // absent so the 13-card scorecard never shows a hole.
+        'okr.rad_sla_breaches' => 2.0,
+        'okr.lab_stat_tat' => 88.0,
+        'okr.rx_stockouts' => 0.0,
+        'okr.hah_avoided_bed_days' => 64.0,
     ],
 ];

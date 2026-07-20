@@ -7,9 +7,12 @@ use App\Domain\Cockpit\Metrics\EdMetrics;
 use App\Domain\Cockpit\Metrics\FinancialMetrics;
 use App\Domain\Cockpit\Metrics\FlowMetrics;
 use App\Domain\Cockpit\Metrics\HomeMetrics;
+use App\Domain\Cockpit\Metrics\LabMetrics;
 use App\Domain\Cockpit\Metrics\OkrMetrics;
 use App\Domain\Cockpit\Metrics\PeriopMetrics;
+use App\Domain\Cockpit\Metrics\PharmacyMetrics;
 use App\Domain\Cockpit\Metrics\QualityMetrics;
+use App\Domain\Cockpit\Metrics\RadiologyMetrics;
 use App\Domain\Cockpit\Metrics\RtdcMetrics;
 use App\Domain\Cockpit\Metrics\ServiceLineMetrics;
 use App\Domain\Cockpit\Metrics\StaffingMetrics;
@@ -69,8 +72,27 @@ class SnapshotBuilder
         'rtdc' => 'rtdc.occupancy',
         'ed' => 'ed.nedocs',
         'periop' => 'periop.prime_util',
+        'staffing' => 'staffing.productivity',
+        'flow' => 'flow.transport_wait',
+        'quality' => 'quality.sepsis_3hr',
+        'service' => 'service.oe_los',
+        'financial' => 'financial.worked_per_uos',
+        // Service sectors (2026-07-19): the ancillary aggregates keep their
+        // governed flow.ancillary_* keys; each sector's ring is its headline
+        // operational signal (oldest unread study / STAT SLA compliance /
+        // oldest STAT medication).
+        'radiology' => 'flow.ancillary_rad_oldest_unread',
+        'lab' => 'flow.ancillary_lab_stat_compliance',
+        'pharmacy' => 'flow.ancillary_rx_oldest_stat',
         'home' => 'home.census_occupancy',
     ];
+
+    /**
+     * Sectors that are ABSENT (not an empty panel) when they emit no tiles:
+     * Home Hospital while its flag is off, and the three ancillary sectors
+     * when their feed has no data. Always-on domains are never listed here.
+     */
+    private const OPTIONAL_WHEN_EMPTY = ['radiology', 'lab', 'pharmacy', 'home'];
 
     public function __construct(
         private readonly CommandCenterDataService $commandCenter,
@@ -206,12 +228,12 @@ class SnapshotBuilder
                 continue;
             }
 
-            // A flag-gated module that is OFF emits zero values and must be
-            // ABSENT from the snapshot (not an empty panel) — deployments
-            // without Home Hospital stay byte-identical. Distinct from a
-            // failing provider: safeMetrics logs those, and always-on domains
-            // always emit at least one tile.
-            if ($values === [] && $provider->domain() === 'home') {
+            // A flag-gated or feed-dependent sector that emits zero values must
+            // be ABSENT from the snapshot (not an empty panel) — deployments
+            // without Home Hospital, or an ancillary sector whose feed has no
+            // data, stay clean. Distinct from a failing always-on provider:
+            // safeMetrics logs those, and always-on domains always emit ≥1 tile.
+            if ($values === [] && in_array($provider->domain(), self::OPTIONAL_WHEN_EMPTY, true)) {
                 continue;
             }
 
@@ -279,6 +301,12 @@ class SnapshotBuilder
             app(QualityMetrics::class),
             app(ServiceLineMetrics::class),
             app(FinancialMetrics::class),
+            // Service sectors (2026-07-19): promoted out of Flow. Each emits
+            // nothing when its ancillary feed has no data, so the panel is
+            // ABSENT rather than empty (see OPTIONAL_WHEN_EMPTY).
+            app(RadiologyMetrics::class),
+            app(LabMetrics::class),
+            app(PharmacyMetrics::class),
             // Home Hospital (ACUM-PRD-HAH-001): emits nothing while
             // HOME_HOSPITAL_ENABLED is off — cockpit unchanged without it.
             app(HomeMetrics::class),
