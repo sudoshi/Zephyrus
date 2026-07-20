@@ -48,6 +48,9 @@ class DistributionProfileTest extends TestCase
         $this->assertCount(2, $p->dischargeBeforeNoonBand());
         $this->assertArrayHasKey('routine', $p->transportPriorityBands());
         $this->assertLessThan(0.5, $p->transportOverdueShareMax());
+        // The urgent ceiling must clear the seeded ~30% design target (3-per-10
+        // urgent pattern) with headroom — a 0.30 knife-edge self-flagged.
+        $this->assertGreaterThan(0.30, $p->transportPriorityBands()['urgent'][1]);
     }
 
     public function test_throws_a_clear_error_for_an_unregistered_facility(): void
