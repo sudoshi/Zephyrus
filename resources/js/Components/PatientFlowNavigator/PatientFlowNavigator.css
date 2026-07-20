@@ -1132,6 +1132,82 @@
   outline-offset: -2px;
 }
 
+/* --- Action list (F-8): non-pointer selection of delayed locations + barriers,
+   below the feed. Same scoped overlay treatment as the other panels. --------- */
+
+.patient-flow-action-list {
+  position: absolute;
+  z-index: 3;
+  top: 214px;
+  right: 16px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: 32%;
+  overflow: auto;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  background: rgba(27, 31, 29, 0.92);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px;
+}
+
+.patient-flow-action-list section + section {
+  margin-top: 10px;
+}
+
+.patient-flow-action-list-heading {
+  margin: 0 0 6px;
+  color: #b9b2a6;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.patient-flow-action-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.patient-flow-action-row {
+  width: 100%;
+  min-height: 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  border: 1px solid rgba(239, 234, 220, 0.14);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ddd6c7;
+  font-size: 11px;
+  text-align: left;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.patient-flow-action-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-action-row-meta {
+  color: #b9b2a6;
+  white-space: nowrap;
+}
+
+.patient-flow-action-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3efe5;
+}
+
+.patient-flow-action-row:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
 /* --- Saved views (N-7) ---------------------------------------------------- */
 
 .patient-flow-views {
