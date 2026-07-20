@@ -175,17 +175,23 @@ class CockpitSnapshotSectionsTest extends TestCase
         $this->assertSame(120, $productivity['metadata']['scale'] ?? null);
     }
 
-    public function test_okr_scorecard_has_nine_cards_with_objectives_and_owners(): void
+    public function test_okr_scorecard_has_thirteen_cards_with_objectives_and_owners(): void
     {
         $payload = app(SnapshotBuilder::class)->build();
 
-        $this->assertCount(9, $payload['okrs']);
+        // 9 core + 4 service-sector OKRs (2026-07-19). The sector cards fall
+        // back to their config demo value here (no ancillary/home feed seeded).
+        $this->assertCount(13, $payload['okrs']);
 
         $byKey = collect($payload['okrs'])->keyBy('key');
         $dbn = $byKey->get('okr.dc_before_noon');
         $this->assertSame('Smooth Throughput', $dbn['objective']);
         $this->assertSame('CNO', $dbn['owner']);
         $this->assertSame('Discharge before noon', $dbn['keyResult']);
+
+        $hah = $byKey->get('okr.hah_avoided_bed_days');
+        $this->assertSame('Capacity Liberation', $hah['objective']);
+        $this->assertSame('Hospital@Home', $hah['owner']);
     }
 
     public function test_quality_service_financial_are_live_after_p7(): void

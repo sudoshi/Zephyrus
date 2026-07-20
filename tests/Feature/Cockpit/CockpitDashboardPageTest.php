@@ -43,7 +43,7 @@ class CockpitDashboardPageTest extends TestCase
                 ->has('data.capacityStatus.code')
                 ->has('data.census')
                 ->has('data.alerts')
-                ->has('data.okrs', 9)
+                ->has('data.okrs', 13)
                 ->has('data.domains.rtdc.tiles')
                 ->has('data.domains.financial.provenance')
             );

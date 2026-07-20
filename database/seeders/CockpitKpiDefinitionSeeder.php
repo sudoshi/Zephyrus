@@ -77,6 +77,12 @@ class CockpitKpiDefinitionSeeder extends Seeder
             // Legacy dashboard bands readmission warn≥11/crit≥13 — kept so the
             // OKR card and the outcomes band never disagree on the same value.
             'okr.readmit_30d' => $this->okr('30-day readmission', '30-day all-cause readmission rate.', '%', 'down', 11, null, 11, 13, 'CMO', 'Care Reliability'),
+            // Service-sector OKRs (2026-07-19): each reuses its sector's live
+            // headline signal (OkrMetrics), falling back to the config demo value.
+            'okr.rad_sla_breaches' => $this->okr('Imaging SLA breaches', 'Open imaging work items beyond their governed SLA.', 'orders', 'down', 0, null, 3, 8, 'Radiology', 'Reliable Diagnostics'),
+            'okr.lab_stat_tat' => $this->okr('Lab STAT SLA compliance', 'STAT laboratory orders completed within the governed SLA.', '%', 'up', 90, 90, 89, 79, 'Laboratory', 'Timely Diagnostics'),
+            'okr.rx_stockouts' => $this->okr('Medication stockouts', 'Active unit, station, or central-pharmacy stockouts affecting fulfillment.', 'items', 'down', 0, null, 1, 5, 'Pharmacy', 'Medication Availability'),
+            'okr.hah_avoided_bed_days' => $this->okr('Avoided bed-days MTD', 'Home episode bed-days the house did not spend this month.', 'days', 'up', 90, null, null, null, 'Hospital@Home', 'Capacity Liberation'),
 
             // ---------------- RTDC (spec §2.2) — refresh 60s ----------------
             'rtdc.census' => $this->kpi('House census', 'Occupied staffed beds, house-wide.', 'pts', 'down', null, null, null, 60),

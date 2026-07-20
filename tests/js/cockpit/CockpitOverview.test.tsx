@@ -41,7 +41,7 @@ const sections: CockpitSnapshotSections = {
   capacityStatus: { level: 'Surge Level 2', code: 'yellow', status: 'warn' },
   census: censusKeys.map((key) => mv(key, key.split('.')[1])),
   alerts: [{ key: 'ed.nedocs', status: 'crit', text: 'ED OVERCROWDED — NEDOCS 142', provenance: 'demo' }],
-  okrs: Array.from({ length: 9 }, (_, i) => ({
+  okrs: Array.from({ length: 13 }, (_, i) => ({
     ...mv(`okr.kr_${i}`, `Key result ${i}`),
     objective: 'Smooth Throughput',
     keyResult: `Key result ${i}`,
@@ -86,7 +86,7 @@ const renderOverview = (props: Partial<Parameters<typeof CockpitOverview>[0]> = 
   );
 
 describe('CockpitOverview', () => {
-  it('renders the full grammar: command bar, ticker, 8 census chips, 12 domain panels, 9 OKR cards, legend', () => {
+  it('renders the full grammar: command bar, ticker, 8 census chips, 12 domain panels, 13 OKR cards, legend', () => {
     renderOverview();
 
     expect(screen.getByText('Summit Regional Medical Center')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('CockpitOverview', () => {
     expect(screen.getByText('Hospital@Home')).toBeInTheDocument();
     expect(screen.getByText('Radiology')).toBeInTheDocument();
     expect(screen.getByTestId('cockpit-gauge-ed.nedocs')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^okr-card-/)).toHaveLength(9);
+    expect(screen.getAllByTestId(/^okr-card-/)).toHaveLength(13);
     expect(screen.getByText('seeded demonstration data')).toBeInTheDocument();
   });
 
