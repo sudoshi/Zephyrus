@@ -18,12 +18,14 @@ test('Ancillary service sectors render as first-class cockpit panels', async ({ 
 
   const grid = page.getByTestId('cockpit-domain-grid');
   await expect(grid).toBeVisible({ timeout: 10000 });
-  // The three ancillary sectors (promoted out of Flow, 2026-07-19) plus
-  // Hospital@Home now render as their own gauged panels.
+  // The three ancillary sectors, promoted out of Flow (2026-07-19), now render
+  // as their own gauged panels wherever the ancillary feed has data. (The
+  // Hospital@Home panel is a separately flag-gated module, HOME_HOSPITAL_ENABLED,
+  // so it is asserted by the CockpitOverview unit fixture, not this feed-dependent
+  // browser check.)
   await expect(grid.getByText('Radiology', { exact: true })).toBeVisible();
   await expect(grid.getByText('Laboratory', { exact: true })).toBeVisible();
   await expect(grid.getByText('Pharmacy', { exact: true })).toBeVisible();
-  await expect(grid.getByText('Hospital@Home', { exact: true })).toBeVisible();
 
   // The Radiology panel drills to its own aggregate measure ledger.
   await page.goto('/dashboard?drill=radiology', { waitUntil: 'domcontentloaded' });
