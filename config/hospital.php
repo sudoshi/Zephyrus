@@ -61,9 +61,14 @@ return [
         // Discharge-before-noon is a metric hospitals fight to hit; >45% is fantasy. (min, max).
         'discharge_before_noon' => [0.18, 0.42],
         // Transport priority mix — routine dominates, stat is a thin slice.
+        // Each ceiling sits a realistic margin ABOVE its seeded design target so
+        // the demo's own intended mix never flags itself: routine target ~60%
+        // (ceiling 85), stat target ~10% (ceiling 15), urgent target ~30%
+        // (ceiling 35 — the seeded 3-per-10 urgent pattern lands at ~30%, so a
+        // 0.30 ceiling left zero headroom and history accumulation tipped it over).
         'transport_priority_share' => [
             'routine' => [0.55, 0.85],
-            'urgent' => [0.10, 0.30],
+            'urgent' => [0.10, 0.35],
             'stat' => [0.02, 0.15],
         ],
         // Share of the ACTIVE transport queue allowed to be past its needed_by (SLA breach).
