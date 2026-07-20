@@ -74,6 +74,7 @@ import {
 } from '@/features/patientFlowNavigator/introTour';
 import type { PageProps } from '@/types';
 import type { CameraView, NavigatorScene } from './NavigatorScene';
+import NavigatorActionList from './NavigatorActionList';
 import NavigatorChronobar from './NavigatorChronobar';
 import NavigatorFeed from './NavigatorFeed';
 import NavigatorFloorRail from './NavigatorFloorRail';
@@ -339,6 +340,9 @@ export default function PatientFlowNavigator({
   // camera emit never re-renders the tree when the place label is unchanged.
   const cameraSpanRef = useRef<HTMLSpanElement | null>(null);
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
+  // F-8 non-pointer parity: the delayed/watch locations currently drawn in the
+  // scene, exposed as a keyboard-selectable list (NavigatorActionList).
+  const [actionableInsights, setActionableInsights] = useState<OccupancyInsight[]>([]);
   const [occupancy, setOccupancy] = useState<OccupancySummary>(EMPTY_OCCUPANCY_SUMMARY);
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
@@ -537,6 +541,8 @@ export default function PatientFlowNavigator({
       : occupancyInsights;
     lastVisibleStatesRef.current = states;
     lastOccupancyInsightsRef.current = occupancyInsights;
+    // Only the visible disks are selectable in the scene; the list mirrors them.
+    setActionableInsights(visibleOccupancyInsights.filter((insight) => insight.primaryStatus !== 'ok'));
     scene.updateTokens(
       states,
       layersRef.current.tokens && dotsPolicy !== 'none',
@@ -1222,6 +1228,40 @@ export default function PatientFlowNavigator({
     sceneRef.current?.selectEntity({ kind: 'patient', id: patientId });
   }, [dotsPolicy]);
 
+  // F-8: keyboard/AT selection of a delayed location — the same code path a
+  // canvas raycast on the disk takes (shared occupancyInspectorData builder,
+  // shared selectEntity API). Labels are location-level, identity-safe.
+  const selectLocationFromList = useCallback((location: string): void => {
+    const insight = lastOccupancyInsightsRef.current.find((candidate) => candidate.location === location);
+    if (!insight) return;
+    const data = occupancyInspectorData(insight);
+    const redacted = redactSelection(data, dotsPolicy);
+    const element = elementLabelFor(data);
+    const name = String(redacted.location_name ?? redacted.location ?? 'Location');
+    setInspectorTitle(element && element !== name ? `${element} · ${name}` : name);
+    setInspectorRows(flattenInspector(redacted));
+    setInspectorAction(null);
+    sceneRef.current?.selectEntity({ kind: 'occupancy', id: location });
+  }, [dotsPolicy]);
+
+  // F-8: keyboard/AT selection of an open barrier (aggregate, patient-free).
+  const selectBarrierFromList = useCallback((barrierId: number): void => {
+    const barrier = barriersRef.current.find((candidate) => candidate.barrier_id === barrierId);
+    if (!barrier) return;
+    const rows: Array<[string, string]> = [
+      ['Category', barrier.category],
+      ['Unit', barrier.unit_label ?? (barrier.unit_id !== null ? `Unit ${barrier.unit_id}` : '—')],
+      ['Reason', barrier.reason_code ?? '—'],
+      ['Owner', barrier.owner ?? '—'],
+      ['Opened', barrier.opened_at ?? '—'],
+    ];
+    if (barrier.description) rows.push(['Detail', barrier.description]);
+    setInspectorTitle(`Barrier · ${barrier.category}`);
+    setInspectorRows(rows);
+    setInspectorAction(null);
+    sceneRef.current?.selectEntity({ kind: 'barrier', id: String(barrier.barrier_id) });
+  }, []);
+
   // N-7: three persona-keyed camera/floor/layers bookmarks. The updater
   // stays pure — persistence happens outside setState.
   const saveView = useCallback((slot: number): void => {
@@ -1539,6 +1579,13 @@ export default function PatientFlowNavigator({
         feed={feed}
         redactIdentity={dotsPolicy !== null && dotsPolicy !== 'full'}
         onSelectPatient={patientDotsVisible ? selectPatientFromList : undefined}
+      />
+
+      <NavigatorActionList
+        delayed={actionableInsights}
+        barriers={layers.barriers ? barriers : []}
+        onSelectLocation={selectLocationFromList}
+        onSelectBarrier={selectBarrierFromList}
       />
 
       <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
