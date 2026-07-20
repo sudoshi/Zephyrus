@@ -36,7 +36,7 @@ import { buildOccupancyInsights } from '@/features/patientFlowNavigator/occupanc
 import { useEddyStore } from '@/stores/eddyStore';
 import { fetchRoundRuns, fetchRoundScene } from '@/features/virtualRounds/api';
 import { runsResponseSchema, sceneResponseSchema } from '@/features/virtualRounds/schemas';
-import { buildRoundRoute, buildRoundStopCells } from '@/features/virtualRounds/roundsScene';
+import { buildRoundRoute, buildRoundStopCells, findOpenRun } from '@/features/virtualRounds/roundsScene';
 import type { RoundStop } from '@/features/virtualRounds/roundsScene';
 import type { RunSummary } from '@/features/virtualRounds/types';
 import type {
@@ -949,13 +949,18 @@ export default function PatientFlowNavigator({
         if (!runsPayload.success || cancelled) return;
         roundsFailCountRef.current = 0;
 
-        const openRun = runsPayload.data.data.find((run) =>
-          ['active', 'paused', 'closing', 'draft', 'scheduled'].includes(run.status),
-        );
+        const openRun = findOpenRun(runsPayload.data.data);
         if (!openRun) {
           if (roundsRunUuidRef.current !== null) {
+            // Run just went terminal (completed/cancelled) or was retired by the
+            // demo refresh: announce once AND drop the rings, so a finished run's
+            // itinerary can't linger in the scene as if it were live work
+            // (HFE audit F-6). Mirrors the persistent-failure clear below.
             roundsRunUuidRef.current = null;
+            roundsSceneHashRef.current = '';
+            roundsVersionRef.current += 1;
             setRoundsRun((prev) => (prev ? { ...prev, status: 'completed' } : prev));
+            setRoundStops([]);
             setToastMessage('Rounds run complete');
           }
           return;

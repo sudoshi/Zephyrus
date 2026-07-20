@@ -3,6 +3,8 @@ import type { ProjectionPlacementIndex } from '@/features/patientFlowNavigator/p
 import {
   buildRoundRoute,
   buildRoundStopCells,
+  findOpenRun,
+  OPEN_RUN_STATUSES,
   ROUND_STOP_COLORS,
   type RoundStop,
 } from '@/features/virtualRounds/roundsScene';
@@ -173,3 +175,24 @@ describe('buildRoundRoute (R-4)', () => {
     expect(route.map((segment) => segment.dashed)).toEqual([false, true]);
   });
 });
+
+describe('findOpenRun (HFE audit F-6 — stale-ring guard)', () => {
+  it('returns the live run for every open status', () => {
+    for (const status of OPEN_RUN_STATUSES) {
+      expect(findOpenRun([{ run_uuid: 'r1', status }])).toEqual({ run_uuid: 'r1', status });
+    }
+  });
+
+  it('returns null when only terminal runs exist (completed / cancelled)', () => {
+    expect(findOpenRun([{ status: 'completed' }, { status: 'cancelled' }])).toBeNull();
+  });
+
+  it('returns null for an empty list (run retired by the demo refresh)', () => {
+    expect(findOpenRun([])).toBeNull();
+  });
+
+  it('prefers the first open run when both open and terminal runs are present', () => {
+    const runs = [{ run_uuid: 'done', status: 'completed' }, { run_uuid: 'live', status: 'active' }];
+    expect(findOpenRun(runs)?.run_uuid).toBe('live');
+  });
+})
